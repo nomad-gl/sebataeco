@@ -131,29 +131,29 @@
 - [ ] After generation, offer to generate Q&A or fill-in-the-blank from the presentation
 
 ## Host a Class Challenge Feature
-- [ ] Teacher creates challenge with room code (6-char), selects competency + year group + question count
-- [ ] Students join via /join?code=XXXXXX on their phones
-- [ ] Real-time question display with 4 answer options and countdown timer
-- [ ] Live leaderboard updated after each question
-- [ ] Teacher controls: start, next question, end session
-- [ ] Session results saved to DB per student
-- [ ] Teacher dropdown link: "Host a Class Challenge"
+- [x] Teacher creates challenge with room code (6-char), selects competency + year group + question count
+- [x] Students join via /join?code=XXXXXX on their phones
+- [x] Real-time question display with 4 answer options and countdown timer
+- [x] Live leaderboard updated after each question
+- [x] Teacher controls: start, next question, end session
+- [x] Session results saved to DB per student
+- [x] Teacher dropdown link: "Class Challenge" (done)
 
 ## Sample Questions by Category Page
-- [ ] New page /questions with browsable library of all 96 questions
-- [ ] Filter by competency code (CCL, CP, STEM, CD, CPSAA, CC, CE, CCEC)
-- [ ] Filter by year group (junior, primary, secondary)
-- [ ] Print worksheet (with answers version + without answers version)
-- [ ] Teacher dropdown link: "Sample Questions"
+- [x] New page /questions with browsable library of all 96 questions
+- [x] Filter by competency code (CCL, CP, STEM, CD, CPSAA, CC, CE, CCEC)
+- [x] Filter by year group (junior, primary, secondary)
+- [x] Print worksheet (with answers version + without answers version)
+- [x] Teacher dropdown link: "Question Library" (done)
 
 ## Per-Page Background Treatments
-- [ ] Home: photorealistic classroom (already done)
-- [ ] AI Chat: soft blue gradient with subtle circuit/network pattern
-- [ ] Practice: warm amber/gold gradient suggesting focus and challenge
-- [ ] Progress: deep teal gradient with subtle chart/graph pattern
-- [ ] Create Materials: creative purple/indigo gradient
-- [ ] My Materials: clean slate/grey gradient with card depth
-- [ ] Admin: professional dark navy gradient
-- [ ] Presentation: rich royal blue gradient
-- [ ] Class Challenge: energetic red/orange gradient (game-show feel)
-- [ ] Sample Questions: academic green gradient
+- [x] Home: photorealistic classroom (done)
+- [x] AI Chat: deep indigo/violet gradient (done)
+- [x] Practice: warm amber/orange gradient (done)
+- [x] Progress: teal/emerald gradient (done)
+- [x] Create Materials: lavender/purple gradient (done)
+- [x] My Materials: warm slate/blue-grey gradient (done)
+- [x] Admin: dark navy/charcoal gradient (done)
+- [x] Presentation: royal blue gradient (done — applied when page built)
+- [x] Class Challenge: deep gold/amber dark gradient (done)
+- [x] Sample Questions: light blue/indigo gradient (done)

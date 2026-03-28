@@ -15,6 +15,8 @@ import MaterialView from "./pages/MaterialView";
 import Progress from "./pages/Progress";
 import Challenge from "./pages/Challenge";
 import SampleQuestions from "./pages/SampleQuestions";
+import Join from "./pages/Join";
+import Presentation from "./pages/Presentation";
 
 function Router() {
   return (
@@ -30,6 +32,8 @@ function Router() {
         <Route path="/progress" component={Progress} />
         <Route path="/challenge" component={Challenge} />
         <Route path="/questions" component={SampleQuestions} />
+        <Route path="/join" component={Join} />
+        <Route path="/presentation" component={Presentation} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>
