@@ -174,6 +174,24 @@ export const translations = {
     comp_primary: "Primary (Yr 5–6)",
     comp_secondary: "Secondary (Yr 7–10)",
 
+    // Competency names & descriptions
+    comp_ccl_name: "Linguistic Communication",
+    comp_ccl_desc: "The ability to use language effectively in spoken and written form to communicate, understand, and express ideas across all subject areas.",
+    comp_cp_name: "Multilingual Competence",
+    comp_cp_desc: "The ability to use several languages appropriately and effectively for communication, valuing linguistic diversity as a personal and social enrichment.",
+    comp_stem_name: "Mathematics & STEM",
+    comp_stem_desc: "The ability to formulate, apply, and interpret mathematics in a variety of contexts, and to engage with science, technology, and engineering thinking.",
+    comp_cd_name: "Digital Competence",
+    comp_cd_desc: "The confident and critical use of digital technologies for work, leisure, and communication, including information literacy, digital creation, and online safety.",
+    comp_cpsaa_name: "Personal, Social & Learning to Learn",
+    comp_cpsaa_desc: "The ability to reflect on oneself, manage emotions, collaborate with others, and develop strategies for lifelong learning and personal growth.",
+    comp_cc_name: "Civic Competence",
+    comp_cc_desc: "The ability to act as responsible citizens, understand democratic values, respect human rights, and participate actively in civic and social life.",
+    comp_ce_name: "Entrepreneurial Competence",
+    comp_ce_desc: "The ability to turn ideas into action through creativity, planning, and initiative — including the skills needed to start and sustain projects and ventures.",
+    comp_ccec_name: "Cultural Awareness & Expression",
+    comp_ccec_desc: "The ability to understand and appreciate the creative expression of ideas, experiences, and emotions through art, music, literature, and other cultural forms.",
+
     // Create activity descriptions
     create_desc_quiz: "8 MCQ questions with answers & explanations",
     create_desc_slides: "6–8 slides with headings, bullets & speaker notes",
@@ -500,6 +518,24 @@ export const translations = {
     comp_primary: "Primaria (Curso 5–6)",
     comp_secondary: "Secundaria (Curso 7–10)",
 
+    // Competency names & descriptions
+    comp_ccl_name: "Comunicación Lingüística",
+    comp_ccl_desc: "La capacidad de usar el lenguaje de forma eficaz, oral y escrita, para comunicarse, comprender y expresar ideas en todas las áreas.",
+    comp_cp_name: "Competencia Plurilingüe",
+    comp_cp_desc: "La capacidad de usar varias lenguas de forma adecuada y eficaz, valorando la diversidad lingüística como enriquecimiento personal y social.",
+    comp_stem_name: "Matemáticas y STEM",
+    comp_stem_desc: "La capacidad de formular, aplicar e interpretar las matemáticas en contextos variados y de razonar en ciencia, tecnología e ingeniería.",
+    comp_cd_name: "Competencia Digital",
+    comp_cd_desc: "El uso seguro y crítico de las tecnologías digitales para el trabajo, el ocio y la comunicación, incluyendo la alfabetización digital y la seguridad en línea.",
+    comp_cpsaa_name: "Personal, Social y Aprender a Aprender",
+    comp_cpsaa_desc: "La capacidad de reflexionar sobre uno mismo, gestionar emociones, colaborar con otros y desarrollar estrategias de aprendizaje a lo largo de la vida.",
+    comp_cc_name: "Competencia Ciudadana",
+    comp_cc_desc: "La capacidad de actuar como ciudadanos responsables, comprender los valores democráticos, respetar los derechos humanos y participar activamente en la vida cívica.",
+    comp_ce_name: "Competencia Emprendedora",
+    comp_ce_desc: "La capacidad de convertir ideas en acciones mediante la creatividad, la planificación y la iniciativa, incluyendo las habilidades para iniciar y sostener proyectos.",
+    comp_ccec_name: "Conciencia y Expresión Culturales",
+    comp_ccec_desc: "La capacidad de comprender y apreciar la expresión creativa de ideas, experiencias y emociones a través del arte, la música, la literatura y otras formas culturales.",
+
     // Create activity descriptions
     create_desc_quiz: "8 preguntas de opción múltiple con respuestas y explicaciones",
     create_desc_slides: "6–8 diapositivas con títulos, puntos y notas del orador",
@@ -825,6 +861,24 @@ export const translations = {
     comp_junior: "Inicial (Curs 3–4)",
     comp_primary: "Primària (Curs 5–6)",
     comp_secondary: "Secundària (Curs 7–10)",
+
+    // Competency names & descriptions
+    comp_ccl_name: "Comunicació Lingüística",
+    comp_ccl_desc: "La capacitat d'usar el llenguatge de manera eficac, oral i escrita, per comunicar-se, comprendre i expressar idees en totes les àrees.",
+    comp_cp_name: "Competència Plurilingüe",
+    comp_cp_desc: "La capacitat d'usar diverses llengues de manera adequada i eficac, valorant la diversitat lingüística com un enriquiment personal i social.",
+    comp_stem_name: "Matemàtiques i STEM",
+    comp_stem_desc: "La capacitat de formular, aplicar i interpretar les matemàtiques en contextos variats i de raonar en ciència, tecnologia i enginyeria.",
+    comp_cd_name: "Competència Digital",
+    comp_cd_desc: "L'ús segur i crític de les tecnologies digitals per al treball, el lleure i la comunicació, incloent l'alfabetització digital i la seguretat en línia.",
+    comp_cpsaa_name: "Personal, Social i Aprèndre a Aprèndre",
+    comp_cpsaa_desc: "La capacitat de reflexionar sobre un mateix, gestionar emocions, col·laborar amb altres i desenvolupar estratègies d'aprenentatge al llarg de la vida.",
+    comp_cc_name: "Competència Ciutadana",
+    comp_cc_desc: "La capacitat d'actuar com a ciutadans responsables, comprendre els valors democràtics, respectar els drets humans i participar activament en la vida cívica.",
+    comp_ce_name: "Competència Emprenedora",
+    comp_ce_desc: "La capacitat de convertir idees en accions mitjançant la creativitat, la planificació i la iniciativa, incloent les habilitats per iniciar i sostenir projectes.",
+    comp_ccec_name: "Consciència i Expressió Culturals",
+    comp_ccec_desc: "La capacitat de comprendre i apreciar l'expressió creativa d'idees, experiències i emocions a través de l'art, la música, la literatura i altres formes culturals.",
 
     // Create activity descriptions
     create_desc_quiz: "8 preguntes d'opció múltiple amb respostes i explicacions",

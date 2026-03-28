@@ -195,10 +195,10 @@ export default function Home() {
                     </span>
                   </div>
                   <h3 className="font-semibold text-foreground text-sm mb-1 group-hover:text-primary transition-colors">
-                    {comp.name}
+                    {t(`comp_${comp.code.toLowerCase()}_name` as Parameters<typeof t>[0])}
                   </h3>
                   <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
-                    {comp.description}
+                    {t(`comp_${comp.code.toLowerCase()}_desc` as Parameters<typeof t>[0])}
                   </p>
                 </CardContent>
                 <div
