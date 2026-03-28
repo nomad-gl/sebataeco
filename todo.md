@@ -97,3 +97,8 @@
 - [x] MyMaterials: fix materials grid and card layout on mobile
 - [x] Admin: fix stats table and coverage chart on mobile
 - [x] Footer: ensure footer stacks vertically and is readable on mobile
+
+## App Name Rename
+- [x] Rename "SEBA AI" to "SEBA AI | TA" in NavBar logo text
+- [x] Rename in HTML <title> tag (client/index.html)
+- [x] Rename in any other visible references (Footer, Chat greeting)

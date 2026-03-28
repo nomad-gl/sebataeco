@@ -117,7 +117,7 @@ export default function Chat() {
             onSendMessage={handleSendMessage}
             isLoading={chatMutation.isPending}
             placeholder="Ask about LOMLOE competencies… (Enter to send)"
-            emptyStateMessage="Hello! I'm SEBA AI, your LOMLOE curriculum assistant. Ask me anything about the 8 key competencies!"
+            emptyStateMessage="Hello! I'm SEBA AI | TA, your LOMLOE curriculum assistant. Ask me anything about the 8 key competencies!"
             suggestedPrompts={SUGGESTED_QUESTIONS}
             height="calc(100dvh - 220px)"
           />

@@ -22,7 +22,7 @@ export default function Footer() {
 
           {/* Centre: site description */}
           <p className="text-xs text-muted-foreground text-center">
-            SEBA AI Studio · Aligned with Spain's LOMLOE curriculum
+            SEBA AI | TA · Aligned with Spain's LOMLOE curriculum
           </p>
 
           {/* Right: Powered by SEBA + sebasnap link */}

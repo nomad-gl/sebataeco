@@ -60,7 +60,7 @@ export default function NavBar() {
               S
             </div>
             <span className="font-heading font-bold text-base sm:text-lg text-foreground group-hover:text-primary transition-colors">
-              SEBA AI
+              SEBA AI | TA
             </span>
           </Link>
 
