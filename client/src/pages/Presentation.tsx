@@ -139,7 +139,7 @@ export default function Presentation() {
     createMutation.mutate({
       type: "slides",
       topic: heading ? `${heading}: ${topic}` : topic,
-      competency: (competency || undefined) as "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC" | undefined,
+      competency: (competency && competency !== "any" ? competency : undefined) as "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC" | undefined,
       yearGroup: yearGroup as "junior" | "primary" | "secondary",
     });
   };
@@ -220,7 +220,7 @@ export default function Presentation() {
               <Select value={competency} onValueChange={setCompetency}>
                 <SelectTrigger className="bg-white/10 border-white/20 text-white"><SelectValue placeholder={t("presentation_any_competency")} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">{t("presentation_any_competency")}</SelectItem>
+                  <SelectItem value="any">{t("presentation_any_competency")}</SelectItem>
                   {COMPETENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                 </SelectContent>
               </Select>

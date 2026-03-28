@@ -191,3 +191,6 @@
 - [x] Fix CompetencySelector hardcoded labels (competency names, year group labels)
 - [x] Fix Home.tsx competency card names and descriptions
 - [x] Fix any other components with hardcoded strings not using t()
+
+## Bug: Presentation page SelectItem empty value crash
+- [x] Fix SelectItem value="" on "Any competency" option in Presentation.tsx (Radix UI forbids empty string values)
