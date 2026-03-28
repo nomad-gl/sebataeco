@@ -1,0 +1,25 @@
+{
+  "query": "SHOW TABLES;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user pGBiNPeXsjmyJ4x.10d1550e6f39 --database ZdUr4NNhMJ6HJrxx9nW6jZ --execute SHOW TABLES;",
+  "rows": [
+    {
+      "Tables_in_ZdUr4NNhMJ6HJrxx9nW6jZ": "__drizzle_migrations"
+    },
+    {
+      "Tables_in_ZdUr4NNhMJ6HJrxx9nW6jZ": "class_challenges"
+    },
+    {
+      "Tables_in_ZdUr4NNhMJ6HJrxx9nW6jZ": "practice_sessions"
+    },
+    {
+      "Tables_in_ZdUr4NNhMJ6HJrxx9nW6jZ": "teaching_materials"
+    },
+    {
+      "Tables_in_ZdUr4NNhMJ6HJrxx9nW6jZ": "users"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_ZdUr4NNhMJ6HJrxx9nW6jZ\n__drizzle_migrations\nclass_challenges\npractice_sessions\nteaching_materials\nusers\n",
+  "stderr": "",
+  "execution_time_ms": 61
+}

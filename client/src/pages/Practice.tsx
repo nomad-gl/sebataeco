@@ -96,7 +96,7 @@ export default function Practice() {
   const progressPct = total > 0 ? (total / SESSION_SIZE) * 100 : 0;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="practice-bg flex flex-col">
       <NavBar />
 
       <div className="container py-4 sm:py-8 max-w-2xl mx-auto w-full flex flex-col gap-4 sm:gap-6">

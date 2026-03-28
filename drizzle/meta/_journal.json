@@ -15,6 +15,13 @@
       "when": 1774704950186,
       "tag": "0001_cultured_golden_guardian",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1774714898262,
+      "tag": "0002_rapid_whiplash",
+      "breakpoints": true
     }
   ]
 }

@@ -25,7 +25,7 @@ export const lomloeRouter = router({
       z.object({
         competency: CompetencyCodeSchema.optional(),
         yearGroup: YearGroupSchema.optional(),
-        limit: z.number().min(1).max(50).default(10),
+        limit: z.number().min(1).max(200).default(200),
         shuffle: z.boolean().default(false),
       })
     )

@@ -1,0 +1,14 @@
+{
+  "query": "SHOW TABLES; SELECT COUNT(*) as participant_count FROM challenge_participants;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user pGBiNPeXsjmyJ4x.10d1550e6f39 --database ZdUr4NNhMJ6HJrxx9nW6jZ --execute SHOW TABLES; SELECT COUNT(*) as participant_count FROM challenge_participants;",
+  "returncode": 1,
+  "logs": [
+    "Tables_in_ZdUr4NNhMJ6HJrxx9nW6jZ",
+    "__drizzle_migrations",
+    "class_challenges",
+    "practice_sessions",
+    "teaching_materials",
+    "users",
+    "ERROR 1146 (42S02) at line 1: Table 'zdur4nnhmj6hjrxx9nw6jz.challenge_participants' doesn't exist"
+  ]
+}

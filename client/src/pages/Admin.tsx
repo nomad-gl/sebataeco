@@ -24,7 +24,7 @@ export default function Admin() {
   // Loading auth state
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="admin-bg flex flex-col">
         <NavBar />
         <div className="flex-1 flex items-center justify-center">
           <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -36,7 +36,7 @@ export default function Admin() {
   // Not logged in
   if (!user) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="admin-bg flex flex-col">
         <NavBar />
         <div className="flex-1 flex items-center justify-center">
           <Card className="max-w-sm w-full mx-4">
@@ -61,7 +61,7 @@ export default function Admin() {
   // Logged in but not admin
   if (user.role !== "admin") {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="admin-bg flex flex-col">
         <NavBar />
         <div className="flex-1 flex items-center justify-center">
           <Card className="max-w-sm w-full mx-4">
@@ -82,7 +82,7 @@ export default function Admin() {
 
   if (statsLoading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="admin-bg flex flex-col">
         <NavBar />
         <div className="flex-1 flex items-center justify-center">
           <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -96,7 +96,7 @@ export default function Admin() {
     : 1;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="admin-bg flex flex-col">
       <NavBar />
 
       <div className="container py-4 sm:py-8 flex flex-col gap-6 sm:gap-8">

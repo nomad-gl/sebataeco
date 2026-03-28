@@ -13,6 +13,8 @@ import Create from "./pages/Create";
 import MyMaterials from "./pages/MyMaterials";
 import MaterialView from "./pages/MaterialView";
 import Progress from "./pages/Progress";
+import Challenge from "./pages/Challenge";
+import SampleQuestions from "./pages/SampleQuestions";
 
 function Router() {
   return (
@@ -26,6 +28,8 @@ function Router() {
         <Route path="/my-materials" component={MyMaterials} />
         <Route path="/materials/:id" component={MaterialView} />
         <Route path="/progress" component={Progress} />
+        <Route path="/challenge" component={Challenge} />
+        <Route path="/questions" component={SampleQuestions} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

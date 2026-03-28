@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import {
   BookOpen, MessageCircle, Dumbbell, LayoutDashboard,
-  Sparkles, Library, TrendingUp, ChevronDown, Menu, X,
+  Sparkles, Library, TrendingUp, ChevronDown, Menu, X, Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
@@ -14,9 +14,11 @@ const mainNavItems = [
 ];
 
 const teacherItems = [
-  { href: "/create",       label: "Create Material", icon: Sparkles },
-  { href: "/my-materials", label: "My Materials",    icon: Library },
-  { href: "/admin",        label: "Admin",           icon: LayoutDashboard },
+  { href: "/create",       label: "Create Material",  icon: Sparkles },
+  { href: "/my-materials", label: "My Materials",     icon: Library },
+  { href: "/challenge",    label: "Class Challenge",  icon: Zap },
+  { href: "/questions",   label: "Question Library", icon: BookOpen },
+  { href: "/admin",        label: "Admin",            icon: LayoutDashboard },
 ];
 
 export default function NavBar() {

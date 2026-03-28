@@ -1,0 +1,9 @@
+{
+  "query": "SHOW TABLES LIKE 'class%'; SHOW TABLES LIKE 'challenge%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user pGBiNPeXsjmyJ4x.10d1550e6f39 --database ZdUr4NNhMJ6HJrxx9nW6jZ --execute SHOW TABLES LIKE 'class%'; SHOW TABLES LIKE 'challenge%';",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 70
+}

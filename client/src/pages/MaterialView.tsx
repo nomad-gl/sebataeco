@@ -507,7 +507,7 @@ export default function MaterialView() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="material-view-bg flex flex-col">
         <NavBar />
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -518,7 +518,7 @@ export default function MaterialView() {
 
   if (!material) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="material-view-bg flex flex-col">
         <NavBar />
         <div className="container py-12 text-center">
           <p className="text-muted-foreground mb-4">Material not found.</p>
@@ -552,7 +552,7 @@ export default function MaterialView() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="material-view-bg flex flex-col">
       <NavBar />
       <div className="container py-4 sm:py-6 max-w-4xl mx-auto w-full flex flex-col gap-4">
 

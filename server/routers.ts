@@ -4,6 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { lomloeRouter } from "./routers/lomloe";
 import { materialsRouter } from "./routers/materials";
+import { challengeRouter } from "./routers/challenge";
 
 export const appRouter = router({
   system: systemRouter,
@@ -19,6 +20,7 @@ export const appRouter = router({
   }),
   lomloe: lomloeRouter,
   materials: materialsRouter,
+  challenge: challengeRouter,
 });
 
 export type AppRouter = typeof appRouter;

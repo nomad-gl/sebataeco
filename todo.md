@@ -120,3 +120,40 @@
 - [x] Crossword grid: grey cells, larger numbers (200%), double line thickness
 - [x] Q&A without-answers sheet: single line per question (not three lines)
 - [x] Wordsearch: arrange keywords in proper grid
+
+## Create a Presentation Feature
+- [ ] New page /presentation with heading, topic, subject, format inputs
+- [ ] AI generates cover slide + 8-10 content slides with competency tags and image suggestions
+- [ ] Paginated slide preview with edit-in-place text support
+- [ ] Download as Word (.docx) and PDF
+- [ ] Teacher dropdown link: "Create a Presentation"
+- [ ] My Presentations library at /my-presentations with open/edit/delete
+- [ ] After generation, offer to generate Q&A or fill-in-the-blank from the presentation
+
+## Host a Class Challenge Feature
+- [ ] Teacher creates challenge with room code (6-char), selects competency + year group + question count
+- [ ] Students join via /join?code=XXXXXX on their phones
+- [ ] Real-time question display with 4 answer options and countdown timer
+- [ ] Live leaderboard updated after each question
+- [ ] Teacher controls: start, next question, end session
+- [ ] Session results saved to DB per student
+- [ ] Teacher dropdown link: "Host a Class Challenge"
+
+## Sample Questions by Category Page
+- [ ] New page /questions with browsable library of all 96 questions
+- [ ] Filter by competency code (CCL, CP, STEM, CD, CPSAA, CC, CE, CCEC)
+- [ ] Filter by year group (junior, primary, secondary)
+- [ ] Print worksheet (with answers version + without answers version)
+- [ ] Teacher dropdown link: "Sample Questions"
+
+## Per-Page Background Treatments
+- [ ] Home: photorealistic classroom (already done)
+- [ ] AI Chat: soft blue gradient with subtle circuit/network pattern
+- [ ] Practice: warm amber/gold gradient suggesting focus and challenge
+- [ ] Progress: deep teal gradient with subtle chart/graph pattern
+- [ ] Create Materials: creative purple/indigo gradient
+- [ ] My Materials: clean slate/grey gradient with card depth
+- [ ] Admin: professional dark navy gradient
+- [ ] Presentation: rich royal blue gradient
+- [ ] Class Challenge: energetic red/orange gradient (game-show feel)
+- [ ] Sample Questions: academic green gradient

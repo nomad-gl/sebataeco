@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE challenge_participants (id int AUTO_INCREMENT PRIMARY KEY, challengeId int NOT NULL, nickname varchar(64) NOT NULL, score int NOT NULL DEFAULT 0, answers text, joinedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP, updatedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user pGBiNPeXsjmyJ4x.10d1550e6f39 --database ZdUr4NNhMJ6HJrxx9nW6jZ --execute CREATE TABLE challenge_participants (id int AUTO_INCREMENT PRIMARY KEY, challengeId int NOT NULL, nickname varchar(64) NOT NULL, score int NOT NULL DEFAULT 0, answers text, joinedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP, updatedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 180
+}

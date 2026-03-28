@@ -202,3 +202,95 @@
     }
   }
 }
+/* ═══════════════════════════════════════════════════════════════
+   Per-page background treatments for easy visual recognition
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Practice – warm amber/orange gradient (energetic, quiz feel) */
+.practice-bg {
+  background: linear-gradient(135deg,
+    oklch(0.97 0.04 80) 0%,
+    oklch(0.94 0.06 55) 50%,
+    oklch(0.92 0.05 35) 100%);
+  min-height: 100vh;
+}
+
+/* AI Chat – deep indigo/violet gradient (intelligent, calm) */
+.chat-bg {
+  background: linear-gradient(160deg,
+    oklch(0.18 0.06 270) 0%,
+    oklch(0.22 0.08 290) 50%,
+    oklch(0.16 0.05 250) 100%);
+  min-height: 100vh;
+}
+
+/* Progress – teal/emerald gradient (growth, achievement) */
+.progress-bg {
+  background: linear-gradient(135deg,
+    oklch(0.96 0.04 165) 0%,
+    oklch(0.92 0.07 155) 50%,
+    oklch(0.88 0.06 175) 100%);
+  min-height: 100vh;
+}
+
+/* Create Material – soft lavender/purple gradient (creative) */
+.create-bg {
+  background: linear-gradient(150deg,
+    oklch(0.97 0.03 290) 0%,
+    oklch(0.93 0.06 300) 50%,
+    oklch(0.90 0.05 280) 100%);
+  min-height: 100vh;
+}
+
+/* My Materials – warm slate/blue-grey (organised, library feel) */
+.materials-bg {
+  background: linear-gradient(135deg,
+    oklch(0.97 0.01 240) 0%,
+    oklch(0.93 0.03 230) 50%,
+    oklch(0.90 0.02 220) 100%);
+  min-height: 100vh;
+}
+
+/* Admin – dark navy/charcoal (authoritative, dashboard) */
+.admin-bg {
+  background: linear-gradient(160deg,
+    oklch(0.20 0.04 250) 0%,
+    oklch(0.16 0.03 240) 50%,
+    oklch(0.14 0.02 260) 100%);
+  min-height: 100vh;
+}
+
+/* Class Challenge – deep gold/amber dark (energetic, competitive) */
+.challenge-bg {
+  background: linear-gradient(160deg,
+    oklch(0.22 0.07 50) 0%,
+    oklch(0.18 0.06 40) 40%,
+    oklch(0.14 0.04 30) 100%);
+  min-height: 100vh;
+}
+
+/* Sample Questions – clean light blue/indigo (academic, library) */
+.samples-bg {
+  background: linear-gradient(135deg,
+    oklch(0.97 0.03 240) 0%,
+    oklch(0.94 0.04 250) 50%,
+    oklch(0.96 0.02 230) 100%);
+  min-height: 100vh;
+}
+
+/* Material View – neutral warm white (focus, reading) */
+.material-view-bg {
+  background: linear-gradient(180deg,
+    oklch(0.99 0.01 80) 0%,
+    oklch(0.97 0.02 70) 100%);
+  min-height: 100vh;
+}
+
+/* Print styles – override backgrounds for clean printing */
+@media print {
+  .practice-bg, .chat-bg, .progress-bg, .create-bg,
+  .materials-bg, .admin-bg, .challenge-bg, .samples-bg,
+  .material-view-bg {
+    background: white !important;
+  }
+}

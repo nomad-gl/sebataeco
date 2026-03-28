@@ -61,7 +61,7 @@ export default function Create() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="create-bg flex flex-col">
         <NavBar />
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -72,7 +72,7 @@ export default function Create() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="create-bg flex flex-col">
         <NavBar />
         <div className="flex-1 flex items-center justify-center">
           <Card className="max-w-sm w-full mx-4">
@@ -95,7 +95,7 @@ export default function Create() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="create-bg flex flex-col">
       <NavBar />
 
       <div className="container py-4 sm:py-8 max-w-3xl mx-auto flex flex-col gap-6 sm:gap-8">

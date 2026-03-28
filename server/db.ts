@@ -1,6 +1,6 @@
 import { eq, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, InsertPracticeSession, InsertTeachingMaterial, users, practiceSessions, teachingMaterials, classChallenges, challengeParticipants } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -93,13 +93,6 @@ export async function getUserByOpenId(openId: string) {
 
 // ─── Practice Sessions ────────────────────────────────────────────────────────
 
-import {
-  practiceSessions,
-  teachingMaterials,
-  InsertPracticeSession,
-  InsertTeachingMaterial,
-} from "../drizzle/schema";
-
 export async function savePracticeSession(data: InsertPracticeSession): Promise<void> {
   const db = await getDb();
   if (!db) return;
@@ -177,4 +170,87 @@ export async function updateMaterial(id: number, userId: number, content: string
     .set({ content })
     .where(eq(teachingMaterials.id, id));
   return true;
+}
+
+// ─── Class Challenge helpers ───────────────────────────────────────────────────
+
+export async function createChallenge(data: {
+  hostId: number;
+  roomCode: string;
+  title: string;
+  competency: string | null;
+  yearGroup: string | null;
+  questions: string;
+}): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(classChallenges).values({
+    hostId: data.hostId,
+    roomCode: data.roomCode,
+    title: data.title,
+    competency: data.competency ?? undefined,
+    yearGroup: data.yearGroup ?? undefined,
+    questions: data.questions,
+    status: "waiting",
+    currentQuestion: 0,
+  });
+  return (result as unknown as { insertId: number }).insertId;
+}
+
+export async function getChallengeByCode(roomCode: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(classChallenges).where(eq(classChallenges.roomCode, roomCode)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function getChallengeById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(classChallenges).where(eq(classChallenges.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function getChallengesByHost(hostId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(classChallenges).where(eq(classChallenges.hostId, hostId)).orderBy(desc(classChallenges.createdAt));
+}
+
+export async function updateChallengeStatus(id: number, status: "waiting" | "active" | "finished", currentQuestion?: number) {
+  const db = await getDb();
+  if (!db) return;
+  const set: Record<string, unknown> = { status };
+  if (currentQuestion !== undefined) set.currentQuestion = currentQuestion;
+  await db.update(classChallenges).set(set).where(eq(classChallenges.id, id));
+}
+
+export async function joinChallenge(data: { challengeId: number; nickname: string }): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(challengeParticipants).values({
+    challengeId: data.challengeId,
+    nickname: data.nickname,
+    score: 0,
+    answers: null,
+  });
+  return (result as unknown as { insertId: number }).insertId;
+}
+
+export async function submitAnswer(participantId: number, answerIndex: number, correct: boolean) {
+  const db = await getDb();
+  if (!db) return;
+  const rows = await db.select().from(challengeParticipants).where(eq(challengeParticipants.id, participantId)).limit(1);
+  const p = rows[0];
+  if (!p) return;
+  const answers: number[] = JSON.parse(p.answers ?? "[]");
+  answers.push(answerIndex);
+  const newScore = p.score + (correct ? 1 : 0);
+  await db.update(challengeParticipants).set({ score: newScore, answers: JSON.stringify(answers) }).where(eq(challengeParticipants.id, participantId));
+}
+
+export async function getParticipants(challengeId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(challengeParticipants).where(eq(challengeParticipants.challengeId, challengeId)).orderBy(desc(challengeParticipants.score));
 }
