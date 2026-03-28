@@ -86,19 +86,20 @@ export default function Progress() {
         ) : (
           <>
             {/* Summary stats */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-2 sm:gap-4">
               {[
                 { label: "Sessions", value: totalSessions, icon: Target },
                 { label: "Questions", value: totalQ, icon: TrendingUp },
                 { label: "Overall Score", value: `${overallPct}%`, icon: Trophy },
               ].map(({ label, value, icon: Icon }) => (
                 <Card key={label}>
-                  <CardContent className="p-4 flex flex-col gap-1">
-                    <div className="flex items-center gap-2 text-muted-foreground">
+                  <CardContent className="p-3 sm:p-4 flex flex-col gap-1">
+                    <div className="flex items-center gap-1 sm:gap-2 text-muted-foreground">
                       <Icon className="w-4 h-4" />
-                      <span className="text-xs font-medium uppercase tracking-wide">{label}</span>
+                      <span className="text-xs font-medium uppercase tracking-wide hidden sm:inline">{label}</span>
+                      <span className="text-xs font-medium sm:hidden">{label.split(' ')[0]}</span>
                     </div>
-                    <p className="text-2xl font-bold text-foreground">{value}</p>
+                    <p className="text-xl sm:text-2xl font-bold text-foreground">{value}</p>
                   </CardContent>
                 </Card>
               ))}
@@ -111,7 +112,7 @@ export default function Progress() {
                   <CardTitle className="text-base">Average Score by Competency</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <ResponsiveContainer width="100%" height={220}>
+                  <ResponsiveContainer width="100%" height={180}>
                     <BarChart data={data.chart} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                       <XAxis dataKey="code" tick={{ fontSize: 11 }} />
@@ -139,19 +140,19 @@ export default function Progress() {
               </CardHeader>
               <CardContent className="pt-0 flex flex-col gap-2">
                 {data?.sessions.map((s) => (
-                  <div key={s.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                  <div key={s.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-2 border-b border-border last:border-0 gap-1">
                     <div className="flex items-center gap-2">
                       {s.competency
                         ? <Badge variant="outline" className="text-xs">{s.competency}</Badge>
                         : <Badge variant="secondary" className="text-xs">All</Badge>}
                       {s.yearGroup && <Badge variant="outline" className="text-xs capitalize">{s.yearGroup}</Badge>}
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
                       <span className="text-sm font-semibold text-foreground">
                         {s.score}/{s.total} ({Math.round((s.score / s.total) * 100)}%)
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {new Date(s.createdAt).toLocaleDateString()}
+                        {new Date(s.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
                       </span>
                     </div>
                   </div>

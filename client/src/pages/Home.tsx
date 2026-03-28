@@ -70,29 +70,29 @@ export default function Home() {
       >
         {/* Dark overlay for text readability */}
         <div className="absolute inset-0 bg-black/55 pointer-events-none" />
-        <div className="container py-20 lg:py-28 relative z-10">
+        <div className="container py-14 sm:py-20 lg:py-28 relative z-10">
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 text-white text-sm font-semibold mb-6 backdrop-blur-sm">
               <BookOpen className="w-4 h-4" />
               Spain's LOMLOE Curriculum · 8 Competencies
             </div>
-            <h1 className="text-4xl lg:text-6xl font-bold text-white leading-tight mb-6 drop-shadow-lg">
+            <h1 className="text-3xl sm:text-4xl lg:text-6xl font-bold text-white leading-tight mb-4 sm:mb-6 drop-shadow-lg">
               Your AI Teaching
               <span className="text-blue-300"> Assistant</span>
               <br />
               for LOMLOE
             </h1>
-            <p className="text-lg text-white/85 mb-8 max-w-2xl drop-shadow">
+            <p className="text-base sm:text-lg text-white/85 mb-6 sm:mb-8 max-w-2xl drop-shadow">
               Practise all eight key competencies defined by Spain's LOMLOE education law. Ask
               questions, test your knowledge, and get curriculum-aligned explanations — instantly.
             </p>
-            <div className="flex flex-wrap gap-3 mb-8">
-              <Button asChild size="lg" className="gap-2">
+            <div className="flex flex-col sm:flex-row gap-3 mb-6 sm:mb-8">
+              <Button asChild size="lg" className="gap-2 w-full sm:w-auto">
                 <Link href="/chat">
                   Start Chatting <ArrowRight className="w-4 h-4" />
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="lg">
+              <Button asChild variant="outline" size="lg" className="w-full sm:w-auto bg-white/10 text-white border-white/40 hover:bg-white/20">
                 <Link href="/practice">Practice Questions</Link>
               </Button>
             </div>
@@ -105,11 +105,11 @@ export default function Home() {
               title="Ministerio de Educación y Formación Profesional – LOMLOE"
               className="inline-block"
             >
-              <img
-                src={LOMLOE_LOGO}
-                alt="LOMLOE – Gobierno de España · Ministerio de Educación y Formación Profesional"
-                className="h-16 w-auto object-contain rounded-md shadow-sm"
-              />
+          <img
+              src={LOMLOE_LOGO}
+              alt="LOMLOE – Gobierno de España · Ministerio de Educación y Formación Profesional"
+              className="h-12 sm:h-16 w-auto object-contain rounded-md shadow-sm"
+            />
             </a>
           </div>
         </div>
@@ -129,7 +129,7 @@ export default function Home() {
       {stats && (
         <section className="border-b border-border bg-secondary/30">
           <div className="container py-5">
-            <div className="flex flex-wrap gap-8 justify-center sm:justify-start">
+            <div className="flex flex-wrap gap-6 sm:gap-8 justify-around sm:justify-start">
               <div className="text-center sm:text-left">
                 <p className="text-3xl font-bold text-primary">{stats.totalQuestions}</p>
                 <p className="text-sm text-muted-foreground">Curriculum Questions</p>
@@ -150,7 +150,7 @@ export default function Home() {
       {/* Features */}
       <section className="container py-16">
         <h2 className="text-2xl font-bold text-foreground mb-8">What you can do</h2>
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
           {features.map(({ icon: Icon, title, description, href, color }) => (
             <Link key={href} href={href}>
               <Card className="h-full hover:shadow-lg transition-all hover:-translate-y-1 cursor-pointer border-border group">
@@ -183,7 +183,7 @@ export default function Home() {
         <p className="text-muted-foreground mb-8">
           Every question is mapped to one of Spain's eight key curriculum competencies.
         </p>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {competencies?.map((comp) => (
             <Link key={comp.code} href={`/practice?competency=${comp.code}`}>
               <Card className="h-full hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer border-border group overflow-hidden">

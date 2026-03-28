@@ -99,7 +99,7 @@ export default function Practice() {
     <div className="min-h-screen bg-background flex flex-col">
       <NavBar />
 
-      <div className="container py-8 max-w-2xl mx-auto w-full flex flex-col gap-6">
+      <div className="container py-4 sm:py-8 max-w-2xl mx-auto w-full flex flex-col gap-4 sm:gap-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Practice Mode</h1>
           <p className="text-sm text-muted-foreground">
@@ -110,18 +110,18 @@ export default function Practice() {
         {/* Setup screen */}
         {!sessionStarted && (
           <Card>
-            <CardContent className="p-6 flex flex-col gap-6">
+            <CardContent className="p-4 sm:p-6 flex flex-col gap-4 sm:gap-6">
               <CompetencySelector
                 selectedCompetency={competency}
                 selectedYearGroup={yearGroup}
                 onCompetencyChange={setCompetency}
                 onYearGroupChange={setYearGroup}
               />
-              <div className="border-t border-border pt-4 flex items-center justify-between">
+              <div className="border-t border-border pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <p className="text-sm text-muted-foreground">
                   {SESSION_SIZE} questions per session
                 </p>
-                <Button onClick={handleStart} size="lg" className="gap-2">
+                <Button onClick={handleStart} size="lg" className="gap-2 w-full sm:w-auto">
                   Start Practice <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
@@ -132,12 +132,12 @@ export default function Practice() {
         {/* Session done */}
         {sessionDone && (
           <Card className="text-center">
-            <CardContent className="p-8 flex flex-col items-center gap-5">
+            <CardContent className="p-6 sm:p-8 flex flex-col items-center gap-4 sm:gap-5">
               <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
                 <Trophy className="w-10 h-10 text-primary" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-foreground mb-1">Session Complete!</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-1">Session Complete!</h2>
                 <p className="text-muted-foreground">
                   You scored{" "}
                   <span className="font-bold text-foreground">
@@ -156,11 +156,11 @@ export default function Practice() {
                   ? "Great job! Keep practising to improve further."
                   : "Good effort! Review the topics and try again."}
               </p>
-              <div className="flex gap-3">
-                <Button onClick={handleRestart} variant="outline" className="gap-2">
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                <Button onClick={handleRestart} variant="outline" className="gap-2 w-full sm:w-auto">
                   <RotateCcw className="w-4 h-4" /> New Session
                 </Button>
-                <Button onClick={handleStart} className="gap-2">
+                <Button onClick={handleStart} className="gap-2 w-full sm:w-auto">
                   Retry Same Filters <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
@@ -193,7 +193,7 @@ export default function Practice() {
               </Card>
             ) : (
               <Card>
-                <CardContent className="p-6 flex flex-col gap-5">
+                <CardContent className="p-4 sm:p-6 flex flex-col gap-4 sm:gap-5">
                   {/* Competency badge */}
                   <div className="flex items-center gap-2">
                     <span className={cn("badge-" + question.competency)}>
@@ -207,7 +207,7 @@ export default function Practice() {
                   </div>
 
                   {/* Question */}
-                  <p className="text-lg font-semibold text-foreground leading-snug">
+                  <p className="text-base sm:text-lg font-semibold text-foreground leading-snug">
                     {question.question}
                   </p>
 

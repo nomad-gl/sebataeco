@@ -86,3 +86,14 @@
 ## Bug Fix – Practice Mode Explanation Mismatch
 - [x] Diagnose why explanation text does not match the correct answer for the current question
 - [x] Fix explanation alignment so it always corresponds to the displayed question's correct answer
+
+## Mobile Layout Improvements
+- [x] NavBar: add hamburger menu for mobile, hide desktop nav links on small screens
+- [x] Home: fix hero text sizing, LOMLOE logo size, competency cards grid on mobile
+- [x] Practice: ensure question cards, option buttons, and feedback panels are full-width on mobile
+- [x] Chat: fix chat input and message bubbles for small screens
+- [x] Progress: fix bar chart overflow and stats cards on mobile
+- [x] Create: fix activity type selector grid and form layout on mobile
+- [x] MyMaterials: fix materials grid and card layout on mobile
+- [x] Admin: fix stats table and coverage chart on mobile
+- [x] Footer: ensure footer stacks vertically and is readable on mobile

@@ -75,16 +75,16 @@ export default function MyMaterials() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <NavBar />
-      <div className="container py-8 max-w-3xl mx-auto flex flex-col gap-6">
-        <div className="flex items-center justify-between">
+      <div className="container py-4 sm:py-8 max-w-3xl mx-auto flex flex-col gap-4 sm:gap-6">
+        <div className="flex items-start sm:items-center justify-between gap-2">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">My Materials</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">My Materials</h1>
             <p className="text-sm text-muted-foreground mt-1">
               {materials?.length ?? 0} saved {materials?.length === 1 ? "activity" : "activities"}
             </p>
           </div>
-          <Button onClick={() => navigate("/create")} className="gap-2">
-            <Plus className="w-4 h-4" /> Create New
+          <Button onClick={() => navigate("/create")} className="gap-2 flex-shrink-0" size="sm">
+            <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Create New</span><span className="sm:hidden">New</span>
           </Button>
         </div>
 
@@ -112,7 +112,7 @@ export default function MyMaterials() {
               const colorClass = TYPE_COLORS[m.type] ?? "from-gray-400 to-gray-500";
               return (
                 <Card key={m.id} className="hover:shadow-sm transition-shadow">
-                  <CardContent className="p-4 flex items-center gap-4">
+                  <CardContent className="p-3 sm:p-4 flex items-start sm:items-center gap-3 sm:gap-4">
                     <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${colorClass} flex items-center justify-center flex-shrink-0`}>
                       <Icon className="w-5 h-5 text-white" />
                     </div>
@@ -129,7 +129,7 @@ export default function MyMaterials() {
                         </span>
                       </div>
                     </div>
-                    <div className="flex gap-1.5 flex-shrink-0">
+                    <div className="flex flex-col sm:flex-row gap-1.5 flex-shrink-0">
                       <Button size="sm" variant="outline" className="gap-1.5"
                         onClick={() => navigate(`/materials/${m.id}`)}>
                         <ExternalLink className="w-3.5 h-3.5" /> Open

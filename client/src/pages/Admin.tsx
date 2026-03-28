@@ -99,10 +99,10 @@ export default function Admin() {
     <div className="min-h-screen bg-background flex flex-col">
       <NavBar />
 
-      <div className="container py-8 flex flex-col gap-8">
+      <div className="container py-4 sm:py-8 flex flex-col gap-6 sm:gap-8">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Admin Dashboard</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Admin Dashboard</h1>
           <p className="text-sm text-muted-foreground">
             Knowledge bank statistics and LOMLOE coverage metrics
           </p>
@@ -110,36 +110,36 @@ export default function Admin() {
 
         {/* Summary cards */}
         {stats && (
-          <div className="grid sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
             <Card>
-              <CardContent className="p-5 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <BookOpen className="w-6 h-6 text-primary" />
+              <CardContent className="p-3 sm:p-5 flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-4">
+                <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                 </div>
                 <div>
-                  <p className="text-3xl font-bold text-foreground">{stats.totalQuestions}</p>
+                  <p className="text-xl sm:text-3xl font-bold text-foreground text-center sm:text-left">{stats.totalQuestions}</p>
                   <p className="text-sm text-muted-foreground">Total Questions</p>
                 </div>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="p-5 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Layers className="w-6 h-6 text-primary" />
+              <CardContent className="p-3 sm:p-5 flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-4">
+                <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Layers className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                 </div>
                 <div>
-                  <p className="text-3xl font-bold text-foreground">{stats.totalCompetencies}</p>
+                  <p className="text-xl sm:text-3xl font-bold text-foreground text-center sm:text-left">{stats.totalCompetencies}</p>
                   <p className="text-sm text-muted-foreground">Competencies</p>
                 </div>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="p-5 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Users className="w-6 h-6 text-primary" />
+              <CardContent className="p-3 sm:p-5 flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-4">
+                <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Users className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                 </div>
                 <div>
-                  <p className="text-3xl font-bold text-foreground">{stats.totalYearGroups}</p>
+                  <p className="text-xl sm:text-3xl font-bold text-foreground text-center sm:text-left">{stats.totalYearGroups}</p>
                   <p className="text-sm text-muted-foreground">Year Groups</p>
                 </div>
               </CardContent>
@@ -185,7 +185,7 @@ export default function Admin() {
                           key={row.code}
                           className="border-b border-border last:border-0 hover:bg-secondary/20 transition-colors"
                         >
-                          <td className="px-6 py-4">
+                          <td className="px-3 sm:px-6 py-3 sm:py-4">
                             <div className="flex items-center gap-2">
                               <span className="text-lg">{comp?.emoji ?? ""}</span>
                               <div>
@@ -201,7 +201,7 @@ export default function Admin() {
                           {YEAR_GROUPS.map((yg) => {
                             const count = row[yg];
                             return (
-                              <td key={yg} className="px-4 py-4 text-center">
+                              <td key={yg} className="px-2 sm:px-4 py-3 sm:py-4 text-center">
                                 <span
                                   className={cn(
                                     "inline-flex w-8 h-8 rounded-lg items-center justify-center font-semibold text-sm",
@@ -215,7 +215,7 @@ export default function Admin() {
                               </td>
                             );
                           })}
-                          <td className="px-4 py-4 text-center">
+                          <td className="px-2 sm:px-4 py-3 sm:py-4 text-center">
                             <span className="font-bold text-foreground">{row.total}</span>
                           </td>
                         </tr>

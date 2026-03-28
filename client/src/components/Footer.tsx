@@ -5,7 +5,7 @@ export default function Footer() {
   return (
     <footer className="border-t border-border bg-secondary/20 mt-auto print:hidden">
       <div className="container py-6">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex flex-col items-center sm:flex-row sm:justify-between gap-3 sm:gap-4 text-center sm:text-left">
           {/* Left: LOMLOE official logo */}
           <a
             href="https://www.educacionyfp.gob.es"
@@ -26,7 +26,7 @@ export default function Footer() {
           </p>
 
           {/* Right: Powered by SEBA + sebasnap link */}
-          <div className="flex flex-col items-end gap-1">
+          <div className="flex flex-col items-center sm:items-end gap-1">
             <a
               href="https://sebasnap.com"
               target="_blank"

@@ -98,10 +98,10 @@ export default function Create() {
     <div className="min-h-screen bg-background flex flex-col">
       <NavBar />
 
-      <div className="container py-8 max-w-3xl mx-auto flex flex-col gap-8">
+      <div className="container py-4 sm:py-8 max-w-3xl mx-auto flex flex-col gap-6 sm:gap-8">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Create Teaching Materials</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Create Teaching Materials</h1>
           <p className="text-sm text-muted-foreground mt-1">
             AI-generated, LOMLOE-aligned activities — saved to your library instantly.
           </p>
@@ -112,7 +112,7 @@ export default function Create() {
           <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">
             1 · Choose Activity Type
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3">
             {ACTIVITY_TYPES.map(({ type, label, description, icon: Icon, color }) => (
               <button
                 key={type}
@@ -183,7 +183,7 @@ export default function Create() {
         </div>
 
         {/* Generate button */}
-        <div className="flex items-center justify-between border-t border-border pt-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-t border-border pt-6 gap-3">
           <div className="text-sm text-muted-foreground">
             {selectedType && topic.trim()
               ? `Ready to generate: ${ACTIVITY_TYPES.find(a => a.type === selectedType)?.label} on "${topic}"`
@@ -193,7 +193,7 @@ export default function Create() {
             onClick={handleGenerate}
             disabled={!selectedType || !topic.trim() || createMutation.isPending}
             size="lg"
-            className="gap-2 min-w-[160px]"
+            className="gap-2 w-full sm:w-auto sm:min-w-[160px]"
           >
             {createMutation.isPending ? (
               <>

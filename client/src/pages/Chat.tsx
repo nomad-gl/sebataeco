@@ -59,16 +59,16 @@ export default function Chat() {
     <div className="min-h-screen bg-background flex flex-col">
       <NavBar />
 
-      <div className="container py-6 flex flex-col gap-4 max-w-4xl mx-auto w-full flex-1">
+      <div className="container py-4 sm:py-6 flex flex-col gap-3 sm:gap-4 max-w-4xl mx-auto w-full flex-1">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-start sm:items-center justify-between gap-2">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">AI Chat Assistant</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">AI Chat Assistant</h1>
             <p className="text-sm text-muted-foreground">
               Ask anything about LOMLOE curriculum competencies
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-shrink-0">
             <Button
               variant="outline"
               size="sm"
@@ -119,7 +119,7 @@ export default function Chat() {
             placeholder="Ask about LOMLOE competencies… (Enter to send)"
             emptyStateMessage="Hello! I'm SEBA AI, your LOMLOE curriculum assistant. Ask me anything about the 8 key competencies!"
             suggestedPrompts={SUGGESTED_QUESTIONS}
-            height="calc(100vh - 280px)"
+            height="calc(100dvh - 220px)"
           />
         </div>
       </div>
