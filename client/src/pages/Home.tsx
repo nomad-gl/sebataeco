@@ -61,7 +61,7 @@ export default function Home() {
               Spain's LOMLOE Curriculum · 8 Competencies
             </div>
             <h1 className="text-4xl lg:text-6xl font-bold text-foreground leading-tight mb-6">
-              Your AI Learning
+              Your AI Teaching
               <span className="text-primary"> Assistant</span>
               <br />
               for LOMLOE

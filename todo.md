@@ -36,3 +36,22 @@
 - [x] TypeScript 0-error check (npx tsc --noEmit)
 - [x] pnpm test --run passes (24/24)
 - [x] pnpm build succeeds
+
+## Follow-up 1 – Per-question Explanations
+- [ ] Update Python build script to generate explanation field per question
+- [ ] Regenerate lomloeKnowledgeBank.ts with explanation field on LomloeQuestion type
+- [ ] Update Practice Mode to display explanation text after answer reveal
+
+## Follow-up 2 – Scheduled Knowledge Bank Refresh
+- [ ] Schedule nightly cron at 04:00 to run build_sebasnap_knowledge.py and rebuild
+
+## Follow-up 3 – Student Progress Tracker
+- [ ] Add practice_sessions table to drizzle/schema.ts
+- [ ] Run migration SQL via webdev_execute_sql
+- [ ] tRPC procedure: lomloe.saveSession (protected, stores score/competency/yearGroup)
+- [ ] tRPC procedure: lomloe.getMyProgress (protected, returns session history)
+- [ ] Progress chart component on Home page (recharts, per-competency score over time)
+- [ ] Wire Practice Mode to save session on completion
+
+## Landing Page Copy Fix
+- [x] Change hero heading 'Learning' to 'Teaching' on Home page
