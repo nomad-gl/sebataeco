@@ -13,6 +13,7 @@ import {
   Copy, Play, SkipForward, StopCircle, Plus, Loader2,
 } from "lucide-react";
 import CompetencySelector from "@/components/CompetencySelector";
+import { useI18n } from "@/contexts/I18nContext";
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
 type YearGroup = "junior" | "primary" | "secondary";
@@ -25,6 +26,7 @@ const COMP_COLORS: Record<CompetencyCode, string> = {
 };
 
 export default function Challenge() {
+  const { t } = useI18n();
   const { user, loading, isAuthenticated } = useAuth();
   const [view, setView] = useState<"home" | "create" | "lobby" | "live" | "results">("home");
   const [roomId, setRoomId] = useState<number | null>(null);
@@ -39,7 +41,7 @@ export default function Challenge() {
     onSuccess: (data) => {
       setRoomId(data.id);
       setView("lobby");
-      toast.success(`Room created! Code: ${data.roomCode}`);
+      toast.success(`${t("challenge_room_code")}: ${data.roomCode}`);
     },
     onError: (e) => toast.error(e.message),
   });
@@ -77,10 +79,10 @@ export default function Challenge() {
       <NavBar />
       <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4 text-center px-4">
         <Zap className="w-16 h-16 text-yellow-300" />
-        <h1 className="text-3xl font-bold text-white">Host a Class Challenge</h1>
-        <p className="text-white/80 max-w-md">Sign in to create live quiz sessions for your students.</p>
+        <h1 className="text-3xl font-bold text-white">{t("challenge_title")}</h1>
+        <p className="text-white/80 max-w-md">{t("challenge_subtitle")}</p>
         <Button asChild size="lg" className="bg-yellow-400 hover:bg-yellow-300 text-black font-bold">
-          <a href={getLoginUrl()}>Sign In to Continue</a>
+          <a href={getLoginUrl()}>{t("nav_sign_in")}</a>
         </Button>
       </div>
     </div>
@@ -99,10 +101,10 @@ export default function Challenge() {
           <div className="space-y-6">
             <div className="text-center space-y-2">
               <div className="inline-flex items-center gap-2 bg-yellow-400/20 text-yellow-300 border border-yellow-400/30 rounded-full px-4 py-1.5 text-sm font-semibold backdrop-blur-sm">
-                <Zap className="w-4 h-4" /> Live Quiz Mode
+                <Zap className="w-4 h-4" /> {t("challenge_title")}
               </div>
-              <h1 className="text-3xl sm:text-4xl font-heading font-bold text-white">Host a Class Challenge</h1>
-              <p className="text-white/70 max-w-xl mx-auto">Create a live LOMLOE-aligned quiz. Students join on their phones with a room code and compete in real time.</p>
+              <h1 className="text-3xl sm:text-4xl font-heading font-bold text-white">{t("challenge_title")}</h1>
+              <p className="text-white/70 max-w-xl mx-auto">{t("challenge_subtitle")}</p>
             </div>
 
             <div className="flex justify-center">
@@ -111,14 +113,14 @@ export default function Challenge() {
                 onClick={() => setView("create")}
                 className="bg-yellow-400 hover:bg-yellow-300 text-black font-bold gap-2 text-base px-8"
               >
-                <Plus className="w-5 h-5" /> Create New Challenge
+                <Plus className="w-5 h-5" /> {t("challenge_start")}
               </Button>
             </div>
 
             {/* Past rooms */}
             {myRooms.data && myRooms.data.length > 0 && (
               <div className="space-y-3">
-                <h2 className="text-lg font-semibold text-white/90">Your Recent Rooms</h2>
+                <h2 className="text-lg font-semibold text-white/90">{t("challenge_leaderboard")}</h2>
                 <div className="grid gap-3">
                   {myRooms.data.slice(0, 6).map((r) => (
                     <div
@@ -128,7 +130,7 @@ export default function Challenge() {
                     >
                       <div>
                         <p className="font-semibold text-white">{r.title}</p>
-                        <p className="text-sm text-white/60">Code: <span className="font-mono font-bold text-yellow-300">{r.roomCode}</span></p>
+                        <p className="text-sm text-white/60">{t("challenge_room_code")}: <span className="font-mono font-bold text-yellow-300">{r.roomCode}</span></p>
                       </div>
                       <Badge className={r.status === "finished" ? "bg-gray-500" : r.status === "active" ? "bg-green-500" : "bg-yellow-500"}>
                         {r.status}
@@ -145,13 +147,13 @@ export default function Challenge() {
         {view === "create" && (
           <div className="max-w-lg mx-auto space-y-6">
             <button onClick={() => setView("home")} className="flex items-center gap-1 text-white/70 hover:text-white text-sm transition-colors">
-              <ChevronLeft className="w-4 h-4" /> Back
+              <ChevronLeft className="w-4 h-4" /> {t("cancel")}
             </button>
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6 space-y-5">
-              <h2 className="text-xl font-bold text-white">New Challenge</h2>
+              <h2 className="text-xl font-bold text-white">{t("challenge_start")}</h2>
 
               <div className="space-y-2">
-                <Label className="text-white/80">Challenge Title</Label>
+                <Label className="text-white/80">{t("challenge_title")}</Label>
                 <Input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -161,7 +163,7 @@ export default function Challenge() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-white/80">Competency &amp; Year Group (optional)</Label>
+                <Label className="text-white/80">{t("create_competency_label")}</Label>
                 <CompetencySelector
                   selectedCompetency={competency}
                   selectedYearGroup={yearGroup}
@@ -172,7 +174,7 @@ export default function Challenge() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-white/80">Number of Questions: {questionCount}</Label>
+                <Label className="text-white/80">{t("practice_setup_count")}: {questionCount}</Label>
                 <input
                   type="range" min={5} max={20} value={questionCount}
                   onChange={(e) => setQuestionCount(Number(e.target.value))}
@@ -186,7 +188,9 @@ export default function Challenge() {
                 disabled={!title.trim() || createMutation.isPending}
                 onClick={() => createMutation.mutate({ title: title.trim(), competency, yearGroup, questionCount })}
               >
-                {createMutation.isPending ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Creating…</> : "Create Challenge Room"}
+                {createMutation.isPending
+                  ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />{t("create_generating")}</>
+                  : t("challenge_start")}
               </Button>
             </div>
           </div>
@@ -197,7 +201,7 @@ export default function Challenge() {
           <div className="max-w-lg mx-auto space-y-6 text-center">
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-8 space-y-4">
               <h2 className="text-xl font-bold text-white">{room.title}</h2>
-              <p className="text-white/70">Share this code with your students:</p>
+              <p className="text-white/70">{t("challenge_enter_code")}:</p>
               <div className="bg-black/30 rounded-xl p-6">
                 <p className="text-5xl font-mono font-black text-yellow-300 tracking-widest">{room.roomCode}</p>
               </div>
@@ -205,14 +209,14 @@ export default function Challenge() {
                 variant="outline"
                 size="sm"
                 className="border-white/30 text-white hover:bg-white/10"
-                onClick={() => { navigator.clipboard.writeText(room.roomCode); toast.success("Room code copied!"); }}
+                onClick={() => { navigator.clipboard.writeText(room.roomCode); toast.success(t("challenge_room_code") + " copied!"); }}
               >
-                <Copy className="w-4 h-4 mr-2" /> Copy Code
+                <Copy className="w-4 h-4 mr-2" /> {t("challenge_room_code")}
               </Button>
 
               <div className="flex items-center justify-center gap-2 text-white/70">
                 <Users className="w-4 h-4" />
-                <span>{room.participants.length} student{room.participants.length !== 1 ? "s" : ""} joined</span>
+                <span>{room.participants.length} {t("challenge_join")}</span>
               </div>
 
               {room.participants.length > 0 && (
@@ -229,7 +233,7 @@ export default function Challenge() {
                 disabled={room.participants.length === 0 || controlMutation.isPending}
                 onClick={() => controlMutation.mutate({ id: room.id, action: "start" })}
               >
-                <Play className="w-5 h-5" /> Start Challenge
+                <Play className="w-5 h-5" /> {t("challenge_start")}
               </Button>
             </div>
           </div>
@@ -241,10 +245,10 @@ export default function Challenge() {
           return (
             <div className="max-w-2xl mx-auto space-y-6">
               <div className="flex items-center justify-between">
-                <span className="text-white/70 text-sm">Question {room.currentQuestion + 1} / {room.questions.length}</span>
+                <span className="text-white/70 text-sm">{t("practice_question")} {room.currentQuestion + 1} / {room.questions.length}</span>
                 <div className="flex items-center gap-2 text-white/70 text-sm">
                   <Users className="w-4 h-4" />
-                  {room.participants.length} students
+                  {room.participants.length} {t("challenge_join")}
                 </div>
               </div>
 
@@ -276,7 +280,7 @@ export default function Challenge() {
 
               {/* Live leaderboard */}
               <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 space-y-2">
-                <h3 className="text-white font-semibold flex items-center gap-2"><Trophy className="w-4 h-4 text-yellow-300" /> Live Leaderboard</h3>
+                <h3 className="text-white font-semibold flex items-center gap-2"><Trophy className="w-4 h-4 text-yellow-300" /> {t("challenge_leaderboard")}</h3>
                 {room.participants.slice(0, 5).map((p, i) => (
                   <div key={p.id} className="flex items-center justify-between">
                     <span className="text-white/80 text-sm">{i + 1}. {p.nickname}</span>
@@ -292,7 +296,7 @@ export default function Challenge() {
                   onClick={() => controlMutation.mutate({ id: room.id, action: "next" })}
                 >
                   <SkipForward className="w-4 h-4" />
-                  {room.currentQuestion + 1 >= room.questions.length ? "Finish" : "Next Question"}
+                  {room.currentQuestion + 1 >= room.questions.length ? t("practice_finish") : t("practice_next")}
                 </Button>
                 <Button
                   variant="outline"
@@ -312,12 +316,12 @@ export default function Challenge() {
           <div className="max-w-lg mx-auto space-y-6">
             <div className="text-center space-y-2">
               <Trophy className="w-16 h-16 text-yellow-300 mx-auto" />
-              <h2 className="text-2xl font-bold text-white">Challenge Complete!</h2>
+              <h2 className="text-2xl font-bold text-white">{t("practice_done_title")}</h2>
               <p className="text-white/70">{room.title}</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6 space-y-3">
-              <h3 className="font-semibold text-white">Final Leaderboard</h3>
-              {room.participants.length === 0 && <p className="text-white/50 text-sm">No participants.</p>}
+              <h3 className="font-semibold text-white">{t("challenge_leaderboard")}</h3>
+              {room.participants.length === 0 && <p className="text-white/50 text-sm">{t("my_materials_empty")}</p>}
               {room.participants.map((p, i) => (
                 <div key={p.id} className={`flex items-center justify-between p-3 rounded-xl ${i === 0 ? "bg-yellow-400/20 border border-yellow-400/30" : "bg-white/5"}`}>
                   <div className="flex items-center gap-3">
@@ -333,14 +337,14 @@ export default function Challenge() {
                 className="flex-1 bg-yellow-400 hover:bg-yellow-300 text-black font-bold"
                 onClick={() => { setView("create"); setTitle(""); setRoomId(null); }}
               >
-                <Plus className="w-4 h-4 mr-2" /> New Challenge
+                <Plus className="w-4 h-4 mr-2" /> {t("challenge_start")}
               </Button>
               <Button
                 variant="outline"
                 className="border-white/30 text-white hover:bg-white/10"
                 onClick={() => setView("home")}
               >
-                <ChevronLeft className="w-4 h-4 mr-2" /> Back
+                <ChevronLeft className="w-4 h-4 mr-2" /> {t("cancel")}
               </Button>
             </div>
           </div>

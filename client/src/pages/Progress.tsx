@@ -1,15 +1,14 @@
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import NavBar from "@/components/NavBar";
 import { Loader2, Lock, Trophy, TrendingUp, Target } from "lucide-react";
 import { getLoginUrl } from "@/const";
 import { useLocation } from "wouter";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
-} from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { useI18n } from "@/contexts/I18nContext";
 
 const COMP_COLORS: Record<string, string> = {
   CCL: "#3b82f6", CP: "#8b5cf6", STEM: "#10b981", CD: "#f59e0b",
@@ -17,6 +16,7 @@ const COMP_COLORS: Record<string, string> = {
 };
 
 export default function Progress() {
+  const { t } = useI18n();
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
 
@@ -43,9 +43,9 @@ export default function Progress() {
               <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
                 <Lock className="w-8 h-8 text-muted-foreground" />
               </div>
-              <h2 className="text-xl font-bold">Sign in to view progress</h2>
+              <h2 className="text-xl font-bold">{t("sign_in_required")}</h2>
               <Button asChild className="w-full">
-                <a href={getLoginUrl()}>Sign in</a>
+                <a href={getLoginUrl()}>{t("nav_sign_in")}</a>
               </Button>
             </CardContent>
           </Card>
@@ -64,8 +64,8 @@ export default function Progress() {
       <NavBar />
       <div className="container py-8 max-w-3xl mx-auto flex flex-col gap-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">My Progress</h1>
-          <p className="text-sm text-muted-foreground mt-1">Track your practice performance across LOMLOE competencies.</p>
+          <h1 className="text-2xl font-bold text-foreground">{t("progress_title")}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{t("progress_subtitle")}</p>
         </div>
 
         {totalSessions === 0 ? (
@@ -75,29 +75,26 @@ export default function Progress() {
                 <TrendingUp className="w-8 h-8 text-muted-foreground" />
               </div>
               <div>
-                <h3 className="font-semibold text-foreground">No sessions yet</h3>
-                <p className="text-sm text-muted-foreground mt-1">Complete a practice session to start tracking your progress.</p>
+                <h3 className="font-semibold text-foreground">{t("progress_no_sessions")}</h3>
               </div>
               <Button onClick={() => navigate("/practice")} className="gap-2">
-                <Target className="w-4 h-4" /> Start Practising
+                <Target className="w-4 h-4" /> {t("progress_go_practice")}
               </Button>
             </CardContent>
           </Card>
         ) : (
           <>
-            {/* Summary stats */}
             <div className="grid grid-cols-3 gap-2 sm:gap-4">
               {[
-                { label: "Sessions", value: totalSessions, icon: Target },
-                { label: "Questions", value: totalQ, icon: TrendingUp },
-                { label: "Overall Score", value: `${overallPct}%`, icon: Trophy },
-              ].map(({ label, value, icon: Icon }) => (
-                <Card key={label}>
+                { labelKey: "progress_total_sessions" as const, value: totalSessions, icon: Target },
+                { labelKey: "progress_questions_answered" as const, value: totalQ, icon: TrendingUp },
+                { labelKey: "progress_avg_score" as const, value: `${overallPct}%`, icon: Trophy },
+              ].map(({ labelKey, value, icon: Icon }) => (
+                <Card key={labelKey}>
                   <CardContent className="p-3 sm:p-4 flex flex-col gap-1">
                     <div className="flex items-center gap-1 sm:gap-2 text-muted-foreground">
                       <Icon className="w-4 h-4" />
-                      <span className="text-xs font-medium uppercase tracking-wide hidden sm:inline">{label}</span>
-                      <span className="text-xs font-medium sm:hidden">{label.split(' ')[0]}</span>
+                      <span className="text-xs font-medium uppercase tracking-wide">{t(labelKey)}</span>
                     </div>
                     <p className="text-xl sm:text-2xl font-bold text-foreground">{value}</p>
                   </CardContent>
@@ -105,11 +102,10 @@ export default function Progress() {
               ))}
             </div>
 
-            {/* Chart */}
             {data && data.chart.length > 0 && (
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Average Score by Competency</CardTitle>
+                  <CardTitle className="text-base">{t("progress_by_competency")}</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
                   <ResponsiveContainer width="100%" height={180}>
@@ -118,7 +114,7 @@ export default function Progress() {
                       <XAxis dataKey="code" tick={{ fontSize: 11 }} />
                       <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11 }} />
                       <Tooltip
-                        formatter={(v: number) => [`${v}%`, "Avg Score"]}
+                        formatter={(v: number) => [`${v}%`, t("progress_avg_score")]}
                         labelFormatter={(label) => data.chart.find(c => c.code === label)?.name ?? label}
                         contentStyle={{ fontSize: 12 }}
                       />
@@ -133,10 +129,9 @@ export default function Progress() {
               </Card>
             )}
 
-            {/* Recent sessions */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">Recent Sessions</CardTitle>
+                <CardTitle className="text-base">{t("progress_recent")}</CardTitle>
               </CardHeader>
               <CardContent className="pt-0 flex flex-col gap-2">
                 {data?.sessions.map((s) => (
@@ -144,7 +139,7 @@ export default function Progress() {
                     <div className="flex items-center gap-2">
                       {s.competency
                         ? <Badge variant="outline" className="text-xs">{s.competency}</Badge>
-                        : <Badge variant="secondary" className="text-xs">All</Badge>}
+                        : <Badge variant="secondary" className="text-xs">{t("any_competency")}</Badge>}
                       {s.yearGroup && <Badge variant="outline" className="text-xs capitalize">{s.yearGroup}</Badge>}
                     </div>
                     <div className="flex items-center gap-2 sm:gap-3">
@@ -152,7 +147,7 @@ export default function Progress() {
                         {s.score}/{s.total} ({Math.round((s.score / s.total) * 100)}%)
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {new Date(s.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                        {new Date(s.createdAt).toLocaleDateString(undefined, { day: "numeric", month: "short" })}
                       </span>
                     </div>
                   </div>
@@ -161,8 +156,6 @@ export default function Progress() {
             </Card>
           </>
         )}
-
-        <p className="text-xs text-muted-foreground text-center pb-4">Powered by SEBA</p>
       </div>
     </div>
   );

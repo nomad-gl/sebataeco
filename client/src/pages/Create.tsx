@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +15,8 @@ import {
   Loader2, ChevronRight, Lock, Sparkles,
 } from "lucide-react";
 import { useLocation } from "wouter";
+import { useI18n } from "@/contexts/I18nContext";
+import type { TranslationKey } from "@/contexts/I18nContext";
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
 type YearGroup = "junior" | "primary" | "secondary";
@@ -22,20 +24,21 @@ type MaterialType = "quiz" | "slides" | "crossword" | "missing_words" | "wordsea
 
 const ACTIVITY_TYPES: {
   type: MaterialType;
-  label: string;
+  labelKey: TranslationKey;
   description: string;
   icon: React.ElementType;
   color: string;
 }[] = [
-  { type: "quiz",          label: "Quiz",              description: "8 MCQ questions with answers & explanations", icon: BookOpen,      color: "from-blue-500 to-blue-600" },
-  { type: "slides",        label: "Slide Presentation",description: "6–8 slides with headings, bullets & speaker notes", icon: Presentation, color: "from-purple-500 to-purple-600" },
-  { type: "crossword",     label: "Crossword Puzzle",  description: "8-word interactive crossword with clues",      icon: Grid3X3,      color: "from-green-500 to-green-600" },
-  { type: "missing_words", label: "Missing Words",     description: "Fill-in-the-blank passage with hints",         icon: AlignLeft,    color: "from-amber-500 to-amber-600" },
-  { type: "wordsearch",    label: "Word Search",       description: "10-keyword grid with topic vocabulary",        icon: Search,       color: "from-rose-500 to-rose-600" },
-  { type: "flashcards",    label: "Flashcards",        description: "10 term/definition pairs for revision",        icon: CreditCard,   color: "from-teal-500 to-teal-600" },
+  { type: "quiz",          labelKey: "create_activity_quiz",       description: "8 MCQ questions with answers & explanations", icon: BookOpen,      color: "from-blue-500 to-blue-600" },
+  { type: "slides",        labelKey: "create_activity_slides",     description: "6–8 slides with headings, bullets & speaker notes", icon: Presentation, color: "from-purple-500 to-purple-600" },
+  { type: "crossword",     labelKey: "create_activity_crossword",  description: "8-word interactive crossword with clues",      icon: Grid3X3,      color: "from-green-500 to-green-600" },
+  { type: "missing_words", labelKey: "create_activity_missing",    description: "Fill-in-the-blank passage with hints",         icon: AlignLeft,    color: "from-amber-500 to-amber-600" },
+  { type: "wordsearch",    labelKey: "create_activity_wordsearch", description: "10-keyword grid with topic vocabulary",        icon: Search,       color: "from-rose-500 to-rose-600" },
+  { type: "flashcards",    labelKey: "create_activity_flashcards", description: "10 term/definition pairs for revision",        icon: CreditCard,   color: "from-teal-500 to-teal-600" },
 ];
 
 export default function Create() {
+  const { t } = useI18n();
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
 
@@ -46,11 +49,11 @@ export default function Create() {
 
   const createMutation = trpc.materials.create.useMutation({
     onSuccess: (data) => {
-      toast.success(`${data.title} created!`);
+      toast.success(`${data.title} ${t("save")}d!`);
       navigate(`/materials/${data.id}`);
     },
     onError: (err) => {
-      toast.error(err.message || "Failed to generate material. Please try again.");
+      toast.error(err.message || t("error"));
     },
   });
 
@@ -80,12 +83,10 @@ export default function Create() {
               <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
                 <Lock className="w-8 h-8 text-muted-foreground" />
               </div>
-              <h2 className="text-xl font-bold">Sign in to Create</h2>
-              <p className="text-sm text-muted-foreground">
-                You need to sign in to create and save teaching materials.
-              </p>
+              <h2 className="text-xl font-bold">{t("sign_in_required")}</h2>
+              <p className="text-sm text-muted-foreground">{t("create_subtitle")}</p>
               <Button asChild className="w-full">
-                <a href={getLoginUrl()}>Sign in</a>
+                <a href={getLoginUrl()}>{t("nav_sign_in")}</a>
               </Button>
             </CardContent>
           </Card>
@@ -101,19 +102,17 @@ export default function Create() {
       <div className="container py-4 sm:py-8 max-w-3xl mx-auto flex flex-col gap-6 sm:gap-8">
         {/* Header */}
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Create Teaching Materials</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            AI-generated, LOMLOE-aligned activities — saved to your library instantly.
-          </p>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">{t("create_title")}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{t("create_subtitle")}</p>
         </div>
 
         {/* Step 1: Choose activity type */}
         <div className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">
-            1 · Choose Activity Type
+            1 · {t("create_activity_quiz").replace("Quiz", t("create_title").split(" ")[0])}
           </h2>
           <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3">
-            {ACTIVITY_TYPES.map(({ type, label, description, icon: Icon, color }) => (
+            {ACTIVITY_TYPES.map(({ type, labelKey, description, icon: Icon, color }) => (
               <button
                 key={type}
                 onClick={() => setSelectedType(type)}
@@ -128,7 +127,7 @@ export default function Create() {
                   <Icon className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <p className="font-semibold text-sm text-foreground">{label}</p>
+                  <p className="font-semibold text-sm text-foreground">{t(labelKey)}</p>
                   <p className="text-xs text-muted-foreground leading-tight mt-0.5">{description}</p>
                 </div>
                 {selectedType === type && (
@@ -144,30 +143,25 @@ export default function Create() {
         {/* Step 2: Topic */}
         <div className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">
-            2 · Enter Topic
+            2 · {t("create_topic_label")}
           </h2>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="topic" className="text-sm">
-              Topic or subject area
-            </Label>
+            <Label htmlFor="topic" className="text-sm">{t("create_topic_label")}</Label>
             <Input
               id="topic"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              placeholder="e.g. The Water Cycle, Spanish Civil War, Fractions…"
+              placeholder={t("create_topic_placeholder")}
               className="text-base"
               maxLength={200}
             />
-            <p className="text-xs text-muted-foreground">
-              Be specific for better results — include key concepts or vocabulary if relevant.
-            </p>
           </div>
         </div>
 
         {/* Step 3: Competency & Year Group */}
         <div className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">
-            3 · LOMLOE Context <span className="text-muted-foreground normal-case font-normal">(optional)</span>
+            3 · {t("create_competency_label")}
           </h2>
           <Card>
             <CardContent className="p-4">
@@ -186,8 +180,8 @@ export default function Create() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-t border-border pt-6 gap-3">
           <div className="text-sm text-muted-foreground">
             {selectedType && topic.trim()
-              ? `Ready to generate: ${ACTIVITY_TYPES.find(a => a.type === selectedType)?.label} on "${topic}"`
-              : "Select an activity type and enter a topic to continue."}
+              ? `${t("create_generate")}: ${t(ACTIVITY_TYPES.find(a => a.type === selectedType)!.labelKey)} — "${topic}"`
+              : t("create_topic_label")}
           </div>
           <Button
             onClick={handleGenerate}
@@ -198,20 +192,17 @@ export default function Create() {
             {createMutation.isPending ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Generating…
+                {t("create_generating")}
               </>
             ) : (
               <>
                 <Sparkles className="w-4 h-4" />
-                Generate
+                {t("create_generate")}
                 <ChevronRight className="w-4 h-4" />
               </>
             )}
           </Button>
         </div>
-
-        {/* Powered by SEBA */}
-        <p className="text-xs text-muted-foreground text-center pb-4">Powered by SEBA</p>
       </div>
     </div>
   );

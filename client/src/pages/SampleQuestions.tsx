@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronDown, ChevronUp, Search, BookOpen } from "lucide-react";
+import { useI18n } from "@/contexts/I18nContext";
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
 type YearGroup = "junior" | "primary" | "secondary";
@@ -20,17 +21,18 @@ const COMP_COLORS: Record<CompetencyCode, string> = {
   CCEC: "bg-pink-100 text-pink-800 border-pink-200",
 };
 
-const YG_LABELS: Record<YearGroup, string> = {
-  junior: "Junior (Yr 3–4)",
-  primary: "Primary (Yr 5–6)",
-  secondary: "Secondary (Yr 7–10)",
-};
-
 export default function SampleQuestions() {
+  const { t } = useI18n();
   const [filterComp, setFilterComp] = useState<CompetencyCode | "">("");
   const [filterYG, setFilterYG] = useState<YearGroup | "">("");
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  const YG_LABELS: Record<YearGroup, string> = {
+    junior: `${t("admin_junior")} (Yr 3–4)`,
+    primary: `${t("admin_primary")} (Yr 5–6)`,
+    secondary: `${t("admin_secondary")} (Yr 7–10)`,
+  };
 
   const { data: competencies } = trpc.lomloe.getCompetencies.useQuery();
   const { data: questions, isLoading } = trpc.lomloe.getQuestions.useQuery({
@@ -62,48 +64,48 @@ export default function SampleQuestions() {
         {/* Header */}
         <div className="mb-8 space-y-2">
           <div className="inline-flex items-center gap-2 bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-full px-4 py-1.5 text-sm font-semibold">
-            <BookOpen className="w-4 h-4" /> Question Library
+            <BookOpen className="w-4 h-4" /> {t("questions_title")}
           </div>
-          <h1 className="text-3xl sm:text-4xl font-heading font-bold text-gray-900">Sample Questions by Category</h1>
-          <p className="text-gray-600 max-w-2xl">Browse all {questions?.length ?? "…"} LOMLOE-aligned questions organised by competency and year group.</p>
+          <h1 className="text-3xl sm:text-4xl font-heading font-bold text-gray-900">{t("questions_title")}</h1>
+          <p className="text-gray-600 max-w-2xl">{t("questions_subtitle")}</p>
         </div>
 
         {/* Filters */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6 flex flex-wrap gap-3 items-end">
           <div className="flex-1 min-w-[180px] space-y-1">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Competency</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t("questions_filter_competency")}</label>
             <select
               value={filterComp}
               onChange={(e) => setFilterComp(e.target.value as CompetencyCode | "")}
               className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"
             >
-              <option value="">All Competencies</option>
+              <option value="">{t("questions_all")}</option>
               {(competencies ?? []).map((c) => (
                 <option key={c.code} value={c.code}>{c.code} – {c.name}</option>
               ))}
             </select>
           </div>
           <div className="flex-1 min-w-[160px] space-y-1">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Year Group</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t("questions_filter_year")}</label>
             <select
               value={filterYG}
               onChange={(e) => setFilterYG(e.target.value as YearGroup | "")}
               className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"
             >
-              <option value="">All Year Groups</option>
-              <option value="junior">Junior (Yr 3–4)</option>
-              <option value="primary">Primary (Yr 5–6)</option>
-              <option value="secondary">Secondary (Yr 7–10)</option>
+              <option value="">{t("questions_all")}</option>
+              <option value="junior">{YG_LABELS.junior}</option>
+              <option value="primary">{YG_LABELS.primary}</option>
+              <option value="secondary">{YG_LABELS.secondary}</option>
             </select>
           </div>
           <div className="flex-1 min-w-[200px] space-y-1">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Search</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t("nav_questions")}</label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search questions…"
+                placeholder={t("chat_placeholder")}
                 className="pl-9"
               />
             </div>
@@ -115,14 +117,14 @@ export default function SampleQuestions() {
               onClick={() => { setFilterComp(""); setFilterYG(""); setSearch(""); }}
               className="text-gray-500 hover:text-gray-700"
             >
-              Clear
+              {t("cancel")}
             </Button>
           )}
         </div>
 
         {/* Count */}
         <p className="text-sm text-gray-500 mb-4">
-          Showing <span className="font-semibold text-gray-700">{filtered.length}</span> question{filtered.length !== 1 ? "s" : ""}
+          {filtered.length} {t("questions_title").toLowerCase()}
         </p>
 
         {/* Question list */}
@@ -135,7 +137,7 @@ export default function SampleQuestions() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-40" />
-            <p>No questions match your filters.</p>
+            <p>{t("my_materials_empty")}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -188,7 +190,7 @@ export default function SampleQuestions() {
                       </div>
                       {q.explanation && (
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
-                          <span className="font-semibold">Explanation: </span>{q.explanation}
+                          <span className="font-semibold">{t("questions_explanation")}: </span>{q.explanation}
                         </div>
                       )}
                     </div>

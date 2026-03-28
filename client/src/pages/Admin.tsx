@@ -6,20 +6,23 @@ import NavBar from "@/components/NavBar";
 import { cn } from "@/lib/utils";
 import { BookOpen, Layers, Users, BarChart3, Lock } from "lucide-react";
 import { getLoginUrl } from "@/const";
+import { useI18n } from "@/contexts/I18nContext";
 
 const YEAR_GROUPS = ["junior", "primary", "secondary"] as const;
-const YEAR_GROUP_LABELS = {
-  junior: "Junior (3–4)",
-  primary: "Primary (5–6)",
-  secondary: "Secondary (7–10)",
-};
 
 export default function Admin() {
+  const { t } = useI18n();
   const { user, loading } = useAuth();
   const { data: stats, isLoading: statsLoading } = trpc.lomloe.getStats.useQuery(undefined, {
     enabled: !!user && user.role === "admin",
   });
   const { data: competencies } = trpc.lomloe.getCompetencies.useQuery();
+
+  const YEAR_GROUP_LABELS = {
+    junior: `${t("admin_junior")} (3–4)`,
+    primary: `${t("admin_primary")} (5–6)`,
+    secondary: `${t("admin_secondary")} (7–10)`,
+  };
 
   // Loading auth state
   if (loading) {
@@ -44,12 +47,9 @@ export default function Admin() {
               <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
                 <Lock className="w-8 h-8 text-muted-foreground" />
               </div>
-              <h2 className="text-xl font-bold text-foreground">Sign in required</h2>
-              <p className="text-muted-foreground text-sm">
-                You need to sign in to access the admin dashboard.
-              </p>
+              <h2 className="text-xl font-bold text-foreground">{t("sign_in_required")}</h2>
               <Button asChild className="w-full">
-                <a href={getLoginUrl()}>Sign in</a>
+                <a href={getLoginUrl()}>{t("nav_sign_in")}</a>
               </Button>
             </CardContent>
           </Card>
@@ -69,10 +69,7 @@ export default function Admin() {
               <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
                 <Lock className="w-8 h-8 text-destructive" />
               </div>
-              <h2 className="text-xl font-bold text-foreground">Access Restricted</h2>
-              <p className="text-muted-foreground text-sm">
-                The admin dashboard is only accessible to administrators.
-              </p>
+              <h2 className="text-xl font-bold text-foreground">{t("sign_in_required")}</h2>
             </CardContent>
           </Card>
         </div>
@@ -102,10 +99,8 @@ export default function Admin() {
       <div className="container py-4 sm:py-8 flex flex-col gap-6 sm:gap-8">
         {/* Header */}
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Admin Dashboard</h1>
-          <p className="text-sm text-muted-foreground">
-            Knowledge bank statistics and LOMLOE coverage metrics
-          </p>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">{t("admin_title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("admin_subtitle")}</p>
         </div>
 
         {/* Summary cards */}
@@ -118,7 +113,7 @@ export default function Admin() {
                 </div>
                 <div>
                   <p className="text-xl sm:text-3xl font-bold text-foreground text-center sm:text-left">{stats.totalQuestions}</p>
-                  <p className="text-sm text-muted-foreground">Total Questions</p>
+                  <p className="text-sm text-muted-foreground">{t("admin_total_questions")}</p>
                 </div>
               </CardContent>
             </Card>
@@ -129,7 +124,7 @@ export default function Admin() {
                 </div>
                 <div>
                   <p className="text-xl sm:text-3xl font-bold text-foreground text-center sm:text-left">{stats.totalCompetencies}</p>
-                  <p className="text-sm text-muted-foreground">Competencies</p>
+                  <p className="text-sm text-muted-foreground">{t("admin_competencies")}</p>
                 </div>
               </CardContent>
             </Card>
@@ -140,7 +135,7 @@ export default function Admin() {
                 </div>
                 <div>
                   <p className="text-xl sm:text-3xl font-bold text-foreground text-center sm:text-left">{stats.totalYearGroups}</p>
-                  <p className="text-sm text-muted-foreground">Year Groups</p>
+                  <p className="text-sm text-muted-foreground">{t("admin_year_groups")}</p>
                 </div>
               </CardContent>
             </Card>
@@ -153,7 +148,7 @@ export default function Admin() {
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
                 <BarChart3 className="w-4 h-4" />
-                Questions per Competency &amp; Year Group
+                {t("admin_by_competency")}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
@@ -162,7 +157,7 @@ export default function Admin() {
                   <thead>
                     <tr className="border-b border-border bg-secondary/30">
                       <th className="text-left px-6 py-3 font-semibold text-foreground">
-                        Competency
+                        {t("admin_competency")}
                       </th>
                       {YEAR_GROUPS.map((yg) => (
                         <th
@@ -173,7 +168,7 @@ export default function Admin() {
                         </th>
                       ))}
                       <th className="text-center px-4 py-3 font-semibold text-foreground">
-                        Total
+                        {t("admin_total")}
                       </th>
                     </tr>
                   </thead>
@@ -224,7 +219,7 @@ export default function Admin() {
                   </tbody>
                   <tfoot>
                     <tr className="border-t-2 border-border bg-secondary/20">
-                      <td className="px-6 py-3 font-bold text-foreground">Total</td>
+                      <td className="px-6 py-3 font-bold text-foreground">{t("admin_total")}</td>
                       {YEAR_GROUPS.map((yg) => {
                         const colTotal = stats.breakdown.reduce((a, b) => a + b[yg], 0);
                         return (
@@ -248,7 +243,7 @@ export default function Admin() {
         {stats && (
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Coverage Overview</CardTitle>
+              <CardTitle className="text-base">{t("admin_coverage")}</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
               {stats.breakdown.map((row) => (

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Loader2, Plus, Trash2, ExternalLink, BookOpen, Presentation, Grid3X3, AlignLeft, Search, CreditCard, Lock } from "lucide-react";
 import { useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
+import { useI18n } from "@/contexts/I18nContext";
 
 const TYPE_ICONS: Record<string, React.ElementType> = {
   quiz: BookOpen,
@@ -28,6 +29,7 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 export default function MyMaterials() {
+  const { t } = useI18n();
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
   const utils = trpc.useUtils();
@@ -35,7 +37,7 @@ export default function MyMaterials() {
   const { data: materials, isLoading } = trpc.materials.list.useQuery(undefined, { enabled: !!user });
   const deleteMutation = trpc.materials.delete.useMutation({
     onSuccess: () => {
-      toast.success("Material deleted.");
+      toast.success(t("my_materials_delete") + "d.");
       utils.materials.list.invalidate();
     },
   });
@@ -61,9 +63,9 @@ export default function MyMaterials() {
               <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
                 <Lock className="w-8 h-8 text-muted-foreground" />
               </div>
-              <h2 className="text-xl font-bold">Sign in to view your materials</h2>
+              <h2 className="text-xl font-bold">{t("sign_in_required")}</h2>
               <Button asChild className="w-full">
-                <a href={getLoginUrl()}>Sign in</a>
+                <a href={getLoginUrl()}>{t("nav_sign_in")}</a>
               </Button>
             </CardContent>
           </Card>
@@ -78,13 +80,13 @@ export default function MyMaterials() {
       <div className="container py-4 sm:py-8 max-w-3xl mx-auto flex flex-col gap-4 sm:gap-6">
         <div className="flex items-start sm:items-center justify-between gap-2">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">My Materials</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">{t("my_materials_title")}</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              {materials?.length ?? 0} saved {materials?.length === 1 ? "activity" : "activities"}
+              {materials?.length ?? 0} {t("my_materials_subtitle")}
             </p>
           </div>
           <Button onClick={() => navigate("/create")} className="gap-2 flex-shrink-0" size="sm">
-            <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Create New</span><span className="sm:hidden">New</span>
+            <Plus className="w-4 h-4" /> <span className="hidden sm:inline">{t("my_materials_create")}</span><span className="sm:hidden">{t("save")}</span>
           </Button>
         </div>
 
@@ -95,13 +97,10 @@ export default function MyMaterials() {
                 <BookOpen className="w-8 h-8 text-muted-foreground" />
               </div>
               <div>
-                <h3 className="font-semibold text-foreground">No materials yet</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Create your first LOMLOE-aligned teaching activity.
-                </p>
+                <h3 className="font-semibold text-foreground">{t("my_materials_empty")}</h3>
               </div>
               <Button onClick={() => navigate("/create")} className="gap-2">
-                <Plus className="w-4 h-4" /> Create Material
+                <Plus className="w-4 h-4" /> {t("my_materials_create")}
               </Button>
             </CardContent>
           </Card>
@@ -132,11 +131,11 @@ export default function MyMaterials() {
                     <div className="flex flex-col sm:flex-row gap-1.5 flex-shrink-0">
                       <Button size="sm" variant="outline" className="gap-1.5"
                         onClick={() => navigate(`/materials/${m.id}`)}>
-                        <ExternalLink className="w-3.5 h-3.5" /> Open
+                        <ExternalLink className="w-3.5 h-3.5" /> {t("my_materials_open")}
                       </Button>
                       <Button size="sm" variant="ghost"
                         className="text-destructive hover:text-destructive"
-                        onClick={() => { if (confirm("Delete this material?")) deleteMutation.mutate({ id: m.id }); }}>
+                        onClick={() => { if (confirm(t("my_materials_delete") + "?")) deleteMutation.mutate({ id: m.id }); }}>
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     </div>
@@ -146,8 +145,6 @@ export default function MyMaterials() {
             })}
           </div>
         )}
-
-        <p className="text-xs text-muted-foreground text-center pb-4">Powered by SEBA</p>
       </div>
     </div>
   );
