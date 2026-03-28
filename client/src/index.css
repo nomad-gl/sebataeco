@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
@@ -52,7 +53,18 @@
   --chart-3: var(--color-blue-600);
   --chart-4: var(--color-blue-700);
   --chart-5: var(--color-blue-800);
-  --radius: 0.65rem;
+  --radius: 0.75rem;
+  --font-sans: 'Nunito', ui-sans-serif, system-ui, sans-serif;
+  --font-heading: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  /* SEBA competency colours */
+  --comp-ccl:   oklch(0.45 0.2 240);
+  --comp-cp:    oklch(0.48 0.18 185);
+  --comp-stem:  oklch(0.48 0.18 145);
+  --comp-cd:    oklch(0.48 0.2 270);
+  --comp-cpsaa: oklch(0.55 0.2 25);
+  --comp-cc:    oklch(0.45 0.18 310);
+  --comp-ce:    oklch(0.58 0.18 80);
+  --comp-ccec:  oklch(0.48 0.2 340);
   --background: oklch(1 0 0);
   --foreground: oklch(0.235 0.015 65);
   --card: oklch(1 0 0);
@@ -119,6 +131,10 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -131,6 +147,17 @@
   input[type="radio"]:not(:disabled) {
     @apply cursor-pointer;
   }
+}
+
+@layer utilities {
+  .badge-CCL   { background: var(--comp-ccl);   color: white; border-radius: 0.375rem; padding: 0.125rem 0.5rem; font-size: 0.75rem; font-weight: 700; }
+  .badge-CP    { background: var(--comp-cp);    color: white; border-radius: 0.375rem; padding: 0.125rem 0.5rem; font-size: 0.75rem; font-weight: 700; }
+  .badge-STEM  { background: var(--comp-stem);  color: white; border-radius: 0.375rem; padding: 0.125rem 0.5rem; font-size: 0.75rem; font-weight: 700; }
+  .badge-CD    { background: var(--comp-cd);    color: white; border-radius: 0.375rem; padding: 0.125rem 0.5rem; font-size: 0.75rem; font-weight: 700; }
+  .badge-CPSAA { background: var(--comp-cpsaa); color: white; border-radius: 0.375rem; padding: 0.125rem 0.5rem; font-size: 0.75rem; font-weight: 700; }
+  .badge-CC    { background: var(--comp-cc);    color: white; border-radius: 0.375rem; padding: 0.125rem 0.5rem; font-size: 0.75rem; font-weight: 700; }
+  .badge-CE    { background: var(--comp-ce);    color: white; border-radius: 0.375rem; padding: 0.125rem 0.5rem; font-size: 0.75rem; font-weight: 700; }
+  .badge-CCEC  { background: var(--comp-ccec);  color: white; border-radius: 0.375rem; padding: 0.125rem 0.5rem; font-size: 0.75rem; font-weight: 700; }
 }
 
 @layer components {
