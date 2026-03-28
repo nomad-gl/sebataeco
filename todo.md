@@ -207,3 +207,13 @@
 - [x] Add "Use in Challenge" button on MaterialView page (quiz type)
 - [x] Pass selected material questions to challenge room instead of knowledge bank questions
 - [x] Update server challenge procedures to accept material-sourced questions
+
+## Feature: Improved Challenge Lobby & Join Flow
+- [ ] Lobby: show QR code for students to scan and join
+- [ ] Lobby: show shareable join URL with room code pre-filled
+- [ ] Lobby: live participant list with join animations and participant count
+- [ ] Lobby: clear "Start Game" button that only activates when at least 1 student has joined
+- [ ] Join page: cleaner room-code entry with auto-uppercase and 6-char limit
+- [ ] Join page: nickname input (required before joining)
+- [ ] Join page: waiting room with live participant count and "Game starting..." transition
+- [ ] Join page: smooth redirect when teacher starts the game

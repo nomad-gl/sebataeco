@@ -156,6 +156,7 @@ export const translations = {
     challenge_enter_code: "Enter room code",
     challenge_join_btn: "Join",
     challenge_leaderboard: "Leaderboard",
+    challenge_question_count: "Number of questions",
 
     // Question Library
     questions_title: "Question Library",
@@ -500,6 +501,7 @@ export const translations = {
     challenge_enter_code: "Introduce el código de sala",
     challenge_join_btn: "Unirse",
     challenge_leaderboard: "Clasificación",
+    challenge_question_count: "Número de preguntas",
 
     // Question Library
     questions_title: "Banco de Preguntas",
@@ -844,6 +846,7 @@ export const translations = {
     challenge_enter_code: "Introdueix el codi de sala",
     challenge_join_btn: "Unir-se",
     challenge_leaderboard: "Classificació",
+    challenge_question_count: "Nombre de preguntes",
 
     // Question Library
     questions_title: "Banc de Preguntes",

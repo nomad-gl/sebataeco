@@ -12,8 +12,9 @@ import { toast } from "sonner";
 import {
   Zap, Users, Trophy, ChevronRight, ChevronLeft,
   Copy, Play, SkipForward, StopCircle, Plus, Loader2,
-  BookOpen, Library, CheckCircle2,
+  BookOpen, Library, CheckCircle2, QrCode, Link2, Printer,
 } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import CompetencySelector from "@/components/CompetencySelector";
 import { useI18n } from "@/contexts/I18nContext";
 
@@ -52,6 +53,10 @@ export default function Challenge() {
   // Material picker state — pre-select if navigated from MyMaterials
   const [createTab, setCreateTab] = useState<"bank" | "material">(urlMaterialId ? "material" : "bank");
   const [selectedMaterialId, setSelectedMaterialId] = useState<number | null>(urlMaterialId);
+
+  // Track previously seen participant IDs for join animation
+  const [prevParticipantIds, setPrevParticipantIds] = useState<Set<number>>(new Set());
+  const [newlyJoined, setNewlyJoined] = useState<Set<number>>(new Set());
 
   const createMutation = trpc.challenge.create.useMutation({
     onSuccess: (data) => {
@@ -94,6 +99,19 @@ export default function Challenge() {
     if (roomQuery.data?.status === "finished" && view === "live") setView("results");
   }, [roomQuery.data?.status, view]);
 
+  // Detect newly joined participants for animation
+  useEffect(() => {
+    if (!roomQuery.data?.participants) return;
+    const currentIds = new Set(roomQuery.data.participants.map((p) => p.id));
+    const fresh = new Set<number>();
+    currentIds.forEach((id) => { if (!prevParticipantIds.has(id)) fresh.add(id); });
+    if (fresh.size > 0) {
+      setNewlyJoined(fresh);
+      setTimeout(() => setNewlyJoined(new Set()), 1500);
+    }
+    setPrevParticipantIds(currentIds);
+  }, [roomQuery.data?.participants]);
+
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center challenge-bg">
       <Loader2 className="w-8 h-8 animate-spin text-white" />
@@ -115,9 +133,7 @@ export default function Challenge() {
   );
 
   const room = roomQuery.data;
-
   const allMaterials = myMaterials.data ?? [];
-
   const isPending = createMutation.isPending || createFromMaterialMutation.isPending;
 
   const handleCreate = () => {
@@ -131,6 +147,11 @@ export default function Challenge() {
 
   const canCreate = title.trim().length >= 2 && !isPending &&
     (createTab === "bank" || (createTab === "material" && selectedMaterialId !== null));
+
+  // Build the student join URL
+  const joinUrl = room
+    ? `${window.location.origin}/join?code=${room.roomCode}`
+    : "";
 
   return (
     <div className="min-h-screen challenge-bg">
@@ -201,58 +222,43 @@ export default function Challenge() {
                 <Input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Year 5 STEM Review"
+                  placeholder={t("challenge_title")}
                   className="bg-white/10 border-white/20 text-white placeholder:text-white/40"
                 />
               </div>
 
               {/* Source tabs */}
-              <div className="space-y-3">
-                <Label className="text-white/80">Question source</Label>
-                <div className="grid grid-cols-2 gap-2">
+              <div className="flex rounded-xl overflow-hidden border border-white/20">
+                {[
+                  { key: "bank", label: "Knowledge Bank", icon: BookOpen },
+                  { key: "material", label: "My Materials", icon: Library },
+                ].map(({ key, label, icon: Icon }) => (
                   <button
-                    onClick={() => setCreateTab("bank")}
-                    className={`flex items-center gap-2 rounded-xl border p-3 text-sm font-medium transition-all ${
-                      createTab === "bank"
-                        ? "bg-yellow-400/20 border-yellow-400/60 text-yellow-300"
-                        : "bg-white/5 border-white/20 text-white/70 hover:bg-white/10"
+                    key={key}
+                    onClick={() => setCreateTab(key as "bank" | "material")}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors ${
+                      createTab === key ? "bg-yellow-400/30 text-yellow-200" : "text-white/60 hover:text-white/80 hover:bg-white/5"
                     }`}
                   >
-                    <BookOpen className="w-4 h-4 shrink-0" />
-                    Knowledge Bank
+                    <Icon className="w-4 h-4" /> {label}
                   </button>
-                  <button
-                    onClick={() => setCreateTab("material")}
-                    className={`flex items-center gap-2 rounded-xl border p-3 text-sm font-medium transition-all ${
-                      createTab === "material"
-                        ? "bg-yellow-400/20 border-yellow-400/60 text-yellow-300"
-                        : "bg-white/5 border-white/20 text-white/70 hover:bg-white/10"
-                    }`}
-                  >
-                    <Library className="w-4 h-4 shrink-0" />
-                    My Materials
-                  </button>
-                </div>
+                ))}
               </div>
 
-              {/* Knowledge bank options */}
+              {/* Knowledge Bank options */}
               {createTab === "bank" && (
                 <>
+                  <CompetencySelector
+                    selectedCompetency={competency}
+                    selectedYearGroup={yearGroup}
+                    onCompetencyChange={(c) => setCompetency(c as CompetencyCode | undefined)}
+                    onYearGroupChange={(y) => setYearGroup(y as YearGroup | undefined)}
+                  />
                   <div className="space-y-2">
-                    <Label className="text-white/80">{t("create_competency_label")}</Label>
-                    <CompetencySelector
-                      selectedCompetency={competency}
-                      selectedYearGroup={yearGroup}
-                      onCompetencyChange={(v) => setCompetency(v)}
-                      onYearGroupChange={(v) => setYearGroup(v)}
-                      compact
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-white/80">{t("practice_setup_count")}: {questionCount}</Label>
+                    <Label className="text-white/80">{t("challenge_question_count")}: <span className="text-yellow-300 font-bold">{questionCount}</span></Label>
                     <input
-                      type="range" min={5} max={20} value={questionCount}
+                      type="range" min={5} max={20} step={1}
+                      value={questionCount}
                       onChange={(e) => setQuestionCount(Number(e.target.value))}
                       className="w-full accent-yellow-400"
                     />
@@ -317,43 +323,111 @@ export default function Challenge() {
 
         {/* ── Lobby view ── */}
         {view === "lobby" && room && (
-          <div className="max-w-lg mx-auto space-y-6 text-center">
-            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-8 space-y-4">
-              <h2 className="text-xl font-bold text-white">{room.title}</h2>
-              <p className="text-white/70">{t("challenge_enter_code")}:</p>
-              <div className="bg-black/30 rounded-xl p-6">
-                <p className="text-5xl font-mono font-black text-yellow-300 tracking-widest">{room.roomCode}</p>
+          <div className="max-w-2xl mx-auto space-y-5">
+            {/* Header */}
+            <div className="text-center space-y-1">
+              <div className="inline-flex items-center gap-2 bg-green-400/20 text-green-300 border border-green-400/30 rounded-full px-4 py-1.5 text-sm font-semibold">
+                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse inline-block" />
+                Waiting for students to join
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-white/30 text-white hover:bg-white/10"
-                onClick={() => { navigator.clipboard.writeText(room.roomCode); toast.success(t("challenge_room_code") + " copied!"); }}
-              >
-                <Copy className="w-4 h-4 mr-2" /> {t("challenge_room_code")}
-              </Button>
+              <h2 className="text-2xl font-bold text-white">{room.title}</h2>
+            </div>
 
-              <div className="flex items-center justify-center gap-2 text-white/70">
-                <Users className="w-4 h-4" />
-                <span>{room.participants.length} {t("challenge_join")}</span>
-              </div>
-
-              {room.participants.length > 0 && (
-                <div className="flex flex-wrap gap-2 justify-center">
-                  {room.participants.map((p) => (
-                    <span key={p.id} className="bg-white/20 text-white text-sm px-3 py-1 rounded-full">{p.nickname}</span>
-                  ))}
+            <div className="grid sm:grid-cols-2 gap-4">
+              {/* Room code + QR */}
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6 flex flex-col items-center gap-4">
+                <div className="space-y-1 text-center">
+                  <p className="text-white/60 text-xs uppercase tracking-widest font-semibold">Room Code</p>
+                  <p className="text-5xl font-mono font-black text-yellow-300 tracking-widest">{room.roomCode}</p>
                 </div>
-              )}
 
-              <Button
-                size="lg"
-                className="w-full bg-green-500 hover:bg-green-400 text-white font-bold gap-2"
-                disabled={room.participants.length === 0 || controlMutation.isPending}
-                onClick={() => controlMutation.mutate({ id: room.id, action: "start" })}
-              >
-                <Play className="w-5 h-5" /> {t("challenge_start")}
-              </Button>
+                {/* QR Code */}
+                <div className="bg-white rounded-xl p-3">
+                  <QRCodeSVG value={joinUrl} size={140} />
+                </div>
+
+                <p className="text-white/50 text-xs text-center">Scan to join or visit</p>
+                <p className="text-yellow-200 text-xs font-mono break-all text-center">{window.location.origin}/join</p>
+
+                {/* Copy buttons */}
+                <div className="flex gap-2 w-full">
+                  <Button
+                    variant="outline" size="sm"
+                    className="flex-1 border-white/30 text-white hover:bg-white/10 gap-1.5 text-xs"
+                    onClick={() => { navigator.clipboard.writeText(room.roomCode); toast.success("Room code copied!"); }}
+                  >
+                    <Copy className="w-3.5 h-3.5" /> Code
+                  </Button>
+                  <Button
+                    variant="outline" size="sm"
+                    className="flex-1 border-white/30 text-white hover:bg-white/10 gap-1.5 text-xs"
+                    onClick={() => { navigator.clipboard.writeText(joinUrl); toast.success("Join link copied!"); }}
+                  >
+                    <Link2 className="w-3.5 h-3.5" /> Link
+                  </Button>
+                </div>
+              </div>
+
+              {/* Participants panel */}
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-5 flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-white">
+                    <Users className="w-5 h-5 text-yellow-300" />
+                    <span className="font-semibold">Students Joined</span>
+                  </div>
+                  <span className="text-2xl font-bold text-yellow-300">{room.participants.length}</span>
+                </div>
+
+                <div className="flex-1 min-h-[120px] max-h-[200px] overflow-y-auto">
+                  {room.participants.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full gap-2 text-white/40">
+                      <Users className="w-8 h-8 opacity-40" />
+                      <p className="text-sm">Waiting for students…</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {room.participants.map((p) => (
+                        <span
+                          key={p.id}
+                          className={`text-sm px-3 py-1 rounded-full font-medium transition-all duration-500 ${
+                            newlyJoined.has(p.id)
+                              ? "bg-yellow-400 text-black scale-110"
+                              : "bg-white/20 text-white"
+                          }`}
+                        >
+                          {p.nickname}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <Button
+                  size="lg"
+                  className={`w-full font-bold gap-2 transition-all ${
+                    room.participants.length > 0
+                      ? "bg-green-500 hover:bg-green-400 text-white"
+                      : "bg-white/10 text-white/40 cursor-not-allowed"
+                  }`}
+                  disabled={room.participants.length === 0 || controlMutation.isPending}
+                  onClick={() => controlMutation.mutate({ id: room.id, action: "start" })}
+                >
+                  {controlMutation.isPending
+                    ? <Loader2 className="w-5 h-5 animate-spin" />
+                    : <Play className="w-5 h-5" />}
+                  {room.participants.length === 0 ? "Waiting for students…" : `Start Game (${room.participants.length} joined)`}
+                </Button>
+              </div>
+            </div>
+
+            {/* Instructions card */}
+            <div className="bg-yellow-400/10 border border-yellow-400/20 rounded-xl p-4 text-sm text-yellow-200 space-y-1">
+              <p className="font-semibold">How students join:</p>
+              <ol className="list-decimal list-inside space-y-0.5 text-yellow-200/80">
+                <li>Open <span className="font-mono">{window.location.origin}/join</span> on their device</li>
+                <li>Enter the room code <span className="font-mono font-bold text-yellow-300">{room.roomCode}</span> or scan the QR code</li>
+                <li>Enter their name and click Join</li>
+              </ol>
             </div>
           </div>
         )}
@@ -363,7 +437,14 @@ export default function Challenge() {
           const q = room.questions[room.currentQuestion];
           return (
             <div className="max-w-2xl mx-auto space-y-6">
+              {/* SEBA logo — enlarged for gaming mode */}
               <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-xl bg-yellow-400/20 border border-yellow-400/40 flex items-center justify-center">
+                    <Zap className="w-5 h-5 text-yellow-300" />
+                  </div>
+                  <span className="text-white font-heading font-bold text-lg">SEBA</span>
+                </div>
                 <span className="text-white/70 text-sm">{t("practice_question")} {room.currentQuestion + 1} / {room.questions.length}</span>
                 <div className="flex items-center gap-2 text-white/70 text-sm">
                   <Users className="w-4 h-4" />
@@ -439,7 +520,16 @@ export default function Challenge() {
               <p className="text-white/70">{room.title}</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6 space-y-3">
-              <h3 className="font-semibold text-white">{t("challenge_leaderboard")}</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-white">{t("challenge_leaderboard")}</h3>
+                <Button
+                  variant="outline" size="sm"
+                  className="border-white/30 text-white hover:bg-white/10 gap-1.5 text-xs"
+                  onClick={() => window.print()}
+                >
+                  <Printer className="w-3.5 h-3.5" /> Print Results
+                </Button>
+              </div>
               {room.participants.length === 0 && <p className="text-white/50 text-sm">{t("my_materials_empty")}</p>}
               {room.participants.map((p, i) => (
                 <div key={p.id} className={`flex items-center justify-between p-3 rounded-xl ${i === 0 ? "bg-yellow-400/20 border border-yellow-400/30" : "bg-white/5"}`}>
@@ -451,6 +541,28 @@ export default function Challenge() {
                 </div>
               ))}
             </div>
+
+            {/* Questions summary for teacher */}
+            <details className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl overflow-hidden">
+              <summary className="p-4 cursor-pointer text-white font-semibold flex items-center gap-2 hover:bg-white/5">
+                <BookOpen className="w-4 h-4 text-yellow-300" /> View All Questions ({room.questions.length})
+              </summary>
+              <div className="px-4 pb-4 space-y-3">
+                {room.questions.map((q, i) => (
+                  <div key={i} className="bg-white/5 rounded-xl p-3 space-y-1">
+                    <p className="text-white text-sm font-medium">{i + 1}. {q.question}</p>
+                    <div className="grid grid-cols-2 gap-1">
+                      {q.options.map((opt: string, j: number) => (
+                        <p key={j} className={`text-xs px-2 py-1 rounded ${j === q.correctIndex ? "bg-green-400/20 text-green-300" : "text-white/50"}`}>
+                          {String.fromCharCode(65 + j)}. {opt}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </details>
+
             <div className="flex gap-3">
               <Button
                 className="flex-1 bg-yellow-400 hover:bg-yellow-300 text-black font-bold"
