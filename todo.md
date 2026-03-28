@@ -185,3 +185,9 @@
 - [x] Translate Presentation page form labels and export buttons
 - [x] Translate Class Challenge page labels
 - [x] Translate Question Library page labels and filters
+
+## Bug: Some text does not change language
+- [ ] Audit all pages/components for remaining hardcoded English strings
+- [ ] Fix CompetencySelector hardcoded labels (competency names, year group labels)
+- [ ] Fix Home.tsx competency card names and descriptions
+- [ ] Fix any other components with hardcoded strings not using t()

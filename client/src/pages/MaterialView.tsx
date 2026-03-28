@@ -11,6 +11,7 @@ import {
   FileDown, Image, CheckCircle2, XCircle, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/contexts/I18nContext";
 import {
   exportPDF, exportPNG, exportWord, printElement,
   type QuizContent, type SlidesContent, type CrosswordContent,
@@ -490,6 +491,7 @@ function ExportToolbar({
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function MaterialView() {
+  const { t } = useI18n();
   const [, params] = useRoute("/materials/:id");
   const [, navigate] = useLocation();
   const [showAnswers, setShowAnswers] = useState(false);
@@ -501,8 +503,8 @@ export default function MaterialView() {
     { enabled: id !== null && !isNaN(id!) }
   );
   const deleteMutation = trpc.materials.delete.useMutation({
-    onSuccess: () => { toast.success("Material deleted."); navigate("/my-materials"); },
-    onError: () => toast.error("Failed to delete material."),
+    onSuccess: () => { toast.success(t("material_deleted")); navigate("/my-materials"); },
+    onError: () => toast.error(t("material_delete_failed")),
   });
 
   if (isLoading) {
@@ -569,7 +571,7 @@ export default function MaterialView() {
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">{material.title}</h1>
             {material.topic && (
-              <p className="text-sm text-muted-foreground">Topic: {material.topic}</p>
+              <p className="text-sm text-muted-foreground">{t("material_topic")}: {material.topic}</p>
             )}
           </div>
           <Button

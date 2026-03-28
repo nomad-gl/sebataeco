@@ -17,14 +17,20 @@ import { getLoginUrl } from "@/const";
 import { exportPDF, exportWord, exportPNG } from "@/lib/exportUtils";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
+import { useI18n } from "@/contexts/I18nContext";
 
 const COMPETENCIES = ["CCL","CP","STEM","CD","CPSAA","CC","CE","CCEC"];
-const YEAR_GROUPS = [
-  { value: "junior", label: "Junior (Years 3–4)" },
-  { value: "primary", label: "Primary (Years 5–6)" },
-  { value: "secondary", label: "Secondary (Years 7–10)" },
+const YEAR_GROUP_VALUES = [
+  { value: "junior", labelKey: "comp_junior" as const },
+  { value: "primary", labelKey: "comp_primary" as const },
+  { value: "secondary", labelKey: "comp_secondary" as const },
 ];
-const SUBJECTS = ["English","Spanish","Mathematics","Science","History","Geography","Art","Music","Physical Education","Technology","Social Studies"];
+const SUBJECT_KEYS = [
+  "subject_english", "subject_spanish", "subject_mathematics", "subject_science",
+  "subject_history", "subject_geography", "subject_art", "subject_music",
+  "subject_pe", "subject_technology", "subject_social",
+] as const;
+const SUBJECT_VALUES = ["English","Spanish","Mathematics","Science","History","Geography","Art","Music","Physical Education","Technology","Social Studies"];
 
 type Slide = {
   title: string;
@@ -47,6 +53,7 @@ type PresentationData = {
 function EditableField({
   value, onChange, multiline, className,
 }: { value: string; onChange: (v: string) => void; multiline?: boolean; className?: string }) {
+  const { t } = useI18n();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
 
@@ -73,8 +80,8 @@ function EditableField({
           />
         )}
         <div className="flex gap-1.5">
-          <Button size="sm" className="h-6 px-2 text-xs bg-blue-500 hover:bg-blue-400" onClick={commit}><Check className="w-3 h-3 mr-1" />Save</Button>
-          <Button size="sm" variant="ghost" className="h-6 px-2 text-xs text-white/60 hover:text-white" onClick={cancel}><X className="w-3 h-3 mr-1" />Cancel</Button>
+          <Button size="sm" className="h-6 px-2 text-xs bg-blue-500 hover:bg-blue-400" onClick={commit}><Check className="w-3 h-3 mr-1" />{t("save")}</Button>
+          <Button size="sm" variant="ghost" className="h-6 px-2 text-xs text-white/60 hover:text-white" onClick={cancel}><X className="w-3 h-3 mr-1" />{t("cancel")}</Button>
         </div>
       </div>
     );
@@ -89,6 +96,7 @@ function EditableField({
 }
 
 export default function Presentation() {
+  const { t } = useI18n();
   const { isAuthenticated, loading } = useAuth();
   const [, navigate] = useLocation();
   const [topic, setTopic] = useState("");
@@ -109,21 +117,21 @@ export default function Presentation() {
         setGenerated(pres);
         setSlides(pres.slides ?? []);
         setCurrentSlide(0);
-        toast.success("Presentation generated!");
+        toast.success(t("presentation_generated"));
       } catch {
-        toast.error("Failed to parse presentation content");
+        toast.error(t("presentation_parse_error"));
       }
     },
-    onError: () => toast.error("Generation failed — please try again"),
+    onError: () => toast.error(t("presentation_gen_failed")),
   });
 
   // Derive activity mutation (creates a quiz or fill-in-the-blank from slide text)
   const deriveMutation = trpc.materials.create.useMutation({
     onSuccess: (data) => {
-      toast.success("Activity created! Opening in viewer…");
+      toast.success(t("presentation_activity_created"));
       navigate(`/materials/${data.id}`);
     },
-    onError: () => toast.error("Failed to create derived activity"),
+    onError: () => toast.error(t("presentation_activity_failed")),
   });
 
   const handleGenerate = () => {
@@ -161,8 +169,8 @@ export default function Presentation() {
         <div className="flex-1 flex items-center justify-center p-4">
           <Card className="max-w-sm w-full bg-white/10 border-white/20 text-white text-center p-6 space-y-4">
             <PresentationIcon className="w-12 h-12 mx-auto text-blue-300" />
-            <h2 className="text-xl font-heading font-bold">Sign in to create presentations</h2>
-            <Button className="w-full bg-blue-500 hover:bg-blue-400" onClick={() => window.location.href = getLoginUrl()}>Sign In</Button>
+            <h2 className="text-xl font-heading font-bold">{t("pres_signin_title")}</h2>
+            <Button className="w-full bg-blue-500 hover:bg-blue-400" onClick={() => window.location.href = getLoginUrl()}>{t("nav_sign_in")}</Button>
           </Card>
         </div>
       </div>
@@ -177,42 +185,42 @@ export default function Presentation() {
       <main className="flex-1 container py-6 sm:py-8 space-y-6">
         <div className="text-white">
           <h1 className="text-2xl sm:text-3xl font-heading font-bold flex items-center gap-2">
-            <PresentationIcon className="w-7 h-7 text-blue-300" /> Create a Presentation
+            <PresentationIcon className="w-7 h-7 text-blue-300" /> {t("pres_title")}
           </h1>
-          <p className="text-white/60 mt-1 text-sm">AI-generated slide decks aligned to LOMLOE competencies. Click any slide text to edit it.</p>
+          <p className="text-white/60 mt-1 text-sm">{t("pres_subtitle")}</p>
         </div>
 
         {/* Generator form */}
         <Card className="bg-white/10 border-white/20 text-white">
           <CardContent className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2 space-y-1.5">
-              <Label className="text-white/80">Presentation Heading <span className="text-white/40">(optional)</span></Label>
-              <Input value={heading} onChange={(e) => setHeading(e.target.value)} placeholder="e.g. Introduction to Photosynthesis" className="bg-white/10 border-white/20 text-white placeholder:text-white/40" />
+              <Label className="text-white/80">{t("pres_heading_label")} <span className="text-white/40">({t("optional")})</span></Label>
+              <Input value={heading} onChange={(e) => setHeading(e.target.value)} placeholder={t("pres_heading_placeholder")} className="bg-white/10 border-white/20 text-white placeholder:text-white/40" />
             </div>
             <div className="sm:col-span-2 space-y-1.5">
-              <Label className="text-white/80">Topic / Learning Objective <span className="text-red-400">*</span></Label>
-              <Textarea value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="e.g. How plants convert sunlight into energy through photosynthesis" rows={2} className="bg-white/10 border-white/20 text-white placeholder:text-white/40 resize-none" />
+              <Label className="text-white/80">{t("pres_topic_label")} <span className="text-red-400">*</span></Label>
+              <Textarea value={topic} onChange={(e) => setTopic(e.target.value)} placeholder={t("pres_topic_placeholder")} rows={2} className="bg-white/10 border-white/20 text-white placeholder:text-white/40 resize-none" />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/80">Subject <span className="text-red-400">*</span></Label>
+              <Label className="text-white/80">{t("pres_subject_label")} <span className="text-red-400">*</span></Label>
               <Select value={subject} onValueChange={setSubject}>
-                <SelectTrigger className="bg-white/10 border-white/20 text-white"><SelectValue placeholder="Select subject" /></SelectTrigger>
-                <SelectContent>{SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                <SelectTrigger className="bg-white/10 border-white/20 text-white"><SelectValue placeholder={t("pres_select_subject")} /></SelectTrigger>
+                <SelectContent>{SUBJECT_KEYS.map((k, i) => <SelectItem key={k} value={SUBJECT_VALUES[i]!}>{t(k)}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/80">Year Group <span className="text-red-400">*</span></Label>
+              <Label className="text-white/80">{t("comp_year_group_label")} <span className="text-red-400">*</span></Label>
               <Select value={yearGroup} onValueChange={setYearGroup}>
-                <SelectTrigger className="bg-white/10 border-white/20 text-white"><SelectValue placeholder="Select year group" /></SelectTrigger>
-                <SelectContent>{YEAR_GROUPS.map(y => <SelectItem key={y.value} value={y.value}>{y.label}</SelectItem>)}</SelectContent>
+                <SelectTrigger className="bg-white/10 border-white/20 text-white"><SelectValue placeholder={t("pres_select_year")} /></SelectTrigger>
+                <SelectContent>{YEAR_GROUP_VALUES.map(y => <SelectItem key={y.value} value={y.value}>{t(y.labelKey)}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/80">LOMLOE Competency <span className="text-white/40">(optional)</span></Label>
+              <Label className="text-white/80">{t("pres_competency_label")} <span className="text-white/40">({t("optional")})</span></Label>
               <Select value={competency} onValueChange={setCompetency}>
-                <SelectTrigger className="bg-white/10 border-white/20 text-white"><SelectValue placeholder="Any competency" /></SelectTrigger>
+                <SelectTrigger className="bg-white/10 border-white/20 text-white"><SelectValue placeholder={t("presentation_any_competency")} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Any competency</SelectItem>
+                  <SelectItem value="">{t("presentation_any_competency")}</SelectItem>
                   {COMPETENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -224,8 +232,8 @@ export default function Presentation() {
                 onClick={handleGenerate}
               >
                 {createMutation.isPending
-                  ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Generating…</>
-                  : <><PresentationIcon className="w-4 h-4 mr-2" /> Generate Slides</>}
+                  ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> {t("pres_generating")}</>
+                  : <><PresentationIcon className="w-4 h-4 mr-2" /> {t("pres_generate_btn")}</>}
               </Button>
             </div>
           </CardContent>
@@ -236,7 +244,7 @@ export default function Presentation() {
           <div className="space-y-4">
             {/* Export + derive toolbar */}
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-white/60 text-sm">{slides.length} slides · click any text to edit</span>
+              <span className="text-white/60 text-sm">{slides.length} {t("pres_slides_hint")}</span>
               <div className="ml-auto flex flex-wrap gap-2">
                 {/* Derive activity buttons */}
                 <Button
@@ -246,7 +254,7 @@ export default function Presentation() {
                   onClick={() => handleDerive("quiz")}
                 >
                   {deriveMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <FileQuestion className="w-3 h-3 mr-1" />}
-                  Generate Quiz
+                  {t("pres_gen_quiz")}
                 </Button>
                 <Button
                   size="sm"
@@ -255,11 +263,11 @@ export default function Presentation() {
                   onClick={() => handleDerive("missing_words")}
                 >
                   {deriveMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <AlignLeft className="w-3 h-3 mr-1" />}
-                  Fill-in-the-blank
+                  {t("pres_fill_blank")}
                 </Button>
                 {/* Export buttons */}
                 <Button size="sm" variant="outline" className="border-white/30 text-white hover:bg-white/10 text-xs" onClick={() => window.print()}>
-                  <Printer className="w-3 h-3 mr-1" /> Print
+                  <Printer className="w-3 h-3 mr-1" /> {t("material_print")}
                 </Button>
                 <Button size="sm" variant="outline" className="border-white/30 text-white hover:bg-white/10 text-xs" onClick={() => exportPDF(exportId, generated.title || "presentation")}>
                   <Download className="w-3 h-3 mr-1" /> PDF
@@ -315,7 +323,7 @@ export default function Presentation() {
 
                     {slide.keyVocabulary && slide.keyVocabulary.length > 0 && (
                       <div className="bg-blue-400/10 border border-blue-400/20 rounded-lg p-3 space-y-1.5">
-                        <p className="text-blue-200 text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5"><BookOpen className="w-3 h-3" /> Key Vocabulary</p>
+                        <p className="text-blue-200 text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5"><BookOpen className="w-3 h-3" /> {t("material_key_vocab")}</p>
                         <div className="flex flex-wrap gap-1.5">
                           {slide.keyVocabulary.map((v, i) => <Badge key={i} className="bg-blue-500/30 text-blue-100 border-blue-400/30 text-xs">{v}</Badge>)}
                         </div>
@@ -324,14 +332,14 @@ export default function Presentation() {
 
                     {slide.imagePrompt && (
                       <div className="bg-yellow-400/10 border border-yellow-400/20 rounded-lg p-3">
-                        <p className="text-yellow-200 text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5 mb-1"><Lightbulb className="w-3 h-3" /> Image Suggestion</p>
+                        <p className="text-yellow-200 text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5 mb-1"><Lightbulb className="w-3 h-3" /> {t("pres_image_suggestion")}</p>
                         <p className="text-yellow-100/80 text-xs italic">{slide.imagePrompt}</p>
                       </div>
                     )}
 
                     {slide.speakerNotes !== undefined && (
                       <div className="bg-white/5 border border-white/10 rounded-lg p-3">
-                        <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-1">Speaker Notes</p>
+                        <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-1">{t("pres_speaker_notes")}</p>
                         <EditableField
                           value={slide.speakerNotes ?? ""}
                           onChange={v => updateSlideField(currentSlide, "speakerNotes", v)}

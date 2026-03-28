@@ -7,10 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Zap, Loader2, CheckCircle2, Trophy, Users } from "lucide-react";
+import { useI18n } from "@/contexts/I18nContext";
 
 type Phase = "enter" | "waiting" | "question" | "done";
 
 export default function Join() {
+  const { t } = useI18n();
   const [location] = useLocation();
   const params = new URLSearchParams(location.split("?")[1] ?? "");
   const initialCode = params.get("code") ?? "";
@@ -106,12 +108,12 @@ export default function Join() {
             <div className="w-14 h-14 rounded-2xl bg-yellow-400/20 border border-yellow-400/40 flex items-center justify-center mx-auto">
               <Zap className="w-7 h-7 text-yellow-300" />
             </div>
-            <CardTitle className="text-2xl font-heading">Join Challenge</CardTitle>
-            <p className="text-white/60 text-sm">Enter the room code your teacher shared</p>
+            <CardTitle className="text-2xl font-heading">{t("join_title")}</CardTitle>
+            <p className="text-white/60 text-sm">{t("join_subtitle")}</p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-1.5">
-              <Label className="text-white/80">Room Code</Label>
+              <Label className="text-white/80">{t("join_room_code")}</Label>
               <Input
                 value={code}
                 onChange={(e) => { setCode(e.target.value.toUpperCase()); setChallengeId(null); }}
@@ -128,19 +130,19 @@ export default function Join() {
                 onClick={handleLookup}
               >
                 {lookupLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Find Room
+                {t("join_find_room")}
               </Button>
             ) : (
               <>
                 <div className="bg-green-400/20 border border-green-400/40 rounded-lg p-3 text-center text-green-300 text-sm">
-                  <CheckCircle2 className="w-4 h-4 inline mr-1" /> Room found! Enter your name to join.
+                  <CheckCircle2 className="w-4 h-4 inline mr-1" /> {t("join_room_found")}
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-white/80">Your Name</Label>
+                  <Label className="text-white/80">{t("join_your_name")}</Label>
                   <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Enter your name"
+                    placeholder={t("join_name_placeholder")}
                     className="bg-white/10 border-white/20 text-white placeholder:text-white/40"
                     onKeyDown={(e) => e.key === "Enter" && handleJoin()}
                     autoFocus
@@ -152,14 +154,14 @@ export default function Join() {
                   onClick={handleJoin}
                 >
                   {joinMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Zap className="w-4 h-4 mr-2" />}
-                  Join Now
+                  {t("join_join_now")}
                 </Button>
               </>
             )}
 
             {(lookupError || joinMutation.isError) && (
               <p className="text-red-300 text-sm text-center">
-                {lookupError ? "Room not found. Check the code." : "Could not join. Try again."}
+                {lookupError ? t("join_not_found") : t("join_error")}
               </p>
             )}
           </CardContent>
@@ -177,15 +179,13 @@ export default function Join() {
             <Users className="w-10 h-10 text-yellow-300" />
           </div>
           <div>
-            <h2 className="text-2xl font-heading font-bold">You're in!</h2>
-            <p className="text-white/60 mt-1">Waiting for the teacher to start…</p>
-          </div>
+            <h2 className="text-2xl font-heading font-bold">{t("join_youre_in")}</h2>            <p className="text-white/60 text-sm">{t("join_waiting")}</p>         </div>
           <div className="bg-white/10 rounded-xl border border-white/20 p-4">
-            <p className="text-white/60 text-sm">Room</p>
+            <p className="text-white/60 text-sm">{t("join_room")}</p>
             <p className="text-3xl font-mono font-bold tracking-widest text-yellow-300">{code}</p>
           </div>
-          <div className="flex items-center justify-center gap-2 text-white/50 text-sm">
-            <Loader2 className="w-4 h-4 animate-spin" /> Checking for updates…
+            <div className="flex items-center justify-center gap-2 text-white/50 text-sm">
+            <Loader2 className="w-4 h-4 animate-spin" /> {t("join_checking")}
           </div>
         </div>
       </div>
@@ -203,7 +203,7 @@ export default function Join() {
             </Badge>
             {answered && (
               <Badge className="bg-green-400/20 text-green-300 border-green-400/40">
-                <CheckCircle2 className="w-3 h-3 mr-1" /> Answered
+                <CheckCircle2 className="w-3 h-3 mr-1" /> {t("join_answered")}
               </Badge>
             )}
           </div>
@@ -240,7 +240,7 @@ export default function Join() {
 
           {answered && (
             <p className="text-center text-white/60 text-sm animate-pulse">
-              Waiting for next question…
+              {t("join_waiting_next")}
             </p>
           )}
         </div>
@@ -260,16 +260,16 @@ export default function Join() {
             <Trophy className="w-10 h-10 text-yellow-300" />
           </div>
           <div>
-            <h2 className="text-3xl font-heading font-bold">Challenge Over!</h2>
-            {rank > 0 && <p className="text-white/60 mt-1">You finished <span className="text-yellow-300 font-bold">#{rank}</span></p>}
+            <h2 className="text-3xl font-heading font-bold">{t("join_challenge_over")}</h2>
+            {rank > 0 && <p className="text-white/60 mt-1">{t("join_finished")} <span className="text-yellow-300 font-bold">#{rank}</span></p>}
           </div>
           <div className="bg-white/10 rounded-xl border border-white/20 p-4 space-y-1">
-            <p className="text-white/60 text-sm">Your Score</p>
+            <p className="text-white/60 text-sm">{t("join_your_score")}</p>
             <p className="text-4xl font-bold text-yellow-300">{lastScore}</p>
           </div>
           {sorted.length > 0 && (
             <div className="space-y-2 text-left">
-              <p className="text-white/60 text-xs uppercase tracking-wide font-semibold">Leaderboard</p>
+              <p className="text-white/60 text-xs uppercase tracking-wide font-semibold">{t("join_leaderboard")}</p>
               {sorted.slice(0, 5).map((p, i) => (
                 <div key={p.id} className={`flex items-center gap-3 rounded-lg p-2.5 ${p.id === participantId ? "bg-yellow-400/20 border border-yellow-400/40" : "bg-white/5"}`}>
                   <span className="text-white/50 font-bold w-5 text-sm">#{i + 1}</span>
@@ -284,7 +284,7 @@ export default function Join() {
             className="border-white/30 text-white hover:bg-white/10"
             onClick={() => { setPhase("enter"); setChallengeId(null); setParticipantId(null); setCode(""); setName(""); setLastScore(0); }}
           >
-            Play Again
+            {t("join_play_again")}
           </Button>
         </div>
       </div>

@@ -25,16 +25,16 @@ type MaterialType = "quiz" | "slides" | "crossword" | "missing_words" | "wordsea
 const ACTIVITY_TYPES: {
   type: MaterialType;
   labelKey: TranslationKey;
-  description: string;
+  descKey: TranslationKey;
   icon: React.ElementType;
   color: string;
 }[] = [
-  { type: "quiz",          labelKey: "create_activity_quiz",       description: "8 MCQ questions with answers & explanations", icon: BookOpen,      color: "from-blue-500 to-blue-600" },
-  { type: "slides",        labelKey: "create_activity_slides",     description: "6–8 slides with headings, bullets & speaker notes", icon: Presentation, color: "from-purple-500 to-purple-600" },
-  { type: "crossword",     labelKey: "create_activity_crossword",  description: "8-word interactive crossword with clues",      icon: Grid3X3,      color: "from-green-500 to-green-600" },
-  { type: "missing_words", labelKey: "create_activity_missing",    description: "Fill-in-the-blank passage with hints",         icon: AlignLeft,    color: "from-amber-500 to-amber-600" },
-  { type: "wordsearch",    labelKey: "create_activity_wordsearch", description: "10-keyword grid with topic vocabulary",        icon: Search,       color: "from-rose-500 to-rose-600" },
-  { type: "flashcards",    labelKey: "create_activity_flashcards", description: "10 term/definition pairs for revision",        icon: CreditCard,   color: "from-teal-500 to-teal-600" },
+  { type: "quiz",          labelKey: "create_activity_quiz",       descKey: "create_desc_quiz",       icon: BookOpen,      color: "from-blue-500 to-blue-600" },
+  { type: "slides",        labelKey: "create_activity_slides",     descKey: "create_desc_slides",     icon: Presentation, color: "from-purple-500 to-purple-600" },
+  { type: "crossword",     labelKey: "create_activity_crossword",  descKey: "create_desc_crossword",  icon: Grid3X3,      color: "from-green-500 to-green-600" },
+  { type: "missing_words", labelKey: "create_activity_missing",    descKey: "create_desc_missing",    icon: AlignLeft,    color: "from-amber-500 to-amber-600" },
+  { type: "wordsearch",    labelKey: "create_activity_wordsearch", descKey: "create_desc_wordsearch", icon: Search,       color: "from-rose-500 to-rose-600" },
+  { type: "flashcards",    labelKey: "create_activity_flashcards", descKey: "create_desc_flashcards", icon: CreditCard,   color: "from-teal-500 to-teal-600" },
 ];
 
 export default function Create() {
@@ -112,7 +112,7 @@ export default function Create() {
             1 · {t("create_activity_quiz").replace("Quiz", t("create_title").split(" ")[0])}
           </h2>
           <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3">
-            {ACTIVITY_TYPES.map(({ type, labelKey, description, icon: Icon, color }) => (
+            {ACTIVITY_TYPES.map(({ type, labelKey, descKey, icon: Icon, color }) => (
               <button
                 key={type}
                 onClick={() => setSelectedType(type)}
@@ -128,7 +128,7 @@ export default function Create() {
                 </div>
                 <div>
                   <p className="font-semibold text-sm text-foreground">{t(labelKey)}</p>
-                  <p className="text-xs text-muted-foreground leading-tight mt-0.5">{description}</p>
+                  <p className="text-xs text-muted-foreground leading-tight mt-0.5">{t(descKey)}</p>
                 </div>
                 {selectedType === type && (
                   <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-primary flex items-center justify-center">

@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
+import { useI18n } from "@/contexts/I18nContext";
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
 type YearGroup = "junior" | "primary" | "secondary";
@@ -12,12 +13,6 @@ interface Props {
   compact?: boolean;
 }
 
-const YEAR_GROUPS: { value: YearGroup; label: string }[] = [
-  { value: "junior", label: "Junior (Yr 3–4)" },
-  { value: "primary", label: "Primary (Yr 5–6)" },
-  { value: "secondary", label: "Secondary (Yr 7–10)" },
-];
-
 export default function CompetencySelector({
   selectedCompetency,
   selectedYearGroup,
@@ -25,14 +20,21 @@ export default function CompetencySelector({
   onYearGroupChange,
   compact = false,
 }: Props) {
+  const { t } = useI18n();
   const { data: competencies } = trpc.lomloe.getCompetencies.useQuery();
+
+  const YEAR_GROUPS: { value: YearGroup; labelKey: "comp_junior" | "comp_primary" | "comp_secondary" }[] = [
+    { value: "junior", labelKey: "comp_junior" },
+    { value: "primary", labelKey: "comp_primary" },
+    { value: "secondary", labelKey: "comp_secondary" },
+  ];
 
   return (
     <div className={cn("space-y-3", compact && "space-y-2")}>
       {/* Year group pills */}
       <div>
         <p className={cn("text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2", compact && "mb-1")}>
-          Year Group
+          {t("comp_year_group_label")}
         </p>
         <div className="flex flex-wrap gap-2">
           <button
@@ -44,9 +46,9 @@ export default function CompetencySelector({
                 : "bg-white text-muted-foreground border-border hover:border-primary hover:text-primary"
             )}
           >
-            All
+            {t("comp_all")}
           </button>
-          {YEAR_GROUPS.map(({ value, label }) => (
+          {YEAR_GROUPS.map(({ value, labelKey }) => (
             <button
               key={value}
               onClick={() => onYearGroupChange(selectedYearGroup === value ? undefined : value)}
@@ -57,7 +59,7 @@ export default function CompetencySelector({
                   : "bg-white text-muted-foreground border-border hover:border-primary hover:text-primary"
               )}
             >
-              {label}
+              {t(labelKey)}
             </button>
           ))}
         </div>
@@ -66,7 +68,7 @@ export default function CompetencySelector({
       {/* Competency pills */}
       <div>
         <p className={cn("text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2", compact && "mb-1")}>
-          Competency
+          {t("comp_competency_label")}
         </p>
         <div className="flex flex-wrap gap-2">
           <button
@@ -78,7 +80,7 @@ export default function CompetencySelector({
                 : "bg-white text-muted-foreground border-border hover:border-primary hover:text-primary"
             )}
           >
-            All
+            {t("comp_all")}
           </button>
           {competencies?.map((comp) => (
             <button
