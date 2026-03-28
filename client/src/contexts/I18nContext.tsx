@@ -166,6 +166,32 @@ export const translations = {
     questions_correct_answer: "Correct Answer",
     questions_explanation: "Explanation",
 
+    // Practice extra
+    practice_check_answer: "Check Answer",
+    practice_new_session: "New Session",
+    practice_retry: "Retry Same Filters",
+    practice_loading_q: "Loading question…",
+    practice_questions_per: "questions per session",
+    practice_correct_well: "Correct! Well done.",
+    practice_not_quite: "Not quite — the correct answer is:",
+    practice_perfect: "Perfect score! Excellent work! 🎉",
+    practice_great: "Great job! Keep practising to improve further.",
+    practice_good_effort: "Good effort! Review the topics and try again.",
+    practice_scored: "You scored",
+
+    // Chat extra
+    chat_filter: "Filter",
+    chat_clear: "Clear",
+    chat_context_filtered: "AI context filtered to",
+    chat_year_group: "year group",
+    chat_error: "I'm sorry, I encountered an error processing your request. Please try again.",
+    chat_suggested_1: "What is a rhetorical question and why is it used?",
+    chat_suggested_2: "Explain the difference between speed and velocity.",
+    chat_suggested_3: "What is code-switching in multilingual communication?",
+    chat_suggested_4: "How does machine learning work?",
+    chat_suggested_5: "What is metacognition and why does it matter?",
+    chat_suggested_6: "Explain the separation of powers in a democracy.",
+
     // Common
     any_competency: "Any competency",
     any_year: "Any year group",
@@ -346,6 +372,32 @@ export const translations = {
     questions_correct_answer: "Respuesta correcta",
     questions_explanation: "Explicación",
 
+    // Practice extra
+    practice_check_answer: "Comprobar respuesta",
+    practice_new_session: "Nueva sesión",
+    practice_retry: "Repetir con los mismos filtros",
+    practice_loading_q: "Cargando pregunta…",
+    practice_questions_per: "preguntas por sesión",
+    practice_correct_well: "¡Correcto! Muy bien.",
+    practice_not_quite: "No del todo — la respuesta correcta es:",
+    practice_perfect: "¡Puntuación perfecta! ¡Excelente trabajo! 🎉",
+    practice_great: "¡Buen trabajo! Sigue practicando para mejorar.",
+    practice_good_effort: "¡Buen esfuerzo! Repasa los temas e inténtalo de nuevo.",
+    practice_scored: "Has obtenido",
+
+    // Chat extra
+    chat_filter: "Filtrar",
+    chat_clear: "Limpiar",
+    chat_context_filtered: "Contexto IA filtrado a",
+    chat_year_group: "curso",
+    chat_error: "Lo siento, encontré un error al procesar tu solicitud. Por favor, inténtalo de nuevo.",
+    chat_suggested_1: "¿Qué es una pregunta retórica y por qué se usa?",
+    chat_suggested_2: "Explica la diferencia entre velocidad y rapidez.",
+    chat_suggested_3: "¿Qué es el cambio de código en la comunicación multilingüe?",
+    chat_suggested_4: "¿Cómo funciona el aprendizaje automático?",
+    chat_suggested_5: "¿Qué es la metacognición y por qué importa?",
+    chat_suggested_6: "Explica la separación de poderes en una democracia.",
+
     // Common
     any_competency: "Cualquier competencia",
     any_year: "Cualquier curso",
@@ -525,6 +577,32 @@ export const translations = {
     questions_all: "Totes",
     questions_correct_answer: "Resposta correcta",
     questions_explanation: "Explicació",
+
+    // Practice extra
+    practice_check_answer: "Comprovar resposta",
+    practice_new_session: "Nova sessió",
+    practice_retry: "Repetir amb els mateixos filtres",
+    practice_loading_q: "Carregant pregunta…",
+    practice_questions_per: "preguntes per sessió",
+    practice_correct_well: "Correcte! Molt bé.",
+    practice_not_quite: "No del tot — la resposta correcta és:",
+    practice_perfect: "Puntuació perfecta! Excel·lent feina! 🎉",
+    practice_great: "Bon treball! Continua practicant per millorar.",
+    practice_good_effort: "Bon esforç! Repassa els temes i torna-ho a intentar.",
+    practice_scored: "Has obtingut",
+
+    // Chat extra
+    chat_filter: "Filtrar",
+    chat_clear: "Netejar",
+    chat_context_filtered: "Context IA filtrat a",
+    chat_year_group: "curs",
+    chat_error: "Ho sento, he trobat un error en processar la teva sol·licitud. Si us plau, torna-ho a intentar.",
+    chat_suggested_1: "Què és una pregunta retòrica i per què s'utilitza?",
+    chat_suggested_2: "Explica la diferència entre velocitat i rapidesa.",
+    chat_suggested_3: "Què és el canvi de codi en la comunicació multilingüe?",
+    chat_suggested_4: "Com funciona l'aprenentatge automàtic?",
+    chat_suggested_5: "Què és la metacognició i per què és important?",
+    chat_suggested_6: "Explica la separació de poders en una democràcia.",
 
     // Common
     any_competency: "Qualsevol competència",

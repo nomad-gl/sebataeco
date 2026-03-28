@@ -159,29 +159,29 @@
 - [x] Sample Questions: light blue/indigo gradient (done)
 
 ## Follow-up: In-place Slide Editing
-- [ ] Click slide title to edit it inline (contentEditable or input swap)
-- [ ] Click slide body text to edit it inline
-- [ ] Click speaker notes to edit inline
-- [ ] Save edits to local state so exports reflect changes
+- [x] Click slide title to edit it inline (contentEditable or input swap)
+- [x] Click slide body text to edit it inline
+- [x] Click speaker notes to edit inline
+- [x] Save edits to local state so exports reflect changes
 
 ## Follow-up: Derive Activity from Presentation
-- [ ] "Generate Quiz" button after slide generation — creates 10-question MCQ from slide content
-- [ ] "Generate Fill-in-the-blank" button — creates missing-words worksheet from slide content
-- [ ] Derived material opens in MaterialView for review and export
+- [x] "Generate Quiz" button after slide generation — creates 10-question MCQ from slide content
+- [x] "Generate Fill-in-the-blank" button — creates missing-words worksheet from slide content
+- [x] Derived material opens in MaterialView for review and export
 
 ## Follow-up: Language Toggle (EN / ES / CA)
-- [ ] i18n context/hook with EN, ES (Spanish), CA (Catalan) translations
-- [ ] Default language auto-detected from browser locale
-- [ ] Language toggle button in NavBar (flag or text: EN / ES / CA)
-- [ ] Translate NavBar labels
-- [ ] Translate Home page hero, stats bar, competency cards, CTA buttons
-- [ ] Translate Practice page setup, question UI, feedback, score card
-- [ ] Translate Chat page header and placeholder text
-- [ ] Translate Progress page headings and stats
-- [ ] Translate Create page activity labels and form fields
-- [ ] Translate My Materials page headings and action buttons
-- [ ] Translate Admin page headings and table headers
-- [ ] Translate Footer text
-- [ ] Translate Presentation page form labels and export buttons
-- [ ] Translate Class Challenge page labels
-- [ ] Translate Question Library page labels and filters
+- [x] i18n context/hook with EN, ES (Spanish), CA (Catalan) translations
+- [x] Default language auto-detected from browser locale
+- [x] Language toggle button in NavBar (flag or text: EN / ES / CA)
+- [x] Translate NavBar labels
+- [x] Translate Home page hero, stats bar, competency cards, CTA buttons
+- [x] Translate Practice page setup, question UI, feedback, score card
+- [x] Translate Chat page header and placeholder text
+- [x] Translate Progress page headings and stats
+- [x] Translate Create page activity labels and form fields
+- [x] Translate My Materials page headings and action buttons
+- [x] Translate Admin page headings and table headers
+- [x] Translate Footer text
+- [x] Translate Presentation page form labels and export buttons
+- [x] Translate Class Challenge page labels
+- [x] Translate Question Library page labels and filters

@@ -7,17 +7,18 @@ import CompetencySelector from "@/components/CompetencySelector";
 import { AIChatBox, type Message } from "@/components/AIChatBox";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/contexts/I18nContext";
+import type { TranslationKey } from "@/contexts/I18nContext";
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
 type YearGroup = "junior" | "primary" | "secondary";
 
-const SUGGESTED_QUESTIONS = [
-  "What is a rhetorical question and why is it used?",
-  "Explain the difference between speed and velocity.",
-  "What is code-switching in multilingual communication?",
-  "How does machine learning work?",
-  "What is metacognition and why does it matter?",
-  "Explain the separation of powers in a democracy.",
+const SUGGESTED_KEYS: TranslationKey[] = [
+  "chat_suggested_1",
+  "chat_suggested_2",
+  "chat_suggested_3",
+  "chat_suggested_4",
+  "chat_suggested_5",
+  "chat_suggested_6",
 ];
 
 export default function Chat() {
@@ -48,14 +49,12 @@ export default function Chat() {
     } catch {
       setMessages([
         ...newMessages,
-        {
-          role: "assistant",
-          content:
-            "I'm sorry, I encountered an error processing your request. Please try again.",
-        },
+        { role: "assistant", content: t("chat_error") },
       ]);
     }
   };
+
+  const suggestedQuestions = SUGGESTED_KEYS.map((k) => t(k));
 
   return (
     <div className="chat-bg flex flex-col">
@@ -66,9 +65,7 @@ export default function Chat() {
         <div className="flex items-start sm:items-center justify-between gap-2">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-foreground">{t("chat_title")}</h1>
-            <p className="text-sm text-muted-foreground">
-              {t("chat_subtitle")}
-            </p>
+            <p className="text-sm text-muted-foreground">{t("chat_subtitle")}</p>
           </div>
           <div className="flex gap-2 flex-shrink-0">
             <Button
@@ -77,7 +74,7 @@ export default function Chat() {
               onClick={() => setShowFilters((v) => !v)}
               className={cn(showFilters && "bg-primary text-primary-foreground border-primary")}
             >
-              Filter
+              {t("chat_filter")}
             </Button>
             {messages.length > 0 && (
               <Button
@@ -85,7 +82,7 @@ export default function Chat() {
                 size="sm"
                 onClick={() => setMessages([])}
               >
-                Clear
+                {t("chat_clear")}
               </Button>
             )}
           </div>
@@ -103,8 +100,8 @@ export default function Chat() {
             />
             {(competency || yearGroup) && (
               <p className="text-xs text-muted-foreground mt-2">
-                AI context filtered to{" "}
-                {[competency, yearGroup ? `${yearGroup} year group` : null]
+                {t("chat_context_filtered")}{" "}
+                {[competency, yearGroup ? `${yearGroup} ${t("chat_year_group")}` : null]
                   .filter(Boolean)
                   .join(" · ")}
               </p>
@@ -118,9 +115,9 @@ export default function Chat() {
             messages={messages}
             onSendMessage={handleSendMessage}
             isLoading={chatMutation.isPending}
-            placeholder="Ask about LOMLOE competencies… (Enter to send)"
+            placeholder={t("chat_placeholder")}
             emptyStateMessage={t("chat_empty_state")}
-            suggestedPrompts={SUGGESTED_QUESTIONS}
+            suggestedPrompts={suggestedQuestions}
             height="calc(100dvh - 220px)"
           />
         </div>

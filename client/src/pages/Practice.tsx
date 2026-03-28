@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { CheckCircle2, XCircle, ChevronRight, Trophy, RotateCcw, Lightbulb } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -12,12 +12,6 @@ import { useI18n } from "@/contexts/I18nContext";
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
 type YearGroup = "junior" | "primary" | "secondary";
-
-const YEAR_GROUP_LABELS_STATIC: Record<YearGroup, string> = {
-  junior: "Junior (Yr 3–4)",
-  primary: "Primary (Yr 5–6)",
-  secondary: "Secondary (Yr 7–10)",
-};
 
 export default function Practice() {
   const { t } = useI18n();
@@ -63,7 +57,7 @@ export default function Practice() {
     setRevealed(true);
     const correct = selectedOption === question.correctIndex;
     if (correct) setScore((s) => s + 1);
-    setTotal((t) => t + 1);
+    setTotal((prev) => prev + 1);
   };
 
   const handleNext = useCallback(async () => {
@@ -75,13 +69,12 @@ export default function Practice() {
 
     if (newAnswered.length >= SESSION_SIZE) {
       setSessionDone(true);
-      // Save session to progress tracker (fire-and-forget, best effort)
-      const finalScore = newAnswered.filter((_, i) => i < SESSION_SIZE).length > 0 ? score + (selectedOption === question?.correctIndex ? 1 : 0) : score;
+      const finalScore = score + (selectedOption === question?.correctIndex ? 1 : 0);
       saveSession.mutate({ competency, yearGroup, score: finalScore, total: SESSION_SIZE });
       return;
     }
     await fetchNext();
-  }, [question, answeredIds, fetchNext]);
+  }, [question, answeredIds, fetchNext, score, selectedOption, competency, yearGroup, saveSession]);
 
   const handleRestart = () => {
     setSessionStarted(false);
@@ -94,7 +87,6 @@ export default function Practice() {
   };
 
   const isCorrect = revealed && selectedOption === question?.correctIndex;
-  const isWrong = revealed && selectedOption !== question?.correctIndex;
   const progressPct = total > 0 ? (total / SESSION_SIZE) * 100 : 0;
 
   return (
@@ -103,10 +95,8 @@ export default function Practice() {
 
       <div className="container py-4 sm:py-8 max-w-2xl mx-auto w-full flex flex-col gap-4 sm:gap-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Practice Mode</h1>
-          <p className="text-sm text-muted-foreground">
-            Test your LOMLOE knowledge with curriculum-aligned questions
-          </p>
+          <h1 className="text-2xl font-bold text-foreground">{t("practice_title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("practice_subtitle")}</p>
         </div>
 
         {/* Setup screen */}
@@ -121,10 +111,10 @@ export default function Practice() {
               />
               <div className="border-t border-border pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <p className="text-sm text-muted-foreground">
-                  {SESSION_SIZE} questions per session
+                  {SESSION_SIZE} {t("practice_questions_per")}
                 </p>
                 <Button onClick={handleStart} size="lg" className="gap-2 w-full sm:w-auto">
-                  Start Practice <ChevronRight className="w-4 h-4" />
+                  {t("practice_start")} <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
             </CardContent>
@@ -139,9 +129,9 @@ export default function Practice() {
                 <Trophy className="w-10 h-10 text-primary" />
               </div>
               <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-1">Session Complete!</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-1">{t("practice_done_title")}</h2>
                 <p className="text-muted-foreground">
-                  You scored{" "}
+                  {t("practice_scored")}{" "}
                   <span className="font-bold text-foreground">
                     {score} / {total}
                   </span>{" "}
@@ -153,17 +143,17 @@ export default function Practice() {
               </div>
               <p className="text-sm text-muted-foreground">
                 {score === total
-                  ? "Perfect score! Excellent work! 🎉"
+                  ? t("practice_perfect")
                   : score >= total * 0.7
-                  ? "Great job! Keep practising to improve further."
-                  : "Good effort! Review the topics and try again."}
+                  ? t("practice_great")
+                  : t("practice_good_effort")}
               </p>
               <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                 <Button onClick={handleRestart} variant="outline" className="gap-2 w-full sm:w-auto">
-                  <RotateCcw className="w-4 h-4" /> New Session
+                  <RotateCcw className="w-4 h-4" /> {t("practice_new_session")}
                 </Button>
                 <Button onClick={handleStart} className="gap-2 w-full sm:w-auto">
-                  Retry Same Filters <ChevronRight className="w-4 h-4" />
+                  {t("practice_retry")} <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
             </CardContent>
@@ -189,7 +179,7 @@ export default function Practice() {
                 <CardContent className="p-8 flex items-center justify-center">
                   <div className="text-center text-muted-foreground">
                     <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                    Loading question…
+                    {t("practice_loading_q")}
                   </div>
                 </CardContent>
               </Card>
@@ -202,9 +192,7 @@ export default function Practice() {
                       {question.competency}
                     </span>
                     <span className="text-xs text-muted-foreground capitalize">
-                      {question.yearGroup
-                        ? YEAR_GROUP_LABELS_STATIC[question.yearGroup as YearGroup]
-                        : ""}
+                      {question.yearGroup ?? ""}
                     </span>
                   </div>
 
@@ -276,7 +264,7 @@ export default function Practice() {
                             isCorrect ? "text-green-800" : "text-amber-800"
                           )}
                         >
-                          {isCorrect ? "Correct! Well done." : "Not quite — the correct answer is:"}
+                          {isCorrect ? t("practice_correct_well") : t("practice_not_quite")}
                         </p>
                         {!isCorrect && (
                           <p className="text-sm text-amber-700 font-medium">
@@ -303,11 +291,11 @@ export default function Practice() {
                         disabled={selectedOption === null}
                         className="gap-2"
                       >
-                        Check Answer
+                        {t("practice_check_answer")}
                       </Button>
                     ) : (
                       <Button onClick={handleNext} className="gap-2">
-                        Next Question <ChevronRight className="w-4 h-4" />
+                        {t("practice_next")} <ChevronRight className="w-4 h-4" />
                       </Button>
                     )}
                   </div>
