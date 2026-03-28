@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { CheckCircle2, XCircle, ChevronRight, Trophy, RotateCcw, Lightbulb } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,8 @@ export default function Practice() {
   const [total, setTotal] = useState(0);
   const [sessionDone, setSessionDone] = useState(false);
   const SESSION_SIZE = 10;
+
+  const saveSession = trpc.materials.saveSession.useMutation();
 
   const { data: question, refetch: fetchNext, isFetching } = trpc.lomloe.getRandomQuestion.useQuery(
     { competency, yearGroup, excludeIds: answeredIds },
@@ -71,6 +73,9 @@ export default function Practice() {
 
     if (newAnswered.length >= SESSION_SIZE) {
       setSessionDone(true);
+      // Save session to progress tracker (fire-and-forget, best effort)
+      const finalScore = newAnswered.filter((_, i) => i < SESSION_SIZE).length > 0 ? score + (selectedOption === question?.correctIndex ? 1 : 0) : score;
+      saveSession.mutate({ competency, yearGroup, score: finalScore, total: SESSION_SIZE });
       return;
     }
     await fetchNext();
@@ -262,7 +267,7 @@ export default function Practice() {
                           isCorrect ? "text-green-600" : "text-amber-600"
                         )}
                       />
-                      <div>
+                      <div className="flex flex-col gap-1.5">
                         <p
                           className={cn(
                             "font-semibold text-sm",
@@ -272,8 +277,16 @@ export default function Practice() {
                           {isCorrect ? "Correct! Well done." : "Not quite — the correct answer is:"}
                         </p>
                         {!isCorrect && (
-                          <p className="text-sm text-amber-700 mt-1">
+                          <p className="text-sm text-amber-700 font-medium">
                             {question.options[question.correctIndex]}
+                          </p>
+                        )}
+                        {question.explanation && (
+                          <p className={cn(
+                            "text-sm mt-1 leading-relaxed",
+                            isCorrect ? "text-green-700" : "text-amber-700"
+                          )}>
+                            💡 {question.explanation}
                           </p>
                         )}
                       </div>

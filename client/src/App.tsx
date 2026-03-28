@@ -8,6 +8,10 @@ import Home from "./pages/Home";
 import Chat from "./pages/Chat";
 import Practice from "./pages/Practice";
 import Admin from "./pages/Admin";
+import Create from "./pages/Create";
+import MyMaterials from "./pages/MyMaterials";
+import MaterialView from "./pages/MaterialView";
+import Progress from "./pages/Progress";
 
 function Router() {
   return (
@@ -16,6 +20,10 @@ function Router() {
       <Route path="/chat" component={Chat} />
       <Route path="/practice" component={Practice} />
       <Route path="/admin" component={Admin} />
+      <Route path="/create" component={Create} />
+      <Route path="/my-materials" component={MyMaterials} />
+      <Route path="/materials/:id" component={MaterialView} />
+      <Route path="/progress" component={Progress} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

@@ -13,8 +13,8 @@ import type { TrpcContext } from "./_core/context";
 // ─── Knowledge Bank Unit Tests ────────────────────────────────────────────────
 
 describe("lomloeKnowledgeBank", () => {
-  it("exports 120 questions (8 competencies × 3 year groups × 5 questions)", () => {
-    expect(LOMLOE_QUESTIONS.length).toBe(120);
+  it("exports 96 questions (8 competencies × 3 year groups × 4 questions)", () => {
+    expect(LOMLOE_QUESTIONS.length).toBe(96);
   });
 
   it("has all 8 competency codes represented", () => {
@@ -174,7 +174,7 @@ describe("lomloe tRPC procedures", () => {
   it("getStats returns correct totals", async () => {
     const caller = appRouter.createCaller(createCtx());
     const result = await caller.lomloe.getStats();
-    expect(result.totalQuestions).toBe(120);
+    expect(result.totalQuestions).toBe(96);
     expect(result.totalCompetencies).toBe(8);
     expect(result.totalYearGroups).toBe(3);
     expect(result.breakdown.length).toBe(8);

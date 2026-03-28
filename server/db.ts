@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -90,3 +90,91 @@ export async function getUserByOpenId(openId: string) {
 }
 
 // TODO: add feature queries here as your schema grows.
+
+// ─── Practice Sessions ────────────────────────────────────────────────────────
+
+import {
+  practiceSessions,
+  teachingMaterials,
+  InsertPracticeSession,
+  InsertTeachingMaterial,
+} from "../drizzle/schema";
+
+export async function savePracticeSession(data: InsertPracticeSession): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(practiceSessions).values(data);
+}
+
+export async function getSessionsByUser(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(practiceSessions)
+    .where(eq(practiceSessions.userId, userId))
+    .orderBy(desc(practiceSessions.createdAt))
+    .limit(100);
+}
+
+// ─── Teaching Materials ───────────────────────────────────────────────────────
+
+export async function saveMaterial(data: InsertTeachingMaterial): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(teachingMaterials).values(data);
+  return (result as unknown as { insertId: number }).insertId;
+}
+
+export async function getMaterialsByUser(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({
+      id: teachingMaterials.id,
+      type: teachingMaterials.type,
+      title: teachingMaterials.title,
+      topic: teachingMaterials.topic,
+      competency: teachingMaterials.competency,
+      yearGroup: teachingMaterials.yearGroup,
+      createdAt: teachingMaterials.createdAt,
+      updatedAt: teachingMaterials.updatedAt,
+    })
+    .from(teachingMaterials)
+    .where(eq(teachingMaterials.userId, userId))
+    .orderBy(desc(teachingMaterials.createdAt));
+}
+
+export async function getMaterialById(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const rows = await db
+    .select()
+    .from(teachingMaterials)
+    .where(eq(teachingMaterials.id, id))
+    .limit(1);
+  const row = rows[0];
+  if (!row || row.userId !== userId) return undefined;
+  return row;
+}
+
+export async function deleteMaterial(id: number, userId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  const row = await getMaterialById(id, userId);
+  if (!row) return false;
+  await db.delete(teachingMaterials).where(eq(teachingMaterials.id, id));
+  return true;
+}
+
+export async function updateMaterial(id: number, userId: number, content: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  const row = await getMaterialById(id, userId);
+  if (!row) return false;
+  await db
+    .update(teachingMaterials)
+    .set({ content })
+    .where(eq(teachingMaterials.id, id));
+  return true;
+}
