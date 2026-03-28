@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import NavBar from "@/components/NavBar";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, ExternalLink, BookOpen, Presentation, Grid3X3, AlignLeft, Search, CreditCard, Lock } from "lucide-react";
+import { Loader2, Plus, Trash2, ExternalLink, BookOpen, Presentation, Grid3X3, AlignLeft, Search, CreditCard, Lock, Zap } from "lucide-react";
 import { useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
 import { useI18n } from "@/contexts/I18nContext";
@@ -129,6 +129,11 @@ export default function MyMaterials() {
                       </div>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-1.5 flex-shrink-0">
+                      <Button size="sm" variant="outline"
+                        className="gap-1.5 border-yellow-500/50 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
+                        onClick={() => navigate(`/challenge?materialId=${m.id}&materialTitle=${encodeURIComponent(m.title)}`)}>
+                        <Zap className="w-3.5 h-3.5" /> Challenge
+                      </Button>
                       <Button size="sm" variant="outline" className="gap-1.5"
                         onClick={() => navigate(`/materials/${m.id}`)}>
                         <ExternalLink className="w-3.5 h-3.5" /> {t("my_materials_open")}

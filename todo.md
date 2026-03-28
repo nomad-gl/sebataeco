@@ -198,3 +198,12 @@
 ## Improvement: Wordsearch layout
 - [x] Move word list below the grid in the wordsearch viewer
 - [x] Add adequate vertical spacing between the grid and the word list
+
+## Feature: Use saved materials in Class Challenge
+- [x] Add material picker to Challenge creation form (select from My Materials)
+- [x] Unlock all activity-type options when creating a challenge (not just MCQ from knowledge bank)
+- [x] Extract questions from quiz materials for challenge use
+- [x] Add "Use in Challenge" button on MyMaterials page
+- [x] Add "Use in Challenge" button on MaterialView page (quiz type)
+- [x] Pass selected material questions to challenge room instead of knowledge bank questions
+- [x] Update server challenge procedures to accept material-sourced questions

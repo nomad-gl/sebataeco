@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import NavBar from "@/components/NavBar";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import {
   Zap, Users, Trophy, ChevronRight, ChevronLeft,
   Copy, Play, SkipForward, StopCircle, Plus, Loader2,
+  BookOpen, Library, CheckCircle2,
 } from "lucide-react";
 import CompetencySelector from "@/components/CompetencySelector";
 import { useI18n } from "@/contexts/I18nContext";
@@ -25,19 +27,42 @@ const COMP_COLORS: Record<CompetencyCode, string> = {
   CE: "bg-yellow-100 text-yellow-800", CCEC: "bg-pink-100 text-pink-800",
 };
 
+const TYPE_ICONS: Record<string, string> = {
+  quiz: "📝", slides: "📊", crossword: "🔤", missing_words: "✏️",
+  wordsearch: "🔍", flashcards: "🃏",
+};
+
 export default function Challenge() {
   const { t } = useI18n();
   const { user, loading, isAuthenticated } = useAuth();
-  const [view, setView] = useState<"home" | "create" | "lobby" | "live" | "results">("home");
+
+  // Read query params for deep-linking from MyMaterials / MaterialView
+  const urlParams = useMemo(() => new URLSearchParams(window.location.search), []);
+  const urlMaterialId = urlParams.get("materialId") ? parseInt(urlParams.get("materialId")!, 10) : null;
+  const urlMaterialTitle = urlParams.get("materialTitle") ? decodeURIComponent(urlParams.get("materialTitle")!) : "";
+
+  const [view, setView] = useState<"home" | "create" | "lobby" | "live" | "results">(urlMaterialId ? "create" : "home");
   const [roomId, setRoomId] = useState<number | null>(null);
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState(urlMaterialTitle);
   const [competency, setCompetency] = useState<CompetencyCode | undefined>();
   const [yearGroup, setYearGroup] = useState<YearGroup | undefined>();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [questionCount, setQuestionCount] = useState(10);
   const [pollInterval, setPollInterval] = useState<number | false>(false);
 
+  // Material picker state — pre-select if navigated from MyMaterials
+  const [createTab, setCreateTab] = useState<"bank" | "material">(urlMaterialId ? "material" : "bank");
+  const [selectedMaterialId, setSelectedMaterialId] = useState<number | null>(urlMaterialId);
+
   const createMutation = trpc.challenge.create.useMutation({
+    onSuccess: (data) => {
+      setRoomId(data.id);
+      setView("lobby");
+      toast.success(`${t("challenge_room_code")}: ${data.roomCode}`);
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const createFromMaterialMutation = trpc.challenge.createFromMaterial.useMutation({
     onSuccess: (data) => {
       setRoomId(data.id);
       setView("lobby");
@@ -57,6 +82,7 @@ export default function Challenge() {
   );
 
   const myRooms = trpc.challenge.myRooms.useQuery(undefined, { enabled: isAuthenticated });
+  const myMaterials = trpc.materials.list.useQuery(undefined, { enabled: isAuthenticated && view === "create" });
 
   useEffect(() => {
     if (view === "lobby" || view === "live") setPollInterval(2000);
@@ -89,6 +115,22 @@ export default function Challenge() {
   );
 
   const room = roomQuery.data;
+
+  const allMaterials = myMaterials.data ?? [];
+
+  const isPending = createMutation.isPending || createFromMaterialMutation.isPending;
+
+  const handleCreate = () => {
+    if (createTab === "bank") {
+      createMutation.mutate({ title: title.trim(), competency, yearGroup, questionCount });
+    } else {
+      if (!selectedMaterialId) return;
+      createFromMaterialMutation.mutate({ title: title.trim(), materialId: selectedMaterialId });
+    }
+  };
+
+  const canCreate = title.trim().length >= 2 && !isPending &&
+    (createTab === "bank" || (createTab === "material" && selectedMaterialId !== null));
 
   return (
     <div className="min-h-screen challenge-bg">
@@ -145,13 +187,15 @@ export default function Challenge() {
 
         {/* ── Create view ── */}
         {view === "create" && (
-          <div className="max-w-lg mx-auto space-y-6">
+          <div className="max-w-2xl mx-auto space-y-6">
             <button onClick={() => setView("home")} className="flex items-center gap-1 text-white/70 hover:text-white text-sm transition-colors">
               <ChevronLeft className="w-4 h-4" /> {t("cancel")}
             </button>
+
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6 space-y-5">
               <h2 className="text-xl font-bold text-white">{t("challenge_start")}</h2>
 
+              {/* Challenge title */}
               <div className="space-y-2">
                 <Label className="text-white/80">{t("challenge_title")}</Label>
                 <Input
@@ -162,33 +206,108 @@ export default function Challenge() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-white/80">{t("create_competency_label")}</Label>
-                <CompetencySelector
-                  selectedCompetency={competency}
-                  selectedYearGroup={yearGroup}
-                  onCompetencyChange={(v) => setCompetency(v)}
-                  onYearGroupChange={(v) => setYearGroup(v)}
-                  compact
-                />
+              {/* Source tabs */}
+              <div className="space-y-3">
+                <Label className="text-white/80">Question source</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setCreateTab("bank")}
+                    className={`flex items-center gap-2 rounded-xl border p-3 text-sm font-medium transition-all ${
+                      createTab === "bank"
+                        ? "bg-yellow-400/20 border-yellow-400/60 text-yellow-300"
+                        : "bg-white/5 border-white/20 text-white/70 hover:bg-white/10"
+                    }`}
+                  >
+                    <BookOpen className="w-4 h-4 shrink-0" />
+                    Knowledge Bank
+                  </button>
+                  <button
+                    onClick={() => setCreateTab("material")}
+                    className={`flex items-center gap-2 rounded-xl border p-3 text-sm font-medium transition-all ${
+                      createTab === "material"
+                        ? "bg-yellow-400/20 border-yellow-400/60 text-yellow-300"
+                        : "bg-white/5 border-white/20 text-white/70 hover:bg-white/10"
+                    }`}
+                  >
+                    <Library className="w-4 h-4 shrink-0" />
+                    My Materials
+                  </button>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-white/80">{t("practice_setup_count")}: {questionCount}</Label>
-                <input
-                  type="range" min={5} max={20} value={questionCount}
-                  onChange={(e) => setQuestionCount(Number(e.target.value))}
-                  className="w-full accent-yellow-400"
-                />
-                <div className="flex justify-between text-xs text-white/50"><span>5</span><span>20</span></div>
-              </div>
+              {/* Knowledge bank options */}
+              {createTab === "bank" && (
+                <>
+                  <div className="space-y-2">
+                    <Label className="text-white/80">{t("create_competency_label")}</Label>
+                    <CompetencySelector
+                      selectedCompetency={competency}
+                      selectedYearGroup={yearGroup}
+                      onCompetencyChange={(v) => setCompetency(v)}
+                      onYearGroupChange={(v) => setYearGroup(v)}
+                      compact
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-white/80">{t("practice_setup_count")}: {questionCount}</Label>
+                    <input
+                      type="range" min={5} max={20} value={questionCount}
+                      onChange={(e) => setQuestionCount(Number(e.target.value))}
+                      className="w-full accent-yellow-400"
+                    />
+                    <div className="flex justify-between text-xs text-white/50"><span>5</span><span>20</span></div>
+                  </div>
+                </>
+              )}
+
+              {/* My Materials picker */}
+              {createTab === "material" && (
+                <div className="space-y-3">
+                  {myMaterials.isLoading ? (
+                    <div className="flex items-center gap-2 text-white/60 text-sm py-4 justify-center">
+                      <Loader2 className="w-4 h-4 animate-spin" /> Loading materials…
+                    </div>
+                  ) : allMaterials.length === 0 ? (
+                    <div className="text-center py-6 text-white/50 text-sm">
+                      <Library className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                      <p>No saved materials yet.</p>
+                      <p className="text-xs mt-1">Create a material in the Create Materials page first.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-xs text-white/50">Select any material — quiz questions are used directly; other types are converted to MCQs automatically.</p>
+                      {allMaterials.map((m) => (
+                        <button
+                          key={m.id}
+                          onClick={() => setSelectedMaterialId(m.id)}
+                          className={`w-full flex items-center gap-3 rounded-xl border p-3 text-left transition-all ${
+                            selectedMaterialId === m.id
+                              ? "bg-yellow-400/20 border-yellow-400/60"
+                              : "bg-white/5 border-white/20 hover:bg-white/10"
+                          }`}
+                        >
+                          <span className="text-xl">{TYPE_ICONS[m.type] ?? "📄"}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-white truncate">{m.title}</p>
+                            <p className="text-xs text-white/50 capitalize">{m.type.replace("_", " ")}</p>
+                          </div>
+                          {selectedMaterialId === m.id && (
+                            <CheckCircle2 className="w-5 h-5 text-yellow-300 shrink-0" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <Button
                 className="w-full bg-yellow-400 hover:bg-yellow-300 text-black font-bold"
-                disabled={!title.trim() || createMutation.isPending}
-                onClick={() => createMutation.mutate({ title: title.trim(), competency, yearGroup, questionCount })}
+                disabled={!canCreate}
+                onClick={handleCreate}
               >
-                {createMutation.isPending
+                {isPending
                   ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />{t("create_generating")}</>
                   : t("challenge_start")}
               </Button>
@@ -335,7 +454,7 @@ export default function Challenge() {
             <div className="flex gap-3">
               <Button
                 className="flex-1 bg-yellow-400 hover:bg-yellow-300 text-black font-bold"
-                onClick={() => { setView("create"); setTitle(""); setRoomId(null); }}
+                onClick={() => { setView("create"); setTitle(""); setRoomId(null); setSelectedMaterialId(null); }}
               >
                 <Plus className="w-4 h-4 mr-2" /> {t("challenge_start")}
               </Button>

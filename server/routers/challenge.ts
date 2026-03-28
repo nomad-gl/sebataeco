@@ -22,6 +22,122 @@ function generateRoomCode(): string {
 }
 
 export const challengeRouter = router({
+  /** Teacher creates a challenge from any saved material */
+  createFromMaterial: protectedProcedure
+    .input(z.object({
+      title: z.string().min(2).max(200),
+      materialId: z.number(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      // Load the material and verify ownership
+      const { getMaterialById } = await import("../db");
+      const row = await getMaterialById(input.materialId, ctx.user.id);
+      if (!row) throw new Error("Material not found");
+
+      const rawContent = JSON.parse(row.content) as Record<string, unknown>;
+
+      type ChallengeQuestion = {
+        id: string; question: string; options: string[];
+        correctIndex: number; explanation: string; competency: string;
+      };
+
+      let questions: ChallengeQuestion[] = [];
+
+      if (row.type === "quiz") {
+        // Quiz: use questions directly
+        const qs = (rawContent.questions ?? []) as Array<{
+          question: string; options: string[]; correctIndex: number;
+          explanation?: string; competency?: string;
+        }>;
+        const seen = new Set<string>();
+        questions = qs
+          .filter((q) => {
+            if (!q.question || !Array.isArray(q.options) || q.options.length < 2) return false;
+            if (seen.has(q.question)) return false;
+            seen.add(q.question);
+            return true;
+          })
+          .map((q, i) => ({
+            id: `mat-${input.materialId}-${i}`,
+            question: q.question,
+            options: q.options,
+            correctIndex: Math.min(q.correctIndex, q.options.length - 1),
+            explanation: q.explanation ?? "",
+            competency: q.competency ?? "",
+          }));
+      } else if (row.type === "flashcards") {
+        // Flashcards: convert each card to a MCQ using the other cards as distractors
+        const cards = (rawContent.cards ?? []) as Array<{ term: string; definition: string; competencyHint?: string }>;
+        if (cards.length < 2) throw new Error("Not enough flashcards to create a challenge.");
+        const shuffled = [...cards].sort(() => Math.random() - 0.5);
+        questions = shuffled.slice(0, Math.min(10, shuffled.length)).map((card, i) => {
+          const distractors = cards
+            .filter((c) => c.definition !== card.definition)
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 3)
+            .map((c) => c.definition);
+          const opts = [card.definition, ...distractors].sort(() => Math.random() - 0.5);
+          const correctIndex = opts.indexOf(card.definition);
+          return {
+            id: `mat-${input.materialId}-${i}`,
+            question: `What is the definition of "${card.term}"?`,
+            options: opts,
+            correctIndex,
+            explanation: card.definition,
+            competency: card.competencyHint ?? "",
+          };
+        });
+      } else {
+        // For slides, crossword, missing_words, wordsearch — derive MCQs via LLM
+        const contentSummary = JSON.stringify(rawContent).slice(0, 3000);
+        const response = await invokeLLM({
+          messages: [
+            {
+              role: "system",
+              content: `You are an expert LOMLOE curriculum designer. Based on the following educational material content, generate exactly 10 multiple-choice questions suitable for a classroom challenge. Return ONLY valid JSON array: [{"question":string,"options":[string,string,string,string],"correctIndex":number,"explanation":string,"competency":string}]. No markdown, no extra keys.`,
+            },
+            { role: "user", content: `Material title: "${row.title}"\nMaterial type: ${row.type}\nContent: ${contentSummary}\n\nGenerate 10 MCQ questions now.` },
+          ],
+        });
+        try {
+          const raw = String(response.choices?.[0]?.message?.content ?? "[]");
+          const cleaned = raw.replace(/^```json?\n?/, "").replace(/\n?```$/, "").trim();
+          const parsed = JSON.parse(cleaned) as Array<{ question: string; options: string[]; correctIndex: number; explanation: string; competency: string }>;
+          questions = parsed.slice(0, 10).map((q, i) => ({
+            id: `mat-${input.materialId}-llm-${i}`,
+            question: q.question,
+            options: q.options,
+            correctIndex: q.correctIndex,
+            explanation: q.explanation ?? "",
+            competency: q.competency ?? "",
+          }));
+        } catch {
+          throw new Error("Could not generate questions from this material. Please try again.");
+        }
+      }
+
+      if (questions.length === 0) {
+        throw new Error("No questions could be extracted from this material.");
+      }
+
+      let roomCode = generateRoomCode();
+      for (let i = 0; i < 5; i++) {
+        const existing = await getChallengeByCode(roomCode);
+        if (!existing) break;
+        roomCode = generateRoomCode();
+      }
+
+      const id = await createChallenge({
+        hostId: ctx.user.id,
+        roomCode,
+        title: input.title,
+        competency: null,
+        yearGroup: null,
+        questions: JSON.stringify(questions),
+      });
+      return { id, roomCode, title: input.title, questionCount: questions.length };
+    }),
+
   /** Teacher creates a new challenge room */
   create: protectedProcedure
     .input(z.object({

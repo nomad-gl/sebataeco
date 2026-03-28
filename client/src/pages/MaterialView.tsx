@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   Loader2, Trash2, ArrowLeft, Printer, FileText,
-  FileDown, Image, CheckCircle2, XCircle, ChevronLeft, ChevronRight,
+  FileDown, Image, CheckCircle2, XCircle, ChevronLeft, ChevronRight, Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/contexts/I18nContext";
@@ -585,13 +585,22 @@ export default function MaterialView() {
               <p className="text-sm text-muted-foreground">{t("material_topic")}: {material.topic}</p>
             )}
           </div>
-          <Button
-            variant="ghost" size="sm"
-            className="text-destructive hover:text-destructive flex-shrink-0"
-            onClick={() => { if (confirm("Delete this material?")) deleteMutation.mutate({ id: material.id }); }}
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <Button
+              variant="outline" size="sm"
+              className="gap-1.5 border-yellow-500/50 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
+              onClick={() => navigate(`/challenge?materialId=${material.id}&materialTitle=${encodeURIComponent(material.title)}`)}
+            >
+              <Zap className="w-3.5 h-3.5" /> Challenge
+            </Button>
+            <Button
+              variant="ghost" size="sm"
+              className="text-destructive hover:text-destructive"
+              onClick={() => { if (confirm("Delete this material?")) deleteMutation.mutate({ id: material.id }); }}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Export toolbar */}
