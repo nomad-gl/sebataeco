@@ -9,6 +9,9 @@ import { cn } from "@/lib/utils";
 const LOMLOE_LOGO =
   "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/lomloe_23170104.png";
 
+const HERO_BG =
+  "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/hero-bg-UMuQESLM5HrV2VsrndDo2h.webp";
+
 const COMP_COLORS: Record<string, string> = {
   CCL: "var(--comp-ccl)",
   CP: "var(--comp-cp)",
@@ -56,20 +59,30 @@ export default function Home() {
       <NavBar />
 
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-accent/5 border-b border-border">
-        <div className="container py-20 lg:py-28">
+      <section
+        className="relative overflow-hidden border-b border-border"
+        style={{
+          backgroundImage: `url(${HERO_BG})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundAttachment: "fixed",
+        }}
+      >
+        {/* Dark overlay for text readability */}
+        <div className="absolute inset-0 bg-black/55 pointer-events-none" />
+        <div className="container py-20 lg:py-28 relative z-10">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 text-white text-sm font-semibold mb-6 backdrop-blur-sm">
               <BookOpen className="w-4 h-4" />
               Spain's LOMLOE Curriculum · 8 Competencies
             </div>
-            <h1 className="text-4xl lg:text-6xl font-bold text-foreground leading-tight mb-6">
+            <h1 className="text-4xl lg:text-6xl font-bold text-white leading-tight mb-6 drop-shadow-lg">
               Your AI Teaching
-              <span className="text-primary"> Assistant</span>
+              <span className="text-blue-300"> Assistant</span>
               <br />
               for LOMLOE
             </h1>
-            <p className="text-lg text-muted-foreground mb-8 max-w-2xl">
+            <p className="text-lg text-white/85 mb-8 max-w-2xl drop-shadow">
               Practise all eight key competencies defined by Spain's LOMLOE education law. Ask
               questions, test your knowledge, and get curriculum-aligned explanations — instantly.
             </p>

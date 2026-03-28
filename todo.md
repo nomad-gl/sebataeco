@@ -77,3 +77,8 @@
 - [x] Place LOMLOE logo in Home page hero section (below CTAs)
 - [x] Add site footer component with LOMLOE logo and 'Powered by SEBA' text
 - [x] Include footer on all pages via App.tsx layout
+
+## Hero Background Image
+- [x] Generate photorealistic hero background image (AI classroom / education theme)
+- [x] Upload to CDN and apply to hero section with dark overlay for text readability
+- [x] Ensure background is fixed/static while content scrolls
