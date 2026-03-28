@@ -6,6 +6,7 @@ import NavBar from "@/components/NavBar";
 import CompetencySelector from "@/components/CompetencySelector";
 import { AIChatBox, type Message } from "@/components/AIChatBox";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/contexts/I18nContext";
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
 type YearGroup = "junior" | "primary" | "secondary";
@@ -20,6 +21,7 @@ const SUGGESTED_QUESTIONS = [
 ];
 
 export default function Chat() {
+  const { t } = useI18n();
   const [messages, setMessages] = useState<Message[]>([]);
   const [competency, setCompetency] = useState<CompetencyCode | undefined>();
   const [yearGroup, setYearGroup] = useState<YearGroup | undefined>();
@@ -63,9 +65,9 @@ export default function Chat() {
         {/* Header */}
         <div className="flex items-start sm:items-center justify-between gap-2">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">AI Chat Assistant</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">{t("chat_title")}</h1>
             <p className="text-sm text-muted-foreground">
-              Ask anything about LOMLOE curriculum competencies
+              {t("chat_subtitle")}
             </p>
           </div>
           <div className="flex gap-2 flex-shrink-0">
@@ -117,7 +119,7 @@ export default function Chat() {
             onSendMessage={handleSendMessage}
             isLoading={chatMutation.isPending}
             placeholder="Ask about LOMLOE competencies… (Enter to send)"
-            emptyStateMessage="Hello! I'm SEBA AI | TA, your LOMLOE curriculum assistant. Ask me anything about the 8 key competencies!"
+            emptyStateMessage={t("chat_empty_state")}
             suggestedPrompts={SUGGESTED_QUESTIONS}
             height="calc(100dvh - 220px)"
           />

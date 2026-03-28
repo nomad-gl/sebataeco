@@ -1,7 +1,10 @@
+import { useI18n } from "@/contexts/I18nContext";
+
 const LOMLOE_LOGO =
   "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/lomloe_23170104.png";
 
 export default function Footer() {
+  const { t } = useI18n();
   return (
     <footer className="border-t border-border bg-secondary/20 mt-auto print:hidden">
       <div className="container py-6">
@@ -22,7 +25,7 @@ export default function Footer() {
 
           {/* Centre: site description */}
           <p className="text-xs text-muted-foreground text-center">
-            SEBA AI | TA · Aligned with Spain's LOMLOE curriculum
+            SEBA AI | TA · {t("footer_aligned")}
           </p>
 
           {/* Right: Powered by SEBA + sebasnap link */}
@@ -35,7 +38,7 @@ export default function Footer() {
             >
               sebasnap.com →
             </a>
-            <span className="text-xs text-muted-foreground">Powered by SEBA</span>
+            <span className="text-xs text-muted-foreground">{t("footer_powered")} SEBA</span>
           </div>
         </div>
       </div>

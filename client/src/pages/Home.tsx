@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import NavBar from "@/components/NavBar";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/contexts/I18nContext";
 
 const LOMLOE_LOGO =
   "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/lomloe_23170104.png";
@@ -23,36 +24,34 @@ const COMP_COLORS: Record<string, string> = {
   CCEC: "var(--comp-ccec)",
 };
 
-const features = [
-  {
-    icon: MessageCircle,
-    title: "AI Chat Assistant",
-    description:
-      "Ask curriculum-aligned questions and get instant, LOMLOE-grounded answers from our AI tutor.",
-    href: "/chat",
-    color: "oklch(0.45 0.2 240)",
-  },
-  {
-    icon: Dumbbell,
-    title: "Practice Mode",
-    description:
-      "Test your knowledge with multiple-choice questions drawn directly from the LOMLOE competency bank.",
-    href: "/practice",
-    color: "oklch(0.48 0.18 145)",
-  },
-  {
-    icon: LayoutDashboard,
-    title: "Admin Dashboard",
-    description:
-      "View knowledge bank statistics, coverage metrics, and question distribution across all competencies.",
-    href: "/admin",
-    color: "oklch(0.48 0.2 270)",
-  },
-];
-
 export default function Home() {
+  const { t } = useI18n();
   const { data: competencies } = trpc.lomloe.getCompetencies.useQuery();
   const { data: stats } = trpc.lomloe.getStats.useQuery();
+
+  const features = [
+    {
+      icon: MessageCircle,
+      title: t("home_feature_chat_title"),
+      description: t("home_feature_chat_desc"),
+      href: "/chat",
+      color: "oklch(0.45 0.2 240)",
+    },
+    {
+      icon: Dumbbell,
+      title: t("home_feature_practice_title"),
+      description: t("home_feature_practice_desc"),
+      href: "/practice",
+      color: "oklch(0.48 0.18 145)",
+    },
+    {
+      icon: LayoutDashboard,
+      title: t("home_feature_create_title"),
+      description: t("home_feature_create_desc"),
+      href: "/create",
+      color: "oklch(0.48 0.2 270)",
+    },
+  ];
 
   return (
     <div className="bg-background flex flex-col">
@@ -68,36 +67,34 @@ export default function Home() {
           backgroundAttachment: "fixed",
         }}
       >
-        {/* Dark overlay for text readability */}
         <div className="absolute inset-0 bg-black/55 pointer-events-none" />
         <div className="container py-14 sm:py-20 lg:py-28 relative z-10">
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 text-white text-sm font-semibold mb-6 backdrop-blur-sm">
               <BookOpen className="w-4 h-4" />
-              Spain's LOMLOE Curriculum · 8 Competencies
+              {t("home_badge")}
             </div>
             <h1 className="text-3xl sm:text-4xl lg:text-6xl font-bold text-white leading-tight mb-4 sm:mb-6 drop-shadow-lg">
-              Your AI Teaching
-              <span className="text-blue-300"> Assistant</span>
+              {t("home_hero_title")}
+              <span className="text-blue-300"> {t("home_hero_accent")}</span>
               <br />
-              for LOMLOE
+              {t("home_hero_subtitle")}
             </h1>
             <p className="text-base sm:text-lg text-white/85 mb-6 sm:mb-8 max-w-2xl drop-shadow">
-              Practise all eight key competencies defined by Spain's LOMLOE education law. Ask
-              questions, test your knowledge, and get curriculum-aligned explanations — instantly.
+              {t("home_hero_desc")}
             </p>
             <div className="flex flex-col sm:flex-row gap-3 mb-6 sm:mb-8">
               <Button asChild size="lg" className="gap-2 w-full sm:w-auto">
                 <Link href="/chat">
-                  Start Chatting <ArrowRight className="w-4 h-4" />
+                  {t("home_cta_chat")} <ArrowRight className="w-4 h-4" />
                 </Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="w-full sm:w-auto bg-white/10 text-white border-white/40 hover:bg-white/20">
-                <Link href="/practice">Practice Questions</Link>
+                <Link href="/practice">{t("home_cta_practice")}</Link>
               </Button>
             </div>
 
-            {/* LOMLOE official logo – hero placement */}
+            {/* LOMLOE official logo */}
             <a
               href="https://www.educacionyfp.gob.es"
               target="_blank"
@@ -105,16 +102,15 @@ export default function Home() {
               title="Ministerio de Educación y Formación Profesional – LOMLOE"
               className="inline-block"
             >
-          <img
-              src={LOMLOE_LOGO}
-              alt="LOMLOE – Gobierno de España · Ministerio de Educación y Formación Profesional"
-              className="h-12 sm:h-16 w-auto object-contain rounded-md shadow-sm"
-            />
+              <img
+                src={LOMLOE_LOGO}
+                alt="LOMLOE – Gobierno de España · Ministerio de Educación y Formación Profesional"
+                className="h-12 sm:h-16 w-auto object-contain rounded-md shadow-sm"
+              />
             </a>
           </div>
         </div>
 
-        {/* Decorative blobs */}
         <div
           className="absolute top-0 right-0 w-96 h-96 rounded-full opacity-10 pointer-events-none"
           style={{ background: "radial-gradient(circle, var(--comp-ccl), transparent)" }}
@@ -132,15 +128,19 @@ export default function Home() {
             <div className="flex flex-wrap gap-6 sm:gap-8 justify-around sm:justify-start">
               <div className="text-center sm:text-left">
                 <p className="text-3xl font-bold text-primary">{stats.totalQuestions}</p>
-                <p className="text-sm text-muted-foreground">Curriculum Questions</p>
+                <p className="text-sm text-muted-foreground">{t("home_stats_questions")}</p>
               </div>
               <div className="text-center sm:text-left">
                 <p className="text-3xl font-bold text-primary">{stats.totalCompetencies}</p>
-                <p className="text-sm text-muted-foreground">LOMLOE Competencies</p>
+                <p className="text-sm text-muted-foreground">{t("home_stats_competencies")}</p>
               </div>
               <div className="text-center sm:text-left">
                 <p className="text-3xl font-bold text-primary">{stats.totalYearGroups}</p>
-                <p className="text-sm text-muted-foreground">Year Groups</p>
+                <p className="text-sm text-muted-foreground">{t("home_stats_year_groups")}</p>
+              </div>
+              <div className="text-center sm:text-left">
+                <p className="text-3xl font-bold text-primary">100%</p>
+                <p className="text-sm text-muted-foreground">{t("home_stats_free")}</p>
               </div>
             </div>
           </div>
@@ -149,7 +149,7 @@ export default function Home() {
 
       {/* Features */}
       <section className="container py-16">
-        <h2 className="text-2xl font-bold text-foreground mb-8">What you can do</h2>
+        <h2 className="text-2xl font-bold text-foreground mb-8">{t("home_features_title")}</h2>
         <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
           {features.map(({ icon: Icon, title, description, href, color }) => (
             <Link key={href} href={href}>
@@ -168,7 +168,7 @@ export default function Home() {
                     <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
                   </div>
                   <div className="mt-auto flex items-center gap-1 text-sm font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                    Open <ArrowRight className="w-3 h-3" />
+                    {t("open")} <ArrowRight className="w-3 h-3" />
                   </div>
                 </CardContent>
               </Card>
@@ -179,9 +179,9 @@ export default function Home() {
 
       {/* Competency grid */}
       <section className="container pb-16">
-        <h2 className="text-2xl font-bold text-foreground mb-2">8 LOMLOE Competencies</h2>
+        <h2 className="text-2xl font-bold text-foreground mb-2">{t("home_competencies_title")}</h2>
         <p className="text-muted-foreground mb-8">
-          Every question is mapped to one of Spain's eight key curriculum competencies.
+          {t("home_badge")}
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {competencies?.map((comp) => (
@@ -190,9 +190,7 @@ export default function Home() {
                 <CardContent className="p-5">
                   <div className="flex items-center gap-3 mb-3">
                     <span className="text-2xl">{comp.emoji}</span>
-                    <span
-                      className={cn("badge-" + comp.code, "text-xs font-bold")}
-                    >
+                    <span className={cn("badge-" + comp.code, "text-xs font-bold")}>
                       {comp.code}
                     </span>
                   </div>
@@ -212,8 +210,6 @@ export default function Home() {
           ))}
         </div>
       </section>
-
-
     </div>
   );
 }

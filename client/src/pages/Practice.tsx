@@ -8,17 +8,19 @@ import NavBar from "@/components/NavBar";
 import CompetencySelector from "@/components/CompetencySelector";
 import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
+import { useI18n } from "@/contexts/I18nContext";
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
 type YearGroup = "junior" | "primary" | "secondary";
 
-const YEAR_GROUP_LABELS: Record<YearGroup, string> = {
+const YEAR_GROUP_LABELS_STATIC: Record<YearGroup, string> = {
   junior: "Junior (Yr 3–4)",
   primary: "Primary (Yr 5–6)",
   secondary: "Secondary (Yr 7–10)",
 };
 
 export default function Practice() {
+  const { t } = useI18n();
   const [location] = useLocation();
   const urlParams = new URLSearchParams(location.split("?")[1] ?? "");
   const initialCompetency = (urlParams.get("competency") as CompetencyCode) || undefined;
@@ -201,7 +203,7 @@ export default function Practice() {
                     </span>
                     <span className="text-xs text-muted-foreground capitalize">
                       {question.yearGroup
-                        ? YEAR_GROUP_LABELS[question.yearGroup as YearGroup]
+                        ? YEAR_GROUP_LABELS_STATIC[question.yearGroup as YearGroup]
                         : ""}
                     </span>
                   </div>

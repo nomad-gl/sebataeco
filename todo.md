@@ -122,13 +122,13 @@
 - [x] Wordsearch: arrange keywords in proper grid
 
 ## Create a Presentation Feature
-- [ ] New page /presentation with heading, topic, subject, format inputs
-- [ ] AI generates cover slide + 8-10 content slides with competency tags and image suggestions
-- [ ] Paginated slide preview with edit-in-place text support
-- [ ] Download as Word (.docx) and PDF
-- [ ] Teacher dropdown link: "Create a Presentation"
-- [ ] My Presentations library at /my-presentations with open/edit/delete
-- [ ] After generation, offer to generate Q&A or fill-in-the-blank from the presentation
+- [x] New page /presentation with heading, topic, subject, format inputs
+- [x] AI generates cover slide + 8-10 content slides with competency tags and image suggestions
+- [x] Paginated slide preview with thumbnail navigation
+- [x] Download as Word (.docx), PDF, PNG, and Print
+- [x] Teacher dropdown link: "Presentation" added to NavBar
+- [x] Presentations saved to My Materials library (shared)
+- [x] After generation, export options shown (Word, PDF, PNG, Print)
 
 ## Host a Class Challenge Feature
 - [x] Teacher creates challenge with room code (6-char), selects competency + year group + question count
@@ -157,3 +157,31 @@
 - [x] Presentation: royal blue gradient (done — applied when page built)
 - [x] Class Challenge: deep gold/amber dark gradient (done)
 - [x] Sample Questions: light blue/indigo gradient (done)
+
+## Follow-up: In-place Slide Editing
+- [ ] Click slide title to edit it inline (contentEditable or input swap)
+- [ ] Click slide body text to edit it inline
+- [ ] Click speaker notes to edit inline
+- [ ] Save edits to local state so exports reflect changes
+
+## Follow-up: Derive Activity from Presentation
+- [ ] "Generate Quiz" button after slide generation — creates 10-question MCQ from slide content
+- [ ] "Generate Fill-in-the-blank" button — creates missing-words worksheet from slide content
+- [ ] Derived material opens in MaterialView for review and export
+
+## Follow-up: Language Toggle (EN / ES / CA)
+- [ ] i18n context/hook with EN, ES (Spanish), CA (Catalan) translations
+- [ ] Default language auto-detected from browser locale
+- [ ] Language toggle button in NavBar (flag or text: EN / ES / CA)
+- [ ] Translate NavBar labels
+- [ ] Translate Home page hero, stats bar, competency cards, CTA buttons
+- [ ] Translate Practice page setup, question UI, feedback, score card
+- [ ] Translate Chat page header and placeholder text
+- [ ] Translate Progress page headings and stats
+- [ ] Translate Create page activity labels and form fields
+- [ ] Translate My Materials page headings and action buttons
+- [ ] Translate Admin page headings and table headers
+- [ ] Translate Footer text
+- [ ] Translate Presentation page form labels and export buttons
+- [ ] Translate Class Challenge page labels
+- [ ] Translate Question Library page labels and filters
