@@ -18,6 +18,8 @@ import SampleQuestions from "./pages/SampleQuestions";
 import Join from "./pages/Join";
 import Presentation from "./pages/Presentation";
 import Groups from "./pages/Groups";
+import StudentProgress from "./pages/StudentProgress";
+import GroupProgress from "./pages/GroupProgress";
 
 function Router() {
   return (
@@ -36,6 +38,8 @@ function Router() {
         <Route path="/join" component={Join} />
         <Route path="/presentation" component={Presentation} />
         <Route path="/groups" component={Groups} />
+        <Route path="/groups/:groupId/progress" component={GroupProgress} />
+        <Route path="/groups/:groupId/student/:studentId" component={StudentProgress} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

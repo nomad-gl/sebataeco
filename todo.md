@@ -235,3 +235,20 @@
 - [ ] Wire Groups page into NavBar Teacher menu
 - [ ] Add i18n keys for all new Groups strings (EN/ES/CA)
 - [ ] Link challenge creation to group (select group when creating challenge)
+
+## Feature: Individual & Group Progress Tracking
+- [ ] DB schema: student_progress table (student scores per challenge per competency)
+- [ ] DB schema: assignments table (teacher-created daily/weekly tasks per group)
+- [ ] DB schema: assignment_completions table (per-student completion records)
+- [ ] Server: log challenge score per student procedure
+- [ ] Server: create/list/complete assignments procedures
+- [ ] Server: generate AI progress report per student (strengths, weaknesses, growth areas)
+- [ ] Server: generate AI group summary report
+- [ ] StudentProgress page: competency radar/bar chart, score history timeline, assignment completion tracker
+- [ ] StudentProgress page: AI-generated individual report with LOMLOE grade, strengths, weaknesses, growth areas
+- [ ] GroupProgress page: class summary table with per-student competency scores
+- [ ] GroupProgress page: competency heatmap across all students
+- [ ] GroupProgress page: ranked leaderboard with overall LOMLOE grade
+- [ ] GroupProgress page: AI group summary report
+- [ ] Wire student row in Groups page to StudentProgress page
+- [ ] Add i18n keys for all new progress tracking strings (EN/ES/CA)

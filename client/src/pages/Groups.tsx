@@ -12,10 +12,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Users, Plus, Trash2, Mail, BookOpen, Calendar, ChevronRight,
-  UserPlus, Send, Loader2, AlertCircle, GraduationCap, ClipboardList
+  UserPlus, Send, Loader2, AlertCircle, GraduationCap, ClipboardList, TrendingUp
 } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "@/contexts/I18nContext";
+import { Link } from "wouter";
 
 // ── Competency colour map ────────────────────────────────────────────────────
 const COMP_COLORS: Record<string, string> = {
@@ -205,15 +206,26 @@ function StudentRoster({ group }: { group: Group }) {
                   <td className="px-4 py-3 font-medium">{s.name}</td>
                   <td className="px-4 py-3 text-white/60 hidden sm:table-cell">{s.email}</td>
                   <td className="px-4 py-3 text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeMutation.mutate({ studentId: s.id, groupId: group.id })}
-                      disabled={removeMutation.isPending}
-                      className="text-red-400 hover:text-red-300 hover:bg-red-400/10 h-7 w-7 p-0"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
+                    <div className="flex items-center justify-end gap-1">
+                      <Link href={`/groups/${group.id}/student/${s.id}`}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-teal-400 hover:text-teal-300 hover:bg-teal-400/10 h-7 px-2 text-xs"
+                        >
+                          <TrendingUp className="w-3 h-3 mr-1" /> {t("gp_view_student")}
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeMutation.mutate({ studentId: s.id, groupId: group.id })}
+                        disabled={removeMutation.isPending}
+                        className="text-red-400 hover:text-red-300 hover:bg-red-400/10 h-7 w-7 p-0"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -515,18 +527,29 @@ export default function Groups() {
                           })}
                         </p>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          if (confirm(t("groups_delete_confirm"))) {
-                            deleteMutation.mutate({ id: selectedGroup.id });
-                          }
-                        }}
-                        className="text-red-400 hover:text-red-300 hover:bg-red-400/10 shrink-0"
-                      >
-                        <Trash2 className="w-4 h-4 mr-1.5" /> {t("groups_delete_group")}
-                      </Button>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Link href={`/groups/${selectedGroup.id}/progress`}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-teal-500/40 text-teal-300 hover:text-teal-200 hover:bg-teal-600/20 bg-transparent"
+                          >
+                            <TrendingUp className="w-4 h-4 mr-1.5" /> {t("gp_title")}
+                          </Button>
+                        </Link>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            if (confirm(t("groups_delete_confirm"))) {
+                              deleteMutation.mutate({ id: selectedGroup.id });
+                            }
+                          }}
+                          className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                        >
+                          <Trash2 className="w-4 h-4 mr-1.5" /> {t("groups_delete_group")}
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

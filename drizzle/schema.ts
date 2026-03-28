@@ -160,3 +160,59 @@ export const groupChallengeLog = mysqlTable("group_challenge_log", {
 
 export type GroupChallengeLog = typeof groupChallengeLog.$inferSelect;
 export type InsertGroupChallengeLog = typeof groupChallengeLog.$inferInsert;
+
+/**
+ * Student progress records — per-student scores per challenge per competency.
+ * Links a group student to a challenge log entry with competency-level scores.
+ */
+export const studentProgress = mysqlTable("student_progress", {
+  id: int("id").autoincrement().primaryKey(),
+  groupId: int("groupId").notNull(),
+  studentId: int("studentId").notNull(),
+  challengeLogId: int("challengeLogId"),
+  /** Competency code: CCL, CP, STEM, CD, CPSAA, CC, CE, CCEC */
+  competency: varchar("competency", { length: 16 }).notNull(),
+  /** Score 0-100 for this competency in this activity */
+  score: int("score").notNull(),
+  /** Activity type: challenge, assignment, practice */
+  activityType: varchar("activityType", { length: 32 }).notNull(),
+  activityTitle: varchar("activityTitle", { length: 255 }),
+  recordedAt: timestamp("recordedAt").defaultNow().notNull(),
+});
+
+export type StudentProgress = typeof studentProgress.$inferSelect;
+export type InsertStudentProgress = typeof studentProgress.$inferInsert;
+
+/**
+ * Assignments — teacher-created daily/weekly tasks assigned to a group.
+ */
+export const assignments = mysqlTable("assignments", {
+  id: int("id").autoincrement().primaryKey(),
+  groupId: int("groupId").notNull(),
+  userId: int("userId").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  competency: varchar("competency", { length: 16 }),
+  dueDate: timestamp("dueDate"),
+  frequency: mysqlEnum("frequency", ["once", "daily", "weekly"]).default("once").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Assignment = typeof assignments.$inferSelect;
+export type InsertAssignment = typeof assignments.$inferInsert;
+
+/**
+ * Assignment completions — tracks which students completed which assignments.
+ */
+export const assignmentCompletions = mysqlTable("assignment_completions", {
+  id: int("id").autoincrement().primaryKey(),
+  assignmentId: int("assignmentId").notNull(),
+  studentId: int("studentId").notNull(),
+  /** Score 0-100 if graded, null if just marked complete */
+  score: int("score"),
+  notes: text("notes"),
+  completedAt: timestamp("completedAt").defaultNow().notNull(),
+});
+
+export type AssignmentCompletion = typeof assignmentCompletions.$inferSelect;
+export type InsertAssignmentCompletion = typeof assignmentCompletions.$inferInsert;

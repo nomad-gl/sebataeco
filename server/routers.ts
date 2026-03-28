@@ -6,6 +6,7 @@ import { lomloeRouter } from "./routers/lomloe";
 import { materialsRouter } from "./routers/materials";
 import { challengeRouter } from "./routers/challenge";
 import { groupsRouter } from "./routers/groups";
+import { progressRouter } from "./routers/progress";
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -22,6 +23,7 @@ export const appRouter = router({
   materials: materialsRouter,
   challenge: challengeRouter,
   groups: groupsRouter,
+  progress: progressRouter,
 });
 
 export type AppRouter = typeof appRouter;
