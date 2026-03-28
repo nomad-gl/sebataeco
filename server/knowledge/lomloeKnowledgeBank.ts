@@ -81,7 +81,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is the effect of using second-person narration in a text?`,
     options: [`It distances the reader`, `It creates an impersonal tone`, `It directly implicates the reader, creating immediacy and involvement`, `It makes the text more formal`],
     correctIndex: 2,
-    explanation: `The correct answer is 'To give the audience direct insight into Hamlet's inner conflict and reasoning', which aligns with the CCL competency.`,
+    explanation: `The correct answer is 'It directly implicates the reader, creating immediacy and involvement', which aligns with the Linguistic Communication (CCL) competency.`,
   },
   {
     id: 'q002',
@@ -90,7 +90,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is the difference between denotation and connotation?`,
     options: [`Denotation is the emotional meaning; connotation is the literal meaning`, `Denotation is the literal dictionary meaning; connotation is the associated or implied meaning`, `They are the same thing`, `Denotation applies only to poetry`],
     correctIndex: 1,
-    explanation: `The correct answer is 'It directly implicates the reader, creating immediacy and involvement', which aligns with the CCL competency.`,
+    explanation: `The correct answer is 'Denotation is the literal dictionary meaning; connotation is the associated or implied meaning', which aligns with the Linguistic Communication (CCL) competency.`,
   },
   {
     id: 'q003',
@@ -99,7 +99,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `Which literary device is used in: 'The wind whispered through the trees'?`,
     options: [`Simile`, `Metaphor`, `Personification`, `Alliteration`],
     correctIndex: 2,
-    explanation: `The correct answer is 'Denotation is the literal dictionary meaning; connotation is the associated or implied meaning', which aligns with the CCL competency.`,
+    explanation: `The correct answer is 'Personification', which aligns with the Linguistic Communication (CCL) competency.`,
   },
   {
     id: 'q004',
@@ -108,7 +108,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is a 'rhetorical question' and why is it used?`,
     options: [`A question that requires a long answer`, `A question asked to make a point rather than to get an answer, used to engage the reader`, `A question used only in formal writing`, `A question with no correct answer`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Personification', which aligns with the CCL competency.`,
+    explanation: `The correct answer is 'A question asked to make a point rather than to get an answer, used to engage the reader', which aligns with the Linguistic Communication (CCL) competency.`,
   },
   {
     id: 'q005',
@@ -117,7 +117,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `Which sentence uses a subordinate clause?`,
     options: [`The cat sat on the mat.`, `She ran fast.`, `Although it was raining, we went outside.`, `He ate his lunch.`],
     correctIndex: 2,
-    explanation: `The correct answer is 'A question asked to make a point rather than to get an answer, used to engage the reader', which aligns with the CCL competency.`,
+    explanation: `The correct answer is 'Although it was raining, we went outside.', which aligns with the Linguistic Communication (CCL) competency.`,
   },
   {
     id: 'q006',
@@ -126,7 +126,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is the purpose of a colon in a sentence?`,
     options: [`To end a sentence`, `To introduce a list or explanation`, `To show a pause`, `To join two sentences`],
     correctIndex: 1,
-    explanation: `The correct answer is 'A simile uses 'like' or 'as'; a metaphor does not', which aligns with the CCL competency.`,
+    explanation: `The correct answer is 'To introduce a list or explanation', which aligns with the Linguistic Communication (CCL) competency.`,
   },
   {
     id: 'q007',
@@ -135,7 +135,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What does 'infer' mean when reading a text?`,
     options: [`To copy the text`, `To read aloud`, `To work out something not directly stated`, `To summarise the text`],
     correctIndex: 2,
-    explanation: `The correct answer is 'Although it was raining, we went outside.', which aligns with the CCL competency.`,
+    explanation: `The correct answer is 'To work out something not directly stated', which aligns with the Linguistic Communication (CCL) competency.`,
   },
   {
     id: 'q008',
@@ -144,7 +144,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `Which word is a connective?`,
     options: [`Quickly`, `However`, `Running`, `Bright`],
     correctIndex: 1,
-    explanation: `The correct answer is 'To introduce a list or explanation', which aligns with the CCL competency.`,
+    explanation: `The correct answer is 'However', which aligns with the Linguistic Communication (CCL) competency.`,
   },
   {
     id: 'q009',
@@ -153,7 +153,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What does the word 'enormous' mean?`,
     options: [`Very small`, `Very fast`, `Very big`, `Very loud`],
     correctIndex: 2,
-    explanation: `The correct answer is 'To work out something not directly stated', which aligns with the CCL competency.`,
+    explanation: `The correct answer is 'Very big', which aligns with the Linguistic Communication (CCL) competency.`,
   },
   {
     id: 'q010',
@@ -162,7 +162,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `Which sentence is a question?`,
     options: [`The dog is big.`, `Where is the dog?`, `The dog runs.`, `A big dog.`],
     correctIndex: 1,
-    explanation: `The correct answer is 'However', which aligns with the CCL competency.`,
+    explanation: `The correct answer is 'Where is the dog?', which aligns with the Linguistic Communication (CCL) competency.`,
   },
   {
     id: 'q011',
@@ -171,7 +171,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is the plural of 'child'?`,
     options: [`Childs`, `Childes`, `Children`, `Childrens`],
     correctIndex: 2,
-    explanation: `The correct answer is 'Apple', which aligns with the CCL competency.`,
+    explanation: `The correct answer is 'Children', which aligns with the Linguistic Communication (CCL) competency.`,
   },
   {
     id: 'q012',
@@ -180,7 +180,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `Which word is an adjective?`,
     options: [`Jump`, `Quickly`, `Blue`, `Table`],
     correctIndex: 2,
-    explanation: `The correct answer is 'Very big', which aligns with the CCL competency.`,
+    explanation: `The correct answer is 'Blue', which aligns with the Linguistic Communication (CCL) competency.`,
   },
   {
     id: 'q013',
@@ -189,7 +189,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is 'code-switching' in multilingual communication?`,
     options: [`Switching between computer programming languages`, `Alternating between two or more languages within a conversation`, `Translating a text from one language to another`, `Using formal language in informal situations`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Where is the dog?', which aligns with the CCL competency.`,
+    explanation: `The correct answer is 'Alternating between two or more languages within a conversation', which aligns with the Multilingual Competence (CP) competency.`,
   },
   {
     id: 'q014',
@@ -198,7 +198,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `Which of these is an example of a 'false cognate' (false friend) between English and Spanish?`,
     options: [`Hospital / Hospital`, `Embarazada / Embarrassed`, `Animal / Animal`, `Doctor / Doctor`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Children', which aligns with the CCL competency.`,
+    explanation: `The correct answer is 'Embarazada / Embarrassed', which aligns with the Multilingual Competence (CP) competency.`,
   },
   {
     id: 'q015',
@@ -207,7 +207,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is the Sapir-Whorf hypothesis?`,
     options: [`Languages all have the same grammar`, `The language you speak influences the way you think and perceive the world`, `All languages evolved from one original language`, `Writing systems determine spoken language`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Blue', which aligns with the CCL competency.`,
+    explanation: `The correct answer is 'The language you speak influences the way you think and perceive the world', which aligns with the Multilingual Competence (CP) competency.`,
   },
   {
     id: 'q016',
@@ -216,7 +216,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `Approximately how many languages are spoken in the world today?`,
     options: [`Around 500`, `Around 1,000`, `Around 3,500`, `Around 7,000`],
     correctIndex: 3,
-    explanation: `The correct answer is 'A dialect is a regional variety of a language; a register is a style adapted to context', which aligns with the CP competency.`,
+    explanation: `The correct answer is 'Around 7,000', which aligns with the Multilingual Competence (CP) competency.`,
   },
   {
     id: 'q017',
@@ -225,7 +225,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What does 'je suis étudiant' mean in English?`,
     options: [`I am a teacher`, `I am a student`, `I am tired`, `I am French`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Alternating between two or more languages within a conversation', which aligns with the CP competency.`,
+    explanation: `The correct answer is 'I am a student', which aligns with the Multilingual Competence (CP) competency.`,
   },
   {
     id: 'q018',
@@ -234,7 +234,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `Which of these is a cognate — a word that looks similar in English and Spanish?`,
     options: [`Perro`, `Hospital`, `Libro`, `Agua`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Embarazada / Embarrassed', which aligns with the CP competency.`,
+    explanation: `The correct answer is 'Hospital', which aligns with the Multilingual Competence (CP) competency.`,
   },
   {
     id: 'q019',
@@ -243,7 +243,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is the term for words that look similar across languages but have different meanings?`,
     options: [`Synonyms`, `Antonyms`, `False friends`, `Homophones`],
     correctIndex: 2,
-    explanation: `The correct answer is 'The language you speak influences the way you think and perceive the world', which aligns with the CP competency.`,
+    explanation: `The correct answer is 'False friends', which aligns with the Multilingual Competence (CP) competency.`,
   },
   {
     id: 'q020',
@@ -252,7 +252,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `How many people worldwide speak Mandarin Chinese as a first language?`,
     options: [`Around 100 million`, `Around 500 million`, `Around 900 million`, `Around 1.3 billion`],
     correctIndex: 2,
-    explanation: `The correct answer is 'Around 7,000', which aligns with the CP competency.`,
+    explanation: `The correct answer is 'Around 900 million', which aligns with the Multilingual Competence (CP) competency.`,
   },
   {
     id: 'q021',
@@ -261,7 +261,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `How do you say 'cat' in Spanish?`,
     options: [`Perro`, `Pájaro`, `Gato`, `Pez`],
     correctIndex: 2,
-    explanation: `The correct answer is 'Romance', which aligns with the CP competency.`,
+    explanation: `The correct answer is 'Gato', which aligns with the Multilingual Competence (CP) competency.`,
   },
   {
     id: 'q022',
@@ -270,7 +270,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `Which language is spoken in Brazil?`,
     options: [`Spanish`, `French`, `Italian`, `Portuguese`],
     correctIndex: 3,
-    explanation: `The correct answer is 'I am a student', which aligns with the CP competency.`,
+    explanation: `The correct answer is 'Portuguese', which aligns with the Multilingual Competence (CP) competency.`,
   },
   {
     id: 'q023',
@@ -279,7 +279,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What does 'gracias' mean in English?`,
     options: [`Hello`, `Goodbye`, `Please`, `Thank you`],
     correctIndex: 3,
-    explanation: `The correct answer is 'Hospital', which aligns with the CP competency.`,
+    explanation: `The correct answer is 'Thank you', which aligns with the Multilingual Competence (CP) competency.`,
   },
   {
     id: 'q024',
@@ -288,7 +288,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `How many official languages does Spain have?`,
     options: [`1`, `2`, `4`, `6`],
     correctIndex: 2,
-    explanation: `The correct answer is 'False friends', which aligns with the CP competency.`,
+    explanation: `The correct answer is '4', which aligns with the Multilingual Competence (CP) competency.`,
   },
   {
     id: 'q025',
@@ -297,7 +297,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is the quadratic formula used to solve?`,
     options: [`Linear equations`, `Cubic equations`, `Quadratic equations of the form ax² + bx + c = 0`, `Simultaneous equations`],
     correctIndex: 2,
-    explanation: `The correct answer is 'Around 900 million', which aligns with the CP competency.`,
+    explanation: `The correct answer is 'Quadratic equations of the form ax² + bx + c = 0', which aligns with the Mathematics & STEM (STEM) competency.`,
   },
   {
     id: 'q026',
@@ -306,7 +306,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is the process of natural selection?`,
     options: [`Organisms change their genes deliberately`, `Organisms with favourable traits survive and reproduce more, passing on those traits`, `All organisms in a species change at the same rate`, `Traits are passed on randomly regardless of survival`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Good morning / Hello', which aligns with the CP competency.`,
+    explanation: `The correct answer is 'Organisms with favourable traits survive and reproduce more, passing on those traits', which aligns with the Mathematics & STEM (STEM) competency.`,
   },
   {
     id: 'q027',
@@ -315,7 +315,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is the difference between speed and velocity?`,
     options: [`They are the same`, `Speed is a scalar quantity; velocity is a vector quantity that includes direction`, `Velocity is always greater than speed`, `Speed includes direction; velocity does not`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Gato', which aligns with the CP competency.`,
+    explanation: `The correct answer is 'Speed is a scalar quantity; velocity is a vector quantity that includes direction', which aligns with the Mathematics & STEM (STEM) competency.`,
   },
   {
     id: 'q028',
@@ -324,7 +324,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is the pH of a neutral solution?`,
     options: [`0`, `7`, `14`, `1`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Portuguese', which aligns with the CP competency.`,
+    explanation: `The correct answer is '7', which aligns with the Mathematics & STEM (STEM) competency.`,
   },
   {
     id: 'q029',
@@ -333,7 +333,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `A rectangle has a length of 12 cm and a width of 7 cm. What is its area?`,
     options: [`38 cm²`, `84 cm²`, `19 cm²`, `76 cm²`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Thank you', which aligns with the CP competency.`,
+    explanation: `The correct answer is '84 cm²', which aligns with the Mathematics & STEM (STEM) competency.`,
   },
   {
     id: 'q030',
@@ -342,7 +342,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is the role of chlorophyll in plants?`,
     options: [`It absorbs water`, `It absorbs sunlight for photosynthesis`, `It transports nutrients`, `It produces seeds`],
     correctIndex: 1,
-    explanation: `The correct answer is '4', which aligns with the CP competency.`,
+    explanation: `The correct answer is 'It absorbs sunlight for photosynthesis', which aligns with the Mathematics & STEM (STEM) competency.`,
   },
   {
     id: 'q031',
@@ -351,7 +351,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `Which force keeps planets in orbit around the Sun?`,
     options: [`Magnetism`, `Friction`, `Gravity`, `Electricity`],
     correctIndex: 2,
-    explanation: `The correct answer is '160 km/h', which aligns with the STEM competency.`,
+    explanation: `The correct answer is 'Gravity', which aligns with the Mathematics & STEM (STEM) competency.`,
   },
   {
     id: 'q032',
@@ -360,7 +360,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What does DNA stand for?`,
     options: [`Digital Numeric Analysis`, `Deoxyribonucleic Acid`, `Dynamic Natural Atom`, `Dense Nucleic Arrangement`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Quadratic equations of the form ax² + bx + c = 0', which aligns with the STEM competency.`,
+    explanation: `The correct answer is 'Deoxyribonucleic Acid', which aligns with the Mathematics & STEM (STEM) competency.`,
   },
   {
     id: 'q033',
@@ -369,7 +369,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `How many sides does a triangle have?`,
     options: [`2`, `4`, `3`, `5`],
     correctIndex: 2,
-    explanation: `The correct answer is 'Organisms with favourable traits survive and reproduce more, passing on those traits', which aligns with the STEM competency.`,
+    explanation: `The correct answer is '3', which aligns with the Mathematics & STEM (STEM) competency.`,
   },
   {
     id: 'q034',
@@ -378,7 +378,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `Which animal is a mammal?`,
     options: [`Goldfish`, `Eagle`, `Dog`, `Frog`],
     correctIndex: 2,
-    explanation: `The correct answer is 'Speed is a scalar quantity; velocity is a vector quantity that includes direction', which aligns with the STEM competency.`,
+    explanation: `The correct answer is 'Dog', which aligns with the Mathematics & STEM (STEM) competency.`,
   },
   {
     id: 'q035',
@@ -387,7 +387,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is the boiling point of water?`,
     options: [`50°C`, `75°C`, `100°C`, `120°C`],
     correctIndex: 2,
-    explanation: `The correct answer is '7', which aligns with the STEM competency.`,
+    explanation: `The correct answer is '100°C', which aligns with the Mathematics & STEM (STEM) competency.`,
   },
   {
     id: 'q036',
@@ -396,7 +396,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `Which planet is closest to the Sun?`,
     options: [`Earth`, `Venus`, `Mars`, `Mercury`],
     correctIndex: 3,
-    explanation: `The correct answer is '30', which aligns with the STEM competency.`,
+    explanation: `The correct answer is 'Mercury', which aligns with the Mathematics & STEM (STEM) competency.`,
   },
   {
     id: 'q037',
@@ -405,7 +405,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What does 'end-to-end encryption' mean?`,
     options: [`Data is encrypted only on the sender's device`, `Data is encrypted in transit so only sender and recipient can read it`, `Data is stored encrypted on a server`, `Data is encrypted by the internet provider`],
     correctIndex: 1,
-    explanation: `The correct answer is '84 cm²', which aligns with the STEM competency.`,
+    explanation: `The correct answer is 'Data is encrypted in transit so only sender and recipient can read it', which aligns with the Digital Competence (CD) competency.`,
   },
   {
     id: 'q038',
@@ -414,7 +414,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is the difference between a 'virus' and a 'worm' in cybersecurity?`,
     options: [`They are the same`, `A virus attaches to files; a worm self-replicates and spreads without user action`, `A worm attaches to files; a virus spreads on its own`, `A virus is more dangerous than a worm`],
     correctIndex: 1,
-    explanation: `The correct answer is 'It absorbs sunlight for photosynthesis', which aligns with the STEM competency.`,
+    explanation: `The correct answer is 'A virus attaches to files; a worm self-replicates and spreads without user action', which aligns with the Digital Competence (CD) competency.`,
   },
   {
     id: 'q039',
@@ -423,7 +423,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is 'net neutrality'?`,
     options: [`The idea that the internet should be free of charge`, `The principle that internet service providers should treat all internet traffic equally`, `A law requiring websites to be neutral in political content`, `A type of internet security protocol`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Gravity', which aligns with the STEM competency.`,
+    explanation: `The correct answer is 'The principle that internet service providers should treat all internet traffic equally', which aligns with the Digital Competence (CD) competency.`,
   },
   {
     id: 'q040',
@@ -432,7 +432,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is 'blockchain' technology primarily used for?`,
     options: [`Storing photos online`, `Creating decentralised, tamper-resistant records of transactions`, `Speeding up internet connections`, `Compressing large files`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Deoxyribonucleic Acid', which aligns with the STEM competency.`,
+    explanation: `The correct answer is 'Creating decentralised, tamper-resistant records of transactions', which aligns with the Digital Competence (CD) competency.`,
   },
   {
     id: 'q041',
@@ -441,7 +441,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What does 'open source' software mean?`,
     options: [`Software that costs money`, `Software whose code is freely available to view and modify`, `Software only for professionals`, `Software that runs without internet`],
     correctIndex: 1,
-    explanation: `The correct answer is '56', which aligns with the STEM competency.`,
+    explanation: `The correct answer is 'Software whose code is freely available to view and modify', which aligns with the Digital Competence (CD) competency.`,
   },
   {
     id: 'q042',
@@ -450,7 +450,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is the purpose of a spreadsheet?`,
     options: [`To write stories`, `To organise and calculate data in rows and columns`, `To draw pictures`, `To send emails`],
     correctIndex: 1,
-    explanation: `The correct answer is '3', which aligns with the STEM competency.`,
+    explanation: `The correct answer is 'To organise and calculate data in rows and columns', which aligns with the Digital Competence (CD) competency.`,
   },
   {
     id: 'q043',
@@ -459,7 +459,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What does 'algorithm' mean in computing?`,
     options: [`A type of computer virus`, `A step-by-step set of instructions to solve a problem`, `A programming language`, `A type of database`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Dog', which aligns with the STEM competency.`,
+    explanation: `The correct answer is 'A step-by-step set of instructions to solve a problem', which aligns with the Digital Competence (CD) competency.`,
   },
   {
     id: 'q044',
@@ -468,7 +468,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `Which of these is an example of cyberbullying?`,
     options: [`Sending kind messages`, `Sharing homework help`, `Repeatedly posting mean comments about someone online`, `Playing a multiplayer game`],
     correctIndex: 2,
-    explanation: `The correct answer is '100°C', which aligns with the STEM competency.`,
+    explanation: `The correct answer is 'Repeatedly posting mean comments about someone online', which aligns with the Digital Competence (CD) competency.`,
   },
   {
     id: 'q045',
@@ -477,7 +477,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is a password used for?`,
     options: [`To decorate your screen`, `To keep your account safe`, `To make the computer faster`, `To print documents`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Mercury', which aligns with the STEM competency.`,
+    explanation: `The correct answer is 'To keep your account safe', which aligns with the Digital Competence (CD) competency.`,
   },
   {
     id: 'q046',
@@ -486,7 +486,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `Which device can you use to search the internet?`,
     options: [`A television remote`, `A calculator`, `A tablet`, `A microwave`],
     correctIndex: 2,
-    explanation: `The correct answer is 'A branch of AI where systems learn from data to improve without explicit programming', which aligns with the CD competency.`,
+    explanation: `The correct answer is 'A tablet', which aligns with the Digital Competence (CD) competency.`,
   },
   {
     id: 'q047',
@@ -495,7 +495,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What does a cursor do on a computer?`,
     options: [`Plays music`, `Points and selects things on screen`, `Prints documents`, `Charges the battery`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Data is encrypted in transit so only sender and recipient can read it', which aligns with the CD competency.`,
+    explanation: `The correct answer is 'Points and selects things on screen', which aligns with the Digital Competence (CD) competency.`,
   },
   {
     id: 'q048',
@@ -504,7 +504,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is a website?`,
     options: [`A type of spider's home`, `A collection of pages on the internet`, `A kind of computer game`, `A school subject`],
     correctIndex: 1,
-    explanation: `The correct answer is 'A virus attaches to files; a worm self-replicates and spreads without user action', which aligns with the CD competency.`,
+    explanation: `The correct answer is 'A collection of pages on the internet', which aligns with the Digital Competence (CD) competency.`,
   },
   {
     id: 'q049',
@@ -513,7 +513,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is the difference between 'intrinsic' and 'extrinsic' motivation?`,
     options: [`Intrinsic motivation comes from external rewards; extrinsic from internal satisfaction`, `Intrinsic motivation comes from internal satisfaction; extrinsic from external rewards`, `They are the same`, `Extrinsic motivation is always more effective`],
     correctIndex: 1,
-    explanation: `The correct answer is 'The principle that internet service providers should treat all internet traffic equally', which aligns with the CD competency.`,
+    explanation: `The correct answer is 'Intrinsic motivation comes from internal satisfaction; extrinsic from external rewards', which aligns with the Personal, Social & Learning to Learn (CPSAA) competency.`,
   },
   {
     id: 'q050',
@@ -522,7 +522,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What does 'cognitive dissonance' mean?`,
     options: [`The ability to think clearly under pressure`, `The discomfort felt when holding two contradictory beliefs simultaneously`, `A type of memory disorder`, `The process of learning a new skill`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Creating decentralised, tamper-resistant records of transactions', which aligns with the CD competency.`,
+    explanation: `The correct answer is 'The discomfort felt when holding two contradictory beliefs simultaneously', which aligns with the Personal, Social & Learning to Learn (CPSAA) competency.`,
   },
   {
     id: 'q051',
@@ -531,7 +531,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is 'emotional intelligence' (EQ)?`,
     options: [`A measure of academic ability`, `The ability to recognise, understand, and manage one's own and others' emotions`, `A type of IQ test`, `The ability to memorise emotional events`],
     correctIndex: 1,
-    explanation: `The correct answer is 'A scam to steal personal information online', which aligns with the CD competency.`,
+    explanation: `The correct answer is 'The ability to recognise, understand, and manage one's own and others' emotions', which aligns with the Personal, Social & Learning to Learn (CPSAA) competency.`,
   },
   {
     id: 'q052',
@@ -540,7 +540,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is the 'Dunning-Kruger effect'?`,
     options: [`The tendency for experts to underestimate their knowledge`, `The tendency for people with limited knowledge to overestimate their competence`, `A type of memory bias`, `The effect of stress on learning`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Software whose code is freely available to view and modify', which aligns with the CD competency.`,
+    explanation: `The correct answer is 'The tendency for people with limited knowledge to overestimate their competence', which aligns with the Personal, Social & Learning to Learn (CPSAA) competency.`,
   },
   {
     id: 'q053',
@@ -549,7 +549,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `Which of these is an example of active listening?`,
     options: [`Looking at your phone while someone talks`, `Nodding and making eye contact`, `Interrupting to share your opinion`, `Thinking about what to say next`],
     correctIndex: 1,
-    explanation: `The correct answer is 'To organise and calculate data in rows and columns', which aligns with the CD competency.`,
+    explanation: `The correct answer is 'Nodding and making eye contact', which aligns with the Personal, Social & Learning to Learn (CPSAA) competency.`,
   },
   {
     id: 'q054',
@@ -558,7 +558,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What does 'empathy' mean?`,
     options: [`Feeling sorry for yourself`, `Understanding and sharing the feelings of another`, `Ignoring other people's emotions`, `Being very competitive`],
     correctIndex: 1,
-    explanation: `The correct answer is 'A step-by-step set of instructions to solve a problem', which aligns with the CD competency.`,
+    explanation: `The correct answer is 'Understanding and sharing the feelings of another', which aligns with the Personal, Social & Learning to Learn (CPSAA) competency.`,
   },
   {
     id: 'q055',
@@ -567,7 +567,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is a good strategy for managing stress before an exam?`,
     options: [`Stay up all night revising`, `Skip breakfast`, `Plan revision time and take breaks`, `Avoid thinking about it`],
     correctIndex: 2,
-    explanation: `The correct answer is 'Repeatedly posting mean comments about someone online', which aligns with the CD competency.`,
+    explanation: `The correct answer is 'Plan revision time and take breaks', which aligns with the Personal, Social & Learning to Learn (CPSAA) competency.`,
   },
   {
     id: 'q056',
@@ -576,7 +576,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What does 'resilience' mean?`,
     options: [`Giving up when things are hard`, `The ability to recover from difficulties`, `Being very competitive`, `Avoiding all risks`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Ask a trusted adult', which aligns with the CD competency.`,
+    explanation: `The correct answer is 'The ability to recover from difficulties', which aligns with the Personal, Social & Learning to Learn (CPSAA) competency.`,
   },
   {
     id: 'q057',
@@ -585,7 +585,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is a good way to calm down when you feel angry?`,
     options: [`Shout loudly`, `Take deep breaths`, `Hit something`, `Run away`],
     correctIndex: 1,
-    explanation: `The correct answer is 'To keep your account safe', which aligns with the CD competency.`,
+    explanation: `The correct answer is 'Take deep breaths', which aligns with the Personal, Social & Learning to Learn (CPSAA) competency.`,
   },
   {
     id: 'q058',
@@ -594,7 +594,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What does it mean to 'cooperate'?`,
     options: [`Work alone`, `Work together`, `Compete against others`, `Do nothing`],
     correctIndex: 1,
-    explanation: `The correct answer is 'A tablet', which aligns with the CD competency.`,
+    explanation: `The correct answer is 'Work together', which aligns with the Personal, Social & Learning to Learn (CPSAA) competency.`,
   },
   {
     id: 'q059',
@@ -603,7 +603,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `Which word best describes someone who keeps trying even when it is hard?`,
     options: [`Lazy`, `Persistent`, `Careless`, `Bored`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Points and selects things on screen', which aligns with the CD competency.`,
+    explanation: `The correct answer is 'Persistent', which aligns with the Personal, Social & Learning to Learn (CPSAA) competency.`,
   },
   {
     id: 'q060',
@@ -612,7 +612,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is a good strategy when you do not understand something in class?`,
     options: [`Give up`, `Pretend you understand`, `Ask a question`, `Copy a friend`],
     correctIndex: 2,
-    explanation: `The correct answer is 'A collection of pages on the internet', which aligns with the CD competency.`,
+    explanation: `The correct answer is 'Ask a question', which aligns with the Personal, Social & Learning to Learn (CPSAA) competency.`,
   },
   {
     id: 'q061',
@@ -621,7 +621,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What does the principle of 'separation of powers' mean?`,
     options: [`The government controls all branches of power`, `Legislative, executive, and judicial powers are divided among separate institutions to prevent abuse`, `Only the judiciary has real power`, `Power is shared equally between citizens`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Thinking about one's own thinking and learning processes', which aligns with the CPSAA competency.`,
+    explanation: `The correct answer is 'Legislative, executive, and judicial powers are divided among separate institutions to prevent abuse', which aligns with the Civic Competence (CC) competency.`,
   },
   {
     id: 'q062',
@@ -630,7 +630,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is 'civil disobedience'?`,
     options: [`Breaking the law for personal gain`, `Refusing to obey laws or government demands as a form of non-violent protest`, `A type of military action`, `Voting against the government`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Intrinsic motivation comes from internal satisfaction; extrinsic from external rewards', which aligns with the CPSAA competency.`,
+    explanation: `The correct answer is 'Refusing to obey laws or government demands as a form of non-violent protest', which aligns with the Civic Competence (CC) competency.`,
   },
   {
     id: 'q063',
@@ -639,7 +639,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is the main purpose of the United Nations?`,
     options: [`To govern all countries`, `To promote international peace, security, and cooperation`, `To control world trade`, `To manage global currency`],
     correctIndex: 1,
-    explanation: `The correct answer is 'The discomfort felt when holding two contradictory beliefs simultaneously', which aligns with the CPSAA competency.`,
+    explanation: `The correct answer is 'To promote international peace, security, and cooperation', which aligns with the Civic Competence (CC) competency.`,
   },
   {
     id: 'q064',
@@ -648,7 +648,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What does 'populism' mean in politics?`,
     options: [`A political style that claims to represent the will of ordinary people against a corrupt elite`, `A type of economic policy`, `A system of government with no elections`, `A form of extreme nationalism`],
     correctIndex: 0,
-    explanation: `The correct answer is 'The ability to recognise, understand, and manage one's own and others' emotions', which aligns with the CPSAA competency.`,
+    explanation: `The correct answer is 'A political style that claims to represent the will of ordinary people against a corrupt elite', which aligns with the Civic Competence (CC) competency.`,
   },
   {
     id: 'q065',
@@ -657,7 +657,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What does 'sustainable development' mean?`,
     options: [`Building as many factories as possible`, `Meeting today's needs without harming future generations`, `Cutting down forests for farmland`, `Using all available natural resources`],
     correctIndex: 1,
-    explanation: `The correct answer is 'The tendency for people with limited knowledge to overestimate their competence', which aligns with the CPSAA competency.`,
+    explanation: `The correct answer is 'Meeting today's needs without harming future generations', which aligns with the Civic Competence (CC) competency.`,
   },
   {
     id: 'q066',
@@ -666,7 +666,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is the role of the European Union?`,
     options: [`To govern individual countries`, `To promote cooperation and shared values among European nations`, `To control world trade`, `To manage the United Nations`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Believing abilities can improve with effort', which aligns with the CPSAA competency.`,
+    explanation: `The correct answer is 'To promote cooperation and shared values among European nations', which aligns with the Civic Competence (CC) competency.`,
   },
   {
     id: 'q067',
@@ -675,7 +675,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What does 'freedom of expression' mean?`,
     options: [`The right to say anything without consequences`, `The right to express opinions without censorship`, `The right to ignore laws`, `The right to own a newspaper`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Nodding and making eye contact', which aligns with the CPSAA competency.`,
+    explanation: `The correct answer is 'The right to express opinions without censorship', which aligns with the Civic Competence (CC) competency.`,
   },
   {
     id: 'q068',
@@ -684,7 +684,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `Which of these is an example of civic participation?`,
     options: [`Ignoring local elections`, `Volunteering in the community`, `Avoiding paying taxes`, `Refusing to follow traffic laws`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Understanding and sharing the feelings of another', which aligns with the CPSAA competency.`,
+    explanation: `The correct answer is 'Volunteering in the community', which aligns with the Civic Competence (CC) competency.`,
   },
   {
     id: 'q069',
@@ -693,7 +693,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `Why is it important to recycle?`,
     options: [`To make money`, `To help protect the environment`, `Because it is the law`, `To fill bins faster`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Plan revision time and take breaks', which aligns with the CPSAA competency.`,
+    explanation: `The correct answer is 'To help protect the environment', which aligns with the Civic Competence (CC) competency.`,
   },
   {
     id: 'q070',
@@ -702,7 +702,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What does 'democracy' mean?`,
     options: [`One person decides everything`, `People vote to choose their leaders`, `The strongest person rules`, `Rules are made by children`],
     correctIndex: 1,
-    explanation: `The correct answer is 'The ability to recover from difficulties', which aligns with the CPSAA competency.`,
+    explanation: `The correct answer is 'People vote to choose their leaders', which aligns with the Civic Competence (CC) competency.`,
   },
   {
     id: 'q071',
@@ -711,7 +711,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What should you do if you see someone being bullied?`,
     options: [`Join in`, `Walk away`, `Tell a trusted adult`, `Laugh`],
     correctIndex: 2,
-    explanation: `The correct answer is 'Ask if they are okay', which aligns with the CPSAA competency.`,
+    explanation: `The correct answer is 'Tell a trusted adult', which aligns with the Civic Competence (CC) competency.`,
   },
   {
     id: 'q072',
@@ -720,7 +720,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `Which of these is a human right?`,
     options: [`The right to a free car`, `The right to an education`, `The right to a pet`, `The right to a phone`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Take deep breaths', which aligns with the CPSAA competency.`,
+    explanation: `The correct answer is 'The right to an education', which aligns with the Civic Competence (CC) competency.`,
   },
   {
     id: 'q073',
@@ -729,7 +729,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is the difference between 'gross profit' and 'net profit'?`,
     options: [`They are the same`, `Gross profit is revenue minus cost of goods sold; net profit is gross profit minus all other expenses`, `Net profit is revenue minus cost of goods sold; gross profit is after all expenses`, `Gross profit includes taxes; net profit does not`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Work together', which aligns with the CPSAA competency.`,
+    explanation: `The correct answer is 'Gross profit is revenue minus cost of goods sold; net profit is gross profit minus all other expenses', which aligns with the Entrepreneurial Competence (CE) competency.`,
   },
   {
     id: 'q074',
@@ -738,7 +738,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What does 'economies of scale' mean?`,
     options: [`The cost of production increases as output increases`, `The cost per unit decreases as production volume increases`, `A business operates in multiple countries`, `A company reduces its workforce to cut costs`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Persistent', which aligns with the CPSAA competency.`,
+    explanation: `The correct answer is 'The cost per unit decreases as production volume increases', which aligns with the Entrepreneurial Competence (CE) competency.`,
   },
   {
     id: 'q075',
@@ -747,7 +747,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is 'intellectual property'?`,
     options: [`Physical property owned by a company`, `Legal rights over creations of the mind, such as inventions, designs, and brand names`, `A type of business tax`, `Property owned by universities`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Ask a question', which aligns with the CPSAA competency.`,
+    explanation: `The correct answer is 'Legal rights over creations of the mind, such as inventions, designs, and brand names', which aligns with the Entrepreneurial Competence (CE) competency.`,
   },
   {
     id: 'q076',
@@ -756,7 +756,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is a 'stakeholder' in a business context?`,
     options: [`Only the shareholders of a company`, `Any individual or group with an interest in the activities and outcomes of a business`, `Only the employees of a company`, `Only the customers of a company`],
     correctIndex: 1,
-    explanation: `The correct answer is 'In a direct democracy, citizens vote on laws directly; in a representative democracy, elected officials vote on their behalf', which aligns with the CC competency.`,
+    explanation: `The correct answer is 'Any individual or group with an interest in the activities and outcomes of a business', which aligns with the Entrepreneurial Competence (CE) competency.`,
   },
   {
     id: 'q077',
@@ -765,7 +765,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What does 'supply and demand' mean?`,
     options: [`The more supply, the higher the price`, `When supply is low and demand is high, prices tend to rise`, `Demand always equals supply`, `Supply only matters in large companies`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Legislative, executive, and judicial powers are divided among separate institutions to prevent abuse', which aligns with the CC competency.`,
+    explanation: `The correct answer is 'When supply is low and demand is high, prices tend to rise', which aligns with the Entrepreneurial Competence (CE) competency.`,
   },
   {
     id: 'q078',
@@ -774,7 +774,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is 'market research'?`,
     options: [`Shopping at a market`, `Collecting information about customers and competitors`, `Designing a product logo`, `Setting the price of a product`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Refusing to obey laws or government demands as a form of non-violent protest', which aligns with the CC competency.`,
+    explanation: `The correct answer is 'Collecting information about customers and competitors', which aligns with the Entrepreneurial Competence (CE) competency.`,
   },
   {
     id: 'q079',
@@ -783,7 +783,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What does 'profit' mean?`,
     options: [`Total money earned`, `Total money spent`, `Money earned minus money spent`, `Money borrowed from a bank`],
     correctIndex: 2,
-    explanation: `The correct answer is 'To promote international peace, security, and cooperation', which aligns with the CC competency.`,
+    explanation: `The correct answer is 'Money earned minus money spent', which aligns with the Entrepreneurial Competence (CE) competency.`,
   },
   {
     id: 'q080',
@@ -792,7 +792,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `Which of these best describes an 'entrepreneur'?`,
     options: [`Someone who works for a large company`, `Someone who starts and runs their own business`, `Someone who manages a government department`, `Someone who studies business at university`],
     correctIndex: 1,
-    explanation: `The correct answer is 'A political style that claims to represent the will of ordinary people against a corrupt elite', which aligns with the CC competency.`,
+    explanation: `The correct answer is 'Someone who starts and runs their own business', which aligns with the Entrepreneurial Competence (CE) competency.`,
   },
   {
     id: 'q081',
@@ -801,7 +801,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What does it mean to be 'creative'?`,
     options: [`Copy someone else's ideas`, `Come up with new and original ideas`, `Follow instructions exactly`, `Do the same thing every time`],
     correctIndex: 1,
-    explanation: `The correct answer is 'A document listing basic rights for all people', which aligns with the CC competency.`,
+    explanation: `The correct answer is 'Come up with new and original ideas', which aligns with the Entrepreneurial Competence (CE) competency.`,
   },
   {
     id: 'q082',
@@ -810,7 +810,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is a 'goal'?`,
     options: [`A type of sport`, `Something you want to achieve`, `A mistake you made`, `A rule at school`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Meeting today's needs without harming future generations', which aligns with the CC competency.`,
+    explanation: `The correct answer is 'Something you want to achieve', which aligns with the Entrepreneurial Competence (CE) competency.`,
   },
   {
     id: 'q083',
@@ -819,7 +819,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `Which of these shows initiative?`,
     options: [`Waiting to be told what to do`, `Starting a task without being asked`, `Copying a classmate`, `Doing nothing`],
     correctIndex: 1,
-    explanation: `The correct answer is 'To promote cooperation and shared values among European nations', which aligns with the CC competency.`,
+    explanation: `The correct answer is 'Starting a task without being asked', which aligns with the Entrepreneurial Competence (CE) competency.`,
   },
   {
     id: 'q084',
@@ -828,7 +828,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is a 'budget'?`,
     options: [`A type of parrot`, `A plan for how to spend money`, `A school timetable`, `A kind of game`],
     correctIndex: 1,
-    explanation: `The correct answer is 'The right to express opinions without censorship', which aligns with the CC competency.`,
+    explanation: `The correct answer is 'A plan for how to spend money', which aligns with the Entrepreneurial Competence (CE) competency.`,
   },
   {
     id: 'q085',
@@ -837,7 +837,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is the difference between 'diegetic' and 'non-diegetic' sound in film?`,
     options: [`Diegetic sound is added in post-production; non-diegetic is recorded on set`, `Diegetic sound exists within the story world; non-diegetic sound (e.g. soundtrack) does not`, `They are the same`, `Non-diegetic sound is louder than diegetic sound`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Volunteering in the community', which aligns with the CC competency.`,
+    explanation: `The correct answer is 'Diegetic sound exists within the story world; non-diegetic sound (e.g. soundtrack) does not', which aligns with the Cultural Awareness & Expression (CCEC) competency.`,
   },
   {
     id: 'q086',
@@ -846,7 +846,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `Which Spanish painter is known for 'Las Meninas'?`,
     options: [`Francisco Goya`, `El Greco`, `Diego Velázquez`, `Joan Miró`],
     correctIndex: 2,
-    explanation: `The correct answer is 'An instruction everyone must follow', which aligns with the CC competency.`,
+    explanation: `The correct answer is 'Diego Velázquez', which aligns with the Cultural Awareness & Expression (CCEC) competency.`,
   },
   {
     id: 'q087',
@@ -855,7 +855,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is 'counterpoint' in music?`,
     options: [`Playing two instruments at different volumes`, `The technique of combining two or more melodic lines that are harmonically interdependent`, `A type of musical notation`, `Playing the same melody in different keys simultaneously`],
     correctIndex: 1,
-    explanation: `The correct answer is 'To help protect the environment', which aligns with the CC competency.`,
+    explanation: `The correct answer is 'The technique of combining two or more melodic lines that are harmonically interdependent', which aligns with the Cultural Awareness & Expression (CCEC) competency.`,
   },
   {
     id: 'q088',
@@ -864,7 +864,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is 'magical realism' as a literary genre?`,
     options: [`A genre of fantasy fiction`, `A style where magical elements are presented as a normal part of an otherwise realistic world`, `A type of science fiction`, `A genre focused on fairy tales`],
     correctIndex: 1,
-    explanation: `The correct answer is 'People vote to choose their leaders', which aligns with the CC competency.`,
+    explanation: `The correct answer is 'A style where magical elements are presented as a normal part of an otherwise realistic world', which aligns with the Cultural Awareness & Expression (CCEC) competency.`,
   },
   {
     id: 'q089',
@@ -873,7 +873,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is a 'sonata'?`,
     options: [`A type of dance`, `A musical composition for one or two instruments`, `A type of painting`, `A form of poetry`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Tell a trusted adult', which aligns with the CC competency.`,
+    explanation: `The correct answer is 'A musical composition for one or two instruments', which aligns with the Cultural Awareness & Expression (CCEC) competency.`,
   },
   {
     id: 'q090',
@@ -882,7 +882,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `Which Spanish author wrote 'Don Quixote'?`,
     options: [`Federico García Lorca`, `Miguel de Cervantes`, `Pablo Neruda`, `Gabriel García Márquez`],
     correctIndex: 1,
-    explanation: `The correct answer is 'The right to an education', which aligns with the CC competency.`,
+    explanation: `The correct answer is 'Miguel de Cervantes', which aligns with the Cultural Awareness & Expression (CCEC) competency.`,
   },
   {
     id: 'q091',
@@ -891,7 +891,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is 'perspective' in visual art?`,
     options: [`A type of paint`, `A technique to create the illusion of depth on a flat surface`, `A style of sculpture`, `A method of printing`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Private investment provided to early-stage, high-growth companies in exchange for equity', which aligns with the CE competency.`,
+    explanation: `The correct answer is 'A technique to create the illusion of depth on a flat surface', which aligns with the Cultural Awareness & Expression (CCEC) competency.`,
   },
   {
     id: 'q092',
@@ -900,7 +900,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What is the difference between a major and a minor key in music?`,
     options: [`Major keys are louder`, `Minor keys are faster`, `Major keys tend to sound bright; minor keys tend to sound darker or sadder`, `There is no difference`],
     correctIndex: 2,
-    explanation: `The correct answer is 'Gross profit is revenue minus cost of goods sold; net profit is gross profit minus all other expenses', which aligns with the CE competency.`,
+    explanation: `The correct answer is 'Major keys tend to sound bright; minor keys tend to sound darker or sadder', which aligns with the Cultural Awareness & Expression (CCEC) competency.`,
   },
   {
     id: 'q093',
@@ -909,7 +909,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What are the three primary colours?`,
     options: [`Red, green, blue`, `Red, yellow, blue`, `Orange, purple, green`, `Black, white, grey`],
     correctIndex: 1,
-    explanation: `The correct answer is 'The cost per unit decreases as production volume increases', which aligns with the CE competency.`,
+    explanation: `The correct answer is 'Red, yellow, blue', which aligns with the Cultural Awareness & Expression (CCEC) competency.`,
   },
   {
     id: 'q094',
@@ -918,7 +918,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `Who painted the Mona Lisa?`,
     options: [`Pablo Picasso`, `Vincent van Gogh`, `Leonardo da Vinci`, `Salvador Dalí`],
     correctIndex: 2,
-    explanation: `The correct answer is 'Legal rights over creations of the mind, such as inventions, designs, and brand names', which aligns with the CE competency.`,
+    explanation: `The correct answer is 'Leonardo da Vinci', which aligns with the Cultural Awareness & Expression (CCEC) competency.`,
   },
   {
     id: 'q095',
@@ -927,7 +927,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `Which of these is a type of dance?`,
     options: [`Sonata`, `Flamenco`, `Haiku`, `Fresco`],
     correctIndex: 1,
-    explanation: `The correct answer is 'Any individual or group with an interest in the activities and outcomes of a business', which aligns with the CE competency.`,
+    explanation: `The correct answer is 'Flamenco', which aligns with the Cultural Awareness & Expression (CCEC) competency.`,
   },
   {
     id: 'q096',
@@ -936,7 +936,7 @@ export const LOMLOE_QUESTIONS: LomloeQuestion[] = [
     question: `What do we call a story written in verse?`,
     options: [`A novel`, `A poem`, `A play`, `A diary`],
     correctIndex: 1,
-    explanation: `The correct answer is 'A document outlining goals, strategies, and finances for a business', which aligns with the CE competency.`,
+    explanation: `The correct answer is 'A poem', which aligns with the Cultural Awareness & Expression (CCEC) competency.`,
   },
 ];
 

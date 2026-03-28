@@ -82,3 +82,7 @@
 - [x] Generate photorealistic hero background image (AI classroom / education theme)
 - [x] Upload to CDN and apply to hero section with dark overlay for text readability
 - [x] Ensure background is fixed/static while content scrolls
+
+## Bug Fix – Practice Mode Explanation Mismatch
+- [x] Diagnose why explanation text does not match the correct answer for the current question
+- [x] Fix explanation alignment so it always corresponds to the displayed question's correct answer
