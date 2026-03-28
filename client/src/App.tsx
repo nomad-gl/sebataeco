@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
+import Footer from "./components/Footer";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Chat from "./pages/Chat";
@@ -15,18 +16,21 @@ import Progress from "./pages/Progress";
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/chat" component={Chat} />
-      <Route path="/practice" component={Practice} />
-      <Route path="/admin" component={Admin} />
-      <Route path="/create" component={Create} />
-      <Route path="/my-materials" component={MyMaterials} />
-      <Route path="/materials/:id" component={MaterialView} />
-      <Route path="/progress" component={Progress} />
-      <Route path="/404" component={NotFound} />
-      <Route component={NotFound} />
-    </Switch>
+    <div className="min-h-screen flex flex-col">
+      <Switch>
+        <Route path="/" component={Home} />
+        <Route path="/chat" component={Chat} />
+        <Route path="/practice" component={Practice} />
+        <Route path="/admin" component={Admin} />
+        <Route path="/create" component={Create} />
+        <Route path="/my-materials" component={MyMaterials} />
+        <Route path="/materials/:id" component={MaterialView} />
+        <Route path="/progress" component={Progress} />
+        <Route path="/404" component={NotFound} />
+        <Route component={NotFound} />
+      </Switch>
+      <Footer />
+    </div>
   );
 }
 

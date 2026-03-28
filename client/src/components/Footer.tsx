@@ -1,0 +1,44 @@
+const LOMLOE_LOGO =
+  "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/lomloe_23170104.png";
+
+export default function Footer() {
+  return (
+    <footer className="border-t border-border bg-secondary/20 mt-auto print:hidden">
+      <div className="container py-6">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          {/* Left: LOMLOE official logo */}
+          <a
+            href="https://www.educacionyfp.gob.es"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Ministerio de Educación y Formación Profesional – LOMLOE"
+          >
+            <img
+              src={LOMLOE_LOGO}
+              alt="LOMLOE – Gobierno de España · Ministerio de Educación y Formación Profesional"
+              className="h-12 w-auto object-contain"
+            />
+          </a>
+
+          {/* Centre: site description */}
+          <p className="text-xs text-muted-foreground text-center">
+            SEBA AI Studio · Aligned with Spain's LOMLOE curriculum
+          </p>
+
+          {/* Right: Powered by SEBA + sebasnap link */}
+          <div className="flex flex-col items-end gap-1">
+            <a
+              href="https://sebasnap.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-primary hover:underline font-medium"
+            >
+              sebasnap.com →
+            </a>
+            <span className="text-xs text-muted-foreground">Powered by SEBA</span>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+}

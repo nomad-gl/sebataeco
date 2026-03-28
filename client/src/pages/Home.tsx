@@ -6,6 +6,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import NavBar from "@/components/NavBar";
 import { cn } from "@/lib/utils";
 
+const LOMLOE_LOGO =
+  "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/lomloe_23170104.png";
+
 const COMP_COLORS: Record<string, string> = {
   CCL: "var(--comp-ccl)",
   CP: "var(--comp-cp)",
@@ -49,7 +52,7 @@ export default function Home() {
   const { data: stats } = trpc.lomloe.getStats.useQuery();
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="bg-background flex flex-col">
       <NavBar />
 
       {/* Hero */}
@@ -70,7 +73,7 @@ export default function Home() {
               Practise all eight key competencies defined by Spain's LOMLOE education law. Ask
               questions, test your knowledge, and get curriculum-aligned explanations — instantly.
             </p>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-3 mb-8">
               <Button asChild size="lg" className="gap-2">
                 <Link href="/chat">
                   Start Chatting <ArrowRight className="w-4 h-4" />
@@ -80,6 +83,21 @@ export default function Home() {
                 <Link href="/practice">Practice Questions</Link>
               </Button>
             </div>
+
+            {/* LOMLOE official logo – hero placement */}
+            <a
+              href="https://www.educacionyfp.gob.es"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Ministerio de Educación y Formación Profesional – LOMLOE"
+              className="inline-block"
+            >
+              <img
+                src={LOMLOE_LOGO}
+                alt="LOMLOE – Gobierno de España · Ministerio de Educación y Formación Profesional"
+                className="h-16 w-auto object-contain rounded-md shadow-sm"
+              />
+            </a>
           </div>
         </div>
 
@@ -182,22 +200,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border bg-secondary/20 mt-auto">
-        <div className="container py-6 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="text-sm text-muted-foreground">
-            SEBA AI Studio · Aligned with Spain's LOMLOE curriculum
-          </p>
-          <a
-            href="https://sebasnap.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-primary hover:underline"
-          >
-            sebasnap.com →
-          </a>
-        </div>
-      </footer>
+
     </div>
   );
 }

@@ -70,4 +70,10 @@
 - [x] Change hero heading 'Learning' to 'Teaching' on Home page
 
 ## Scheduled Refresh
-- [ ] Schedule nightly cron at 04:00 to run build_sebasnap_knowledge.py and rebuild knowledge bank
+- [x] Schedule nightly cron at 04:00 to run build_sebasnap_knowledge.py and rebuild knowledge bank
+
+## LOMLOE Logo Placement
+- [x] Upload lomloe.png to CDN and obtain public URL
+- [x] Place LOMLOE logo in Home page hero section (below CTAs)
+- [x] Add site footer component with LOMLOE logo and 'Powered by SEBA' text
+- [x] Include footer on all pages via App.tsx layout
