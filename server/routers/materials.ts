@@ -16,42 +16,196 @@ const CompetencyCodeSchema = z.enum(["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "
 const YearGroupSchema = z.enum(["junior", "primary", "secondary"]);
 const MaterialTypeSchema = z.enum(["quiz", "slides", "crossword", "missing_words", "wordsearch", "flashcards"]);
 
-// ─── System prompts for each activity type ────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function buildSystemPrompt(type: string, competency?: string, yearGroup?: string) {
-  const compName = competency ? `${COMPETENCY_META[competency as CompetencyCode]?.name} (${competency})` : "all 8 LOMLOE competencies";
-  const ygLabel = yearGroup === "junior" ? "Junior (Years 3–4)" : yearGroup === "primary" ? "Primary (Years 5–6)" : yearGroup === "secondary" ? "Secondary (Years 7–10)" : "all year groups";
+function ygLabel(yg?: string) {
+  if (yg === "junior") return "Junior (Years 3–4, ages 8–10)";
+  if (yg === "primary") return "Primary (Years 5–6, ages 10–12)";
+  if (yg === "secondary") return "Secondary (Years 7–10, ages 12–16)";
+  return "all year groups";
+}
 
-  const base = `You are an expert Spanish curriculum designer aligned to LOMLOE standards. 
-Competency context: ${compName}. Year group: ${ygLabel}.
-All content must be appropriate, educational, and directly aligned to LOMLOE competency goals.
-Respond ONLY with valid JSON matching the exact schema requested. No markdown, no explanation.`;
+function compLabel(c?: string) {
+  if (!c) return "all 8 LOMLOE competencies";
+  const m = COMPETENCY_META[c as CompetencyCode];
+  return m ? `${m.name} (${c}) — ${m.description}` : c;
+}
+
+// ─── Rich system prompts ──────────────────────────────────────────────────────
+
+function buildSystemPrompt(type: string, competency?: string, yearGroup?: string): string {
+  const comp = compLabel(competency);
+  const yg = ygLabel(yearGroup);
+
+  const base = `You are an expert Spanish curriculum designer and subject-matter researcher aligned to LOMLOE standards.
+Competency: ${comp}.
+Year group: ${yg}.
+
+Your task is to research the given topic thoroughly and create a high-quality, educationally rich ${type} activity.
+- Content must be accurate, age-appropriate, and directly aligned to the stated LOMLOE competency goals.
+- Use real facts, proper terminology, and curriculum-relevant examples.
+- Respond ONLY with valid JSON matching the exact schema below. No markdown fences, no commentary, no extra keys.`;
 
   const schemas: Record<string, string> = {
-    quiz: `Generate a quiz with exactly 8 multiple-choice questions.
-JSON schema: { "title": string, "questions": [{ "question": string, "options": [string, string, string, string], "correctIndex": number, "explanation": string }] }`,
+    quiz: `
+Schema:
+{
+  "title": string,                    // e.g. "The Water Cycle – STEM Quiz"
+  "subject": string,                  // subject area
+  "competency": string,               // competency code
+  "yearGroup": string,                // year group label
+  "questions": [
+    {
+      "question": string,             // clear, unambiguous question
+      "options": [string, string, string, string],  // 4 plausible options; only one correct
+      "correctIndex": number,         // 0-based index of correct option
+      "explanation": string           // 2-3 sentence explanation of why the answer is correct, referencing the topic
+    }
+  ]
+}
+Generate exactly 10 questions. Vary question types (factual recall, application, analysis). Ensure distractors are plausible but clearly wrong.`,
 
-    slides: `Generate a slide presentation with 6–8 slides.
-JSON schema: { "title": string, "slides": [{ "slideNumber": number, "heading": string, "bullets": [string], "speakerNote": string, "imagePrompt": string }] }
-imagePrompt should describe a relevant educational illustration (no photos).`,
+    slides: `
+Schema:
+{
+  "title": string,
+  "subject": string,
+  "competency": string,
+  "yearGroup": string,
+  "keyVocabulary": [{ "term": string, "definition": string }],   // 6-8 key terms
+  "slides": [
+    {
+      "slideNumber": number,
+      "heading": string,
+      "bullets": [string],            // 3-5 substantive bullet points with real content
+      "speakerNote": string,          // 2-3 sentences for the teacher; teaching tips, discussion prompts
+      "imagePrompt": string           // descriptive prompt for an educational diagram or illustration
+    }
+  ]
+}
+Generate 8-10 slides: slide 1 = title/overview, slides 2-8 = content, last slide = summary/review questions. Each bullet must contain real factual content, not generic placeholders.`,
 
-    crossword: `Generate a crossword puzzle with exactly 8 words.
-JSON schema: { "title": string, "words": [{ "word": string, "clue": string, "direction": "across"|"down", "row": number, "col": number }] }
-Words must intersect properly. Use uppercase letters. Numbers start at 1.`,
+    crossword: `
+Schema:
+{
+  "title": string,
+  "subject": string,
+  "competency": string,
+  "yearGroup": string,
+  "words": [
+    {
+      "number": number,               // clue number (1-based)
+      "word": string,                 // UPPERCASE, single word, no spaces
+      "clue": string,                 // clear definition or description clue
+      "direction": "across" | "down",
+      "row": number,                  // 0-based row of first letter
+      "col": number                   // 0-based column of first letter
+    }
+  ]
+}
+Generate exactly 12 words. Words MUST intersect at shared letters (standard crossword rules). Place words in a 15×15 grid. Mix across and down. Use topic-specific vocabulary. Clues should be educational definitions, not just synonyms.`,
 
-    missing_words: `Generate a fill-in-the-blank passage with 8–10 blanks.
-JSON schema: { "title": string, "passage": string, "blanks": [{ "position": number, "answer": string, "hint": string }] }
-Use ___ (three underscores) for each blank in the passage. Number blanks sequentially.`,
+    missing_words: `
+Schema:
+{
+  "title": string,
+  "subject": string,
+  "competency": string,
+  "yearGroup": string,
+  "introduction": string,            // 1-2 sentence context for the passage
+  "passage": string,                 // 150-200 word passage; use ___ for each blank (exactly 10 blanks)
+  "wordBank": [string],              // the 10 correct answers in shuffled order
+  "blanks": [
+    {
+      "position": number,            // 1-based blank number in order of appearance
+      "answer": string,              // correct word
+      "hint": string                 // grammatical or contextual hint, e.g. "noun, plural" or "past tense verb"
+    }
+  ]
+}
+The passage must be coherent, educational, and contain exactly 10 blanks (___). The word bank must be shuffled (not in order of appearance). All blanked words must be key topic vocabulary.`,
 
-    wordsearch: `Generate a word search with exactly 10 keywords related to the topic.
-JSON schema: { "title": string, "words": [string], "gridSize": 12, "directions": ["horizontal","vertical","diagonal"] }
-Words should be single words, uppercase, relevant to the topic and competency.`,
+    wordsearch: `
+Schema:
+{
+  "title": string,
+  "subject": string,
+  "competency": string,
+  "yearGroup": string,
+  "words": [
+    {
+      "word": string,                // UPPERCASE single word
+      "clue": string                 // brief definition or description
+    }
+  ],
+  "grid": [[string]],               // 15×15 2D array of uppercase letters; words placed correctly, remaining cells filled with random uppercase letters
+  "gridSize": 15
+}
+Generate exactly 15 words. Place ALL words correctly in the grid (horizontally left-to-right, vertically top-to-bottom, or diagonally). Fill remaining cells with random uppercase letters. Words must not overlap incorrectly.`,
 
-    flashcards: `Generate 10 flashcard pairs.
-JSON schema: { "title": string, "cards": [{ "term": string, "definition": string, "competencyHint": string }] }`,
+    flashcards: `
+Schema:
+{
+  "title": string,
+  "subject": string,
+  "competency": string,
+  "yearGroup": string,
+  "cards": [
+    {
+      "term": string,                // key term, concept, or question
+      "definition": string,         // clear, age-appropriate definition or answer (2-3 sentences)
+      "example": string,            // concrete real-world example
+      "competencyHint": string      // how this term relates to the LOMLOE competency
+    }
+  ]
+}
+Generate exactly 16 flashcards. Cover the most important concepts, vocabulary, and facts for the topic. Definitions must be substantive, not one-word answers.`,
   };
 
-  return `${base}\n\n${schemas[type] ?? ""}`;
+  return `${base}\n${schemas[type] ?? ""}`;
+}
+
+// ─── Wordsearch grid builder (server-side fallback) ───────────────────────────
+
+function buildWordsearchGrid(words: string[], size = 15): string[][] {
+  const grid: string[][] = Array.from({ length: size }, () =>
+    Array.from({ length: size }, () => String.fromCharCode(65 + Math.floor(Math.random() * 26)))
+  );
+  const directions = [
+    [0, 1],   // horizontal
+    [1, 0],   // vertical
+    [1, 1],   // diagonal down-right
+  ];
+  for (const word of words) {
+    let placed = false;
+    for (let attempt = 0; attempt < 200 && !placed; attempt++) {
+      const [dr, dc] = directions[Math.floor(Math.random() * directions.length)]!;
+      const maxRow = dr === 0 ? size - 1 : size - word.length;
+      const maxCol = dc === 0 ? size - 1 : size - word.length;
+      if (maxRow < 0 || maxCol < 0) continue;
+      const row = Math.floor(Math.random() * (maxRow + 1));
+      const col = Math.floor(Math.random() * (maxCol + 1));
+      // Check no conflict
+      let ok = true;
+      for (let i = 0; i < word.length; i++) {
+        const r = row + dr * i, c = col + dc * i;
+        if (grid[r]![c] !== word[i] && grid[r]![c] !== grid[r]![c]) {
+          // cell already has a different letter from a previous word
+          const existing = grid[r]![c]!;
+          if (existing !== word[i] && existing.match(/[A-Z]/) && words.some(w => w.includes(existing))) {
+            ok = false; break;
+          }
+        }
+      }
+      if (ok) {
+        for (let i = 0; i < word.length; i++) {
+          grid[row + dr * i]![col + dc * i] = word[i]!;
+        }
+        placed = true;
+      }
+    }
+  }
+  return grid;
 }
 
 // ─── Router ───────────────────────────────────────────────────────────────────
@@ -79,7 +233,6 @@ export const materialsRouter = router({
 
   getMyProgress: protectedProcedure.query(async ({ ctx }) => {
     const sessions = await getSessionsByUser(ctx.user.id);
-    // Aggregate by competency for the chart
     const byCompetency: Record<string, { sessions: number; totalScore: number; totalQ: number }> = {};
     for (const s of sessions) {
       const key = s.competency ?? "all";
@@ -109,16 +262,16 @@ export const materialsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const systemPrompt = buildSystemPrompt(input.type, input.competency, input.yearGroup);
 
-      // Add relevant knowledge bank context
+      // Enrich with knowledge bank examples for alignment
       const contextQs = getQuestions(
         input.competency as CompetencyCode | undefined,
         input.yearGroup as YearGroup | undefined
-      ).slice(0, 8);
+      ).slice(0, 6);
       const contextText = contextQs.length > 0
-        ? `\n\nRelevant LOMLOE knowledge bank examples:\n${contextQs.map(q => `- ${q.question} → ${q.options[q.correctIndex]}`).join("\n")}`
+        ? `\n\nLOMLOE knowledge bank alignment examples (use as style/difficulty reference only):\n${contextQs.map(q => `- ${q.question} → ${q.options[q.correctIndex]}`).join("\n")}`
         : "";
 
-      const userPrompt = `Topic: "${input.topic}"${contextText}\n\nGenerate the ${input.type} activity now.`;
+      const userPrompt = `Topic: "${input.topic}"${contextText}\n\nResearch this topic thoroughly and generate the complete ${input.type} activity now. All content must be factually accurate and educationally rich.`;
 
       const response = await invokeLLM({
         messages: [
@@ -129,17 +282,27 @@ export const materialsRouter = router({
 
       const rawContent = String(response.choices?.[0]?.message?.content ?? "{}");
 
-      // Parse and validate JSON
-      let parsed: unknown;
+      let parsed: Record<string, unknown>;
       try {
-        // Strip markdown code fences if present
         const cleaned = rawContent.replace(/^```json?\n?/, "").replace(/\n?```$/, "").trim();
-        parsed = JSON.parse(cleaned);
+        parsed = JSON.parse(cleaned) as Record<string, unknown>;
       } catch {
         throw new Error("AI returned invalid JSON. Please try again.");
       }
 
-      const title = (parsed as Record<string, unknown>)?.title as string ?? `${input.type} – ${input.topic}`;
+      // For wordsearch: if the LLM didn't build the grid, build it server-side
+      if (input.type === "wordsearch") {
+        const ws = parsed as { words?: Array<{ word: string; clue: string } | string>; grid?: string[][]; gridSize?: number };
+        if (!ws.grid || !Array.isArray(ws.grid) || ws.grid.length < 5) {
+          const wordList = (ws.words ?? []).map((w) =>
+            typeof w === "string" ? w.toUpperCase() : w.word.toUpperCase()
+          );
+          ws.grid = buildWordsearchGrid(wordList, 15);
+          ws.gridSize = 15;
+        }
+      }
+
+      const title = (parsed.title as string) ?? `${input.type} – ${input.topic}`;
 
       const id = await saveMaterial({
         userId: ctx.user.id,

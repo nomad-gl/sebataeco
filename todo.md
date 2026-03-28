@@ -102,3 +102,21 @@
 - [x] Rename "SEBA AI" to "SEBA AI | TA" in NavBar logo text
 - [x] Rename in HTML <title> tag (client/index.html)
 - [x] Rename in any other visible references (Footer, Chat greeting)
+
+## Teaching Materials – Rich Content & Export
+- [x] Upgrade LLM prompts for all 6 activity types: quiz, slides, crossword, missing_words, wordsearch, flashcards
+- [x] Quiz: generate 10 MCQ questions with 4 options, correct answer, and explanation per question
+- [x] Slides: generate 8–10 slides with title, body content, speaker notes, and key vocabulary per slide
+- [x] Crossword: generate 10–15 clue/answer pairs with a proper grid layout (across/down)
+- [x] Missing words: generate a passage with 8–12 blanked words and a word bank
+- [x] Wordsearch: generate 10–15 hidden words with clues, arranged in a proper grid
+- [x] Flashcards: generate 12–16 term/definition pairs with competency tags
+- [x] MaterialView: render each type with full rich UI (interactive where appropriate)
+- [x] Add Print button (browser print with print-optimised CSS)
+- [x] Add PDF download (jsPDF + html2canvas)
+- [x] Add Word (.docx) download (docx npm package)
+- [x] Add PNG download (html2canvas screenshot)
+- [x] Quiz/crossword/missing_words: print two versions (with answers and without answers)
+- [x] Crossword grid: grey cells, larger numbers (200%), double line thickness
+- [x] Q&A without-answers sheet: single line per question (not three lines)
+- [x] Wordsearch: arrange keywords in proper grid

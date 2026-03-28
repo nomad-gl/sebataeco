@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { useRoute, useLocation } from "wouter";
 import NavBar from "@/components/NavBar";
@@ -6,41 +6,125 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Trash2, ArrowLeft, Download, CheckCircle2, XCircle } from "lucide-react";
+import {
+  Loader2, Trash2, ArrowLeft, Printer, FileText,
+  FileDown, Image, CheckCircle2, XCircle, ChevronLeft, ChevronRight,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  exportPDF, exportPNG, exportWord, printElement,
+  type QuizContent, type SlidesContent, type CrosswordContent,
+  type MissingWordsContent, type WordsearchContent, type FlashcardsContent,
+} from "@/lib/exportUtils";
 
-// ─── Type definitions matching the AI output schemas ─────────────────────────
+// ─── Crossword grid renderer ──────────────────────────────────────────────────
 
-interface QuizContent {
-  title: string;
-  questions: { question: string; options: string[]; correctIndex: number; explanation: string }[];
-}
-interface SlidesContent {
-  title: string;
-  slides: { slideNumber: number; heading: string; bullets: string[]; speakerNote: string; imagePrompt: string }[];
-}
-interface CrosswordContent {
-  title: string;
-  words: { word: string; clue: string; direction: "across" | "down"; row: number; col: number }[];
-}
-interface MissingWordsContent {
-  title: string;
-  passage: string;
-  blanks: { position: number; answer: string; hint: string }[];
-}
-interface WordsearchContent {
-  title: string;
-  words: string[];
-  gridSize: number;
-}
-interface FlashcardsContent {
-  title: string;
-  cards: { term: string; definition: string; competencyHint: string }[];
+function CrosswordGrid({
+  words, showAnswers,
+}: {
+  words: CrosswordContent["words"];
+  showAnswers: boolean;
+}) {
+  // Build grid bounds
+  const size = 15;
+  const grid: { letter: string; number?: number; used: boolean }[][] = Array.from({ length: size }, () =>
+    Array.from({ length: size }, () => ({ letter: "", number: undefined, used: false }))
+  );
+
+  for (const w of words) {
+    const { word, direction, row, col, number } = w;
+    for (let i = 0; i < word.length; i++) {
+      const r = direction === "across" ? row : row + i;
+      const c = direction === "across" ? col + i : col;
+      if (r >= 0 && r < size && c >= 0 && c < size) {
+        grid[r]![c]!.letter = word[i] ?? "";
+        grid[r]![c]!.used = true;
+        if (i === 0) grid[r]![c]!.number = number;
+      }
+    }
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table
+        className="border-collapse mx-auto"
+        style={{ borderWidth: showAnswers ? 1 : 2, borderColor: "#9ca3af", borderStyle: "solid" }}
+      >
+        <tbody>
+          {grid.map((row, ri) => (
+            <tr key={ri}>
+              {row.map((cell, ci) => (
+                <td
+                  key={ci}
+                  className="relative"
+                  style={{
+                    width: 30, height: 30, minWidth: 30,
+                    border: `${showAnswers ? 1 : 2}px solid ${showAnswers ? "#9ca3af" : "#6b7280"}`,
+                    backgroundColor: cell.used ? (showAnswers ? "#ffffff" : "#f3f4f6") : "#374151",
+                    padding: 0,
+                  }}
+                >
+                  {cell.used && (
+                    <>
+                      {cell.number !== undefined && (
+                        <span
+                          className="absolute top-0 left-0.5 leading-none text-foreground font-bold"
+                          style={{ fontSize: showAnswers ? 8 : 10 }}
+                        >
+                          {cell.number}
+                        </span>
+                      )}
+                      {showAnswers && (
+                        <span className="flex items-center justify-center h-full text-xs font-mono font-bold text-foreground">
+                          {cell.letter}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
-// ─── Sub-renderers ────────────────────────────────────────────────────────────
+// ─── Wordsearch grid renderer ─────────────────────────────────────────────────
 
-function QuizViewer({ content }: { content: QuizContent }) {
+function WordsearchGrid({ grid }: { grid: string[][] }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="border-collapse mx-auto font-mono">
+        <tbody>
+          {grid.map((row, ri) => (
+            <tr key={ri}>
+              {row.map((cell, ci) => (
+                <td
+                  key={ci}
+                  className="text-center text-sm font-bold text-foreground"
+                  style={{
+                    width: 26, height: 26, minWidth: 26,
+                    border: "1px solid #d1d5db",
+                    padding: 0,
+                    lineHeight: "26px",
+                  }}
+                >
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ─── Quiz viewer ──────────────────────────────────────────────────────────────
+
+function QuizViewer({ content, showAnswers }: { content: QuizContent; showAnswers: boolean }) {
   const [selected, setSelected] = useState<Record<number, number>>({});
   const [revealed, setRevealed] = useState<Record<number, boolean>>({});
 
@@ -48,37 +132,42 @@ function QuizViewer({ content }: { content: QuizContent }) {
     <div className="flex flex-col gap-4">
       {content.questions.map((q, qi) => (
         <Card key={qi}>
-          <CardContent className="p-5 flex flex-col gap-3">
-            <p className="font-semibold text-foreground">
+          <CardContent className="p-4 sm:p-5 flex flex-col gap-3">
+            <p className="font-semibold text-foreground text-sm sm:text-base">
               <span className="text-primary mr-2">{qi + 1}.</span>{q.question}
             </p>
             <div className="flex flex-col gap-2">
               {q.options.map((opt, oi) => {
                 const isSelected = selected[qi] === oi;
                 const isCorrect = oi === q.correctIndex;
-                const isRev = revealed[qi];
-                let cls = "w-full text-left px-4 py-2.5 rounded-lg border text-sm transition-all ";
+                const isRev = revealed[qi] || showAnswers;
+                let cls = "w-full text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border text-sm transition-all ";
                 if (!isRev) {
                   cls += isSelected ? "border-primary bg-primary/10 text-primary" : "border-border hover:border-primary/40 text-foreground";
                 } else if (isCorrect) {
-                  cls += "border-green-500 bg-green-50 text-green-800";
-                } else if (isSelected) {
+                  cls += "border-green-500 bg-green-50 text-green-800 font-semibold";
+                } else if (isSelected && !isCorrect) {
                   cls += "border-red-400 bg-red-50 text-red-700";
                 } else {
                   cls += "border-border text-muted-foreground opacity-60";
                 }
                 return (
-                  <button key={oi} className={cls} onClick={() => !isRev && setSelected(s => ({ ...s, [qi]: oi }))}>
+                  <button key={oi} className={cls}
+                    onClick={() => !isRev && setSelected(s => ({ ...s, [qi]: oi }))}>
                     <span className="flex items-center gap-2">
                       {isRev && isCorrect && <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />}
                       {isRev && isSelected && !isCorrect && <XCircle className="w-4 h-4 text-red-500 flex-shrink-0" />}
-                      {opt}
+                      <span className="font-medium mr-1">{String.fromCharCode(65 + oi)}.</span>{opt}
                     </span>
                   </button>
                 );
               })}
             </div>
-            {!revealed[qi] ? (
+            {showAnswers ? (
+              <div className="rounded-lg p-3 text-sm bg-blue-50 text-blue-800 border border-blue-200">
+                <span className="font-semibold">Explanation: </span>{q.explanation}
+              </div>
+            ) : !revealed[qi] ? (
               <Button size="sm" variant="outline" disabled={selected[qi] === undefined}
                 onClick={() => setRevealed(r => ({ ...r, [qi]: true }))}>
                 Check Answer
@@ -95,51 +184,75 @@ function QuizViewer({ content }: { content: QuizContent }) {
   );
 }
 
+// ─── Slides viewer ────────────────────────────────────────────────────────────
+
 function SlidesViewer({ content }: { content: SlidesContent }) {
   const [current, setCurrent] = useState(0);
   const slide = content.slides[current];
   if (!slide) return null;
   return (
     <div className="flex flex-col gap-4">
+      {content.keyVocabulary && content.keyVocabulary.length > 0 && (
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="p-4">
+            <p className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-2">Key Vocabulary</p>
+            <div className="flex flex-wrap gap-2">
+              {content.keyVocabulary.map((v, i) => (
+                <span key={i} className="text-xs bg-white border border-blue-200 rounded-full px-2 py-1 text-blue-800">
+                  <span className="font-bold">{v.term}</span>: {v.definition}
+                </span>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <span>Slide {current + 1} of {content.slides.length}</span>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" disabled={current === 0} onClick={() => setCurrent(c => c - 1)}>← Prev</Button>
-          <Button size="sm" variant="outline" disabled={current === content.slides.length - 1} onClick={() => setCurrent(c => c + 1)}>Next →</Button>
+          <Button size="sm" variant="outline" disabled={current === 0} onClick={() => setCurrent(c => c - 1)}>
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <Button size="sm" variant="outline" disabled={current === content.slides.length - 1} onClick={() => setCurrent(c => c + 1)}>
+            <ChevronRight className="w-4 h-4" />
+          </Button>
         </div>
       </div>
-      <Card className="min-h-[320px]">
-        <CardContent className="p-8 flex flex-col gap-5">
-          <h2 className="text-2xl font-bold text-foreground">{slide.heading}</h2>
-          <ul className="flex flex-col gap-2">
+      <Card className="min-h-[300px] sm:min-h-[360px] border-2 border-primary/20">
+        <CardHeader className="bg-primary/5 border-b border-primary/10 pb-3">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs">{slide.slideNumber}</Badge>
+            <CardTitle className="text-lg sm:text-xl">{slide.heading}</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="p-5 sm:p-8 flex flex-col gap-3">
+          <ul className="flex flex-col gap-2.5">
             {slide.bullets.map((b, i) => (
-              <li key={i} className="flex items-start gap-2 text-foreground">
-                <span className="text-primary mt-1">•</span>{b}
+              <li key={i} className="flex items-start gap-2.5 text-sm sm:text-base text-foreground">
+                <span className="text-primary mt-1 flex-shrink-0">▸</span>{b}
               </li>
             ))}
           </ul>
           {slide.imagePrompt && (
-            <p className="text-xs text-muted-foreground italic border-t border-border pt-3">
+            <p className="text-xs text-muted-foreground italic border-t border-border pt-3 mt-2">
               🖼 Illustration suggestion: {slide.imagePrompt}
             </p>
           )}
         </CardContent>
       </Card>
       {slide.speakerNote && (
-        <Card className="bg-muted/50">
+        <Card className="bg-amber-50 border-amber-200">
           <CardContent className="p-4">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Speaker Note</p>
-            <p className="text-sm text-foreground">{slide.speakerNote}</p>
+            <p className="text-xs font-bold text-amber-700 uppercase tracking-wide mb-1">Teacher Note</p>
+            <p className="text-sm text-amber-900">{slide.speakerNote}</p>
           </CardContent>
         </Card>
       )}
-      {/* Slide thumbnails */}
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-1.5 flex-wrap">
         {content.slides.map((s, i) => (
           <button key={i} onClick={() => setCurrent(i)}
-            className={cn("px-3 py-1.5 rounded-lg text-xs font-medium border transition-all",
+            className={cn("px-2.5 py-1 rounded-lg text-xs font-medium border transition-all",
               i === current ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/40")}>
-            {i + 1}. {s.heading.substring(0, 20)}{s.heading.length > 20 ? "…" : ""}
+            {i + 1}
           </button>
         ))}
       </div>
@@ -147,66 +260,67 @@ function SlidesViewer({ content }: { content: SlidesContent }) {
   );
 }
 
-function CrosswordViewer({ content }: { content: CrosswordContent }) {
+// ─── Crossword viewer ─────────────────────────────────────────────────────────
+
+function CrosswordViewer({ content, showAnswers }: { content: CrosswordContent; showAnswers: boolean }) {
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
+      <CrosswordGrid words={content.words} showAnswers={showAnswers} />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div>
-          <h3 className="font-semibold text-sm text-foreground mb-2">Across</h3>
-          <ol className="flex flex-col gap-1.5">
+          <h3 className="font-bold text-sm text-foreground mb-3 uppercase tracking-wide">Across</h3>
+          <ol className="flex flex-col gap-2">
             {content.words.filter(w => w.direction === "across").map((w, i) => (
-              <li key={i} className="text-sm text-foreground">
-                <span className="font-bold text-primary mr-1">{i + 1}.</span>{w.clue}
+              <li key={i} className="text-sm text-foreground flex gap-2">
+                <span className="font-bold text-primary flex-shrink-0">{w.number}.</span>
+                <span>{w.clue}{showAnswers && <span className="ml-2 font-bold text-green-700">→ {w.word}</span>}</span>
               </li>
             ))}
           </ol>
         </div>
         <div>
-          <h3 className="font-semibold text-sm text-foreground mb-2">Down</h3>
-          <ol className="flex flex-col gap-1.5">
+          <h3 className="font-bold text-sm text-foreground mb-3 uppercase tracking-wide">Down</h3>
+          <ol className="flex flex-col gap-2">
             {content.words.filter(w => w.direction === "down").map((w, i) => (
-              <li key={i} className="text-sm text-foreground">
-                <span className="font-bold text-primary mr-1">{i + 1}.</span>{w.clue}
+              <li key={i} className="text-sm text-foreground flex gap-2">
+                <span className="font-bold text-primary flex-shrink-0">{w.number}.</span>
+                <span>{w.clue}{showAnswers && <span className="ml-2 font-bold text-green-700">→ {w.word}</span>}</span>
               </li>
             ))}
           </ol>
         </div>
       </div>
-      <Card className="bg-muted/30">
-        <CardContent className="p-4">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Answer Key</p>
-          <div className="flex flex-wrap gap-2">
-            {content.words.map((w, i) => (
-              <Badge key={i} variant="secondary" className="font-mono">{w.word}</Badge>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
 
-function MissingWordsViewer({ content }: { content: MissingWordsContent }) {
+// ─── Missing words viewer ─────────────────────────────────────────────────────
+
+function MissingWordsViewer({ content, showAnswers }: { content: MissingWordsContent; showAnswers: boolean }) {
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [revealed, setRevealed] = useState(false);
-
+  const showAll = showAnswers || revealed;
   const parts = content.passage.split("___");
+
   return (
     <div className="flex flex-col gap-4">
+      {content.introduction && (
+        <p className="text-sm text-muted-foreground italic">{content.introduction}</p>
+      )}
       <Card>
-        <CardContent className="p-5">
-          <p className="text-base text-foreground leading-relaxed">
+        <CardContent className="p-4 sm:p-5">
+          <p className="text-sm sm:text-base text-foreground leading-relaxed">
             {parts.map((part, i) => (
               <span key={i}>
                 {part}
                 {i < parts.length - 1 && (
-                  revealed ? (
-                    <span className="inline-block px-2 py-0.5 mx-1 rounded bg-green-100 text-green-800 font-semibold text-sm border border-green-300">
+                  showAll ? (
+                    <span className="inline-block px-2 py-0.5 mx-1 rounded bg-green-100 text-green-800 font-bold text-sm border border-green-300">
                       {content.blanks[i]?.answer ?? "___"}
                     </span>
                   ) : (
                     <input
-                      className="inline-block w-28 mx-1 border-b-2 border-primary bg-transparent text-center text-sm focus:outline-none"
+                      className="inline-block w-24 sm:w-28 mx-1 border-b-2 border-primary bg-transparent text-center text-sm focus:outline-none"
                       value={answers[i] ?? ""}
                       onChange={e => setAnswers(a => ({ ...a, [i]: e.target.value }))}
                       placeholder={`(${i + 1})`}
@@ -218,40 +332,66 @@ function MissingWordsViewer({ content }: { content: MissingWordsContent }) {
           </p>
         </CardContent>
       </Card>
-      <div className="flex gap-2">
+      {content.wordBank && content.wordBank.length > 0 && (
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="p-3">
+            <p className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-2">Word Bank</p>
+            <div className="flex flex-wrap gap-2">
+              {content.wordBank.map((w, i) => (
+                <Badge key={i} variant="secondary" className="font-mono text-sm">{w}</Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      {!showAnswers && (
         <Button size="sm" variant="outline" onClick={() => setRevealed(r => !r)}>
           {revealed ? "Hide Answers" : "Reveal Answers"}
         </Button>
-      </div>
-      <div className="flex flex-col gap-1">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Hints</p>
+      )}
+      <div className="flex flex-col gap-1.5">
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Hints</p>
         {content.blanks.map((b, i) => (
-          <p key={i} className="text-sm text-muted-foreground">({i + 1}) {b.hint}</p>
+          <p key={i} className="text-sm text-muted-foreground">
+            ({i + 1}) {b.hint}
+            {showAll && <span className="ml-2 font-bold text-green-700">→ {b.answer}</span>}
+          </p>
         ))}
       </div>
     </div>
   );
 }
 
+// ─── Wordsearch viewer ────────────────────────────────────────────────────────
+
 function WordsearchViewer({ content }: { content: WordsearchContent }) {
+  const wordList = content.words.map(w => typeof w === "string" ? { word: w, clue: "" } : w);
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <div className="flex flex-wrap gap-2">
-        {content.words.map((w, i) => (
-          <Badge key={i} variant="outline" className="font-mono text-sm">{w}</Badge>
+        {wordList.map((w, i) => (
+          <div key={i} className="flex items-center gap-1.5">
+            <Badge variant="outline" className="font-mono font-bold">{w.word}</Badge>
+            {w.clue && <span className="text-xs text-muted-foreground">— {w.clue}</span>}
+          </div>
         ))}
       </div>
-      <Card className="bg-muted/30">
-        <CardContent className="p-4">
-          <p className="text-sm text-muted-foreground">
-            Grid size: {content.gridSize} × {content.gridSize}. Words are hidden horizontally, vertically, and diagonally.
-            Print this page and search for the words listed above.
-          </p>
-        </CardContent>
-      </Card>
+      {content.grid && content.grid.length > 0 ? (
+        <WordsearchGrid grid={content.grid} />
+      ) : (
+        <Card className="bg-muted/30">
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">
+              Grid size: {content.gridSize ?? 15} × {content.gridSize ?? 15}. Words are hidden horizontally, vertically, and diagonally. Download the Word version to see the full printable grid.
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
+
+// ─── Flashcards viewer ────────────────────────────────────────────────────────
 
 function FlashcardsViewer({ content }: { content: FlashcardsContent }) {
   const [flipped, setFlipped] = useState<Record<number, boolean>>({});
@@ -260,18 +400,21 @@ function FlashcardsViewer({ content }: { content: FlashcardsContent }) {
       {content.cards.map((c, i) => (
         <button key={i} onClick={() => setFlipped(f => ({ ...f, [i]: !f[i] }))}
           className={cn(
-            "relative p-5 rounded-xl border-2 text-left transition-all min-h-[120px] flex flex-col justify-between",
+            "relative p-4 sm:p-5 rounded-xl border-2 text-left transition-all min-h-[130px] flex flex-col justify-between",
             flipped[i] ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/40"
           )}>
           {!flipped[i] ? (
             <>
-              <p className="font-bold text-foreground">{c.term}</p>
+              <p className="font-bold text-foreground text-sm sm:text-base">{c.term}</p>
               <p className="text-xs text-muted-foreground mt-2">Tap to reveal definition</p>
             </>
           ) : (
             <>
               <p className="text-sm text-foreground leading-relaxed">{c.definition}</p>
-              <Badge variant="secondary" className="mt-2 self-start text-xs">{c.competencyHint}</Badge>
+              {c.example && <p className="text-xs text-muted-foreground italic mt-1">e.g. {c.example}</p>}
+              {c.competencyHint && (
+                <Badge variant="secondary" className="mt-2 text-xs self-start">{c.competencyHint}</Badge>
+              )}
             </>
           )}
         </button>
@@ -280,16 +423,86 @@ function FlashcardsViewer({ content }: { content: FlashcardsContent }) {
   );
 }
 
+// ─── Export toolbar ───────────────────────────────────────────────────────────
+
+type MaterialType = "quiz" | "slides" | "crossword" | "missing_words" | "wordsearch" | "flashcards";
+const TWO_VERSION_TYPES: MaterialType[] = ["quiz", "crossword", "missing_words"];
+
+function ExportToolbar({
+  type, content, title, contentId, onToggleAnswers, showAnswers,
+}: {
+  type: MaterialType;
+  content: unknown;
+  title: string;
+  contentId: string;
+  onToggleAnswers: () => void;
+  showAnswers: boolean;
+}) {
+  const [exporting, setExporting] = useState<string | null>(null);
+  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40);
+  const hasTwoVersions = TWO_VERSION_TYPES.includes(type);
+
+  async function run(fn: () => Promise<void>, key: string) {
+    setExporting(key);
+    try { await fn(); } catch (e) { toast.error("Export failed. Please try again."); console.error(e); }
+    finally { setExporting(null); }
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2 items-center">
+      {hasTwoVersions && (
+        <Button size="sm" variant={showAnswers ? "default" : "outline"} onClick={onToggleAnswers}>
+          {showAnswers ? "Showing Answers" : "Show Answers"}
+        </Button>
+      )}
+      <Button size="sm" variant="outline" onClick={() => printElement(contentId)} disabled={!!exporting}>
+        <Printer className="w-4 h-4 mr-1.5" />
+        Print
+      </Button>
+      <Button size="sm" variant="outline"
+        onClick={() => run(() => exportPDF(contentId, slug), "pdf")} disabled={!!exporting}>
+        {exporting === "pdf" ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <FileText className="w-4 h-4 mr-1.5" />}
+        PDF
+      </Button>
+      <Button size="sm" variant="outline"
+        onClick={() => run(() => exportWord(type, content as never, slug, showAnswers), "word")}
+        disabled={!!exporting}>
+        {exporting === "word" ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <FileDown className="w-4 h-4 mr-1.5" />}
+        Word
+      </Button>
+      {hasTwoVersions && (
+        <Button size="sm" variant="outline"
+          onClick={() => run(() => exportWord(type, content as never, `${slug}-no-answers`, false), "word-blank")}
+          disabled={!!exporting}>
+          {exporting === "word-blank" ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <FileDown className="w-4 h-4 mr-1.5" />}
+          Word (no answers)
+        </Button>
+      )}
+      <Button size="sm" variant="outline"
+        onClick={() => run(() => exportPNG(contentId, slug), "png")} disabled={!!exporting}>
+        {exporting === "png" ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Image className="w-4 h-4 mr-1.5" />}
+        PNG
+      </Button>
+    </div>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function MaterialView() {
-  const [match, params] = useRoute("/materials/:id");
+  const [, params] = useRoute("/materials/:id");
   const [, navigate] = useLocation();
-  const id = match ? parseInt(params!.id, 10) : 0;
+  const [showAnswers, setShowAnswers] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
 
-  const { data: material, isLoading } = trpc.materials.get.useQuery({ id }, { enabled: id > 0 });
+  const id = params?.id ? parseInt(params.id, 10) : null;
+  const { data: material, isLoading } = trpc.materials.get.useQuery(
+    { id: id! },
+    { enabled: id !== null && !isNaN(id!) }
+  );
   const deleteMutation = trpc.materials.delete.useMutation({
     onSuccess: () => { toast.success("Material deleted."); navigate("/my-materials"); },
+    onError: () => toast.error("Failed to delete material."),
   });
 
   if (isLoading) {
@@ -307,57 +520,93 @@ export default function MaterialView() {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <NavBar />
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-muted-foreground">Material not found.</p>
+        <div className="container py-12 text-center">
+          <p className="text-muted-foreground mb-4">Material not found.</p>
+          <Button variant="outline" onClick={() => navigate("/my-materials")}>
+            <ArrowLeft className="w-4 h-4 mr-2" /> Back to My Materials
+          </Button>
         </div>
       </div>
     );
   }
 
+  const type = material.type as MaterialType;
   const content = material.content as Record<string, unknown>;
+  const contentId = "material-content-area";
+
+  function renderContent() {
+    switch (type) {
+      case "quiz":          return <QuizViewer content={content as unknown as QuizContent} showAnswers={showAnswers} />;
+      case "slides":        return <SlidesViewer content={content as unknown as SlidesContent} />;
+      case "crossword":     return <CrosswordViewer content={content as unknown as CrosswordContent} showAnswers={showAnswers} />;
+      case "missing_words": return <MissingWordsViewer content={content as unknown as MissingWordsContent} showAnswers={showAnswers} />;
+      case "wordsearch":    return <WordsearchViewer content={content as unknown as WordsearchContent} />;
+      case "flashcards":    return <FlashcardsViewer content={content as unknown as FlashcardsContent} />;
+      default:              return <pre className="text-xs text-muted-foreground">{JSON.stringify(content, null, 2)}</pre>;
+    }
+  }
+
+  const TYPE_LABELS: Record<string, string> = {
+    quiz: "Quiz", slides: "Slide Presentation", crossword: "Crossword Puzzle",
+    missing_words: "Missing Words", wordsearch: "Word Search", flashcards: "Flashcards",
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <NavBar />
-      <div className="container py-8 max-w-3xl mx-auto flex flex-col gap-6">
+      <div className="container py-4 sm:py-6 max-w-4xl mx-auto w-full flex flex-col gap-4">
+
         {/* Header */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <button onClick={() => navigate("/my-materials")}
-              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-1">
-              <ArrowLeft className="w-3.5 h-3.5" /> My Materials
-            </button>
-            <h1 className="text-2xl font-bold text-foreground">{material.title}</h1>
-            <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant="secondary" className="capitalize">{material.type.replace("_", " ")}</Badge>
+        <div className="flex items-start gap-3">
+          <Button variant="ghost" size="sm" onClick={() => navigate("/my-materials")} className="flex-shrink-0 mt-0.5">
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <Badge variant="secondary">{TYPE_LABELS[type] ?? type}</Badge>
               {material.competency && <Badge variant="outline">{material.competency}</Badge>}
               {material.yearGroup && <Badge variant="outline" className="capitalize">{material.yearGroup}</Badge>}
-              <span className="text-xs text-muted-foreground">
-                {new Date(material.createdAt).toLocaleDateString()}
-              </span>
             </div>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">{material.title}</h1>
+            {material.topic && (
+              <p className="text-sm text-muted-foreground">Topic: {material.topic}</p>
+            )}
           </div>
-          <div className="flex gap-2 flex-shrink-0">
-            <Button size="sm" variant="outline" onClick={() => window.print()} className="gap-1.5">
-              <Download className="w-3.5 h-3.5" /> Print
-            </Button>
-            <Button size="sm" variant="outline"
-              className="gap-1.5 text-destructive hover:text-destructive"
-              onClick={() => { if (confirm("Delete this material?")) deleteMutation.mutate({ id }); }}>
-              <Trash2 className="w-3.5 h-3.5" />
-            </Button>
-          </div>
+          <Button
+            variant="ghost" size="sm"
+            className="text-destructive hover:text-destructive flex-shrink-0"
+            onClick={() => { if (confirm("Delete this material?")) deleteMutation.mutate({ id: material.id }); }}
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
         </div>
 
-        {/* Content renderer */}
-        {material.type === "quiz" && <QuizViewer content={content as unknown as QuizContent} />}
-        {material.type === "slides" && <SlidesViewer content={content as unknown as SlidesContent} />}
-        {material.type === "crossword" && <CrosswordViewer content={content as unknown as CrosswordContent} />}
-        {material.type === "missing_words" && <MissingWordsViewer content={content as unknown as MissingWordsContent} />}
-        {material.type === "wordsearch" && <WordsearchViewer content={content as unknown as WordsearchContent} />}
-        {material.type === "flashcards" && <FlashcardsViewer content={content as unknown as FlashcardsContent} />}
+        {/* Export toolbar */}
+        <Card>
+          <CardContent className="p-3 sm:p-4">
+            <ExportToolbar
+              type={type}
+              content={content}
+              title={material.title}
+              contentId={contentId}
+              showAnswers={showAnswers}
+              onToggleAnswers={() => setShowAnswers(v => !v)}
+            />
+          </CardContent>
+        </Card>
 
-        <p className="text-xs text-muted-foreground text-center pb-4">Powered by SEBA</p>
+        {/* Content area */}
+        <div id={contentId} ref={contentRef} className="flex flex-col gap-4">
+          {/* Print header */}
+          <div className="hidden print:block mb-4">
+            <h1 className="text-2xl font-bold">{material.title}</h1>
+            {material.competency && <p className="text-sm">Competency: {material.competency}</p>}
+            {material.yearGroup && <p className="text-sm capitalize">Year Group: {material.yearGroup}</p>}
+            {showAnswers && <p className="text-sm font-bold text-green-700">— Answer Key —</p>}
+          </div>
+          {renderContent()}
+        </div>
+
       </div>
     </div>
   );
