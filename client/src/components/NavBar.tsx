@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import {
   BookOpen, MessageCircle, Dumbbell, LayoutDashboard,
   Sparkles, Library, TrendingUp, ChevronDown, Menu, X, Zap,
-  Presentation as PresentationIcon, Globe,
+  Presentation as PresentationIcon, Globe, Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
@@ -35,6 +35,7 @@ export default function NavBar() {
     { href: "/presentation",  label: t("nav_presentation"),  icon: PresentationIcon },
     { href: "/my-materials",  label: t("nav_my_materials"),  icon: Library },
     { href: "/challenge",     label: t("nav_challenge"),     icon: Zap },
+    { href: "/groups",        label: t("nav_groups"),        icon: Users },
     { href: "/questions",     label: t("nav_questions"),     icon: BookOpen },
     { href: "/admin",         label: t("nav_admin"),         icon: LayoutDashboard },
   ];

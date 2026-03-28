@@ -217,3 +217,21 @@
 - [ ] Join page: nickname input (required before joining)
 - [ ] Join page: waiting room with live participant count and "Game starting..." transition
 - [ ] Join page: smooth redirect when teacher starts the game
+
+## Feature: Class Groups Management
+- [ ] Add class_groups table (id, userId, className, level, assessmentTitle, createdAt)
+- [ ] Add group_students table (id, groupId, studentNumber, name, email, createdAt)
+- [ ] Add group_messages table (id, groupId, userId, subject, body, sentAt)
+- [ ] Add group_challenge_log table (id, groupId, challengeId, competencies, createdAt)
+- [ ] Server: create/list/delete group procedures
+- [ ] Server: add/remove/list students in group procedures
+- [ ] Server: send group message procedure (log to DB)
+- [ ] Server: list challenge history for group with competencies and date
+- [ ] UI: Groups page with group list and detail panel
+- [ ] UI: Create group form (class name, level, assessment title)
+- [ ] UI: Student roster with auto-numbering, name + school email
+- [ ] UI: Send group alert/message panel (subject + body)
+- [ ] UI: Challenge history tab with date stamps and competency badges
+- [ ] Wire Groups page into NavBar Teacher menu
+- [ ] Add i18n keys for all new Groups strings (EN/ES/CA)
+- [ ] Link challenge creation to group (select group when creating challenge)

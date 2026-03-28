@@ -5,7 +5,7 @@ import { publicProcedure, router } from "./_core/trpc";
 import { lomloeRouter } from "./routers/lomloe";
 import { materialsRouter } from "./routers/materials";
 import { challengeRouter } from "./routers/challenge";
-
+import { groupsRouter } from "./routers/groups";
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -21,6 +21,7 @@ export const appRouter = router({
   lomloe: lomloeRouter,
   materials: materialsRouter,
   challenge: challengeRouter,
+  groups: groupsRouter,
 });
 
 export type AppRouter = typeof appRouter;

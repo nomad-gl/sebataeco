@@ -17,6 +17,7 @@ import Challenge from "./pages/Challenge";
 import SampleQuestions from "./pages/SampleQuestions";
 import Join from "./pages/Join";
 import Presentation from "./pages/Presentation";
+import Groups from "./pages/Groups";
 
 function Router() {
   return (
@@ -34,6 +35,7 @@ function Router() {
         <Route path="/questions" component={SampleQuestions} />
         <Route path="/join" component={Join} />
         <Route path="/presentation" component={Presentation} />
+        <Route path="/groups" component={Groups} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>
