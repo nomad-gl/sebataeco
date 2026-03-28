@@ -368,15 +368,8 @@ function MissingWordsViewer({ content, showAnswers }: { content: MissingWordsCon
 function WordsearchViewer({ content }: { content: WordsearchContent }) {
   const wordList = content.words.map(w => typeof w === "string" ? { word: w, clue: "" } : w);
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap gap-2">
-        {wordList.map((w, i) => (
-          <div key={i} className="flex items-center gap-1.5">
-            <Badge variant="outline" className="font-mono font-bold">{w.word}</Badge>
-            {w.clue && <span className="text-xs text-muted-foreground">— {w.clue}</span>}
-          </div>
-        ))}
-      </div>
+    <div className="flex flex-col">
+      {/* Grid section */}
       {content.grid && content.grid.length > 0 ? (
         <WordsearchGrid grid={content.grid} />
       ) : (
@@ -388,6 +381,24 @@ function WordsearchViewer({ content }: { content: WordsearchContent }) {
           </CardContent>
         </Card>
       )}
+
+      {/* Spacer + divider */}
+      <div className="mt-10 mb-6 border-t border-border" />
+
+      {/* Word list section */}
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">
+          Find these words
+        </p>
+        <div className="flex flex-wrap gap-3">
+          {wordList.map((w, i) => (
+            <div key={i} className="flex items-center gap-1.5">
+              <Badge variant="outline" className="font-mono font-bold text-sm px-3 py-1">{w.word}</Badge>
+              {w.clue && <span className="text-xs text-muted-foreground">— {w.clue}</span>}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

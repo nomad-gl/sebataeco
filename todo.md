@@ -194,3 +194,7 @@
 
 ## Bug: Presentation page SelectItem empty value crash
 - [x] Fix SelectItem value="" on "Any competency" option in Presentation.tsx (Radix UI forbids empty string values)
+
+## Improvement: Wordsearch layout
+- [x] Move word list below the grid in the wordsearch viewer
+- [x] Add adequate vertical spacing between the grid and the word list
