@@ -21,7 +21,7 @@ export const translations = {
 
     // Home
     home_badge: "Spain's LOMLOE Curriculum · 8 Competencies",
-    home_hero_title: "Your LOMLOE",
+    home_hero_title: "LOMLOE |",
     home_hero_accent: "Teaching Assistant",
     home_hero_subtitle: "",
     home_hero_desc: "Practise all eight key competencies defined by Spain's LOMLOE education law. Ask questions, test your knowledge, and get curriculum-aligned explanations — instantly.",
