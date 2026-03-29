@@ -121,31 +121,6 @@ export default function Home() {
         />
       </section>
 
-      {/* Stats bar */}
-      {stats && (
-        <section className="border-b border-border bg-secondary/30">
-          <div className="container py-5">
-            <div className="flex flex-wrap gap-6 sm:gap-8 justify-around sm:justify-start">
-              <div className="text-center sm:text-left">
-                <p className="text-3xl font-bold text-primary">{stats.totalQuestions}</p>
-                <p className="text-sm text-muted-foreground">{t("home_stats_questions")}</p>
-              </div>
-              <div className="text-center sm:text-left">
-                <p className="text-3xl font-bold text-primary">{stats.totalCompetencies}</p>
-                <p className="text-sm text-muted-foreground">{t("home_stats_competencies")}</p>
-              </div>
-              <div className="text-center sm:text-left">
-                <p className="text-3xl font-bold text-primary">{stats.totalYearGroups}</p>
-                <p className="text-sm text-muted-foreground">{t("home_stats_year_groups")}</p>
-              </div>
-              <div className="text-center sm:text-left">
-                <p className="text-3xl font-bold text-primary">100%</p>
-                <p className="text-sm text-muted-foreground">{t("home_stats_free")}</p>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* Features */}
       <section className="container py-16">
