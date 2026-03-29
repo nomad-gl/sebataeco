@@ -293,3 +293,11 @@
 - [ ] Allow inline editing of all fields (questions, options, correct answer, words, text)
 - [ ] "Save to My Materials" button only appears after user reviews the preview
 - [ ] "Regenerate" button to discard and generate again without saving
+
+## Feature: LOMLOE Competency Detail Pages
+- [ ] Create CompetencyDetail page with full descriptors for all 8 competencies
+- [ ] Add back button to return to previous page
+- [ ] Link each Home page competency card to its detail page
+- [ ] Add /competency/:id route to App.tsx
+- [ ] Add "LOMLOE Competencies" entry to NavBar
+- [ ] Add i18n keys for all new competency descriptor strings

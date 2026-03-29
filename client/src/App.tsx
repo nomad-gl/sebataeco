@@ -20,6 +20,7 @@ import Presentation from "./pages/Presentation";
 import Groups from "./pages/Groups";
 import StudentProgress from "./pages/StudentProgress";
 import GroupProgress from "./pages/GroupProgress";
+import CompetencyDetail from "./pages/CompetencyDetail";
 
 function Router() {
   return (
@@ -40,6 +41,7 @@ function Router() {
         <Route path="/groups" component={Groups} />
         <Route path="/groups/:groupId/progress" component={GroupProgress} />
         <Route path="/groups/:groupId/student/:studentId" component={StudentProgress} />
+        <Route path="/competency/:code" component={CompetencyDetail} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

@@ -185,7 +185,7 @@ export default function Home() {
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {competencies?.map((comp) => (
-            <Link key={comp.code} href={`/practice?competency=${comp.code}`}>
+            <Link key={comp.code} href={`/competency/${comp.code}`}>
               <Card className="h-full hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer border-border group overflow-hidden">
                 <CardContent className="p-5">
                   <div className="flex items-center gap-3 mb-3">

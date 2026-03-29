@@ -505,6 +505,16 @@ export const translations = {
     create_regenerate: "Regenerate",
     create_back_to_create: "Back to Create",
     create_step1_label: "Choose Activity Type",
+    // Competency Detail page
+    cd_overview: "Overview",
+    cd_why_matters: "Why It Matters",
+    cd_key_dimensions: "Key Dimensions",
+    cd_descriptors: "Learning Descriptors by Level",
+    cd_classroom_examples: "Classroom Examples",
+    cd_linked_subjects: "Linked Subjects",
+    cd_practice_this: "Practice This Competency",
+    cd_create_materials: "Create Materials",
+    cd_back_to_competencies: "Back to Competencies",
   },
 
   es: {
@@ -1009,6 +1019,16 @@ export const translations = {
     create_regenerate: "Regenerar",
     create_back_to_create: "Volver a Crear",
     create_step1_label: "Elige el Tipo de Actividad",
+    // Competency Detail page
+    cd_overview: "Descripción General",
+    cd_why_matters: "Por Qué Es Importante",
+    cd_key_dimensions: "Dimensiones Clave",
+    cd_descriptors: "Descriptores de Aprendizaje por Nivel",
+    cd_classroom_examples: "Ejemplos en el Aula",
+    cd_linked_subjects: "Materias Relacionadas",
+    cd_practice_this: "Practicar Esta Competencia",
+    cd_create_materials: "Crear Materiales",
+    cd_back_to_competencies: "Volver a las Competencias",
   },
 
   ca: {
@@ -1513,6 +1533,16 @@ export const translations = {
     create_regenerate: "Regenerar",
     create_back_to_create: "Tornar a Crear",
     create_step1_label: "Tria el Tipus d'Activitat",
+    // Competency Detail page
+    cd_overview: "Descripció General",
+    cd_why_matters: "Per Què És Important",
+    cd_key_dimensions: "Dimensions Clau",
+    cd_descriptors: "Descriptors d'Aprenentatge per Nivell",
+    cd_classroom_examples: "Exemples a l'Aula",
+    cd_linked_subjects: "Matèries Relacionades",
+    cd_practice_this: "Practicar Aquesta Competència",
+    cd_create_materials: "Crear Materials",
+    cd_back_to_competencies: "Tornar a les Competències",
   },
 } as const;
 
