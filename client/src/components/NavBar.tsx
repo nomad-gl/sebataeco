@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import {
   BookOpen, MessageCircle, Dumbbell, LayoutDashboard,
   Sparkles, Library, TrendingUp, ChevronDown, Menu, X, Zap,
-  Presentation as PresentationIcon, Globe, Users,
+  Presentation as PresentationIcon, Globe, Users, MessagesSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
@@ -28,6 +28,7 @@ export default function NavBar() {
     { href: "/chat",      label: t("nav_chat"),     icon: MessageCircle },
     { href: "/practice",  label: t("nav_practice"), icon: Dumbbell },
     { href: "/progress",  label: t("nav_progress"), icon: TrendingUp },
+    { href: "/forum",     label: t("nav_forum"),    icon: MessagesSquare },
   ];
 
   const teacherItems = [

@@ -24,7 +24,7 @@ const COMPETENCY_NAMES: Record<string, string> = {
 
 const ALL_COMPETENCIES = Object.keys(COMPETENCY_NAMES);
 
-// ── Procedures ────────────────────────────────────────────────────────────────
+// -- Procedures ----------------------------------------------------------------
 
 export const progressRouter = router({
   /** Log one or more competency scores for a student (e.g. after a challenge) */
@@ -213,7 +213,7 @@ export const progressRouter = router({
       return { students: studentSummaries, competencyAverages, group };
     }),
 
-  // ── Assignments ─────────────────────────────────────────────────────────────
+  // -- Assignments -------------------------------------------------------------
 
   /** Create an assignment for a group */
   createAssignment: protectedProcedure
@@ -315,7 +315,7 @@ export const progressRouter = router({
         .where(eq(assignmentCompletions.assignmentId, input.assignmentId));
     }),
 
-  // ── AI Reports ──────────────────────────────────────────────────────────────
+  // -- AI Reports --------------------------------------------------------------
 
   /** Generate an AI progress report for a single student */
   generateStudentReport: protectedProcedure

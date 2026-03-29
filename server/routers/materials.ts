@@ -16,7 +16,7 @@ const CompetencyCodeSchema = z.enum(["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "
 const YearGroupSchema = z.enum(["junior", "primary", "secondary"]);
 const MaterialTypeSchema = z.enum(["quiz", "slides", "crossword", "missing_words", "wordsearch", "flashcards"]);
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// --- Helpers ---
 
 function ygLabel(yg?: string) {
   if (yg === "junior") return "Junior (Years 3–4, ages 8–10)";
@@ -31,7 +31,7 @@ function compLabel(c?: string) {
   return m ? `${m.name} (${c}) — ${m.description}` : c;
 }
 
-// ─── Rich system prompts ──────────────────────────────────────────────────────
+// --- Rich system prompts ---
 
 function buildSystemPrompt(type: string, competency?: string, yearGroup?: string): string {
   const comp = compLabel(competency);
@@ -165,7 +165,7 @@ Generate exactly 16 flashcards. Cover the most important concepts, vocabulary, a
   return `${base}\n${schemas[type] ?? ""}`;
 }
 
-// ─── Content rule validators / auto-fixers ──────────────────────────────────
+// --- Content rule validators / auto-fixers ---
 
 function validateAndFixQuiz(parsed: Record<string, unknown>): Record<string, unknown> {
   const questions = (parsed.questions as Array<Record<string, unknown>> | undefined) ?? [];
@@ -228,7 +228,7 @@ function validateAndFixWordsearch(parsed: Record<string, unknown>, size = 15): R
   return { ...parsed, words, grid, gridSize: finalSize };
 }
 
-// ─── Wordsearch grid builder (server-side fallback) ───────────────────────────
+// --- Wordsearch grid builder (server-side fallback) ---
 
 function buildWordsearchGrid(words: string[], size = 15): string[][] {
   const grid: string[][] = Array.from({ length: size }, () =>
@@ -271,10 +271,10 @@ function buildWordsearchGrid(words: string[], size = 15): string[][] {
   return grid;
 }
 
-// ─── Router ───────────────────────────────────────────────────────────────────
+// --- Router ---
 
 export const materialsRouter = router({
-  // ── Progress tracker ──────────────────────────────────────────────────────
+  //  - Progress tracker -
 
   saveSession: protectedProcedure
     .input(z.object({
@@ -313,7 +313,7 @@ export const materialsRouter = router({
     return { sessions: sessions.slice(0, 20), chart };
   }),
 
-  // ── Teaching materials ────────────────────────────────────────────────
+  // Teaching materials
 
   // generate: LLM call + content rules, does NOT save to DB
   generate: protectedProcedure

@@ -307,3 +307,18 @@
 
 ## Fix: Scroll to top on competency detail page navigation
 - [x] Add useEffect scroll-to-top when competency code param changes in CompetencyDetail.tsx
+
+## TA Fòrum – Real-time Social Chat
+- [x] DB tables: forum_channels, forum_messages, forum_direct_messages, forum_user_presence
+- [x] Server procedures: forum.getChannels, forum.getMessages, forum.sendMessage, forum.getDirectMessages, forum.sendDirectMessage, forum.setPresence, forum.getOnlineUsers
+- [x] Forum page layout: sidebar (channels + DM list + online users), main chat window
+- [x] Channel chat: message bubbles (own=right, others=left), avatar, timestamp, sender name
+- [x] Direct message chat: 1-to-1 conversation with any online user
+- [x] Polling-based real-time updates (new messages every 2s)
+- [x] Online presence indicator (green dot) with last-seen fallback
+- [x] Unread message badge on channel/DM list entries
+- [x] Message input with send button and Enter-to-send
+- [x] Auto-scroll to latest message on new message
+- [x] i18n keys for TA Fòrum in EN/ES/CA
+- [x] NavBar link to /forum
+- [x] Vitest tests for forum procedures

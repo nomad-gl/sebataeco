@@ -218,3 +218,60 @@ export const assignmentCompletions = mysqlTable("assignment_completions", {
 
 export type AssignmentCompletion = typeof assignmentCompletions.$inferSelect;
 export type InsertAssignmentCompletion = typeof assignmentCompletions.$inferInsert;
+
+/**
+ * Forum channels — public chat rooms visible to all logged-in users.
+ */
+export const forumChannels = mysqlTable("forum_channels", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 64 }).notNull(),
+  description: varchar("description", { length: 255 }),
+  emoji: varchar("emoji", { length: 8 }).notNull().default("💬"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ForumChannel = typeof forumChannels.$inferSelect;
+export type InsertForumChannel = typeof forumChannels.$inferInsert;
+
+/**
+ * Forum messages — messages posted in a channel by a logged-in user.
+ */
+export const forumMessages = mysqlTable("forum_messages", {
+  id: int("id").autoincrement().primaryKey(),
+  channelId: int("channelId").notNull(),
+  userId: int("userId").notNull(),
+  body: text("body").notNull(),
+  /** Optional: translated body cached per language */
+  translatedBodies: text("translatedBodies"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ForumMessage = typeof forumMessages.$inferSelect;
+export type InsertForumMessage = typeof forumMessages.$inferInsert;
+
+/**
+ * Forum direct messages — 1-to-1 private messages between users.
+ */
+export const forumDirectMessages = mysqlTable("forum_direct_messages", {
+  id: int("id").autoincrement().primaryKey(),
+  fromUserId: int("fromUserId").notNull(),
+  toUserId: int("toUserId").notNull(),
+  body: text("body").notNull(),
+  /** Whether the recipient has read this message */
+  read: boolean("read").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ForumDirectMessage = typeof forumDirectMessages.$inferSelect;
+export type InsertForumDirectMessage = typeof forumDirectMessages.$inferInsert;
+
+/**
+ * Forum user presence — tracks when a user was last active.
+ */
+export const forumPresence = mysqlTable("forum_presence", {
+  userId: int("userId").primaryKey(),
+  lastSeen: timestamp("lastSeen").defaultNow().notNull(),
+});
+
+export type ForumPresence = typeof forumPresence.$inferSelect;
+export type InsertForumPresence = typeof forumPresence.$inferInsert;

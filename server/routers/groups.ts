@@ -10,7 +10,7 @@ import {
 } from "../../drizzle/schema";
 
 export const groupsRouter = router({
-  // ── Groups CRUD ──────────────────────────────────────────────────────────
+  // -- Groups CRUD ----------------------------------------------------------
 
   /** List all groups owned by the current teacher */
   list: protectedProcedure.query(async ({ ctx }) => {
@@ -88,7 +88,7 @@ export const groupsRouter = router({
       return { success: true };
     }),
 
-  // ── Students ─────────────────────────────────────────────────────────────
+  // -- Students -------------------------------------------------------------
 
   /** List students in a group (ordered by studentNumber) */
   listStudents: protectedProcedure
@@ -171,7 +171,7 @@ export const groupsRouter = router({
       return { success: true };
     }),
 
-  // ── Messages ─────────────────────────────────────────────────────────────
+  // -- Messages -------------------------------------------------------------
 
   /** List messages sent to a group */
   listMessages: protectedProcedure
@@ -220,7 +220,7 @@ export const groupsRouter = router({
       return { id: (result as any).insertId as number };
     }),
 
-  // ── Challenge Log ─────────────────────────────────────────────────────────
+  // -- Challenge Log ---------------------------------------------------------
 
   /** List challenge history for a group */
   listChallengeLog: protectedProcedure

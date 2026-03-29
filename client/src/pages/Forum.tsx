@@ -1,0 +1,638 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+import { trpc } from "@/lib/trpc";
+import { useI18n } from "@/contexts/I18nContext";
+import NavBar from "@/components/NavBar";
+import { cn } from "@/lib/utils";
+import {
+  Hash, MessageSquare, Users, Send, Search,
+  ChevronLeft, Circle, ArrowLeft, Wifi, WifiOff,
+  SmilePlus, MoreVertical, Bell, Settings,
+} from "lucide-react";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { Link } from "wouter";
+
+// ─── types ────────────────────────────────────────────────────────────────────
+
+type Channel = { id: number; name: string; description: string | null; emoji: string; createdAt: Date };
+type ChatMessage = { id: number; channelId?: number; userId: number; userName: string; body: string; originalBody?: string; createdAt: Date };
+type DmMessage = { id: number; fromUserId: number; toUserId: number; fromName: string; body: string; read: boolean; createdAt: Date; isMine: boolean };
+type UserEntry = { id: number; name: string; online: boolean; lastSeen: Date | null };
+type Conversation = { otherId: number; otherName: string; lastBody: string; lastAt: Date; unread: number };
+
+type View = "channel" | "dm";
+
+// ─── helpers ──────────────────────────────────────────────────────────────────
+
+function Avatar({ name, size = "md", online }: { name: string; size?: "sm" | "md" | "lg"; online?: boolean }) {
+  const initials = name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+  const colours = [
+    "bg-blue-500", "bg-emerald-500", "bg-violet-500",
+    "bg-rose-500", "bg-amber-500", "bg-cyan-500", "bg-pink-500",
+  ];
+  const colour = colours[name.charCodeAt(0) % colours.length];
+  const sz = size === "sm" ? "w-7 h-7 text-xs" : size === "lg" ? "w-11 h-11 text-base" : "w-9 h-9 text-sm";
+  return (
+    <div className="relative flex-shrink-0">
+      <div className={cn("rounded-full flex items-center justify-center font-bold text-white", colour, sz)}>
+        {initials}
+      </div>
+      {online !== undefined && (
+        <span
+          className={cn(
+            "absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white",
+            online ? "bg-emerald-400" : "bg-gray-300"
+          )}
+        />
+      )}
+    </div>
+  );
+}
+
+function formatTime(date: Date | string) {
+  const d = new Date(date);
+  const now = new Date();
+  const diff = now.getTime() - d.getTime();
+  if (diff < 60_000) return "just now";
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m`;
+  if (diff < 86_400_000) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
+// ─── main component ───────────────────────────────────────────────────────────
+
+export default function Forum() {
+  const { t, lang } = useI18n();
+  const { user } = useAuth();
+
+  // sidebar state
+  const [view, setView] = useState<View>("channel");
+  const [activeChannelId, setActiveChannelId] = useState<number | null>(null);
+  const [activeDmUserId, setActiveDmUserId] = useState<number | null>(null);
+  const [sidebarSearch, setSidebarSearch] = useState("");
+  const [showUserList, setShowUserList] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(true);
+
+  // message input
+  const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
+
+  // polling timestamps
+  const [channelSince, setChannelSince] = useState<number | undefined>(undefined);
+  const [dmSince, setDmSince] = useState<number | undefined>(undefined);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // ─── queries ───────────────────────────────────────────────────────────────
+
+  const channelsQ = trpc.forum.getChannels.useQuery(undefined, { refetchInterval: 30_000 });
+  const usersQ = trpc.forum.getUsers.useQuery(undefined, { refetchInterval: 15_000 });
+  const conversationsQ = trpc.forum.getConversations.useQuery(undefined, { refetchInterval: 5_000 });
+  const unreadQ = trpc.forum.getUnreadCount.useQuery(undefined, { refetchInterval: 5_000 });
+
+  const channelMessagesQ = trpc.forum.getMessages.useQuery(
+    { channelId: activeChannelId ?? 0, lang },
+    { enabled: view === "channel" && activeChannelId !== null, refetchInterval: 2_000 }
+  );
+
+  const dmMessagesQ = trpc.forum.getDirectMessages.useQuery(
+    { withUserId: activeDmUserId ?? 0, lang },
+    { enabled: view === "dm" && activeDmUserId !== null, refetchInterval: 2_000 }
+  );
+
+  // ─── mutations ─────────────────────────────────────────────────────────────
+
+  const utils = trpc.useUtils();
+  const sendMessageMut = trpc.forum.sendMessage.useMutation({
+    onSuccess: () => utils.forum.getMessages.invalidate(),
+  });
+  const sendDmMut = trpc.forum.sendDirectMessage.useMutation({
+    onSuccess: () => {
+      utils.forum.getDirectMessages.invalidate();
+      utils.forum.getConversations.invalidate();
+    },
+  });
+  const pingMut = trpc.forum.ping.useMutation();
+
+  // ─── effects ───────────────────────────────────────────────────────────────
+
+  // Auto-select first channel
+  useEffect(() => {
+    if (channelsQ.data && channelsQ.data.length > 0 && activeChannelId === null) {
+      setActiveChannelId(channelsQ.data[0].id);
+    }
+  }, [channelsQ.data, activeChannelId]);
+
+  // Scroll to bottom on new messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [channelMessagesQ.data, dmMessagesQ.data]);
+
+  // Heartbeat ping every 30s
+  useEffect(() => {
+    const interval = setInterval(() => pingMut.mutate(), 30_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // ─── handlers ──────────────────────────────────────────────────────────────
+
+  const handleSend = useCallback(async () => {
+    const body = input.trim();
+    if (!body || sending) return;
+    setSending(true);
+    setInput("");
+    try {
+      if (view === "channel" && activeChannelId !== null) {
+        await sendMessageMut.mutateAsync({ channelId: activeChannelId, body });
+      } else if (view === "dm" && activeDmUserId !== null) {
+        await sendDmMut.mutateAsync({ toUserId: activeDmUserId, body });
+      }
+    } finally {
+      setSending(false);
+      inputRef.current?.focus();
+    }
+  }, [input, sending, view, activeChannelId, activeDmUserId, sendMessageMut, sendDmMut]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const openChannel = (id: number) => {
+    setView("channel");
+    setActiveChannelId(id);
+    setMobileSidebarOpen(false);
+  };
+
+  const openDm = (userId: number) => {
+    setView("dm");
+    setActiveDmUserId(userId);
+    setShowUserList(false);
+    setMobileSidebarOpen(false);
+  };
+
+  // ─── derived data ──────────────────────────────────────────────────────────
+
+  const channels = channelsQ.data ?? [];
+  const allUsers = usersQ.data ?? [];
+  const conversations = conversationsQ.data ?? [];
+  const channelMessages = channelMessagesQ.data ?? [];
+  const dmMessages = dmMessagesQ.data ?? [];
+  const totalUnread = unreadQ.data?.unread ?? 0;
+
+  const activeChannel = channels.find((c) => c.id === activeChannelId);
+  const activeDmUser = allUsers.find((u) => u.id === activeDmUserId);
+
+  const filteredChannels = channels.filter((c) =>
+    c.name.toLowerCase().includes(sidebarSearch.toLowerCase())
+  );
+  const filteredUsers = allUsers.filter(
+    (u) =>
+      u.id !== user?.id &&
+      u.name.toLowerCase().includes(sidebarSearch.toLowerCase())
+  );
+  const filteredConversations = conversations.filter((c) =>
+    c.otherName.toLowerCase().includes(sidebarSearch.toLowerCase())
+  );
+
+  const onlineCount = allUsers.filter((u) => u.online && u.id !== user?.id).length;
+
+  // ─── render ────────────────────────────────────────────────────────────────
+
+  const headerTitle =
+    view === "channel" && activeChannel
+      ? `${activeChannel.emoji} #${activeChannel.name}`
+      : view === "dm" && activeDmUser
+      ? activeDmUser.name
+      : t("forum_title");
+
+  const headerSub =
+    view === "channel" && activeChannel
+      ? activeChannel.description ?? ""
+      : view === "dm" && activeDmUser
+      ? activeDmUser.online ? t("forum_online") : t("forum_offline")
+      : "";
+
+  return (
+    <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
+      <NavBar />
+
+      {/* Forum shell */}
+      <div className="flex flex-1 overflow-hidden">
+
+        {/* ── SIDEBAR ─────────────────────────────────────────────────── */}
+        <aside
+          className={cn(
+            "flex flex-col w-full md:w-72 lg:w-80 bg-white border-r border-gray-200 flex-shrink-0 z-20",
+            "md:relative md:flex",
+            mobileSidebarOpen ? "flex" : "hidden md:flex"
+          )}
+        >
+          {/* Sidebar header */}
+          <div className="px-4 pt-4 pb-3 border-b border-gray-100">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h1 className="font-heading font-bold text-lg text-gray-900">TA Fòrum</h1>
+                <p className="text-xs text-gray-400">{t("forum_powered")}</p>
+              </div>
+              <div className="flex items-center gap-1">
+                {onlineCount > 0 && (
+                  <span className="flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">
+                    <Circle className="w-2 h-2 fill-emerald-500" />
+                    {onlineCount} {t("forum_online_short")}
+                  </span>
+                )}
+              </div>
+            </div>
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+              <input
+                type="text"
+                placeholder={t("forum_search")}
+                value={sidebarSearch}
+                onChange={(e) => setSidebarSearch(e.target.value)}
+                className="w-full pl-8 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              />
+            </div>
+          </div>
+
+          {/* Sidebar tabs */}
+          <div className="flex border-b border-gray-100">
+            <button
+              onClick={() => setView("channel")}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold transition-colors",
+                view === "channel"
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-gray-400 hover:text-gray-600"
+              )}
+            >
+              <Hash className="w-3.5 h-3.5" />
+              {t("forum_channels")}
+            </button>
+            <button
+              onClick={() => setView("dm")}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold transition-colors relative",
+                view === "dm"
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-gray-400 hover:text-gray-600"
+              )}
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              {t("forum_dms")}
+              {totalUnread > 0 && (
+                <span className="absolute top-1.5 right-4 w-4 h-4 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {totalUnread > 9 ? "9+" : totalUnread}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setShowUserList((v) => !v)}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold transition-colors",
+                showUserList
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-gray-400 hover:text-gray-600"
+              )}
+            >
+              <Users className="w-3.5 h-3.5" />
+              {t("forum_members")}
+            </button>
+          </div>
+
+          {/* Sidebar content */}
+          <div className="flex-1 overflow-y-auto">
+
+            {/* Channel list */}
+            {!showUserList && view === "channel" && (
+              <div className="py-2">
+                <p className="px-4 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  {t("forum_channels")}
+                </p>
+                {filteredChannels.map((ch) => (
+                  <button
+                    key={ch.id}
+                    onClick={() => openChannel(ch.id)}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left",
+                      activeChannelId === ch.id && view === "channel"
+                        ? "bg-primary/8 text-primary font-semibold"
+                        : "text-gray-700 hover:bg-gray-50"
+                    )}
+                  >
+                    <span className="text-lg flex-shrink-0">{ch.emoji}</span>
+                    <div className="min-w-0">
+                      <p className="font-medium truncate">#{ch.name}</p>
+                      {ch.description && (
+                        <p className="text-xs text-gray-400 truncate">{ch.description}</p>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* DM conversation list */}
+            {!showUserList && view === "dm" && (
+              <div className="py-2">
+                <div className="flex items-center justify-between px-4 py-1.5">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    {t("forum_dms")}
+                  </p>
+                  <button
+                    onClick={() => setShowUserList(true)}
+                    className="text-xs text-primary font-semibold hover:underline"
+                  >
+                    + {t("forum_new_dm")}
+                  </button>
+                </div>
+
+                {filteredConversations.length === 0 && (
+                  <div className="px-4 py-8 text-center text-sm text-gray-400">
+                    <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                    <p>{t("forum_no_dms")}</p>
+                    <button
+                      onClick={() => setShowUserList(true)}
+                      className="mt-2 text-primary font-semibold hover:underline text-xs"
+                    >
+                      {t("forum_start_dm")}
+                    </button>
+                  </div>
+                )}
+
+                {filteredConversations.map((conv) => {
+                  const u = allUsers.find((x) => x.id === conv.otherId);
+                  return (
+                    <button
+                      key={conv.otherId}
+                      onClick={() => openDm(conv.otherId)}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left",
+                        activeDmUserId === conv.otherId && view === "dm"
+                          ? "bg-primary/8 text-primary"
+                          : "text-gray-700 hover:bg-gray-50"
+                      )}
+                    >
+                      <Avatar name={conv.otherName} size="md" online={u?.online} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between">
+                          <p className="font-semibold text-sm truncate">{conv.otherName}</p>
+                          <span className="text-[10px] text-gray-400 flex-shrink-0 ml-1">
+                            {formatTime(conv.lastAt)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-400 truncate">{conv.lastBody}</p>
+                      </div>
+                      {conv.unread > 0 && (
+                        <span className="w-5 h-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center flex-shrink-0">
+                          {conv.unread > 9 ? "9+" : conv.unread}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* User / member list */}
+            {showUserList && (
+              <div className="py-2">
+                <div className="flex items-center justify-between px-4 py-1.5">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    {t("forum_members")} ({allUsers.length})
+                  </p>
+                  <button
+                    onClick={() => setShowUserList(false)}
+                    className="text-xs text-gray-400 hover:text-gray-600"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* Online */}
+                {filteredUsers.filter((u) => u.online).length > 0 && (
+                  <>
+                    <p className="px-4 py-1 text-[10px] font-semibold text-emerald-600 uppercase tracking-widest">
+                      {t("forum_online")} — {filteredUsers.filter((u) => u.online).length}
+                    </p>
+                    {filteredUsers.filter((u) => u.online).map((u) => (
+                      <button
+                        key={u.id}
+                        onClick={() => openDm(u.id)}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 text-left transition-colors"
+                      >
+                        <Avatar name={u.name} size="sm" online={true} />
+                        <span className="font-medium text-gray-800">{u.name}</span>
+                      </button>
+                    ))}
+                  </>
+                )}
+
+                {/* Offline */}
+                {filteredUsers.filter((u) => !u.online).length > 0 && (
+                  <>
+                    <p className="px-4 py-1 mt-1 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+                      {t("forum_offline")} — {filteredUsers.filter((u) => !u.online).length}
+                    </p>
+                    {filteredUsers.filter((u) => !u.online).map((u) => (
+                      <button
+                        key={u.id}
+                        onClick={() => openDm(u.id)}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 text-left transition-colors opacity-60"
+                      >
+                        <Avatar name={u.name} size="sm" online={false} />
+                        <div>
+                          <span className="font-medium text-gray-700">{u.name}</span>
+                          {u.lastSeen && (
+                            <p className="text-[10px] text-gray-400">{t("forum_last_seen")} {formatTime(u.lastSeen)}</p>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Sidebar footer — current user */}
+          {user && (
+            <div className="border-t border-gray-100 px-4 py-3 flex items-center gap-3 bg-gray-50">
+              <Avatar name={user.name ?? "Me"} size="sm" online={true} />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-gray-800 truncate">{user.name}</p>
+                <p className="text-[10px] text-emerald-600 font-medium">{t("forum_you_online")}</p>
+              </div>
+              <span className="text-[10px] text-gray-400 font-medium">SEBA AI</span>
+            </div>
+          )}
+        </aside>
+
+        {/* ── CHAT AREA ───────────────────────────────────────────────── */}
+        <main
+          className={cn(
+            "flex flex-col flex-1 overflow-hidden",
+            mobileSidebarOpen ? "hidden md:flex" : "flex"
+          )}
+        >
+          {/* Chat header */}
+          <div className="flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200 shadow-sm flex-shrink-0">
+            {/* Mobile back button */}
+            <button
+              className="md:hidden flex items-center justify-center w-8 h-8 rounded-lg hover:bg-gray-100 text-gray-500"
+              onClick={() => setMobileSidebarOpen(true)}
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+
+            {view === "channel" && activeChannel && (
+              <span className="text-2xl">{activeChannel.emoji}</span>
+            )}
+            {view === "dm" && activeDmUser && (
+              <Avatar name={activeDmUser.name} size="md" online={activeDmUser.online} />
+            )}
+
+            <div className="min-w-0 flex-1">
+              <h2 className="font-semibold text-gray-900 truncate">{headerTitle}</h2>
+              {headerSub && <p className="text-xs text-gray-400 truncate">{headerSub}</p>}
+            </div>
+
+            <div className="flex items-center gap-1 text-gray-400">
+              {view === "channel" && (
+                <button
+                  onClick={() => setShowUserList((v) => !v)}
+                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                  title={t("forum_members")}
+                >
+                  <Users className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
+            {(view === "channel" ? channelMessages : dmMessages).length === 0 && (
+              <div className="flex flex-col items-center justify-center h-full text-center text-gray-400 py-16">
+                {view === "channel" ? (
+                  <>
+                    <span className="text-5xl mb-3">{activeChannel?.emoji ?? "💬"}</span>
+                    <p className="font-semibold text-gray-600 text-lg">#{activeChannel?.name}</p>
+                    <p className="text-sm mt-1">{t("forum_channel_empty")}</p>
+                  </>
+                ) : (
+                  <>
+                    <MessageSquare className="w-12 h-12 mb-3 opacity-20" />
+                    <p className="font-semibold text-gray-600">{t("forum_dm_empty_title")}</p>
+                    <p className="text-sm mt-1">{t("forum_dm_empty_sub")}</p>
+                  </>
+                )}
+              </div>
+            )}
+
+            {view === "channel" && channelMessages.map((msg, idx) => {
+              const isMine = msg.userId === user?.id;
+              const prevMsg = channelMessages[idx - 1];
+              const sameAuthor = prevMsg && prevMsg.userId === msg.userId;
+              const timeDiff = prevMsg
+                ? new Date(msg.createdAt).getTime() - new Date(prevMsg.createdAt).getTime()
+                : Infinity;
+              const showHeader = !sameAuthor || timeDiff > 5 * 60_000;
+              return (
+                <div key={msg.id} className={cn("flex items-end gap-2", isMine ? "flex-row-reverse" : "flex-row", showHeader ? "mt-4" : "mt-0.5")}>
+                  {!isMine && showHeader && <Avatar name={msg.userName} size="sm" />}
+                  {!isMine && !showHeader && <div className="w-7 flex-shrink-0" />}
+                  <div className={cn("max-w-[70%] flex flex-col", isMine ? "items-end" : "items-start")}>
+                    {showHeader && !isMine && <span className="text-xs font-semibold text-gray-500 mb-1 ml-1">{msg.userName}</span>}
+                    <div className={cn("px-3.5 py-2 rounded-2xl text-sm leading-relaxed shadow-sm", isMine ? "bg-primary text-white rounded-br-sm" : "bg-white text-gray-800 border border-gray-100 rounded-bl-sm")}>
+                      {msg.body}
+                    </div>
+                    <span className="text-[10px] text-gray-400 mt-0.5 mx-1">{formatTime(msg.createdAt)}</span>
+                  </div>
+                </div>
+              );
+            })}
+            {view === "dm" && dmMessages.map((msg, idx) => {
+              const isMine = msg.isMine;
+              const prevMsg = dmMessages[idx - 1];
+              const sameAuthor = prevMsg && prevMsg.fromUserId === msg.fromUserId;
+              const timeDiff = prevMsg
+                ? new Date(msg.createdAt).getTime() - new Date(prevMsg.createdAt).getTime()
+                : Infinity;
+              const showHeader = !sameAuthor || timeDiff > 5 * 60_000;
+              return (
+                <div key={msg.id} className={cn("flex items-end gap-2", isMine ? "flex-row-reverse" : "flex-row", showHeader ? "mt-4" : "mt-0.5")}>
+                  {!isMine && showHeader && <Avatar name={msg.fromName} size="sm" />}
+                  {!isMine && !showHeader && <div className="w-7 flex-shrink-0" />}
+                  <div className={cn("max-w-[70%] flex flex-col", isMine ? "items-end" : "items-start")}>
+                    {showHeader && !isMine && <span className="text-xs font-semibold text-gray-500 mb-1 ml-1">{msg.fromName}</span>}
+                    <div className={cn("px-3.5 py-2 rounded-2xl text-sm leading-relaxed shadow-sm", isMine ? "bg-primary text-white rounded-br-sm" : "bg-white text-gray-800 border border-gray-100 rounded-bl-sm")}>
+                      {msg.body}
+                    </div>
+                    <span className="text-[10px] text-gray-400 mt-0.5 mx-1">{formatTime(msg.createdAt)}</span>
+                  </div>
+                </div>
+              );
+            })}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Input bar */}
+          <div className="flex-shrink-0 bg-white border-t border-gray-200 px-4 py-3">
+            <div className="flex items-end gap-2 bg-gray-50 border border-gray-200 rounded-2xl px-3 py-2 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+              <textarea
+                ref={inputRef}
+                rows={1}
+                value={input}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  e.target.style.height = "auto";
+                  e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+                }}
+                onKeyDown={handleKeyDown}
+                placeholder={
+                  view === "channel" && activeChannel
+                    ? `${t("forum_message_placeholder")} #${activeChannel.name}`
+                    : view === "dm" && activeDmUser
+                    ? `${t("forum_dm_placeholder")} ${activeDmUser.name}`
+                    : t("forum_message_placeholder")
+                }
+                className="flex-1 bg-transparent resize-none outline-none text-sm text-gray-800 placeholder:text-gray-400 max-h-28 leading-relaxed"
+                style={{ minHeight: "24px" }}
+              />
+              <button
+                onClick={handleSend}
+                disabled={!input.trim() || sending}
+                className={cn(
+                  "flex items-center justify-center w-8 h-8 rounded-xl transition-all flex-shrink-0",
+                  input.trim() && !sending
+                    ? "bg-primary text-white hover:bg-primary/90 shadow-sm"
+                    : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                )}
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-[10px] text-gray-400 mt-1.5 text-center">
+              {t("forum_enter_to_send")} · {t("forum_shift_enter")}
+            </p>
+          </div>
+        </main>
+      </div>
+
+      {/* Powered by SEBA footer strip */}
+      <div className="hidden md:flex items-center justify-center py-1 bg-gray-100 border-t border-gray-200 text-[10px] text-gray-400">
+        Powered by SEBA AI Studio · TA Fòrum
+      </div>
+    </div>
+  );
+}

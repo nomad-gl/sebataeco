@@ -515,6 +515,32 @@ export const translations = {
     cd_practice_this: "Practice This Competency",
     cd_create_materials: "Create Materials",
     cd_back_to_competencies: "Back to Competencies",
+
+    // NavBar - Forum
+    nav_forum: "TA Fòrum",
+
+    // TA Forum
+    forum_title: "TA F\u00f2rum",
+    forum_powered: "Powered by SEBA AI Studio",
+    forum_channels: "Channels",
+    forum_dms: "Messages",
+    forum_members: "Members",
+    forum_search: "Search...",
+    forum_online: "Online",
+    forum_offline: "Offline",
+    forum_online_short: "online",
+    forum_you_online: "Active now",
+    forum_last_seen: "Last seen",
+    forum_new_dm: "New message",
+    forum_no_dms: "No conversations yet",
+    forum_start_dm: "Start a conversation",
+    forum_channel_empty: "Be the first to say something!",
+    forum_dm_empty_title: "Start the conversation",
+    forum_dm_empty_sub: "Send a message to get started",
+    forum_message_placeholder: "Message",
+    forum_dm_placeholder: "Message",
+    forum_enter_to_send: "Enter to send",
+    forum_shift_enter: "Shift+Enter for new line",
   },
 
   es: {
@@ -1029,6 +1055,32 @@ export const translations = {
     cd_practice_this: "Practicar Esta Competencia",
     cd_create_materials: "Crear Materiales",
     cd_back_to_competencies: "Volver a las Competencias",
+
+    // NavBar - Forum
+    nav_forum: "TA F\u00f2rum",
+
+    // TA Forum
+    forum_title: "TA F\u00f2rum",
+    forum_powered: "Desarrollado por SEBA AI Studio",
+    forum_channels: "Canales",
+    forum_dms: "Mensajes",
+    forum_members: "Miembros",
+    forum_search: "Buscar...",
+    forum_online: "En l\u00ednea",
+    forum_offline: "Desconectado",
+    forum_online_short: "en l\u00ednea",
+    forum_you_online: "Activo ahora",
+    forum_last_seen: "\u00daltima vez",
+    forum_new_dm: "Nuevo mensaje",
+    forum_no_dms: "Sin conversaciones a\u00fan",
+    forum_start_dm: "Iniciar una conversaci\u00f3n",
+    forum_channel_empty: "\u00a1S\u00e9 el primero en escribir algo!",
+    forum_dm_empty_title: "Inicia la conversaci\u00f3n",
+    forum_dm_empty_sub: "Env\u00eda un mensaje para empezar",
+    forum_message_placeholder: "Mensaje",
+    forum_dm_placeholder: "Mensaje",
+    forum_enter_to_send: "Enter para enviar",
+    forum_shift_enter: "Shift+Enter para nueva l\u00ednea",
   },
 
   ca: {
@@ -1543,6 +1595,32 @@ export const translations = {
     cd_practice_this: "Practicar Aquesta Competència",
     cd_create_materials: "Crear Materials",
     cd_back_to_competencies: "Tornar a les Competències",
+
+    // NavBar - Forum
+    nav_forum: "TA F\u00f2rum",
+
+    // TA Forum
+    forum_title: "TA F\u00f2rum",
+    forum_powered: "Impulsat per SEBA AI Studio",
+    forum_channels: "Canals",
+    forum_dms: "Missatges",
+    forum_members: "Membres",
+    forum_search: "Cerca...",
+    forum_online: "En l\u00ednia",
+    forum_offline: "Desconnectat",
+    forum_online_short: "en l\u00ednia",
+    forum_you_online: "Actiu ara",
+    forum_last_seen: "Darrera vegada",
+    forum_new_dm: "Nou missatge",
+    forum_no_dms: "Sense converses encara",
+    forum_start_dm: "Inicia una conversa",
+    forum_channel_empty: "Sigues el primer a escriure alguna cosa!",
+    forum_dm_empty_title: "Inicia la conversa",
+    forum_dm_empty_sub: "Envia un missatge per comen\u00e7ar",
+    forum_message_placeholder: "Missatge",
+    forum_dm_placeholder: "Missatge",
+    forum_enter_to_send: "Enter per enviar",
+    forum_shift_enter: "Shift+Enter per nova l\u00ednia",
   },
 } as const;
 
