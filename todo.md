@@ -304,3 +304,6 @@
 
 ## Improvement: Unique competency detail page headers
 - [x] Give each of the 8 LOMLOE competency detail pages a unique hero header with its own colour gradient, large emoji, full name, and LOMLOE code badge
+
+## Fix: Scroll to top on competency detail page navigation
+- [x] Add useEffect scroll-to-top when competency code param changes in CompetencyDetail.tsx

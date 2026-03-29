@@ -1,4 +1,5 @@
 import { useLocation, Link } from "wouter";
+import { useEffect } from "react";
 import { ArrowLeft, BookOpen, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -574,6 +575,12 @@ export default function CompetencyDetail({ params }: { params: { code: string } 
   const { t } = useI18n();
   const [, navigate] = useLocation();
   const code = (params?.code ?? "").toUpperCase();
+
+  // Scroll to top whenever the competency code changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [code]);
+
   const comp = COMPETENCY_DETAIL[code];
 
   if (!comp) {
