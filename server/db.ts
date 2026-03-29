@@ -225,6 +225,12 @@ export async function updateChallengeStatus(id: number, status: "waiting" | "act
   await db.update(classChallenges).set(set).where(eq(classChallenges.id, id));
 }
 
+export async function setAnswerRevealed(id: number, revealed: boolean) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(classChallenges).set({ answerRevealed: revealed }).where(eq(classChallenges.id, id));
+}
+
 export async function joinChallenge(data: { challengeId: number; nickname: string }): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

@@ -165,6 +165,69 @@ Generate exactly 16 flashcards. Cover the most important concepts, vocabulary, a
   return `${base}\n${schemas[type] ?? ""}`;
 }
 
+// ─── Content rule validators / auto-fixers ──────────────────────────────────
+
+function validateAndFixQuiz(parsed: Record<string, unknown>): Record<string, unknown> {
+  const questions = (parsed.questions as Array<Record<string, unknown>> | undefined) ?? [];
+  const fixed = questions
+    .filter((q) => q.question && Array.isArray(q.options))
+    .map((q) => {
+      // Ensure exactly 4 options
+      const opts = (q.options as string[]).slice(0, 4);
+      while (opts.length < 4) opts.push(`Option ${opts.length + 1}`);
+      // Clamp correctIndex
+      const ci = Math.max(0, Math.min(3, Number(q.correctIndex ?? 0)));
+      // Ensure explanation exists
+      const explanation = (q.explanation as string) || `The correct answer is "${opts[ci]}".`;
+      return { ...q, options: opts, correctIndex: ci, explanation };
+    });
+  // Ensure at least 5 questions
+  return { ...parsed, questions: fixed.length >= 5 ? fixed : questions };
+}
+
+function validateAndFixCrossword(parsed: Record<string, unknown>): Record<string, unknown> {
+  const words = (parsed.words as Array<Record<string, unknown>> | undefined) ?? [];
+  // Ensure words are uppercase single tokens
+  const fixed = words.map((w, i) => ({
+    ...w,
+    number: w.number ?? i + 1,
+    word: String(w.word ?? "").toUpperCase().replace(/[^A-Z]/g, ""),
+    clue: w.clue ?? `Definition of ${w.word}`,
+    direction: w.direction === "down" ? "down" : "across",
+    row: Number(w.row ?? 0),
+    col: Number(w.col ?? 0),
+  })).filter((w) => w.word.length >= 3);
+  return { ...parsed, words: fixed };
+}
+
+function validateAndFixMissingWords(parsed: Record<string, unknown>): Record<string, unknown> {
+  const passage = String(parsed.passage ?? "");
+  const blanks = (parsed.blanks as Array<Record<string, unknown>> | undefined) ?? [];
+  const wordBank = (parsed.wordBank as string[] | undefined) ?? [];
+  // Count blanks in passage
+  const blankCount = (passage.match(/___/g) ?? []).length;
+  // Ensure wordBank has at least as many entries as blanks
+  const fixedBank = wordBank.length >= blankCount ? wordBank : [
+    ...wordBank,
+    ...blanks.map((b) => String(b.answer ?? "")).filter((a) => !wordBank.includes(a)),
+  ];
+  return { ...parsed, wordBank: fixedBank, blanks };
+}
+
+function validateAndFixWordsearch(parsed: Record<string, unknown>, size = 15): Record<string, unknown> {
+  const words = (parsed.words as Array<{ word: string; clue: string } | string> | undefined) ?? [];
+  const wordList = words.map((w) =>
+    typeof w === "string" ? w.toUpperCase() : w.word.toUpperCase()
+  ).filter((w) => w.length >= 3 && w.length <= size);
+  // Auto-size grid: min 12, max 20, at least word_count + 2
+  const autoSize = Math.max(12, Math.min(20, wordList.length + 2));
+  const gridSize = Number(parsed.gridSize ?? autoSize);
+  const finalSize = Math.max(gridSize, autoSize);
+  // Always rebuild grid server-side for correctness
+  const grid = buildWordsearchGrid(wordList, finalSize);
+  return { ...parsed, words, grid, gridSize: finalSize };
+}
+
 // ─── Wordsearch grid builder (server-side fallback) ───────────────────────────
 
 function buildWordsearchGrid(words: string[], size = 15): string[][] {
@@ -250,8 +313,72 @@ export const materialsRouter = router({
     return { sessions: sessions.slice(0, 20), chart };
   }),
 
-  // ── Teaching materials ────────────────────────────────────────────────────
+  // ── Teaching materials ────────────────────────────────────────────────
 
+  // generate: LLM call + content rules, does NOT save to DB
+  generate: protectedProcedure
+    .input(z.object({
+      type: MaterialTypeSchema,
+      topic: z.string().min(2).max(200),
+      competency: CompetencyCodeSchema.optional(),
+      yearGroup: YearGroupSchema.optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const systemPrompt = buildSystemPrompt(input.type, input.competency, input.yearGroup);
+      const contextQs = getQuestions(
+        input.competency as CompetencyCode | undefined,
+        input.yearGroup as YearGroup | undefined
+      ).slice(0, 6);
+      const contextText = contextQs.length > 0
+        ? `\n\nLOMLOE knowledge bank alignment examples (use as style/difficulty reference only):\n${contextQs.map(q => `- ${q.question} → ${q.options[q.correctIndex]}`).join("\n")}`
+        : "";
+      const userPrompt = `Topic: "${input.topic}"${contextText}\n\nResearch this topic thoroughly and generate the complete ${input.type} activity now. All content must be factually accurate and educationally rich.`;
+      const response = await invokeLLM({
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+      });
+      const rawContent = String(response.choices?.[0]?.message?.content ?? "{}");
+      let parsed: Record<string, unknown>;
+      try {
+        const cleaned = rawContent.replace(/^```json?\n?/, "").replace(/\n?```$/, "").trim();
+        parsed = JSON.parse(cleaned) as Record<string, unknown>;
+      } catch {
+        throw new Error("AI returned invalid JSON. Please try again.");
+      }
+      if (input.type === "quiz")          parsed = validateAndFixQuiz(parsed);
+      if (input.type === "crossword")     parsed = validateAndFixCrossword(parsed);
+      if (input.type === "missing_words") parsed = validateAndFixMissingWords(parsed);
+      if (input.type === "wordsearch")    parsed = validateAndFixWordsearch(parsed);
+      const title = (parsed.title as string) ?? `${input.type} – ${input.topic}`;
+      return { title, type: input.type, topic: input.topic, content: parsed };
+    }),
+
+  // save: write a previously generated draft to DB
+  save: protectedProcedure
+    .input(z.object({
+      type: MaterialTypeSchema,
+      topic: z.string().min(2).max(200),
+      competency: CompetencyCodeSchema.optional(),
+      yearGroup: YearGroupSchema.optional(),
+      title: z.string(),
+      content: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const id = await saveMaterial({
+        userId: ctx.user.id,
+        type: input.type,
+        title: input.title,
+        topic: input.topic,
+        competency: input.competency ?? null,
+        yearGroup: input.yearGroup ?? null,
+        content: input.content,
+      });
+      return { id, title: input.title };
+    }),
+
+  // create: legacy alias used by challenge derivation (generate + save in one step)
   create: protectedProcedure
     .input(z.object({
       type: MaterialTypeSchema,

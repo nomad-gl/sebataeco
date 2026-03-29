@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { boolean, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -74,6 +74,8 @@ export const classChallenges = mysqlTable("class_challenges", {
   questions: text("questions").notNull(),
   status: mysqlEnum("status", ["waiting", "active", "finished"]).default("waiting").notNull(),
   currentQuestion: int("currentQuestion").default(0).notNull(),
+  /** Whether the teacher has revealed the answer for the current question */
+  answerRevealed: boolean("answerRevealed").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

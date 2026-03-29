@@ -270,3 +270,26 @@
 - [ ] Include competency scores, assignment history, and AI report text in PDF
 - [ ] Add "Download PDF" button on the AI Report tab in StudentProgress page
 - [ ] Translate new PDF export button label (EN/ES/CA)
+
+## Feature: Teacher-only answer reveal in Class Challenge
+- [ ] Gate "Show Answers" button in Challenge live view so only the teacher (room owner) can trigger it
+- [ ] Students see a "Waiting for teacher..." state when answers are not yet revealed
+- [ ] Reveal state is broadcast to all participants via the existing poll mechanism
+
+## Feature: Import from sebasnap.com admin area
+- [ ] Add Import button on My Materials page
+- [ ] Server procedure to fetch materials list from sebasnap.com admin API
+- [ ] Map sebasnap material format to SEBA AI Studio material schema
+- [ ] Allow editing imported material before saving
+
+## Feature: Enforce content rules for each material type
+- [ ] Quiz: exactly 4 options per question, exactly 1 correct answer, no duplicate options
+- [ ] Crossword: words must intersect at shared letters, minimum 5 words, grid auto-sized
+- [ ] Missing Words: 20–30% of words blanked, blanks distributed evenly, no consecutive blanks
+- [ ] Wordsearch: grid size scales with word count (min 10×10), all words must fit, no overlapping conflicts
+
+## Feature: Preview-and-edit before saving to My Materials
+- [ ] After material generation, show a full preview modal/page instead of saving immediately
+- [ ] Allow inline editing of all fields (questions, options, correct answer, words, text)
+- [ ] "Save to My Materials" button only appears after user reviews the preview
+- [ ] "Regenerate" button to discard and generate again without saving

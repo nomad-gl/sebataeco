@@ -36,6 +36,13 @@
       "when": 1774740004572,
       "tag": "0004_condemned_galactus",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1774744740667,
+      "tag": "0005_glorious_moira_mactaggert",
+      "breakpoints": true
     }
   ]
 }

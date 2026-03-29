@@ -305,13 +305,19 @@ export default function Join() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
             {(currentQ.options ?? []).map((opt: string, i: number) => {
               const isSelected = selected === i;
+              const isCorrect = currentQ.answerRevealed && i === currentQ.correctIndex;
+              const isWrong = currentQ.answerRevealed && isSelected && i !== currentQ.correctIndex;
               return (
                 <button
                   key={i}
                   onClick={() => handleAnswer(i)}
-                  disabled={answered}
+                  disabled={answered || !!currentQ.answerRevealed}
                   className={`rounded-2xl border bg-gradient-to-br p-4 text-left font-medium transition-all flex items-start gap-3 shadow-lg ${
-                    isSelected
+                    isCorrect
+                      ? "from-green-400 to-green-500 border-green-300 ring-2 ring-green-300 scale-[1.02]"
+                      : isWrong
+                      ? "from-red-600/60 to-red-700/60 border-red-400/40 opacity-70"
+                      : isSelected
                       ? optionColorsSelected[i % 4]
                       : answered
                       ? `${optionColors[i % 4]} opacity-40 cursor-not-allowed`
@@ -319,15 +325,23 @@ export default function Join() {
                   }`}
                 >
                   <span className="font-black text-white/90 shrink-0 text-lg leading-none">{letters[i]}</span>
-                  <span className="text-white text-sm leading-snug">{opt}</span>
+                  <span className="text-white text-sm leading-snug flex-1">{opt}</span>
+                  {isCorrect && <span className="text-white font-black text-lg">✓</span>}
+                  {isWrong && <span className="text-white/70 font-black text-lg">✗</span>}
                 </button>
               );
             })}
           </div>
 
-          {answered && (
+          {currentQ.answerRevealed && currentQ.explanation && (
+            <div className="bg-green-500/10 border border-green-400/30 rounded-xl p-3 text-green-200 text-sm w-full">
+              <span className="font-semibold text-green-300">💡 </span>{currentQ.explanation}
+            </div>
+          )}
+
+          {answered && !currentQ.answerRevealed && (
             <p className="text-center text-white/60 text-sm animate-pulse mt-2">
-              {t("join_waiting_next")}
+              {t("challenge_waiting_reveal")}
             </p>
           )}
         </div>

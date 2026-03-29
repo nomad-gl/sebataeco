@@ -2,11 +2,12 @@ import { z } from "zod";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { invokeLLM } from "../_core/llm";
 import {
-  createChallenge,
   getChallengeByCode,
   getChallengeById,
   getChallengesByHost,
+  createChallenge,
   updateChallengeStatus,
+  setAnswerRevealed,
   joinChallenge,
   submitAnswer,
   getParticipants,
@@ -243,22 +244,27 @@ export const challengeRouter = router({
   control: protectedProcedure
     .input(z.object({
       id: z.number(),
-      action: z.enum(["start", "next", "finish"]),
+      action: z.enum(["start", "next", "finish", "reveal"]),
     }))
     .mutation(async ({ ctx, input }) => {
       const challenge = await getChallengeById(input.id);
       if (!challenge || challenge.hostId !== ctx.user.id) throw new Error("Not found");
       const questions = JSON.parse(challenge.questions) as unknown[];
       if (input.action === "start") {
+        await setAnswerRevealed(input.id, false);
         await updateChallengeStatus(input.id, "active", 0);
+      } else if (input.action === "reveal") {
+        await setAnswerRevealed(input.id, true);
       } else if (input.action === "next") {
         const next = challenge.currentQuestion + 1;
+        await setAnswerRevealed(input.id, false);
         if (next >= questions.length) {
           await updateChallengeStatus(input.id, "finished", next);
         } else {
           await updateChallengeStatus(input.id, "active", next);
         }
       } else {
+        await setAnswerRevealed(input.id, false);
         await updateChallengeStatus(input.id, "finished");
       }
       return { success: true };
@@ -308,9 +314,10 @@ export const challengeRouter = router({
         question: q.question,
         options: q.options,
         competency: q.competency,
-        // Only reveal answer when finished
-        correctIndex: challenge.status === "finished" ? q.correctIndex : undefined,
-        explanation: challenge.status === "finished" ? q.explanation : undefined,
+        // Reveal answer when teacher triggers reveal OR when challenge is finished
+        correctIndex: (challenge.answerRevealed || challenge.status === "finished") ? q.correctIndex : undefined,
+        explanation: (challenge.answerRevealed || challenge.status === "finished") ? q.explanation : undefined,
+        answerRevealed: challenge.answerRevealed,
       };
     }),
 

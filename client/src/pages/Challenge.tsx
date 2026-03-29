@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import {
   Zap, Users, Trophy, ChevronRight, ChevronLeft,
   Copy, Play, SkipForward, StopCircle, Plus, Loader2,
-  BookOpen, Library, CheckCircle2, QrCode, Link2, Printer,
+  BookOpen, Library, CheckCircle2, QrCode, Link2, Printer, Eye,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import CompetencySelector from "@/components/CompetencySelector";
@@ -498,12 +498,25 @@ export default function Challenge() {
                   )}
                   <p className="text-xl font-semibold text-white">{q.question}</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {q.options.map((opt, i) => (
-                      <div key={i} className="bg-white/10 border border-white/20 rounded-xl p-3 text-white text-sm">
-                        <span className="font-bold text-yellow-300 mr-2">{String.fromCharCode(65 + i)}.</span>{opt}
-                      </div>
-                    ))}
+                    {q.options.map((opt, i) => {
+                      const isCorrect = room.answerRevealed && i === q.correctIndex;
+                      return (
+                        <div key={i} className={`border rounded-xl p-3 text-sm transition-all ${
+                          isCorrect
+                            ? "bg-green-500/30 border-green-400/60 ring-2 ring-green-400/50"
+                            : "bg-white/10 border-white/20"
+                        } text-white`}>
+                          <span className="font-bold text-yellow-300 mr-2">{String.fromCharCode(65 + i)}.</span>{opt}
+                          {isCorrect && <span className="ml-2 text-green-300 font-bold text-xs">✓</span>}
+                        </div>
+                      );
+                    })}
                   </div>
+                  {room.answerRevealed && q.explanation && (
+                    <div className="bg-green-500/10 border border-green-400/30 rounded-xl p-3 text-green-200 text-sm">
+                      <span className="font-semibold text-green-300">{t("practice_explanation")}: </span>{q.explanation}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -519,14 +532,26 @@ export default function Challenge() {
               </div>
 
               <div className="flex gap-3">
-                <Button
-                  className="flex-1 bg-yellow-400 hover:bg-yellow-300 text-black font-bold gap-2"
-                  disabled={controlMutation.isPending}
-                  onClick={() => controlMutation.mutate({ id: room.id, action: "next" })}
-                >
-                  <SkipForward className="w-4 h-4" />
-                  {room.currentQuestion + 1 >= room.questions.length ? t("practice_finish") : t("practice_next")}
-                </Button>
+                {!room.answerRevealed ? (
+                  <Button
+                    variant="outline"
+                    className="flex-1 border-green-400/50 text-green-300 hover:bg-green-500/10 gap-2 font-semibold"
+                    disabled={controlMutation.isPending}
+                    onClick={() => controlMutation.mutate({ id: room.id, action: "reveal" })}
+                  >
+                    <Eye className="w-4 h-4" />
+                    {t("challenge_reveal_answer")}
+                  </Button>
+                ) : (
+                  <Button
+                    className="flex-1 bg-yellow-400 hover:bg-yellow-300 text-black font-bold gap-2"
+                    disabled={controlMutation.isPending}
+                    onClick={() => controlMutation.mutate({ id: room.id, action: "next" })}
+                  >
+                    <SkipForward className="w-4 h-4" />
+                    {room.currentQuestion + 1 >= room.questions.length ? t("practice_finish") : t("practice_next")}
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   className="border-red-400/50 text-red-300 hover:bg-red-500/10"

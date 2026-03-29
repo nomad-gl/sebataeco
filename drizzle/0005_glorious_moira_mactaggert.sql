@@ -1,0 +1,1 @@
+ALTER TABLE `class_challenges` ADD `answerRevealed` boolean DEFAULT false NOT NULL;

@@ -494,6 +494,17 @@ export const translations = {
     // Assignment reminders
     assign_reminders: "Reminders",
     assign_reminder_enabled: "Notify when overdue",
+    // Challenge answer reveal
+    challenge_reveal_answer: "Reveal Answer",
+    challenge_waiting_reveal: "Waiting for teacher to reveal answer…",
+    // Create: preview-before-save
+    create_preview_title: "Preview & Edit",
+    create_preview_hint: "Click any field to edit before saving to My Materials.",
+    create_save_material: "Save to My Materials",
+    create_discard: "Discard",
+    create_regenerate: "Regenerate",
+    create_back_to_create: "Back to Create",
+    create_step1_label: "Choose Activity Type",
   },
 
   es: {
@@ -987,6 +998,17 @@ export const translations = {
     // Assignment reminders
     assign_reminders: "Recordatorios",
     assign_reminder_enabled: "Notificar cuando esté vencido",
+    // Challenge answer reveal
+    challenge_reveal_answer: "Revelar Respuesta",
+    challenge_waiting_reveal: "Esperando que el profesor revele la respuesta…",
+    // Create: preview-before-save
+    create_preview_title: "Vista Previa y Edición",
+    create_preview_hint: "Haz clic en cualquier campo para editar antes de guardar en Mis Materiales.",
+    create_save_material: "Guardar en Mis Materiales",
+    create_discard: "Descartar",
+    create_regenerate: "Regenerar",
+    create_back_to_create: "Volver a Crear",
+    create_step1_label: "Elige el Tipo de Actividad",
   },
 
   ca: {
@@ -1480,6 +1502,17 @@ export const translations = {
     // Assignment reminders
     assign_reminders: "Recordatoris",
     assign_reminder_enabled: "Notificar quan estigui vençut",
+    // Challenge answer reveal
+    challenge_reveal_answer: "Revelar Resposta",
+    challenge_waiting_reveal: "Esperant que el professor reveli la resposta…",
+    // Create: preview-before-save
+    create_preview_title: "Vista Prèvia i Edició",
+    create_preview_hint: "Fes clic a qualsevol camp per editar-lo abans de desar a Els Meus Materials.",
+    create_save_material: "Desar a Els Meus Materials",
+    create_discard: "Descartar",
+    create_regenerate: "Regenerar",
+    create_back_to_create: "Tornar a Crear",
+    create_step1_label: "Tria el Tipus d'Activitat",
   },
 } as const;
 
