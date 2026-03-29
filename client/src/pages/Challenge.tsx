@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import NavBar from "@/components/NavBar";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -17,6 +17,8 @@ import {
 import { QRCodeSVG } from "qrcode.react";
 import CompetencySelector from "@/components/CompetencySelector";
 import { useI18n } from "@/contexts/I18nContext";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
 type YearGroup = "junior" | "primary" | "secondary";
@@ -88,6 +90,33 @@ export default function Challenge() {
 
   const myRooms = trpc.challenge.myRooms.useQuery(undefined, { enabled: isAuthenticated });
   const myMaterials = trpc.materials.list.useQuery(undefined, { enabled: isAuthenticated && view === "create" });
+
+  // Save-to-group dialog state (declared after roomQuery)
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [saveGroupId, setSaveGroupId] = useState<string>("none");
+  const myGroups = trpc.groups.list.useQuery(undefined, { enabled: isAuthenticated && showSaveDialog });
+  const saveMutation = trpc.progress.saveChallengeToGroup.useMutation({
+    onSuccess: (data) => {
+      toast.success(`${t("challenge_save_group_success")} (${data.matched}/${data.total} matched)`);
+      setShowSaveDialog(false);
+    },
+    onError: () => toast.error(t("challenge_save_group_error")),
+  });
+  const handleSaveToGroup = useCallback(() => {
+    const r = roomQuery.data;
+    if (!r || !roomId || saveGroupId === "none") return;
+    saveMutation.mutate({
+      groupId: parseInt(saveGroupId, 10),
+      challengeId: roomId,
+      challengeTitle: r.title,
+      competency: r.competency ?? undefined,
+      participants: r.participants.map((p) => ({
+        nickname: p.nickname,
+        score: p.score,
+        total: r.questions.length,
+      })),
+    });
+  }, [roomQuery.data, roomId, saveGroupId, saveMutation]);
 
   useEffect(() => {
     if (view === "lobby" || view === "live") setPollInterval(2000);
@@ -563,7 +592,7 @@ export default function Challenge() {
               </div>
             </details>
 
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-wrap">
               <Button
                 className="flex-1 bg-yellow-400 hover:bg-yellow-300 text-black font-bold"
                 onClick={() => { setView("create"); setTitle(""); setRoomId(null); setSelectedMaterialId(null); }}
@@ -572,7 +601,14 @@ export default function Challenge() {
               </Button>
               <Button
                 variant="outline"
-                className="border-white/30 text-white hover:bg-white/10"
+                className="border-teal-400/50 text-teal-300 hover:bg-teal-600/20 bg-transparent"
+                onClick={() => setShowSaveDialog(true)}
+              >
+                <Users className="w-4 h-4 mr-2" /> {t("challenge_save_to_group")}
+              </Button>
+              <Button
+                variant="outline"
+                className="border-white/30 text-white hover:bg-white/10 bg-transparent"
                 onClick={() => setView("home")}
               >
                 <ChevronLeft className="w-4 h-4 mr-2" /> {t("cancel")}
@@ -580,6 +616,48 @@ export default function Challenge() {
             </div>
           </div>
         )}
+
+        {/* ── Save to Group Dialog ── */}
+        <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+          <DialogContent className="bg-slate-900 border-white/20 text-white max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-white">{t("challenge_save_group_dialog_title")}</DialogTitle>
+            </DialogHeader>
+            <p className="text-white/60 text-sm">{t("challenge_save_group_dialog_desc")}</p>
+            {myGroups.isLoading ? (
+              <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-white/40" /></div>
+            ) : (myGroups.data?.length ?? 0) === 0 ? (
+              <p className="text-white/50 text-sm text-center py-4">{t("challenge_save_group_no_groups")}</p>
+            ) : (
+              <Select value={saveGroupId} onValueChange={setSaveGroupId}>
+                <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                  <SelectValue placeholder={t("challenge_save_group_select")} />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-800 border-white/20">
+                  <SelectItem value="none" className="text-white/50">{t("challenge_save_group_select")}</SelectItem>
+                  {myGroups.data?.map((g) => (
+                    <SelectItem key={g.id} value={String(g.id)} className="text-white">
+                      {g.className} — {g.level}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <DialogFooter className="gap-2">
+              <Button variant="ghost" onClick={() => setShowSaveDialog(false)} className="text-white/60 hover:text-white">
+                {t("cancel")}
+              </Button>
+              <Button
+                onClick={handleSaveToGroup}
+                disabled={saveGroupId === "none" || saveMutation.isPending}
+                className="bg-teal-600 hover:bg-teal-500 text-white"
+              >
+                {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                {t("challenge_save_group_confirm")}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

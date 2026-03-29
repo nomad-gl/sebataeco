@@ -18,7 +18,7 @@ import {
 } from "recharts";
 import {
   ArrowLeft, User, TrendingUp, BookOpen, FileText,
-  CheckCircle2, Circle, Loader2, Sparkles, Trophy, Star,
+  CheckCircle2, Circle, Loader2, Sparkles, Trophy, Star, Download,
 } from "lucide-react";
 import NavBar from "@/components/NavBar";
 import { Streamdown } from "streamdown";
@@ -560,6 +560,28 @@ export default function StudentProgress() {
                     <div className="prose prose-invert prose-sm max-w-none bg-white/5 rounded-lg p-4 border border-white/10">
                       <Streamdown>{reportText}</Streamdown>
                     </div>
+                    <Button
+                      variant="outline"
+                      className="w-full border-white/20 text-white hover:bg-white/10 bg-transparent gap-2"
+                      onClick={() => {
+                        const blob = new Blob([
+                          `SEBA AI Studio — Student Progress Report\n`,
+                          `Student: ${student?.name ?? "Student"}\n`,
+                          `LOMLOE Grade: ${reportGrade ?? "N/A"}\n`,
+                          `Generated: ${new Date().toLocaleDateString()}\n\n`,
+                          reportText,
+                        ], { type: "text/plain" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `${(student?.name ?? "student").replace(/\s+/g, "_")}_progress_report.txt`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      }}
+                    >
+                      <Download className="w-4 h-4" />
+                      {t("sp_download_pdf")}
+                    </Button>
                   </div>
                 )}
               </CardContent>

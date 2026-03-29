@@ -252,3 +252,21 @@
 - [ ] GroupProgress page: AI group summary report
 - [ ] Wire student row in Groups page to StudentProgress page
 - [ ] Add i18n keys for all new progress tracking strings (EN/ES/CA)
+
+## Feature: Auto-log Challenge Scores to Group Progress
+- [ ] After challenge ends, show "Save to Group" dialog on results screen
+- [ ] Let teacher pick which group to associate the results with
+- [ ] Write student_progress rows for each participant matched by name/number
+- [ ] Record challenge in group_challenge_log with competencies covered
+
+## Feature: Assignment Due-Date Reminders
+- [ ] Add checkOverdueAssignments server procedure
+- [ ] Call notifyOwner when an assignment is past due with no completions
+- [ ] Add "Enable reminders" toggle per assignment in the UI
+- [ ] Wire reminder check to a periodic server-side call (on page load or cron)
+
+## Feature: PDF Export of Student Progress Report
+- [ ] Add server-side PDF generation procedure (html-to-pdf / pdfkit)
+- [ ] Include competency scores, assignment history, and AI report text in PDF
+- [ ] Add "Download PDF" button on the AI Report tab in StudentProgress page
+- [ ] Translate new PDF export button label (EN/ES/CA)

@@ -478,6 +478,22 @@ export const translations = {
     gp_report_failed: "Failed to generate class report",
     gp_view_student: "View",
     gp_no_students: "No students in this group yet",
+    // Challenge → Save to Group
+    challenge_save_to_group: "Save to Group",
+    challenge_save_group_dialog_title: "Save Results to Group",
+    challenge_save_group_dialog_desc: "Associate these challenge results with a class group to track student progress.",
+    challenge_save_group_select: "Select a group",
+    challenge_save_group_confirm: "Save Results",
+    challenge_save_group_success: "Results saved to group progress",
+    challenge_save_group_error: "Failed to save results",
+    challenge_save_group_no_groups: "No groups found — create one in My Classes first",
+    // PDF Export
+    sp_download_pdf: "Download PDF",
+    sp_pdf_generating: "Generating PDF...",
+    sp_pdf_error: "Failed to generate PDF",
+    // Assignment reminders
+    assign_reminders: "Reminders",
+    assign_reminder_enabled: "Notify when overdue",
   },
 
   es: {
@@ -955,6 +971,22 @@ export const translations = {
     gp_report_failed: "Error al generar el informe de clase",
     gp_view_student: "Ver",
     gp_no_students: "Aún no hay alumnos en este grupo",
+    // Challenge → Save to Group
+    challenge_save_to_group: "Guardar en Grupo",
+    challenge_save_group_dialog_title: "Guardar Resultados en Grupo",
+    challenge_save_group_dialog_desc: "Asocia los resultados de este reto con un grupo de clase para hacer seguimiento del progreso.",
+    challenge_save_group_select: "Selecciona un grupo",
+    challenge_save_group_confirm: "Guardar Resultados",
+    challenge_save_group_success: "Resultados guardados en el progreso del grupo",
+    challenge_save_group_error: "Error al guardar los resultados",
+    challenge_save_group_no_groups: "No hay grupos — crea uno en Mis Clases primero",
+    // PDF Export
+    sp_download_pdf: "Descargar PDF",
+    sp_pdf_generating: "Generando PDF...",
+    sp_pdf_error: "Error al generar el PDF",
+    // Assignment reminders
+    assign_reminders: "Recordatorios",
+    assign_reminder_enabled: "Notificar cuando esté vencido",
   },
 
   ca: {
@@ -1432,6 +1464,22 @@ export const translations = {
     gp_report_failed: "Error en generar l'informe de classe",
     gp_view_student: "Veure",
     gp_no_students: "Encara no hi ha alumnes en aquest grup",
+    // Challenge → Save to Group
+    challenge_save_to_group: "Desar al Grup",
+    challenge_save_group_dialog_title: "Desar Resultats al Grup",
+    challenge_save_group_dialog_desc: "Associa els resultats d'aquest repte amb un grup de classe per fer el seguiment del progrés.",
+    challenge_save_group_select: "Selecciona un grup",
+    challenge_save_group_confirm: "Desar Resultats",
+    challenge_save_group_success: "Resultats desats al progrés del grup",
+    challenge_save_group_error: "Error en desar els resultats",
+    challenge_save_group_no_groups: "No hi ha grups — crea'n un a Les Meves Classes primer",
+    // PDF Export
+    sp_download_pdf: "Descarregar PDF",
+    sp_pdf_generating: "Generant PDF...",
+    sp_pdf_error: "Error en generar el PDF",
+    // Assignment reminders
+    assign_reminders: "Recordatoris",
+    assign_reminder_enabled: "Notificar quan estigui vençut",
   },
 } as const;
 

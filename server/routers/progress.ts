@@ -562,4 +562,107 @@ Use a professional, analytical tone. Format with clear headings.`;
 
       return { report, grade, overall: classOverall };
     }),
+
+  /** Save challenge participant scores to a group's student progress records */
+  saveChallengeToGroup: protectedProcedure
+    .input(
+      z.object({
+        groupId: z.number(),
+        challengeId: z.number(),
+        challengeTitle: z.string(),
+        competency: z.string().optional(),
+        /** Array of { nickname, score, total } from the leaderboard */
+        participants: z.array(
+          z.object({
+            nickname: z.string(),
+            score: z.number(),
+            total: z.number(),
+          })
+        ),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      // Verify group belongs to this teacher
+      const [group] = await db
+        .select()
+        .from(classGroups)
+        .where(and(eq(classGroups.id, input.groupId), eq(classGroups.userId, ctx.user.id)));
+      if (!group) throw new Error("Group not found");
+      // Fetch students in this group
+      const students = await db
+        .select()
+        .from(groupStudents)
+        .where(eq(groupStudents.groupId, input.groupId));
+      // Match participants to students by nickname (case-insensitive)
+      const { groupChallengeLog } = await import("../../drizzle/schema");
+      // Log the challenge in group_challenge_log
+      const competencies = input.competency ? [input.competency] : [];
+      await db.insert(groupChallengeLog).values({
+        groupId: input.groupId,
+        challengeId: input.challengeId,
+        challengeTitle: input.challengeTitle,
+        competencies: JSON.stringify(competencies),
+        runAt: new Date(),
+      });
+      // Write student_progress rows for matched students
+      let matched = 0;
+      for (const p of input.participants) {
+        const student = students.find(
+          (s) => s.name.toLowerCase() === p.nickname.toLowerCase()
+        );
+        if (!student) continue;
+        const pct = p.total > 0 ? Math.round((p.score / p.total) * 100) : 0;
+        const comps = competencies.length > 0 ? competencies : ["CCL"];
+        for (const comp of comps) {
+          await db.insert(studentProgress).values({
+            groupId: input.groupId,
+            studentId: student.id,
+            activityType: "challenge",
+            activityTitle: input.challengeTitle,
+            competency: comp,
+            score: pct,
+            recordedAt: new Date(),
+          });
+        }
+        matched++;
+      }
+      return { matched, total: input.participants.length };
+    }),
+
+  /** Check for overdue assignments and notify the owner */
+  checkOverdueAssignments: protectedProcedure
+    .input(z.object({ groupId: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const now = new Date();
+      const allAssignments = await db
+        .select()
+        .from(assignments)
+        .where(eq(assignments.groupId, input.groupId));
+      const overdue = allAssignments.filter(
+        (a) => a.dueDate && new Date(a.dueDate) < now
+      );
+      if (overdue.length === 0) return { overdue: 0 };
+      // Check which have zero completions
+      const overdueIds = overdue.map((a) => a.id);
+      const completions = await db
+        .select()
+        .from(assignmentCompletions)
+        .where(inArray(assignmentCompletions.assignmentId, overdueIds));
+      const completedIds = new Set(completions.map((c) => c.assignmentId));
+      const uncompleted = overdue.filter((a) => !completedIds.has(a.id));
+      if (uncompleted.length === 0) return { overdue: 0 };
+      // Notify the owner
+      const { notifyOwner } = await import("../_core/notification");
+      await notifyOwner({
+        title: `${uncompleted.length} overdue assignment${uncompleted.length > 1 ? "s" : ""} with no completions`,
+        content: uncompleted
+          .map((a) => `• ${a.title} (due ${new Date(a.dueDate!).toLocaleDateString()})`)
+          .join("\n"),
+      });
+      return { overdue: uncompleted.length };
+    }),
 });
