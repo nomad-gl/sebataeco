@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import NavBar from "@/components/NavBar";
 import { useI18n } from "@/contexts/I18nContext";
+import { COMPETENCY_DETAIL_ES, COMPETENCY_DETAIL_CA } from "@/data/competencyTranslations";
 import { cn } from "@/lib/utils";
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -572,7 +573,7 @@ const COMPETENCY_DETAIL: Record<string, CompetencyData> = {
    Component
 ───────────────────────────────────────────────────────────────────────────── */
 export default function CompetencyDetail({ params }: { params: { code: string } }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [, navigate] = useLocation();
   const code = (params?.code ?? "").toUpperCase();
 
@@ -581,7 +582,9 @@ export default function CompetencyDetail({ params }: { params: { code: string } 
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [code]);
 
-  const comp = COMPETENCY_DETAIL[code];
+  const baseComp = COMPETENCY_DETAIL[code];
+  const override = lang === "es" ? COMPETENCY_DETAIL_ES[code] : lang === "ca" ? COMPETENCY_DETAIL_CA[code] : undefined;
+  const comp = baseComp ? { ...baseComp, ...override } : undefined;
 
   if (!comp) {
     return (

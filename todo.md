@@ -322,3 +322,9 @@
 - [x] i18n keys for TA Fòrum in EN/ES/CA
 - [x] NavBar link to /forum
 - [x] Vitest tests for forum procedures
+
+## Fix: Competències page incomplete translations
+- [x] Audit all keys used in Competències / CompetencyDetail pages
+- [x] Add missing ES translations for all Competències keys
+- [x] Add missing CA translations for all Competències keys
+- [x] Verify 0 TypeScript errors and all tests pass
