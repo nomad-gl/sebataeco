@@ -11,6 +11,73 @@ import { cn } from "@/lib/utils";
    Full LOMLOE Competency Data
    Source: Real Decreto 157/2022 (Primaria) & Real Decreto 217/2022 (ESO)
 ───────────────────────────────────────────────────────────────────────────── */
+/* Each competency gets a fully unique visual identity */
+const COMP_THEMES: Record<string, {
+  gradient: string;
+  accentColor: string;
+  patternColor: string;
+  tagline: string;
+  patternType: "circles" | "lines" | "dots" | "waves" | "grid" | "hexagons" | "triangles" | "stars";
+}> = {
+  CCL: {
+    gradient: "linear-gradient(135deg, oklch(0.35 0.22 240) 0%, oklch(0.20 0.15 220) 50%, oklch(0.12 0.08 210) 100%)",
+    accentColor: "oklch(0.65 0.22 240)",
+    patternColor: "rgba(100,160,255,0.08)",
+    tagline: "Comunicación · Lectura · Escritura · Expresión",
+    patternType: "lines",
+  },
+  CP: {
+    gradient: "linear-gradient(135deg, oklch(0.32 0.18 185) 0%, oklch(0.20 0.14 200) 50%, oklch(0.12 0.08 195) 100%)",
+    accentColor: "oklch(0.65 0.18 185)",
+    patternColor: "rgba(80,220,200,0.08)",
+    tagline: "Plurilingüismo · Culturas · Lenguas · Identidad",
+    patternType: "circles",
+  },
+  STEM: {
+    gradient: "linear-gradient(135deg, oklch(0.30 0.20 145) 0%, oklch(0.18 0.14 160) 50%, oklch(0.12 0.08 150) 100%)",
+    accentColor: "oklch(0.65 0.22 145)",
+    patternColor: "rgba(80,220,120,0.08)",
+    tagline: "Ciencia · Tecnología · Ingeniería · Matemáticas",
+    patternType: "grid",
+  },
+  CD: {
+    gradient: "linear-gradient(135deg, oklch(0.30 0.22 270) 0%, oklch(0.18 0.16 285) 50%, oklch(0.12 0.08 275) 100%)",
+    accentColor: "oklch(0.65 0.22 270)",
+    patternColor: "rgba(140,100,255,0.08)",
+    tagline: "Digital · Tecnología · Datos · Ciudadanía",
+    patternType: "hexagons",
+  },
+  CPSAA: {
+    gradient: "linear-gradient(135deg, oklch(0.38 0.20 30) 0%, oklch(0.22 0.14 40) 50%, oklch(0.14 0.08 35) 100%)",
+    accentColor: "oklch(0.70 0.22 30)",
+    patternColor: "rgba(255,160,80,0.08)",
+    tagline: "Personal · Social · Aprendizaje · Autonomía",
+    patternType: "waves",
+  },
+  CC: {
+    gradient: "linear-gradient(135deg, oklch(0.32 0.20 350) 0%, oklch(0.20 0.14 10) 50%, oklch(0.12 0.08 355) 100%)",
+    accentColor: "oklch(0.65 0.22 350)",
+    patternColor: "rgba(255,100,120,0.08)",
+    tagline: "Ciudadanía · Democracia · Derechos · Convivencia",
+    patternType: "stars",
+  },
+  CE: {
+    gradient: "linear-gradient(135deg, oklch(0.40 0.22 60) 0%, oklch(0.24 0.16 70) 50%, oklch(0.14 0.08 65) 100%)",
+    accentColor: "oklch(0.72 0.22 60)",
+    patternColor: "rgba(255,210,80,0.08)",
+    tagline: "Emprendimiento · Creatividad · Iniciativa · Innovación",
+    patternType: "triangles",
+  },
+  CCEC: {
+    gradient: "linear-gradient(135deg, oklch(0.32 0.20 320) 0%, oklch(0.20 0.14 300) 50%, oklch(0.12 0.08 310) 100%)",
+    accentColor: "oklch(0.65 0.20 320)",
+    patternColor: "rgba(220,100,255,0.08)",
+    tagline: "Cultura · Arte · Expresión · Patrimonio",
+    patternType: "dots",
+  },
+};
+
+/* Legacy colour map kept for accent usage in content sections */
 const COMP_COLORS: Record<string, string> = {
   CCL:   "oklch(0.50 0.18 240)",
   CP:    "oklch(0.50 0.18 200)",
@@ -525,20 +592,47 @@ export default function CompetencyDetail({ params }: { params: { code: string } 
     );
   }
 
+  const theme = COMP_THEMES[code] ?? COMP_THEMES["CCL"];
   const accentColor = COMP_COLORS[code] ?? "oklch(0.50 0.18 240)";
+
+  /* SVG background patterns unique to each competency */
+  const patterns: Record<string, string> = {
+    lines: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='rgba(255,255,255,0.06)' stroke-width='1'%3E%3Cline x1='0' y1='30' x2='60' y2='30'/%3E%3Cline x1='0' y1='10' x2='60' y2='10'/%3E%3Cline x1='0' y1='50' x2='60' y2='50'/%3E%3C/g%3E%3C/svg%3E")`,
+    circles: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='40' cy='40' r='30' fill='none' stroke='rgba(255,255,255,0.05)' stroke-width='1'/%3E%3Ccircle cx='40' cy='40' r='15' fill='none' stroke='rgba(255,255,255,0.05)' stroke-width='1'/%3E%3C/svg%3E")`,
+    grid: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='rgba(255,255,255,0.06)' stroke-width='0.5'%3E%3Cline x1='0' y1='0' x2='0' y2='40'/%3E%3Cline x1='20' y1='0' x2='20' y2='40'/%3E%3Cline x1='40' y1='0' x2='40' y2='40'/%3E%3Cline x1='0' y1='0' x2='40' y2='0'/%3E%3Cline x1='0' y1='20' x2='40' y2='20'/%3E%3Cline x1='0' y1='40' x2='40' y2='40'/%3E%3C/g%3E%3C/svg%3E")`,
+    hexagons: `url("data:image/svg+xml,%3Csvg width='60' height='52' viewBox='0 0 60 52' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon points='30,2 58,17 58,47 30,62 2,47 2,17' fill='none' stroke='rgba(255,255,255,0.06)' stroke-width='1'/%3E%3C/svg%3E")`,
+    waves: `url("data:image/svg+xml,%3Csvg width='100' height='30' viewBox='0 0 100 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 15 Q25 0 50 15 Q75 30 100 15' fill='none' stroke='rgba(255,255,255,0.06)' stroke-width='1'/%3E%3C/svg%3E")`,
+    stars: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon points='30,5 35,22 52,22 38,33 43,50 30,39 17,50 22,33 8,22 25,22' fill='none' stroke='rgba(255,255,255,0.06)' stroke-width='1'/%3E%3C/svg%3E")`,
+    triangles: `url("data:image/svg+xml,%3Csvg width='60' height='52' viewBox='0 0 60 52' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon points='30,2 58,50 2,50' fill='none' stroke='rgba(255,255,255,0.06)' stroke-width='1'/%3E%3C/svg%3E")`,
+    dots: `url("data:image/svg+xml,%3Csvg width='30' height='30' viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='15' cy='15' r='2' fill='rgba(255,255,255,0.07)'/%3E%3C/svg%3E")`,
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <NavBar />
 
-      {/* Hero banner */}
+      {/* Hero banner — unique per competency */}
       <section
         className="relative overflow-hidden border-b border-border"
-        style={{ background: `linear-gradient(135deg, ${accentColor} 0%, oklch(0.15 0.05 240) 100%)` }}
+        style={{ background: theme.gradient }}
       >
-        <div className="absolute inset-0 opacity-10 pointer-events-none"
-          style={{ backgroundImage: "radial-gradient(circle at 70% 50%, white 0%, transparent 60%)" }} />
-        <div className="container py-10 sm:py-14 relative z-10">
+        {/* Unique SVG background pattern */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ backgroundImage: patterns[theme.patternType], backgroundRepeat: "repeat" }}
+        />
+        {/* Radial glow from top-right */}
+        <div
+          className="absolute top-0 right-0 w-[500px] h-[500px] pointer-events-none"
+          style={{ background: `radial-gradient(circle at 80% 20%, ${theme.accentColor}40 0%, transparent 65%)` }}
+        />
+        {/* Subtle bottom-left accent */}
+        <div
+          className="absolute bottom-0 left-0 w-64 h-64 pointer-events-none"
+          style={{ background: `radial-gradient(circle at 20% 80%, ${theme.accentColor}25 0%, transparent 60%)` }}
+        />
+
+        <div className="container py-10 sm:py-16 relative z-10">
           {/* Back button */}
           <Button
             variant="ghost"
@@ -550,22 +644,48 @@ export default function CompetencyDetail({ params }: { params: { code: string } 
             {t("cd_back_to_competencies")}
           </Button>
 
-          <div className="flex items-start gap-5">
-            <div className="text-5xl sm:text-6xl select-none">{comp.emoji}</div>
-            <div>
-              <div className="flex flex-wrap items-center gap-2 mb-2">
-                <Badge
-                  className="text-sm font-bold px-3 py-1 border-0"
-                  style={{ background: "rgba(255,255,255,0.2)", color: "white" }}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+            {/* Large emoji in a coloured circle */}
+            <div
+              className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl flex items-center justify-center text-4xl sm:text-5xl shrink-0 shadow-xl"
+              style={{ background: `${theme.accentColor}30`, border: `2px solid ${theme.accentColor}60` }}
+            >
+              {comp.emoji}
+            </div>
+
+            <div className="flex-1">
+              {/* Code badge + LOMLOE reference */}
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <span
+                  className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold tracking-wide"
+                  style={{ background: theme.accentColor, color: "white" }}
                 >
                   {comp.code}
-                </Badge>
-                <span className="text-white/60 text-sm">{comp.lomloeArticle}</span>
+                </span>
+                <span
+                  className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
+                  style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)" }}
+                >
+                  LOMLOE
+                </span>
+                <span className="text-white/50 text-xs hidden sm:inline">{comp.lomloeArticle}</span>
               </div>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2 drop-shadow">
+
+              {/* Competency name */}
+              <h1 className="text-2xl sm:text-3xl lg:text-5xl font-bold text-white mb-2 leading-tight drop-shadow-lg">
                 {comp.name}
               </h1>
-              <p className="text-white/70 text-sm italic">{comp.fullName}</p>
+
+              {/* Spanish full name */}
+              <p className="text-white/65 text-sm sm:text-base italic mb-3">{comp.fullName}</p>
+
+              {/* Tagline keywords */}
+              <p
+                className="text-xs sm:text-sm font-semibold tracking-widest uppercase"
+                style={{ color: theme.accentColor }}
+              >
+                {theme.tagline}
+              </p>
             </div>
           </div>
         </div>

@@ -301,3 +301,6 @@
 - [ ] Add /competency/:id route to App.tsx
 - [ ] Add "LOMLOE Competencies" entry to NavBar
 - [ ] Add i18n keys for all new competency descriptor strings
+
+## Improvement: Unique competency detail page headers
+- [x] Give each of the 8 LOMLOE competency detail pages a unique hero header with its own colour gradient, large emoji, full name, and LOMLOE code badge
