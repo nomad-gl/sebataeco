@@ -83,9 +83,11 @@ export default function Challenge() {
     onError: (e) => toast.error(e.message),
   });
 
+  // Enable polling immediately when roomId is set so the lobby never shows blank
+  const isInRoomView = view === "lobby" || view === "live";
   const roomQuery = trpc.challenge.getRoom.useQuery(
     { id: roomId! },
-    { enabled: roomId !== null, refetchInterval: pollInterval }
+    { enabled: roomId !== null, refetchInterval: isInRoomView ? 2000 : false }
   );
 
   const myRooms = trpc.challenge.myRooms.useQuery(undefined, { enabled: isAuthenticated });
@@ -118,6 +120,7 @@ export default function Challenge() {
     });
   }, [roomQuery.data, roomId, saveGroupId, saveMutation]);
 
+  // pollInterval kept for backwards compat but roomQuery now uses isInRoomView directly
   useEffect(() => {
     if (view === "lobby" || view === "live") setPollInterval(2000);
     else setPollInterval(false);
@@ -351,6 +354,12 @@ export default function Challenge() {
         )}
 
         {/* ── Lobby view ── */}
+        {view === "lobby" && !room && (
+          <div className="flex flex-col items-center justify-center min-h-[40vh] gap-4">
+            <Loader2 className="w-10 h-10 animate-spin text-yellow-300" />
+            <p className="text-white/70 text-sm">Loading room…</p>
+          </div>
+        )}
         {view === "lobby" && room && (
           <div className="max-w-2xl mx-auto space-y-5">
             {/* Header */}

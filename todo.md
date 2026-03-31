@@ -338,3 +338,6 @@
 ## Bug Fixes: Challenge button + Export crash (2026-03-31)
 - [x] Fix Challenge button on My Materials page (navigation broken)
 - [x] Fix PDF/Word/PNG export buttons causing page crash/blank
+
+## Bug Fix: Challenge lobby blank screen (2026-03-31)
+- [x] Fix blank screen after Start Challenge creates a room code (lobby view renders blank)
