@@ -131,7 +131,7 @@ export default function MyMaterials() {
                     <div className="flex flex-col sm:flex-row gap-1.5 flex-shrink-0">
                       <Button size="sm" variant="outline"
                         className="gap-1.5 border-yellow-500/50 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
-                        onClick={() => navigate(`/challenge?materialId=${m.id}&materialTitle=${encodeURIComponent(m.title)}`)}>
+                        onClick={() => { window.location.href = `/challenge?materialId=${m.id}&materialTitle=${encodeURIComponent(m.title)}`; }}>
                         <Zap className="w-3.5 h-3.5" /> Challenge
                       </Button>
                       <Button size="sm" variant="outline" className="gap-1.5"

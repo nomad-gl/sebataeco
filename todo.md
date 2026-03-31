@@ -328,3 +328,13 @@
 - [x] Add missing ES translations for all Competències keys
 - [x] Add missing CA translations for all Competències keys
 - [x] Verify 0 TypeScript errors and all tests pass
+
+## Bug Fixes: Challenge button & Export buttons
+- [ ] Fix Class Challenge button — diagnose why it does not navigate/work
+- [ ] Fix PDF export button in MaterialView
+- [ ] Fix Word (.docx) export button in MaterialView
+- [ ] Fix PNG export button in MaterialView
+
+## Bug Fixes: Challenge button + Export crash (2026-03-31)
+- [x] Fix Challenge button on My Materials page (navigation broken)
+- [x] Fix PDF/Word/PNG export buttons causing page crash/blank

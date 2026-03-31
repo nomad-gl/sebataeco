@@ -589,7 +589,7 @@ export default function MaterialView() {
             <Button
               variant="outline" size="sm"
               className="gap-1.5 border-yellow-500/50 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
-              onClick={() => navigate(`/challenge?materialId=${material.id}&materialTitle=${encodeURIComponent(material.title)}`)}
+              onClick={() => { window.location.href = `/challenge?materialId=${material.id}&materialTitle=${encodeURIComponent(material.title)}`; }}
             >
               <Zap className="w-3.5 h-3.5" /> Challenge
             </Button>

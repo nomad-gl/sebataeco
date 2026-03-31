@@ -101,9 +101,9 @@ export default function Presentation() {
   const [, navigate] = useLocation();
   const [topic, setTopic] = useState("");
   const [heading, setHeading] = useState("");
-  const [subject, setSubject] = useState("");
-  const [yearGroup, setYearGroup] = useState("");
-  const [competency, setCompetency] = useState("");
+  const [subject, setSubject] = useState<string | undefined>(undefined);
+  const [yearGroup, setYearGroup] = useState<string | undefined>(undefined);
+  const [competency, setCompetency] = useState<string | undefined>(undefined);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [generated, setGenerated] = useState<PresentationData | null>(null);
   const [slides, setSlides] = useState<Slide[]>([]);
@@ -203,21 +203,21 @@ export default function Presentation() {
             </div>
             <div className="space-y-1.5">
               <Label className="text-white/80">{t("pres_subject_label")} <span className="text-red-400">*</span></Label>
-              <Select value={subject} onValueChange={setSubject}>
+              <Select value={subject ?? undefined} onValueChange={setSubject}>
                 <SelectTrigger className="bg-white/10 border-white/20 text-white"><SelectValue placeholder={t("pres_select_subject")} /></SelectTrigger>
                 <SelectContent>{SUBJECT_KEYS.map((k, i) => <SelectItem key={k} value={SUBJECT_VALUES[i]!}>{t(k)}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
               <Label className="text-white/80">{t("comp_year_group_label")} <span className="text-red-400">*</span></Label>
-              <Select value={yearGroup} onValueChange={setYearGroup}>
+              <Select value={yearGroup ?? undefined} onValueChange={setYearGroup}>
                 <SelectTrigger className="bg-white/10 border-white/20 text-white"><SelectValue placeholder={t("pres_select_year")} /></SelectTrigger>
                 <SelectContent>{YEAR_GROUP_VALUES.map(y => <SelectItem key={y.value} value={y.value}>{t(y.labelKey)}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
               <Label className="text-white/80">{t("pres_competency_label")} <span className="text-white/40">({t("optional")})</span></Label>
-              <Select value={competency} onValueChange={setCompetency}>
+              <Select value={competency ?? undefined} onValueChange={setCompetency}>
                 <SelectTrigger className="bg-white/10 border-white/20 text-white"><SelectValue placeholder={t("presentation_any_competency")} /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="any">{t("presentation_any_competency")}</SelectItem>
