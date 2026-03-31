@@ -341,3 +341,6 @@
 
 ## Bug Fix: Challenge lobby blank screen (2026-03-31)
 - [x] Fix blank screen after Start Challenge creates a room code (lobby view renders blank)
+
+## Bug Fix: Presentation page text invisible/missing (2026-03-31)
+- [x] Fix invisible/missing text on Presentation page (colour contrast, theme mismatch, missing keys)
