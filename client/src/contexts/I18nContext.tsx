@@ -129,10 +129,8 @@ export const translations = {
 
     // Footer
     footer_powered: "Powered by",
-    footer_seba_studio: "SEBA AI Studio",
     footer_aligned: "LOMLOE Curriculum Aligned",
     footer_rights: "All rights reserved.",
-    footer_copyright: "© {year} SEBA AI Studio. All rights reserved.",
 
     // Presentation
     presentation_title: "Create a Presentation",
@@ -742,10 +740,8 @@ export const translations = {
 
     // Footer
     footer_powered: "Desarrollado por",
-    footer_seba_studio: "SEBA AI Studio",
     footer_aligned: "Alineado con el currículo LOMLOE",
     footer_rights: "Todos los derechos reservados.",
-    footer_copyright: "© {year} SEBA AI Studio. Todos los derechos reservados.",
 
     // Presentation
     presentation_title: "Crear una Presentación",
@@ -1355,10 +1351,8 @@ export const translations = {
 
     // Footer
     footer_powered: "Desenvolupat per",
-    footer_seba_studio: "SEBA AI Studio",
     footer_aligned: "Alineat amb el currículum LOMLOE",
     footer_rights: "Tots els drets reservats.",
-    footer_copyright: "© {year} SEBA AI Studio. Tots els drets reservats.",
 
     // Presentation
     presentation_title: "Crear una Presentació",

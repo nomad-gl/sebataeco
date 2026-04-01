@@ -72,8 +72,6 @@ export function AIChatBox({
   const inputAreaRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const voiceModeRef = useRef<VoiceMode>("idle");
-  // Track isLoading transitions to trigger auto-listen after Clara responds
-  const prevLoadingRef = useRef(false);
 
   // Keep ref in sync so closures always see current mode
   useEffect(() => {
@@ -150,7 +148,7 @@ export function AIChatBox({
         setInput("");
         setVoiceMode("idle");
       } else if (currentMode === "active") {
-        // No speech heard or manual mode — leave transcript in box, return to idle
+        // Manual mic mode — leave transcript in box, return to idle
         setVoiceMode("idle");
         textareaRef.current?.focus();
       }
@@ -212,15 +210,13 @@ export function AIChatBox({
 
     recognition.onend = () => {
       wakeRecognitionRef.current = null;
-      // Only restart if still in idle mode — never restart while input recording
-      // is active (active / manual) as that would compete for the microphone.
-      const modeOnEnd = voiceModeRef.current;
-      if (modeOnEnd === "idle") {
+      // Auto-restart wake listener if still in idle mode
+      if (voiceModeRef.current === "idle") {
         setTimeout(() => {
           if (voiceModeRef.current === "idle") {
             startWakeListener();
           }
-        }, 400);
+        }, 200);
       }
     };
 
@@ -247,30 +243,6 @@ export function AIChatBox({
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voiceMode]);
-
-  // ─── Auto-listen after Clara finishes responding ─────────────────────────────
-  // When isLoading transitions true → false, Clara has just replied.
-  // Automatically start listening for the next question (skip wake word this time).
-
-  useEffect(() => {
-    const wasLoading = prevLoadingRef.current;
-    prevLoadingRef.current = isLoading;
-
-    if (!wasLoading || isLoading) return; // only act on true → false transition
-
-    const mode = voiceModeRef.current;
-    if (mode === "off") return; // user opted out — don't auto-listen
-
-    // Small delay so the response text renders before mic opens
-    setTimeout(() => {
-      if (voiceModeRef.current === "off") return;
-      // Stop the wake listener so we don't double-listen
-      stopWakeListener();
-      // Start input recording with auto-send; returns to idle/wake after done
-      startInputRecording(true);
-    }, 700);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading]);
 
   // ─── Manual mic button ───────────────────────────────────────────────────────
 
