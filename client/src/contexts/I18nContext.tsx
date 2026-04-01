@@ -6,7 +6,7 @@ export const translations = {
   en: {
     // NavBar
     nav_home: "Home",
-    nav_chat: "Seny",
+    nav_chat: "Clara",
     nav_practice: "Practice",
     nav_progress: "Progress",
     nav_teacher: "Teacher",
@@ -32,7 +32,7 @@ export const translations = {
     home_stats_year_groups: "Year Groups",
     home_stats_free: "Free",
     home_features_title: "Everything you need to master LOMLOE",
-    home_feature_chat_title: "Seny — AI Assistant",
+    home_feature_chat_title: "Clara — AI Assistant",
     home_feature_chat_desc: "Ask any LOMLOE curriculum question and receive an accurate, competency-aligned answer instantly.",
     home_feature_practice_title: "Practice Mode",
     home_feature_practice_desc: "Test yourself with curriculum-aligned MCQ questions across all 8 competencies and 3 year groups.",
@@ -64,13 +64,13 @@ export const translations = {
     practice_view_progress: "View Progress",
 
     // Chat
-    chat_title: "Seny",
+    chat_title: "Clara",
     chat_subtitle: "Ask any LOMLOE curriculum question",
     chat_placeholder: "Ask a LOMLOE curriculum question…",
     chat_send: "Send",
-    chat_greeting: "Hello! I'm Seny, your LOMLOE Teaching Assistant. Ask me anything about Spain's curriculum competencies.",
+    chat_greeting: "Hello! I'm Clara, your LOMLOE Teaching Assistant. Ask me anything about Spain's curriculum competencies.",
     chat_sign_in: "Sign in to use AI Chat",
-    chat_empty_state: "Hello! I'm Seny, your LOMLOE Teaching Assistant. Ask me anything about Spain's 8 curriculum competencies.",
+    chat_empty_state: "Hello! I'm Clara, your LOMLOE Teaching Assistant. Ask me anything about Spain's 8 curriculum competencies.",
 
     // Progress
     progress_title: "My Progress",
@@ -617,7 +617,7 @@ export const translations = {
   es: {
     // NavBar
     nav_home: "Inicio",
-    nav_chat: "Seny",
+    nav_chat: "Clara",
     nav_practice: "Practicar",
     nav_progress: "Progreso",
     nav_teacher: "Docente",
@@ -643,7 +643,7 @@ export const translations = {
     home_stats_year_groups: "Cursos",
     home_stats_free: "Gratis",
     home_features_title: "Todo lo que necesitas para dominar LOMLOE",
-    home_feature_chat_title: "Seny — Asistente IA",
+    home_feature_chat_title: "Clara — Asistente IA",
     home_feature_chat_desc: "Haz cualquier pregunta sobre el currículo LOMLOE y recibe una respuesta precisa y alineada con las competencias al instante.",
     home_feature_practice_title: "Modo Práctica",
     home_feature_practice_desc: "Evalúate con preguntas de opción múltiple alineadas con el currículo en las 8 competencias y 3 cursos.",
@@ -675,13 +675,13 @@ export const translations = {
     practice_view_progress: "Ver progreso",
 
     // Chat
-    chat_title: "Seny",
+    chat_title: "Clara",
     chat_subtitle: "Haz cualquier pregunta sobre el currículo LOMLOE",
     chat_placeholder: "Haz una pregunta sobre el currículo LOMLOE…",
     chat_send: "Enviar",
-    chat_greeting: "¡Hola! Soy Seny, tu asistente de enseñanza LOMLOE. Pregúntame cualquier cosa sobre las competencias del currículo español.",
+    chat_greeting: "¡Hola! Soy Clara, tu asistente de enseñanza LOMLOE. Pregúntame cualquier cosa sobre las competencias del currículo español.",
     chat_sign_in: "Inicia sesión para usar el Chat IA",
-    chat_empty_state: "¡Hola! Soy Seny, tu asistente de enseñanza LOMLOE. Pregúntame cualquier cosa sobre las 8 competencias del currículo español.",
+    chat_empty_state: "¡Hola! Soy Clara, tu asistente de enseñanza LOMLOE. Pregúntame cualquier cosa sobre las 8 competencias del currículo español.",
 
     // Progress
     progress_title: "Mi Progreso",
@@ -1228,7 +1228,7 @@ export const translations = {
   ca: {
     // NavBar
     nav_home: "Inici",
-    nav_chat: "Seny",
+    nav_chat: "Clara",
     nav_practice: "Practicar",
     nav_progress: "Progrés",
     nav_teacher: "Docent",
@@ -1254,7 +1254,7 @@ export const translations = {
     home_stats_year_groups: "Cursos",
     home_stats_free: "Gratuït",
     home_features_title: "Tot el que necessites per dominar LOMLOE",
-    home_feature_chat_title: "Seny — Assistent IA",
+    home_feature_chat_title: "Clara — Assistent IA",
     home_feature_chat_desc: "Fes qualsevol pregunta sobre el currículum LOMLOE i rep una resposta precisa i alineada amb les competències a l'instant.",
     home_feature_practice_title: "Mode Pràctica",
     home_feature_practice_desc: "Avalua't amb preguntes d'opció múltiple alineades amb el currículum en les 8 competències i 3 cursos.",
@@ -1286,13 +1286,13 @@ export const translations = {
     practice_view_progress: "Veure progrés",
 
     // Chat
-    chat_title: "Seny",
+    chat_title: "Clara",
     chat_subtitle: "Fes qualsevol pregunta sobre el currículum LOMLOE",
     chat_placeholder: "Fes una pregunta sobre el currículum LOMLOE…",
     chat_send: "Enviar",
-    chat_greeting: "Hola! Sóc Seny, el teu assistent d'ensenyament LOMLOE. Pregunta'm qualsevol cosa sobre les competències del currículum espanyol.",
+    chat_greeting: "Hola! Sóc Clara, el teu assistent d'ensenyament LOMLOE. Pregunta'm qualsevol cosa sobre les competències del currículum espanyol.",
     chat_sign_in: "Inicia sessió per usar el Xat IA",
-    chat_empty_state: "Hola! Sóc Seny, el teu assistent d'ensenyament LOMLOE. Pregunta'm qualsevol cosa sobre les 8 competències del currículum espanyol.",
+    chat_empty_state: "Hola! Sóc Clara, el teu assistent d'ensenyament LOMLOE. Pregunta'm qualsevol cosa sobre les 8 competències del currículum espanyol.",
 
     // Progress
     progress_title: "El Meu Progrés",

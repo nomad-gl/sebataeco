@@ -25,7 +25,7 @@ export default function Footer() {
 
           {/* Centre: site description */}
           <p className="text-xs text-muted-foreground text-center">
-            Seny · {t("footer_aligned")}
+            Clara · {t("footer_aligned")}
           </p>
 
           {/* Right: Powered by SEBA + sebasnap link */}
