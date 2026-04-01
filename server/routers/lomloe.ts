@@ -124,7 +124,7 @@ export const lomloeRouter = router({
         ? `Year group: ${input.yearGroup === "junior" ? "Junior (Years 3–4)" : input.yearGroup === "primary" ? "Primary (Years 5–6)" : "Secondary (Years 7–10)"}`
         : "All year groups";
 
-      const systemPrompt = `You are SEBA AI, an educational assistant specialised in Spain's LOMLOE curriculum competencies. 
+      const systemPrompt = `You are Seny, an educational assistant specialised in Spain's LOMLOE curriculum competencies. 
 You help students understand and practise the 8 key LOMLOE competencies: CCL (Linguistic Communication), CP (Multilingual Competence), STEM (Mathematics & STEM), CD (Digital Competence), CPSAA (Personal, Social & Learning to Learn), CC (Civic Competence), CE (Entrepreneurial Competence), and CCEC (Cultural Awareness & Expression).
 
 Current context: ${competencyContext} | ${yearGroupContext}

@@ -2,8 +2,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Loader2, Send, User, Sparkles } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { Loader2, Send, User, Sparkles, Mic, MicOff } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Streamdown } from "streamdown";
 
 /**
@@ -121,10 +121,58 @@ export function AIChatBox({
   suggestedPrompts,
 }: AIChatBoxProps) {
   const [input, setInput] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputAreaRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Voice input via Web Speech API
+  const toggleRecording = useCallback(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR: new () => any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) {
+      setVoiceError("Voice input is not supported in this browser.");
+      return;
+    }
+
+    if (isRecording && recognitionRef.current) {
+      recognitionRef.current.stop();
+      return;
+    }
+
+    setVoiceError(null);
+    const recognition = new SR();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = document.documentElement.lang || navigator.language || "en";
+    recognitionRef.current = recognition;
+
+    recognition.onstart = () => setIsRecording(true);
+    recognition.onend = () => setIsRecording(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onerror = (e: any) => {
+      setIsRecording(false);
+      if (e.error !== "aborted") setVoiceError("Voice input error: " + e.error);
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onresult = (e: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const transcript = Array.from(e.results as any[])
+        .map((r: any) => r[0].transcript as string)
+        .join("");
+      setInput(transcript);
+      if (e.results[e.results.length - 1].isFinal) {
+        textareaRef.current?.focus();
+      }
+    };
+
+    recognition.start();
+  }, [isRecording]);
 
   // Filter out system messages
   const displayMessages = messages.filter((msg) => msg.role !== "system");
@@ -308,15 +356,37 @@ export function AIChatBox({
         onSubmit={handleSubmit}
         className="flex gap-2 p-4 border-t border-white/15 bg-black/20 items-end"
       >
-        <Textarea
-          ref={textareaRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          className="flex-1 max-h-32 resize-none min-h-9 bg-white/10 border-white/25 text-white placeholder:text-white/40 focus-visible:ring-white/30"
-          rows={1}
-        />
+        <div className="flex flex-col flex-1 gap-1">
+          <Textarea
+            ref={textareaRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={isRecording ? "Listening…" : placeholder}
+            className={cn(
+              "flex-1 max-h-32 resize-none min-h-9 bg-white/10 border-white/25 text-white placeholder:text-white/40 focus-visible:ring-white/30",
+              isRecording && "border-red-400/60 bg-red-500/10"
+            )}
+            rows={1}
+          />
+          {voiceError && (
+            <p className="text-xs text-red-400/80 px-1">{voiceError}</p>
+          )}
+        </div>
+        {/* Mic button */}
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          onClick={toggleRecording}
+          title={isRecording ? "Stop recording" : "Voice input"}
+          className={cn(
+            "shrink-0 h-[38px] w-[38px] text-white/60 hover:text-white hover:bg-white/15",
+            isRecording && "text-red-400 hover:text-red-300 animate-pulse"
+          )}
+        >
+          {isRecording ? <MicOff className="size-4" /> : <Mic className="size-4" />}
+        </Button>
         <Button
           type="submit"
           size="icon"
