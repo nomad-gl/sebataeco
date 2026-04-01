@@ -5,6 +5,9 @@ const LOMLOE_LOGO =
 
 export default function Footer() {
   const { t } = useI18n();
+  const year = new Date().getFullYear();
+  const copyright = t("footer_copyright").replace("{year}", String(year));
+
   return (
     <footer className="border-t border-border bg-secondary/20 mt-auto print:hidden">
       <div className="container py-6">
@@ -23,12 +26,17 @@ export default function Footer() {
             />
           </a>
 
-          {/* Centre: site description */}
-          <p className="text-xs text-muted-foreground text-center">
-            Clara · {t("footer_aligned")}
-          </p>
+          {/* Centre: site description + copyright */}
+          <div className="flex flex-col items-center gap-1">
+            <p className="text-xs text-muted-foreground text-center">
+              Clara · {t("footer_aligned")}
+            </p>
+            <p className="text-xs text-muted-foreground/70 text-center">
+              {copyright}
+            </p>
+          </div>
 
-          {/* Right: Powered by SEBA + sebasnap link */}
+          {/* Right: Powered by SEBA AI Studio + sebasnap link */}
           <div className="flex flex-col items-center sm:items-end gap-1">
             <a
               href="https://sebasnap.com"
@@ -38,7 +46,10 @@ export default function Footer() {
             >
               sebasnap.com →
             </a>
-            <span className="text-xs text-muted-foreground">{t("footer_powered")} SEBA</span>
+            <span className="text-xs text-muted-foreground">
+              {t("footer_powered")}{" "}
+              <span className="font-medium">{t("footer_seba_studio")}</span>
+            </span>
           </div>
         </div>
       </div>
