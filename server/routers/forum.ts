@@ -157,13 +157,14 @@ export const forumRouter = router({
     if (!db) return [];
     const userId = ctx.user.id;
 
-    // Step 1: get distinct partner IDs, last timestamp, and unread count
-    // Avoids SUBSTRING_INDEX/GROUP_CONCAT which TiDB does not support in this form
-    const rows = await db
+    // Step 1: fetch all DM rows involving this user (plain WHERE, no IF/GROUP BY — TiDB strict mode safe)
+    const allDms = await db
       .select({
-        otherId: sql<number>`IF(${forumDirectMessages.fromUserId} = ${userId}, ${forumDirectMessages.toUserId}, ${forumDirectMessages.fromUserId})`,
-        lastAt: sql<Date>`MAX(${forumDirectMessages.createdAt})`,
-        unread: sql<number>`SUM(CASE WHEN ${forumDirectMessages.toUserId} = ${userId} AND ${forumDirectMessages.read} = 0 THEN 1 ELSE 0 END)`,
+        fromUserId: forumDirectMessages.fromUserId,
+        toUserId: forumDirectMessages.toUserId,
+        body: forumDirectMessages.body,
+        read: forumDirectMessages.read,
+        createdAt: forumDirectMessages.createdAt,
       })
       .from(forumDirectMessages)
       .where(
@@ -172,48 +173,43 @@ export const forumRouter = router({
           eq(forumDirectMessages.toUserId, userId)
         )
       )
-      .groupBy(
-        sql`IF(${forumDirectMessages.fromUserId} = ${userId}, ${forumDirectMessages.toUserId}, ${forumDirectMessages.fromUserId})`
-      )
-      .orderBy(desc(sql`MAX(${forumDirectMessages.createdAt})`));
+      .orderBy(desc(forumDirectMessages.createdAt));
 
-    // Step 2: for each conversation, fetch the most recent message body separately
-    const enriched = await Promise.all(
-      rows.map(async (r) => {
-        const [user] = await db
-          .select({ id: users.id, name: users.name })
-          .from(users)
-          .where(eq(users.id, r.otherId))
-          .limit(1);
+    // Step 2: group by partner ID in JS — avoids IF() in GROUP BY
+    const convMap = new Map<number, { lastBody: string; lastAt: Date; unread: number }>();
+    for (const dm of allDms) {
+      const partnerId = dm.fromUserId === userId ? dm.toUserId : dm.fromUserId;
+      if (!convMap.has(partnerId)) {
+        convMap.set(partnerId, { lastBody: dm.body, lastAt: new Date(dm.createdAt), unread: 0 });
+      }
+      if (dm.toUserId === userId && !dm.read) {
+        convMap.get(partnerId)!.unread += 1;
+      }
+    }
 
-        // Fetch latest message body with a simple ORDER BY + LIMIT query
-        const [lastMsg] = await db
-          .select({ body: forumDirectMessages.body })
-          .from(forumDirectMessages)
-          .where(
-            or(
-              and(
-                eq(forumDirectMessages.fromUserId, userId),
-                eq(forumDirectMessages.toUserId, r.otherId)
-              ),
-              and(
-                eq(forumDirectMessages.fromUserId, r.otherId),
-                eq(forumDirectMessages.toUserId, userId)
-              )
-            )
-          )
-          .orderBy(desc(forumDirectMessages.createdAt))
-          .limit(1);
+    if (convMap.size === 0) return [];
 
-        return {
-          otherId: r.otherId,
-          otherName: user?.name ?? "Unknown",
-          lastBody: lastMsg?.body ?? "",
-          lastAt: r.lastAt,
-          unread: Number(r.unread ?? 0),
-        };
-      })
-    );
+    // Step 3: resolve partner names in one query
+    const partnerIds = Array.from(convMap.keys());
+    const partnerUsers = await db
+      .select({ id: users.id, name: users.name })
+      .from(users)
+      .where(sql`${users.id} IN (${sql.join(partnerIds.map((id) => sql`${id}`), sql`, `)})`);
+
+    const nameMap = new Map(partnerUsers.map((u) => [u.id, u.name]));
+
+    const enriched = partnerIds.map((partnerId) => {
+      const conv = convMap.get(partnerId)!;
+      return {
+        otherId: partnerId,
+        otherName: nameMap.get(partnerId) ?? "Unknown",
+        lastBody: conv.lastBody,
+        lastAt: conv.lastAt,
+        unread: conv.unread,
+      };
+    });
+
+    enriched.sort((a, b) => b.lastAt.getTime() - a.lastAt.getTime());
     return enriched;
   }),
 
