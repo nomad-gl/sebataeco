@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import NavBar from "@/components/NavBar";
+import ParallaxSection from "@/components/ParallaxSection";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/contexts/I18nContext";
 
@@ -58,17 +59,13 @@ export default function Home() {
       <NavBar />
 
       {/* Hero */}
-      <section
-        className="relative overflow-hidden border-b border-border"
-        style={{
-          backgroundImage: `url(${HERO_BG})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundAttachment: "fixed",
-        }}
+      <ParallaxSection
+        imageUrl={HERO_BG}
+        speed={0.35}
+        overlayClass="bg-black/55"
+        className="border-b border-border"
       >
-        <div className="absolute inset-0 bg-black/55 pointer-events-none" />
-        <div className="container py-14 sm:py-20 lg:py-28 relative z-10">
+        <div className="container py-14 sm:py-20 lg:py-28">
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 text-white text-sm font-semibold mb-6 backdrop-blur-sm">
               <BookOpen className="w-4 h-4" />
@@ -110,16 +107,7 @@ export default function Home() {
             </a>
           </div>
         </div>
-
-        <div
-          className="absolute top-0 right-0 w-96 h-96 rounded-full opacity-10 pointer-events-none"
-          style={{ background: "radial-gradient(circle, var(--comp-ccl), transparent)" }}
-        />
-        <div
-          className="absolute bottom-0 right-1/3 w-64 h-64 rounded-full opacity-10 pointer-events-none"
-          style={{ background: "radial-gradient(circle, var(--comp-cp), transparent)" }}
-        />
-      </section>
+      </ParallaxSection>
 
 
       {/* Features */}
@@ -153,17 +141,13 @@ export default function Home() {
       </section>
 
       {/* Competency grid */}
-      <section
-        className="relative py-16"
-        style={{
-          backgroundImage: `url(${HERO_BG})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundAttachment: "fixed",
-        }}
+      <ParallaxSection
+        imageUrl={HERO_BG}
+        speed={0.35}
+        overlayClass="bg-black/60"
+        className="py-16"
       >
-        <div className="absolute inset-0 bg-black/60 pointer-events-none" />
-        <div className="container relative z-10">
+        <div className="container">
         <h2 className="text-2xl font-bold text-white mb-2 drop-shadow-lg">{t("home_competencies_title")}</h2>
         <p className="text-white/75 mb-8">
           {t("home_badge")}
@@ -195,7 +179,7 @@ export default function Home() {
           ))}
         </div>
         </div>
-      </section>
+      </ParallaxSection>
     </div>
   );
 }
