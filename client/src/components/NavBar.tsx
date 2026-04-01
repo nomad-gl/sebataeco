@@ -283,7 +283,10 @@ export default function NavBar() {
           {/* Mobile: language pill + hamburger */}
           <div className="md:hidden flex items-center gap-2">
             {/* Compact language switcher on mobile */}
-            <div className="flex items-center gap-0.5 bg-secondary rounded-lg p-0.5">
+            <div className={cn(
+                "flex items-center gap-0.5 rounded-lg p-0.5",
+                isClassroomPage ? "bg-white/15 backdrop-blur-sm" : "bg-secondary"
+              )}>
               {LANG_OPTIONS.map((opt) => (
                 <button
                   key={opt.code}
@@ -291,8 +294,12 @@ export default function NavBar() {
                   className={cn(
                     "px-2 py-1 rounded-md text-xs font-semibold transition-all",
                     lang === opt.code
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
+                      ? isClassroomPage
+                        ? "bg-white/30 text-white shadow-sm"
+                        : "bg-primary text-primary-foreground shadow-sm"
+                      : isClassroomPage
+                        ? "text-white/70 hover:text-white"
+                        : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   {opt.label}
