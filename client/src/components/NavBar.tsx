@@ -92,12 +92,11 @@ export default function NavBar() {
 
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group flex-shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white font-black text-sm">
-              S
-            </div>
-            <span className="font-heading font-bold text-base sm:text-lg text-foreground group-hover:text-primary transition-colors">
-              SEBA | Teach
-            </span>
+            <img
+              src="https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/SEBA1_02cbc6c3.png"
+              alt="SEBA"
+              className="h-9 sm:h-10 w-auto object-contain"
+            />
           </Link>
 
           {/* Desktop nav */}

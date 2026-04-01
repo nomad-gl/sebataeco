@@ -277,10 +277,10 @@
 - [x] Reveal state is broadcast to all participants via the existing poll mechanism
 
 ## Feature: Import from sebasnap.com admin area
-- [ ] Add Import button on My Materials page
-- [ ] Server procedure to fetch materials list from sebasnap.com admin API
-- [ ] Map sebasnap material format to SEBA AI Studio material schema
-- [ ] Allow editing imported material before saving
+- [x] Add Import button on My Materials page
+- [x] Server procedure to fetch materials list from sebasnap.com admin API
+- [x] Map sebasnap material format to SEBA AI Studio material schema
+- [x] Allow editing imported material before saving
 
 ## Feature: Enforce content rules for each material type
 - [x] Quiz: exactly 4 options per question, exactly 1 correct answer, no duplicate options
@@ -399,3 +399,14 @@
 
 ## Bug Fix: Forum DM list query error (2026-04-01)
 - [x] Fix getDmList SQL query - SUBSTRING_INDEX/GROUP_CONCAT incompatible with TiDB
+
+## Feature: Import from sebasnap.com (implementation)
+- [x] Server procedure: fetch presentations from sebasnap.com API using x-api-key header
+- [x] Map sebasnap presentation schema to SEBA material schema
+- [x] Add "Import from SEBA Snap" button on My Materials page
+- [x] Import dialog: list sebasnap presentations, allow user to select before importing
+- [x] Allow editing imported material title/subject before saving to DB
+
+## Branding: Official SEBA Logo
+- [x] Upload SEBA1.png to CDN
+- [x] Replace NavBar text logo with official SEBA logo image

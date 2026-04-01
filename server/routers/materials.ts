@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
+import { ENV } from "../_core/env";
 import { invokeLLM } from "../_core/llm";
 import {
   savePracticeSession,
@@ -469,4 +470,58 @@ export const materialsRouter = router({
       const ok = await updateMaterial(input.id, ctx.user.id, input.content);
       return { success: ok };
     }),
+
+  // Fetch presentations from sebasnap.com using the admin API key
+  listFromSebasnap: protectedProcedure.query(async () => {
+    const apiKey = ENV.sebasnapApiKey;
+    if (!apiKey) throw new Error("SEBASNAP_API_KEY not configured");
+
+    const input = encodeURIComponent(JSON.stringify({ "0": { json: {} } }));
+    const url = `https://sebasnap.com/api/trpc/presentation.list?batch=1&input=${input}`;
+
+    const res = await fetch(url, {
+      headers: { "x-api-key": apiKey },
+    });
+    if (!res.ok) throw new Error(`sebasnap API error: ${res.status}`);
+
+    const data = (await res.json()) as Array<{
+      result?: { data?: { json?: { presentations?: SebasnapPresentation[] } } };
+    }>;
+    const presentations = data[0]?.result?.data?.json?.presentations ?? [];
+    return { presentations };
+  }),
+
+  // Import a sebasnap presentation into SEBA | Teach materials
+  importFromSebasnap: protectedProcedure
+    .input(z.object({
+      sebasnapId: z.string(),
+      title: z.string().min(1).max(200),
+      subject: z.string().optional(),
+      type: MaterialTypeSchema,
+      content: z.string(), // JSON-stringified content already mapped
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const id = await saveMaterial({
+        userId: ctx.user.id,
+        type: input.type,
+        title: input.title,
+        topic: input.subject ?? input.title,
+        competency: null,
+        yearGroup: null,
+        content: input.content,
+      });
+      return { id, title: input.title };
+    }),
 });
+
+// Type for sebasnap presentation items
+interface SebasnapPresentation {
+  id: string;
+  title: string;
+  subject?: string;
+  subjecte?: string;
+  type?: string;
+  createdAt?: string;
+  slides?: unknown[];
+  content?: unknown;
+}
