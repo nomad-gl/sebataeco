@@ -96,16 +96,31 @@ export default function NavBar() {
       )}>
         <div className="container flex items-center justify-between h-14 sm:h-16">
 
-          {/* Logo */}
+          {/* Logo — crossfade between classroom and standard variants */}
           <Link href="/" className="flex items-center gap-2 group flex-shrink-0">
-            <img
-              src={isClassroomPage
-                ? "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/SEBA1_02cbc6c3.png"
-                : "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/SEBA_hd_4ec811c2.png"
-              }
-              alt="SEBA"
-              className="h-10 sm:h-12 w-auto object-contain"
-            />
+            <div className="relative h-10 sm:h-12" style={{ width: 'auto', minWidth: '60px' }}>
+              {/* Standard logo (white bg) */}
+              <img
+                src="https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/SEBA_hd_4ec811c2.png"
+                alt="SEBA"
+                className="h-10 sm:h-12 w-auto object-contain absolute top-0 left-0 transition-opacity duration-500"
+                style={{ opacity: isClassroomPage ? 0 : 1 }}
+              />
+              {/* Classroom logo (black bg) */}
+              <img
+                src="https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/SEBA1_02cbc6c3.png"
+                alt="SEBA"
+                className="h-10 sm:h-12 w-auto object-contain absolute top-0 left-0 transition-opacity duration-500"
+                style={{ opacity: isClassroomPage ? 1 : 0 }}
+              />
+              {/* Invisible spacer to reserve correct width */}
+              <img
+                src="https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/SEBA_hd_4ec811c2.png"
+                alt=""
+                aria-hidden="true"
+                className="h-10 sm:h-12 w-auto object-contain invisible"
+              />
+            </div>
           </Link>
 
           {/* Desktop nav */}
