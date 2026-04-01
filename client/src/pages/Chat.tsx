@@ -64,29 +64,19 @@ export default function Chat() {
     <div className="chat-bg flex flex-col">
       <NavBar />
 
-      {/* Parallax hero banner */}
-      <ParallaxSection
-        imageUrl={HERO_BG}
-        speed={0.35}
-        overlayClass="bg-black/65"
-        className="border-b border-border"
-      >
-        <div className="container py-10 sm:py-14 flex items-end justify-between gap-4">
+      <div className="container py-4 sm:py-6 flex flex-col gap-3 sm:gap-4 max-w-4xl mx-auto w-full flex-1">
+        {/* Header */}
+        <div className="flex items-start sm:items-center justify-between gap-2">
           <div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white drop-shadow-lg mb-2">
-              {t("chat_title")}
-            </h1>
-            <p className="text-white/80 text-sm sm:text-base drop-shadow">{t("chat_subtitle")}</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">{t("chat_title")}</h1>
+            <p className="text-sm text-muted-foreground">{t("chat_subtitle")}</p>
           </div>
           <div className="flex gap-2 flex-shrink-0">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowFilters((v) => !v)}
-              className={cn(
-                "bg-white/10 text-white border-white/30 hover:bg-white/20",
-                showFilters && "bg-primary text-primary-foreground border-primary"
-              )}
+              className={cn(showFilters && "bg-primary text-primary-foreground border-primary")}
             >
               {t("chat_filter")}
             </Button>
@@ -95,26 +85,16 @@ export default function Chat() {
                 variant="outline"
                 size="sm"
                 onClick={() => setMessages([])}
-                className="bg-white/10 text-white border-white/30 hover:bg-white/20"
               >
                 {t("chat_clear")}
               </Button>
             )}
           </div>
         </div>
-      </ParallaxSection>
-
-      <ParallaxSection
-        imageUrl={HERO_BG}
-        speed={0.2}
-        overlayClass="bg-black/70"
-        className="flex-1"
-      >
-      <div className="container py-4 sm:py-6 flex flex-col gap-3 sm:gap-4 max-w-4xl mx-auto w-full flex-1">
 
         {/* Filters */}
         {showFilters && (
-          <Card className="p-4 bg-white/10 backdrop-blur-md border-white/20">
+          <Card className="p-4">
             <CompetencySelector
               selectedCompetency={competency}
               selectedYearGroup={yearGroup}
@@ -123,7 +103,7 @@ export default function Chat() {
               compact
             />
             {(competency || yearGroup) && (
-              <p className="text-xs text-white/60 mt-2">
+              <p className="text-xs text-muted-foreground mt-2">
                 {t("chat_context_filtered")}{" "}
                 {[competency, yearGroup ? `${yearGroup} ${t("chat_year_group")}` : null]
                   .filter(Boolean)
@@ -146,7 +126,6 @@ export default function Chat() {
           />
         </div>
       </div>
-      </ParallaxSection>
     </div>
   );
 }

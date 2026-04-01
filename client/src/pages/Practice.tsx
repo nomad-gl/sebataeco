@@ -97,32 +97,15 @@ export default function Practice() {
     <div className="practice-bg flex flex-col">
       <NavBar />
 
-      {/* Parallax hero banner */}
-      <ParallaxSection
-        imageUrl={HERO_BG}
-        speed={0.35}
-        overlayClass="bg-black/55"
-        className="border-b border-border"
-      >
-        <div className="container py-10 sm:py-14">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white drop-shadow-lg mb-2">
-            {t("practice_title")}
-          </h1>
-          <p className="text-white/80 text-sm sm:text-base drop-shadow">{t("practice_subtitle")}</p>
-        </div>
-      </ParallaxSection>
-
-      <ParallaxSection
-        imageUrl={HERO_BG}
-        speed={0.2}
-        overlayClass="bg-black/70"
-        className="flex-1"
-      >
       <div className="container py-4 sm:py-8 max-w-2xl mx-auto w-full flex flex-col gap-4 sm:gap-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">{t("practice_title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("practice_subtitle")}</p>
+        </div>
 
         {/* Setup screen */}
         {!sessionStarted && (
-          <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white">
+          <Card>
             <CardContent className="p-4 sm:p-6 flex flex-col gap-4 sm:gap-6">
               <CompetencySelector
                 selectedCompetency={competency}
@@ -131,7 +114,7 @@ export default function Practice() {
                 onYearGroupChange={setYearGroup}
               />
               <div className="border-t border-border pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <p className="text-sm text-white/70">
+                <p className="text-sm text-muted-foreground">
                   {SESSION_SIZE} {t("practice_questions_per")}
                 </p>
                 <Button onClick={handleStart} size="lg" className="gap-2 w-full sm:w-auto">
@@ -144,16 +127,16 @@ export default function Practice() {
 
         {/* Session done */}
         {sessionDone && (
-          <Card className="text-center bg-white/10 backdrop-blur-md border-white/20">
+          <Card className="text-center">
             <CardContent className="p-6 sm:p-8 flex flex-col items-center gap-4 sm:gap-5">
               <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
                 <Trophy className="w-10 h-10 text-primary" />
               </div>
               <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">{t("practice_done_title")}</h2>
-                <p className="text-white/75">
+                <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-1">{t("practice_done_title")}</h2>
+                <p className="text-muted-foreground">
                   {t("practice_scored")}{" "}
-                  <span className="font-bold text-white">
+                  <span className="font-bold text-foreground">
                     {score} / {total}
                   </span>{" "}
                   ({Math.round((score / total) * 100)}%)
@@ -162,7 +145,7 @@ export default function Practice() {
               <div className="w-full max-w-xs">
                 <Progress value={(score / total) * 100} className="h-3" />
               </div>
-              <p className="text-sm text-white/75">
+              <p className="text-sm text-muted-foreground">
                 {score === total
                   ? t("practice_perfect")
                   : score >= total * 0.7
@@ -187,38 +170,38 @@ export default function Practice() {
             {/* Progress */}
             <div className="flex items-center gap-3">
               <Progress value={progressPct} className="flex-1 h-2" />
-              <span className="text-sm text-white/70 whitespace-nowrap">
+              <span className="text-sm text-muted-foreground whitespace-nowrap">
                 {total} / {SESSION_SIZE}
               </span>
-              <span className="text-sm font-semibold text-blue-300 whitespace-nowrap">
+              <span className="text-sm font-semibold text-primary whitespace-nowrap">
                 {score} ✓
               </span>
             </div>
 
             {isFetching || !question ? (
-              <Card className="bg-white/10 backdrop-blur-md border-white/20">
+              <Card>
                 <CardContent className="p-8 flex items-center justify-center">
-                  <div className="text-center text-white/75">
+                  <div className="text-center text-muted-foreground">
                     <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
                     {t("practice_loading_q")}
                   </div>
                 </CardContent>
               </Card>
             ) : (
-              <Card className="bg-white/10 backdrop-blur-md border-white/20">
+              <Card>
                 <CardContent className="p-4 sm:p-6 flex flex-col gap-4 sm:gap-5">
                   {/* Competency badge */}
                   <div className="flex items-center gap-2">
                     <span className={cn("badge-" + question.competency)}>
                       {question.competency}
                     </span>
-                    <span className="text-xs text-white/60 capitalize">
+                    <span className="text-xs text-muted-foreground capitalize">
                       {question.yearGroup ?? ""}
                     </span>
                   </div>
 
                   {/* Question */}
-                  <p className="text-base sm:text-lg font-semibold text-white leading-snug">
+                  <p className="text-base sm:text-lg font-semibold text-foreground leading-snug">
                     {question.question}
                   </p>
 
@@ -233,14 +216,14 @@ export default function Practice() {
 
                       if (!revealed) {
                         optClass += isSelected
-                          ? "border-blue-400 bg-blue-500/20 text-white"
-                          : "border-white/20 bg-white/10 hover:border-white/40 hover:bg-white/20 text-white";
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-white hover:border-primary hover:bg-secondary text-foreground";
                       } else if (isCorrectOpt) {
-                        optClass += "border-green-400 bg-green-500/20 text-green-200";
+                        optClass += "border-green-500 bg-green-50 text-green-800";
                       } else if (isSelected && !isCorrectOpt) {
-                        optClass += "border-red-400 bg-red-500/20 text-red-200";
+                        optClass += "border-red-400 bg-red-50 text-red-700";
                       } else {
-                        optClass += "border-white/10 bg-white/5 text-white/40 opacity-60";
+                        optClass += "border-border bg-white text-muted-foreground opacity-60";
                       }
 
                       return (
@@ -269,7 +252,7 @@ export default function Practice() {
                     <div
                       className={cn(
                         "rounded-xl p-4 flex gap-3 items-start",
-                        isCorrect ? "bg-green-500/20 border border-green-400/40" : "bg-amber-500/20 border border-amber-400/40"
+                        isCorrect ? "bg-green-50 border border-green-200" : "bg-amber-50 border border-amber-200"
                       )}
                     >
                       <Lightbulb
@@ -282,20 +265,20 @@ export default function Practice() {
                         <p
                           className={cn(
                             "font-semibold text-sm",
-                            isCorrect ? "text-green-200" : "text-amber-200"
+                            isCorrect ? "text-green-800" : "text-amber-800"
                           )}
                         >
                           {isCorrect ? t("practice_correct_well") : t("practice_not_quite")}
                         </p>
                         {!isCorrect && (
-                          <p className="text-sm text-amber-300 font-medium">
+                          <p className="text-sm text-amber-700 font-medium">
                             {question.options[question.correctIndex]}
                           </p>
                         )}
                         {question.explanation && (
                           <p className={cn(
                             "text-sm mt-1 leading-relaxed",
-                            isCorrect ? "text-green-300" : "text-amber-300"
+                            isCorrect ? "text-green-700" : "text-amber-700"
                           )}>
                             💡 {question.explanation}
                           </p>
@@ -305,7 +288,7 @@ export default function Practice() {
                   )}
 
                   {/* Actions */}
-                  <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
+                  <div className="flex justify-end gap-2 pt-2 border-t border-border">
                     {!revealed ? (
                       <Button
                         onClick={handleReveal}
@@ -326,7 +309,6 @@ export default function Practice() {
           </>
         )}
       </div>
-      </ParallaxSection>
     </div>
   );
 }
