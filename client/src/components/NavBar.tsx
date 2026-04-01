@@ -165,7 +165,7 @@ export default function NavBar() {
                 <button
                   onClick={() => setBellOpen((o) => !o)}
                   className="relative flex items-center justify-center w-9 h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
-                  aria-label="Notifications"
+                  aria-label={t("nav_notifications")}
                 >
                   <Bell className="w-4 h-4" />
                   {unreadCount > 0 && (
@@ -178,19 +178,19 @@ export default function NavBar() {
                 {bellOpen && (
                   <div className="absolute right-0 top-full mt-1 w-80 bg-white border border-border rounded-xl shadow-lg z-50 overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-                      <span className="text-sm font-semibold text-foreground">Notifications</span>
+                      <span className="text-sm font-semibold text-foreground">{t("nav_notifications")}</span>
                       {unreadCount > 0 && (
                         <button
                           onClick={() => markAllRead.mutate()}
                           className="text-xs text-primary hover:underline"
                         >
-                          Mark all read
+                          {t("nav_mark_all_read")}
                         </button>
                       )}
                     </div>
                     <div className="max-h-80 overflow-y-auto">
                       {myNotifications.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-8">No notifications yet</p>
+                        <p className="text-sm text-muted-foreground text-center py-8">{t("nav_no_notifications")}</p>
                       ) : (
                         myNotifications.map((n: { id: number; title: string; body: string; link: string | null; isRead: boolean; createdAt: Date; type: string; userId: string }) => (
                           <div
@@ -230,7 +230,7 @@ export default function NavBar() {
               <button
                 onClick={() => setLangOpen((o) => !o)}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
-                aria-label="Change language"
+                aria-label={t("nav_change_language")}
               >
                 <Globe className="w-4 h-4" />
                 <span>{currentLang.flag} {currentLang.label}</span>
@@ -249,7 +249,7 @@ export default function NavBar() {
                       )}
                     >
                       <span>{opt.flag}</span>
-                      <span>{opt.label === "CA" ? "Català" : opt.label === "ES" ? "Español" : "English"}</span>
+                      <span>{opt.code === "ca" ? "Català" : opt.code === "es" ? "Español" : "English"}</span>
                     </button>
                   ))}
                 </div>
@@ -280,7 +280,7 @@ export default function NavBar() {
             <button
               className="flex items-center justify-center w-9 h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
               onClick={() => setMobileOpen((o) => !o)}
-              aria-label={mobileOpen ? "Close menu" : "Open menu"}
+              aria-label={mobileOpen ? t("nav_close_menu") : t("nav_open_menu")}
             >
               {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>

@@ -504,6 +504,7 @@ function CrosswordViewer({ content, showAnswers }: { content: CrosswordContent; 
 // ─── Missing words viewer ─────────────────────────────────────────────────────
 
 function MissingWordsViewer({ content, showAnswers }: { content: MissingWordsContent; showAnswers: boolean }) {
+  const { t } = useI18n();
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [revealed, setRevealed] = useState(false);
   const showAll = showAnswers || revealed;
@@ -553,7 +554,7 @@ function MissingWordsViewer({ content, showAnswers }: { content: MissingWordsCon
       )}
       {!showAnswers && (
         <Button size="sm" variant="outline" onClick={() => setRevealed(r => !r)}>
-          {revealed ? "Hide Answers" : "Reveal Answers"}
+          {revealed ? t("challenge_hide_answers") : t("challenge_reveal_answers")}
         </Button>
       )}
       <div className="flex flex-col gap-1.5">

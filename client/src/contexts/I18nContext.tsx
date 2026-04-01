@@ -542,6 +542,75 @@ export const translations = {
     forum_dm_placeholder: "Message",
     forum_enter_to_send: "Enter to send",
     forum_shift_enter: "Shift+Enter for new line",
+
+    // Forum time formatting
+    forum_time_just_now: "just now",
+    forum_time_minutes_ago: "m ago",
+    forum_time_hours_ago: "h ago",
+    forum_time_yesterday: "Yesterday",
+
+    // NavBar notifications
+    nav_notifications: "Notifications",
+    nav_mark_all_read: "Mark all read",
+    nav_no_notifications: "No notifications yet",
+    nav_change_language: "Change language",
+    nav_open_menu: "Open menu",
+    nav_close_menu: "Close menu",
+
+    // Import from SEBA Snap
+    import_sebasnap_btn: "Import from SEBA Snap",
+    import_sebasnap_title: "Import from SEBA Snap",
+    import_sebasnap_select: "Select a presentation...",
+    import_sebasnap_loading: "Loading presentations…",
+    import_sebasnap_refresh: "Refresh",
+    import_sebasnap_load_failed: "Failed to load presentations:",
+    import_sebasnap_none: "No presentations found",
+    import_sebasnap_hint: "Presentations from your SEBA Snap bank will appear here.",
+    import_sebasnap_back: "Back to list",
+    import_sebasnap_review_title: "Importing from SEBA Snap",
+    import_sebasnap_review_hint: "Review and edit before saving to My Materials.",
+    import_sebasnap_field_title: "Title",
+    import_sebasnap_field_subject: "Subject",
+    import_sebasnap_field_type: "Type",
+    import_sebasnap_field_slides: "Slides",
+    import_sebasnap_importing: "Importing…",
+    import_sebasnap_import_btn: "Import",
+    import_sebasnap_success: "imported successfully!",
+    import_sebasnap_failed: "Import failed:",
+
+    // Challenge page extras
+    challenge_source_bank: "Knowledge Bank",
+    challenge_source_materials: "My Materials",
+    challenge_loading_materials: "Loading materials…",
+    challenge_no_materials: "No saved materials yet.",
+    challenge_no_materials_hint: "Create a material in the Create Materials page first.",
+    challenge_materials_hint: "Select any material — quiz questions are used directly; other types are converted to MCQs automatically.",
+    challenge_room_copied: "Room code copied!",
+    challenge_link_copied: "Join link copied!",
+    challenge_students_joined: "Students Joined",
+    challenge_waiting_students: "Waiting for students…",
+    challenge_start_game: "Start Game",
+    challenge_how_join: "How students join:",
+    challenge_join_step1: "Open on their device",
+    challenge_join_step2: "Enter the room code or scan the QR code",
+    challenge_join_step3: "Enter their name and click Join",
+    challenge_hide_answers: "Hide Answers",
+    challenge_reveal_answers: "Reveal Answers",
+
+    // Presentation export
+    presentation_export_pdf_ready: "PDF ready — downloading now",
+    presentation_export_pdf_failed: "PDF export failed. Please try again.",
+    presentation_export_pdf: "PDF",
+    presentation_export_png: "PNG",
+    presentation_export_word: "Word",
+
+    // StudentProgress PDF export
+    sp_pdf_export_failed: "PDF export failed. Please try again.",
+
+    // Create page extras
+    create_passage: "Passage",
+    create_word_bank: "Word Bank",
+    create_saved: "saved!",
   },
 
   es: {
@@ -1083,6 +1152,75 @@ export const translations = {
     forum_dm_placeholder: "Mensaje",
     forum_enter_to_send: "Enter para enviar",
     forum_shift_enter: "Shift+Enter para nueva l\u00ednea",
+
+    // Forum time formatting
+    forum_time_just_now: "ahora mismo",
+    forum_time_minutes_ago: "min",
+    forum_time_hours_ago: "h",
+    forum_time_yesterday: "Ayer",
+
+    // NavBar notifications
+    nav_notifications: "Notificaciones",
+    nav_mark_all_read: "Marcar todo como le\u00eddo",
+    nav_no_notifications: "Sin notificaciones a\u00fan",
+    nav_change_language: "Cambiar idioma",
+    nav_open_menu: "Abrir men\u00fa",
+    nav_close_menu: "Cerrar men\u00fa",
+
+    // Import from SEBA Snap
+    import_sebasnap_btn: "Importar de SEBA Snap",
+    import_sebasnap_title: "Importar de SEBA Snap",
+    import_sebasnap_select: "Selecciona una presentaci\u00f3n...",
+    import_sebasnap_loading: "Cargando presentaciones\u2026",
+    import_sebasnap_refresh: "Actualizar",
+    import_sebasnap_load_failed: "Error al cargar las presentaciones:",
+    import_sebasnap_none: "No se encontraron presentaciones",
+    import_sebasnap_hint: "Las presentaciones de tu banco SEBA Snap aparecer\u00e1n aqu\u00ed.",
+    import_sebasnap_back: "Volver a la lista",
+    import_sebasnap_review_title: "Importando de SEBA Snap",
+    import_sebasnap_review_hint: "Revisa y edita antes de guardar en Mis Materiales.",
+    import_sebasnap_field_title: "T\u00edtulo",
+    import_sebasnap_field_subject: "Asignatura",
+    import_sebasnap_field_type: "Tipo",
+    import_sebasnap_field_slides: "Diapositivas",
+    import_sebasnap_importing: "Importando\u2026",
+    import_sebasnap_import_btn: "Importar",
+    import_sebasnap_success: "importado correctamente!",
+    import_sebasnap_failed: "Error al importar:",
+
+    // Challenge page extras
+    challenge_source_bank: "Banco de Conocimiento",
+    challenge_source_materials: "Mis Materiales",
+    challenge_loading_materials: "Cargando materiales\u2026",
+    challenge_no_materials: "A\u00fan no hay materiales guardados.",
+    challenge_no_materials_hint: "Crea un material en la p\u00e1gina Crear Materiales primero.",
+    challenge_materials_hint: "Selecciona cualquier material \u2014 las preguntas de cuestionario se usan directamente; otros tipos se convierten en MCQ autom\u00e1ticamente.",
+    challenge_room_copied: "\u00a1C\u00f3digo de sala copiado!",
+    challenge_link_copied: "\u00a1Enlace de uni\u00f3n copiado!",
+    challenge_students_joined: "Alumnos Unidos",
+    challenge_waiting_students: "Esperando alumnos\u2026",
+    challenge_start_game: "Iniciar Juego",
+    challenge_how_join: "C\u00f3mo se unen los alumnos:",
+    challenge_join_step1: "Abrir en su dispositivo",
+    challenge_join_step2: "Introducir el c\u00f3digo de sala o escanear el c\u00f3digo QR",
+    challenge_join_step3: "Introducir su nombre y hacer clic en Unirse",
+    challenge_hide_answers: "Ocultar Respuestas",
+    challenge_reveal_answers: "Revelar Respuestas",
+
+    // Presentation export
+    presentation_export_pdf_ready: "PDF listo \u2014 descargando ahora",
+    presentation_export_pdf_failed: "Error al exportar el PDF. Int\u00e9ntalo de nuevo.",
+    presentation_export_pdf: "PDF",
+    presentation_export_png: "PNG",
+    presentation_export_word: "Word",
+
+    // StudentProgress PDF export
+    sp_pdf_export_failed: "Error al exportar el PDF. Int\u00e9ntalo de nuevo.",
+
+    // Create page extras
+    create_passage: "Texto",
+    create_word_bank: "Banco de Palabras",
+    create_saved: "guardado!",
   },
 
   ca: {
@@ -1624,6 +1762,75 @@ export const translations = {
     forum_dm_placeholder: "Missatge",
     forum_enter_to_send: "Enter per enviar",
     forum_shift_enter: "Shift+Enter per nova l\u00ednia",
+
+    // Forum time formatting
+    forum_time_just_now: "ara mateix",
+    forum_time_minutes_ago: "min",
+    forum_time_hours_ago: "h",
+    forum_time_yesterday: "Ahir",
+
+    // NavBar notifications
+    nav_notifications: "Notificacions",
+    nav_mark_all_read: "Marcar tot com a llegit",
+    nav_no_notifications: "Sense notificacions encara",
+    nav_change_language: "Canviar idioma",
+    nav_open_menu: "Obrir men\u00fa",
+    nav_close_menu: "Tancar men\u00fa",
+
+    // Import from SEBA Snap
+    import_sebasnap_btn: "Importar de SEBA Snap",
+    import_sebasnap_title: "Importar de SEBA Snap",
+    import_sebasnap_select: "Selecciona una presentaci\u00f3...",
+    import_sebasnap_loading: "Carregant presentacions\u2026",
+    import_sebasnap_refresh: "Actualitzar",
+    import_sebasnap_load_failed: "Error en carregar les presentacions:",
+    import_sebasnap_none: "No s'han trobat presentacions",
+    import_sebasnap_hint: "Les presentacions del teu banc SEBA Snap apareixeran aqu\u00ed.",
+    import_sebasnap_back: "Tornar a la llista",
+    import_sebasnap_review_title: "Important de SEBA Snap",
+    import_sebasnap_review_hint: "Revisa i edita abans de desar a Els Meus Materials.",
+    import_sebasnap_field_title: "T\u00edtol",
+    import_sebasnap_field_subject: "Assignatura",
+    import_sebasnap_field_type: "Tipus",
+    import_sebasnap_field_slides: "Diapositives",
+    import_sebasnap_importing: "Important\u2026",
+    import_sebasnap_import_btn: "Importar",
+    import_sebasnap_success: "importat correctament!",
+    import_sebasnap_failed: "Error en importar:",
+
+    // Challenge page extras
+    challenge_source_bank: "Banc de Coneixement",
+    challenge_source_materials: "Els Meus Materials",
+    challenge_loading_materials: "Carregant materials\u2026",
+    challenge_no_materials: "Encara no hi ha materials desats.",
+    challenge_no_materials_hint: "Crea un material a la p\u00e0gina Crear Materials primer.",
+    challenge_materials_hint: "Selecciona qualsevol material \u2014 les preguntes de qüestionari s'usen directament; altres tipus es converteixen en MCQ autom\u00e0ticament.",
+    challenge_room_copied: "Codi de sala copiat!",
+    challenge_link_copied: "Enlla\u00e7 d'uni\u00f3 copiat!",
+    challenge_students_joined: "Alumnes Units",
+    challenge_waiting_students: "Esperant alumnes\u2026",
+    challenge_start_game: "Iniciar Joc",
+    challenge_how_join: "Com s'uneixen els alumnes:",
+    challenge_join_step1: "Obrir al seu dispositiu",
+    challenge_join_step2: "Introduir el codi de sala o escanejar el codi QR",
+    challenge_join_step3: "Introduir el seu nom i fer clic a Unir-se",
+    challenge_hide_answers: "Amagar Respostes",
+    challenge_reveal_answers: "Revelar Respostes",
+
+    // Presentation export
+    presentation_export_pdf_ready: "PDF llest \u2014 descarregant ara",
+    presentation_export_pdf_failed: "Error en exportar el PDF. Torna-ho a intentar.",
+    presentation_export_pdf: "PDF",
+    presentation_export_png: "PNG",
+    presentation_export_word: "Word",
+
+    // StudentProgress PDF export
+    sp_pdf_export_failed: "Error en exportar el PDF. Torna-ho a intentar.",
+
+    // Create page extras
+    create_passage: "Text",
+    create_word_bank: "Banc de Paraules",
+    create_saved: "desat!",
   },
 } as const;
 

@@ -139,7 +139,7 @@ export default function StudentProgress() {
       a.click();
       URL.revokeObjectURL(url);
     },
-    onError: () => toast.error("PDF export failed. Please try again."),
+    onError: () => toast.error(t("sp_pdf_export_failed")),
   });
 
   const logScore = trpc.progress.logScores.useMutation({

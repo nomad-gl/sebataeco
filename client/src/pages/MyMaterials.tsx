@@ -121,13 +121,13 @@ export default function MyMaterials() {
 
   const importMutation = trpc.materials.importFromSebasnap.useMutation({
     onSuccess: (data) => {
-      toast.success(`"${data.title}" imported successfully!`);
+      toast.success(`"${data.title}" ${t("import_sebasnap_success")}`);
       utils.materials.list.invalidate();
       setImportOpen(false);
       setSelectedPres(null);
     },
     onError: (err) => {
-      toast.error("Import failed: " + err.message);
+      toast.error(t("import_sebasnap_failed") + " " + err.message);
     },
   });
 
@@ -213,8 +213,8 @@ export default function MyMaterials() {
               onClick={openImportDialog}
             >
               <Download className="w-4 h-4" />
-              <span className="hidden sm:inline">Import from SEBA Snap</span>
-              <span className="sm:hidden">Import</span>
+              <span className="hidden sm:inline">{t("import_sebasnap_btn")}</span>
+              <span className="sm:hidden">{t("import_sebasnap_import_btn")}</span>
             </Button>
             <Button onClick={() => navigate("/create")} className="gap-2" size="sm">
               <Plus className="w-4 h-4" /> <span className="hidden sm:inline">{t("my_materials_create")}</span><span className="sm:hidden">{t("save")}</span>
@@ -234,7 +234,7 @@ export default function MyMaterials() {
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={openImportDialog} className="gap-2 border-orange-400/60 text-orange-600 hover:bg-orange-50">
-                  <Download className="w-4 h-4" /> Import from SEBA Snap
+                  <Download className="w-4 h-4" /> {t("import_sebasnap_btn")}
                 </Button>
                 <Button onClick={() => navigate("/create")} className="gap-2">
                   <Plus className="w-4 h-4" /> {t("my_materials_create")}
@@ -270,7 +270,7 @@ export default function MyMaterials() {
                       <Button size="sm" variant="outline"
                         className="gap-1.5 border-yellow-500/50 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
                         onClick={() => { window.location.href = `/challenge?materialId=${m.id}&materialTitle=${encodeURIComponent(m.title)}`; }}>
-                        <Zap className="w-3.5 h-3.5" /> Challenge
+                        <Zap className="w-3.5 h-3.5" /> {t("nav_challenge")}
                       </Button>
                       <Button size="sm" variant="outline" className="gap-1.5"
                         onClick={() => navigate(`/materials/${m.id}`)}>
@@ -296,10 +296,10 @@ export default function MyMaterials() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Download className="w-5 h-5 text-orange-500" />
-              Import from SEBA Snap
+              {t("import_sebasnap_title")}
             </DialogTitle>
             <DialogDescription>
-              Select a presentation from your SEBA Snap bank to import into SEBA | Teach.
+              {t("import_sebasnap_hint")}
             </DialogDescription>
           </DialogHeader>
 
@@ -308,10 +308,12 @@ export default function MyMaterials() {
             <div className="flex-1 overflow-y-auto">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm text-muted-foreground">
-                  {sebasnapLoading ? "Loading presentations…" : `${presentations.length} presentation${presentations.length !== 1 ? "s" : ""} found`}
+                  {sebasnapLoading
+                    ? t("import_sebasnap_loading")
+                    : `${presentations.length} presentation${presentations.length !== 1 ? "s" : ""} found`}
                 </p>
                 <Button variant="ghost" size="sm" onClick={() => refetchSebasnap()} className="gap-1.5">
-                  <RefreshCw className="w-3.5 h-3.5" /> Refresh
+                  <RefreshCw className="w-3.5 h-3.5" /> {t("import_sebasnap_refresh")}
                 </Button>
               </div>
 
@@ -323,20 +325,19 @@ export default function MyMaterials() {
 
               {sebasnapError && (
                 <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-4 text-sm text-destructive">
-                  Failed to load presentations: {sebasnapError.message}
+                  {t("import_sebasnap_load_failed")} {sebasnapError.message}
                 </div>
               )}
 
               {!sebasnapLoading && presentations.length === 0 && !sebasnapError && (
                 <div className="flex flex-col items-center gap-3 py-12 text-center">
                   <FileText className="w-10 h-10 text-muted-foreground" />
-                  <p className="font-medium text-foreground">No presentations found</p>
+                  <p className="font-medium text-foreground">{t("import_sebasnap_none")}</p>
                   <p className="text-sm text-muted-foreground">
-                    Create presentations in{" "}
+                    {t("import_sebasnap_hint")}{" "}
                     <a href="https://sebasnap.com/presentation/bank" target="_blank" rel="noopener noreferrer" className="text-primary underline">
                       SEBA Snap
-                    </a>{" "}
-                    and they will appear here.
+                    </a>
                   </p>
                 </div>
               )}
@@ -373,7 +374,7 @@ export default function MyMaterials() {
                             )}
                             {Array.isArray(pres.slides) && (
                               <span className="text-xs text-muted-foreground">
-                                {pres.slides.length} slide{pres.slides.length !== 1 ? "s" : ""}
+                                {pres.slides.length} {t("import_sebasnap_field_slides")}
                               </span>
                             )}
                           </div>
@@ -393,45 +394,45 @@ export default function MyMaterials() {
                 onClick={() => setSelectedPres(null)}
                 className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 self-start"
               >
-                ← Back to list
+                ← {t("import_sebasnap_back")}
               </button>
 
               <div className="rounded-lg border border-orange-200 bg-orange-50/50 dark:bg-orange-900/10 p-4">
                 <p className="text-sm font-medium text-orange-700 dark:text-orange-400 mb-1">
-                  Importing from SEBA Snap
+                  {t("import_sebasnap_review_title")}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Review and edit the title and subject before saving to your materials library.
+                  {t("import_sebasnap_review_hint")}
                 </p>
               </div>
 
               <div className="flex flex-col gap-3">
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="import-title">Title</Label>
+                  <Label htmlFor="import-title">{t("import_sebasnap_field_title")}</Label>
                   <Input
                     id="import-title"
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
-                    placeholder="Presentation title"
+                    placeholder={t("import_sebasnap_select")}
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="import-subject">Subject</Label>
+                  <Label htmlFor="import-subject">{t("import_sebasnap_field_subject")}</Label>
                   <Input
                     id="import-subject"
                     value={editSubject}
                     onChange={(e) => setEditSubject(e.target.value)}
-                    placeholder="e.g. Science, History, Maths"
+                    placeholder={t("import_sebasnap_field_subject")}
                   />
                 </div>
               </div>
 
               <div className="rounded-lg border border-border p-3 bg-muted/30">
-                <p className="text-xs text-muted-foreground mb-1">Type</p>
-                <Badge variant="secondary" className="capitalize">Slides</Badge>
+                <p className="text-xs text-muted-foreground mb-1">{t("import_sebasnap_field_type")}</p>
+                <Badge variant="secondary" className="capitalize">{t("import_sebasnap_field_slides")}</Badge>
                 {Array.isArray(selectedPres.slides) && (
                   <span className="text-xs text-muted-foreground ml-2">
-                    {selectedPres.slides.length} slide{selectedPres.slides.length !== 1 ? "s" : ""}
+                    {selectedPres.slides.length} {t("import_sebasnap_field_slides")}
                   </span>
                 )}
               </div>
@@ -440,7 +441,7 @@ export default function MyMaterials() {
 
           <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => { setImportOpen(false); setSelectedPres(null); }}>
-              Cancel
+              {t("cancel")}
             </Button>
             {selectedPres && (
               <Button
@@ -449,9 +450,9 @@ export default function MyMaterials() {
                 className="gap-2 bg-orange-500 hover:bg-orange-600 text-white"
               >
                 {importMutation.isPending ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> Importing…</>
+                  <><Loader2 className="w-4 h-4 animate-spin" /> {t("import_sebasnap_importing")}</>
                 ) : (
-                  <><Download className="w-4 h-4" /> Save to My Materials</>
+                  <><Download className="w-4 h-4" /> {t("create_save_material")}</>
                 )}
               </Button>
             )}

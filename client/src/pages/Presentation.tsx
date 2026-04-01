@@ -133,9 +133,9 @@ export default function Presentation() {
       a.download = `${generated?.title ?? "presentation"}.pdf`;
       a.target = "_blank";
       a.click();
-      toast.success("PDF ready — downloading now");
+      toast.success(t("presentation_export_pdf_ready"));
     },
-    onError: () => toast.error("PDF export failed. Please try again."),
+    onError: () => toast.error(t("presentation_export_pdf_failed")),
   });
 
   const handleExportPdf = () => {

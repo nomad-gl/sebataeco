@@ -262,8 +262,8 @@ export default function Challenge() {
               {/* Source tabs */}
               <div className="flex rounded-xl overflow-hidden border border-white/20">
                 {[
-                  { key: "bank", label: "Knowledge Bank", icon: BookOpen },
-                  { key: "material", label: "My Materials", icon: Library },
+                  { key: "bank", label: t("challenge_source_bank"), icon: BookOpen },
+                  { key: "material", label: t("challenge_source_materials"), icon: Library },
                 ].map(({ key, label, icon: Icon }) => (
                   <button
                     key={key}
@@ -304,17 +304,17 @@ export default function Challenge() {
                 <div className="space-y-3">
                   {myMaterials.isLoading ? (
                     <div className="flex items-center gap-2 text-white/60 text-sm py-4 justify-center">
-                      <Loader2 className="w-4 h-4 animate-spin" /> Loading materials…
+                      <Loader2 className="w-4 h-4 animate-spin" /> {t("challenge_loading_materials")}
                     </div>
                   ) : allMaterials.length === 0 ? (
                     <div className="text-center py-6 text-white/50 text-sm">
                       <Library className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                      <p>No saved materials yet.</p>
-                      <p className="text-xs mt-1">Create a material in the Create Materials page first.</p>
+                      <p>{t("challenge_no_materials")}</p>
+                      <p className="text-xs mt-1">{t("challenge_no_materials_hint")}</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <p className="text-xs text-white/50">Select any material — quiz questions are used directly; other types are converted to MCQs automatically.</p>
+                      <p className="text-xs text-white/50">{t("challenge_materials_hint")}</p>
                       {allMaterials.map((m) => (
                         <button
                           key={m.id}
@@ -392,14 +392,14 @@ export default function Challenge() {
                   <Button
                     variant="outline" size="sm"
                     className="flex-1 border-white/30 text-white hover:bg-white/10 gap-1.5 text-xs"
-                    onClick={() => { navigator.clipboard.writeText(room.roomCode); toast.success("Room code copied!"); }}
+                    onClick={() => { navigator.clipboard.writeText(room.roomCode); toast.success(t("challenge_room_copied")); }}
                   >
                     <Copy className="w-3.5 h-3.5" /> Code
                   </Button>
                   <Button
                     variant="outline" size="sm"
                     className="flex-1 border-white/30 text-white hover:bg-white/10 gap-1.5 text-xs"
-                    onClick={() => { navigator.clipboard.writeText(joinUrl); toast.success("Join link copied!"); }}
+                    onClick={() => { navigator.clipboard.writeText(joinUrl); toast.success(t("challenge_link_copied")); }}
                   >
                     <Link2 className="w-3.5 h-3.5" /> Link
                   </Button>
@@ -411,7 +411,7 @@ export default function Challenge() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-white">
                     <Users className="w-5 h-5 text-yellow-300" />
-                    <span className="font-semibold">Students Joined</span>
+                    <span className="font-semibold">{t("challenge_students_joined")}</span>
                   </div>
                   <span className="text-2xl font-bold text-yellow-300">{room.participants.length}</span>
                 </div>
@@ -420,7 +420,7 @@ export default function Challenge() {
                   {room.participants.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full gap-2 text-white/40">
                       <Users className="w-8 h-8 opacity-40" />
-                      <p className="text-sm">Waiting for students…</p>
+                      <p className="text-sm">{t("challenge_waiting_students")}</p>
                     </div>
                   ) : (
                     <div className="flex flex-wrap gap-2">
@@ -453,18 +453,18 @@ export default function Challenge() {
                   {controlMutation.isPending
                     ? <Loader2 className="w-5 h-5 animate-spin" />
                     : <Play className="w-5 h-5" />}
-                  {room.participants.length === 0 ? "Waiting for students…" : `Start Game (${room.participants.length} joined)`}
+                  {room.participants.length === 0 ? t("challenge_waiting_students") : `${t("challenge_start_game")} (${room.participants.length} joined)`}
                 </Button>
               </div>
             </div>
 
             {/* Instructions card */}
             <div className="bg-yellow-400/10 border border-yellow-400/20 rounded-xl p-4 text-sm text-yellow-200 space-y-1">
-              <p className="font-semibold">How students join:</p>
+              <p className="font-semibold">{t("challenge_how_join")}</p>
               <ol className="list-decimal list-inside space-y-0.5 text-yellow-200/80">
-                <li>Open <span className="font-mono">{window.location.origin}/join</span> on their device</li>
-                <li>Enter the room code <span className="font-mono font-bold text-yellow-300">{room.roomCode}</span> or scan the QR code</li>
-                <li>Enter their name and click Join</li>
+                <li>{t("challenge_join_step1")} <span className="font-mono">{window.location.origin}/join</span></li>
+                <li>{t("challenge_join_step2")} <span className="font-mono font-bold text-yellow-300">{room.roomCode}</span></li>
+                <li>{t("challenge_join_step3")}</li>
               </ol>
             </div>
           </div>

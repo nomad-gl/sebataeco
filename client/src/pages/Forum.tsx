@@ -53,20 +53,26 @@ function Avatar({ name, size = "md", online }: { name: string; size?: "sm" | "md
   );
 }
 
-function formatTime(date: Date | string) {
-  const d = new Date(date);
-  const now = new Date();
-  const diff = now.getTime() - d.getTime();
-  if (diff < 60_000) return "just now";
-  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m`;
-  if (diff < 86_400_000) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  return d.toLocaleDateString([], { month: "short", day: "numeric" });
+function useFormatTime() {
+  const { t } = useI18n();
+  return function formatTime(date: Date | string) {
+    const d = new Date(date);
+    const now = new Date();
+    const diff = now.getTime() - d.getTime();
+    if (diff < 60_000) return t("forum_time_just_now");
+    if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}${t("forum_time_minutes_ago")}`;
+    if (diff < 86_400_000) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const yesterday = new Date(now); yesterday.setDate(yesterday.getDate() - 1);
+    if (d.toDateString() === yesterday.toDateString()) return t("forum_time_yesterday");
+    return d.toLocaleDateString([], { month: "short", day: "numeric" });
+  };
 }
 
 // ─── main component ───────────────────────────────────────────────────────────
 
 export default function Forum() {
   const { t, lang } = useI18n();
+  const formatTime = useFormatTime();
   const { user } = useAuth();
 
   // sidebar state
