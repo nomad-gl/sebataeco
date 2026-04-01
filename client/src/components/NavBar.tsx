@@ -99,7 +99,10 @@ export default function NavBar() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group flex-shrink-0">
             <img
-              src="https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/SEBA_hd_4ec811c2.png"
+              src={isClassroomPage
+                ? "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/SEBA1_02cbc6c3.png"
+                : "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/SEBA_hd_4ec811c2.png"
+              }
               alt="SEBA"
               className="h-10 sm:h-12 w-auto object-contain"
             />
@@ -298,7 +301,12 @@ export default function NavBar() {
             </div>
 
             <button
-              className="flex items-center justify-center w-9 h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+              className={cn(
+                "flex items-center justify-center w-9 h-9 rounded-lg transition-all",
+                isClassroomPage
+                  ? "text-white/80 hover:text-white hover:bg-white/15"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+              )}
               onClick={() => setMobileOpen((o) => !o)}
               aria-label={mobileOpen ? t("nav_close_menu") : t("nav_open_menu")}
             >
@@ -312,12 +320,17 @@ export default function NavBar() {
       {mobileOpen && (
         <div className="md:hidden fixed inset-0 top-14 z-40 bg-black/40" onClick={() => setMobileOpen(false)}>
           <nav
-            className="bg-white border-b border-border shadow-xl flex flex-col"
+            className={cn(
+              "border-b shadow-xl flex flex-col",
+              isClassroomPage
+                ? "bg-black/70 backdrop-blur-md border-white/15"
+                : "bg-white border-border"
+            )}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Main nav */}
-            <div className="px-4 py-3 border-b border-border">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
+            <div className={cn("px-4 py-3 border-b", isClassroomPage ? "border-white/15" : "border-border")}>
+              <p className={cn("text-xs font-semibold uppercase tracking-wider mb-2 px-1", isClassroomPage ? "text-white/50" : "text-muted-foreground")}>
                 {t("nav_home")} &amp; {t("nav_practice")}
               </p>
               {mainNavItems.map(({ href, label, icon: Icon }) => {
@@ -330,7 +343,9 @@ export default function NavBar() {
                       "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mb-1",
                       active
                         ? "bg-primary text-primary-foreground"
-                        : "text-foreground hover:bg-secondary"
+                        : isClassroomPage
+                          ? "text-white/80 hover:text-white hover:bg-white/15"
+                          : "text-foreground hover:bg-secondary"
                     )}
                   >
                     <Icon className="w-5 h-5 flex-shrink-0" />
@@ -342,7 +357,7 @@ export default function NavBar() {
 
             {/* Teacher tools */}
             <div className="px-4 py-3">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
+              <p className={cn("text-xs font-semibold uppercase tracking-wider mb-2 px-1", isClassroomPage ? "text-white/50" : "text-muted-foreground")}>
                 {t("nav_teacher")}
               </p>
               {teacherItems.map(({ href, label, icon: Icon }) => {
@@ -355,7 +370,9 @@ export default function NavBar() {
                       "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mb-1",
                       active
                         ? "bg-primary text-primary-foreground"
-                        : "text-foreground hover:bg-secondary"
+                        : isClassroomPage
+                          ? "text-white/80 hover:text-white hover:bg-white/15"
+                          : "text-foreground hover:bg-secondary"
                     )}
                   >
                     <Icon className="w-5 h-5 flex-shrink-0" />

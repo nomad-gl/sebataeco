@@ -41,12 +41,12 @@ export default function Progress() {
       <div className="progress-bg flex flex-col">
         <NavBar />
         <div className="flex-1 flex items-center justify-center">
-          <Card className="max-w-sm w-full mx-4">
+          <Card className="max-w-sm w-full mx-4 bg-white/10 backdrop-blur-md border-white/20">
             <CardContent className="p-8 flex flex-col items-center gap-4 text-center">
-              <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
-                <Lock className="w-8 h-8 text-muted-foreground" />
+              <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center">
+                <Lock className="w-8 h-8 text-white/70" />
               </div>
-              <h2 className="text-xl font-bold">{t("sign_in_required")}</h2>
+              <h2 className="text-xl font-bold text-white">{t("sign_in_required")}</h2>
               <Button asChild className="w-full">
                 <a href={getLoginUrl()}>{t("nav_sign_in")}</a>
               </Button>
