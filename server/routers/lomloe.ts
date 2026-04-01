@@ -153,4 +153,45 @@ IMPORTANT RULES:
 
       return { content };
     }),
+
+  translateMessages: publicProcedure
+    .input(
+      z.object({
+        messages: z.array(
+          z.object({
+            role: z.enum(["user", "assistant"]),
+            content: z.string(),
+          })
+        ),
+        targetLang: z.enum(["en", "es", "ca"]),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const langNames: Record<string, string> = {
+        en: "English",
+        es: "Spanish (Castilian)",
+        ca: "Catalan",
+      };
+      const targetLangName = langNames[input.targetLang];
+
+      // Translate each message individually, preserving markdown formatting
+      const translated = await Promise.all(
+        input.messages.map(async (msg) => {
+          const response = await invokeLLM({
+            messages: [
+              {
+                role: "system",
+                content: `You are a professional translator. Translate the following text into ${targetLangName}. Preserve all markdown formatting, bullet points, headers, and structure exactly. Only translate the text content, do not add any explanation or preamble. Return only the translated text.`,
+              },
+              { role: "user", content: msg.content },
+            ],
+          });
+          const translatedContent =
+            response.choices?.[0]?.message?.content ?? msg.content;
+          return { role: msg.role, content: translatedContent };
+        })
+      );
+
+      return { messages: translated };
+    }),
 });

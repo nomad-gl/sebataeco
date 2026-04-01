@@ -1,17 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import NavBar from "@/components/NavBar";
-import ParallaxSection from "@/components/ParallaxSection";
 import CompetencySelector from "@/components/CompetencySelector";
 import { AIChatBox, type Message } from "@/components/AIChatBox";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/contexts/I18nContext";
-import type { TranslationKey } from "@/contexts/I18nContext";
-
-const HERO_BG =
-  "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/hero-bg-UMuQESLM5HrV2VsrndDo2h.webp";
+import type { TranslationKey, Lang } from "@/contexts/I18nContext";
+import { Loader2 } from "lucide-react";
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
 type YearGroup = "junior" | "primary" | "secondary";
@@ -26,13 +23,55 @@ const SUGGESTED_KEYS: TranslationKey[] = [
 ];
 
 export default function Chat() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [messages, setMessages] = useState<Message[]>([]);
   const [competency, setCompetency] = useState<CompetencyCode | undefined>();
   const [yearGroup, setYearGroup] = useState<YearGroup | undefined>();
   const [showFilters, setShowFilters] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
+
+  // Track previous lang to detect real changes
+  const prevLangRef = useRef<Lang>(lang);
 
   const chatMutation = trpc.lomloe.chat.useMutation();
+  const translateMutation = trpc.lomloe.translateMessages.useMutation();
+
+  // When language changes, translate all existing messages in the session
+  useEffect(() => {
+    const prevLang = prevLangRef.current;
+    prevLangRef.current = lang;
+
+    if (prevLang === lang || messages.length === 0) return;
+
+    const nonSystemMessages = messages.filter((m) => m.role !== "system");
+    if (nonSystemMessages.length === 0) return;
+
+    setIsTranslating(true);
+    translateMutation.mutate(
+      {
+        messages: nonSystemMessages.map((m) => ({
+          role: m.role as "user" | "assistant",
+          content: m.content,
+        })),
+        targetLang: lang,
+      },
+      {
+        onSuccess: (result) => {
+          setMessages(
+            result.messages.map((m) => ({
+              role: m.role as "user" | "assistant",
+              content: typeof m.content === "string" ? m.content : String(m.content),
+            }))
+          );
+          setIsTranslating(false);
+        },
+        onError: () => {
+          setIsTranslating(false);
+        },
+      }
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
 
   const handleSendMessage = async (content: string) => {
     const userMsg: Message = { role: "user", content };
@@ -71,7 +110,13 @@ export default function Chat() {
             <h1 className="text-xl sm:text-2xl font-bold text-white">{t("chat_title")}</h1>
             <p className="text-sm text-white/70">{t("chat_subtitle")}</p>
           </div>
-          <div className="flex gap-2 flex-shrink-0">
+          <div className="flex gap-2 flex-shrink-0 items-center">
+            {isTranslating && (
+              <div className="flex items-center gap-1.5 text-white/70 text-xs">
+                <Loader2 className="size-3 animate-spin" />
+                <span>{t("chat_translating")}</span>
+              </div>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -118,7 +163,15 @@ export default function Chat() {
         )}
 
         {/* AIChatBox */}
-        <div className="flex-1">
+        <div className="flex-1 relative">
+          {isTranslating && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-black/50 backdrop-blur-sm">
+              <div className="flex flex-col items-center gap-3 text-white">
+                <Loader2 className="size-8 animate-spin" />
+                <p className="text-sm font-medium">{t("chat_translating")}</p>
+              </div>
+            </div>
+          )}
           <AIChatBox
             messages={messages}
             onSendMessage={handleSendMessage}

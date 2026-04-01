@@ -322,6 +322,7 @@ export const translations = {
     // Chat extra
     chat_filter: "Filter",
     chat_clear: "Clear",
+    chat_translating: "Translating conversation...",
     chat_context_filtered: "AI context filtered to",
     chat_year_group: "year group",
     chat_error: "I'm sorry, I encountered an error processing your request. Please try again.",
@@ -932,6 +933,7 @@ export const translations = {
     // Chat extra
     chat_filter: "Filtrar",
     chat_clear: "Limpiar",
+    chat_translating: "Traduciendo conversación...",
     chat_context_filtered: "Contexto IA filtrado a",
     chat_year_group: "curso",
     chat_error: "Lo siento, encontré un error al procesar tu solicitud. Por favor, inténtalo de nuevo.",
@@ -1542,6 +1544,7 @@ export const translations = {
     // Chat extra
     chat_filter: "Filtrar",
     chat_clear: "Netejar",
+    chat_translating: "Traduint la conversa...",
     chat_context_filtered: "Context IA filtrat a",
     chat_year_group: "curs",
     chat_error: "Ho sento, he trobat un error en processar la teva sol·licitud. Si us plau, torna-ho a intentar.",
