@@ -7,7 +7,10 @@ import NavBar from "@/components/NavBar";
 import { Loader2, Lock, Trophy, TrendingUp, Target } from "lucide-react";
 import { getLoginUrl } from "@/const";
 import { useLocation } from "wouter";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
+  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Legend,
+} from "recharts";
 import { useI18n } from "@/contexts/I18nContext";
 
 const COMP_COLORS: Record<string, string> = {
@@ -103,30 +106,76 @@ export default function Progress() {
             </div>
 
             {data && data.chart.length > 0 && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">{t("progress_by_competency")}</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <ResponsiveContainer width="100%" height={180}>
-                    <BarChart data={data.chart} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="code" tick={{ fontSize: 11 }} />
-                      <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11 }} />
-                      <Tooltip
-                        formatter={(v: number) => [`${v}%`, t("progress_avg_score")]}
-                        labelFormatter={(label) => data.chart.find(c => c.code === label)?.name ?? label}
-                        contentStyle={{ fontSize: 12 }}
-                      />
-                      <Bar dataKey="avgPct" radius={[4, 4, 0, 0]}>
-                        {data.chart.map((entry) => (
-                          <Cell key={entry.code} fill={COMP_COLORS[entry.code] ?? "#6b7280"} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+              <>
+                {/* Radar chart — competency spider */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Target className="w-4 h-4 text-primary" />
+                      {t("progress_radar_title")}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <ResponsiveContainer width="100%" height={280}>
+                      <RadarChart data={data.chart} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
+                        <PolarGrid stroke="hsl(var(--border))" />
+                        <PolarAngleAxis
+                          dataKey="code"
+                          tick={{ fontSize: 11, fontWeight: 600, fill: "hsl(var(--foreground))" }}
+                        />
+                        <PolarRadiusAxis
+                          angle={90}
+                          domain={[0, 100]}
+                          tickFormatter={(v) => `${v}%`}
+                          tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }}
+                          tickCount={5}
+                        />
+                        <Radar
+                          name={t("progress_avg_score")}
+                          dataKey="avgPct"
+                          stroke="#3b82f6"
+                          fill="#3b82f6"
+                          fillOpacity={0.25}
+                          strokeWidth={2}
+                          dot={{ r: 4, fill: "#3b82f6" }}
+                        />
+                        <Tooltip
+                          formatter={(v: number) => [`${v}%`, t("progress_avg_score")]}
+                          labelFormatter={(label) => data.chart.find(c => c.code === label)?.name ?? label}
+                          contentStyle={{ fontSize: 12 }}
+                        />
+                        <Legend wrapperStyle={{ fontSize: 12 }} />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                {/* Bar chart — breakdown */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">{t("progress_by_competency")}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <ResponsiveContainer width="100%" height={180}>
+                      <BarChart data={data.chart} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis dataKey="code" tick={{ fontSize: 11 }} />
+                        <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11 }} />
+                        <Tooltip
+                          formatter={(v: number) => [`${v}%`, t("progress_avg_score")]}
+                          labelFormatter={(label) => data.chart.find(c => c.code === label)?.name ?? label}
+                          contentStyle={{ fontSize: 12 }}
+                        />
+                        <Bar dataKey="avgPct" radius={[4, 4, 0, 0]}>
+                          {data.chart.map((entry) => (
+                            <Cell key={entry.code} fill={COMP_COLORS[entry.code] ?? "#6b7280"} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </>
             )}
 
             <Card>

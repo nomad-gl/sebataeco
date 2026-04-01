@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import { useRoute, useLocation } from "wouter";
 import NavBar from "@/components/NavBar";
@@ -113,10 +113,13 @@ function autoLayoutCrossword(
 }
 
 function CrosswordGrid({
-  words, showAnswers,
+  words, showAnswers, checked, userInputs, onInput,
 }: {
   words: CrosswordContent["words"];
   showAnswers: boolean;
+  checked: boolean;
+  userInputs: Record<string, string>;
+  onInput: (key: string, val: string, nextKey?: string) => void;
 }) {
   // Detect invalid placement (all words at row=0,col=0 or no placement data)
   const allAtOrigin = words.length > 1 && words.every(w => w.row === 0 && w.col === 0);
@@ -138,10 +141,14 @@ function CrosswordGrid({
   const rows = maxR - minR + 1;
   const cols = maxC - minC + 1;
 
-  const grid: { letter: string; number?: number; used: boolean; inputVal: string }[][] =
+  // Build grid with correct letters
+  const grid: { letter: string; number?: number; used: boolean }[][] =
     Array.from({ length: rows }, () =>
-      Array.from({ length: cols }, () => ({ letter: "", number: undefined, used: false, inputVal: "" }))
+      Array.from({ length: cols }, () => ({ letter: "", number: undefined, used: false }))
     );
+
+  // Build ordered list of used cells for focus navigation
+  const usedCells: string[] = [];
 
   for (const w of layoutWords) {
     const { word, direction, row, col, number } = w;
@@ -152,6 +159,8 @@ function CrosswordGrid({
         grid[r]![c]!.letter = word[i] ?? "";
         grid[r]![c]!.used = true;
         if (i === 0) grid[r]![c]!.number = number;
+        const key = `${r},${c}`;
+        if (!usedCells.includes(key)) usedCells.push(key);
       }
     }
   }
@@ -162,39 +171,64 @@ function CrosswordGrid({
         <tbody>
           {grid.map((row, ri) => (
             <tr key={ri}>
-              {row.map((cell, ci) => (
-                <td
-                  key={ci}
-                  className="relative p-0"
-                  style={{
-                    width: 32, height: 32, minWidth: 32,
-                    border: cell.used ? `2px solid #6b7280` : "none",
-                    backgroundColor: cell.used ? (showAnswers ? "#ffffff" : "#f9fafb") : "transparent",
-                  }}
-                >
-                  {cell.used && (
-                    <>
-                      {cell.number !== undefined && (
-                        <span
-                          className="absolute top-0 left-0.5 leading-none font-bold text-gray-700"
-                          style={{ fontSize: 9 }}
-                        >
-                          {cell.number}
-                        </span>
-                      )}
-                      {showAnswers ? (
-                        <span className="flex items-center justify-center h-full w-full text-sm font-mono font-bold text-gray-900">
-                          {cell.letter}
-                        </span>
-                      ) : (
-                        <span className="flex items-center justify-center h-full w-full text-sm font-mono font-bold text-gray-400 select-none">
-                          &nbsp;
-                        </span>
-                      )}
-                    </>
-                  )}
-                </td>
-              ))}
+              {row.map((cell, ci) => {
+                const key = `${ri},${ci}`;
+                const userVal = userInputs[key] ?? "";
+                const isCorrect = checked && userVal.toUpperCase() === cell.letter;
+                const isWrong = checked && userVal !== "" && userVal.toUpperCase() !== cell.letter;
+                let bg = cell.used ? "#f9fafb" : "transparent";
+                if (showAnswers && cell.used) bg = "#ffffff";
+                if (isCorrect) bg = "#bbf7d0";
+                if (isWrong) bg = "#fecaca";
+                const nextKey = usedCells[usedCells.indexOf(key) + 1];
+                return (
+                  <td
+                    key={ci}
+                    className="relative p-0"
+                    style={{
+                      width: 32, height: 32, minWidth: 32,
+                      border: cell.used ? `2px solid #6b7280` : "none",
+                      backgroundColor: bg,
+                    }}
+                  >
+                    {cell.used && (
+                      <>
+                        {cell.number !== undefined && (
+                          <span
+                            className="absolute top-0 left-0.5 leading-none font-bold text-gray-700 z-10"
+                            style={{ fontSize: 9 }}
+                          >
+                            {cell.number}
+                          </span>
+                        )}
+                        {showAnswers ? (
+                          <span className="flex items-center justify-center h-full w-full text-sm font-mono font-bold text-gray-900">
+                            {cell.letter}
+                          </span>
+                        ) : (
+                          <input
+                            id={`cw-${key}`}
+                            maxLength={1}
+                            value={userVal}
+                            onChange={e => {
+                              const v = e.target.value.toUpperCase().replace(/[^A-Z]/g, "");
+                              onInput(key, v, v ? nextKey : undefined);
+                            }}
+                            onKeyDown={e => {
+                              if (e.key === "Backspace" && userVal === "") {
+                                const prevKey = usedCells[usedCells.indexOf(key) - 1];
+                                if (prevKey) document.getElementById(`cw-${prevKey}`)?.focus();
+                              }
+                            }}
+                            className="absolute inset-0 w-full h-full text-center text-sm font-mono font-bold bg-transparent border-none outline-none uppercase pt-3 cursor-text"
+                            style={{ caretColor: "transparent" }}
+                          />
+                        )}
+                      </>
+                    )}
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>
@@ -372,12 +406,73 @@ function SlidesViewer({ content }: { content: SlidesContent }) {
   );
 }
 
-// ─── Crossword viewer ─────────────────────────────────────────────────────────
+// ─── // ─── Crossword viewer ──────────────────────────────────────────────────
 
 function CrosswordViewer({ content, showAnswers }: { content: CrosswordContent; showAnswers: boolean }) {
+  const [userInputs, setUserInputs] = useState<Record<string, string>>({});
+  const [checked, setChecked] = useState(false);
+
+  const handleInput = useCallback((key: string, val: string, nextKey?: string) => {
+    setChecked(false);
+    setUserInputs(prev => ({ ...prev, [key]: val }));
+    if (nextKey && val) {
+      setTimeout(() => document.getElementById(`cw-${nextKey}`)?.focus(), 0);
+    }
+  }, []);
+
+  const handleCheck = () => setChecked(true);
+  const handleClear = () => { setUserInputs({}); setChecked(false); };
+
+  const totalCells = content.words.reduce((acc, w) => acc + w.word.length, 0);
+  const filledCells = Object.values(userInputs).filter(v => v !== "").length;
+  const correctCells = checked
+    ? content.words.reduce((acc, w) => {
+        const allAtOrigin2 = content.words.length > 1 && content.words.every(ww => ww.row === 0 && ww.col === 0);
+        const lw = allAtOrigin2 ? autoLayoutCrossword(content.words) : content.words;
+        const placed = lw.find(lword => lword.number === w.number && lword.direction === w.direction);
+        if (!placed) return acc;
+        let minR2 = 15, minC2 = 15;
+        for (const ww of lw) for (let i = 0; i < ww.word.length; i++) {
+          const rr = ww.direction === "across" ? ww.row : ww.row + i;
+          const cc = ww.direction === "across" ? ww.col + i : ww.col;
+          if (rr < minR2) minR2 = rr; if (cc < minC2) minC2 = cc;
+        }
+        for (let i = 0; i < placed.word.length; i++) {
+          const r = (placed.direction === "across" ? placed.row : placed.row + i) - minR2;
+          const c = (placed.direction === "across" ? placed.col + i : placed.col) - minC2;
+          const key = `${r},${c}`;
+          if ((userInputs[key] ?? "").toUpperCase() === placed.word[i]) acc++;
+        }
+        return acc;
+      }, 0)
+    : 0;
+
   return (
     <div className="flex flex-col gap-6">
-      <CrosswordGrid words={content.words} showAnswers={showAnswers} />
+      {/* Action bar */}
+      {!showAnswers && (
+        <div className="flex items-center gap-3 flex-wrap">
+          <Button size="sm" onClick={handleCheck} disabled={filledCells === 0}>
+            Check Answers
+          </Button>
+          <Button size="sm" variant="outline" onClick={handleClear}>
+            Clear
+          </Button>
+          {checked && (
+            <span className="text-sm font-medium">
+              <span className="text-green-700">{correctCells}</span>
+              <span className="text-muted-foreground"> / {totalCells} correct</span>
+            </span>
+          )}
+        </div>
+      )}
+      <CrosswordGrid
+        words={content.words}
+        showAnswers={showAnswers}
+        checked={checked}
+        userInputs={userInputs}
+        onInput={handleInput}
+      />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div>
           <h3 className="font-bold text-sm text-foreground mb-3 uppercase tracking-wide">Across</h3>

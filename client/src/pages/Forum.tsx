@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import {
   Hash, MessageSquare, Users, Send, Search,
   ChevronLeft, Circle, ArrowLeft, Wifi, WifiOff,
-  SmilePlus, MoreVertical, Bell, Settings,
+  SmilePlus, MoreVertical, Bell, Settings, Mic, MicOff,
 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Link } from "wouter";
@@ -14,8 +14,8 @@ import { Link } from "wouter";
 // ─── types ────────────────────────────────────────────────────────────────────
 
 type Channel = { id: number; name: string; description: string | null; emoji: string; createdAt: Date };
-type ChatMessage = { id: number; channelId?: number; userId: number; userName: string; body: string; originalBody?: string; createdAt: Date };
-type DmMessage = { id: number; fromUserId: number; toUserId: number; fromName: string; body: string; read: boolean; createdAt: Date; isMine: boolean };
+type ChatMessage = { id: number; channelId?: number; userId: number; userName: string; body: string; originalBody?: string; createdAt: Date; messageType?: string; audioUrl?: string | null; };
+type DmMessage = { id: number; fromUserId: number; toUserId: number; fromName: string; body: string; read: boolean; createdAt: Date; isMine: boolean; messageType?: string; audioUrl?: string | null; };
 type UserEntry = { id: number; name: string; online: boolean; lastSeen: Date | null };
 type Conversation = { otherId: number; otherName: string; lastBody: string; lastAt: Date; unread: number };
 
@@ -81,6 +81,13 @@ export default function Forum() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
 
+  // voice recording
+  const [recording, setRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   // polling timestamps
   const [channelSince, setChannelSince] = useState<number | undefined>(undefined);
   const [dmSince, setDmSince] = useState<number | undefined>(undefined);
@@ -118,6 +125,15 @@ export default function Forum() {
     },
   });
   const pingMut = trpc.forum.ping.useMutation();
+  const sendVoiceMut = trpc.forum.sendVoiceMessage.useMutation({
+    onSuccess: () => utils.forum.getMessages.invalidate(),
+  });
+  const sendVoiceDmMut = trpc.forum.sendVoiceDm.useMutation({
+    onSuccess: () => {
+      utils.forum.getDirectMessages.invalidate();
+      utils.forum.getConversations.invalidate();
+    },
+  });
 
   // ─── effects ───────────────────────────────────────────────────────────────
 
@@ -157,6 +173,56 @@ export default function Forum() {
       inputRef.current?.focus();
     }
   }, [input, sending, view, activeChannelId, activeDmUserId, sendMessageMut, sendDmMut]);
+
+  // ─── voice recording handlers ──────────────────────────────────────────────
+
+  const startRecording = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4";
+      const mr = new MediaRecorder(stream, { mimeType });
+      audioChunksRef.current = [];
+      mr.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+      mr.start(100);
+      mediaRecorderRef.current = mr;
+      setRecording(true);
+      setRecordingSeconds(0);
+      recordingTimerRef.current = setInterval(() => setRecordingSeconds(s => s + 1), 1000);
+    } catch {
+      alert("Microphone access denied. Please allow microphone access to send voice messages.");
+    }
+  }, []);
+
+  const stopRecording = useCallback(async () => {
+    const mr = mediaRecorderRef.current;
+    if (!mr) return;
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    setRecording(false);
+    setRecordingSeconds(0);
+    await new Promise<void>((resolve) => {
+      mr.onstop = () => resolve();
+      mr.stop();
+      mr.stream.getTracks().forEach(t => t.stop());
+    });
+    const blob = new Blob(audioChunksRef.current, { type: mr.mimeType });
+    if (blob.size < 1000) return; // too short, ignore
+    // Convert to base64
+    const reader = new FileReader();
+    reader.readAsDataURL(blob);
+    reader.onloadend = async () => {
+      const base64 = (reader.result as string).split(",")[1];
+      setSending(true);
+      try {
+        if (view === "channel" && activeChannelId !== null) {
+          await sendVoiceMut.mutateAsync({ channelId: activeChannelId, audioBase64: base64, mimeType: mr.mimeType });
+        } else if (view === "dm" && activeDmUserId !== null) {
+          await sendVoiceDmMut.mutateAsync({ toUserId: activeDmUserId, audioBase64: base64, mimeType: mr.mimeType });
+        }
+      } finally {
+        setSending(false);
+      }
+    };
+  }, [view, activeChannelId, activeDmUserId, sendVoiceMut, sendVoiceDmMut]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -554,7 +620,17 @@ export default function Forum() {
                   <div className={cn("max-w-[70%] flex flex-col", isMine ? "items-end" : "items-start")}>
                     {showHeader && !isMine && <span className="text-xs font-semibold text-gray-500 mb-1 ml-1">{msg.userName}</span>}
                     <div className={cn("px-3.5 py-2 rounded-2xl text-sm leading-relaxed shadow-sm", isMine ? "bg-primary text-white rounded-br-sm" : "bg-white text-gray-800 border border-gray-100 rounded-bl-sm")}>
-                      {msg.body}
+                      {msg.messageType === "voice" && msg.audioUrl ? (
+                        <div className="flex flex-col gap-1.5">
+                          <audio controls className="w-full max-w-xs" style={{ height: "32px" }}>
+                            <source src={msg.audioUrl} type="audio/webm" />
+                            <source src={msg.audioUrl} type="audio/mp4" />
+                          </audio>
+                          <span className="text-xs opacity-70">{msg.body}</span>
+                        </div>
+                      ) : (
+                        msg.body
+                      )}
                     </div>
                     <span className="text-[10px] text-gray-400 mt-0.5 mx-1">{formatTime(msg.createdAt)}</span>
                   </div>
@@ -576,7 +652,17 @@ export default function Forum() {
                   <div className={cn("max-w-[70%] flex flex-col", isMine ? "items-end" : "items-start")}>
                     {showHeader && !isMine && <span className="text-xs font-semibold text-gray-500 mb-1 ml-1">{msg.fromName}</span>}
                     <div className={cn("px-3.5 py-2 rounded-2xl text-sm leading-relaxed shadow-sm", isMine ? "bg-primary text-white rounded-br-sm" : "bg-white text-gray-800 border border-gray-100 rounded-bl-sm")}>
-                      {msg.body}
+                      {msg.messageType === "voice" && msg.audioUrl ? (
+                        <div className="flex flex-col gap-1.5">
+                          <audio controls className="w-full max-w-xs" style={{ height: "32px" }}>
+                            <source src={msg.audioUrl} type="audio/webm" />
+                            <source src={msg.audioUrl} type="audio/mp4" />
+                          </audio>
+                          <span className="text-xs opacity-70">{msg.body}</span>
+                        </div>
+                      ) : (
+                        msg.body
+                      )}
                     </div>
                     <span className="text-[10px] text-gray-400 mt-0.5 mx-1">{formatTime(msg.createdAt)}</span>
                   </div>
@@ -588,42 +674,85 @@ export default function Forum() {
 
           {/* Input bar */}
           <div className="flex-shrink-0 bg-white border-t border-gray-200 px-4 py-3">
+            {/* Recording indicator */}
+            {recording && (
+              <div className="flex items-center gap-2 mb-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-xl">
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-xs text-red-600 font-medium">
+                  Recording… {recordingSeconds}s
+                </span>
+                <span className="ml-auto text-xs text-red-400">Release mic button to send</span>
+              </div>
+            )}
             <div className="flex items-end gap-2 bg-gray-50 border border-gray-200 rounded-2xl px-3 py-2 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-              <textarea
-                ref={inputRef}
-                rows={1}
-                value={input}
-                onChange={(e) => {
-                  setInput(e.target.value);
-                  e.target.style.height = "auto";
-                  e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
-                }}
-                onKeyDown={handleKeyDown}
-                placeholder={
-                  view === "channel" && activeChannel
-                    ? `${t("forum_message_placeholder")} #${activeChannel.name}`
-                    : view === "dm" && activeDmUser
-                    ? `${t("forum_dm_placeholder")} ${activeDmUser.name}`
-                    : t("forum_message_placeholder")
-                }
-                className="flex-1 bg-transparent resize-none outline-none text-sm text-gray-800 placeholder:text-gray-400 max-h-28 leading-relaxed"
-                style={{ minHeight: "24px" }}
-              />
+              {!recording && (
+                <textarea
+                  ref={inputRef}
+                  rows={1}
+                  value={input}
+                  onChange={(e) => {
+                    setInput(e.target.value);
+                    e.target.style.height = "auto";
+                    e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+                  }}
+                  onKeyDown={handleKeyDown}
+                  placeholder={
+                    view === "channel" && activeChannel
+                      ? `${t("forum_message_placeholder")} #${activeChannel.name}`
+                      : view === "dm" && activeDmUser
+                      ? `${t("forum_dm_placeholder")} ${activeDmUser.name}`
+                      : t("forum_message_placeholder")
+                  }
+                  className="flex-1 bg-transparent resize-none outline-none text-sm text-gray-800 placeholder:text-gray-400 max-h-28 leading-relaxed"
+                  style={{ minHeight: "24px" }}
+                />
+              )}
+              {recording && (
+                <div className="flex-1 flex items-center gap-1.5">
+                  {[...Array(12)].map((_, i) => (
+                    <span
+                      key={i}
+                      className="w-0.5 bg-red-400 rounded-full animate-pulse"
+                      style={{ height: `${8 + Math.sin(i * 0.9 + Date.now() / 200) * 6}px`, animationDelay: `${i * 80}ms` }}
+                    />
+                  ))}
+                </div>
+              )}
+              {/* Mic button — hold to record */}
               <button
-                onClick={handleSend}
-                disabled={!input.trim() || sending}
+                onMouseDown={startRecording}
+                onMouseUp={stopRecording}
+                onTouchStart={(e) => { e.preventDefault(); startRecording(); }}
+                onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }}
+                disabled={sending}
+                title="Hold to record voice message"
                 className={cn(
                   "flex items-center justify-center w-8 h-8 rounded-xl transition-all flex-shrink-0",
-                  input.trim() && !sending
-                    ? "bg-primary text-white hover:bg-primary/90 shadow-sm"
-                    : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  recording
+                    ? "bg-red-500 text-white shadow-md scale-110"
+                    : "bg-gray-200 text-gray-500 hover:bg-gray-300"
                 )}
               >
-                <Send className="w-4 h-4" />
+                {recording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
               </button>
+              {/* Send button */}
+              {!recording && (
+                <button
+                  onClick={handleSend}
+                  disabled={!input.trim() || sending}
+                  className={cn(
+                    "flex items-center justify-center w-8 h-8 rounded-xl transition-all flex-shrink-0",
+                    input.trim() && !sending
+                      ? "bg-primary text-white hover:bg-primary/90 shadow-sm"
+                      : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  )}
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              )}
             </div>
             <p className="text-[10px] text-gray-400 mt-1.5 text-center">
-              {t("forum_enter_to_send")} · {t("forum_shift_enter")}
+              {t("forum_enter_to_send")} · {t("forum_shift_enter")} · Hold 🎤 for voice
             </p>
           </div>
         </main>

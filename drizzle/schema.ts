@@ -243,6 +243,10 @@ export const forumMessages = mysqlTable("forum_messages", {
   body: text("body").notNull(),
   /** Optional: translated body cached per language */
   translatedBodies: text("translatedBodies"),
+  /** 'text' | 'voice' */
+  messageType: varchar("messageType", { length: 10 }).default("text").notNull(),
+  /** S3 URL for voice messages */
+  audioUrl: text("audioUrl"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
@@ -259,6 +263,10 @@ export const forumDirectMessages = mysqlTable("forum_direct_messages", {
   body: text("body").notNull(),
   /** Whether the recipient has read this message */
   read: boolean("read").default(false).notNull(),
+  /** 'text' | 'voice' */
+  messageType: varchar("messageType", { length: 10 }).default("text").notNull(),
+  /** S3 URL for voice messages */
+  audioUrl: text("audioUrl"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
@@ -268,6 +276,17 @@ export type InsertForumDirectMessage = typeof forumDirectMessages.$inferInsert;
 /**
  * Forum user presence — tracks when a user was last active.
  */
+export const notifications = mysqlTable("notifications", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: varchar("userId", { length: 255 }).notNull(),
+  type: varchar("type", { length: 50 }).notNull(), // 'challenge_started' | 'material_assigned' | 'challenge_joined'
+  title: varchar("title", { length: 255 }).notNull(),
+  body: text("body").notNull(),
+  link: varchar("link", { length: 500 }),
+  isRead: boolean("isRead").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 export const forumPresence = mysqlTable("forum_presence", {
   userId: int("userId").primaryKey(),
   lastSeen: timestamp("lastSeen").defaultNow().notNull(),

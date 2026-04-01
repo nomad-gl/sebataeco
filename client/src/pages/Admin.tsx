@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import NavBar from "@/components/NavBar";
 import { cn } from "@/lib/utils";
-import { BookOpen, Layers, Users, BarChart3, Lock } from "lucide-react";
+import { BookOpen, Layers, Users, BarChart3, Lock, Activity, MessageSquare, Zap, TrendingUp } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { getLoginUrl } from "@/const";
 import { useI18n } from "@/contexts/I18nContext";
 
@@ -17,6 +18,15 @@ export default function Admin() {
     enabled: !!user && user.role === "admin",
   });
   const { data: competencies } = trpc.lomloe.getCompetencies.useQuery();
+  const { data: analytics, isLoading: analyticsLoading } = trpc.analytics.getDashboard.useQuery(undefined, {
+    enabled: !!user && user.role === "admin",
+    refetchInterval: 60_000,
+  });
+
+  const COMP_COLORS: Record<string, string> = {
+    CCL: "#3b82f6", CP: "#8b5cf6", STEM: "#10b981", CD: "#f59e0b",
+    CPSAA: "#ef4444", CC: "#06b6d4", CE: "#f97316", CCEC: "#ec4899",
+  };
 
   const YEAR_GROUP_LABELS = {
     junior: `${t("admin_junior")} (3–4)`,
@@ -103,7 +113,85 @@ export default function Admin() {
           <p className="text-sm text-muted-foreground">{t("admin_subtitle")}</p>
         </div>
 
-        {/* Summary cards */}
+        {/* Usage analytics */}
+        {analytics && (
+          <>
+            {/* KPI row */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
+              {[
+                { label: "Total Users", value: analytics.totalUsers, icon: Users, color: "text-blue-500" },
+                { label: "Active (7d)", value: analytics.activeUsers, icon: Activity, color: "text-green-500" },
+                { label: "New Users (7d)", value: analytics.newUsers, icon: TrendingUp, color: "text-purple-500" },
+                { label: "Total Materials", value: analytics.totalMaterials, icon: BookOpen, color: "text-orange-500" },
+                { label: "Practice Sessions", value: analytics.totalSessions, icon: Zap, color: "text-yellow-500" },
+                { label: "Challenges", value: analytics.totalChallenges, icon: BarChart3, color: "text-red-500" },
+                { label: "Forum Messages", value: analytics.totalForumMessages, icon: MessageSquare, color: "text-cyan-500" },
+              ].map(({ label, value, icon: Icon, color }) => (
+                <Card key={label}>
+                  <CardContent className="p-3 sm:p-4 flex items-center gap-3">
+                    <Icon className={`w-5 h-5 flex-shrink-0 ${color}`} />
+                    <div>
+                      <p className="text-xl font-bold text-foreground">{value}</p>
+                      <p className="text-xs text-muted-foreground">{label}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Materials per week chart */}
+            {analytics.weeklyMaterials.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-primary" />
+                    Materials Created per Week
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <ResponsiveContainer width="100%" height={160}>
+                    <BarChart data={analytics.weeklyMaterials} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="label" tick={{ fontSize: 10 }} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
+                      <Tooltip contentStyle={{ fontSize: 12 }} />
+                      <Bar dataKey="total" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Materials" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Top competencies */}
+            {analytics.topCompetencies.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-primary" />
+                    Most-Used Competencies (Materials)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <ResponsiveContainer width="100%" height={160}>
+                    <BarChart data={analytics.topCompetencies} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="competency" tick={{ fontSize: 10 }} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
+                      <Tooltip contentStyle={{ fontSize: 12 }} />
+                      <Bar dataKey="total" radius={[4, 4, 0, 0]} name="Materials">
+                        {analytics.topCompetencies.map((entry) => (
+                          <Cell key={entry.competency} fill={COMP_COLORS[entry.competency] ?? "#6b7280"} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            )}
+          </>
+        )}
+
+        {/* Knowledge bank summary cards */}
         {stats && (
           <div className="grid grid-cols-3 gap-2 sm:gap-4">
             <Card>

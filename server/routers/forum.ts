@@ -61,6 +61,8 @@ export const forumRouter = router({
           translatedBodies: forumMessages.translatedBodies,
           createdAt: forumMessages.createdAt,
           userName: users.name,
+          messageType: forumMessages.messageType,
+          audioUrl: forumMessages.audioUrl,
         })
         .from(forumMessages)
         .leftJoin(users, eq(forumMessages.userId, users.id))
@@ -122,6 +124,8 @@ export const forumRouter = router({
           body: (input.lang && input.lang !== "en" && translated[input.lang]) ? translated[input.lang] : m.body,
           originalBody: m.body,
           createdAt: m.createdAt,
+          messageType: m.messageType ?? "text",
+          audioUrl: m.audioUrl ?? null,
         };
       });
     }),
@@ -215,6 +219,8 @@ export const forumRouter = router({
           read: forumDirectMessages.read,
           createdAt: forumDirectMessages.createdAt,
           fromName: users.name,
+          messageType: forumDirectMessages.messageType,
+          audioUrl: forumDirectMessages.audioUrl,
         })
         .from(forumDirectMessages)
         .leftJoin(users, eq(forumDirectMessages.fromUserId, users.id))
@@ -259,6 +265,8 @@ export const forumRouter = router({
         read: m.read,
         createdAt: m.createdAt,
         isMine: m.fromUserId === userId,
+        messageType: m.messageType ?? "text",
+        audioUrl: m.audioUrl ?? null,
       }));
     }),
 
@@ -307,6 +315,87 @@ export const forumRouter = router({
       lastSeen: u.lastSeen,
     }));
   }),
+
+  /** Upload audio data (base64) to S3, transcribe, and post as a voice message in a channel */
+  sendVoiceMessage: protectedProcedure
+    .input(
+      z.object({
+        channelId: z.number().int(),
+        audioBase64: z.string(),
+        mimeType: z.string().default("audio/webm"),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      await heartbeat(ctx.user.id);
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+
+      // Upload audio to S3
+      const { storagePut } = await import("../storage");
+      const audioBuffer = Buffer.from(input.audioBase64, "base64");
+      const ext = input.mimeType.includes("webm") ? "webm" : input.mimeType.includes("mp4") ? "mp4" : "webm";
+      const fileKey = `forum-voice/${ctx.user.id}-${Date.now()}.${ext}`;
+      const { url: audioUrl } = await storagePut(fileKey, audioBuffer, input.mimeType);
+
+      // Transcribe via Whisper
+      let transcript = "[Voice message]";
+      try {
+        const { transcribeAudio } = await import("../_core/voiceTranscription");
+        const result = await transcribeAudio({ audioUrl });
+        if ("text" in result && result.text?.trim()) transcript = result.text.trim();
+      } catch {
+        // transcription failed — still save the voice message with placeholder
+      }
+
+      const [result] = await db.insert(forumMessages).values({
+        channelId: input.channelId,
+        userId: ctx.user.id,
+        body: transcript,
+        messageType: "voice",
+        audioUrl,
+      });
+      return { id: (result as { insertId: number }).insertId, transcript, audioUrl };
+    }),
+
+  /** Upload audio data (base64) to S3, transcribe, and post as a voice DM */
+  sendVoiceDm: protectedProcedure
+    .input(
+      z.object({
+        toUserId: z.number().int(),
+        audioBase64: z.string(),
+        mimeType: z.string().default("audio/webm"),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      await heartbeat(ctx.user.id);
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+
+      const { storagePut } = await import("../storage");
+      const audioBuffer = Buffer.from(input.audioBase64, "base64");
+      const ext = input.mimeType.includes("webm") ? "webm" : input.mimeType.includes("mp4") ? "mp4" : "webm";
+      const fileKey = `forum-voice-dm/${ctx.user.id}-${Date.now()}.${ext}`;
+      const { url: audioUrl } = await storagePut(fileKey, audioBuffer, input.mimeType);
+
+      let transcript = "[Voice message]";
+      try {
+        const { transcribeAudio } = await import("../_core/voiceTranscription");
+        const result = await transcribeAudio({ audioUrl });
+        if ("text" in result && result.text?.trim()) transcript = result.text.trim();
+      } catch {
+        // transcription failed
+      }
+
+      const [result] = await db.insert(forumDirectMessages).values({
+        fromUserId: ctx.user.id,
+        toUserId: input.toUserId,
+        body: transcript,
+        read: false,
+        messageType: "voice",
+        audioUrl,
+      });
+      return { id: (result as { insertId: number }).insertId, transcript, audioUrl };
+    }),
 
   /** Heartbeat — call every 30s to stay "online" */
   ping: protectedProcedure.mutation(async ({ ctx }) => {

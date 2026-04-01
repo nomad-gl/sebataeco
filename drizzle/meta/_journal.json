@@ -43,6 +43,13 @@
       "when": 1774744740667,
       "tag": "0005_glorious_moira_mactaggert",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1775055507046,
+      "tag": "0006_shiny_ogun",
+      "breakpoints": true
     }
   ]
 }

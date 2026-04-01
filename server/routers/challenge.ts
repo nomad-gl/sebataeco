@@ -13,6 +13,7 @@ import {
   getParticipants,
 } from "../db";
 import { COMPETENCY_META, getQuestions, type CompetencyCode, type YearGroup } from "../knowledge/lomloeKnowledgeBank";
+import { createNotification } from "./notifications";
 
 const CompetencyCodeSchema = z.enum(["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"]);
 const YearGroupSchema = z.enum(["junior", "primary", "secondary"]);
@@ -253,6 +254,18 @@ export const challengeRouter = router({
       if (input.action === "start") {
         await setAnswerRevealed(input.id, false);
         await updateChallengeStatus(input.id, "active", 0);
+        // Notify the host that the challenge is now live
+        try {
+          await createNotification({
+            userId: challenge.hostId.toString(),
+            type: "challenge_started",
+            title: `Challenge live: ${challenge.title}`,
+            body: `Your challenge is now active. Students can join with code ${challenge.roomCode}.`,
+            link: `/challenge`,
+          });
+        } catch (err) {
+          console.warn("[Challenge] Failed to send start notification:", err);
+        }
       } else if (input.action === "reveal") {
         await setAnswerRevealed(input.id, true);
       } else if (input.action === "next") {

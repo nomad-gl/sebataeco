@@ -125,6 +125,36 @@ export default function Presentation() {
     onError: () => toast.error(t("presentation_gen_failed")),
   });
 
+  // Server-side PDF export
+  const exportPdfMut = trpc.presentations.exportPdf.useMutation({
+    onSuccess: (data) => {
+      const a = document.createElement("a");
+      a.href = data.url;
+      a.download = `${generated?.title ?? "presentation"}.pdf`;
+      a.target = "_blank";
+      a.click();
+      toast.success("PDF ready — downloading now");
+    },
+    onError: () => toast.error("PDF export failed. Please try again."),
+  });
+
+  const handleExportPdf = () => {
+    if (!generated) return;
+    exportPdfMut.mutate({
+      title: generated.title,
+      subject: generated.subject,
+      yearGroup: generated.yearGroup,
+      competency: generated.competency,
+      slides: slides.map(s => ({
+        title: s.title,
+        content: s.content,
+        speakerNotes: s.speakerNotes,
+        keyVocabulary: s.keyVocabulary,
+        competencyTag: s.competencyTag,
+      })),
+    });
+  };
+
   // Derive activity mutation (creates a quiz or fill-in-the-blank from slide text)
   const deriveMutation = trpc.materials.create.useMutation({
     onSuccess: (data) => {
@@ -269,8 +299,8 @@ export default function Presentation() {
                 <Button size="sm" variant="outline" className="border-white/30 text-white hover:bg-white/10 text-xs" onClick={() => window.print()}>
                   <Printer className="w-3 h-3 mr-1" /> {t("material_print")}
                 </Button>
-                <Button size="sm" variant="outline" className="border-white/30 text-white hover:bg-white/10 text-xs" onClick={() => exportPDF(exportId, generated.title || "presentation")}>
-                  <Download className="w-3 h-3 mr-1" /> PDF
+                <Button size="sm" variant="outline" className="border-white/30 text-white hover:bg-white/10 text-xs" onClick={handleExportPdf} disabled={exportPdfMut.isPending}>
+                  {exportPdfMut.isPending ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Download className="w-3 h-3 mr-1" />} PDF
                 </Button>
                 <Button size="sm" variant="outline" className="border-white/30 text-white hover:bg-white/10 text-xs" onClick={() => exportPNG(exportId, generated.title || "presentation")}>
                   <Download className="w-3 h-3 mr-1" /> PNG

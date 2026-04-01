@@ -351,3 +351,48 @@
 ## Bug Fix: Crossword rendering (2026-04-01)
 - [x] Fix overlapping words/rows in crossword clue list on MaterialView page
 - [x] Fix missing crossword grid (grid is not rendered at all)
+
+## Follow-up Features (2026-04-01)
+
+### 1. Crossword Interactive Play Mode
+- [x] Add per-cell text inputs to CrosswordGrid in student mode
+- [x] Highlight correct cells green and incorrect cells red on "Check Answers"
+- [x] Add "Check Answers" and "Clear" buttons to CrosswordViewer
+- [x] Auto-advance focus to next cell on letter entry
+
+### 2. TA Fòrum Voice Messages
+- [x] Add hold-to-record microphone button in Forum chat input
+- [x] Upload recorded audio blob to S3 via server
+- [x] Transcribe audio with Whisper via forum.sendVoiceMessage procedure
+- [x] Render voice message bubbles with audio player + transcript in chat
+
+### 3. Presentation PDF Export (server-side)
+- [x] Add server-side tRPC procedure to render slides as clean PDF
+- [x] Use slide data (title, content, vocab, notes) to build PDF with reportlab-style formatting
+- [x] Wire PDF download button on Presentation page to server procedure
+
+### 4. Progress Page Competency Radar Chart
+- [x] Install recharts (already available) RadarChart component
+- [x] Compute per-competency average score from user's practice history
+- [x] Render radar/spider chart across all 8 LOMLOE competencies on Progress page
+- [x] Add legend and score labels to radar chart
+
+### 5. Challenge QR Code & Shareable Join URL
+- [x] Install qrcode.react package
+- [x] Generate shareable join URL: /challenge/join?code=XXXX from lobby
+- [x] Display QR code of join URL in Challenge lobby
+- [x] Add "Copy Link" button next to QR code
+- [x] Handle /challenge/join?code= route to auto-fill the room code
+
+### 6. Admin Usage Analytics Dashboard
+- [x] Add server procedures: analytics.activeUsers, analytics.materialsPerWeek, analytics.topCompetencies
+- [x] Add analytics section to Admin page with stat cards
+- [x] Add bar chart for materials created per week (last 8 weeks)
+- [x] Add top-5 competencies pie/bar chart
+
+### 7. Student Notifications
+- [x] Add in-app notifications table (DB + server procedures)
+- [x] Add notification bell icon with unread badge to NavBar
+- [x] Bell dropdown shows all notifications, mark-read, mark-all-read
+- [x] Fire notification when teacher starts a challenge
+- [x] Notification polling every 30s for logged-in users

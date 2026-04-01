@@ -1,8 +1,10 @@
+import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Link, useLocation } from "wouter";
 import {
   BookOpen, MessageCircle, Dumbbell, LayoutDashboard,
   Sparkles, Library, TrendingUp, ChevronDown, Menu, X, Zap,
-  Presentation as PresentationIcon, Globe, Users, MessagesSquare,
+  Presentation as PresentationIcon, Globe, Users, MessagesSquare, Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
@@ -20,8 +22,24 @@ export default function NavBar() {
   const [dropOpen, setDropOpen]     = useState(false);
   const [langOpen, setLangOpen]     = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [bellOpen, setBellOpen]     = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
   const langRef = useRef<HTMLDivElement>(null);
+  const bellRef = useRef<HTMLDivElement>(null);
+
+  const { user } = useAuth();
+  const { data: unreadCount = 0 } = trpc.notifications.getUnreadCount.useQuery(undefined, {
+    enabled: !!user,
+    refetchInterval: 30_000,
+  });
+  const { data: myNotifications = [] } = trpc.notifications.getMyNotifications.useQuery(undefined, {
+    enabled: !!user && bellOpen,
+  });
+  const markRead = trpc.notifications.markRead.useMutation();
+  const markAllRead = trpc.notifications.markAllRead.useMutation({
+    onSuccess: () => utils.notifications.getUnreadCount.invalidate(),
+  });
+  const utils = trpc.useUtils();
 
   const mainNavItems = [
     { href: "/",          label: t("nav_home"),     icon: BookOpen },
@@ -50,6 +68,7 @@ export default function NavBar() {
     function handleClick(e: MouseEvent) {
       if (dropRef.current && !dropRef.current.contains(e.target as Node)) setDropOpen(false);
       if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false);
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) setBellOpen(false);
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
@@ -140,6 +159,72 @@ export default function NavBar() {
                 </div>
               )}
             </div>
+
+            {/* Notification bell */}
+            {user && (
+              <div ref={bellRef} className="relative ml-1">
+                <button
+                  onClick={() => setBellOpen((o) => !o)}
+                  className="relative flex items-center justify-center w-9 h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+                  aria-label="Notifications"
+                >
+                  <Bell className="w-4 h-4" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {bellOpen && (
+                  <div className="absolute right-0 top-full mt-1 w-80 bg-white border border-border rounded-xl shadow-lg z-50 overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                      <span className="text-sm font-semibold text-foreground">Notifications</span>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={() => markAllRead.mutate()}
+                          className="text-xs text-primary hover:underline"
+                        >
+                          Mark all read
+                        </button>
+                      )}
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {myNotifications.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-8">No notifications yet</p>
+                      ) : (
+                        myNotifications.map((n: { id: number; title: string; body: string; link: string | null; isRead: boolean; createdAt: Date; type: string; userId: string }) => (
+                          <div
+                            key={n.id}
+                            className={cn(
+                              "flex items-start gap-3 px-4 py-3 border-b border-border last:border-0 cursor-pointer hover:bg-secondary/40 transition-colors",
+                              !n.isRead && "bg-primary/5"
+                            )}
+                            onClick={() => {
+                              if (!n.isRead) {
+                                markRead.mutate({ id: n.id });
+                                utils.notifications.getUnreadCount.invalidate();
+                                utils.notifications.getMyNotifications.invalidate();
+                              }
+                              if (n.link) window.location.href = n.link;
+                              setBellOpen(false);
+                            }}
+                          >
+                            <Bell className={cn("w-4 h-4 mt-0.5 flex-shrink-0", n.isRead ? "text-muted-foreground" : "text-primary")} />
+                            <div className="flex-1 min-w-0">
+                              <p className={cn("text-sm font-medium truncate", n.isRead ? "text-muted-foreground" : "text-foreground")}>{n.title}</p>
+                              <p className="text-xs text-muted-foreground line-clamp-2">{n.body}</p>
+                              <p className="text-[10px] text-muted-foreground mt-0.5">{new Date(n.createdAt).toLocaleString()}</p>
+                            </div>
+                            {!n.isRead && <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1" />}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Language toggle */}
             <div ref={langRef} className="relative ml-1">

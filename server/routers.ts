@@ -8,6 +8,9 @@ import { challengeRouter } from "./routers/challenge";
 import { groupsRouter } from "./routers/groups";
 import { progressRouter } from "./routers/progress";
 import { forumRouter } from "./routers/forum";
+import { presentationsRouter } from "./routers/presentations";
+import { analyticsRouter } from "./routers/analytics";
+import { notificationsRouter } from "./routers/notifications";
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -26,6 +29,9 @@ export const appRouter = router({
   groups: groupsRouter,
   progress: progressRouter,
   forum: forumRouter,
+  presentations: presentationsRouter,
+  analytics: analyticsRouter,
+  notifications: notificationsRouter,
 });
 
 export type AppRouter = typeof appRouter;
