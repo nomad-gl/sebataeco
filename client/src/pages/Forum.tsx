@@ -11,6 +11,9 @@ import {
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Link } from "wouter";
 
+const HERO_BG =
+  "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/hero-bg-UMuQESLM5HrV2VsrndDo2h.webp";
+
 // ─── types ────────────────────────────────────────────────────────────────────
 
 type Channel = { id: number; name: string; description: string | null; emoji: string; createdAt: Date };
@@ -293,26 +296,37 @@ export default function Forum() {
       : "";
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
+    <div
+      className="flex flex-col h-screen overflow-hidden"
+      style={{
+        backgroundImage: `url(${HERO_BG})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+      }}
+    >
+      {/* Dark overlay matching hero */}
+      <div className="absolute inset-0 bg-black/55 pointer-events-none z-0" />
       <NavBar />
 
       {/* Forum shell */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative z-10">
 
         {/* ── SIDEBAR ─────────────────────────────────────────────────── */}
         <aside
           className={cn(
-            "flex flex-col w-full md:w-72 lg:w-80 bg-white border-r border-gray-200 flex-shrink-0 z-20",
+            "flex flex-col w-full md:w-72 lg:w-80 flex-shrink-0 z-20",
+            "bg-white/10 backdrop-blur-md border-r border-white/20",
             "md:relative md:flex",
             mobileSidebarOpen ? "flex" : "hidden md:flex"
           )}
         >
           {/* Sidebar header */}
-          <div className="px-4 pt-4 pb-3 border-b border-gray-100">
+          <div className="px-4 pt-4 pb-3 border-b border-white/15">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <h1 className="font-heading font-bold text-lg text-gray-900">TA Fòrum</h1>
-                <p className="text-xs text-gray-400">{t("forum_powered")}</p>
+                <h1 className="font-heading font-bold text-lg text-white drop-shadow">TA Fòrum</h1>
+                <p className="text-xs text-white/50">{t("forum_powered")}</p>
               </div>
               <div className="flex items-center gap-1">
                 {onlineCount > 0 && (
@@ -331,20 +345,20 @@ export default function Forum() {
                 placeholder={t("forum_search")}
                 value={sidebarSearch}
                 onChange={(e) => setSidebarSearch(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                className="w-full pl-8 pr-3 py-2 text-sm bg-white/10 border border-white/20 rounded-lg text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
               />
             </div>
           </div>
 
           {/* Sidebar tabs */}
-          <div className="flex border-b border-gray-100">
+          <div className="flex border-b border-white/15">
             <button
               onClick={() => setView("channel")}
               className={cn(
                 "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold transition-colors",
                 view === "channel"
-                  ? "text-primary border-b-2 border-primary"
-                  : "text-gray-400 hover:text-gray-600"
+                  ? "text-white border-b-2 border-white"
+                  : "text-white/50 hover:text-white/80"
               )}
             >
               <Hash className="w-3.5 h-3.5" />
@@ -355,8 +369,8 @@ export default function Forum() {
               className={cn(
                 "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold transition-colors relative",
                 view === "dm"
-                  ? "text-primary border-b-2 border-primary"
-                  : "text-gray-400 hover:text-gray-600"
+                  ? "text-white border-b-2 border-white"
+                  : "text-white/50 hover:text-white/80"
               )}
             >
               <MessageSquare className="w-3.5 h-3.5" />
@@ -372,8 +386,8 @@ export default function Forum() {
               className={cn(
                 "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold transition-colors",
                 showUserList
-                  ? "text-primary border-b-2 border-primary"
-                  : "text-gray-400 hover:text-gray-600"
+                  ? "text-white border-b-2 border-white"
+                  : "text-white/50 hover:text-white/80"
               )}
             >
               <Users className="w-3.5 h-3.5" />
@@ -387,7 +401,7 @@ export default function Forum() {
             {/* Channel list */}
             {!showUserList && view === "channel" && (
               <div className="py-2">
-                <p className="px-4 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                <p className="px-4 py-1.5 text-[10px] font-bold text-white/50 uppercase tracking-widest">
                   {t("forum_channels")}
                 </p>
                 {filteredChannels.map((ch) => (
@@ -397,15 +411,15 @@ export default function Forum() {
                     className={cn(
                       "w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left",
                       activeChannelId === ch.id && view === "channel"
-                        ? "bg-primary/8 text-primary font-semibold"
-                        : "text-gray-700 hover:bg-gray-50"
+                        ? "bg-white/20 text-white font-semibold"
+                        : "text-white/80 hover:bg-white/10"
                     )}
                   >
                     <span className="text-lg flex-shrink-0">{ch.emoji}</span>
                     <div className="min-w-0">
                       <p className="font-medium truncate">#{ch.name}</p>
                       {ch.description && (
-                        <p className="text-xs text-gray-400 truncate">{ch.description}</p>
+                        <p className="text-xs text-white/50 truncate">{ch.description}</p>
                       )}
                     </div>
                   </button>
@@ -417,24 +431,24 @@ export default function Forum() {
             {!showUserList && view === "dm" && (
               <div className="py-2">
                 <div className="flex items-center justify-between px-4 py-1.5">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest">
                     {t("forum_dms")}
                   </p>
                   <button
                     onClick={() => setShowUserList(true)}
-                    className="text-xs text-primary font-semibold hover:underline"
+                    className="text-xs text-white/70 font-semibold hover:text-white hover:underline"
                   >
                     + {t("forum_new_dm")}
                   </button>
                 </div>
 
                 {filteredConversations.length === 0 && (
-                  <div className="px-4 py-8 text-center text-sm text-gray-400">
+                  <div className="px-4 py-8 text-center text-sm text-white/50">
                     <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-30" />
                     <p>{t("forum_no_dms")}</p>
-                    <button
+                      <button
                       onClick={() => setShowUserList(true)}
-                      className="mt-2 text-primary font-semibold hover:underline text-xs"
+                      className="mt-2 text-white/70 font-semibold hover:text-white hover:underline text-xs"
                     >
                       {t("forum_start_dm")}
                     </button>
@@ -450,19 +464,19 @@ export default function Forum() {
                       className={cn(
                         "w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left",
                         activeDmUserId === conv.otherId && view === "dm"
-                          ? "bg-primary/8 text-primary"
-                          : "text-gray-700 hover:bg-gray-50"
+                          ? "bg-white/20 text-white"
+                          : "text-white/80 hover:bg-white/10"
                       )}
                     >
                       <Avatar name={conv.otherName} size="md" online={u?.online} />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between">
                           <p className="font-semibold text-sm truncate">{conv.otherName}</p>
-                          <span className="text-[10px] text-gray-400 flex-shrink-0 ml-1">
+                          <span className="text-[10px] text-white/40 flex-shrink-0 ml-1">
                             {formatTime(conv.lastAt)}
                           </span>
                         </div>
-                        <p className="text-xs text-gray-400 truncate">{conv.lastBody}</p>
+                        <p className="text-xs text-white/50 truncate">{conv.lastBody}</p>
                       </div>
                       {conv.unread > 0 && (
                         <span className="w-5 h-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center flex-shrink-0">
@@ -479,12 +493,12 @@ export default function Forum() {
             {showUserList && (
               <div className="py-2">
                 <div className="flex items-center justify-between px-4 py-1.5">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest">
                     {t("forum_members")} ({allUsers.length})
                   </p>
                   <button
                     onClick={() => setShowUserList(false)}
-                    className="text-xs text-gray-400 hover:text-gray-600"
+                    className="text-xs text-white/50 hover:text-white"
                   >
                     ✕
                   </button>
@@ -493,17 +507,17 @@ export default function Forum() {
                 {/* Online */}
                 {filteredUsers.filter((u) => u.online).length > 0 && (
                   <>
-                    <p className="px-4 py-1 text-[10px] font-semibold text-emerald-600 uppercase tracking-widest">
+                    <p className="px-4 py-1 text-[10px] font-semibold text-emerald-300 uppercase tracking-widest">
                       {t("forum_online")} — {filteredUsers.filter((u) => u.online).length}
                     </p>
                     {filteredUsers.filter((u) => u.online).map((u) => (
                       <button
                         key={u.id}
                         onClick={() => openDm(u.id)}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 text-left transition-colors"
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-white/10 text-left transition-colors"
                       >
                         <Avatar name={u.name} size="sm" online={true} />
-                        <span className="font-medium text-gray-800">{u.name}</span>
+                        <span className="font-medium text-white">{u.name}</span>
                       </button>
                     ))}
                   </>
@@ -512,20 +526,20 @@ export default function Forum() {
                 {/* Offline */}
                 {filteredUsers.filter((u) => !u.online).length > 0 && (
                   <>
-                    <p className="px-4 py-1 mt-1 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+                    <p className="px-4 py-1 mt-1 text-[10px] font-semibold text-white/40 uppercase tracking-widest">
                       {t("forum_offline")} — {filteredUsers.filter((u) => !u.online).length}
                     </p>
                     {filteredUsers.filter((u) => !u.online).map((u) => (
                       <button
                         key={u.id}
                         onClick={() => openDm(u.id)}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 text-left transition-colors opacity-60"
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-white/10 text-left transition-colors opacity-60"
                       >
                         <Avatar name={u.name} size="sm" online={false} />
                         <div>
-                          <span className="font-medium text-gray-700">{u.name}</span>
+                          <span className="font-medium text-white/80">{u.name}</span>
                           {u.lastSeen && (
-                            <p className="text-[10px] text-gray-400">{t("forum_last_seen")} {formatTime(u.lastSeen)}</p>
+                            <p className="text-[10px] text-white/40">{t("forum_last_seen")} {formatTime(u.lastSeen)}</p>
                           )}
                         </div>
                       </button>
@@ -538,13 +552,13 @@ export default function Forum() {
 
           {/* Sidebar footer — current user */}
           {user && (
-            <div className="border-t border-gray-100 px-4 py-3 flex items-center gap-3 bg-gray-50">
+            <div className="border-t border-white/15 px-4 py-3 flex items-center gap-3 bg-white/10">
               <Avatar name={user.name ?? "Me"} size="sm" online={true} />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-gray-800 truncate">{user.name}</p>
-                <p className="text-[10px] text-emerald-600 font-medium">{t("forum_you_online")}</p>
+                <p className="text-sm font-semibold text-white truncate">{user.name}</p>
+                <p className="text-[10px] text-emerald-300 font-medium">{t("forum_you_online")}</p>
               </div>
-              <span className="text-[10px] text-gray-400 font-medium">Clara</span>
+              <span className="text-[10px] text-white/40 font-medium">Clara</span>
             </div>
           )}
         </aside>
@@ -557,7 +571,7 @@ export default function Forum() {
           )}
         >
           {/* Chat header */}
-          <div className="flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200 shadow-sm flex-shrink-0">
+          <div className="flex items-center gap-3 px-4 py-3 bg-white/10 backdrop-blur-md border-b border-white/20 shadow-sm flex-shrink-0">
             {/* Mobile back button */}
             <button
               className="md:hidden flex items-center justify-center w-8 h-8 rounded-lg hover:bg-gray-100 text-gray-500"
@@ -574,15 +588,15 @@ export default function Forum() {
             )}
 
             <div className="min-w-0 flex-1">
-              <h2 className="font-semibold text-gray-900 truncate">{headerTitle}</h2>
-              {headerSub && <p className="text-xs text-gray-400 truncate">{headerSub}</p>}
+              <h2 className="font-semibold text-white truncate drop-shadow">{headerTitle}</h2>
+              {headerSub && <p className="text-xs text-white/60 truncate">{headerSub}</p>}
             </div>
 
-            <div className="flex items-center gap-1 text-gray-400">
+            <div className="flex items-center gap-1 text-white/60">
               {view === "channel" && (
                 <button
                   onClick={() => setShowUserList((v) => !v)}
-                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="p-2 rounded-lg hover:bg-white/15 transition-colors"
                   title={t("forum_members")}
                 >
                   <Users className="w-4 h-4" />
@@ -592,19 +606,19 @@ export default function Forum() {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1 bg-black/20 backdrop-blur-sm">
             {(view === "channel" ? channelMessages : dmMessages).length === 0 && (
-              <div className="flex flex-col items-center justify-center h-full text-center text-gray-400 py-16">
+              <div className="flex flex-col items-center justify-center h-full text-center text-white/60 py-16">
                 {view === "channel" ? (
                   <>
                     <span className="text-5xl mb-3">{activeChannel?.emoji ?? "💬"}</span>
-                    <p className="font-semibold text-gray-600 text-lg">#{activeChannel?.name}</p>
+                    <p className="font-semibold text-white/80 text-lg">#{activeChannel?.name}</p>
                     <p className="text-sm mt-1">{t("forum_channel_empty")}</p>
                   </>
                 ) : (
                   <>
-                    <MessageSquare className="w-12 h-12 mb-3 opacity-20" />
-                    <p className="font-semibold text-gray-600">{t("forum_dm_empty_title")}</p>
+                    <MessageSquare className="w-12 h-12 mb-3 opacity-40" />
+                    <p className="font-semibold text-white/80">{t("forum_dm_empty_title")}</p>
                     <p className="text-sm mt-1">{t("forum_dm_empty_sub")}</p>
                   </>
                 )}
@@ -625,7 +639,7 @@ export default function Forum() {
                   {!isMine && !showHeader && <div className="w-7 flex-shrink-0" />}
                   <div className={cn("max-w-[70%] flex flex-col", isMine ? "items-end" : "items-start")}>
                     {showHeader && !isMine && <span className="text-xs font-semibold text-gray-500 mb-1 ml-1">{msg.userName}</span>}
-                    <div className={cn("px-3.5 py-2 rounded-2xl text-sm leading-relaxed shadow-sm", isMine ? "bg-primary text-white rounded-br-sm" : "bg-white text-gray-800 border border-gray-100 rounded-bl-sm")}>
+                    <div className={cn("px-3.5 py-2 rounded-2xl text-sm leading-relaxed shadow-sm", isMine ? "bg-primary text-white rounded-br-sm" : "bg-white/15 backdrop-blur-sm text-white border border-white/20 rounded-bl-sm")}>
                       {msg.messageType === "voice" && msg.audioUrl ? (
                         <div className="flex flex-col gap-1.5">
                           <audio controls className="w-full max-w-xs" style={{ height: "32px" }}>
@@ -638,7 +652,7 @@ export default function Forum() {
                         msg.body
                       )}
                     </div>
-                    <span className="text-[10px] text-gray-400 mt-0.5 mx-1">{formatTime(msg.createdAt)}</span>
+                    <span className="text-[10px] text-white/40 mt-0.5 mx-1">{formatTime(msg.createdAt)}</span>
                   </div>
                 </div>
               );
@@ -657,7 +671,7 @@ export default function Forum() {
                   {!isMine && !showHeader && <div className="w-7 flex-shrink-0" />}
                   <div className={cn("max-w-[70%] flex flex-col", isMine ? "items-end" : "items-start")}>
                     {showHeader && !isMine && <span className="text-xs font-semibold text-gray-500 mb-1 ml-1">{msg.fromName}</span>}
-                    <div className={cn("px-3.5 py-2 rounded-2xl text-sm leading-relaxed shadow-sm", isMine ? "bg-primary text-white rounded-br-sm" : "bg-white text-gray-800 border border-gray-100 rounded-bl-sm")}>
+                    <div className={cn("px-3.5 py-2 rounded-2xl text-sm leading-relaxed shadow-sm", isMine ? "bg-primary text-white rounded-br-sm" : "bg-white/15 backdrop-blur-sm text-white border border-white/20 rounded-bl-sm")}>
                       {msg.messageType === "voice" && msg.audioUrl ? (
                         <div className="flex flex-col gap-1.5">
                           <audio controls className="w-full max-w-xs" style={{ height: "32px" }}>
@@ -670,7 +684,7 @@ export default function Forum() {
                         msg.body
                       )}
                     </div>
-                    <span className="text-[10px] text-gray-400 mt-0.5 mx-1">{formatTime(msg.createdAt)}</span>
+                    <span className="text-[10px] text-white/40 mt-0.5 mx-1">{formatTime(msg.createdAt)}</span>
                   </div>
                 </div>
               );
@@ -679,10 +693,10 @@ export default function Forum() {
           </div>
 
           {/* Input bar */}
-          <div className="flex-shrink-0 bg-white border-t border-gray-200 px-4 py-3">
+          <div className="flex-shrink-0 bg-white/10 backdrop-blur-md border-t border-white/20 px-4 py-3">
             {/* Recording indicator */}
             {recording && (
-              <div className="flex items-center gap-2 mb-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-xl">
+              <div className="flex items-center gap-2 mb-2 px-3 py-1.5 bg-red-500/20 backdrop-blur-sm border border-red-400/40 rounded-xl">
                 <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                 <span className="text-xs text-red-600 font-medium">
                   Recording… {recordingSeconds}s
@@ -690,7 +704,7 @@ export default function Forum() {
                 <span className="ml-auto text-xs text-red-400">Release mic button to send</span>
               </div>
             )}
-            <div className="flex items-end gap-2 bg-gray-50 border border-gray-200 rounded-2xl px-3 py-2 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+            <div className="flex items-end gap-2 bg-white/10 backdrop-blur-sm border border-white/25 rounded-2xl px-3 py-2 focus-within:border-white/50 focus-within:ring-2 focus-within:ring-white/20 transition-all">
               {!recording && (
                 <textarea
                   ref={inputRef}
@@ -709,7 +723,7 @@ export default function Forum() {
                       ? `${t("forum_dm_placeholder")} ${activeDmUser.name}`
                       : t("forum_message_placeholder")
                   }
-                  className="flex-1 bg-transparent resize-none outline-none text-sm text-gray-800 placeholder:text-gray-400 max-h-28 leading-relaxed"
+                  className="flex-1 bg-transparent resize-none outline-none text-sm text-white placeholder:text-white/40 max-h-28 leading-relaxed"
                   style={{ minHeight: "24px" }}
                 />
               )}
@@ -736,7 +750,7 @@ export default function Forum() {
                   "flex items-center justify-center w-8 h-8 rounded-xl transition-all flex-shrink-0",
                   recording
                     ? "bg-red-500 text-white shadow-md scale-110"
-                    : "bg-gray-200 text-gray-500 hover:bg-gray-300"
+                    : "bg-white/15 text-white/70 hover:bg-white/25"
                 )}
               >
                 {recording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
@@ -750,14 +764,14 @@ export default function Forum() {
                     "flex items-center justify-center w-8 h-8 rounded-xl transition-all flex-shrink-0",
                     input.trim() && !sending
                       ? "bg-primary text-white hover:bg-primary/90 shadow-sm"
-                      : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                      : "bg-white/10 text-white/30 cursor-not-allowed"
                   )}
                 >
                   <Send className="w-4 h-4" />
                 </button>
               )}
             </div>
-            <p className="text-[10px] text-gray-400 mt-1.5 text-center">
+            <p className="text-[10px] text-white/40 mt-1.5 text-center">
               {t("forum_enter_to_send")} · {t("forum_shift_enter")} · Hold 🎤 for voice
             </p>
           </div>
@@ -765,7 +779,7 @@ export default function Forum() {
       </div>
 
       {/* Powered by SEBA footer strip */}
-      <div className="hidden md:flex items-center justify-center py-1 bg-gray-100 border-t border-gray-200 text-[10px] text-gray-400">
+      <div className="hidden md:flex items-center justify-center py-1 bg-black/30 border-t border-white/15 text-[10px] text-white/40 relative z-10">
         Powered by SEBA AI Studio · TA Fòrum
       </div>
     </div>
