@@ -209,72 +209,72 @@
 - [x] Update server challenge procedures to accept material-sourced questions
 
 ## Feature: Improved Challenge Lobby & Join Flow
-- [ ] Lobby: show QR code for students to scan and join
-- [ ] Lobby: show shareable join URL with room code pre-filled
-- [ ] Lobby: live participant list with join animations and participant count
-- [ ] Lobby: clear "Start Game" button that only activates when at least 1 student has joined
-- [ ] Join page: cleaner room-code entry with auto-uppercase and 6-char limit
-- [ ] Join page: nickname input (required before joining)
-- [ ] Join page: waiting room with live participant count and "Game starting..." transition
-- [ ] Join page: smooth redirect when teacher starts the game
+- [x] Lobby: show QR code for students to scan and join
+- [x] Lobby: show shareable join URL with room code pre-filled
+- [x] Lobby: live participant list with join animations and participant count
+- [x] Lobby: clear "Start Game" button that only activates when at least 1 student has joined
+- [x] Join page: cleaner room-code entry with auto-uppercase and 6-char limit
+- [x] Join page: nickname input (required before joining)
+- [x] Join page: waiting room with live participant count and "Game starting..." transition
+- [x] Join page: smooth redirect when teacher starts the game
 
 ## Feature: Class Groups Management
-- [ ] Add class_groups table (id, userId, className, level, assessmentTitle, createdAt)
-- [ ] Add group_students table (id, groupId, studentNumber, name, email, createdAt)
-- [ ] Add group_messages table (id, groupId, userId, subject, body, sentAt)
-- [ ] Add group_challenge_log table (id, groupId, challengeId, competencies, createdAt)
-- [ ] Server: create/list/delete group procedures
-- [ ] Server: add/remove/list students in group procedures
-- [ ] Server: send group message procedure (log to DB)
-- [ ] Server: list challenge history for group with competencies and date
-- [ ] UI: Groups page with group list and detail panel
-- [ ] UI: Create group form (class name, level, assessment title)
-- [ ] UI: Student roster with auto-numbering, name + school email
-- [ ] UI: Send group alert/message panel (subject + body)
-- [ ] UI: Challenge history tab with date stamps and competency badges
-- [ ] Wire Groups page into NavBar Teacher menu
-- [ ] Add i18n keys for all new Groups strings (EN/ES/CA)
-- [ ] Link challenge creation to group (select group when creating challenge)
+- [x] Add class_groups table (id, userId, className, level, assessmentTitle, createdAt)
+- [x] Add group_students table (id, groupId, studentNumber, name, email, createdAt)
+- [x] Add group_messages table (id, groupId, userId, subject, body, sentAt)
+- [x] Add group_challenge_log table (id, groupId, challengeId, competencies, createdAt)
+- [x] Server: create/list/delete group procedures
+- [x] Server: add/remove/list students in group procedures
+- [x] Server: send group message procedure (log to DB)
+- [x] Server: list challenge history for group with competencies and date
+- [x] UI: Groups page with group list and detail panel
+- [x] UI: Create group form (class name, level, assessment title)
+- [x] UI: Student roster with auto-numbering, name + school email
+- [x] UI: Send group alert/message panel (subject + body)
+- [x] UI: Challenge history tab with date stamps and competency badges
+- [x] Wire Groups page into NavBar Teacher menu
+- [x] Add i18n keys for all new Groups strings (EN/ES/CA)
+- [x] Link challenge creation to group (select group when creating challenge)
 
 ## Feature: Individual & Group Progress Tracking
-- [ ] DB schema: student_progress table (student scores per challenge per competency)
-- [ ] DB schema: assignments table (teacher-created daily/weekly tasks per group)
-- [ ] DB schema: assignment_completions table (per-student completion records)
-- [ ] Server: log challenge score per student procedure
-- [ ] Server: create/list/complete assignments procedures
-- [ ] Server: generate AI progress report per student (strengths, weaknesses, growth areas)
-- [ ] Server: generate AI group summary report
-- [ ] StudentProgress page: competency radar/bar chart, score history timeline, assignment completion tracker
-- [ ] StudentProgress page: AI-generated individual report with LOMLOE grade, strengths, weaknesses, growth areas
-- [ ] GroupProgress page: class summary table with per-student competency scores
-- [ ] GroupProgress page: competency heatmap across all students
-- [ ] GroupProgress page: ranked leaderboard with overall LOMLOE grade
-- [ ] GroupProgress page: AI group summary report
-- [ ] Wire student row in Groups page to StudentProgress page
-- [ ] Add i18n keys for all new progress tracking strings (EN/ES/CA)
+- [x] DB schema: student_progress table (student scores per challenge per competency)
+- [x] DB schema: assignments table (teacher-created daily/weekly tasks per group)
+- [x] DB schema: assignment_completions table (per-student completion records)
+- [x] Server: log challenge score per student procedure
+- [x] Server: create/list/complete assignments procedures
+- [x] Server: generate AI progress report per student (strengths, weaknesses, growth areas)
+- [x] Server: generate AI group summary report
+- [x] StudentProgress page: competency radar/bar chart, score history timeline, assignment completion tracker
+- [x] StudentProgress page: AI-generated individual report with LOMLOE grade, strengths, weaknesses, growth areas
+- [x] GroupProgress page: class summary table with per-student competency scores
+- [x] GroupProgress page: competency heatmap across all students
+- [x] GroupProgress page: ranked leaderboard with overall LOMLOE grade
+- [x] GroupProgress page: AI group summary report
+- [x] Wire student row in Groups page to StudentProgress page
+- [x] Add i18n keys for all new progress tracking strings (EN/ES/CA)
 
 ## Feature: Auto-log Challenge Scores to Group Progress
-- [ ] After challenge ends, show "Save to Group" dialog on results screen
-- [ ] Let teacher pick which group to associate the results with
-- [ ] Write student_progress rows for each participant matched by name/number
-- [ ] Record challenge in group_challenge_log with competencies covered
+- [x] After challenge ends, show "Save to Group" dialog on results screen
+- [x] Let teacher pick which group to associate the results with
+- [x] Write student_progress rows for each participant matched by name/number
+- [x] Record challenge in group_challenge_log with competencies covered
 
 ## Feature: Assignment Due-Date Reminders
-- [ ] Add checkOverdueAssignments server procedure
-- [ ] Call notifyOwner when an assignment is past due with no completions
-- [ ] Add "Enable reminders" toggle per assignment in the UI
-- [ ] Wire reminder check to a periodic server-side call (on page load or cron)
+- [x] Add checkOverdueAssignments server procedure
+- [x] Call notifyOwner when an assignment is past due with no completions
+- [x] Add "Enable reminders" toggle per assignment in the UI
+- [x] Wire reminder check to a periodic server-side call (on page load or cron)
 
 ## Feature: PDF Export of Student Progress Report
-- [ ] Add server-side PDF generation procedure (html-to-pdf / pdfkit)
-- [ ] Include competency scores, assignment history, and AI report text in PDF
-- [ ] Add "Download PDF" button on the AI Report tab in StudentProgress page
-- [ ] Translate new PDF export button label (EN/ES/CA)
+- [x] Add server-side PDF generation procedure (html-to-pdf / pdfkit)
+- [x] Include competency scores, assignment history, and AI report text in PDF
+- [x] Add "Download PDF" button on the AI Report tab in StudentProgress page
+- [x] Translate new PDF export button label (EN/ES/CA)
 
 ## Feature: Teacher-only answer reveal in Class Challenge
-- [ ] Gate "Show Answers" button in Challenge live view so only the teacher (room owner) can trigger it
-- [ ] Students see a "Waiting for teacher..." state when answers are not yet revealed
-- [ ] Reveal state is broadcast to all participants via the existing poll mechanism
+- [x] Gate "Show Answers" button in Challenge live view so only the teacher (room owner) can trigger it
+- [x] Students see a "Waiting for teacher..." state when answers are not yet revealed
+- [x] Reveal state is broadcast to all participants via the existing poll mechanism
 
 ## Feature: Import from sebasnap.com admin area
 - [ ] Add Import button on My Materials page
@@ -283,24 +283,24 @@
 - [ ] Allow editing imported material before saving
 
 ## Feature: Enforce content rules for each material type
-- [ ] Quiz: exactly 4 options per question, exactly 1 correct answer, no duplicate options
-- [ ] Crossword: words must intersect at shared letters, minimum 5 words, grid auto-sized
-- [ ] Missing Words: 20–30% of words blanked, blanks distributed evenly, no consecutive blanks
-- [ ] Wordsearch: grid size scales with word count (min 10×10), all words must fit, no overlapping conflicts
+- [x] Quiz: exactly 4 options per question, exactly 1 correct answer, no duplicate options
+- [x] Crossword: words must intersect at shared letters, minimum 5 words, grid auto-sized
+- [x] Missing Words: 20–30% of words blanked, blanks distributed evenly, no consecutive blanks
+- [x] Wordsearch: grid size scales with word count (min 10×10), all words must fit, no overlapping conflicts
 
 ## Feature: Preview-and-edit before saving to My Materials
-- [ ] After material generation, show a full preview modal/page instead of saving immediately
-- [ ] Allow inline editing of all fields (questions, options, correct answer, words, text)
-- [ ] "Save to My Materials" button only appears after user reviews the preview
-- [ ] "Regenerate" button to discard and generate again without saving
+- [x] After material generation, show a full preview modal/page instead of saving immediately
+- [x] Allow inline editing of all fields (questions, options, correct answer, words, text)
+- [x] "Save to My Materials" button only appears after user reviews the preview
+- [x] "Regenerate" button to discard and generate again without saving
 
 ## Feature: LOMLOE Competency Detail Pages
-- [ ] Create CompetencyDetail page with full descriptors for all 8 competencies
-- [ ] Add back button to return to previous page
-- [ ] Link each Home page competency card to its detail page
-- [ ] Add /competency/:id route to App.tsx
-- [ ] Add "LOMLOE Competencies" entry to NavBar
-- [ ] Add i18n keys for all new competency descriptor strings
+- [x] Create CompetencyDetail page with full descriptors for all 8 competencies
+- [x] Add back button to return to previous page
+- [x] Link each Home page competency card to its detail page
+- [x] Add /competency/:id route to App.tsx
+- [x] Add "LOMLOE Competencies" entry to NavBar
+- [x] Add i18n keys for all new competency descriptor strings
 
 ## Improvement: Unique competency detail page headers
 - [x] Give each of the 8 LOMLOE competency detail pages a unique hero header with its own colour gradient, large emoji, full name, and LOMLOE code badge
@@ -330,10 +330,10 @@
 - [x] Verify 0 TypeScript errors and all tests pass
 
 ## Bug Fixes: Challenge button & Export buttons
-- [ ] Fix Class Challenge button — diagnose why it does not navigate/work
-- [ ] Fix PDF export button in MaterialView
-- [ ] Fix Word (.docx) export button in MaterialView
-- [ ] Fix PNG export button in MaterialView
+- [x] Fix Class Challenge button — diagnose why it does not navigate/work
+- [x] Fix PDF export button in MaterialView
+- [x] Fix Word (.docx) export button in MaterialView
+- [x] Fix PNG export button in MaterialView
 
 ## Bug Fixes: Challenge button + Export crash (2026-03-31)
 - [x] Fix Challenge button on My Materials page (navigation broken)
