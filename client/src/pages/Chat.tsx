@@ -68,8 +68,8 @@ export default function Chat() {
         {/* Header */}
         <div className="flex items-start sm:items-center justify-between gap-2">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">{t("chat_title")}</h1>
-            <p className="text-sm text-muted-foreground">{t("chat_subtitle")}</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">{t("chat_title")}</h1>
+            <p className="text-sm text-white/70">{t("chat_subtitle")}</p>
           </div>
           <div className="flex gap-2 flex-shrink-0">
             <Button
@@ -94,7 +94,7 @@ export default function Chat() {
 
         {/* Filters */}
         {showFilters && (
-          <Card className="p-4">
+          <Card className="p-4 bg-white/10 backdrop-blur-md border-white/20">
             <CompetencySelector
               selectedCompetency={competency}
               selectedYearGroup={yearGroup}
@@ -103,7 +103,7 @@ export default function Chat() {
               compact
             />
             {(competency || yearGroup) && (
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-xs text-white/60 mt-2">
                 {t("chat_context_filtered")}{" "}
                 {[competency, yearGroup ? `${yearGroup} ${t("chat_year_group")}` : null]
                   .filter(Boolean)

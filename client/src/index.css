@@ -206,21 +206,21 @@
    Per-page background treatments for easy visual recognition
    ═══════════════════════════════════════════════════════════════ */
 
-/* Practice – warm amber/orange gradient (energetic, quiz feel) */
+/* Practice – classroom photo with dark overlay */
 .practice-bg {
-  background: linear-gradient(135deg,
-    oklch(0.97 0.04 80) 0%,
-    oklch(0.94 0.06 55) 50%,
-    oklch(0.92 0.05 35) 100%);
+  background:
+    linear-gradient(rgba(0,0,0,0.62), rgba(0,0,0,0.62)),
+    url('https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/hero-bg-UMuQESLM5HrV2VsrndDo2h.webp')
+    center / cover no-repeat fixed;
   min-height: 100vh;
 }
 
-/* AI Chat – deep indigo/violet gradient (intelligent, calm) */
+/* AI Chat – classroom photo with deeper dark overlay */
 .chat-bg {
-  background: linear-gradient(160deg,
-    oklch(0.18 0.06 270) 0%,
-    oklch(0.22 0.08 290) 50%,
-    oklch(0.16 0.05 250) 100%);
+  background:
+    linear-gradient(rgba(0,0,0,0.68), rgba(0,0,0,0.68)),
+    url('https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/hero-bg-UMuQESLM5HrV2VsrndDo2h.webp')
+    center / cover no-repeat fixed;
   min-height: 100vh;
 }
 
