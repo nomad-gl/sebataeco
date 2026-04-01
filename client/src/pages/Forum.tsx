@@ -313,12 +313,23 @@ export default function Forum() {
       <div className="flex flex-1 overflow-hidden relative z-10">
 
         {/* ── SIDEBAR ─────────────────────────────────────────────────── */}
+        {/* Mobile backdrop dim — taps outside close the sidebar */}
+        {mobileSidebarOpen && (
+          <div
+            className="fixed inset-0 z-10 bg-black/40 backdrop-blur-sm md:hidden"
+            onClick={() => setMobileSidebarOpen(false)}
+          />
+        )}
+
         <aside
           className={cn(
-            "flex flex-col w-full md:w-72 lg:w-80 flex-shrink-0 z-20",
-            "bg-white/10 backdrop-blur-md border-r border-white/20",
-            "md:relative md:flex",
-            mobileSidebarOpen ? "flex" : "hidden md:flex"
+            "flex flex-col w-full md:w-72 lg:w-80 flex-shrink-0",
+            /* Desktop: subtle glass panel */
+            "md:bg-white/10 md:backdrop-blur-md md:border-r md:border-white/20 md:z-20 md:relative md:flex",
+            /* Mobile: stronger frosted glass, full-width, fixed over content */
+            mobileSidebarOpen
+              ? "flex fixed inset-y-0 left-0 z-30 bg-black/50 backdrop-blur-xl border-r border-white/25 shadow-2xl"
+              : "hidden md:flex"
           )}
         >
           {/* Sidebar header */}
