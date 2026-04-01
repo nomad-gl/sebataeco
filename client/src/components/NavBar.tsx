@@ -93,9 +93,9 @@ export default function NavBar() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group flex-shrink-0">
             <img
-              src="https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/SEBA1_02cbc6c3.png"
+              src="https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/SEBA_hd_4ec811c2.png"
               alt="SEBA"
-              className="h-9 sm:h-10 w-auto object-contain"
+              className="h-10 sm:h-12 w-auto object-contain"
             />
           </Link>
 
