@@ -117,6 +117,17 @@ export function AIChatBox({
     inputRecognitionRef.current = recognition;
 
     let finalTranscript = "";
+    let speechDetected = false;
+
+    // 2-second silence timeout: if no speech starts, abort and return to wake-word mode
+    const silenceTimer = setTimeout(() => {
+      if (!speechDetected && inputRecognitionRef.current === recognition) {
+        try { recognition.abort(); } catch { /* ignore */ }
+        inputRecognitionRef.current = null;
+        setInput("");
+        setVoiceMode("idle");
+      }
+    }, 2000);
 
     recognition.onstart = () => {
       setInput("");
@@ -124,6 +135,10 @@ export function AIChatBox({
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onresult = (e: any) => {
+      if (!speechDetected) {
+        speechDetected = true;
+        clearTimeout(silenceTimer);
+      }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const transcript = Array.from(e.results as any[])
         .map((r: any) => r[0].transcript as string)
@@ -136,12 +151,14 @@ export function AIChatBox({
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onerror = (e: any) => {
+      clearTimeout(silenceTimer);
       if (e.error !== "aborted" && e.error !== "no-speech") {
         setVoiceError("Voice input error: " + e.error);
       }
     };
 
     recognition.onend = () => {
+      clearTimeout(silenceTimer);
       inputRecognitionRef.current = null;
       const currentMode = voiceModeRef.current;
       if (autoSend && finalTranscript.trim()) {
@@ -150,7 +167,7 @@ export function AIChatBox({
         setInput("");
         setVoiceMode("idle");
       } else if (currentMode === "active") {
-        // Manual mic mode — leave transcript in box, return to idle
+        // No speech heard or manual mode — leave transcript in box, return to idle
         setVoiceMode("idle");
         textareaRef.current?.focus();
       }
