@@ -153,15 +153,25 @@ export default function Home() {
       </section>
 
       {/* Competency grid */}
-      <section className="container pb-16">
-        <h2 className="text-2xl font-bold text-foreground mb-2">{t("home_competencies_title")}</h2>
-        <p className="text-muted-foreground mb-8">
+      <section
+        className="relative py-16"
+        style={{
+          backgroundImage: `url(${HERO_BG})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundAttachment: "fixed",
+        }}
+      >
+        <div className="absolute inset-0 bg-black/60 pointer-events-none" />
+        <div className="container relative z-10">
+        <h2 className="text-2xl font-bold text-white mb-2 drop-shadow-lg">{t("home_competencies_title")}</h2>
+        <p className="text-white/75 mb-8">
           {t("home_badge")}
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {competencies?.map((comp) => (
             <Link key={comp.code} href={`/competency/${comp.code}`}>
-              <Card className="h-full hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer border-border group overflow-hidden">
+              <Card className="h-full hover:shadow-xl transition-all hover:-translate-y-0.5 cursor-pointer border-white/20 bg-white/10 backdrop-blur-sm group overflow-hidden">
                 <CardContent className="p-5">
                   <div className="flex items-center gap-3 mb-3">
                     <span className="text-2xl">{comp.emoji}</span>
@@ -169,10 +179,10 @@ export default function Home() {
                       {comp.code}
                     </span>
                   </div>
-                  <h3 className="font-semibold text-foreground text-sm mb-1 group-hover:text-primary transition-colors">
+                  <h3 className="font-semibold text-white text-sm mb-1 group-hover:text-blue-200 transition-colors drop-shadow">
                     {t(`comp_${comp.code.toLowerCase()}_name` as Parameters<typeof t>[0])}
                   </h3>
-                  <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
+                  <p className="text-xs text-white/75 line-clamp-3 leading-relaxed">
                     {t(`comp_${comp.code.toLowerCase()}_desc` as Parameters<typeof t>[0])}
                   </p>
                 </CardContent>
@@ -183,6 +193,7 @@ export default function Home() {
               </Card>
             </Link>
           ))}
+        </div>
         </div>
       </section>
     </div>
