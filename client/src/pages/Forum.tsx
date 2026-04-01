@@ -617,7 +617,7 @@ export default function Forum() {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1 bg-black/20 backdrop-blur-sm">
+          <div className="overflow-y-auto px-4 py-3 space-y-1 bg-black/20 backdrop-blur-sm" style={{ maxHeight: "45vh" }}>
             {(view === "channel" ? channelMessages : dmMessages).length === 0 && (
               <div className="flex flex-col items-center justify-center h-full text-center text-white/60 py-16">
                 {view === "channel" ? (
