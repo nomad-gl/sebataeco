@@ -19,6 +19,7 @@ const LANG_OPTIONS: { code: Lang; label: string; flag: string }[] = [
 export default function NavBar() {
   const [location] = useLocation();
   const { t, lang, setLang } = useI18n();
+  const isClassroomPage = location === "/chat" || location === "/practice" || location === "/progress";
   const [dropOpen, setDropOpen]     = useState(false);
   const [langOpen, setLangOpen]     = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -87,7 +88,12 @@ export default function NavBar() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-border shadow-sm">
+      <header className={cn(
+        "sticky top-0 z-50 backdrop-blur-md border-b shadow-sm",
+        isClassroomPage
+          ? "bg-black/40 border-white/15"
+          : "bg-white/95 border-border"
+      )}>
         <div className="container flex items-center justify-between h-14 sm:h-16">
 
           {/* Logo */}
@@ -111,7 +117,9 @@ export default function NavBar() {
                     "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
                     active
                       ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                      : isClassroomPage
+                        ? "text-white/80 hover:text-white hover:bg-white/15"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                   )}
                 >
                   <Icon className="w-4 h-4" />
@@ -128,7 +136,9 @@ export default function NavBar() {
                   "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
                   isTeacherActive
                     ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                    : isClassroomPage
+                      ? "text-white/80 hover:text-white hover:bg-white/15"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                 )}
               >
                 <Sparkles className="w-4 h-4" />
@@ -164,7 +174,12 @@ export default function NavBar() {
               <div ref={bellRef} className="relative ml-1">
                 <button
                   onClick={() => setBellOpen((o) => !o)}
-                  className="relative flex items-center justify-center w-9 h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+                  className={cn(
+                    "relative flex items-center justify-center w-9 h-9 rounded-lg transition-all",
+                    isClassroomPage
+                      ? "text-white/80 hover:text-white hover:bg-white/15"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  )}
                   aria-label={t("nav_notifications")}
                 >
                   <Bell className="w-4 h-4" />
@@ -229,7 +244,12 @@ export default function NavBar() {
             <div ref={langRef} className="relative ml-1">
               <button
                 onClick={() => setLangOpen((o) => !o)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                  isClassroomPage
+                    ? "text-white/80 hover:text-white hover:bg-white/15"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                )}
                 aria-label={t("nav_change_language")}
               >
                 <Globe className="w-4 h-4" />

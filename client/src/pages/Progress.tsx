@@ -67,18 +67,18 @@ export default function Progress() {
       <NavBar />
       <div className="container py-8 max-w-3xl mx-auto flex flex-col gap-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">{t("progress_title")}</h1>
-          <p className="text-sm text-muted-foreground mt-1">{t("progress_subtitle")}</p>
+          <h1 className="text-2xl font-bold text-white">{t("progress_title")}</h1>
+          <p className="text-sm text-white/70 mt-1">{t("progress_subtitle")}</p>
         </div>
 
         {totalSessions === 0 ? (
-          <Card>
+          <Card className="bg-white/10 backdrop-blur-md border-white/20">
             <CardContent className="p-12 flex flex-col items-center gap-4 text-center">
-              <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
-                <TrendingUp className="w-8 h-8 text-muted-foreground" />
+              <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center">
+                <TrendingUp className="w-8 h-8 text-white/70" />
               </div>
               <div>
-                <h3 className="font-semibold text-foreground">{t("progress_no_sessions")}</h3>
+                <h3 className="font-semibold text-white">{t("progress_no_sessions")}</h3>
               </div>
               <Button onClick={() => navigate("/practice")} className="gap-2">
                 <Target className="w-4 h-4" /> {t("progress_go_practice")}
@@ -93,13 +93,13 @@ export default function Progress() {
                 { labelKey: "progress_questions_answered" as const, value: totalQ, icon: TrendingUp },
                 { labelKey: "progress_avg_score" as const, value: `${overallPct}%`, icon: Trophy },
               ].map(({ labelKey, value, icon: Icon }) => (
-                <Card key={labelKey}>
+                <Card key={labelKey} className="bg-white/10 backdrop-blur-md border-white/20">
                   <CardContent className="p-3 sm:p-4 flex flex-col gap-1">
-                    <div className="flex items-center gap-1 sm:gap-2 text-muted-foreground">
+                    <div className="flex items-center gap-1 sm:gap-2 text-white/70">
                       <Icon className="w-4 h-4" />
                       <span className="text-xs font-medium uppercase tracking-wide">{t(labelKey)}</span>
                     </div>
-                    <p className="text-xl sm:text-2xl font-bold text-foreground">{value}</p>
+                    <p className="text-xl sm:text-2xl font-bold text-white">{value}</p>
                   </CardContent>
                 </Card>
               ))}
@@ -108,26 +108,26 @@ export default function Progress() {
             {data && data.chart.length > 0 && (
               <>
                 {/* Radar chart — competency spider */}
-                <Card>
+                <Card className="bg-white/10 backdrop-blur-md border-white/20">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Target className="w-4 h-4 text-primary" />
+                    <CardTitle className="text-base flex items-center gap-2 text-white">
+                      <Target className="w-4 h-4 text-blue-300" />
                       {t("progress_radar_title")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
                     <ResponsiveContainer width="100%" height={280}>
                       <RadarChart data={data.chart} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
-                        <PolarGrid stroke="hsl(var(--border))" />
+                        <PolarGrid stroke="rgba(255,255,255,0.2)" />
                         <PolarAngleAxis
                           dataKey="code"
-                          tick={{ fontSize: 11, fontWeight: 600, fill: "hsl(var(--foreground))" }}
+                          tick={{ fontSize: 11, fontWeight: 600, fill: "rgba(255,255,255,0.9)" }}
                         />
                         <PolarRadiusAxis
                           angle={90}
                           domain={[0, 100]}
                           tickFormatter={(v) => `${v}%`}
-                          tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }}
+                          tick={{ fontSize: 9, fill: "rgba(255,255,255,0.5)" }}
                           tickCount={5}
                         />
                         <Radar
@@ -142,29 +142,29 @@ export default function Progress() {
                         <Tooltip
                           formatter={(v: number) => [`${v}%`, t("progress_avg_score")]}
                           labelFormatter={(label) => data.chart.find(c => c.code === label)?.name ?? label}
-                          contentStyle={{ fontSize: 12 }}
+                          contentStyle={{ fontSize: 12, background: "rgba(0,0,0,0.8)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff" }}
                         />
-                        <Legend wrapperStyle={{ fontSize: 12 }} />
+                        <Legend wrapperStyle={{ fontSize: 12, color: "rgba(255,255,255,0.8)" }} />
                       </RadarChart>
                     </ResponsiveContainer>
                   </CardContent>
                 </Card>
 
                 {/* Bar chart — breakdown */}
-                <Card>
+                <Card className="bg-white/10 backdrop-blur-md border-white/20">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-base">{t("progress_by_competency")}</CardTitle>
+                    <CardTitle className="text-base text-white">{t("progress_by_competency")}</CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
                     <ResponsiveContainer width="100%" height={180}>
                       <BarChart data={data.chart} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                        <XAxis dataKey="code" tick={{ fontSize: 11 }} />
-                        <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11 }} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.15)" />
+                        <XAxis dataKey="code" tick={{ fontSize: 11, fill: "rgba(255,255,255,0.8)" }} />
+                        <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11, fill: "rgba(255,255,255,0.8)" }} />
                         <Tooltip
                           formatter={(v: number) => [`${v}%`, t("progress_avg_score")]}
                           labelFormatter={(label) => data.chart.find(c => c.code === label)?.name ?? label}
-                          contentStyle={{ fontSize: 12 }}
+                          contentStyle={{ fontSize: 12, background: "rgba(0,0,0,0.8)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff" }}
                         />
                         <Bar dataKey="avgPct" radius={[4, 4, 0, 0]}>
                           {data.chart.map((entry) => (
@@ -178,13 +178,13 @@ export default function Progress() {
               </>
             )}
 
-            <Card>
+            <Card className="bg-white/10 backdrop-blur-md border-white/20">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">{t("progress_recent")}</CardTitle>
+                <CardTitle className="text-base text-white">{t("progress_recent")}</CardTitle>
               </CardHeader>
               <CardContent className="pt-0 flex flex-col gap-2">
                 {data?.sessions.map((s) => (
-                  <div key={s.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-2 border-b border-border last:border-0 gap-1">
+                  <div key={s.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-2 border-b border-white/10 last:border-0 gap-1">
                     <div className="flex items-center gap-2">
                       {s.competency
                         ? <Badge variant="outline" className="text-xs">{s.competency}</Badge>
@@ -192,10 +192,10 @@ export default function Progress() {
                       {s.yearGroup && <Badge variant="outline" className="text-xs capitalize">{s.yearGroup}</Badge>}
                     </div>
                     <div className="flex items-center gap-2 sm:gap-3">
-                      <span className="text-sm font-semibold text-foreground">
+                      <span className="text-sm font-semibold text-white">
                         {s.score}/{s.total} ({Math.round((s.score / s.total) * 100)}%)
                       </span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-white/60">
                         {new Date(s.createdAt).toLocaleDateString(undefined, { day: "numeric", month: "short" })}
                       </span>
                     </div>
