@@ -117,34 +117,13 @@ export function AIChatBox({
     inputRecognitionRef.current = recognition;
 
     let finalTranscript = "";
-    let speechDetected = false;
-    // silenceTimer is started inside onstart so the 2 s window begins only
-    // after the browser confirms the mic is open (avoids premature expiry).
-    let silenceTimer: ReturnType<typeof setTimeout> | undefined = undefined;
-
-    const startSilenceTimer = () => {
-      if (silenceTimer !== undefined) clearTimeout(silenceTimer);
-      silenceTimer = setTimeout(() => {
-        if (!speechDetected && inputRecognitionRef.current === recognition) {
-          try { recognition.abort(); } catch { /* ignore */ }
-          inputRecognitionRef.current = null;
-          setInput("");
-          setVoiceMode("idle");
-        }
-      }, 2000);
-    };
 
     recognition.onstart = () => {
       setInput("");
-      startSilenceTimer(); // begin countdown only once mic is confirmed open
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onresult = (e: any) => {
-      if (!speechDetected) {
-        speechDetected = true;
-        clearTimeout(silenceTimer);
-      }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const transcript = Array.from(e.results as any[])
         .map((r: any) => r[0].transcript as string)
@@ -157,14 +136,12 @@ export function AIChatBox({
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onerror = (e: any) => {
-      if (silenceTimer !== undefined) clearTimeout(silenceTimer);
       if (e.error !== "aborted" && e.error !== "no-speech") {
         setVoiceError("Voice input error: " + e.error);
       }
     };
 
     recognition.onend = () => {
-      if (silenceTimer !== undefined) clearTimeout(silenceTimer);
       inputRecognitionRef.current = null;
       const currentMode = voiceModeRef.current;
       if (autoSend && finalTranscript.trim()) {
