@@ -267,6 +267,8 @@ export const forumDirectMessages = mysqlTable("forum_direct_messages", {
   messageType: varchar("messageType", { length: 10 }).default("text").notNull(),
   /** S3 URL for voice messages */
   audioUrl: text("audioUrl"),
+  /** JSON map of lang -> translated body, e.g. {"es":"...","ca":"..."} */
+  translatedBodies: text("translatedBodies"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

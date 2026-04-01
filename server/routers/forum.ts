@@ -243,6 +243,7 @@ export const forumRouter = router({
           fromName: users.name,
           messageType: forumDirectMessages.messageType,
           audioUrl: forumDirectMessages.audioUrl,
+          translatedBodies: forumDirectMessages.translatedBodies,
         })
         .from(forumDirectMessages)
         .leftJoin(users, eq(forumDirectMessages.fromUserId, users.id))
@@ -278,18 +279,56 @@ export const forumRouter = router({
           )
         );
 
-      return rows.map((m) => ({
-        id: m.id,
-        fromUserId: m.fromUserId,
-        toUserId: m.toUserId,
-        fromName: m.fromName ?? "Unknown",
-        body: m.body,
-        read: m.read,
-        createdAt: m.createdAt,
-        isMine: m.fromUserId === userId,
-        messageType: m.messageType ?? "text",
-        audioUrl: m.audioUrl ?? null,
-      }));
+      // Auto-translate if preferred language is not English
+      if (input.lang && input.lang !== "en") {
+        for (const msg of rows) {
+          if (msg.messageType === "voice") continue; // skip voice messages
+          let translated: Record<string, string> = {};
+          if (msg.translatedBodies) {
+            try { translated = JSON.parse(msg.translatedBodies); } catch {}
+          }
+          if (!translated[input.lang]) {
+            try {
+              const langName = input.lang === "es" ? "Spanish" : "Catalan";
+              const res = await invokeLLM({
+                messages: [
+                  { role: "system", content: `Translate the following message to ${langName}. Return only the translated text, nothing else.` },
+                  { role: "user", content: msg.body },
+                ],
+              });
+              const content = res?.choices?.[0]?.message?.content;
+              const translatedText = typeof content === "string" ? content.trim() : msg.body;
+              translated[input.lang] = translatedText;
+              await db
+                .update(forumDirectMessages)
+                .set({ translatedBodies: JSON.stringify(translated) })
+                .where(eq(forumDirectMessages.id, msg.id));
+              msg.translatedBodies = JSON.stringify(translated);
+            } catch {
+              // fall back to original on error
+            }
+          }
+        }
+      }
+
+      return rows.map((m) => {
+        let translated: Record<string, string> = {};
+        if (m.translatedBodies) {
+          try { translated = JSON.parse(m.translatedBodies); } catch {}
+        }
+        return {
+          id: m.id,
+          fromUserId: m.fromUserId,
+          toUserId: m.toUserId,
+          fromName: m.fromName ?? "Unknown",
+          body: (input.lang && input.lang !== "en" && translated[input.lang]) ? translated[input.lang] : m.body,
+          read: m.read,
+          createdAt: m.createdAt,
+          isMine: m.fromUserId === userId,
+          messageType: m.messageType ?? "text",
+          audioUrl: m.audioUrl ?? null,
+        };
+      });
     }),
 
   /** Send a direct message to another user */
