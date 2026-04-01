@@ -26,5 +26,5 @@ describe("sebasnap API key", () => {
     expect(data[0]).toHaveProperty("result");
     const presentations = data[0]?.result?.data?.json?.presentations;
     expect(Array.isArray(presentations)).toBe(true);
-  });
+  }, 15000);
 });
