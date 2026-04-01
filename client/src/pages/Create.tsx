@@ -194,13 +194,13 @@ function CrosswordPreview({ content }: { content: Record<string, unknown> }) {
   return (
     <div className="flex flex-col gap-2">
       <p className="text-xs text-muted-foreground">Crossword with {words.length} words. Edit clues below:</p>
-      <div className="flex flex-col gap-1 max-h-64 overflow-y-auto">
+      <div className="flex flex-col gap-0 max-h-72 overflow-y-auto divide-y divide-border">
         {words.map((w, wi) => (
-          <div key={wi} className="flex items-center gap-2 text-sm">
-            <span className="text-xs font-bold text-muted-foreground w-6">{wi + 1}.</span>
-            <span className="font-mono font-semibold text-primary w-24 shrink-0">{String(w.word)}</span>
-            <span className="text-xs text-muted-foreground">{String(w.direction)}</span>
-            <span className="text-sm text-foreground">{String(w.clue)}</span>
+          <div key={wi} className="flex items-start gap-2 text-sm py-2.5">
+            <span className="text-xs font-bold text-muted-foreground w-6 pt-0.5 shrink-0">{wi + 1}.</span>
+            <span className="font-mono font-semibold text-primary w-24 shrink-0 pt-0.5">{String(w.word)}</span>
+            <span className="text-xs text-muted-foreground w-12 shrink-0 pt-0.5">{String(w.direction)}</span>
+            <span className="text-sm text-foreground leading-relaxed">{String(w.clue)}</span>
           </div>
         ))}
       </div>
