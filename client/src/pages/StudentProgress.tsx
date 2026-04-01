@@ -125,6 +125,23 @@ export default function StudentProgress() {
     },
   });
 
+  const exportPdf = trpc.progress.exportStudentPdf.useMutation({
+    onSuccess: (data) => {
+      // Decode base64 PDF and trigger download
+      const binary = atob(data.base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const blob = new Blob([bytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${(student?.name ?? "student").replace(/\s+/g, "_")}_progress_report.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    },
+    onError: () => toast.error("PDF export failed. Please try again."),
+  });
+
   const logScore = trpc.progress.logScores.useMutation({
     onSuccess: () => {
       toast.success(t("sp_score_logged"));
@@ -563,20 +580,24 @@ export default function StudentProgress() {
                     <Button
                       variant="outline"
                       className="w-full border-white/20 text-white hover:bg-white/10 bg-transparent gap-2"
+                      disabled={exportPdf.isPending}
                       onClick={() => {
-                        const blob = new Blob([
-                          `SEBA AI Studio — Student Progress Report\n`,
-                          `Student: ${student?.name ?? "Student"}\n`,
-                          `LOMLOE Grade: ${reportGrade ?? "N/A"}\n`,
-                          `Generated: ${new Date().toLocaleDateString()}\n\n`,
+                        if (!reportText) return;
+                        const scores = (summaryQ.data?.competencyAverages ?? []).map((c) => ({
+                          code: c.code,
+                          name: c.name,
+                          average: c.average !== null ? c.average : "No data",
+                        }));
+                        exportPdf.mutate({
+                          groupId: gId,
+                          studentId: sId,
+                          studentName: student?.name ?? "Student",
+                          className: `Group ${gId}`,
                           reportText,
-                        ], { type: "text/plain" });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement("a");
-                        a.href = url;
-                        a.download = `${(student?.name ?? "student").replace(/\s+/g, "_")}_progress_report.txt`;
-                        a.click();
-                        URL.revokeObjectURL(url);
+                          grade: reportGrade,
+                          overall: summaryQ.data?.overall ?? null,
+                          scores,
+                        });
                       }}
                     >
                       <Download className="w-4 h-4" />

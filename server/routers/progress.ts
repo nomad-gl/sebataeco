@@ -631,6 +631,75 @@ Use a professional, analytical tone. Format with clear headings.`;
       return { matched, total: input.participants.length };
     }),
 
+  /** Export a student progress report as a PDF (base64 encoded) */
+  exportStudentPdf: protectedProcedure
+    .input(
+      z.object({
+        groupId: z.number(),
+        studentId: z.number(),
+        studentName: z.string(),
+        className: z.string(),
+        reportText: z.string(),
+        grade: z.string().nullable(),
+        overall: z.number().nullable(),
+        scores: z.array(z.object({ code: z.string(), name: z.string(), average: z.union([z.number(), z.string()]) })),
+      })
+    )
+    .mutation(async ({ input }) => {
+      // Dynamically import pdfkit to avoid bundling issues
+      const PDFDocument = (await import("pdfkit")).default;
+      const chunks: Buffer[] = [];
+      const doc = new PDFDocument({ margin: 50, size: "A4" });
+      await new Promise<void>((resolve, reject) => {
+        doc.on("data", (chunk: Buffer) => chunks.push(chunk));
+        doc.on("end", resolve);
+        doc.on("error", reject);
+
+        // Header
+        doc.fontSize(20).fillColor("#4f46e5").text("SEBA | Teach", { align: "center" });
+        doc.fontSize(12).fillColor("#6b7280").text("LOMLOE Student Progress Report", { align: "center" });
+        doc.moveDown(0.5);
+        doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor("#e5e7eb").stroke();
+        doc.moveDown(0.5);
+
+        // Student info
+        doc.fontSize(14).fillColor("#111827").text(`Student: ${input.studentName}`);
+        doc.fontSize(11).fillColor("#6b7280").text(`Class: ${input.className}`);
+        doc.text(`Report Date: ${new Date().toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" })}`);
+        if (input.grade) {
+          doc.moveDown(0.3);
+          doc.fontSize(13).fillColor("#4f46e5").text(`Overall Grade: ${input.grade}${input.overall !== null ? ` (${input.overall}/100)` : ""}`);
+        }
+        doc.moveDown(0.8);
+
+        // Competency scores table
+        doc.fontSize(13).fillColor("#111827").text("Competency Scores", { underline: true });
+        doc.moveDown(0.4);
+        for (const s of input.scores) {
+          const score = typeof s.average === "number" ? `${s.average}/100` : s.average;
+          doc.fontSize(10).fillColor("#374151").text(`${s.code}  –  ${s.name}`, { continued: true });
+          doc.fillColor("#4f46e5").text(`  ${score}`, { align: "right" });
+        }
+        doc.moveDown(0.8);
+
+        // AI Report text
+        doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor("#e5e7eb").stroke();
+        doc.moveDown(0.5);
+        doc.fontSize(13).fillColor("#111827").text("AI Progress Report", { underline: true });
+        doc.moveDown(0.4);
+        doc.fontSize(10).fillColor("#374151").text(input.reportText, { lineGap: 4 });
+
+        // Footer
+        doc.moveDown(1);
+        doc.fontSize(8).fillColor("#9ca3af").text("Powered by SEBA AI Studio", { align: "center" });
+
+        doc.end();
+      });
+
+      const pdfBuffer = Buffer.concat(chunks);
+      return { base64: pdfBuffer.toString("base64") };
+    }),
+
   /** Check for overdue assignments and notify the owner */
   checkOverdueAssignments: protectedProcedure
     .input(z.object({ groupId: z.number() }))
