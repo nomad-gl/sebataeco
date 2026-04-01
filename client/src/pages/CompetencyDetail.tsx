@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import NavBar from "@/components/NavBar";
+import ParallaxSection from "@/components/ParallaxSection";
 import { useI18n } from "@/contexts/I18nContext";
 import { COMPETENCY_DETAIL_ES, COMPETENCY_DETAIL_CA } from "@/data/competencyTranslations";
 import { cn } from "@/lib/utils";
@@ -621,28 +622,31 @@ export default function CompetencyDetail({ params }: { params: { code: string } 
     <div className="min-h-screen flex flex-col bg-background">
       <NavBar />
 
-      {/* Hero banner — unique per competency */}
-      <section
-        className="relative overflow-hidden border-b border-border"
+      {/* Hero banner — unique per competency, with parallax */}
+      <ParallaxSection
+        imageUrl=""
+        speed={0.35}
+        overlayClass=""
+        className="border-b border-border"
         style={{ background: theme.gradient }}
       >
         {/* Unique SVG background pattern */}
         <div
-          className="absolute inset-0 pointer-events-none"
+          className="absolute inset-0 pointer-events-none z-10"
           style={{ backgroundImage: patterns[theme.patternType], backgroundRepeat: "repeat" }}
         />
         {/* Radial glow from top-right */}
         <div
-          className="absolute top-0 right-0 w-[500px] h-[500px] pointer-events-none"
+          className="absolute top-0 right-0 w-[500px] h-[500px] pointer-events-none z-10"
           style={{ background: `radial-gradient(circle at 80% 20%, ${theme.accentColor}40 0%, transparent 65%)` }}
         />
         {/* Subtle bottom-left accent */}
         <div
-          className="absolute bottom-0 left-0 w-64 h-64 pointer-events-none"
+          className="absolute bottom-0 left-0 w-64 h-64 pointer-events-none z-10"
           style={{ background: `radial-gradient(circle at 20% 80%, ${theme.accentColor}25 0%, transparent 60%)` }}
         />
 
-        <div className="container py-10 sm:py-16 relative z-10">
+        <div className="container py-10 sm:py-16">
           {/* Back button */}
           <Button
             variant="ghost"
@@ -699,7 +703,7 @@ export default function CompetencyDetail({ params }: { params: { code: string } 
             </div>
           </div>
         </div>
-      </section>
+      </ParallaxSection>
 
       {/* Main content */}
       <div className="container py-10 flex flex-col gap-8 max-w-5xl">
