@@ -22,9 +22,35 @@ const SUGGESTED_KEYS: TranslationKey[] = [
   "chat_suggested_6",
 ];
 
+const STORAGE_KEY = "clara_chat_history";
+
+/** Load persisted messages from localStorage, stripping system messages */
+function loadHistory(): Message[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Message[];
+    return Array.isArray(parsed)
+      ? parsed.filter((m) => m.role === "user" || m.role === "assistant")
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Persist messages (non-system) to localStorage */
+function saveHistory(msgs: Message[]) {
+  try {
+    const toSave = msgs.filter((m) => m.role !== "system");
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+  } catch {
+    // quota exceeded or private browsing — silently ignore
+  }
+}
+
 export default function Chat() {
   const { t, lang } = useI18n();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(() => loadHistory());
   const [competency, setCompetency] = useState<CompetencyCode | undefined>();
   const [yearGroup, setYearGroup] = useState<YearGroup | undefined>();
   const [showFilters, setShowFilters] = useState(false);
@@ -35,6 +61,11 @@ export default function Chat() {
 
   const chatMutation = trpc.lomloe.chat.useMutation();
   const translateMutation = trpc.lomloe.translateMessages.useMutation();
+
+  // Persist history whenever messages change
+  useEffect(() => {
+    saveHistory(messages);
+  }, [messages]);
 
   // When language changes, translate all existing messages in the session
   useEffect(() => {
@@ -57,12 +88,11 @@ export default function Chat() {
       },
       {
         onSuccess: (result) => {
-          setMessages(
-            result.messages.map((m) => ({
-              role: m.role as "user" | "assistant",
-              content: typeof m.content === "string" ? m.content : String(m.content),
-            }))
-          );
+          const translated = result.messages.map((m) => ({
+            role: m.role as "user" | "assistant",
+            content: typeof m.content === "string" ? m.content : String(m.content),
+          }));
+          setMessages(translated);
           setIsTranslating(false);
         },
         onError: () => {
@@ -95,6 +125,11 @@ export default function Chat() {
         { role: "assistant", content: t("chat_error") },
       ]);
     }
+  };
+
+  const handleClear = () => {
+    setMessages([]);
+    localStorage.removeItem(STORAGE_KEY);
   };
 
   const suggestedQuestions = SUGGESTED_KEYS.map((k) => t(k));
@@ -132,7 +167,7 @@ export default function Chat() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setMessages([])}
+                onClick={handleClear}
                 className="bg-white/15 text-white border-white/40 hover:bg-white/25 hover:text-white"
               >
                 {t("chat_clear")}
