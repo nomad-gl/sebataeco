@@ -396,3 +396,6 @@
 - [x] Bell dropdown shows all notifications, mark-read, mark-all-read
 - [x] Fire notification when teacher starts a challenge
 - [x] Notification polling every 30s for logged-in users
+
+## Bug Fix: Forum DM list query error (2026-04-01)
+- [x] Fix getDmList SQL query - SUBSTRING_INDEX/GROUP_CONCAT incompatible with TiDB

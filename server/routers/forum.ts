@@ -157,10 +157,11 @@ export const forumRouter = router({
     if (!db) return [];
     const userId = ctx.user.id;
 
+    // Step 1: get distinct partner IDs, last timestamp, and unread count
+    // Avoids SUBSTRING_INDEX/GROUP_CONCAT which TiDB does not support in this form
     const rows = await db
       .select({
         otherId: sql<number>`IF(${forumDirectMessages.fromUserId} = ${userId}, ${forumDirectMessages.toUserId}, ${forumDirectMessages.fromUserId})`,
-        lastBody: sql<string>`SUBSTRING_INDEX(GROUP_CONCAT(${forumDirectMessages.body} ORDER BY ${forumDirectMessages.createdAt} DESC SEPARATOR '\x01'), '\x01', 1)`,
         lastAt: sql<Date>`MAX(${forumDirectMessages.createdAt})`,
         unread: sql<number>`SUM(CASE WHEN ${forumDirectMessages.toUserId} = ${userId} AND ${forumDirectMessages.read} = 0 THEN 1 ELSE 0 END)`,
       })
@@ -176,6 +177,7 @@ export const forumRouter = router({
       )
       .orderBy(desc(sql`MAX(${forumDirectMessages.createdAt})`));
 
+    // Step 2: for each conversation, fetch the most recent message body separately
     const enriched = await Promise.all(
       rows.map(async (r) => {
         const [user] = await db
@@ -183,10 +185,30 @@ export const forumRouter = router({
           .from(users)
           .where(eq(users.id, r.otherId))
           .limit(1);
+
+        // Fetch latest message body with a simple ORDER BY + LIMIT query
+        const [lastMsg] = await db
+          .select({ body: forumDirectMessages.body })
+          .from(forumDirectMessages)
+          .where(
+            or(
+              and(
+                eq(forumDirectMessages.fromUserId, userId),
+                eq(forumDirectMessages.toUserId, r.otherId)
+              ),
+              and(
+                eq(forumDirectMessages.fromUserId, r.otherId),
+                eq(forumDirectMessages.toUserId, userId)
+              )
+            )
+          )
+          .orderBy(desc(forumDirectMessages.createdAt))
+          .limit(1);
+
         return {
           otherId: r.otherId,
           otherName: user?.name ?? "Unknown",
-          lastBody: r.lastBody ?? "",
+          lastBody: lastMsg?.body ?? "",
           lastAt: r.lastAt,
           unread: Number(r.unread ?? 0),
         };
