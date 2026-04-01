@@ -20,24 +20,135 @@ import {
 
 // ─── Crossword grid renderer ──────────────────────────────────────────────────
 
+/** Auto-layout crossword words when the AI returns invalid/all-zero placements. */
+function autoLayoutCrossword(
+  words: CrosswordContent["words"]
+): CrosswordContent["words"] {
+  const SIZE = 15;
+  const placed: CrosswordContent["words"] = [];
+  const occupied = new Set<string>(); // "r,c"
+
+  const canPlace = (word: string, direction: "across" | "down", row: number, col: number) => {
+    for (let i = 0; i < word.length; i++) {
+      const r = direction === "across" ? row : row + i;
+      const c = direction === "across" ? col + i : col;
+      if (r < 0 || r >= SIZE || c < 0 || c >= SIZE) return false;
+      const key = `${r},${c}`;
+      if (occupied.has(key)) {
+        // Allow only if the existing letter matches (intersection)
+        const existing = placed.find(p => {
+          for (let j = 0; j < p.word.length; j++) {
+            const pr = p.direction === "across" ? p.row : p.row + j;
+            const pc = p.direction === "across" ? p.col + j : p.col;
+            if (pr === r && pc === c) return true;
+          }
+          return false;
+        });
+        if (!existing) return false;
+        // Check the letter matches
+        const matchLetter = (() => {
+          for (let j = 0; j < existing.word.length; j++) {
+            const pr = existing.direction === "across" ? existing.row : existing.row + j;
+            const pc = existing.direction === "across" ? existing.col + j : existing.col;
+            if (pr === r && pc === c) return existing.word[j];
+          }
+          return null;
+        })();
+        if (matchLetter !== word[i]) return false;
+      }
+    }
+    return true;
+  };
+
+  const doPlace = (word: string, direction: "across" | "down", row: number, col: number) => {
+    for (let i = 0; i < word.length; i++) {
+      const r = direction === "across" ? row : row + i;
+      const c = direction === "across" ? col + i : col;
+      occupied.add(`${r},${c}`);
+    }
+  };
+
+  for (let wi = 0; wi < words.length; wi++) {
+    const w = words[wi]!;
+    if (wi === 0) {
+      // Place first word across in the middle
+      const row = Math.floor(SIZE / 2);
+      const col = Math.floor((SIZE - w.word.length) / 2);
+      placed.push({ ...w, direction: "across", row, col });
+      doPlace(w.word, "across", row, col);
+      continue;
+    }
+    let bestPlacement: { row: number; col: number; direction: "across" | "down" } | null = null;
+    // Try to intersect with an already-placed word
+    outer: for (const p of placed) {
+      for (let pi = 0; pi < p.word.length; pi++) {
+        const sharedLetter = p.word[pi]!;
+        for (let wi2 = 0; wi2 < w.word.length; wi2++) {
+          if (w.word[wi2] !== sharedLetter) continue;
+          const newDir: "across" | "down" = p.direction === "across" ? "down" : "across";
+          const pr = p.direction === "across" ? p.row : p.row + pi;
+          const pc = p.direction === "across" ? p.col + pi : p.col;
+          const row = newDir === "across" ? pr : pr - wi2;
+          const col = newDir === "down" ? pc : pc - wi2;
+          if (canPlace(w.word, newDir, row, col)) {
+            bestPlacement = { row, col, direction: newDir };
+            break outer;
+          }
+        }
+      }
+    }
+    if (bestPlacement) {
+      placed.push({ ...w, ...bestPlacement });
+      doPlace(w.word, bestPlacement.direction, bestPlacement.row, bestPlacement.col);
+    } else {
+      // Fallback: place without intersection, stacked
+      const direction: "across" | "down" = wi % 2 === 0 ? "across" : "down";
+      const row = Math.min(wi, SIZE - (direction === "down" ? w.word.length : 1));
+      const col = Math.min(wi * 2, SIZE - (direction === "across" ? w.word.length : 1));
+      placed.push({ ...w, direction, row, col });
+      doPlace(w.word, direction, row, col);
+    }
+  }
+  return placed;
+}
+
 function CrosswordGrid({
   words, showAnswers,
 }: {
   words: CrosswordContent["words"];
   showAnswers: boolean;
 }) {
-  // Build grid bounds
-  const size = 15;
-  const grid: { letter: string; number?: number; used: boolean }[][] = Array.from({ length: size }, () =>
-    Array.from({ length: size }, () => ({ letter: "", number: undefined, used: false }))
-  );
+  // Detect invalid placement (all words at row=0,col=0 or no placement data)
+  const allAtOrigin = words.length > 1 && words.every(w => w.row === 0 && w.col === 0);
+  const layoutWords = allAtOrigin ? autoLayoutCrossword(words) : words;
 
-  for (const w of words) {
+  // Compute actual used bounds to trim empty rows/cols
+  let minR = 15, maxR = 0, minC = 15, maxC = 0;
+  for (const w of layoutWords) {
+    for (let i = 0; i < w.word.length; i++) {
+      const r = w.direction === "across" ? w.row : w.row + i;
+      const c = w.direction === "across" ? w.col + i : w.col;
+      if (r < minR) minR = r;
+      if (r > maxR) maxR = r;
+      if (c < minC) minC = c;
+      if (c > maxC) maxC = c;
+    }
+  }
+  if (minR > maxR) { minR = 0; maxR = 14; minC = 0; maxC = 14; }
+  const rows = maxR - minR + 1;
+  const cols = maxC - minC + 1;
+
+  const grid: { letter: string; number?: number; used: boolean; inputVal: string }[][] =
+    Array.from({ length: rows }, () =>
+      Array.from({ length: cols }, () => ({ letter: "", number: undefined, used: false, inputVal: "" }))
+    );
+
+  for (const w of layoutWords) {
     const { word, direction, row, col, number } = w;
     for (let i = 0; i < word.length; i++) {
-      const r = direction === "across" ? row : row + i;
-      const c = direction === "across" ? col + i : col;
-      if (r >= 0 && r < size && c >= 0 && c < size) {
+      const r = (direction === "across" ? row : row + i) - minR;
+      const c = (direction === "across" ? col + i : col) - minC;
+      if (r >= 0 && r < rows && c >= 0 && c < cols) {
         grid[r]![c]!.letter = word[i] ?? "";
         grid[r]![c]!.used = true;
         if (i === 0) grid[r]![c]!.number = number;
@@ -46,38 +157,38 @@ function CrosswordGrid({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table
-        className="border-collapse mx-auto"
-        style={{ borderWidth: showAnswers ? 1 : 2, borderColor: "#9ca3af", borderStyle: "solid" }}
-      >
+    <div className="overflow-x-auto pb-2">
+      <table className="border-collapse mx-auto" style={{ borderSpacing: 0 }}>
         <tbody>
           {grid.map((row, ri) => (
             <tr key={ri}>
               {row.map((cell, ci) => (
                 <td
                   key={ci}
-                  className="relative"
+                  className="relative p-0"
                   style={{
-                    width: 30, height: 30, minWidth: 30,
-                    border: `${showAnswers ? 1 : 2}px solid ${showAnswers ? "#9ca3af" : "#6b7280"}`,
-                    backgroundColor: cell.used ? (showAnswers ? "#ffffff" : "#f3f4f6") : "#374151",
-                    padding: 0,
+                    width: 32, height: 32, minWidth: 32,
+                    border: cell.used ? `2px solid #6b7280` : "none",
+                    backgroundColor: cell.used ? (showAnswers ? "#ffffff" : "#f9fafb") : "transparent",
                   }}
                 >
                   {cell.used && (
                     <>
                       {cell.number !== undefined && (
                         <span
-                          className="absolute top-0 left-0.5 leading-none text-foreground font-bold"
-                          style={{ fontSize: showAnswers ? 8 : 10 }}
+                          className="absolute top-0 left-0.5 leading-none font-bold text-gray-700"
+                          style={{ fontSize: 9 }}
                         >
                           {cell.number}
                         </span>
                       )}
-                      {showAnswers && (
-                        <span className="flex items-center justify-center h-full text-xs font-mono font-bold text-foreground">
+                      {showAnswers ? (
+                        <span className="flex items-center justify-center h-full w-full text-sm font-mono font-bold text-gray-900">
                           {cell.letter}
+                        </span>
+                      ) : (
+                        <span className="flex items-center justify-center h-full w-full text-sm font-mono font-bold text-gray-400 select-none">
+                          &nbsp;
                         </span>
                       )}
                     </>
@@ -270,22 +381,22 @@ function CrosswordViewer({ content, showAnswers }: { content: CrosswordContent; 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div>
           <h3 className="font-bold text-sm text-foreground mb-3 uppercase tracking-wide">Across</h3>
-          <ol className="flex flex-col gap-2">
+          <ol className="space-y-2">
             {content.words.filter(w => w.direction === "across").map((w, i) => (
-              <li key={i} className="text-sm text-foreground flex gap-2">
-                <span className="font-bold text-primary flex-shrink-0">{w.number}.</span>
-                <span>{w.clue}{showAnswers && <span className="ml-2 font-bold text-green-700">→ {w.word}</span>}</span>
+              <li key={i} className="text-sm text-foreground flex gap-2 items-start">
+                <span className="font-bold text-primary flex-shrink-0 w-7 text-right">{w.number}.</span>
+                <span className="min-w-0 break-words flex-1">{w.clue}{showAnswers && <span className="ml-2 font-bold text-green-700">→ {w.word}</span>}</span>
               </li>
             ))}
           </ol>
         </div>
         <div>
           <h3 className="font-bold text-sm text-foreground mb-3 uppercase tracking-wide">Down</h3>
-          <ol className="flex flex-col gap-2">
+          <ol className="space-y-2">
             {content.words.filter(w => w.direction === "down").map((w, i) => (
-              <li key={i} className="text-sm text-foreground flex gap-2">
-                <span className="font-bold text-primary flex-shrink-0">{w.number}.</span>
-                <span>{w.clue}{showAnswers && <span className="ml-2 font-bold text-green-700">→ {w.word}</span>}</span>
+              <li key={i} className="text-sm text-foreground flex gap-2 items-start">
+                <span className="font-bold text-primary flex-shrink-0 w-7 text-right">{w.number}.</span>
+                <span className="min-w-0 break-words flex-1">{w.clue}{showAnswers && <span className="ml-2 font-bold text-green-700">→ {w.word}</span>}</span>
               </li>
             ))}
           </ol>

@@ -344,3 +344,10 @@
 
 ## Bug Fix: Presentation page text invisible/missing (2026-03-31)
 - [x] Fix invisible/missing text on Presentation page (colour contrast, theme mismatch, missing keys)
+
+## Bug Fix: Crossword clue rows overlap (2026-04-01)
+- [x] Fix overlapping words/rows in crossword clue list on MaterialView page
+
+## Bug Fix: Crossword rendering (2026-04-01)
+- [x] Fix overlapping words/rows in crossword clue list on MaterialView page
+- [x] Fix missing crossword grid (grid is not rendered at all)
