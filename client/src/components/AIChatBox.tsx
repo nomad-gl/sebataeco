@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Loader2, Send, User, Sparkles, Mic, MicOff, Radio } from "lucide-react";
+import { Loader2, Send, User, Sparkles, Mic, MicOff } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Streamdown } from "streamdown";
 
@@ -25,26 +25,6 @@ export type AIChatBoxProps = {
   suggestedPrompts?: string[];
 };
 
-/** Play a short confirmation beep using the Web Audio API */
-function playBeep(frequency = 880, duration = 0.18, volume = 0.25) {
-  try {
-    const ctx = new AudioContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.frequency.value = frequency;
-    osc.type = "sine";
-    gain.gain.setValueAtTime(volume, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + duration);
-    osc.onended = () => ctx.close();
-  } catch {
-    // AudioContext not available — silently ignore
-  }
-}
-
 export function AIChatBox({
   messages,
   onSendMessage,
@@ -56,67 +36,58 @@ export function AIChatBox({
   suggestedPrompts,
 }: AIChatBoxProps) {
   const [input, setInput] = useState("");
-  // "idle"    = always-on wake-word mode (default)
-  // "active"  = recording user's question after wake word detected
-  // "manual"  = user clicked mic button (one-shot recording)
-  // "off"     = user explicitly disabled always-on mode
-  type VoiceMode = "idle" | "active" | "manual" | "off";
-  const [voiceMode, setVoiceMode] = useState<VoiceMode>("idle");
+  const [isRecording, setIsRecording] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const wakeRecognitionRef = useRef<any>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const inputRecognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<any>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputAreaRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const voiceModeRef = useRef<VoiceMode>("idle");
 
-  // Keep ref in sync so closures always see current mode
-  useEffect(() => {
-    voiceModeRef.current = voiceMode;
-  }, [voiceMode]);
-
-  // ─── Helpers ────────────────────────────────────────────────────────────────
+  // ─── Voice input (manual mic button) ────────────────────────────────────────
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const getSR = (): (new () => any) | null => {
     return (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition || null;
   };
 
-  const stopWakeListener = useCallback(() => {
-    if (wakeRecognitionRef.current) {
-      try { wakeRecognitionRef.current.abort(); } catch { /* ignore */ }
-      wakeRecognitionRef.current = null;
+  const stopRecording = useCallback(() => {
+    if (recognitionRef.current) {
+      try { recognitionRef.current.abort(); } catch { /* ignore */ }
+      recognitionRef.current = null;
     }
+    setIsRecording(false);
   }, []);
 
-  const stopInputListener = useCallback(() => {
-    if (inputRecognitionRef.current) {
-      try { inputRecognitionRef.current.abort(); } catch { /* ignore */ }
-      inputRecognitionRef.current = null;
-    }
-  }, []);
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopRecording();
+    };
+  }, [stopRecording]);
 
-  // ─── Input recording (after wake word) ──────────────────────────────────────
-
-  const startInputRecording = useCallback((autoSend: boolean) => {
+  const toggleRecording = useCallback(() => {
     const SR = getSR();
-    if (!SR) return;
+    if (!SR) {
+      setVoiceError("Voice input is not supported in this browser.");
+      return;
+    }
 
-    stopInputListener();
-    setVoiceMode("active");
+    if (isRecording) {
+      stopRecording();
+      return;
+    }
 
+    setVoiceError(null);
     const recognition = new SR();
     recognition.continuous = false;
     recognition.interimResults = true;
     recognition.lang = document.documentElement.lang || navigator.language || "en";
-    inputRecognitionRef.current = recognition;
-
-    let finalTranscript = "";
+    recognitionRef.current = recognition;
 
     recognition.onstart = () => {
+      setIsRecording(true);
       setInput("");
     };
 
@@ -127,9 +98,6 @@ export function AIChatBox({
         .map((r: any) => r[0].transcript as string)
         .join("");
       setInput(transcript);
-      if (e.results[e.results.length - 1].isFinal) {
-        finalTranscript = transcript;
-      }
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -137,146 +105,21 @@ export function AIChatBox({
       if (e.error !== "aborted" && e.error !== "no-speech") {
         setVoiceError("Voice input error: " + e.error);
       }
+      setIsRecording(false);
     };
 
     recognition.onend = () => {
-      inputRecognitionRef.current = null;
-      const currentMode = voiceModeRef.current;
-      if (autoSend && finalTranscript.trim()) {
-        // Auto-send and return to wake-word listening
-        onSendMessage(finalTranscript.trim());
-        setInput("");
-        setVoiceMode("idle");
-      } else if (currentMode === "active") {
-        // Manual mic mode — leave transcript in box, return to idle
-        setVoiceMode("idle");
-        textareaRef.current?.focus();
-      }
-    };
-
-    recognition.start();
-  }, [stopInputListener, onSendMessage]);
-
-  // ─── Wake-word listener ──────────────────────────────────────────────────────
-
-  const startWakeListener = useCallback(() => {
-    const SR = getSR();
-    if (!SR) return;
-    if (voiceModeRef.current !== "idle") return;
-
-    stopWakeListener();
-
-    const recognition = new SR();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = document.documentElement.lang || navigator.language || "en";
-    wakeRecognitionRef.current = recognition;
-
-    let triggered = false;
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    recognition.onresult = (e: any) => {
-      if (triggered) return;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const transcript = Array.from(e.results as any[])
-        .map((r: any) => r[0].transcript as string)
-        .join("")
-        .toLowerCase()
-        .trim();
-
-      // Detect wake word "clara" (allow slight variations)
-      if (/\bclara\b/.test(transcript)) {
-        triggered = true;
-        stopWakeListener();
-        playBeep(880, 0.18, 0.3);
-        // Small delay so beep plays before mic opens
-        setTimeout(() => {
-          if (voiceModeRef.current !== "off") {
-            startInputRecording(true); // auto-send after speech ends
-          }
-        }, 300);
-      }
-    };
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    recognition.onerror = (e: any) => {
-      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
-        setVoiceError("Microphone access denied. Please allow microphone access to use voice features.");
-        setVoiceMode("off");
-        return;
-      }
-      // For no-speech / aborted / network errors, just restart
-    };
-
-    recognition.onend = () => {
-      wakeRecognitionRef.current = null;
-      // Auto-restart wake listener if still in idle mode
-      if (voiceModeRef.current === "idle") {
-        setTimeout(() => {
-          if (voiceModeRef.current === "idle") {
-            startWakeListener();
-          }
-        }, 200);
-      }
+      recognitionRef.current = null;
+      setIsRecording(false);
+      textareaRef.current?.focus();
     };
 
     try {
       recognition.start();
     } catch {
-      // Already started or not available
+      setIsRecording(false);
     }
-  }, [stopWakeListener, startInputRecording]);
-
-  // ─── Lifecycle: start/stop wake listener based on mode ───────────────────────
-
-  useEffect(() => {
-    if (voiceMode === "idle") {
-      startWakeListener();
-    } else if (voiceMode === "off") {
-      stopWakeListener();
-      stopInputListener();
-    }
-    return () => {
-      // Cleanup on unmount
-      stopWakeListener();
-      stopInputListener();
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voiceMode]);
-
-  // ─── Manual mic button ───────────────────────────────────────────────────────
-
-  const toggleManualRecording = useCallback(() => {
-    const SR = getSR();
-    if (!SR) {
-      setVoiceError("Voice input is not supported in this browser.");
-      return;
-    }
-
-    if (voiceMode === "active" || voiceMode === "manual") {
-      // Stop current recording
-      stopInputListener();
-      setVoiceMode("idle");
-      return;
-    }
-
-    // Stop wake listener, start manual recording (no auto-send)
-    stopWakeListener();
-    setVoiceMode("manual");
-    startInputRecording(false);
-  }, [voiceMode, stopWakeListener, stopInputListener, startInputRecording]);
-
-  // ─── Toggle always-on mode ───────────────────────────────────────────────────
-
-  const toggleAlwaysOn = useCallback(() => {
-    if (voiceMode === "off") {
-      setVoiceMode("idle");
-    } else {
-      stopWakeListener();
-      stopInputListener();
-      setVoiceMode("off");
-    }
-  }, [voiceMode, stopWakeListener, stopInputListener]);
+  }, [isRecording, stopRecording]);
 
   // ─── Display helpers ─────────────────────────────────────────────────────────
 
@@ -305,6 +148,14 @@ export function AIChatBox({
     }
   };
 
+  useEffect(() => {
+    if (messages.length > 0) {
+      scrollToBottom();
+    }
+  }, [messages]);
+
+  // ─── Form handlers ───────────────────────────────────────────────────────────
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedInput = input.trim();
@@ -321,10 +172,6 @@ export function AIChatBox({
       handleSubmit(e);
     }
   };
-
-  const isListeningForWake = voiceMode === "idle";
-  const isRecordingInput = voiceMode === "active" || voiceMode === "manual";
-  const isAlwaysOnEnabled = voiceMode !== "off";
 
   return (
     <div
@@ -343,12 +190,6 @@ export function AIChatBox({
               <div className="flex flex-col items-center gap-3">
                 <Sparkles className="size-12 opacity-20" />
                 <p className="text-sm">{emptyStateMessage}</p>
-                {isListeningForWake && (
-                  <p className="text-xs text-white/40 flex items-center gap-1.5">
-                    <Radio className="size-3 animate-pulse text-green-400/70" />
-                    Say <span className="font-semibold text-white/60">"Clara"</span> to start
-                  </p>
-                )}
               </div>
               {suggestedPrompts && suggestedPrompts.length > 0 && (
                 <div className="flex max-w-2xl flex-wrap justify-center gap-2">
@@ -452,16 +293,10 @@ export function AIChatBox({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={
-              isRecordingInput
-                ? "Listening…"
-                : isListeningForWake
-                ? `${placeholder} (or say "Clara")`
-                : placeholder
-            }
+            placeholder={isRecording ? "Listening…" : placeholder}
             className={cn(
               "flex-1 max-h-32 resize-none min-h-9 bg-white/10 border-white/25 text-white placeholder:text-white/40 focus-visible:ring-white/30",
-              isRecordingInput && "border-red-400/60 bg-red-500/10"
+              isRecording && "border-red-400/60 bg-red-500/10"
             )}
             rows={1}
           />
@@ -470,36 +305,19 @@ export function AIChatBox({
           )}
         </div>
 
-        {/* Always-on toggle button */}
+        {/* Mic button */}
         <Button
           type="button"
           size="icon"
           variant="ghost"
-          onClick={toggleAlwaysOn}
-          title={isAlwaysOnEnabled ? 'Always-on listening active — click to disable' : 'Always-on listening disabled — click to enable'}
-          className={cn(
-            "shrink-0 h-[38px] w-[38px]",
-            isAlwaysOnEnabled
-              ? "text-green-400 hover:text-green-300 hover:bg-white/10"
-              : "text-white/30 hover:text-white/60 hover:bg-white/10"
-          )}
-        >
-          <Radio className={cn("size-4", isListeningForWake && "animate-pulse")} />
-        </Button>
-
-        {/* Manual mic button */}
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          onClick={toggleManualRecording}
-          title={isRecordingInput ? "Stop recording" : "Voice input (manual)"}
+          onClick={toggleRecording}
+          title={isRecording ? "Stop recording" : "Voice input"}
           className={cn(
             "shrink-0 h-[38px] w-[38px] text-white/60 hover:text-white hover:bg-white/15",
-            isRecordingInput && "text-red-400 hover:text-red-300 animate-pulse"
+            isRecording && "text-red-400 hover:text-red-300 animate-pulse"
           )}
         >
-          {isRecordingInput ? <MicOff className="size-4" /> : <Mic className="size-4" />}
+          {isRecording ? <MicOff className="size-4" /> : <Mic className="size-4" />}
         </Button>
 
         {/* Send button */}
