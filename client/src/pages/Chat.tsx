@@ -76,7 +76,10 @@ export default function Chat() {
               variant="outline"
               size="sm"
               onClick={() => setShowFilters((v) => !v)}
-              className={cn(showFilters && "bg-primary text-primary-foreground border-primary")}
+              className={cn(
+                "bg-white/15 text-white border-white/40 hover:bg-white/25 hover:text-white",
+                showFilters && "bg-primary text-primary-foreground border-primary hover:bg-primary/90"
+              )}
             >
               {t("chat_filter")}
             </Button>
@@ -85,6 +88,7 @@ export default function Chat() {
                 variant="outline"
                 size="sm"
                 onClick={() => setMessages([])}
+                className="bg-white/15 text-white border-white/40 hover:bg-white/25 hover:text-white"
               >
                 {t("chat_clear")}
               </Button>
