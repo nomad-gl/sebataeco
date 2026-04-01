@@ -118,19 +118,25 @@ export function AIChatBox({
 
     let finalTranscript = "";
     let speechDetected = false;
+    // silenceTimer is started inside onstart so the 2 s window begins only
+    // after the browser confirms the mic is open (avoids premature expiry).
+    let silenceTimer: ReturnType<typeof setTimeout> | undefined = undefined;
 
-    // 2-second silence timeout: if no speech starts, abort and return to wake-word mode
-    const silenceTimer = setTimeout(() => {
-      if (!speechDetected && inputRecognitionRef.current === recognition) {
-        try { recognition.abort(); } catch { /* ignore */ }
-        inputRecognitionRef.current = null;
-        setInput("");
-        setVoiceMode("idle");
-      }
-    }, 2000);
+    const startSilenceTimer = () => {
+      if (silenceTimer !== undefined) clearTimeout(silenceTimer);
+      silenceTimer = setTimeout(() => {
+        if (!speechDetected && inputRecognitionRef.current === recognition) {
+          try { recognition.abort(); } catch { /* ignore */ }
+          inputRecognitionRef.current = null;
+          setInput("");
+          setVoiceMode("idle");
+        }
+      }, 2000);
+    };
 
     recognition.onstart = () => {
       setInput("");
+      startSilenceTimer(); // begin countdown only once mic is confirmed open
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -151,14 +157,14 @@ export function AIChatBox({
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onerror = (e: any) => {
-      clearTimeout(silenceTimer);
+      if (silenceTimer !== undefined) clearTimeout(silenceTimer);
       if (e.error !== "aborted" && e.error !== "no-speech") {
         setVoiceError("Voice input error: " + e.error);
       }
     };
 
     recognition.onend = () => {
-      clearTimeout(silenceTimer);
+      if (silenceTimer !== undefined) clearTimeout(silenceTimer);
       inputRecognitionRef.current = null;
       const currentMode = voiceModeRef.current;
       if (autoSend && finalTranscript.trim()) {
@@ -229,13 +235,15 @@ export function AIChatBox({
 
     recognition.onend = () => {
       wakeRecognitionRef.current = null;
-      // Auto-restart wake listener if still in idle mode
-      if (voiceModeRef.current === "idle") {
+      // Only restart if still in idle mode — never restart while input recording
+      // is active (active / manual) as that would compete for the microphone.
+      const modeOnEnd = voiceModeRef.current;
+      if (modeOnEnd === "idle") {
         setTimeout(() => {
           if (voiceModeRef.current === "idle") {
             startWakeListener();
           }
-        }, 200);
+        }, 400);
       }
     };
 
