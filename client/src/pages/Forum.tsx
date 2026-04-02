@@ -314,22 +314,25 @@ export default function Forum() {
 
         {/* ── SIDEBAR ─────────────────────────────────────────────────── */}
         {/* Mobile backdrop dim — taps outside close the sidebar */}
-        {mobileSidebarOpen && (
-          <div
-            className="fixed inset-0 z-10 bg-black/40 backdrop-blur-sm md:hidden"
-            onClick={() => setMobileSidebarOpen(false)}
-          />
-        )}
+        {/* Mobile backdrop — always rendered so it can fade in/out */}
+        <div
+          className={cn(
+            "fixed inset-0 z-10 bg-black/40 backdrop-blur-sm md:hidden transition-opacity duration-300",
+            mobileSidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+          )}
+          onClick={() => setMobileSidebarOpen(false)}
+        />
 
         <aside
           className={cn(
             "flex flex-col w-full md:w-72 lg:w-80 flex-shrink-0",
             /* Desktop: subtle glass panel */
             "md:bg-white/10 md:backdrop-blur-md md:border-r md:border-white/20 md:z-20 md:relative md:flex",
-            /* Mobile: stronger frosted glass, full-width, fixed over content */
-            mobileSidebarOpen
-              ? "flex fixed inset-y-0 left-0 z-30 bg-black/50 backdrop-blur-xl border-r border-white/25 shadow-2xl"
-              : "hidden md:flex"
+            /* Mobile: stronger frosted glass, fixed over content with slide animation */
+            "fixed inset-y-0 left-0 z-30 bg-black/50 backdrop-blur-xl border-r border-white/25 shadow-2xl",
+            "md:static md:bg-white/10 md:backdrop-blur-md md:shadow-none md:border-r md:border-white/20",
+            "transition-transform duration-300 ease-in-out",
+            mobileSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
           )}
         >
           {/* Sidebar header */}
@@ -576,10 +579,7 @@ export default function Forum() {
 
         {/* ── CHAT AREA ───────────────────────────────────────────────── */}
         <main
-          className={cn(
-            "flex flex-col flex-1 overflow-hidden",
-            mobileSidebarOpen ? "hidden md:flex" : "flex"
-          )}
+          className="flex flex-col flex-1 overflow-hidden"
         >
           {/* Chat header */}
           <div className="flex items-center gap-3 px-4 py-3 bg-white/10 backdrop-blur-md border-b border-white/20 shadow-sm flex-shrink-0">
