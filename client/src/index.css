@@ -234,12 +234,12 @@
 }
 
 
-/* Create Material – soft lavender/purple gradient (creative) */
+/* Create Material – classroom photo with purple-tinted dark overlay */
 .create-bg {
-  background: linear-gradient(150deg,
-    oklch(0.97 0.03 290) 0%,
-    oklch(0.93 0.06 300) 50%,
-    oklch(0.90 0.05 280) 100%);
+  background:
+    linear-gradient(rgba(10,0,30,0.65), rgba(10,0,30,0.65)),
+    url('https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/hero-bg-UMuQESLM5HrV2VsrndDo2h.webp')
+    center / cover no-repeat fixed;
   min-height: 100vh;
 }
 

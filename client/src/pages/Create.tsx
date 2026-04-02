@@ -407,13 +407,13 @@ export default function Create() {
       <div className="container py-4 sm:py-8 max-w-3xl mx-auto flex flex-col gap-6 sm:gap-8">
         {/* Header */}
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">{t("create_title")}</h1>
-          <p className="text-sm text-muted-foreground mt-1">{t("create_subtitle")}</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-white">{t("create_title")}</h1>
+          <p className="text-sm text-white/70 mt-1">{t("create_subtitle")}</p>
         </div>
 
         {/* Step 1: Choose activity type */}
         <div className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">
+          <h2 className="text-sm font-semibold text-white/80 uppercase tracking-wide">
             1 · {t("create_step1_label")}
           </h2>
           <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3">
@@ -422,18 +422,18 @@ export default function Create() {
                 key={type}
                 onClick={() => setSelectedType(type)}
                 className={cn(
-                  "relative flex flex-col items-start gap-2 p-4 rounded-xl border-2 text-left transition-all",
+                  "relative flex flex-col items-start gap-2 p-4 rounded-xl border-2 text-left transition-all backdrop-blur-md",
                   selectedType === type
-                    ? "border-primary bg-primary/5 shadow-sm"
-                    : "border-border bg-card hover:border-primary/40 hover:bg-secondary/30"
+                    ? "border-white/60 bg-white/20 shadow-lg"
+                    : "border-white/20 bg-white/10 hover:border-white/40 hover:bg-white/15"
                 )}
               >
                 <div className={cn("w-9 h-9 rounded-lg bg-gradient-to-br flex items-center justify-center", color)}>
                   <Icon className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <p className="font-semibold text-sm text-foreground">{t(labelKey)}</p>
-                  <p className="text-xs text-muted-foreground leading-tight mt-0.5">{t(descKey)}</p>
+                  <p className="font-semibold text-sm text-white">{t(labelKey)}</p>
+                  <p className="text-xs text-white/65 leading-tight mt-0.5">{t(descKey)}</p>
                 </div>
                 {selectedType === type && (
                   <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
@@ -447,17 +447,17 @@ export default function Create() {
 
         {/* Step 2: Topic */}
         <div className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">
+          <h2 className="text-sm font-semibold text-white/80 uppercase tracking-wide">
             2 · {t("create_topic_label")}
           </h2>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="topic" className="text-sm">{t("create_topic_label")}</Label>
+            <Label htmlFor="topic" className="text-sm text-white/80">{t("create_topic_label")}</Label>
             <Input
               id="topic"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               placeholder={t("create_topic_placeholder")}
-              className="text-base"
+              className="text-base bg-white/10 border-white/25 text-white placeholder:text-white/40 backdrop-blur-sm focus:border-white/50"
               maxLength={200}
             />
           </div>
@@ -465,10 +465,10 @@ export default function Create() {
 
         {/* Step 3: Competency & Year Group */}
         <div className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">
+          <h2 className="text-sm font-semibold text-white/80 uppercase tracking-wide">
             3 · {t("create_competency_label")}
           </h2>
-          <Card>
+          <Card className="bg-white/10 border-white/20 backdrop-blur-md">
             <CardContent className="p-4">
               <CompetencySelector
                 selectedCompetency={competency}
@@ -482,8 +482,8 @@ export default function Create() {
         </div>
 
         {/* Generate button */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-t border-border pt-6 gap-3">
-          <div className="text-sm text-muted-foreground">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-t border-white/20 pt-6 gap-3">
+          <div className="text-sm text-white/70">
             {selectedType && topic.trim()
               ? `${t("create_generate")}: ${t(ACTIVITY_TYPES.find(a => a.type === selectedType)!.labelKey)} — "${topic}"`
               : t("create_topic_label")}
