@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import NavBar from "@/components/NavBar";
 import {
   Loader2, Lock, Users, TrendingUp, Trophy, Target,
-  ChevronRight, Plus, BookOpen, Star,
+  ChevronRight, Plus, BookOpen, Star, Download,
 } from "lucide-react";
 import { getLoginUrl } from "@/const";
 import { useLocation, Link } from "wouter";
@@ -71,6 +71,18 @@ export default function Progress() {
     undefined,
     { enabled: !!user }
   );
+
+  const exportCSV = trpc.progress.exportGroupGradesCSV.useMutation({
+    onSuccess: ({ csv, filename }) => {
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    },
+  });
 
   if (loading || isLoading) {
     return (
@@ -235,7 +247,16 @@ export default function Progress() {
                           )}
                         </div>
 
-                        <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-teal-400 transition-colors shrink-0 mt-1" />
+                        <div className="flex flex-col items-center gap-2 shrink-0">
+                          <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-teal-400 transition-colors" />
+                          <button
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); exportCSV.mutate({ groupId: item.group.id }); }}
+                            title="Download grades CSV"
+                            className="p-1 rounded text-white/30 hover:text-teal-400 hover:bg-white/10 transition-colors"
+                          >
+                            {exportCSV.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

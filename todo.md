@@ -510,3 +510,15 @@
 - [x] Client: GroupProgress links to /groups/:groupId/student/:studentId (StudentProgress — radar chart, activity history, assignments, AI PDF report)
 - [x] Client: LOMLOE grade scale legend at bottom of Progress hub
 - [x] Client: Summary stat cards (total groups, students, activities, overall average)
+
+## Feature: CSV grade export from Group Progress hub
+- [x] Server: progress.exportGroupGradesCSV(groupId) — returns CSV string with student name, per-competency averages, overall score, LOMLOE grade
+- [x] Client: Download icon button on each group card in Progress hub triggers CSV download
+- [x] CSV includes header row and LOMLOE grade column
+
+## Feature: Auto-link challenge results to group studentProgress
+- [x] Already implemented via saveChallengeToGroup procedure — matches participants by nickname and writes studentProgress rows
+
+## Feature: Progress link in NavBar Teacher dropdown
+- [x] Add "Group Progress" link to the Teacher dropdown in NavBar.tsx pointing to /progress
+- [x] Translate the label in all three languages (EN/ES/CA) in I18nContext

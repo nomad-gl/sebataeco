@@ -59,6 +59,7 @@ export default function NavBar() {
     { href: "/challenge",     label: t("nav_challenge"),     icon: Zap },
     { href: "/groups",        label: t("nav_groups"),        icon: Users },
     { href: "/questions",     label: t("nav_questions"),     icon: BookOpen },
+    { href: "/progress",      label: t("nav_group_progress"), icon: TrendingUp },
     { href: "/admin",         label: t("nav_admin"),         icon: LayoutDashboard },
   ];
 

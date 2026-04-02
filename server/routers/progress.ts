@@ -781,6 +781,70 @@ Use a professional, analytical tone. Format with clear headings.`;
     return results;
   }),
 
+  /** Export all students' per-competency averages and LOMLOE grade as CSV */
+  exportGroupGradesCSV: protectedProcedure
+    .input(z.object({ groupId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      // Verify ownership
+      const [group] = await db
+        .select()
+        .from(classGroups)
+        .where(and(eq(classGroups.id, input.groupId), eq(classGroups.userId, ctx.user.id)));
+      if (!group) throw new Error("Group not found");
+
+      const students = await db
+        .select()
+        .from(groupStudents)
+        .where(eq(groupStudents.groupId, input.groupId))
+        .orderBy(groupStudents.studentNumber);
+
+      const allRecords = students.length > 0
+        ? await db
+            .select()
+            .from(studentProgress)
+            .where(
+              and(
+                eq(studentProgress.groupId, input.groupId),
+                inArray(studentProgress.studentId, students.map((s) => s.id))
+              )
+            )
+        : [];
+
+      // Build per-student per-competency averages
+      const rows: string[] = [];
+      const header = ["Student #", "Name", "Email", ...ALL_COMPETENCIES, "Overall Average", "LOMLOE Grade"];
+      rows.push(header.join(","));
+
+      for (const student of students) {
+        const records = allRecords.filter((r) => r.studentId === student.id);
+        const compTotals: Record<string, { sum: number; count: number }> = {};
+        for (const r of records) {
+          if (!compTotals[r.competency]) compTotals[r.competency] = { sum: 0, count: 0 };
+          compTotals[r.competency].sum += r.score;
+          compTotals[r.competency].count += 1;
+        }
+        const compAvgs = ALL_COMPETENCIES.map((code) =>
+          compTotals[code] ? Math.round(compTotals[code].sum / compTotals[code].count) : ""
+        );
+        const scored = compAvgs.filter((v) => v !== "") as number[];
+        const overall = scored.length > 0 ? Math.round(scored.reduce((a, b) => a + b, 0) / scored.length) : "";
+        const grade =
+          overall === "" ? ""
+          : overall >= 90 ? "Sobresaliente"
+          : overall >= 70 ? "Notable"
+          : overall >= 60 ? "Bien"
+          : overall >= 50 ? "Suficiente"
+          : "Insuficiente";
+        const name = `"${student.name.replace(/"/g, '""')}"`;
+        const email = `"${student.email.replace(/"/g, '""')}"`;
+        rows.push([student.studentNumber, name, email, ...compAvgs, overall, grade].join(","));
+      }
+
+      return { csv: rows.join("\n"), filename: `${group.className.replace(/[^a-z0-9]/gi, "_")}_grades.csv` };
+    }),
+
   /** Check for overdue assignments and notify the owner */
   checkOverdueAssignments: protectedProcedure
     .input(z.object({ groupId: z.number() }))
