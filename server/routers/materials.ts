@@ -2,6 +2,8 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { ENV } from "../_core/env";
 import { invokeLLM } from "../_core/llm";
+import { generateImage } from "../_core/imageGeneration";
+import { storagePut } from "../storage";
 import {
   savePracticeSession,
   getSessionsByUser,
@@ -490,6 +492,32 @@ export const materialsRouter = router({
     const presentations = data[0]?.result?.data?.json?.presentations ?? [];
     return { presentations };
   }),
+
+  // Generate an AI image for a slide using the imagePrompt
+  generateSlideImage: protectedProcedure
+    .input(z.object({ prompt: z.string().min(1).max(500) }))
+    .mutation(async ({ input }) => {
+      const { url } = await generateImage({
+        prompt: `Educational illustration for a school presentation slide: ${input.prompt}. Clean, clear, suitable for students aged 8-16. No text overlays.`,
+      });
+      return { url };
+    }),
+
+  // Upload an image file for a slide (base64 encoded)
+  uploadSlideImage: protectedProcedure
+    .input(z.object({
+      base64: z.string(),
+      mimeType: z.string().default("image/jpeg"),
+      filename: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const suffix = Math.random().toString(36).slice(2, 8);
+      const ext = input.mimeType.split("/")[1] ?? "jpg";
+      const key = `slide-images/${ctx.user.id}/${suffix}.${ext}`;
+      const buffer = Buffer.from(input.base64, "base64");
+      const { url } = await storagePut(key, buffer, input.mimeType);
+      return { url };
+    }),
 
   // Import a sebasnap presentation into SEBA | Teach materials
   importFromSebasnap: protectedProcedure

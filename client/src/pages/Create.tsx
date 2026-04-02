@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import { getLoginUrl } from "@/const";
 import {
   BookOpen, Presentation, Grid3X3, AlignLeft, Search, CreditCard,
   Loader2, ChevronRight, Lock, Sparkles, Save, ArrowLeft, Pencil, X,
+  ImagePlus, Upload, Wand2, Trash2,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useI18n } from "@/contexts/I18nContext";
@@ -120,6 +121,53 @@ function FlashcardsPreview({ content, onChange }: { content: Record<string, unkn
 
 function SlidesPreview({ content, onChange }: { content: Record<string, unknown>; onChange: (c: Record<string, unknown>) => void }) {
   const slides = (content.slides as Array<Record<string, unknown>>) ?? [];
+  const [generatingIdx, setGeneratingIdx] = React.useState<number | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const generateImageMutation = trpc.materials.generateSlideImage.useMutation();
+  const uploadImageMutation = trpc.materials.uploadSlideImage.useMutation();
+
+  const handleGenerateImage = async (si: number) => {
+    const slide = slides[si];
+    const prompt = String(slide.imagePrompt ?? slide.heading ?? "");
+    if (!prompt) { toast.error("No image prompt available for this slide"); return; }
+    setGeneratingIdx(si);
+    try {
+      const { url } = await generateImageMutation.mutateAsync({ prompt });
+      const updated = [...slides];
+      updated[si] = { ...slide, imageUrl: url };
+      onChange({ ...content, slides: updated });
+      toast.success("Image generated!");
+    } catch {
+      toast.error("Image generation failed. Please try again.");
+    } finally {
+      setGeneratingIdx(null);
+    }
+  };
+
+  const handleUploadImage = (si: number, file: File) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64 = (e.target?.result as string).split(",")[1];
+      if (!base64) return;
+      try {
+        const { url } = await uploadImageMutation.mutateAsync({ base64, mimeType: file.type });
+        const updated = [...slides];
+        updated[si] = { ...slides[si], imageUrl: url };
+        onChange({ ...content, slides: updated });
+        toast.success("Image uploaded!");
+      } catch {
+        toast.error("Image upload failed. Please try again.");
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = (si: number) => {
+    const updated = [...slides];
+    updated[si] = { ...slides[si], imageUrl: "" };
+    onChange({ ...content, slides: updated });
+  };
+
   return (
     <div className="flex flex-col gap-3">
       {slides.map((slide, si) => (
@@ -149,6 +197,59 @@ function SlidesPreview({ content, onChange }: { content: Record<string, unknown>
                   className="text-sm h-7 border-0 bg-transparent p-0 focus-visible:ring-0"
                 />
               ))}
+            </div>
+
+            {/* Image section */}
+            <div className="mt-1 border-t border-border pt-2">
+              {slide.imageUrl ? (
+                <div className="relative group">
+                  <img
+                    src={String(slide.imageUrl)}
+                    alt={String(slide.heading ?? "Slide image")}
+                    className="w-full max-h-48 object-cover rounded-lg border border-border"
+                  />
+                  <button
+                    onClick={() => handleRemoveImage(si)}
+                    className="absolute top-1.5 right-1.5 p-1 rounded bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                    title="Remove image"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <ImagePlus className="w-3.5 h-3.5" /> Slide image:
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => handleGenerateImage(si)}
+                    disabled={generatingIdx === si}
+                  >
+                    {generatingIdx === si
+                      ? <><Loader2 className="w-3 h-3 animate-spin" /> Generating…</>
+                      : <><Wand2 className="w-3 h-3" /> AI Generate</>}
+                  </Button>
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadImage(si, f); }}
+                    />
+                    <span className="inline-flex items-center gap-1 h-7 px-3 text-xs border border-border rounded-md hover:bg-accent transition-colors">
+                      <Upload className="w-3 h-3" /> Upload
+                    </span>
+                  </label>
+                  {Boolean(slide.imagePrompt) && (
+                    <span className="text-xs text-muted-foreground italic truncate max-w-[200px]" title={String(slide.imagePrompt ?? "")}>
+                      💡 {String(slide.imagePrompt ?? "")}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

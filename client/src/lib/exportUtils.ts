@@ -27,7 +27,7 @@ export interface QuizContent {
 export interface SlidesContent {
   title: string; subject?: string; competency?: string; yearGroup?: string;
   keyVocabulary?: { term: string; definition: string }[];
-  slides: { slideNumber: number; heading: string; bullets: string[]; speakerNote: string; imagePrompt: string }[];
+  slides: { slideNumber: number; heading: string; bullets: string[]; speakerNote: string; imagePrompt: string; imageUrl?: string }[];
 }
 export interface CrosswordContent {
   title: string; subject?: string; competency?: string; yearGroup?: string;

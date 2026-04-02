@@ -65,6 +65,8 @@ function mapSebasnapToSlides(pres: {
       : [],
     speakerNotes: String(s.speakerNotes ?? s.notes ?? ""),
     imagePrompt: String(s.imagePrompt ?? s.imageSuggestion ?? ""),
+    // Carry over actual image URL if SebaSnap provides one
+    imageUrl: (s.imageUrl ?? s.image ?? s.img ?? s.thumbnail ?? "") as string,
   }));
 
   return {

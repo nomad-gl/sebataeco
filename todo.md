@@ -522,3 +522,10 @@
 ## Feature: Progress link in NavBar Teacher dropdown
 - [x] Add "Group Progress" link to the Teacher dropdown in NavBar.tsx pointing to /progress
 - [x] Translate the label in all three languages (EN/ES/CA) in I18nContext
+
+## Bug: Image issues
+- [x] Fix SebaSnap: mapSebasnapToSlides now carries over imageUrl/image/img/thumbnail fields from SebaSnap slide data
+- [x] Fix Create Material: SlidesPreview has AI image generation button per slide (calls materials.generateSlideImage)
+- [x] Fix Create Material: SlidesPreview has file upload button per slide (uploads to S3)
+- [x] Fix MaterialView: renders actual <img> when slide.imageUrl is present instead of text hint only
+- [x] Server: materials.generateSlideImage(prompt) and uploadSlideImage(base64) protected mutations added

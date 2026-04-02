@@ -378,11 +378,19 @@ function SlidesViewer({ content }: { content: SlidesContent }) {
               </li>
             ))}
           </ul>
-          {slide.imagePrompt && (
+          {slide.imageUrl ? (
+            <div className="mt-2 border-t border-border pt-3">
+              <img
+                src={String(slide.imageUrl)}
+                alt={String(slide.heading ?? "Slide image")}
+                className="w-full max-h-64 object-cover rounded-xl border border-border"
+              />
+            </div>
+          ) : slide.imagePrompt ? (
             <p className="text-xs text-muted-foreground italic border-t border-border pt-3 mt-2">
               🖼 Illustration suggestion: {slide.imagePrompt}
             </p>
-          )}
+          ) : null}
         </CardContent>
       </Card>
       {slide.speakerNote && (
