@@ -58,9 +58,10 @@ export default function Chat() {
       {
         onSuccess: (result) => {
           setMessages(
-            result.messages.map((m) => ({
+            result.messages.map((m, i) => ({
               role: m.role as "user" | "assistant",
               content: typeof m.content === "string" ? m.content : String(m.content),
+              timestamp: nonSystemMessages[i]?.timestamp,
             }))
           );
           setIsTranslating(false);
@@ -74,7 +75,7 @@ export default function Chat() {
   }, [lang]);
 
   const handleSendMessage = async (content: string) => {
-    const userMsg: Message = { role: "user", content };
+    const userMsg: Message = { role: "user", content, timestamp: Date.now() };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
 
@@ -88,11 +89,11 @@ export default function Chat() {
       });
       const aiContent =
         typeof result.content === "string" ? result.content : String(result.content);
-      setMessages([...newMessages, { role: "assistant", content: aiContent }]);
+      setMessages([...newMessages, { role: "assistant", content: aiContent, timestamp: Date.now() }]);
     } catch {
       setMessages([
         ...newMessages,
-        { role: "assistant", content: t("chat_error") },
+        { role: "assistant", content: t("chat_error"), timestamp: Date.now() },
       ]);
     }
   };

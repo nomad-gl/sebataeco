@@ -13,7 +13,13 @@ import { useClaraWakeWord } from "@/hooks/useClaraWakeWord";
 export type Message = {
   role: "system" | "user" | "assistant";
   content: string;
+  timestamp?: number; // UTC ms since epoch
 };
+
+function formatTime(ts?: number): string {
+  if (!ts) return "";
+  return new Date(ts).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+}
 
 export type AIChatBoxProps = {
   messages: Message[];
@@ -266,20 +272,27 @@ export function AIChatBox({
                         <Sparkles className="size-4 text-primary" />
                       </div>
                     )}
-                    <div
-                      className={cn(
-                        "max-w-[80%] rounded-lg px-4 py-2.5",
-                        message.role === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-white/15 text-white"
-                      )}
-                    >
-                      {message.role === "assistant" ? (
-                        <div className="prose prose-sm dark:prose-invert max-w-none">
-                          <Streamdown>{message.content}</Streamdown>
-                        </div>
-                      ) : (
-                        <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+                    <div className={cn("flex flex-col", message.role === "user" ? "items-end" : "items-start")}>
+                      <div
+                        className={cn(
+                          "max-w-[80%] rounded-lg px-4 py-2.5",
+                          message.role === "user"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-white/15 text-white"
+                        )}
+                      >
+                        {message.role === "assistant" ? (
+                          <div className="prose prose-sm dark:prose-invert max-w-none">
+                            <Streamdown>{message.content}</Streamdown>
+                          </div>
+                        ) : (
+                          <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+                        )}
+                      </div>
+                      {message.timestamp && (
+                        <span className="text-[10px] text-white/35 mt-0.5 px-1 select-none">
+                          {formatTime(message.timestamp)}
+                        </span>
                       )}
                     </div>
                     {message.role === "user" && (
