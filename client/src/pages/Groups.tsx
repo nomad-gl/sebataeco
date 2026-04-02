@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Users, Plus, Trash2, Mail, BookOpen, Calendar, ChevronRight,
-  UserPlus, Send, Loader2, AlertCircle, GraduationCap, ClipboardList, TrendingUp
+  UserPlus, Send, Loader2, AlertCircle, GraduationCap, ClipboardList, TrendingUp, ArrowLeft
 } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "@/contexts/I18nContext";
@@ -430,22 +430,32 @@ export default function Groups() {
     <div className="challenge-bg">
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-heading font-bold text-white flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
-                <Users className="w-5 h-5 text-blue-400" />
-              </div>
-              {t("groups_title")}
-            </h1>
-            <p className="text-white/50 mt-1 text-sm">{t("groups_subtitle")}</p>
-          </div>
+        <div className="mb-6">
           <Button
-            onClick={() => setShowCreate(true)}
-            className="bg-blue-600 hover:bg-blue-500 text-white"
+            variant="ghost"
+            size="sm"
+            onClick={() => window.history.back()}
+            className="text-white/60 hover:text-white hover:bg-white/10 mb-4 gap-1.5"
           >
-            <Plus className="w-4 h-4 mr-2" /> {t("groups_new_group")}
+            <ArrowLeft className="w-4 h-4" /> {t("gp_back")}
           </Button>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-heading font-bold text-white flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
+                  <Users className="w-5 h-5 text-blue-400" />
+                </div>
+                {t("groups_title")}
+              </h1>
+              <p className="text-white/50 mt-1 text-sm">{t("groups_subtitle")}</p>
+            </div>
+            <Button
+              onClick={() => setShowCreate(true)}
+              className="bg-blue-600 hover:bg-blue-500 text-white"
+            >
+              <Plus className="w-4 h-4 mr-2" /> {t("groups_new_group")}
+            </Button>
+          </div>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">
