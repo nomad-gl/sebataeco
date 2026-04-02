@@ -15,7 +15,7 @@ import html2canvas from "html2canvas";
 import {
   Document, Packer, Paragraph, TextRun, HeadingLevel,
   Table, TableRow, TableCell, WidthType, AlignmentType,
-  BorderStyle,
+  BorderStyle, ImageRun,
 } from "docx";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -230,7 +230,29 @@ function buildMissingWordsDoc(content: MissingWordsContent, withAnswers: boolean
   return new Document({ sections: [{ properties: {}, children }] });
 }
 
-function buildSlidesDoc(content: SlidesContent): Document {
+// Fetch an image URL and return its ArrayBuffer + detected type (jpg/png)
+async function fetchImageData(url: string): Promise<{ data: ArrayBuffer; type: "jpg" | "png" | "gif" | "bmp" } | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const ct = res.headers.get("content-type") ?? "";
+    const type: "jpg" | "png" | "gif" | "bmp" =
+      ct.includes("png") ? "png" :
+      ct.includes("gif") ? "gif" :
+      ct.includes("bmp") ? "bmp" : "jpg";
+    const data = await res.arrayBuffer();
+    return { data, type };
+  } catch {
+    return null;
+  }
+}
+
+async function buildSlidesDoc(content: SlidesContent): Promise<Document> {
+  // Pre-fetch all slide images in parallel
+  const imageResults = await Promise.all(
+    content.slides.map(s => s.imageUrl ? fetchImageData(s.imageUrl) : Promise.resolve(null))
+  );
+
   const children: Paragraph[] = [
     ...headerParagraph(content.title, content.subject, content.competency, content.yearGroup),
   ];
@@ -243,8 +265,30 @@ function buildSlidesDoc(content: SlidesContent): Document {
     });
     children.push(new Paragraph({ text: "" }));
   }
-  content.slides.forEach((s) => {
+  content.slides.forEach((s, idx) => {
     children.push(new Paragraph({ text: `Slide ${s.slideNumber}: ${s.heading}`, heading: HeadingLevel.HEADING_2 }));
+    // Embed image if available
+    const imgResult = imageResults[idx];
+    if (imgResult) {
+      children.push(
+        new Paragraph({
+          children: [
+            new ImageRun({
+              type: imgResult.type,
+              data: imgResult.data,
+              transformation: { width: 480, height: 270 }, // 16:9 at ~half-page width
+            }),
+          ],
+          spacing: { before: 80, after: 80 },
+        })
+      );
+    } else if (s.imagePrompt) {
+      // Placeholder text when image wasn't generated yet
+      children.push(new Paragraph({
+        children: [new TextRun({ text: `[Image: ${s.imagePrompt}]`, italics: true, color: "9ca3af", size: 18 })],
+        spacing: { before: 40, after: 40 },
+      }));
+    }
     s.bullets.forEach(b => {
       children.push(new Paragraph({ children: [new TextRun({ text: `• ${b}` })], indent: { left: 360 } }));
     });
@@ -337,7 +381,7 @@ export async function exportWord(
     case "quiz":       doc = buildQuizDoc(content as QuizContent, withAnswers); break;
     case "crossword":  doc = buildCrosswordDoc(content as CrosswordContent, withAnswers); break;
     case "missing_words": doc = buildMissingWordsDoc(content as MissingWordsContent, withAnswers); break;
-    case "slides":     doc = buildSlidesDoc(content as SlidesContent); break;
+    case "slides":     doc = await buildSlidesDoc(content as SlidesContent); break;
     case "wordsearch": doc = buildWordsearchDoc(content as WordsearchContent); break;
     case "flashcards": doc = buildFlashcardsDoc(content as FlashcardsContent); break;
     default:           doc = buildFlashcardsDoc(content as FlashcardsContent);

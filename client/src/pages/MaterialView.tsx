@@ -403,6 +403,7 @@ function SlidesViewer({ content }: { content: SlidesContent }) {
                 src={effectiveImageUrl}
                 alt={String(slide.heading ?? "Slide image")}
                 className="w-full max-h-64 object-cover rounded-xl border border-border"
+                crossOrigin="anonymous"
               />
               {imagePrompt && (
                 <Button

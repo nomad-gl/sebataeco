@@ -535,3 +535,10 @@
 - [x] MaterialView: Generate Image button added when slide has imagePrompt but no imageUrl yet
 - [x] Create page: bulk "Generate All Images (N)" button added above slide list when 2+ slides lack images
 - [x] Presentation full-screen mode: already renders slideImages[idx] as actual img tag — confirmed working
+
+## Feature: Image embedding in Word and PDF exports
+- [x] Word export: buildSlidesDoc made async — fetches each slide's imageUrl as ArrayBuffer and embeds via docx ImageRun (480×270px, 16:9)
+- [x] Word export: placeholder text "[Image: <prompt>]" shown when slide has imagePrompt but no imageUrl yet
+- [x] PDF export: html2canvas already captures rendered DOM including <img> tags — works automatically
+- [x] MaterialView SlidesViewer: added crossOrigin="anonymous" to slide <img> tag for html2canvas CORS support
+- [x] Presentation.tsx: added crossOrigin="anonymous" to slide <img> tag for html2canvas CORS support
