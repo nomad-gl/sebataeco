@@ -296,3 +296,50 @@ export const forumPresence = mysqlTable("forum_presence", {
 
 export type ForumPresence = typeof forumPresence.$inferSelect;
 export type InsertForumPresence = typeof forumPresence.$inferInsert;
+
+/**
+ * Clara adaptive learning profiles — one row per teacher.
+ * Updated after every chat turn to reflect evolving style signals.
+ */
+export const claraUserProfiles = mysqlTable("clara_user_profiles", {
+  userId: int("userId").primaryKey(),
+  /** Total number of questions asked across all sessions */
+  questionCount: int("questionCount").default(0).notNull(),
+  /** Rolling average word count of the user's questions */
+  avgQuestionLength: int("avgQuestionLength").default(0).notNull(),
+  /**
+   * JSON object: { CCL:3, STEM:5, ... } — frequency counts per competency
+   * Used to identify the teacher's primary curriculum focus areas
+   */
+  competencyFrequency: text("competencyFrequency").default("{}").notNull(),
+  /**
+   * JSON array of the top recurring topic keywords extracted from questions
+   * e.g. ["differentiation", "assessment", "group work"]
+   */
+  topicKeywords: text("topicKeywords").default("[]").notNull(),
+  /**
+   * Inferred communication style: 'concise' | 'detailed' | 'conversational' | 'formal'
+   * Derived from question length, vocabulary, and sentence structure patterns
+   */
+  communicationStyle: varchar("communicationStyle", { length: 32 }).default("conversational").notNull(),
+  /**
+   * Preferred response depth: 'brief' | 'moderate' | 'thorough'
+   * Inferred from how the user engages with follow-up chips and question depth
+   */
+  responseDepthPreference: varchar("responseDepthPreference", { length: 16 }).default("moderate").notNull(),
+  /**
+   * JSON array of year groups most frequently asked about
+   * e.g. ["primary", "secondary"]
+   */
+  preferredYearGroups: text("preferredYearGroups").default("[]").notNull(),
+  /**
+   * Free-text summary of the user's teaching context and interests,
+   * generated and updated by the LLM after every few interactions
+   */
+  teachingContextSummary: text("teachingContextSummary"),
+  /** Timestamp of last profile update */
+  lastUpdated: timestamp("lastUpdated").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ClaraUserProfile = typeof claraUserProfiles.$inferSelect;
+export type InsertClaraUserProfile = typeof claraUserProfiles.$inferInsert;

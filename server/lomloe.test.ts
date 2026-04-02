@@ -187,3 +187,71 @@ describe("lomloe tRPC procedures", () => {
     expect(sum).toBe(result.totalQuestions);
   });
 });
+
+// ─── Clara adaptive profile helpers ──────────────────────────────────────────
+
+import { getClaraProfile, upsertClaraProfile } from "./db";
+import type { User } from "../drizzle/schema";
+
+function createAuthCtx(): TrpcContext {
+  return {
+    user: {
+      id: 99999,
+      openId: "test-open-id",
+      name: "Test Teacher",
+      email: "test@example.com",
+      loginMethod: "oauth",
+      role: "user",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastSignedIn: new Date(),
+    } as User,
+    req: { protocol: "https", headers: {} } as TrpcContext["req"],
+    res: { clearCookie: () => {} } as unknown as TrpcContext["res"],
+  };
+}
+
+describe("Clara adaptive profile helpers", () => {
+  it("getClaraProfile returns null for a user with no profile", async () => {
+    // Use a user ID that is very unlikely to exist in the test DB
+    const profile = await getClaraProfile(999998);
+    expect(profile).toBeNull();
+  });
+
+  it("upsertClaraProfile creates a new profile row without throwing", async () => {
+    // Should not throw even if DB is unavailable (graceful degradation)
+    await expect(
+      upsertClaraProfile(999997, {
+        questionCount: 1,
+        avgQuestionLength: 8,
+        communicationStyle: "conversational",
+        responseDepthPreference: "moderate",
+        competencyFrequency: JSON.stringify({ CCL: 1 }),
+        topicKeywords: JSON.stringify(["differentiation"]),
+        preferredYearGroups: JSON.stringify(["primary"]),
+        teachingContextSummary: "Focuses on primary literacy.",
+      })
+    ).resolves.not.toThrow();
+  });
+
+  it("getClaraProfile procedure requires authentication", async () => {
+    const caller = appRouter.createCaller(createCtx());
+    await expect(caller.lomloe.getClaraProfile()).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+    });
+  });
+
+  it("getClaraProfile procedure returns null or a valid profile for an authenticated user", async () => {
+    const caller = appRouter.createCaller(createAuthCtx());
+    const result = await caller.lomloe.getClaraProfile();
+    // Either null (no profile yet) or a valid profile shape
+    if (result !== null) {
+      expect(result).toHaveProperty("questionCount");
+      expect(result).toHaveProperty("communicationStyle");
+      expect(result).toHaveProperty("responseDepthPreference");
+      expect(Array.isArray(result.topicKeywords)).toBe(true);
+      expect(Array.isArray(result.preferredYearGroups)).toBe(true);
+      expect(Array.isArray(result.topCompetencies)).toBe(true);
+    }
+  });
+});

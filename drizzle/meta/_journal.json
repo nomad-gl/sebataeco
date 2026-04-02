@@ -57,6 +57,13 @@
       "when": 1775076424129,
       "tag": "0007_next_iceman",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1775098912273,
+      "tag": "0008_chubby_serpent_society",
+      "breakpoints": true
     }
   ]
 }

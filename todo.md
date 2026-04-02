@@ -418,3 +418,12 @@
 - [x] Client: Clicking a chip sends it as a new user message
 - [x] Client: Chips hidden while a response is loading
 - [x] Client: Chips translated when language is switched (via translateMessages)
+
+## Feature: Clara self-learning & adaptive responses
+- [x] DB: clara_user_profiles table (userId, questionCount, avgQuestionLength, preferredCompetencies, preferredYearGroups, topicKeywords, responseDepthPreference, communicationStyle, lastUpdated)
+- [x] DB: migration applied via webdev_execute_sql
+- [x] Server db.ts: getClaraProfile(userId) and upsertClaraProfile(userId, patch) helpers
+- [x] Server lomloe.ts: after each chat turn, run async profile-update LLM call to extract style signals
+- [x] Server lomloe.ts: load profile at chat start and inject adaptive context into Clara's system prompt
+- [x] Server lomloe.ts: new tRPC procedure lomloe.getClaraProfile (protected) for optional UI display
+- [x] Client: profile signals used silently (no UI required for MVP)

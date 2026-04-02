@@ -1,6 +1,6 @@
 import { eq, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, InsertPracticeSession, InsertTeachingMaterial, users, practiceSessions, teachingMaterials, classChallenges, challengeParticipants } from "../drizzle/schema";
+import { InsertUser, InsertPracticeSession, InsertTeachingMaterial, users, practiceSessions, teachingMaterials, classChallenges, challengeParticipants, claraUserProfiles, type ClaraUserProfile } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -259,4 +259,61 @@ export async function getParticipants(challengeId: number) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(challengeParticipants).where(eq(challengeParticipants.challengeId, challengeId)).orderBy(desc(challengeParticipants.score));
+}
+
+// ─── Clara adaptive learning profiles ────────────────────────────────────────
+
+/** Fetch the Clara learning profile for a user, or null if none exists yet. */
+export async function getClaraProfile(userId: number): Promise<ClaraUserProfile | null> {
+  const db = await getDb();
+  if (!db) return null;
+  try {
+    const rows = await db
+      .select()
+      .from(claraUserProfiles)
+      .where(eq(claraUserProfiles.userId, userId))
+      .limit(1);
+    return rows[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Upsert the Clara learning profile for a user.
+ * Merges the supplied patch into the existing row (or creates a new one).
+ */
+export async function upsertClaraProfile(
+  userId: number,
+  patch: {
+    questionCount?: number;
+    avgQuestionLength?: number;
+    competencyFrequency?: string;
+    topicKeywords?: string;
+    communicationStyle?: string;
+    responseDepthPreference?: string;
+    preferredYearGroups?: string;
+    teachingContextSummary?: string;
+  }
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db
+      .insert(claraUserProfiles)
+      .values({
+        userId,
+        questionCount: patch.questionCount ?? 0,
+        avgQuestionLength: patch.avgQuestionLength ?? 0,
+        competencyFrequency: patch.competencyFrequency ?? "{}",
+        topicKeywords: patch.topicKeywords ?? "[]",
+        communicationStyle: patch.communicationStyle ?? "conversational",
+        responseDepthPreference: patch.responseDepthPreference ?? "moderate",
+        preferredYearGroups: patch.preferredYearGroups ?? "[]",
+        teachingContextSummary: patch.teachingContextSummary ?? null,
+      })
+      .onDuplicateKeyUpdate({ set: patch });
+  } catch (err) {
+    console.error("[Clara] Failed to upsert profile:", err);
+  }
 }
