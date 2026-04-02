@@ -501,3 +501,12 @@
 - [x] After thumbs-down click, show small dropdown: Wrong info / Not relevant / Too long / Too short / Other
 - [x] Store selected reason in DB via lomloe.rateMessage mutation (extend input schema)
 - [x] Reason surfaced in Clara adaptive profile prompt for targeted improvement
+
+## Feature: Group Progress Hub (Progress page redesign)
+- [x] DB: Existing tables (classGroups, groupStudents, studentProgress, assignments, assignmentCompletions) used — no new migration needed
+- [x] Server: progress.getAllGroupsSummary — lists all teacher groups with studentCount, totalActivities, overall score, LOMLOE grade, top competencies
+- [x] Client: Progress page redesigned as Group Progress hub — group cards with score ring, LOMLOE grade badge, student count, activity count, top competency chips
+- [x] Client: Each group card links to /groups/:groupId/progress (GroupProgress page — class heatmap, AI report)
+- [x] Client: GroupProgress links to /groups/:groupId/student/:studentId (StudentProgress — radar chart, activity history, assignments, AI PDF report)
+- [x] Client: LOMLOE grade scale legend at bottom of Progress hub
+- [x] Client: Summary stat cards (total groups, students, activities, overall average)

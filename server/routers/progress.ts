@@ -700,6 +700,87 @@ Use a professional, analytical tone. Format with clear headings.`;
       return { base64: pdfBuffer.toString("base64") };
     }),
 
+  /** Get all groups for the current teacher with their overall progress summary */
+  getAllGroupsSummary: protectedProcedure.query(async ({ ctx }) => {
+    const db = await getDb();
+    if (!db) return [];
+
+    const groups = await db
+      .select()
+      .from(classGroups)
+      .where(eq(classGroups.userId, ctx.user.id))
+      .orderBy(desc(classGroups.createdAt));
+
+    if (groups.length === 0) return [];
+
+    const results = await Promise.all(
+      groups.map(async (group) => {
+        const students = await db
+          .select()
+          .from(groupStudents)
+          .where(eq(groupStudents.groupId, group.id));
+
+        const studentCount = students.length;
+
+        if (studentCount === 0) {
+          return { group, studentCount, totalActivities: 0, overall: null, grade: null, topCompetencies: [] };
+        }
+
+        const studentIds = students.map((s) => s.id);
+        const allRecords = await db
+          .select()
+          .from(studentProgress)
+          .where(
+            and(
+              eq(studentProgress.groupId, group.id),
+              inArray(studentProgress.studentId, studentIds)
+            )
+          );
+
+        const totalActivities = allRecords.length;
+
+        // Compute per-competency class averages
+        const classTotals: Record<string, { sum: number; count: number }> = {};
+        for (const r of allRecords) {
+          if (!classTotals[r.competency]) classTotals[r.competency] = { sum: 0, count: 0 };
+          classTotals[r.competency].sum += r.score;
+          classTotals[r.competency].count += 1;
+        }
+
+        const compAverages = ALL_COMPETENCIES.map((code) => ({
+          code,
+          average: classTotals[code]
+            ? Math.round(classTotals[code].sum / classTotals[code].count)
+            : null,
+        }));
+
+        const scored = compAverages.filter((c) => c.average !== null);
+        const overall =
+          scored.length > 0
+            ? Math.round(scored.reduce((s, c) => s + (c.average ?? 0), 0) / scored.length)
+            : null;
+
+        const grade =
+          overall === null ? null
+          : overall >= 90 ? "Sobresaliente"
+          : overall >= 70 ? "Notable"
+          : overall >= 60 ? "Bien"
+          : overall >= 50 ? "Suficiente"
+          : "Insuficiente";
+
+        // Top 3 competencies by average
+        const topCompetencies = [...scored]
+          .sort((a, b) => (b.average ?? 0) - (a.average ?? 0))
+          .slice(0, 3)
+          .map((c) => c.code);
+
+        return { group, studentCount, totalActivities, overall, grade, topCompetencies };
+      })
+    );
+
+    return results;
+  }),
+
   /** Check for overdue assignments and notify the owner */
   checkOverdueAssignments: protectedProcedure
     .input(z.object({ groupId: z.number() }))

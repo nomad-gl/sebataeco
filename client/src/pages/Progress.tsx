@@ -1,33 +1,80 @@
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import NavBar from "@/components/NavBar";
-import { Loader2, Lock, Trophy, TrendingUp, Target, ArrowLeft } from "lucide-react";
-import { getLoginUrl } from "@/const";
-import { useLocation } from "wouter";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
-  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Legend,
-} from "recharts";
+  Loader2, Lock, Users, TrendingUp, Trophy, Target,
+  ChevronRight, Plus, BookOpen, Star,
+} from "lucide-react";
+import { getLoginUrl } from "@/const";
+import { useLocation, Link } from "wouter";
 import { useI18n } from "@/contexts/I18nContext";
 
-const COMP_COLORS: Record<string, string> = {
-  CCL: "#3b82f6", CP: "#8b5cf6", STEM: "#10b981", CD: "#f59e0b",
-  CPSAA: "#ef4444", CC: "#06b6d4", CE: "#f97316", CCEC: "#ec4899", all: "#6b7280",
+const GRADE_COLORS: Record<string, string> = {
+  Sobresaliente: "bg-emerald-500 text-white",
+  Notable: "bg-blue-500 text-white",
+  Bien: "bg-yellow-500 text-black",
+  Suficiente: "bg-orange-500 text-white",
+  Insuficiente: "bg-red-500 text-white",
 };
+
+const COMP_CHIP: Record<string, string> = {
+  CCL: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+  CP: "bg-purple-500/20 text-purple-300 border-purple-500/30",
+  STEM: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+  CD: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
+  CPSAA: "bg-orange-500/20 text-orange-300 border-orange-500/30",
+  CC: "bg-red-500/20 text-red-300 border-red-500/30",
+  CE: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
+  CCEC: "bg-pink-500/20 text-pink-300 border-pink-500/30",
+};
+
+function ScoreRing({ value }: { value: number | null }) {
+  if (value === null) {
+    return (
+      <div className="w-16 h-16 rounded-full border-4 border-white/10 flex items-center justify-center">
+        <span className="text-white/30 text-xs">—</span>
+      </div>
+    );
+  }
+  const color =
+    value >= 90 ? "#10b981" :
+    value >= 70 ? "#3b82f6" :
+    value >= 60 ? "#f59e0b" :
+    value >= 50 ? "#f97316" : "#ef4444";
+  const dash = 2 * Math.PI * 22;
+  const filled = (value / 100) * dash;
+  return (
+    <div className="relative w-16 h-16 flex items-center justify-center">
+      <svg className="absolute inset-0 -rotate-90" width="64" height="64">
+        <circle cx="32" cy="32" r="22" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="5" />
+        <circle
+          cx="32" cy="32" r="22" fill="none"
+          stroke={color} strokeWidth="5"
+          strokeDasharray={`${filled} ${dash - filled}`}
+          strokeLinecap="round"
+        />
+      </svg>
+      <span className="text-white font-bold text-sm z-10">{value}</span>
+    </div>
+  );
+}
 
 export default function Progress() {
   const { t } = useI18n();
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
 
-  const { data, isLoading } = trpc.materials.getMyProgress.useQuery(undefined, { enabled: !!user });
+  const { data: groups, isLoading } = trpc.progress.getAllGroupsSummary.useQuery(
+    undefined,
+    { enabled: !!user }
+  );
 
   if (loading || isLoading) {
     return (
-      <div className="progress-bg flex flex-col">
+      <div className="progress-bg flex flex-col min-h-screen">
         <NavBar />
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -38,7 +85,7 @@ export default function Progress() {
 
   if (!user) {
     return (
-      <div className="progress-bg flex flex-col">
+      <div className="progress-bg flex flex-col min-h-screen">
         <NavBar />
         <div className="flex-1 flex items-center justify-center">
           <Card className="max-w-sm w-full mx-4 bg-white/10 backdrop-blur-md border-white/20">
@@ -47,6 +94,7 @@ export default function Progress() {
                 <Lock className="w-8 h-8 text-white/70" />
               </div>
               <h2 className="text-xl font-bold text-white">{t("sign_in_required")}</h2>
+              <p className="text-sm text-white/60">Sign in to view your groups' progress and LOMLOE grades.</p>
               <Button asChild className="w-full">
                 <a href={getLoginUrl()}>{t("nav_sign_in")}</a>
               </Button>
@@ -57,157 +105,169 @@ export default function Progress() {
     );
   }
 
-  const totalSessions = data?.sessions.length ?? 0;
-  const totalCorrect = data?.sessions.reduce((a, s) => a + s.score, 0) ?? 0;
-  const totalQ = data?.sessions.reduce((a, s) => a + s.total, 0) ?? 0;
-  const overallPct = totalQ > 0 ? Math.round((totalCorrect / totalQ) * 100) : 0;
+  const totalGroups = groups?.length ?? 0;
+  const totalStudents = groups?.reduce((s, g) => s + g.studentCount, 0) ?? 0;
+  const totalActivities = groups?.reduce((s, g) => s + g.totalActivities, 0) ?? 0;
+  const gradedGroups = groups?.filter((g) => g.overall !== null) ?? [];
+  const overallAvg =
+    gradedGroups.length > 0
+      ? Math.round(gradedGroups.reduce((s, g) => s + (g.overall ?? 0), 0) / gradedGroups.length)
+      : null;
 
   return (
-    <div className="progress-bg flex flex-col">
+    <div className="progress-bg flex flex-col min-h-screen">
       <NavBar />
-      <div className="container py-8 max-w-3xl mx-auto flex flex-col gap-6">
-        <div className="flex flex-col gap-1">
-          <Button variant="ghost" size="sm" onClick={() => window.history.back()} className="self-start flex items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/10 -ml-2">
-            <ArrowLeft className="size-4" />{t("btn_back")}
+      <div className="container py-8 max-w-5xl mx-auto flex flex-col gap-8">
+
+        {/* Page header */}
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-white">Group Progress</h1>
+            <p className="text-white/60 text-sm mt-1">
+              LOMLOE-aligned grades across all your class groups
+            </p>
+          </div>
+          <Button
+            onClick={() => navigate("/groups")}
+            className="bg-teal-600 hover:bg-teal-500 text-white gap-2 self-start sm:self-auto"
+          >
+            <Plus className="w-4 h-4" /> Manage Groups
           </Button>
-          <h1 className="text-2xl font-bold text-white">{t("progress_title")}</h1>
-          <p className="text-sm text-white/70 mt-1">{t("progress_subtitle")}</p>
         </div>
 
-        {totalSessions === 0 ? (
+        {/* Summary stat cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { label: "Groups", value: totalGroups, icon: BookOpen, color: "text-blue-400" },
+            { label: "Students", value: totalStudents, icon: Users, color: "text-purple-400" },
+            { label: "Activities", value: totalActivities, icon: Target, color: "text-emerald-400" },
+            { label: "Overall Avg", value: overallAvg !== null ? `${overallAvg}/100` : "—", icon: Trophy, color: "text-yellow-400" },
+          ].map((stat) => (
+            <Card key={stat.label} className="bg-white/10 backdrop-blur-md border-white/20">
+              <CardContent className="p-4 flex flex-col gap-1">
+                <div className="flex items-center gap-1.5 text-white/60">
+                  <stat.icon className={`w-4 h-4 ${stat.color}`} />
+                  <span className="text-xs font-medium uppercase tracking-wide">{stat.label}</span>
+                </div>
+                <p className="text-2xl font-bold text-white">{stat.value}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Groups list */}
+        {totalGroups === 0 ? (
           <Card className="bg-white/10 backdrop-blur-md border-white/20">
             <CardContent className="p-12 flex flex-col items-center gap-4 text-center">
               <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center">
-                <TrendingUp className="w-8 h-8 text-white/70" />
+                <Users className="w-8 h-8 text-white/70" />
               </div>
               <div>
-                <h3 className="font-semibold text-white">{t("progress_no_sessions")}</h3>
+                <h3 className="font-semibold text-white text-lg">No groups yet</h3>
+                <p className="text-white/60 text-sm mt-1">
+                  Create a class group to start tracking student progress and LOMLOE grades.
+                </p>
               </div>
-              <Button onClick={() => navigate("/practice")} className="gap-2">
-                <Target className="w-4 h-4" /> {t("progress_go_practice")}
+              <Button onClick={() => navigate("/groups")} className="gap-2 bg-teal-600 hover:bg-teal-500">
+                <Plus className="w-4 h-4" /> Create First Group
               </Button>
             </CardContent>
           </Card>
         ) : (
-          <>
-            <div className="grid grid-cols-3 gap-2 sm:gap-4">
-              {[
-                { labelKey: "progress_total_sessions" as const, value: totalSessions, icon: Target },
-                { labelKey: "progress_questions_answered" as const, value: totalQ, icon: TrendingUp },
-                { labelKey: "progress_avg_score" as const, value: `${overallPct}%`, icon: Trophy },
-              ].map(({ labelKey, value, icon: Icon }) => (
-                <Card key={labelKey} className="bg-white/10 backdrop-blur-md border-white/20">
-                  <CardContent className="p-3 sm:p-4 flex flex-col gap-1">
-                    <div className="flex items-center gap-1 sm:gap-2 text-white/70">
-                      <Icon className="w-4 h-4" />
-                      <span className="text-xs font-medium uppercase tracking-wide">{t(labelKey)}</span>
-                    </div>
-                    <p className="text-xl sm:text-2xl font-bold text-white">{value}</p>
-                  </CardContent>
-                </Card>
+          <div className="flex flex-col gap-4">
+            <h2 className="text-white font-semibold text-lg">Your Class Groups</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {groups?.map((item) => (
+                <Link key={item.group.id} href={`/groups/${item.group.id}/progress`}>
+                  <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 hover:border-teal-400/40 transition-all cursor-pointer group">
+                    <CardContent className="p-5">
+                      <div className="flex items-start gap-4">
+                        {/* Score ring */}
+                        <ScoreRing value={item.overall} />
+
+                        {/* Group info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <h3 className="font-bold text-white text-base truncate group-hover:text-teal-300 transition-colors">
+                                {item.group.className}
+                              </h3>
+                              <p className="text-white/50 text-xs mt-0.5 truncate">
+                                {item.group.level} · {item.group.assessmentTitle}
+                              </p>
+                            </div>
+                            {item.grade && (
+                              <Badge className={`text-xs shrink-0 ${GRADE_COLORS[item.grade] ?? "bg-slate-500 text-white"}`}>
+                                {item.grade}
+                              </Badge>
+                            )}
+                          </div>
+
+                          {/* Stats row */}
+                          <div className="flex items-center gap-4 mt-3 text-xs text-white/60">
+                            <span className="flex items-center gap-1">
+                              <Users className="w-3 h-3" /> {item.studentCount} students
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <TrendingUp className="w-3 h-3" /> {item.totalActivities} activities
+                            </span>
+                          </div>
+
+                          {/* Top competency chips */}
+                          {item.topCompetencies.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              <span className="text-white/40 text-xs flex items-center gap-0.5">
+                                <Star className="w-3 h-3" /> Top:
+                              </span>
+                              {item.topCompetencies.map((code) => (
+                                <span
+                                  key={code}
+                                  className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs border ${COMP_CHIP[code] ?? "bg-white/10 text-white/60 border-white/20"}`}
+                                >
+                                  {code}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {item.totalActivities === 0 && (
+                            <p className="text-white/40 text-xs mt-2 italic">No activities recorded yet</p>
+                          )}
+                        </div>
+
+                        <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-teal-400 transition-colors shrink-0 mt-1" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
               ))}
             </div>
-
-            {data && data.chart.length > 0 && (
-              <>
-                {/* Radar chart — competency spider */}
-                <Card className="bg-white/10 backdrop-blur-md border-white/20">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base flex items-center gap-2 text-white">
-                      <Target className="w-4 h-4 text-blue-300" />
-                      {t("progress_radar_title")}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <ResponsiveContainer width="100%" height={280}>
-                      <RadarChart data={data.chart} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
-                        <PolarGrid stroke="rgba(255,255,255,0.2)" />
-                        <PolarAngleAxis
-                          dataKey="code"
-                          tick={{ fontSize: 11, fontWeight: 600, fill: "rgba(255,255,255,0.9)" }}
-                        />
-                        <PolarRadiusAxis
-                          angle={90}
-                          domain={[0, 100]}
-                          tickFormatter={(v) => `${v}%`}
-                          tick={{ fontSize: 9, fill: "rgba(255,255,255,0.5)" }}
-                          tickCount={5}
-                        />
-                        <Radar
-                          name={t("progress_avg_score")}
-                          dataKey="avgPct"
-                          stroke="#3b82f6"
-                          fill="#3b82f6"
-                          fillOpacity={0.25}
-                          strokeWidth={2}
-                          dot={{ r: 4, fill: "#3b82f6" }}
-                        />
-                        <Tooltip
-                          formatter={(v: number) => [`${v}%`, t("progress_avg_score")]}
-                          labelFormatter={(label) => data.chart.find(c => c.code === label)?.name ?? label}
-                          contentStyle={{ fontSize: 12, background: "rgba(0,0,0,0.8)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff" }}
-                        />
-                        <Legend wrapperStyle={{ fontSize: 12, color: "rgba(255,255,255,0.8)" }} />
-                      </RadarChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-
-                {/* Bar chart — breakdown */}
-                <Card className="bg-white/10 backdrop-blur-md border-white/20">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base text-white">{t("progress_by_competency")}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <ResponsiveContainer width="100%" height={180}>
-                      <BarChart data={data.chart} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.15)" />
-                        <XAxis dataKey="code" tick={{ fontSize: 11, fill: "rgba(255,255,255,0.8)" }} />
-                        <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11, fill: "rgba(255,255,255,0.8)" }} />
-                        <Tooltip
-                          formatter={(v: number) => [`${v}%`, t("progress_avg_score")]}
-                          labelFormatter={(label) => data.chart.find(c => c.code === label)?.name ?? label}
-                          contentStyle={{ fontSize: 12, background: "rgba(0,0,0,0.8)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff" }}
-                        />
-                        <Bar dataKey="avgPct" radius={[4, 4, 0, 0]}>
-                          {data.chart.map((entry) => (
-                            <Cell key={entry.code} fill={COMP_COLORS[entry.code] ?? "#6b7280"} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-              </>
-            )}
-
-            <Card className="bg-white/10 backdrop-blur-md border-white/20">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base text-white">{t("progress_recent")}</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0 flex flex-col gap-2">
-                {data?.sessions.map((s) => (
-                  <div key={s.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-2 border-b border-white/10 last:border-0 gap-1">
-                    <div className="flex items-center gap-2">
-                      {s.competency
-                        ? <Badge variant="outline" className="text-xs">{s.competency}</Badge>
-                        : <Badge variant="secondary" className="text-xs">{t("any_competency")}</Badge>}
-                      {s.yearGroup && <Badge variant="outline" className="text-xs capitalize">{s.yearGroup}</Badge>}
-                    </div>
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <span className="text-sm font-semibold text-white">
-                        {s.score}/{s.total} ({Math.round((s.score / s.total) * 100)}%)
-                      </span>
-                      <span className="text-xs text-white/60">
-                        {new Date(s.createdAt).toLocaleDateString(undefined, { day: "numeric", month: "short" })}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </>
+          </div>
         )}
+
+        {/* LOMLOE grade legend */}
+        <Card className="bg-white/5 border-white/10">
+          <CardContent className="p-4">
+            <p className="text-white/50 text-xs font-medium uppercase tracking-wide mb-3">LOMLOE Grade Scale</p>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { grade: "Sobresaliente", range: "90–100" },
+                { grade: "Notable", range: "70–89" },
+                { grade: "Bien", range: "60–69" },
+                { grade: "Suficiente", range: "50–59" },
+                { grade: "Insuficiente", range: "0–49" },
+              ].map(({ grade, range }) => (
+                <div key={grade} className="flex items-center gap-1.5">
+                  <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${GRADE_COLORS[grade]}`}>
+                    {grade}
+                  </span>
+                  <span className="text-white/40 text-xs">{range}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
       </div>
     </div>
   );
