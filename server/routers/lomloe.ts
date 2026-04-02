@@ -121,7 +121,7 @@ export const lomloeRouter = router({
         : "All 8 LOMLOE competencies";
 
       const yearGroupContext = input.yearGroup
-        ? `Year group: ${input.yearGroup === "junior" ? "Junior (Years 3–4)" : input.yearGroup === "primary" ? "Primary (Years 5–6)" : "Secondary (Years 7–10)"}`
+        ? `Year group: ${input.yearGroup === "junior" ? "Primary (Years 3–4)" : input.yearGroup === "primary" ? "Upper Primary (Years 5–6)" : "Secondary (Years 7–10)"}`
         : "All year groups";
 
       const systemPrompt = `You are Clara, a warm, encouraging, and deeply knowledgeable teaching assistant specialised in Spain's LOMLOE curriculum. You exist to support teachers — not students — with expert guidance, practical ideas, and genuine enthusiasm for education.

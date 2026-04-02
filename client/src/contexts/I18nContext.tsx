@@ -122,8 +122,8 @@ export const translations = {
     admin_coverage: "Coverage",
     admin_by_competency: "Questions by Competency",
     admin_competency: "Competency",
-    admin_junior: "Junior",
-    admin_primary: "Primary",
+    admin_junior: "Primary",
+    admin_primary: "Upper Primary",
     admin_secondary: "Secondary",
     admin_total: "Total",
 
@@ -172,8 +172,8 @@ export const translations = {
     comp_year_group_label: "Year Group",
     comp_all: "All",
     comp_competency_label: "Competency",
-    comp_junior: "Junior (Yr 3–4)",
-    comp_primary: "Primary (Yr 5–6)",
+    comp_junior: "Primary (Yr 3–4)",
+    comp_primary: "Upper Primary (Yr 5–6)",
     comp_secondary: "Secondary (Yr 7–10)",
 
     // Competency names & descriptions
@@ -733,8 +733,8 @@ export const translations = {
     admin_coverage: "Cobertura",
     admin_by_competency: "Preguntas por competencia",
     admin_competency: "Competencia",
-    admin_junior: "Inicial",
-    admin_primary: "Primaria",
+    admin_junior: "Primaria",
+    admin_primary: "Primaria Superior",
     admin_secondary: "Secundaria",
     admin_total: "Total",
 
@@ -783,8 +783,8 @@ export const translations = {
     comp_year_group_label: "Curso",
     comp_all: "Todos",
     comp_competency_label: "Competencia",
-    comp_junior: "Inicial (Curso 3–4)",
-    comp_primary: "Primaria (Curso 5–6)",
+    comp_junior: "Primaria (Curso 3–4)",
+    comp_primary: "Primaria Superior (Curso 5–6)",
     comp_secondary: "Secundaria (Curso 7–10)",
 
     // Competency names & descriptions
@@ -1344,8 +1344,8 @@ export const translations = {
     admin_coverage: "Cobertura",
     admin_by_competency: "Preguntes per competència",
     admin_competency: "Competència",
-    admin_junior: "Inicial",
-    admin_primary: "Primària",
+    admin_junior: "Primària",
+    admin_primary: "Primària Superior",
     admin_secondary: "Secundària",
     admin_total: "Total",
 
@@ -1394,8 +1394,8 @@ export const translations = {
     comp_year_group_label: "Curs",
     comp_all: "Tots",
     comp_competency_label: "Competència",
-    comp_junior: "Inicial (Curs 3–4)",
-    comp_primary: "Primària (Curs 5–6)",
+    comp_junior: "Primària (Curs 3–4)",
+    comp_primary: "Primària Superior (Curs 5–6)",
     comp_secondary: "Secundària (Curs 7–10)",
 
     // Competency names & descriptions

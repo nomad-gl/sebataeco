@@ -20,8 +20,8 @@ const MaterialTypeSchema = z.enum(["quiz", "slides", "crossword", "missing_words
 // --- Helpers ---
 
 function ygLabel(yg?: string) {
-  if (yg === "junior") return "Junior (Years 3–4, ages 8–10)";
-  if (yg === "primary") return "Primary (Years 5–6, ages 10–12)";
+  if (yg === "junior") return "Primary (Years 3–4, ages 8–10)";
+  if (yg === "primary") return "Upper Primary (Years 5–6, ages 10–12)";
   if (yg === "secondary") return "Secondary (Years 7–10, ages 12–16)";
   return "all year groups";
 }
