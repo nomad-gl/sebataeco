@@ -12,23 +12,34 @@ self.addEventListener("install", (event) => {
       ]);
     })
   );
+  // Force the waiting service worker to become the active service worker
   self.skipWaiting();
 });
 
-// Activate event — clean up old caches
+// Activate event — clean up old caches and notify clients of update
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
+    (async () => {
+      // Clean up old caches
+      const cacheNames = await caches.keys();
+      await Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
             return caches.delete(cacheName);
           }
         })
       );
-    })
+      
+      // Take control of all clients immediately
+      await self.clients.claim();
+      
+      // Notify all clients that an update is available
+      const allClients = await self.clients.matchAll({ type: 'window' });
+      allClients.forEach((client) => {
+        client.postMessage({ type: 'UPDATE_AVAILABLE' });
+      });
+    })()
   );
-  self.clients.claim();
 });
 
 // Fetch event — network-first strategy with offline fallback
@@ -61,4 +72,11 @@ self.addEventListener("fetch", (event) => {
         });
       })
   );
+});
+
+// Listen for messages from clients (e.g., skip waiting request)
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });

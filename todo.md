@@ -440,3 +440,9 @@
 - [x] Create usePwaInstall hook (shared install prompt state + iOS detection)
 - [x] Add Install App button to NavBar (hidden when already installed or not installable)
 - [x] Button triggers Android/Chrome native prompt; shows iOS modal on Safari
+
+## Feature: App update available banner
+- [x] Service worker posts a message to all clients when a new version is waiting
+- [x] useAppUpdate hook listens for the SW message and exposes showBanner / refresh / dismiss
+- [x] UpdateBanner component: sticky top banner with "Update available" text, Refresh button, dismiss X
+- [x] Wire UpdateBanner into App.tsx above the Router
