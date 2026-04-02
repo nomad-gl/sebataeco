@@ -343,3 +343,25 @@ export const claraUserProfiles = mysqlTable("clara_user_profiles", {
 
 export type ClaraUserProfile = typeof claraUserProfiles.$inferSelect;
 export type InsertClaraUserProfile = typeof claraUserProfiles.$inferInsert;
+
+/**
+ * Clara message ratings — thumbs-up/down feedback on individual assistant responses.
+ * One row per user per message (upsert on re-rating).
+ */
+export const claraMessageRatings = mysqlTable("clara_message_ratings", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  /** Client-generated stable message ID (uuid) */
+  messageId: varchar("messageId", { length: 64 }).notNull(),
+  /** 'up' | 'down' */
+  rating: mysqlEnum("rating", ["up", "down"]).notNull(),
+  /** First 500 chars of the assistant message for context */
+  messageSnippet: varchar("messageSnippet", { length: 500 }),
+  /** The user question that prompted this response */
+  userQuestion: varchar("userQuestion", { length: 500 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ClaraMessageRating = typeof claraMessageRatings.$inferSelect;
+export type InsertClaraMessageRating = typeof claraMessageRatings.$inferInsert;

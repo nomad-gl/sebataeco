@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { useI18n } from "@/contexts/I18nContext";
 import type { TranslationKey, Lang } from "@/contexts/I18nContext";
 import { Loader2, ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
@@ -37,6 +38,7 @@ export default function Chat() {
 
   const chatMutation = trpc.lomloe.chat.useMutation();
   const translateMutation = trpc.lomloe.translateMessages.useMutation();
+  const rateMutation = trpc.lomloe.rateMessage.useMutation();
 
   // When language changes, translate all existing messages in the session
   useEffect(() => {
@@ -93,6 +95,8 @@ export default function Chat() {
       });
       const aiContent =
         typeof result.content === "string" ? result.content : String(result.content);
+      // Generate a stable client-side ID for rating purposes
+      const msgId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
       setMessages([
         ...newMessages,
         {
@@ -100,6 +104,7 @@ export default function Chat() {
           content: aiContent,
           timestamp: Date.now(),
           followUpQuestions: result.followUpQuestions ?? [],
+          id: msgId,
         },
       ]);
     } catch {
@@ -108,6 +113,33 @@ export default function Chat() {
         { role: "assistant", content: t("chat_error"), timestamp: Date.now() },
       ]);
     }
+  };
+
+  const handleRateMessage = (messageId: string, rating: "up" | "down") => {
+    // Optimistic update — highlight the selected thumb immediately
+    setMessages((prev) =>
+      prev.map((m) => (m.id === messageId ? { ...m, rating } : m))
+    );
+    // Find the message for context
+    const msg = messages.find((m) => m.id === messageId);
+    const prevUserMsg = messages[messages.findIndex((m) => m.id === messageId) - 1];
+    rateMutation.mutate(
+      {
+        messageId,
+        rating,
+        messageSnippet: msg?.content?.slice(0, 500),
+        userQuestion: prevUserMsg?.role === "user" ? prevUserMsg.content.slice(0, 500) : undefined,
+      },
+      {
+        onError: () => {
+          // Roll back on failure
+          setMessages((prev) =>
+            prev.map((m) => (m.id === messageId ? { ...m, rating: undefined } : m))
+          );
+          toast.error("Could not save your rating. Please try again.");
+        },
+      }
+    );
   };
 
   const suggestedQuestions = SUGGESTED_KEYS.map((k) => t(k));
@@ -198,6 +230,7 @@ export default function Chat() {
             emptyStateMessage={t("chat_empty_state")}
             suggestedPrompts={suggestedQuestions}
             followUpLabel={t("chat_follow_up_label")}
+            onRateMessage={user ? handleRateMessage : undefined}
             height="calc(100dvh - 220px)"
           />
         </div>

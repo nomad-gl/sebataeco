@@ -64,6 +64,13 @@
       "when": 1775098912273,
       "tag": "0008_chubby_serpent_society",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1775146873770,
+      "tag": "0009_fair_wendell_rand",
+      "breakpoints": true
     }
   ]
 }

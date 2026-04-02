@@ -1,6 +1,6 @@
 import { eq, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, InsertPracticeSession, InsertTeachingMaterial, users, practiceSessions, teachingMaterials, classChallenges, challengeParticipants, claraUserProfiles, type ClaraUserProfile } from "../drizzle/schema";
+import { InsertUser, InsertPracticeSession, InsertTeachingMaterial, users, practiceSessions, teachingMaterials, classChallenges, challengeParticipants, claraUserProfiles, claraMessageRatings, type ClaraUserProfile } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -315,5 +315,56 @@ export async function upsertClaraProfile(
       .onDuplicateKeyUpdate({ set: patch });
   } catch (err) {
     console.error("[Clara] Failed to upsert profile:", err);
+  }
+}
+
+// ─── Clara message ratings ────────────────────────────────────────────────────
+
+/**
+ * Upsert a thumbs-up/down rating for a specific assistant message.
+ * If the user has already rated this message, the rating is updated.
+ */
+export async function rateMessage(data: {
+  userId: number;
+  messageId: string;
+  rating: "up" | "down";
+  messageSnippet?: string;
+  userQuestion?: string;
+}): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db
+      .insert(claraMessageRatings)
+      .values({
+        userId: data.userId,
+        messageId: data.messageId,
+        rating: data.rating,
+        messageSnippet: data.messageSnippet?.slice(0, 500) ?? null,
+        userQuestion: data.userQuestion?.slice(0, 500) ?? null,
+      })
+      .onDuplicateKeyUpdate({
+        set: { rating: data.rating, updatedAt: new Date() },
+      });
+  } catch (err) {
+    console.error("[Clara] Failed to save rating:", err);
+  }
+}
+
+/**
+ * Get recent ratings for a user — used to surface quality signals in the adaptive profile.
+ */
+export async function getUserRatings(userId: number, limit = 20) {
+  const db = await getDb();
+  if (!db) return [];
+  try {
+    return db
+      .select()
+      .from(claraMessageRatings)
+      .where(eq(claraMessageRatings.userId, userId))
+      .orderBy(desc(claraMessageRatings.updatedAt))
+      .limit(limit);
+  } catch {
+    return [];
   }
 }

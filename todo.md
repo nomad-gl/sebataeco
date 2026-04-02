@@ -474,3 +474,12 @@
 - [x] "See what's new" link in UpdateBanner opens the modal
 - [x] Changelog entries defined as a static array (easy to update per release)
 - [x] Modal dismisses on backdrop click or close button
+
+## Feature: Clara thumbs-up/down rating
+- [x] DB: clara_message_ratings table (id, userId, messageId, rating 'up'|'down', messageContent, createdAt)
+- [x] DB: migration applied
+- [x] Server db.ts: rateMessage(userId, messageId, rating, messageContent) and getUserRatings(userId) helpers
+- [x] Server routers: lomloe.rateMessage protected procedure
+- [x] Client: ThumbsRating component shown below each assistant bubble (appears on hover, stays after rating)
+- [x] Client: optimistic update — selected thumb highlighted immediately, mutation fires in background
+- [x] Client: rating factored into Clara's adaptive profile system prompt (positive/negative feedback signal)

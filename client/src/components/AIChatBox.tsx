@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Loader2, Send, User, Sparkles, Mic, MicOff, Radio } from "lucide-react";
+import { Loader2, Send, User, Sparkles, Mic, MicOff, Radio, ThumbsUp, ThumbsDown } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Streamdown } from "streamdown";
 import { useClaraWakeWord } from "@/hooks/useClaraWakeWord";
@@ -15,6 +15,10 @@ export type Message = {
   content: string;
   timestamp?: number; // UTC ms since epoch
   followUpQuestions?: string[]; // AI-generated follow-on chips shown below assistant bubbles
+  /** Stable client-generated ID used for rating (uuid) */
+  id?: string;
+  /** Current rating from the user: 'up' | 'down' | undefined */
+  rating?: "up" | "down";
 };
 
 function formatTime(ts?: number): string {
@@ -33,6 +37,8 @@ export type AIChatBoxProps = {
   suggestedPrompts?: string[];
   /** Label shown above follow-on chips, e.g. "You might also ask:" */
   followUpLabel?: string;
+  /** Called when the user rates an assistant message */
+  onRateMessage?: (messageId: string, rating: "up" | "down") => void;
 };
 
 export function AIChatBox({
@@ -45,6 +51,7 @@ export function AIChatBox({
   emptyStateMessage = "Start a conversation with AI",
   suggestedPrompts,
   followUpLabel = "You might also ask:",
+  onRateMessage,
 }: AIChatBoxProps) {
   const [input, setInput] = useState("");
   const [isRecording, setIsRecording] = useState(false);
@@ -333,6 +340,35 @@ export function AIChatBox({
                         <span className="text-[10px] text-white/35 mt-0.5 px-1 select-none">
                           {formatTime(message.timestamp)}
                         </span>
+                      )}
+                      {/* Thumbs-up/down rating — shown on all assistant messages */}
+                      {message.role === "assistant" && !isLoading && message.id && onRateMessage && (
+                        <div className="flex items-center gap-1 mt-1 px-1">
+                          <button
+                            onClick={() => onRateMessage(message.id!, "up")}
+                            title="Helpful"
+                            className={cn(
+                              "flex items-center justify-center w-6 h-6 rounded-md transition-colors",
+                              message.rating === "up"
+                                ? "text-green-400 bg-green-400/15"
+                                : "text-white/30 hover:text-green-400 hover:bg-green-400/10"
+                            )}
+                          >
+                            <ThumbsUp className="size-3" />
+                          </button>
+                          <button
+                            onClick={() => onRateMessage(message.id!, "down")}
+                            title="Not helpful"
+                            className={cn(
+                              "flex items-center justify-center w-6 h-6 rounded-md transition-colors",
+                              message.rating === "down"
+                                ? "text-red-400 bg-red-400/15"
+                                : "text-white/30 hover:text-red-400 hover:bg-red-400/10"
+                            )}
+                          >
+                            <ThumbsDown className="size-3" />
+                          </button>
+                        </div>
                       )}
                       {/* Follow-on question chips — only on the last assistant message, not while loading */}
                       {message.role === "assistant" &&

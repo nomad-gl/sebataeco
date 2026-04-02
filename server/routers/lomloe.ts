@@ -9,7 +9,7 @@ import {
   type YearGroup,
 } from "../knowledge/lomloeKnowledgeBank";
 import { invokeLLM } from "../_core/llm";
-import { getClaraProfile, upsertClaraProfile } from "../db";
+import { getClaraProfile, upsertClaraProfile, rateMessage, getUserRatings } from "../db";
 
 const CompetencyCodeSchema = z.enum(["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"]);
 const YearGroupSchema = z.enum(["junior", "primary", "secondary"]);
@@ -127,7 +127,10 @@ Respond ONLY in ${langName}. Return JSON only.`,
 
 // ─── Build the adaptive context block from a user's profile ──────────────────
 
-function buildAdaptiveContext(profile: Awaited<ReturnType<typeof getClaraProfile>>): string {
+function buildAdaptiveContext(
+  profile: Awaited<ReturnType<typeof getClaraProfile>>,
+  ratings?: Awaited<ReturnType<typeof getUserRatings>>
+): string {
   if (!profile || profile.questionCount < 2) return "";
 
   const styleMap: Record<string, string> = {
@@ -170,6 +173,29 @@ function buildAdaptiveContext(profile: Awaited<ReturnType<typeof getClaraProfile
   if (profile.teachingContextSummary) {
     lines.push(`Teaching context: ${profile.teachingContextSummary}`);
   }
+  // Incorporate rating quality signals
+  if (ratings && ratings.length > 0) {
+    const upCount = ratings.filter((r) => r.rating === "up").length;
+    const downCount = ratings.filter((r) => r.rating === "down").length;
+    const total = upCount + downCount;
+    if (total > 0) {
+      const pct = Math.round((upCount / total) * 100);
+      if (pct >= 80) {
+        lines.push(`Quality signal: This teacher has found ${pct}% of your recent responses helpful. Keep the same style and depth.`);
+      } else if (pct <= 40) {
+        lines.push(`Quality signal: Only ${pct}% of your recent responses were rated helpful. Try adjusting your approach — consider being more practical, concrete, and directly relevant to classroom teaching.`);
+      }
+      // Surface topics from down-rated messages so Clara can improve on them
+      const downRated = ratings.filter((r) => r.rating === "down" && r.userQuestion);
+      if (downRated.length > 0) {
+        const topics = downRated.slice(0, 3).map((r) => r.userQuestion?.slice(0, 60)).filter(Boolean);
+        if (topics.length > 0) {
+          lines.push(`Topics where previous responses were not helpful (improve on these): ${topics.join(" | ")}`);
+        }
+      }
+    }
+  }
+
   lines.push("--- End of profile ---");
 
   return lines.filter(Boolean).join("\n");
@@ -269,9 +295,11 @@ export const lomloeRouter = router({
       })
     )
     .mutation(async ({ input }) => {
-      // Load adaptive profile (non-blocking — null for anonymous/first-time users)
-      const profile = input.userId ? await getClaraProfile(input.userId) : null;
-      const adaptiveContext = buildAdaptiveContext(profile);
+      // Load adaptive profile and recent ratings (non-blocking — null for anonymous/first-time users)
+      const [profile, ratings] = input.userId
+        ? await Promise.all([getClaraProfile(input.userId), getUserRatings(input.userId, 20)])
+        : [null, []];
+      const adaptiveContext = buildAdaptiveContext(profile, ratings);
 
       // Build context from relevant questions
       const contextQuestions = getQuestions(
@@ -422,6 +450,27 @@ Guidelines:
       lastUpdated: profile.lastUpdated,
     };
   }),
+
+  /** Rate a Clara assistant message thumbs-up or thumbs-down */
+  rateMessage: protectedProcedure
+    .input(
+      z.object({
+        messageId: z.string().min(1).max(64),
+        rating: z.enum(["up", "down"]),
+        messageSnippet: z.string().max(500).optional(),
+        userQuestion: z.string().max(500).optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      await rateMessage({
+        userId: ctx.user.id,
+        messageId: input.messageId,
+        rating: input.rating,
+        messageSnippet: input.messageSnippet,
+        userQuestion: input.userQuestion,
+      });
+      return { ok: true };
+    }),
 
   translateMessages: publicProcedure
     .input(
