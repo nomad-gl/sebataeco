@@ -1,5 +1,6 @@
 import { Link } from "wouter";
-import { MessageCircle, Dumbbell, LayoutDashboard, ArrowRight, BookOpen } from "lucide-react";
+import { MessageCircle, Dumbbell, LayoutDashboard, ArrowRight, BookOpen, Download } from "lucide-react";
+import { usePwaInstall } from "@/hooks/usePwaInstall";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,6 +30,7 @@ export default function Home() {
   const { t } = useI18n();
   const { data: competencies } = trpc.lomloe.getCompetencies.useQuery();
   const { data: stats } = trpc.lomloe.getStats.useQuery();
+  const { state: pwaState, install: pwaInstall } = usePwaInstall();
 
   const features = [
     {
@@ -89,6 +91,17 @@ export default function Home() {
               <Button asChild variant="outline" size="lg" className="w-full sm:w-auto bg-white/10 text-white border-white/40 hover:bg-white/20">
                 <Link href="/practice">{t("home_cta_practice")}</Link>
               </Button>
+              {pwaState !== "unavailable" && (
+                <Button
+                  onClick={pwaInstall}
+                  variant="outline"
+                  size="lg"
+                  className="gap-2 w-full sm:w-auto bg-white/10 text-white border-white/40 hover:bg-white/20"
+                >
+                  <Download className="w-4 h-4" />
+                  Download App
+                </Button>
+              )}
             </div>
 
             {/* LOMLOE official logo */}

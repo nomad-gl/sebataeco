@@ -446,3 +446,9 @@
 - [x] useAppUpdate hook listens for the SW message and exposes showBanner / refresh / dismiss
 - [x] UpdateBanner component: sticky top banner with "Update available" text, Refresh button, dismiss X
 - [x] Wire UpdateBanner into App.tsx above the Router
+
+## Feature: Download App button on homepage
+- [x] Add Download App button to Home.tsx hero section (next to "Start Chatting" and "Practice Questions")
+- [x] Button uses usePwaInstall hook to trigger install prompt
+- [x] Button shows Download icon and "Download App" text
+- [x] Button hidden when app is already installed or browser doesn't support PWA
