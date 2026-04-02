@@ -50,6 +50,7 @@ export function AIChatBox({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const lastUserMsgRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputAreaRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -164,22 +165,29 @@ export function AIChatBox({
     }
   }, []);
 
-  const scrollToBottom = () => {
+  // Scroll the last user message into view at the top of the scroll area
+  // so the teacher can see their question and Clara's response together.
+  const scrollToLastUserMsg = () => {
     const viewport = scrollAreaRef.current?.querySelector(
       '[data-radix-scroll-area-viewport]'
-    ) as HTMLDivElement;
-    if (viewport) {
+    ) as HTMLDivElement | null;
+    const el = lastUserMsgRef.current;
+    if (viewport && el) {
       requestAnimationFrame(() => {
-        viewport.scrollTo({ top: viewport.scrollHeight, behavior: "smooth" });
+        // Scroll so the user bubble sits ~16 px from the top of the viewport
+        const elTop = el.offsetTop;
+        viewport.scrollTo({ top: Math.max(0, elTop - 16), behavior: "smooth" });
       });
     }
   };
 
+  // When messages update, scroll to the last user message (not the very bottom)
   useEffect(() => {
     if (messages.length > 0) {
-      scrollToBottom();
+      scrollToLastUserMsg();
     }
-  }, [messages]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages.length]);
 
   // ─── Form handlers ───────────────────────────────────────────────────────────
 
@@ -189,7 +197,7 @@ export function AIChatBox({
     if (!trimmedInput || isLoading) return;
     onSendMessage(trimmedInput);
     setInput("");
-    scrollToBottom();
+    // Scroll will be triggered by the messages.length useEffect above
     textareaRef.current?.focus();
   };
 
@@ -252,9 +260,14 @@ export function AIChatBox({
                 const isLastMessage = index === displayMessages.length - 1;
                 const shouldApplyMinHeight =
                   isLastMessage && !isLoading && minHeightForLastMessage > 0;
+                // Track the last user message bubble for scroll anchoring
+                const isLastUserMsg =
+                  message.role === "user" &&
+                  !displayMessages.slice(index + 1).some((m) => m.role === "user");
                 return (
                   <div
                     key={index}
+                    ref={isLastUserMsg ? lastUserMsgRef : undefined}
                     className={cn(
                       "flex gap-3",
                       message.role === "user"
