@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { useI18n } from "@/contexts/I18nContext";
 import type { TranslationKey, Lang } from "@/contexts/I18nContext";
 import { Loader2, ArrowLeft } from "lucide-react";
+import { ClaraProfilePanel } from "@/components/ClaraProfilePanel";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 
@@ -115,7 +116,7 @@ export default function Chat() {
     }
   };
 
-  const handleRateMessage = (messageId: string, rating: "up" | "down") => {
+  const handleRateMessage = (messageId: string, rating: "up" | "down", reportReason?: string) => {
     // Optimistic update — highlight the selected thumb immediately
     setMessages((prev) =>
       prev.map((m) => (m.id === messageId ? { ...m, rating } : m))
@@ -129,6 +130,7 @@ export default function Chat() {
         rating,
         messageSnippet: msg?.content?.slice(0, 500),
         userQuestion: prevUserMsg?.role === "user" ? prevUserMsg.content.slice(0, 500) : undefined,
+        reportReason: reportReason as "wrong_info" | "not_relevant" | "too_long" | "too_short" | "other" | undefined,
       },
       {
         onError: () => {
@@ -190,6 +192,9 @@ export default function Chat() {
             )}
           </div>
         </div>
+
+        {/* Clara Knows You panel — only shown to signed-in users */}
+        {user && <ClaraProfilePanel />}
 
         {/* Filters */}
         {showFilters && (

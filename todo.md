@@ -483,3 +483,21 @@
 - [x] Client: ThumbsRating component shown below each assistant bubble (appears on hover, stays after rating)
 - [x] Client: optimistic update — selected thumb highlighted immediately, mutation fires in background
 - [x] Client: rating factored into Clara's adaptive profile system prompt (positive/negative feedback signal)
+
+## Feature: Clara Knows You profile panel
+- [x] Add lomloe.getClaraRatingSummary protected procedure (up/down counts, pct helpful)
+- [x] ClaraProfilePanel component: collapsible card showing style, top competencies, keywords, rating score, reset button
+- [x] Wire into Chat.tsx sidebar area (toggle button in chat header)
+- [x] lomloe.resetClaraProfile protected mutation to clear the profile
+
+## Feature: Rating summary in Admin dashboard
+- [x] Add analytics.getRatingSummary procedure (weekly up/down counts for last 8 weeks)
+- [x] Add rating summary section to Admin page with bar chart (up vs down per week)
+- [x] Add overall helpfulness stat card (total ratings, % helpful)
+
+## Feature: Report a Problem on thumbs-down
+- [x] Extend clara_message_ratings table with reportReason column (nullable)
+- [x] DB migration applied
+- [x] After thumbs-down click, show small dropdown: Wrong info / Not relevant / Too long / Too short / Other
+- [x] Store selected reason in DB via lomloe.rateMessage mutation (extend input schema)
+- [x] Reason surfaced in Clara adaptive profile prompt for targeted improvement

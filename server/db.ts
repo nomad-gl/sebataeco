@@ -330,6 +330,7 @@ export async function rateMessage(data: {
   rating: "up" | "down";
   messageSnippet?: string;
   userQuestion?: string;
+  reportReason?: "wrong_info" | "not_relevant" | "too_long" | "too_short" | "other";
 }): Promise<void> {
   const db = await getDb();
   if (!db) return;
@@ -342,9 +343,10 @@ export async function rateMessage(data: {
         rating: data.rating,
         messageSnippet: data.messageSnippet?.slice(0, 500) ?? null,
         userQuestion: data.userQuestion?.slice(0, 500) ?? null,
+        reportReason: data.reportReason ?? null,
       })
       .onDuplicateKeyUpdate({
-        set: { rating: data.rating, updatedAt: new Date() },
+        set: { rating: data.rating, reportReason: data.reportReason ?? null, updatedAt: new Date() },
       });
   } catch (err) {
     console.error("[Clara] Failed to save rating:", err);

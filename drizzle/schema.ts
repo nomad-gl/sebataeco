@@ -359,6 +359,8 @@ export const claraMessageRatings = mysqlTable("clara_message_ratings", {
   messageSnippet: varchar("messageSnippet", { length: 500 }),
   /** The user question that prompted this response */
   userQuestion: varchar("userQuestion", { length: 500 }),
+  /** Optional structured reason when rating is 'down' */
+  reportReason: mysqlEnum("reportReason", ["wrong_info", "not_relevant", "too_long", "too_short", "other"]),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

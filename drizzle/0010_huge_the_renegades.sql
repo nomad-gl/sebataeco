@@ -1,0 +1,1 @@
+ALTER TABLE `clara_message_ratings` ADD `reportReason` enum('wrong_info','not_relevant','too_long','too_short','other');

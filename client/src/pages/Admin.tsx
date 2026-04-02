@@ -22,6 +22,10 @@ export default function Admin() {
     enabled: !!user && user.role === "admin",
     refetchInterval: 60_000,
   });
+  const { data: ratingSummary } = trpc.analytics.getRatingSummary.useQuery(undefined, {
+    enabled: !!user && user.role === "admin",
+    refetchInterval: 60_000,
+  });
 
   const COMP_COLORS: Record<string, string> = {
     CCL: "#3b82f6", CP: "#8b5cf6", STEM: "#10b981", CD: "#f59e0b",
@@ -161,6 +165,52 @@ export default function Admin() {
                       <Bar dataKey="total" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Materials" />
                     </BarChart>
                   </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Clara ratings chart */}
+            {ratingSummary && ratingSummary.totalUp + ratingSummary.totalDown > 0 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-violet-500" />
+                    Clara Response Quality
+                    {ratingSummary.pctHelpful !== null && (
+                      <span className={cn(
+                        "ml-auto text-sm font-semibold",
+                        ratingSummary.pctHelpful >= 70 ? "text-green-500" : ratingSummary.pctHelpful >= 40 ? "text-yellow-500" : "text-red-500"
+                      )}>
+                        {ratingSummary.pctHelpful}% helpful
+                      </span>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-3">
+                  {/* Weekly thumbs chart */}
+                  <ResponsiveContainer width="100%" height={160}>
+                    <BarChart data={ratingSummary.weeks} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="label" tick={{ fontSize: 9 }} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
+                      <Tooltip contentStyle={{ fontSize: 12 }} />
+                      <Bar dataKey="up" name="Helpful" fill="#22c55e" radius={[3, 3, 0, 0]} stackId="a" />
+                      <Bar dataKey="down" name="Not helpful" fill="#ef4444" radius={[3, 3, 0, 0]} stackId="a" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                  {/* Report reason breakdown */}
+                  {ratingSummary.reportReasons.length > 0 && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1.5">Reported issues</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {ratingSummary.reportReasons.map((r) => (
+                          <span key={r.reason} className="text-xs bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-full px-2 py-0.5">
+                            {r.reason.replace("_", " ")} ({r.count})
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}

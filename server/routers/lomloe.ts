@@ -459,6 +459,7 @@ Guidelines:
         rating: z.enum(["up", "down"]),
         messageSnippet: z.string().max(500).optional(),
         userQuestion: z.string().max(500).optional(),
+        reportReason: z.enum(["wrong_info", "not_relevant", "too_long", "too_short", "other"]).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -468,9 +469,35 @@ Guidelines:
         rating: input.rating,
         messageSnippet: input.messageSnippet,
         userQuestion: input.userQuestion,
+        reportReason: input.reportReason,
       });
       return { ok: true };
     }),
+
+  /** Get a summary of the current user's Clara ratings */
+  getClaraRatingSummary: protectedProcedure.query(async ({ ctx }) => {
+    const ratings = await getUserRatings(ctx.user.id, 100);
+    const upCount = ratings.filter((r) => r.rating === "up").length;
+    const downCount = ratings.filter((r) => r.rating === "down").length;
+    const total = upCount + downCount;
+    const pctHelpful = total > 0 ? Math.round((upCount / total) * 100) : null;
+    return { upCount, downCount, total, pctHelpful };
+  }),
+
+  /** Reset the Clara adaptive learning profile for the current user */
+  resetClaraProfile: protectedProcedure.mutation(async ({ ctx }) => {
+    await upsertClaraProfile(ctx.user.id, {
+      questionCount: 0,
+      avgQuestionLength: 0,
+      competencyFrequency: "{}",
+      preferredYearGroups: "[]",
+      topicKeywords: "[]",
+      responseDepthPreference: "moderate",
+      communicationStyle: "conversational",
+      teachingContextSummary: undefined,
+    });
+    return { ok: true };
+  }),
 
   translateMessages: publicProcedure
     .input(

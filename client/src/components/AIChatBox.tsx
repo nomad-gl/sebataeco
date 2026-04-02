@@ -26,6 +26,89 @@ function formatTime(ts?: number): string {
   return new Date(ts).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 }
 
+const REPORT_REASONS: { value: string; label: string }[] = [
+  { value: "wrong_info", label: "Wrong information" },
+  { value: "not_relevant", label: "Not relevant" },
+  { value: "too_long", label: "Too long" },
+  { value: "too_short", label: "Too short" },
+  { value: "other", label: "Other" },
+];
+
+function RatingButtons({
+  messageId,
+  rating,
+  onRate,
+}: {
+  messageId: string;
+  rating?: "up" | "down";
+  onRate: (messageId: string, rating: "up" | "down", reportReason?: string) => void;
+}) {
+  const [showReasons, setShowReasons] = useState(false);
+
+  const handleDown = () => {
+    if (rating === "down") {
+      // Toggle off report panel
+      setShowReasons((v) => !v);
+    } else {
+      onRate(messageId, "down");
+      setShowReasons(true);
+    }
+  };
+
+  const handleReason = (reason: string) => {
+    onRate(messageId, "down", reason);
+    setShowReasons(false);
+  };
+
+  return (
+    <div className="mt-1 px-1">
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => { onRate(messageId, "up"); setShowReasons(false); }}
+          title="Helpful"
+          className={cn(
+            "flex items-center justify-center w-6 h-6 rounded-md transition-colors",
+            rating === "up"
+              ? "text-green-400 bg-green-400/15"
+              : "text-white/30 hover:text-green-400 hover:bg-green-400/10"
+          )}
+        >
+          <ThumbsUp className="size-3" />
+        </button>
+        <button
+          onClick={handleDown}
+          title="Not helpful"
+          className={cn(
+            "flex items-center justify-center w-6 h-6 rounded-md transition-colors",
+            rating === "down"
+              ? "text-red-400 bg-red-400/15"
+              : "text-white/30 hover:text-red-400 hover:bg-red-400/10"
+          )}
+        >
+          <ThumbsDown className="size-3" />
+        </button>
+        {rating === "down" && !showReasons && (
+          <span className="text-[10px] text-white/40 ml-1">Tell us why?</span>
+        )}
+      </div>
+      {/* Report reason dropdown */}
+      {showReasons && rating === "down" && (
+        <div className="mt-1.5 flex flex-wrap gap-1">
+          {REPORT_REASONS.map((r) => (
+            <button
+              key={r.value}
+              onClick={() => handleReason(r.value)}
+              className="text-[10px] border border-white/20 bg-white/5 hover:bg-red-500/15 hover:border-red-400/40 hover:text-red-300 text-white/60 rounded-full px-2 py-0.5 transition-colors"
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export type AIChatBoxProps = {
   messages: Message[];
   onSendMessage: (content: string) => void;
@@ -38,7 +121,7 @@ export type AIChatBoxProps = {
   /** Label shown above follow-on chips, e.g. "You might also ask:" */
   followUpLabel?: string;
   /** Called when the user rates an assistant message */
-  onRateMessage?: (messageId: string, rating: "up" | "down") => void;
+  onRateMessage?: (messageId: string, rating: "up" | "down", reportReason?: string) => void;
 };
 
 export function AIChatBox({
@@ -343,32 +426,11 @@ export function AIChatBox({
                       )}
                       {/* Thumbs-up/down rating — shown on all assistant messages */}
                       {message.role === "assistant" && !isLoading && message.id && onRateMessage && (
-                        <div className="flex items-center gap-1 mt-1 px-1">
-                          <button
-                            onClick={() => onRateMessage(message.id!, "up")}
-                            title="Helpful"
-                            className={cn(
-                              "flex items-center justify-center w-6 h-6 rounded-md transition-colors",
-                              message.rating === "up"
-                                ? "text-green-400 bg-green-400/15"
-                                : "text-white/30 hover:text-green-400 hover:bg-green-400/10"
-                            )}
-                          >
-                            <ThumbsUp className="size-3" />
-                          </button>
-                          <button
-                            onClick={() => onRateMessage(message.id!, "down")}
-                            title="Not helpful"
-                            className={cn(
-                              "flex items-center justify-center w-6 h-6 rounded-md transition-colors",
-                              message.rating === "down"
-                                ? "text-red-400 bg-red-400/15"
-                                : "text-white/30 hover:text-red-400 hover:bg-red-400/10"
-                            )}
-                          >
-                            <ThumbsDown className="size-3" />
-                          </button>
-                        </div>
+                        <RatingButtons
+                          messageId={message.id}
+                          rating={message.rating}
+                          onRate={onRateMessage}
+                        />
                       )}
                       {/* Follow-on question chips — only on the last assistant message, not while loading */}
                       {message.role === "assistant" &&
