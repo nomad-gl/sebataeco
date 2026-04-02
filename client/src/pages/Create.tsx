@@ -122,9 +122,31 @@ function FlashcardsPreview({ content, onChange }: { content: Record<string, unkn
 function SlidesPreview({ content, onChange }: { content: Record<string, unknown>; onChange: (c: Record<string, unknown>) => void }) {
   const slides = (content.slides as Array<Record<string, unknown>>) ?? [];
   const [generatingIdx, setGeneratingIdx] = React.useState<number | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [generatingAll, setGeneratingAll] = React.useState(false);
   const generateImageMutation = trpc.materials.generateSlideImage.useMutation();
   const uploadImageMutation = trpc.materials.uploadSlideImage.useMutation();
+
+  const handleGenerateAllImages = async () => {
+    const slidesWithoutImages = slides
+      .map((s, i) => ({ s, i }))
+      .filter(({ s }) => !s.imageUrl);
+    if (slidesWithoutImages.length === 0) { toast.info("All slides already have images"); return; }
+    setGeneratingAll(true);
+    let updated = [...slides];
+    for (const { s, i } of slidesWithoutImages) {
+      const prompt = String(s.imagePrompt ?? s.heading ?? "");
+      if (!prompt) continue;
+      try {
+        const { url } = await generateImageMutation.mutateAsync({ prompt });
+        updated = updated.map((sl, idx) => idx === i ? { ...sl, imageUrl: url } : sl);
+        onChange({ ...content, slides: updated });
+      } catch {
+        // skip failed slides silently
+      }
+    }
+    setGeneratingAll(false);
+    toast.success("All images generated!");
+  };
 
   const handleGenerateImage = async (si: number) => {
     const slide = slides[si];
@@ -168,8 +190,25 @@ function SlidesPreview({ content, onChange }: { content: Record<string, unknown>
     onChange({ ...content, slides: updated });
   };
 
+  const slidesWithoutImages = slides.filter(s => !s.imageUrl).length;
+
   return (
     <div className="flex flex-col gap-3">
+      {slidesWithoutImages > 1 && (
+        <div className="flex justify-end">
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5 text-xs"
+            onClick={handleGenerateAllImages}
+            disabled={generatingAll || generatingIdx !== null}
+          >
+            {generatingAll
+              ? <><Loader2 className="w-3 h-3 animate-spin" /> Generating all images…</>
+              : <><Wand2 className="w-3 h-3" /> Generate All Images ({slidesWithoutImages})</>}
+          </Button>
+        </div>
+      )}
       {slides.map((slide, si) => (
         <Card key={si}>
           <CardContent className="p-4 flex flex-col gap-2">
@@ -226,7 +265,7 @@ function SlidesPreview({ content, onChange }: { content: Record<string, unknown>
                     variant="outline"
                     className="h-7 text-xs gap-1"
                     onClick={() => handleGenerateImage(si)}
-                    disabled={generatingIdx === si}
+                    disabled={generatingIdx === si || generatingAll}
                   >
                     {generatingIdx === si
                       ? <><Loader2 className="w-3 h-3 animate-spin" /> Generating…</>

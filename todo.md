@@ -529,3 +529,9 @@
 - [x] Fix Create Material: SlidesPreview has file upload button per slide (uploads to S3)
 - [x] Fix MaterialView: renders actual <img> when slide.imageUrl is present instead of text hint only
 - [x] Server: materials.generateSlideImage(prompt) and uploadSlideImage(base64) protected mutations added
+
+## Feature: Image follow-ups (MaterialView + Create + Presentation)
+- [x] MaterialView: Regenerate Image button added to SlidesViewer (appears below image when imagePrompt exists, calls materials.generateSlideImage)
+- [x] MaterialView: Generate Image button added when slide has imagePrompt but no imageUrl yet
+- [x] Create page: bulk "Generate All Images (N)" button added above slide list when 2+ slides lack images
+- [x] Presentation full-screen mode: already renders slideImages[idx] as actual img tag — confirmed working

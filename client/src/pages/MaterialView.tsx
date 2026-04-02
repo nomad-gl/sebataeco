@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   Loader2, Trash2, ArrowLeft, Printer, FileText,
-  FileDown, Image, CheckCircle2, XCircle, ChevronLeft, ChevronRight, Zap,
+  FileDown, Image, CheckCircle2, XCircle, ChevronLeft, ChevronRight, Zap, RefreshCw, Wand2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/contexts/I18nContext";
@@ -334,8 +334,27 @@ function QuizViewer({ content, showAnswers }: { content: QuizContent; showAnswer
 
 function SlidesViewer({ content }: { content: SlidesContent }) {
   const [current, setCurrent] = useState(0);
+  const [localImages, setLocalImages] = useState<Partial<Record<number, string>>>({});
+  const [regeneratingIdx, setRegeneratingIdx] = useState<number | null>(null);
+  const generateImageMut = trpc.materials.generateSlideImage.useMutation();
+
+  const handleRegenerate = async (idx: number, prompt: string) => {
+    setRegeneratingIdx(idx);
+    try {
+      const { url } = await generateImageMut.mutateAsync({ prompt });
+      setLocalImages(prev => ({ ...prev, [idx]: url }));
+      toast.success("Image regenerated!");
+    } catch {
+      toast.error("Image regeneration failed. Please try again.");
+    } finally {
+      setRegeneratingIdx(null);
+    }
+  };
+
   const slide = content.slides[current];
   if (!slide) return null;
+  const effectiveImageUrl = localImages[current] ?? (slide as Record<string, unknown>).imageUrl as string | undefined;
+  const imagePrompt = (slide as Record<string, unknown>).imagePrompt as string | undefined;
   return (
     <div className="flex flex-col gap-4">
       {content.keyVocabulary && content.keyVocabulary.length > 0 && (
@@ -378,18 +397,42 @@ function SlidesViewer({ content }: { content: SlidesContent }) {
               </li>
             ))}
           </ul>
-          {slide.imageUrl ? (
-            <div className="mt-2 border-t border-border pt-3">
+          {effectiveImageUrl ? (
+            <div className="mt-2 border-t border-border pt-3 flex flex-col gap-2">
               <img
-                src={String(slide.imageUrl)}
+                src={effectiveImageUrl}
                 alt={String(slide.heading ?? "Slide image")}
                 className="w-full max-h-64 object-cover rounded-xl border border-border"
               />
+              {imagePrompt && (
+                <Button
+                  size="sm" variant="outline"
+                  className="self-end h-7 text-xs gap-1"
+                  disabled={regeneratingIdx === current}
+                  onClick={() => handleRegenerate(current, imagePrompt)}
+                >
+                  {regeneratingIdx === current
+                    ? <><Loader2 className="w-3 h-3 animate-spin" /> Regenerating…</>
+                    : <><RefreshCw className="w-3 h-3" /> Regenerate image</>}
+                </Button>
+              )}
             </div>
-          ) : slide.imagePrompt ? (
-            <p className="text-xs text-muted-foreground italic border-t border-border pt-3 mt-2">
-              🖼 Illustration suggestion: {slide.imagePrompt}
-            </p>
+          ) : imagePrompt ? (
+            <div className="mt-2 border-t border-border pt-3 flex items-center gap-2">
+              <p className="text-xs text-muted-foreground italic flex-1">
+                🖼 Illustration suggestion: {imagePrompt}
+              </p>
+              <Button
+                size="sm" variant="outline"
+                className="shrink-0 h-7 text-xs gap-1"
+                disabled={regeneratingIdx === current}
+                onClick={() => handleRegenerate(current, imagePrompt)}
+              >
+                {regeneratingIdx === current
+                  ? <><Loader2 className="w-3 h-3 animate-spin" /> Generating…</>
+                  : <><Wand2 className="w-3 h-3" /> Generate image</>}
+              </Button>
+            </div>
           ) : null}
         </CardContent>
       </Card>
