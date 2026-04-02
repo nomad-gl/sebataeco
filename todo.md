@@ -427,3 +427,11 @@
 - [x] Server lomloe.ts: load profile at chat start and inject adaptive context into Clara's system prompt
 - [x] Server lomloe.ts: new tRPC procedure lomloe.getClaraProfile (protected) for optional UI display
 - [x] Client: profile signals used silently (no UI required for MVP)
+
+## Feature: PWA (Progressive Web App)
+- [x] client/public/manifest.json with name, icons, theme_color, display:standalone
+- [x] client/public/sw.js service worker for offline shell caching
+- [x] client/index.html: link manifest, apple-touch-icon, theme-color, viewport meta
+- [x] Generate 192x192 and 512x512 PNG icons from SEBA logo and upload to CDN
+- [x] client/src/components/PwaInstallBanner.tsx: install prompt for Android + iOS instructions
+- [x] Wire PwaInstallBanner into App.tsx

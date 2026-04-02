@@ -22,6 +22,7 @@ import StudentProgress from "./pages/StudentProgress";
 import GroupProgress from "./pages/GroupProgress";
 import CompetencyDetail from "./pages/CompetencyDetail";
 import Forum from "./pages/Forum";
+import PwaInstallBanner from "./components/PwaInstallBanner";
 
 function Router() {
   return (
@@ -58,6 +59,7 @@ function App() {
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster />
+          <PwaInstallBanner />
           <Router />
         </TooltipProvider>
       </ThemeProvider>

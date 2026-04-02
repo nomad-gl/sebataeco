@@ -1,0 +1,52 @@
+{
+  "name": "SEBA AI | TA",
+  "short_name": "SEBA",
+  "description": "Your LOMLOE Teaching Assistant — Clara, Practice, Progress and more",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "lang": "en",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/icon-192_612f7bdd.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/icon-512_a0c8222b.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Ask Clara",
+      "short_name": "Clara",
+      "description": "Open the Clara AI teaching assistant",
+      "url": "/chat",
+      "icons": [
+        {
+          "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/icon-192_612f7bdd.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Practice",
+      "short_name": "Practice",
+      "description": "Practise LOMLOE competency questions",
+      "url": "/practice",
+      "icons": [
+        {
+          "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/icon-192_612f7bdd.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}
