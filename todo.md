@@ -435,3 +435,8 @@
 - [x] Generate 192x192 and 512x512 PNG icons from SEBA logo and upload to CDN
 - [x] client/src/components/PwaInstallBanner.tsx: install prompt for Android + iOS instructions
 - [x] Wire PwaInstallBanner into App.tsx
+
+## Feature: Install App button in NavBar
+- [x] Create usePwaInstall hook (shared install prompt state + iOS detection)
+- [x] Add Install App button to NavBar (hidden when already installed or not installable)
+- [x] Button triggers Android/Chrome native prompt; shows iOS modal on Safari

@@ -4,11 +4,13 @@ import { Link, useLocation } from "wouter";
 import {
   BookOpen, MessageCircle, Dumbbell, LayoutDashboard,
   Sparkles, Library, TrendingUp, ChevronDown, Menu, X, Zap,
-  Presentation as PresentationIcon, Globe, Users, MessagesSquare, Bell,
+  Presentation as PresentationIcon, Globe, Users, MessagesSquare, Bell, Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
 import { useI18n, Lang } from "@/contexts/I18nContext";
+import { usePwaInstall } from "@/hooks/usePwaInstall";
+import { Share, Plus } from "lucide-react";
 
 const LANG_OPTIONS: { code: Lang; label: string; flag: string }[] = [
   { code: "en", label: "EN", flag: "🇬🇧" },
@@ -85,6 +87,7 @@ export default function NavBar() {
   }, [mobileOpen]);
 
   const currentLang = LANG_OPTIONS.find((l) => l.code === lang) ?? LANG_OPTIONS[0];
+  const { state: pwaState, install: pwaInstall, showIosModal, setShowIosModal } = usePwaInstall();
 
   return (
     <>
@@ -258,6 +261,23 @@ export default function NavBar() {
               </div>
             )}
 
+            {/* Install App button — desktop */}
+            {pwaState !== "unavailable" && (
+              <button
+                onClick={pwaInstall}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all border",
+                  isClassroomPage
+                    ? "text-white border-white/30 hover:bg-white/15"
+                    : "text-primary border-primary/40 hover:bg-primary/5"
+                )}
+                title="Install SEBA as an app"
+              >
+                <Download className="w-4 h-4" />
+                Install App
+              </button>
+            )}
+
             {/* Language toggle */}
             <div ref={langRef} className="relative ml-1">
               <button
@@ -377,6 +397,24 @@ export default function NavBar() {
               })}
             </div>
 
+            {/* Install App — mobile */}
+            {pwaState !== "unavailable" && (
+              <div className={cn("px-4 py-3 border-t", isClassroomPage ? "border-white/15" : "border-border")}>
+                <button
+                  onClick={() => { pwaInstall(); setMobileOpen(false); }}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all",
+                    isClassroomPage
+                      ? "text-white/80 hover:text-white hover:bg-white/15"
+                      : "text-primary hover:bg-primary/5"
+                  )}
+                >
+                  <Download className="w-5 h-5 flex-shrink-0" />
+                  Install App
+                </button>
+              </div>
+            )}
+
             {/* Teacher tools */}
             <div className="px-4 py-3">
               <p className={cn("text-xs font-semibold uppercase tracking-wider mb-2 px-1", isClassroomPage ? "text-white/50" : "text-muted-foreground")}>
@@ -404,6 +442,39 @@ export default function NavBar() {
               })}
             </div>
           </nav>
+        </div>
+      )}
+      {/* iOS install instructions modal */}
+      {showIosModal && (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowIosModal(false)}>
+          <div className="w-full max-w-sm bg-[#0f172a] border border-white/20 rounded-2xl shadow-2xl p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-2 mb-4">
+              <p className="text-base font-semibold text-white">Install SEBA on your iPhone</p>
+              <button onClick={() => setShowIosModal(false)} className="text-white/40 hover:text-white transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <ol className="space-y-3">
+              <li className="flex items-center gap-3 text-sm text-white/70">
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-white text-xs font-bold">1</span>
+                <span>Tap the <Share className="w-4 h-4 inline-block mx-1 text-blue-400" /> Share button in Safari</span>
+              </li>
+              <li className="flex items-center gap-3 text-sm text-white/70">
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-white text-xs font-bold">2</span>
+                <span>Scroll down and tap <strong className="text-white">"Add to Home Screen"</strong> <Plus className="w-3.5 h-3.5 inline-block ml-0.5" /></span>
+              </li>
+              <li className="flex items-center gap-3 text-sm text-white/70">
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-white text-xs font-bold">3</span>
+                <span>Tap <strong className="text-white">"Add"</strong> — SEBA will appear on your home screen</span>
+              </li>
+            </ol>
+            <button
+              onClick={() => setShowIosModal(false)}
+              className="mt-4 w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors"
+            >
+              Got it
+            </button>
+          </div>
         </div>
       )}
     </>
