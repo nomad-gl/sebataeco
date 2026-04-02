@@ -1870,9 +1870,19 @@ const I18nContext = createContext<I18nContextType>({
 });
 
 function detectBrowserLang(): Lang {
-  const nav = navigator.language?.toLowerCase() ?? "";
-  if (nav.startsWith("ca")) return "ca";
-  if (nav.startsWith("es")) return "es";
+  // Check the full ordered language preference list so regional variants
+  // (es-MX, ca-ES, es-419, etc.) are all handled correctly.
+  const langs: string[] = [
+    ...(navigator.languages ?? []),
+    navigator.language ?? "",
+  ].map((l) => l.toLowerCase()).filter(Boolean);
+
+  for (const l of langs) {
+    // Check Catalan before Spanish because 'ca-ES' starts with 'ca', not 'es'
+    if (l.startsWith("ca")) return "ca";
+    if (l.startsWith("es")) return "es";
+    if (l.startsWith("en")) return "en";
+  }
   return "en";
 }
 
@@ -1886,6 +1896,11 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     setLangState(l);
     localStorage.setItem("seba_lang", l);
   };
+
+  // Keep <html lang=""> in sync for accessibility and SEO
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
 
   const t = (key: TranslationKey): string =>
     (translations[lang] as Record<string, string>)[key] ??
