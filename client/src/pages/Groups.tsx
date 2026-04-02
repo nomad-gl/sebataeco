@@ -411,7 +411,7 @@ export default function Groups() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4">
+      <div className="challenge-bg flex items-center justify-center p-4">
         <Card className="bg-white/10 border-white/20 text-white max-w-sm w-full text-center">
           <CardContent className="p-8 space-y-4">
             <GraduationCap className="w-12 h-12 mx-auto text-blue-400" />
@@ -427,7 +427,7 @@ export default function Groups() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900">
+    <div className="challenge-bg">
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">

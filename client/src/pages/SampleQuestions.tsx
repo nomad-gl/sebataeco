@@ -11,14 +11,14 @@ type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CC
 type YearGroup = "junior" | "primary" | "secondary";
 
 const COMP_COLORS: Record<CompetencyCode, string> = {
-  CCL: "bg-blue-100 text-blue-800 border-blue-200",
-  CP: "bg-purple-100 text-purple-800 border-purple-200",
-  STEM: "bg-green-100 text-green-800 border-green-200",
-  CD: "bg-cyan-100 text-cyan-800 border-cyan-200",
-  CPSAA: "bg-orange-100 text-orange-800 border-orange-200",
-  CC: "bg-red-100 text-red-800 border-red-200",
-  CE: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  CCEC: "bg-pink-100 text-pink-800 border-pink-200",
+  CCL: "bg-blue-500/30 text-blue-200 border-blue-400/40",
+  CP: "bg-purple-500/30 text-purple-200 border-purple-400/40",
+  STEM: "bg-green-500/30 text-green-200 border-green-400/40",
+  CD: "bg-cyan-500/30 text-cyan-200 border-cyan-400/40",
+  CPSAA: "bg-orange-500/30 text-orange-200 border-orange-400/40",
+  CC: "bg-red-500/30 text-red-200 border-red-400/40",
+  CE: "bg-yellow-500/30 text-yellow-200 border-yellow-400/40",
+  CCEC: "bg-pink-500/30 text-pink-200 border-pink-400/40",
 };
 
 export default function SampleQuestions() {
@@ -60,53 +60,53 @@ export default function SampleQuestions() {
   return (
     <div className="min-h-screen samples-bg">
       <NavBar />
-      <div className="container py-6 sm:py-10 max-w-4xl">
+      <div className="container py-6 sm:py-10 max-w-4xl relative z-10">
         {/* Header */}
         <div className="mb-8 space-y-2">
-          <div className="inline-flex items-center gap-2 bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-full px-4 py-1.5 text-sm font-semibold">
+          <div className="inline-flex items-center gap-2 bg-white/15 text-white border border-white/25 rounded-full px-4 py-1.5 text-sm font-semibold backdrop-blur-sm">
             <BookOpen className="w-4 h-4" /> {t("questions_title")}
           </div>
-          <h1 className="text-3xl sm:text-4xl font-heading font-bold text-gray-900">{t("questions_title")}</h1>
-          <p className="text-gray-600 max-w-2xl">{t("questions_subtitle")}</p>
+          <h1 className="text-3xl sm:text-4xl font-heading font-bold text-white drop-shadow-lg">{t("questions_title")}</h1>
+          <p className="text-white/75 max-w-2xl">{t("questions_subtitle")}</p>
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6 flex flex-wrap gap-3 items-end">
+        <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-4 mb-6 flex flex-wrap gap-3 items-end">
           <div className="flex-1 min-w-[180px] space-y-1">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t("questions_filter_competency")}</label>
+            <label className="text-xs font-semibold text-white/60 uppercase tracking-wide">{t("questions_filter_competency")}</label>
             <select
               value={filterComp}
               onChange={(e) => setFilterComp(e.target.value as CompetencyCode | "")}
-              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"
+              className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-white backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-white/30"
             >
-              <option value="">{t("questions_all")}</option>
+              <option value="" className="bg-slate-800">{t("questions_all")}</option>
               {(competencies ?? []).map((c) => (
-                <option key={c.code} value={c.code}>{c.code} – {c.name}</option>
+                <option key={c.code} value={c.code} className="bg-slate-800">{c.code} – {c.name}</option>
               ))}
             </select>
           </div>
           <div className="flex-1 min-w-[160px] space-y-1">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t("questions_filter_year")}</label>
+            <label className="text-xs font-semibold text-white/60 uppercase tracking-wide">{t("questions_filter_year")}</label>
             <select
               value={filterYG}
               onChange={(e) => setFilterYG(e.target.value as YearGroup | "")}
-              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"
+              className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-white backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-white/30"
             >
-              <option value="">{t("questions_all")}</option>
-              <option value="junior">{YG_LABELS.junior}</option>
-              <option value="primary">{YG_LABELS.primary}</option>
-              <option value="secondary">{YG_LABELS.secondary}</option>
+              <option value="" className="bg-slate-800">{t("questions_all")}</option>
+              <option value="junior" className="bg-slate-800">{YG_LABELS.junior}</option>
+              <option value="primary" className="bg-slate-800">{YG_LABELS.primary}</option>
+              <option value="secondary" className="bg-slate-800">{YG_LABELS.secondary}</option>
             </select>
           </div>
           <div className="flex-1 min-w-[200px] space-y-1">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t("nav_questions")}</label>
+            <label className="text-xs font-semibold text-white/60 uppercase tracking-wide">{t("nav_questions")}</label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={t("chat_placeholder")}
-                className="pl-9"
+                className="pl-9 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-white/50"
               />
             </div>
           </div>
@@ -115,7 +115,7 @@ export default function SampleQuestions() {
               variant="ghost"
               size="sm"
               onClick={() => { setFilterComp(""); setFilterYG(""); setSearch(""); }}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-white/60 hover:text-white hover:bg-white/10"
             >
               {t("cancel")}
             </Button>
@@ -123,7 +123,7 @@ export default function SampleQuestions() {
         </div>
 
         {/* Count */}
-        <p className="text-sm text-gray-500 mb-4">
+        <p className="text-sm text-white/60 mb-4">
           {filtered.length} {t("questions_title").toLowerCase()}
         </p>
 
@@ -131,11 +131,11 @@ export default function SampleQuestions() {
         {isLoading ? (
           <div className="space-y-3">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse h-16" />
+              <div key={i} className="bg-white/10 rounded-xl border border-white/20 p-4 animate-pulse h-16" />
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">
+          <div className="text-center py-16 text-white/50">
             <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-40" />
             <p>{t("my_materials_empty")}</p>
           </div>
@@ -146,7 +146,7 @@ export default function SampleQuestions() {
               return (
                 <div
                   key={q.id}
-                  className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden transition-shadow hover:shadow-md"
+                  className="bg-white/10 backdrop-blur-md rounded-xl border border-white/20 overflow-hidden transition-all hover:bg-white/15"
                 >
                   <button
                     className="w-full text-left p-4 flex items-start gap-3"
@@ -154,42 +154,42 @@ export default function SampleQuestions() {
                   >
                     <div className="flex-1 min-w-0 space-y-1.5">
                       <div className="flex flex-wrap gap-2">
-                        <Badge className={`text-xs ${COMP_COLORS[q.competency as CompetencyCode] ?? "bg-gray-100 text-gray-700"}`}>
+                        <Badge className={`text-xs border ${COMP_COLORS[q.competency as CompetencyCode] ?? "bg-white/10 text-white/70 border-white/20"}`}>
                           {q.competency}
                         </Badge>
-                        <Badge variant="outline" className="text-xs text-gray-500">
+                        <Badge variant="outline" className="text-xs text-white/60 border-white/25">
                           {YG_LABELS[q.yearGroup as YearGroup] ?? q.yearGroup}
                         </Badge>
                       </div>
-                      <p className="text-sm sm:text-base font-medium text-gray-800 leading-snug">{q.question}</p>
+                      <p className="text-sm sm:text-base font-medium text-white leading-snug">{q.question}</p>
                     </div>
-                    <div className="shrink-0 mt-1 text-gray-400">
+                    <div className="shrink-0 mt-1 text-white/50">
                       {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </div>
                   </button>
 
                   {isOpen && (
-                    <div className="border-t border-gray-100 p-4 space-y-3 bg-gray-50">
+                    <div className="border-t border-white/15 p-4 space-y-3 bg-black/20 backdrop-blur-sm">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {q.options.map((opt, i) => (
                           <div
                             key={i}
                             className={`rounded-lg border p-2.5 text-sm flex items-start gap-2 ${
                               i === q.correctIndex
-                                ? "bg-green-50 border-green-300 text-green-800 font-medium"
-                                : "bg-white border-gray-200 text-gray-700"
+                                ? "bg-green-500/20 border-green-400/50 text-green-200 font-medium"
+                                : "bg-white/5 border-white/15 text-white/80"
                             }`}
                           >
-                            <span className={`font-bold shrink-0 ${i === q.correctIndex ? "text-green-600" : "text-gray-400"}`}>
+                            <span className={`font-bold shrink-0 ${i === q.correctIndex ? "text-green-400" : "text-white/40"}`}>
                               {String.fromCharCode(65 + i)}.
                             </span>
                             {opt}
-                            {i === q.correctIndex && <span className="ml-auto text-green-500 shrink-0">✓</span>}
+                            {i === q.correctIndex && <span className="ml-auto text-green-400 shrink-0">✓</span>}
                           </div>
                         ))}
                       </div>
                       {q.explanation && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+                        <div className="bg-blue-500/15 border border-blue-400/30 rounded-lg p-3 text-sm text-blue-200">
                           <span className="font-semibold">{t("questions_explanation")}: </span>{q.explanation}
                         </div>
                       )}

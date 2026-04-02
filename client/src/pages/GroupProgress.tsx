@@ -71,9 +71,9 @@ export default function GroupProgress() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-teal-900 via-slate-900 to-emerald-900">
+      <div className="challenge-bg">
         <NavBar />
-        <div className="flex items-center justify-center min-h-[80vh]">
+        <div className="flex items-center justify-center min-h-[80vh] relative z-10">
           <Card className="bg-white/10 border-white/20 text-white max-w-sm w-full mx-4">
             <CardContent className="pt-8 pb-8 text-center space-y-4">
               <Users className="w-12 h-12 mx-auto text-teal-400" />
@@ -115,9 +115,9 @@ export default function GroupProgress() {
   const totalActivities = students.reduce((sum, s) => sum + s.totalActivities, 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-900 via-slate-900 to-emerald-900">
+    <div className="challenge-bg">
       <NavBar />
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 py-8 relative z-10">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <Link href="/groups">

@@ -199,8 +199,8 @@ export default function MyMaterials() {
         {/* Header */}
         <div className="flex items-start sm:items-center justify-between gap-2">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">{t("my_materials_title")}</h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-white drop-shadow">{t("my_materials_title")}</h1>
+            <p className="text-sm text-white/70 mt-1">
               {materials?.length ?? 0} {t("my_materials_subtitle")}
             </p>
           </div>
@@ -224,13 +224,13 @@ export default function MyMaterials() {
 
         {/* Materials list */}
         {!materials || materials.length === 0 ? (
-          <Card>
+          <Card className="bg-white/10 backdrop-blur-md border-white/20">
             <CardContent className="p-12 flex flex-col items-center gap-4 text-center">
-              <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
-                <BookOpen className="w-8 h-8 text-muted-foreground" />
+              <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center">
+                <BookOpen className="w-8 h-8 text-white/60" />
               </div>
               <div>
-                <h3 className="font-semibold text-foreground">{t("my_materials_empty")}</h3>
+                <h3 className="font-semibold text-white">{t("my_materials_empty")}</h3>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={openImportDialog} className="gap-2 border-orange-400/60 text-orange-600 hover:bg-orange-50">
@@ -248,36 +248,36 @@ export default function MyMaterials() {
               const Icon = TYPE_ICONS[m.type] ?? BookOpen;
               const colorClass = TYPE_COLORS[m.type] ?? "from-gray-400 to-gray-500";
               return (
-                <Card key={m.id} className="hover:shadow-sm transition-shadow">
+                <Card key={m.id} className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all">
                   <CardContent className="p-3 sm:p-4 flex items-start sm:items-center gap-3 sm:gap-4">
                     <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${colorClass} flex items-center justify-center flex-shrink-0`}>
                       <Icon className="w-5 h-5 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-foreground truncate">{m.title}</p>
+                      <p className="font-semibold text-white truncate">{m.title}</p>
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                        <Badge variant="secondary" className="text-xs capitalize">
+                        <Badge variant="secondary" className="text-xs capitalize bg-white/15 text-white/80 border-white/20">
                           {m.type.replace("_", " ")}
                         </Badge>
-                        {m.competency && <Badge variant="outline" className="text-xs">{m.competency}</Badge>}
-                        {m.yearGroup && <Badge variant="outline" className="text-xs capitalize">{m.yearGroup}</Badge>}
-                        <span className="text-xs text-muted-foreground">
+                        {m.competency && <Badge variant="outline" className="text-xs text-white/70 border-white/25">{m.competency}</Badge>}
+                        {m.yearGroup && <Badge variant="outline" className="text-xs capitalize text-white/70 border-white/25">{m.yearGroup}</Badge>}
+                        <span className="text-xs text-white/50">
                           {new Date(m.createdAt).toLocaleDateString()}
                         </span>
                       </div>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-1.5 flex-shrink-0">
                       <Button size="sm" variant="outline"
-                        className="gap-1.5 border-yellow-500/50 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
+                        className="gap-1.5 border-yellow-400/50 text-yellow-300 hover:bg-yellow-500/20 bg-transparent"
                         onClick={() => { window.location.href = `/challenge?materialId=${m.id}&materialTitle=${encodeURIComponent(m.title)}`; }}>
                         <Zap className="w-3.5 h-3.5" /> {t("nav_challenge")}
                       </Button>
-                      <Button size="sm" variant="outline" className="gap-1.5"
+                      <Button size="sm" variant="outline" className="gap-1.5 border-white/25 text-white/80 hover:bg-white/15 bg-transparent"
                         onClick={() => navigate(`/materials/${m.id}`)}>
                         <ExternalLink className="w-3.5 h-3.5" /> {t("my_materials_open")}
                       </Button>
                       <Button size="sm" variant="ghost"
-                        className="text-destructive hover:text-destructive"
+                        className="text-red-400 hover:text-red-300 hover:bg-red-500/20"
                         onClick={() => { if (confirm(t("my_materials_delete") + "?")) deleteMutation.mutate({ id: m.id }); }}>
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
