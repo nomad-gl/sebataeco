@@ -98,7 +98,7 @@ export default function Home() {
                   size="lg"
                   className="gap-2 w-full sm:w-auto bg-white/10 text-white border-white/40 hover:bg-white/20"
                 >
-                  <Download className="w-4 h-4" />
+                  <Download className="w-4 h-4 animate-pulse-subtle" />
                   Download App
                 </Button>
               )}

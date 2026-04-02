@@ -452,3 +452,8 @@
 - [x] Button uses usePwaInstall hook to trigger install prompt
 - [x] Button shows Download icon and "Download App" text
 - [x] Button hidden when app is already installed or browser doesn't support PWA
+
+## Feature: Pulse animation on Download icon
+- [x] Add @keyframes pulse-subtle animation to client/src/index.css
+- [x] Apply animation to Download icon in Home.tsx hero button
+- [x] Apply animation to Download icon in NavBar Install App button

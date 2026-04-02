@@ -273,7 +273,7 @@ export default function NavBar() {
                 )}
                 title="Install SEBA as an app"
               >
-                <Download className="w-4 h-4" />
+                <Download className="w-4 h-4 animate-pulse-subtle" />
                 Install App
               </button>
             )}
@@ -409,7 +409,7 @@ export default function NavBar() {
                       : "text-primary hover:bg-primary/5"
                   )}
                 >
-                  <Download className="w-5 h-5 flex-shrink-0" />
+                  <Download className="w-5 h-5 flex-shrink-0 animate-pulse-subtle" />
                   Install App
                 </button>
               </div>
