@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import NavBar from "@/components/NavBar";
 import {
   Loader2, Presentation as PresentationIcon, ChevronLeft, ChevronRight,
-  Download, Printer, BookOpen, Lightbulb, Pencil, Check, X, FileQuestion, AlignLeft,
+  Download, Printer, BookOpen, Lightbulb, Pencil, Check, X, FileQuestion, AlignLeft, ImagePlus,
 } from "lucide-react";
 import { getLoginUrl } from "@/const";
 import { exportPDF, exportWord, exportPNG } from "@/lib/exportUtils";
@@ -107,6 +107,8 @@ export default function Presentation() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [generated, setGenerated] = useState<PresentationData | null>(null);
   const [slides, setSlides] = useState<Slide[]>([]);
+  const [slideImages, setSlideImages] = useState<Record<number, string>>({});
+  const [generatingImageFor, setGeneratingImageFor] = useState<number | null>(null);
   const exportId = "presentation-export-area";
 
   const createMutation = trpc.materials.create.useMutation({
@@ -153,6 +155,25 @@ export default function Presentation() {
         competencyTag: s.competencyTag,
       })),
     });
+  };
+
+  // Generate image for a slide
+  const generateSlideImageMut = trpc.presentations.generateSlideImage.useMutation({
+    onSuccess: (data, _vars, context) => {
+      const idx = context as number;
+      setSlideImages(prev => ({ ...prev, [idx]: data.url ?? "" }));
+      setGeneratingImageFor(null);
+      toast.success(t("pres_image_generated"));
+    },
+    onError: () => {
+      setGeneratingImageFor(null);
+      toast.error(t("pres_image_gen_failed"));
+    },
+  });
+
+  const handleGenerateImage = (idx: number, prompt: string) => {
+    setGeneratingImageFor(idx);
+    generateSlideImageMut.mutate({ prompt }, { onSettled: () => setGeneratingImageFor(null) });
   };
 
   // Derive activity mutation (creates a quiz or fill-in-the-blank from slide text)
@@ -361,9 +382,30 @@ export default function Presentation() {
                     )}
 
                     {slide.imagePrompt && (
-                      <div className="bg-yellow-400/10 border border-yellow-400/20 rounded-lg p-3">
-                        <p className="text-yellow-200 text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5 mb-1"><Lightbulb className="w-3 h-3" /> {t("pres_image_suggestion")}</p>
-                        <p className="text-yellow-100/80 text-xs italic">{slide.imagePrompt}</p>
+                      <div className="bg-yellow-400/10 border border-yellow-400/20 rounded-lg p-3 space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="text-yellow-200 text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5 mb-1"><Lightbulb className="w-3 h-3" /> {t("pres_image_suggestion")}</p>
+                            <p className="text-yellow-100/80 text-xs italic">{slide.imagePrompt}</p>
+                          </div>
+                          <Button
+                            size="sm"
+                            className="shrink-0 bg-yellow-500/80 hover:bg-yellow-500 text-white text-xs px-2 py-1 h-auto"
+                            disabled={generatingImageFor === currentSlide}
+                            onClick={() => handleGenerateImage(currentSlide, slide.imagePrompt!)}
+                          >
+                            {generatingImageFor === currentSlide
+                              ? <Loader2 className="w-3 h-3 animate-spin" />
+                              : <><ImagePlus className="w-3 h-3 mr-1" /> {t("pres_generate_image_btn")}</>}
+                          </Button>
+                        </div>
+                        {slideImages[currentSlide] && (
+                          <img
+                            src={slideImages[currentSlide]}
+                            alt={slide.imagePrompt}
+                            className="w-full rounded-lg object-cover max-h-48 border border-yellow-400/20"
+                          />
+                        )}
                       </div>
                     )}
 

@@ -7,6 +7,7 @@ import { z } from "zod";
 import PDFDocument from "pdfkit";
 import { protectedProcedure, router } from "../_core/trpc";
 import { storagePut } from "../storage";
+import { generateImage } from "../_core/imageGeneration";
 
 const slideSchema = z.object({
   title: z.string(),
@@ -17,6 +18,16 @@ const slideSchema = z.object({
 });
 
 export const presentationsRouter = router({
+  /**
+   * Generate an AI image for a slide using its imagePrompt.
+   */
+  generateSlideImage: protectedProcedure
+    .input(z.object({ prompt: z.string().min(1).max(500) }))
+    .mutation(async ({ input }) => {
+      const { url } = await generateImage({ prompt: input.prompt });
+      return { url };
+    }),
+
   /**
    * Generate a PDF from slide data and return a temporary S3 URL.
    * The PDF is stored in S3 and the URL is returned to the client for download.

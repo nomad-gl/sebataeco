@@ -280,6 +280,9 @@ export const translations = {
     pres_gen_quiz: "Generate Quiz",
     pres_fill_blank: "Fill-in-the-blank",
     pres_image_suggestion: "Image Suggestion",
+    pres_generate_image_btn: "Generate Image",
+    pres_image_generated: "Image generated!",
+    pres_image_gen_failed: "Image generation failed. Please try again.",
     pres_speaker_notes: "Speaker Notes",
     optional: "optional",
 
@@ -891,6 +894,9 @@ export const translations = {
     pres_gen_quiz: "Generar cuestionario",
     pres_fill_blank: "Rellenar huecos",
     pres_image_suggestion: "Sugerencia de imagen",
+    pres_generate_image_btn: "Generar imagen",
+    pres_image_generated: "¡Imagen generada!",
+    pres_image_gen_failed: "Error al generar la imagen. Inténtalo de nuevo.",
     pres_speaker_notes: "Notas del orador",
     optional: "opcional",
 
@@ -1502,6 +1508,9 @@ export const translations = {
     pres_gen_quiz: "Generar quüestionari",
     pres_fill_blank: "Omplir buits",
     pres_image_suggestion: "Suggeriment d'imatge",
+    pres_generate_image_btn: "Generar imatge",
+    pres_image_generated: "Imatge generada!",
+    pres_image_gen_failed: "Error en generar la imatge. Torna-ho a intentar.",
     pres_speaker_notes: "Notes de l'orador",
     optional: "opcional",
 

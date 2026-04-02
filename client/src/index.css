@@ -279,12 +279,12 @@
   min-height: 100vh;
 }
 
-/* Presentation Builder – deep blue/indigo (academic, creative) */
+/* Presentation – hero classroom photo with dark overlay */
 .presentation-bg {
-  background: linear-gradient(160deg,
-    oklch(0.20 0.08 260) 0%,
-    oklch(0.16 0.07 250) 40%,
-    oklch(0.13 0.05 240) 100%);
+  background:
+    linear-gradient(rgba(0,0,0,0.58), rgba(0,0,0,0.58)),
+    url('https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/hero-bg-UMuQESLM5HrV2VsrndDo2h.webp')
+    center/cover no-repeat fixed;
   min-height: 100vh;
 }
 
