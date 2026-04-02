@@ -66,22 +66,28 @@ export function useClaraWakeWord({
   const [permissionError, setPermissionError] = useState<string | null>(null);
 
   // Refs so callbacks always see current values without re-creating effects
-  const wakeRef = useRef<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
-  const inputRef = useRef<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const wakeRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const inputRef = useRef<any>(null);
   const enabledRef = useRef(enabled);
   const onTranscriptRef = useRef(onTranscript);
   const wakeStateRef = useRef<WakeWordState>("idle");
   const langRef = useRef(lang);
+
+  // scheduleWakeListener stored as a ref so all callbacks always call the
+  // current version — this is the key fix for the "second question" bug.
+  const scheduleWakeListenerRef = useRef<() => void>(() => {});
 
   // Keep refs in sync
   useEffect(() => { enabledRef.current = enabled; }, [enabled]);
   useEffect(() => { onTranscriptRef.current = onTranscript; }, [onTranscript]);
   useEffect(() => { langRef.current = lang; }, [lang]);
 
-  const updateState = (s: WakeWordState) => {
+  const updateState = useCallback((s: WakeWordState) => {
     wakeStateRef.current = s;
     setWakeState(s);
-  };
+  }, []);
 
   // ─── Stop all recognition sessions ──────────────────────────────────────────
 
@@ -126,9 +132,8 @@ export function useClaraWakeWord({
         setPermissionError("Microphone access denied. Please allow microphone access in your browser settings.");
       }
       inputRef.current = null;
-      // Return to idle regardless of error
       updateState("idle");
-      if (enabledRef.current) scheduleWakeListener();
+      if (enabledRef.current) scheduleWakeListenerRef.current();
     };
 
     rec.onend = () => {
@@ -138,8 +143,8 @@ export function useClaraWakeWord({
         onTranscriptRef.current(finalTranscript.trim());
       }
       updateState("idle");
-      // Restart wake listener after a short pause
-      if (enabledRef.current) scheduleWakeListener();
+      // Restart wake listener — use ref so we always call the current version
+      if (enabledRef.current) scheduleWakeListenerRef.current();
     };
 
     try {
@@ -147,21 +152,17 @@ export function useClaraWakeWord({
     } catch {
       inputRef.current = null;
       updateState("idle");
-      if (enabledRef.current) scheduleWakeListener();
+      if (enabledRef.current) scheduleWakeListenerRef.current();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [updateState]);
 
   // ─── Wake-word listener ──────────────────────────────────────────────────────
-
-  // Forward declaration so startInputSession can reference it
-  // eslint-disable-next-line prefer-const
-  let scheduleWakeListener: () => void;
 
   const startWakeListener = useCallback(() => {
     const SR = getSR();
     if (!SR || !enabledRef.current) return;
     if (wakeStateRef.current !== "idle") return; // don't start if already active
+    if (wakeRef.current) return; // already running
 
     const rec = new SR();
     rec.continuous = true;
@@ -202,7 +203,7 @@ export function useClaraWakeWord({
       }
       // For other errors (network, aborted), retry after a pause
       if (enabledRef.current && wakeStateRef.current === "idle") {
-        scheduleWakeListener();
+        scheduleWakeListenerRef.current();
       }
     };
 
@@ -210,7 +211,7 @@ export function useClaraWakeWord({
       wakeRef.current = null;
       // Only auto-restart if still in idle state (not activating/recording)
       if (enabledRef.current && wakeStateRef.current === "idle") {
-        scheduleWakeListener();
+        scheduleWakeListenerRef.current();
       }
     };
 
@@ -219,18 +220,24 @@ export function useClaraWakeWord({
     } catch {
       wakeRef.current = null;
       if (enabledRef.current && wakeStateRef.current === "idle") {
-        scheduleWakeListener();
+        scheduleWakeListenerRef.current();
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startInputSession]);
+  }, [startInputSession, updateState]);
 
-  scheduleWakeListener = useCallback(() => {
-    setTimeout(() => {
-      if (enabledRef.current && wakeStateRef.current === "idle") {
-        startWakeListener();
-      }
-    }, 400);
+  // Store scheduleWakeListener in a ref so it is always the current version
+  // This is the fix: all callbacks call scheduleWakeListenerRef.current()
+  // instead of a captured closure, so the second (and subsequent) questions work.
+  useEffect(() => {
+    scheduleWakeListenerRef.current = () => {
+      // Use a slightly longer delay (600 ms) to let the React render cycle
+      // settle after onTranscript triggers setMessages in the parent component.
+      setTimeout(() => {
+        if (enabledRef.current && wakeStateRef.current === "idle") {
+          startWakeListener();
+        }
+      }, 600);
+    };
   }, [startWakeListener]);
 
   // ─── Lifecycle: start/stop based on enabled prop ─────────────────────────────
@@ -238,15 +245,20 @@ export function useClaraWakeWord({
   useEffect(() => {
     if (enabled) {
       updateState("idle");
-      startWakeListener();
+      // Small delay on initial start to let the component fully mount
+      const t = setTimeout(() => startWakeListener(), 200);
+      return () => {
+        clearTimeout(t);
+        stopAll();
+      };
     } else {
       stopAll();
       updateState("idle");
+      return () => {
+        stopAll();
+      };
     }
-    return () => {
-      stopAll();
-    };
-  }, [enabled, startWakeListener, stopAll]);
+  }, [enabled, startWakeListener, stopAll, updateState]);
 
   return { wakeState, permissionError };
 }
