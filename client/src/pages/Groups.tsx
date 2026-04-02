@@ -418,7 +418,7 @@ export default function Groups() {
             <h2 className="text-xl font-bold">{t("groups_sign_in_required")}</h2>
             <p className="text-white/60 text-sm">{t("groups_sign_in_desc")}</p>
             <Button asChild className="bg-blue-600 hover:bg-blue-500 text-white w-full">
-              <a href={getLoginUrl()}>{t("nav_sign_in")}</a>
+              <a href={getLoginUrl(window.location.pathname + window.location.search)}>{t("nav_sign_in")}</a>
             </Button>
           </CardContent>
         </Card>

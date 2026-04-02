@@ -462,7 +462,7 @@ export default function Create() {
               <h2 className="text-xl font-bold">{t("sign_in_required")}</h2>
               <p className="text-sm text-muted-foreground">{t("create_subtitle")}</p>
               <Button asChild className="w-full">
-                <a href={getLoginUrl()}>{t("nav_sign_in")}</a>
+                <a href={getLoginUrl("/create")}>{t("nav_sign_in")}</a>
               </Button>
             </CardContent>
           </Card>

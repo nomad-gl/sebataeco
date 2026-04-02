@@ -158,7 +158,7 @@ export default function Challenge() {
         <h1 className="text-3xl font-bold text-white">{t("challenge_title")}</h1>
         <p className="text-white/80 max-w-md">{t("challenge_subtitle")}</p>
         <Button asChild size="lg" className="bg-yellow-400 hover:bg-yellow-300 text-black font-bold">
-          <a href={getLoginUrl()}>{t("nav_sign_in")}</a>
+          <a href={getLoginUrl(window.location.pathname + window.location.search)}>{t("nav_sign_in")}</a>
         </Button>
       </div>
     </div>

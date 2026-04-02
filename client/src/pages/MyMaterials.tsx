@@ -185,7 +185,7 @@ export default function MyMaterials() {
               </div>
               <h2 className="text-xl font-bold">{t("sign_in_required")}</h2>
               <Button asChild className="w-full">
-                <a href={getLoginUrl()}>{t("nav_sign_in")}</a>
+                <a href={getLoginUrl(window.location.pathname + window.location.search)}>{t("nav_sign_in")}</a>
               </Button>
             </CardContent>
           </Card>

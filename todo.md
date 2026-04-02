@@ -542,3 +542,8 @@
 - [x] PDF export: html2canvas already captures rendered DOM including <img> tags — works automatically
 - [x] MaterialView SlidesViewer: added crossOrigin="anonymous" to slide <img> tag for html2canvas CORS support
 - [x] Presentation.tsx: added crossOrigin="anonymous" to slide <img> tag for html2canvas CORS support
+
+## Bug: Create Material sign-in redirect
+- [x] getLoginUrl() updated to accept optional returnPath, encoded as JSON in the base64 state parameter
+- [x] OAuth callback (/api/oauth/callback) now decodes returnPath from state and redirects there instead of always going to /
+- [x] All sign-in buttons/links across Create, Admin, Challenge, GroupProgress, Groups, MyMaterials, Presentation, Progress, StudentProgress, DashboardLayout, and main.tsx updated to pass current path as returnPath

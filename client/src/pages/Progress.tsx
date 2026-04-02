@@ -108,7 +108,7 @@ export default function Progress() {
               <h2 className="text-xl font-bold text-white">{t("sign_in_required")}</h2>
               <p className="text-sm text-white/60">Sign in to view your groups' progress and LOMLOE grades.</p>
               <Button asChild className="w-full">
-                <a href={getLoginUrl()}>{t("nav_sign_in")}</a>
+                <a href={getLoginUrl(window.location.pathname + window.location.search)}>{t("nav_sign_in")}</a>
               </Button>
             </CardContent>
           </Card>

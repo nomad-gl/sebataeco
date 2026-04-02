@@ -221,7 +221,7 @@ export default function Presentation() {
           <Card className="max-w-sm w-full bg-white/10 border-white/20 text-white text-center p-6 space-y-4">
             <PresentationIcon className="w-12 h-12 mx-auto text-blue-300" />
             <h2 className="text-xl font-heading font-bold">{t("pres_signin_title")}</h2>
-            <Button className="w-full bg-blue-500 hover:bg-blue-400" onClick={() => window.location.href = getLoginUrl()}>{t("nav_sign_in")}</Button>
+            <Button className="w-full bg-blue-500 hover:bg-blue-400" onClick={() => window.location.href = getLoginUrl(window.location.pathname + window.location.search)}>{t("nav_sign_in")}</Button>
           </Card>
         </div>
       </div>

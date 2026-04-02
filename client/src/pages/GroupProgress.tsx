@@ -79,7 +79,7 @@ export default function GroupProgress() {
               <Users className="w-12 h-12 mx-auto text-teal-400" />
               <h2 className="text-xl font-bold">{t("groups_sign_in_required")}</h2>
               <Button asChild className="bg-teal-600 hover:bg-teal-500 text-white w-full">
-                <a href={getLoginUrl()}>{t("nav_sign_in")}</a>
+                <a href={getLoginUrl(window.location.pathname + window.location.search)}>{t("nav_sign_in")}</a>
               </Button>
             </CardContent>
           </Card>
