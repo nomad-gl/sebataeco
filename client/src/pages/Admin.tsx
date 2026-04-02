@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import NavBar from "@/components/NavBar";
 import { cn } from "@/lib/utils";
-import { BookOpen, Layers, Users, BarChart3, Lock, Activity, MessageSquare, Zap, TrendingUp } from "lucide-react";
+import { BookOpen, Layers, Users, BarChart3, Lock, Activity, MessageSquare, Zap, TrendingUp, ArrowLeft } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { getLoginUrl } from "@/const";
 import { useI18n } from "@/contexts/I18nContext";
@@ -108,7 +108,10 @@ export default function Admin() {
 
       <div className="container py-4 sm:py-8 flex flex-col gap-6 sm:gap-8">
         {/* Header */}
-        <div>
+        <div className="flex flex-col gap-2">
+          <Button variant="ghost" size="sm" onClick={() => window.history.back()} className="self-start flex items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/10 -ml-2">
+            <ArrowLeft className="size-4" />{t("btn_back")}
+          </Button>
           <h1 className="text-xl sm:text-2xl font-bold text-foreground">{t("admin_title")}</h1>
           <p className="text-sm text-muted-foreground">{t("admin_subtitle")}</p>
         </div>

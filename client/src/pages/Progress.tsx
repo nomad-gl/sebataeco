@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import NavBar from "@/components/NavBar";
-import { Loader2, Lock, Trophy, TrendingUp, Target } from "lucide-react";
+import { Loader2, Lock, Trophy, TrendingUp, Target, ArrowLeft } from "lucide-react";
 import { getLoginUrl } from "@/const";
 import { useLocation } from "wouter";
 import {
@@ -66,7 +66,10 @@ export default function Progress() {
     <div className="progress-bg flex flex-col">
       <NavBar />
       <div className="container py-8 max-w-3xl mx-auto flex flex-col gap-6">
-        <div>
+        <div className="flex flex-col gap-1">
+          <Button variant="ghost" size="sm" onClick={() => window.history.back()} className="self-start flex items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/10 -ml-2">
+            <ArrowLeft className="size-4" />{t("btn_back")}
+          </Button>
           <h1 className="text-2xl font-bold text-white">{t("progress_title")}</h1>
           <p className="text-sm text-white/70 mt-1">{t("progress_subtitle")}</p>
         </div>

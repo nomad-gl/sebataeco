@@ -8,7 +8,7 @@ import { AIChatBox, type Message } from "@/components/AIChatBox";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/contexts/I18nContext";
 import type { TranslationKey, Lang } from "@/contexts/I18nContext";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
 type YearGroup = "junior" | "primary" | "secondary";
@@ -105,6 +105,11 @@ export default function Chat() {
 
       <div className="container py-4 sm:py-6 flex flex-col gap-3 sm:gap-4 max-w-4xl mx-auto w-full flex-1">
         {/* Header */}
+        <div className="flex flex-col gap-1">
+          <Button variant="ghost" size="sm" onClick={() => window.history.back()} className="self-start flex items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/10 -ml-2">
+            <ArrowLeft className="size-4" />{t("btn_back")}
+          </Button>
+        </div>
         <div className="flex items-start sm:items-center justify-between gap-2">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-white">{t("chat_title")}</h1>

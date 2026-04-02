@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import {
   Zap, Users, Trophy, ChevronRight, ChevronLeft,
   Copy, Play, SkipForward, StopCircle, Plus, Loader2,
-  BookOpen, Library, CheckCircle2, QrCode, Link2, Printer, Eye,
+  BookOpen, Library, CheckCircle2, QrCode, Link2, Printer, Eye, ArrowLeft,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import CompetencySelector from "@/components/CompetencySelector";
@@ -194,6 +194,9 @@ export default function Challenge() {
         {/* ── Home view ── */}
         {view === "home" && (
           <div className="space-y-6">
+            <Button variant="ghost" size="sm" onClick={() => window.history.back()} className="flex items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/10 -ml-2">
+              <ArrowLeft className="size-4" />{t("btn_back")}
+            </Button>
             <div className="text-center space-y-2">
               <div className="inline-flex items-center gap-2 bg-yellow-400/20 text-yellow-300 border border-yellow-400/30 rounded-full px-4 py-1.5 text-sm font-semibold backdrop-blur-sm">
                 <Zap className="w-4 h-4" /> {t("challenge_title")}

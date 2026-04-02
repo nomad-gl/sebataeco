@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import {
   Loader2, Plus, Trash2, ExternalLink, BookOpen, Presentation,
   Grid3X3, AlignLeft, Search, CreditCard, Lock, Zap, Download,
-  FileText, RefreshCw,
+  FileText, RefreshCw, ArrowLeft,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
@@ -197,6 +197,9 @@ export default function MyMaterials() {
       <NavBar />
       <div className="container py-4 sm:py-8 max-w-3xl mx-auto flex flex-col gap-4 sm:gap-6">
         {/* Header */}
+        <Button variant="ghost" size="sm" onClick={() => window.history.back()} className="self-start flex items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/10 -ml-2">
+          <ArrowLeft className="size-4" />{t("btn_back")}
+        </Button>
         <div className="flex items-start sm:items-center justify-between gap-2">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-white drop-shadow">{t("my_materials_title")}</h1>

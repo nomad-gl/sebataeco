@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { CheckCircle2, XCircle, ChevronRight, Trophy, RotateCcw, Lightbulb } from "lucide-react";
+import { CheckCircle2, XCircle, ChevronRight, Trophy, RotateCcw, Lightbulb, ArrowLeft } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -98,7 +98,10 @@ export default function Practice() {
       <NavBar />
 
       <div className="container py-4 sm:py-8 max-w-2xl mx-auto w-full flex flex-col gap-4 sm:gap-6">
-        <div>
+        <div className="flex flex-col gap-1">
+          <Button variant="ghost" size="sm" onClick={() => window.history.back()} className="self-start flex items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/10 -ml-2">
+            <ArrowLeft className="size-4" />{t("btn_back")}
+          </Button>
           <h1 className="text-2xl font-bold text-white">{t("practice_title")}</h1>
           <p className="text-sm text-white/70">{t("practice_subtitle")}</p>
         </div>

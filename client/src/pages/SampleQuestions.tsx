@@ -4,7 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, ChevronUp, Search, BookOpen } from "lucide-react";
+import { ChevronDown, ChevronUp, Search, BookOpen, ArrowLeft } from "lucide-react";
 import { useI18n } from "@/contexts/I18nContext";
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
@@ -63,6 +63,9 @@ export default function SampleQuestions() {
       <div className="container py-6 sm:py-10 max-w-4xl relative z-10">
         {/* Header */}
         <div className="mb-8 space-y-2">
+          <Button variant="ghost" size="sm" onClick={() => window.history.back()} className="flex items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/10 -ml-2 mb-2">
+            <ArrowLeft className="size-4" />{t("btn_back")}
+          </Button>
           <div className="inline-flex items-center gap-2 bg-white/15 text-white border border-white/25 rounded-full px-4 py-1.5 text-sm font-semibold backdrop-blur-sm">
             <BookOpen className="w-4 h-4" /> {t("questions_title")}
           </div>

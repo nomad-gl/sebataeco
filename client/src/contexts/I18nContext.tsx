@@ -113,6 +113,9 @@ export const translations = {
     my_materials_open: "Open",
     my_materials_delete: "Delete",
 
+    // Common
+    btn_back: "Return",
+
     // Admin
     admin_title: "Admin Dashboard",
     admin_subtitle: "Knowledge bank statistics and coverage metrics",
@@ -727,6 +730,9 @@ export const translations = {
     my_materials_open: "Abrir",
     my_materials_delete: "Eliminar",
 
+    // Common
+    btn_back: "Volver",
+
     // Admin
     admin_title: "Panel de Administración",
     admin_subtitle: "Estadísticas del banco de conocimiento y métricas de cobertura",
@@ -1340,6 +1346,9 @@ export const translations = {
     my_materials_create: "Crear material",
     my_materials_open: "Obrir",
     my_materials_delete: "Eliminar",
+
+    // Common
+    btn_back: "Tornar",
 
     // Admin
     admin_title: "Tauler d'Administració",
