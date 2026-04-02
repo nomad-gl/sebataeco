@@ -86,6 +86,7 @@ export default function Chat() {
           .map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
         competency,
         yearGroup,
+        uiLang: lang as "en" | "es" | "ca",
       });
       const aiContent =
         typeof result.content === "string" ? result.content : String(result.content);

@@ -6,11 +6,22 @@
  *
  * State machine:
  *   idle       → wake listener running (continuous), waiting for "Clara"
- *   activating → wake detected, beep played, 500 ms pause before mic handover
+ *   activating → wake detected, beep played, 300 ms pause before mic handover
  *   recording  → input session open, waiting for teacher's question
  *
  * When the teacher finishes speaking, the transcript is passed to onTranscript
  * and the hook returns to idle automatically.
+ *
+ * Key reliability decisions:
+ * - Wake listener uses `continuous: true` with `interimResults: true` so it
+ *   never misses a word between utterances.
+ * - The speech engine lang is always a full BCP-47 tag (e.g. "en-US", "es-ES",
+ *   "ca-ES") — passing just "en" or "es" can cause silent failures on some
+ *   browsers.
+ * - scheduleWakeListenerRef is a stable ref so callbacks always call the
+ *   current version — this prevents the "second question" stale-closure bug.
+ * - Delays are kept short (300 ms handover, 400 ms restart) to minimise
+ *   perceived latency between saying "Clara" and the mic opening.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -20,7 +31,10 @@ export type WakeWordState = "idle" | "activating" | "recording";
 export type UseClaraWakeWordOptions = {
   /** Called with the final transcript when the teacher finishes speaking */
   onTranscript: (text: string) => void;
-  /** Language tag for SpeechRecognition (defaults to page lang or navigator.language) */
+  /**
+   * App language code ("en" | "es" | "ca").
+   * Mapped internally to a full BCP-47 locale for SpeechRecognition.
+   */
   lang?: string;
   /** Whether the always-on mode is enabled (default true) */
   enabled?: boolean;
@@ -32,6 +46,22 @@ const getSR = (): (new () => any) | null =>
   (window as any).webkitSpeechRecognition ||
   null;
 
+/**
+ * Map app language codes to full BCP-47 locale tags that browsers accept.
+ * Passing just "en" or "es" causes silent failures on Chrome/Safari.
+ */
+function toBCP47(lang: string | undefined): string {
+  if (!lang) return "en-US";
+  const map: Record<string, string> = {
+    en: "en-US",
+    es: "es-ES",
+    ca: "ca-ES",
+  };
+  // If already a full tag (e.g. "en-US") return as-is
+  if (lang.includes("-")) return lang;
+  return map[lang.toLowerCase()] ?? "en-US";
+}
+
 /** Play a soft low-pitched tone to signal the recording window closed with no speech */
 function playTimeoutTone(): void {
   try {
@@ -41,7 +71,6 @@ function playTimeoutTone(): void {
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.type = "sine";
-    // Low pitch (220 Hz = A3) fading out over 0.4 s — distinct from the 880 Hz activation beep
     osc.frequency.setValueAtTime(220, ctx.currentTime);
     gain.gain.setValueAtTime(0.15, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
@@ -73,7 +102,7 @@ function playBeep(): Promise<void> {
         resolve();
       };
     } catch {
-      resolve(); // audio not available — continue silently
+      resolve();
     }
   });
 }
@@ -86,7 +115,6 @@ export function useClaraWakeWord({
   const [wakeState, setWakeState] = useState<WakeWordState>("idle");
   const [permissionError, setPermissionError] = useState<string | null>(null);
 
-  // Refs so callbacks always see current values without re-creating effects
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const wakeRef = useRef<any>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -97,10 +125,10 @@ export function useClaraWakeWord({
   const langRef = useRef(lang);
 
   // scheduleWakeListener stored as a ref so all callbacks always call the
-  // current version — this is the key fix for the "second question" bug.
+  // current version — prevents the stale-closure "second question" bug.
   const scheduleWakeListenerRef = useRef<() => void>(() => {});
 
-  // Keep refs in sync
+  // Keep refs in sync with latest prop values
   useEffect(() => { enabledRef.current = enabled; }, [enabled]);
   useEffect(() => { onTranscriptRef.current = onTranscript; }, [onTranscript]);
   useEffect(() => { langRef.current = lang; }, [lang]);
@@ -134,7 +162,8 @@ export function useClaraWakeWord({
     const rec = new SR();
     rec.continuous = false;
     rec.interimResults = true;
-    rec.lang = langRef.current || document.documentElement.lang || navigator.language || "en";
+    // Use full BCP-47 locale — critical for reliable recognition
+    rec.lang = toBCP47(langRef.current);
     inputRef.current = rec;
 
     let finalTranscript = "";
@@ -160,14 +189,11 @@ export function useClaraWakeWord({
     rec.onend = () => {
       inputRef.current = null;
       if (finalTranscript.trim()) {
-        // Speech detected — send transcript
         onTranscriptRef.current(finalTranscript.trim());
       } else {
-        // No speech detected — play soft low-pitched timeout tone
         playTimeoutTone();
       }
       updateState("idle");
-      // Restart wake listener — use ref so we always call the current version
       if (enabledRef.current) scheduleWakeListenerRef.current();
     };
 
@@ -185,13 +211,14 @@ export function useClaraWakeWord({
   const startWakeListener = useCallback(() => {
     const SR = getSR();
     if (!SR || !enabledRef.current) return;
-    if (wakeStateRef.current !== "idle") return; // don't start if already active
-    if (wakeRef.current) return; // already running
+    if (wakeStateRef.current !== "idle") return;
+    if (wakeRef.current) return;
 
     const rec = new SR();
     rec.continuous = true;
     rec.interimResults = true;
-    rec.lang = langRef.current || document.documentElement.lang || navigator.language || "en";
+    // Use full BCP-47 locale — passing just "en" or "es" causes silent failures
+    rec.lang = toBCP47(langRef.current);
     wakeRef.current = rec;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -203,17 +230,16 @@ export function useClaraWakeWord({
         .join(" ")
         .toLowerCase();
 
-      if (/\bclara\b/.test(transcript)) {
-        // Wake word detected
+      // Match "clara" in any language context — also catches "klara", "clara"
+      if (/\b(clara|klara)\b/.test(transcript)) {
         updateState("activating");
-        // Stop the wake listener
         try { rec.abort(); } catch { /* ignore */ }
         wakeRef.current = null;
-        // Play beep then hand over to input session after mic release delay
+        // Reduced handover delay: beep (250 ms) + 300 ms = ~550 ms total
         playBeep().then(() => {
           setTimeout(() => {
             if (enabledRef.current) startInputSession();
-          }, 500);
+          }, 300);
         });
       }
     };
@@ -223,9 +249,8 @@ export function useClaraWakeWord({
       wakeRef.current = null;
       if (e.error === "not-allowed" || e.error === "service-not-allowed") {
         setPermissionError("Microphone access denied. Please allow microphone access in your browser settings.");
-        return; // don't retry on permission error
+        return;
       }
-      // For other errors (network, aborted), retry after a pause
       if (enabledRef.current && wakeStateRef.current === "idle") {
         scheduleWakeListenerRef.current();
       }
@@ -233,7 +258,6 @@ export function useClaraWakeWord({
 
     rec.onend = () => {
       wakeRef.current = null;
-      // Only auto-restart if still in idle state (not activating/recording)
       if (enabledRef.current && wakeStateRef.current === "idle") {
         scheduleWakeListenerRef.current();
       }
@@ -249,18 +273,15 @@ export function useClaraWakeWord({
     }
   }, [startInputSession, updateState]);
 
-  // Store scheduleWakeListener in a ref so it is always the current version
-  // This is the fix: all callbacks call scheduleWakeListenerRef.current()
-  // instead of a captured closure, so the second (and subsequent) questions work.
+  // Keep scheduleWakeListenerRef current — 400 ms restart delay (was 600 ms)
+  // to let React settle after setMessages without excessive dead time.
   useEffect(() => {
     scheduleWakeListenerRef.current = () => {
-      // Use a slightly longer delay (600 ms) to let the React render cycle
-      // settle after onTranscript triggers setMessages in the parent component.
       setTimeout(() => {
         if (enabledRef.current && wakeStateRef.current === "idle") {
           startWakeListener();
         }
-      }, 600);
+      }, 400);
     };
   }, [startWakeListener]);
 
@@ -269,7 +290,6 @@ export function useClaraWakeWord({
   useEffect(() => {
     if (enabled) {
       updateState("idle");
-      // Small delay on initial start to let the component fully mount
       const t = setTimeout(() => startWakeListener(), 200);
       return () => {
         clearTimeout(t);

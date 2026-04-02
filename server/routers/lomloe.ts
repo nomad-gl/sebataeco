@@ -98,6 +98,8 @@ export const lomloeRouter = router({
         ),
         competency: CompetencyCodeSchema.optional(),
         yearGroup: YearGroupSchema.optional(),
+        /** Active UI language — Clara must always respond in this language */
+        uiLang: z.enum(["en", "es", "ca"]).optional(),
       })
     )
     .mutation(async ({ input }) => {
@@ -153,7 +155,8 @@ Guidelines:
 3. Always reference the relevant LOMLOE competency when discussing curriculum content.
 4. When a teacher shares a challenge or frustration, acknowledge it empathetically before offering solutions.
 5. End responses with an open invitation — e.g. "Would you like me to expand on any of this?" or "Let me know if you'd like a specific activity idea!" — to keep the conversation going.
-6. Respond in the same language the teacher uses (Spanish, Catalan, or English).`;
+6. **IMPORTANT — Language rule:** Always respond in the language specified below, regardless of what language the teacher's question appears to be in. This ensures a consistent experience when voice input is used.
+   Respond in: ${input.uiLang === "es" ? "Spanish (Castilian)" : input.uiLang === "ca" ? "Catalan" : "English"}.`;
 
       const llmMessages = [
         { role: "system" as const, content: systemPrompt },
