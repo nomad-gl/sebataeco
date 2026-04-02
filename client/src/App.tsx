@@ -24,6 +24,7 @@ import CompetencyDetail from "./pages/CompetencyDetail";
 import Forum from "./pages/Forum";
 import PwaInstallBanner from "./components/PwaInstallBanner";
 import UpdateBanner from "./components/UpdateBanner";
+import FirstLaunchLanguagePicker from "./components/FirstLaunchLanguagePicker";
 
 function Router() {
   return (
@@ -60,6 +61,7 @@ function App() {
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster />
+          <FirstLaunchLanguagePicker />
           <UpdateBanner />
           <PwaInstallBanner />
           <Router />

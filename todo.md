@@ -457,3 +457,20 @@
 - [x] Add @keyframes pulse-subtle animation to client/src/index.css
 - [x] Apply animation to Download icon in Home.tsx hero button
 - [x] Apply animation to Download icon in NavBar Install App button
+
+## Feature: First-launch language picker (PWA)
+- [x] FirstLaunchLanguagePicker component: full-screen overlay with EN/ES/CA flag cards
+- [x] Show only on first PWA open (localStorage flag: seba_lang_chosen)
+- [x] On selection, set language in I18nContext and dismiss overlay
+- [x] Wire into App.tsx so it appears before any other content
+
+## Feature: Install analytics tracking
+- [x] Track Download App button click (log to console / localStorage for now)
+- [x] Listen for appinstalled browser event and log install completion
+- [x] Show a brief toast "SEBA installed successfully!" on appinstalled
+
+## Feature: What's New changelog modal on update banner
+- [x] WhatsNewModal component: modal listing latest improvements
+- [x] "See what's new" link in UpdateBanner opens the modal
+- [x] Changelog entries defined as a static array (easy to update per release)
+- [x] Modal dismisses on backdrop click or close button
