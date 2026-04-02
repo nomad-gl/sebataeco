@@ -169,7 +169,50 @@ Guidelines:
       const response = await invokeLLM({ messages: llmMessages });
       const content = response.choices?.[0]?.message?.content ?? "I'm sorry, I couldn't generate a response. Please try again.";
 
-      return { content };
+      // Generate 2–3 contextual follow-on question chips
+      const langName =
+        input.uiLang === "es" ? "Spanish (Castilian)" : input.uiLang === "ca" ? "Catalan" : "English";
+
+      let followUpQuestions: string[] = [];
+      try {
+        const followUpResponse = await invokeLLM({
+          messages: [
+            {
+              role: "system",
+              content: `You are a helpful assistant that generates short follow-on questions for a teacher using a LOMLOE curriculum assistant. Based on the conversation, suggest 2 or 3 short, natural follow-on questions the teacher might want to ask next. Each question should be concise (max 10 words), practical, and directly related to the last exchange. Respond ONLY in ${langName}. Return a JSON array of strings, nothing else.`,
+            },
+            ...llmMessages.slice(1), // conversation without system prompt
+            { role: "assistant" as const, content },
+          ],
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "follow_up_questions",
+              strict: true,
+              schema: {
+                type: "object",
+                properties: {
+                  questions: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "2 or 3 short follow-on questions",
+                  },
+                },
+                required: ["questions"],
+                additionalProperties: false,
+              },
+            },
+          },
+        });
+        const raw = followUpResponse.choices?.[0]?.message?.content ?? "{}";
+        const parsed = JSON.parse(typeof raw === "string" ? raw : JSON.stringify(raw));
+        followUpQuestions = Array.isArray(parsed.questions) ? parsed.questions.slice(0, 3) : [];
+      } catch {
+        // Follow-up chips are non-critical — silently skip on error
+        followUpQuestions = [];
+      }
+
+      return { content, followUpQuestions };
     }),
 
   translateMessages: publicProcedure

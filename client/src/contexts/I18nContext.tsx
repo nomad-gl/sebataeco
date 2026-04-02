@@ -71,6 +71,7 @@ export const translations = {
     chat_greeting: "Hello! I'm Clara, your LOMLOE Teaching Assistant. Ask me anything about Spain's curriculum competencies.",
     chat_sign_in: "Sign in to use AI Chat",
     chat_empty_state: "Hello! I'm Clara, your LOMLOE Teaching Assistant. Ask me anything about Spain's 8 curriculum competencies.",
+    chat_follow_up_label: "You might also ask:",
 
     // Progress
     progress_title: "My Progress",
@@ -688,6 +689,7 @@ export const translations = {
     chat_greeting: "¡Hola! Soy Clara, tu asistente de enseñanza LOMLOE. Pregúntame cualquier cosa sobre las competencias del currículo español.",
     chat_sign_in: "Inicia sesión para usar el Chat IA",
     chat_empty_state: "¡Hola! Soy Clara, tu asistente de enseñanza LOMLOE. Pregúntame cualquier cosa sobre las 8 competencias del currículo español.",
+    chat_follow_up_label: "También podrías preguntar:",
 
     // Progress
     progress_title: "Mi Progreso",
@@ -1305,6 +1307,7 @@ export const translations = {
     chat_greeting: "Hola! Sóc Clara, el teu assistent d'ensenyament LOMLOE. Pregunta'm qualsevol cosa sobre les competències del currículum espanyol.",
     chat_sign_in: "Inicia sessió per usar el Xat IA",
     chat_empty_state: "Hola! Sóc Clara, el teu assistent d'ensenyament LOMLOE. Pregunta'm qualsevol cosa sobre les 8 competències del currículum espanyol.",
+    chat_follow_up_label: "També podries preguntar:",
 
     // Progress
     progress_title: "El Meu Progrés",

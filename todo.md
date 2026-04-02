@@ -410,3 +410,11 @@
 ## Branding: Official SEBA Logo
 - [x] Upload SEBA1.png to CDN
 - [x] Replace NavBar text logo with official SEBA logo image
+
+## Feature: Clara follow-on question chips
+- [x] Server: lomloe.chat returns followUpQuestions string[] (2-3 chips) alongside content
+- [x] Client: Message type extended with optional followUpQuestions field
+- [x] Client: AIChatBox renders chips below each assistant bubble
+- [x] Client: Clicking a chip sends it as a new user message
+- [x] Client: Chips hidden while a response is loading
+- [x] Client: Chips translated when language is switched (via translateMessages)

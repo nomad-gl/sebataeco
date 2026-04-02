@@ -90,7 +90,15 @@ export default function Chat() {
       });
       const aiContent =
         typeof result.content === "string" ? result.content : String(result.content);
-      setMessages([...newMessages, { role: "assistant", content: aiContent, timestamp: Date.now() }]);
+      setMessages([
+        ...newMessages,
+        {
+          role: "assistant",
+          content: aiContent,
+          timestamp: Date.now(),
+          followUpQuestions: result.followUpQuestions ?? [],
+        },
+      ]);
     } catch {
       setMessages([
         ...newMessages,
@@ -186,6 +194,7 @@ export default function Chat() {
             placeholder={t("chat_placeholder")}
             emptyStateMessage={t("chat_empty_state")}
             suggestedPrompts={suggestedQuestions}
+            followUpLabel={t("chat_follow_up_label")}
             height="calc(100dvh - 220px)"
           />
         </div>

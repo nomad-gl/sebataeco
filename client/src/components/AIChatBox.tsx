@@ -14,6 +14,7 @@ export type Message = {
   role: "system" | "user" | "assistant";
   content: string;
   timestamp?: number; // UTC ms since epoch
+  followUpQuestions?: string[]; // AI-generated follow-on chips shown below assistant bubbles
 };
 
 function formatTime(ts?: number): string {
@@ -30,6 +31,8 @@ export type AIChatBoxProps = {
   height?: string | number;
   emptyStateMessage?: string;
   suggestedPrompts?: string[];
+  /** Label shown above follow-on chips, e.g. "You might also ask:" */
+  followUpLabel?: string;
 };
 
 export function AIChatBox({
@@ -41,6 +44,7 @@ export function AIChatBox({
   height = "600px",
   emptyStateMessage = "Start a conversation with AI",
   suggestedPrompts,
+  followUpLabel = "You might also ask:",
 }: AIChatBoxProps) {
   const [input, setInput] = useState("");
   const [isRecording, setIsRecording] = useState(false);
@@ -330,6 +334,28 @@ export function AIChatBox({
                           {formatTime(message.timestamp)}
                         </span>
                       )}
+                      {/* Follow-on question chips — only on the last assistant message, not while loading */}
+                      {message.role === "assistant" &&
+                        isLastMessage &&
+                        !isLoading &&
+                        message.followUpQuestions &&
+                        message.followUpQuestions.length > 0 && (
+                          <div className="mt-2 flex flex-col gap-1.5">
+                            <span className="text-[10px] text-white/40 px-1 select-none">{followUpLabel}</span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {message.followUpQuestions.map((q, qi) => (
+                                <button
+                                  key={qi}
+                                  onClick={() => onSendMessage(q)}
+                                  disabled={isLoading}
+                                  className="rounded-full border border-white/25 bg-white/10 text-white/80 px-3 py-1 text-xs transition-colors hover:bg-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  {q}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                     </div>
                     {message.role === "user" && (
                       <div className="size-8 shrink-0 mt-1 rounded-full bg-secondary flex items-center justify-center">
