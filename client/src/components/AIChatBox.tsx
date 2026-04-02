@@ -152,6 +152,29 @@ export function AIChatBox({
   // ─── Display helpers ─────────────────────────────────────────────────────────
 
   const displayMessages = messages.filter((msg) => msg.role !== "system");
+
+  // Typing indicator — three dots that pulse sequentially
+  const TypingIndicator = () => (
+    <div className="flex gap-3 justify-start items-start">
+      <div className="size-8 shrink-0 mt-1 rounded-full bg-primary/10 flex items-center justify-center">
+        <Sparkles className="size-4 text-primary animate-pulse" />
+      </div>
+      <div className="rounded-lg px-4 py-3 bg-white/15 text-white flex items-center gap-1.5">
+        <span
+          className="size-2 rounded-full bg-white/60 animate-bounce"
+          style={{ animationDelay: "0ms", animationDuration: "900ms" }}
+        />
+        <span
+          className="size-2 rounded-full bg-white/60 animate-bounce"
+          style={{ animationDelay: "180ms", animationDuration: "900ms" }}
+        />
+        <span
+          className="size-2 rounded-full bg-white/60 animate-bounce"
+          style={{ animationDelay: "360ms", animationDuration: "900ms" }}
+        />
+      </div>
+    </div>
+  );
   const [minHeightForLastMessage, setMinHeightForLastMessage] = useState(0);
 
   useEffect(() => {
@@ -317,23 +340,7 @@ export function AIChatBox({
                 );
               })}
 
-              {isLoading && (
-                <div
-                  className="flex items-start gap-3"
-                  style={
-                    minHeightForLastMessage > 0
-                      ? { minHeight: `${minHeightForLastMessage}px` }
-                      : undefined
-                  }
-                >
-                  <div className="size-8 shrink-0 mt-1 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Sparkles className="size-4 text-primary" />
-                  </div>
-                  <div className="rounded-lg bg-white/15 px-4 py-2.5">
-                    <Loader2 className="size-4 animate-spin text-white/70" />
-                  </div>
-                </div>
-              )}
+              {isLoading && <TypingIndicator />}
             </div>
           </ScrollArea>
         )}
