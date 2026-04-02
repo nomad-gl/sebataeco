@@ -32,6 +32,27 @@ const getSR = (): (new () => any) | null =>
   (window as any).webkitSpeechRecognition ||
   null;
 
+/** Play a soft low-pitched tone to signal the recording window closed with no speech */
+function playTimeoutTone(): void {
+  try {
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = "sine";
+    // Low pitch (220 Hz = A3) fading out over 0.4 s — distinct from the 880 Hz activation beep
+    osc.frequency.setValueAtTime(220, ctx.currentTime);
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.4);
+    osc.onended = () => ctx.close();
+  } catch {
+    // audio not available — continue silently
+  }
+}
+
 /** Play a short confirmation beep via Web Audio API */
 function playBeep(): Promise<void> {
   return new Promise((resolve) => {
@@ -138,9 +159,12 @@ export function useClaraWakeWord({
 
     rec.onend = () => {
       inputRef.current = null;
-      // Send transcript if we have one
       if (finalTranscript.trim()) {
+        // Speech detected — send transcript
         onTranscriptRef.current(finalTranscript.trim());
+      } else {
+        // No speech detected — play soft low-pitched timeout tone
+        playTimeoutTone();
       }
       updateState("idle");
       // Restart wake listener — use ref so we always call the current version
