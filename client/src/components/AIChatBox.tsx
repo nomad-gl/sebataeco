@@ -2,9 +2,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Loader2, Send, User, Sparkles, Mic, MicOff } from "lucide-react";
+import { Loader2, Send, User, Sparkles, Mic, MicOff, Radio } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Streamdown } from "streamdown";
+import { useClaraWakeWord } from "@/hooks/useClaraWakeWord";
 
 /**
  * Message type matching server-side LLM Message interface
@@ -38,6 +39,8 @@ export function AIChatBox({
   const [input, setInput] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [alwaysOnEnabled, setAlwaysOnEnabled] = useState(true);
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -45,7 +48,25 @@ export function AIChatBox({
   const inputAreaRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // ─── Voice input (manual mic button) ────────────────────────────────────────
+  // ─── Always-on wake-word (independent of manual mic) ────────────────────────
+
+  const handleWakeTranscript = useCallback((text: string) => {
+    // Auto-send the transcript directly — no need to put it in the input box
+    onSendMessage(text);
+  }, [onSendMessage]);
+
+  const { wakeState, permissionError: wakePermissionError } = useClaraWakeWord({
+    onTranscript: handleWakeTranscript,
+    enabled: alwaysOnEnabled,
+    lang: document.documentElement.lang || navigator.language || "en",
+  });
+
+  // Show wake-word permission errors in the voice error area
+  useEffect(() => {
+    if (wakePermissionError) setVoiceError(wakePermissionError);
+  }, [wakePermissionError]);
+
+  // ─── Manual mic button (independent of wake-word) ───────────────────────────
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const getSR = (): (new () => any) | null => {
@@ -173,6 +194,17 @@ export function AIChatBox({
     }
   };
 
+  // ─── Wake-word status label ──────────────────────────────────────────────────
+
+  const wakeLabel =
+    wakeState === "recording"
+      ? "Clara is listening…"
+      : wakeState === "activating"
+      ? "Clara activated!"
+      : alwaysOnEnabled
+      ? "Say 'Clara' to activate"
+      : null;
+
   return (
     <div
       ref={containerRef}
@@ -281,6 +313,32 @@ export function AIChatBox({
         )}
       </div>
 
+      {/* Wake-word status bar */}
+      {wakeLabel && (
+        <div
+          className={cn(
+            "px-4 py-1 text-xs flex items-center gap-1.5 border-t border-white/10",
+            wakeState === "recording"
+              ? "text-green-300 bg-green-500/10"
+              : wakeState === "activating"
+              ? "text-yellow-300 bg-yellow-500/10"
+              : "text-white/40 bg-transparent"
+          )}
+        >
+          <span
+            className={cn(
+              "inline-block size-1.5 rounded-full",
+              wakeState === "recording"
+                ? "bg-green-400 animate-pulse"
+                : wakeState === "activating"
+                ? "bg-yellow-400 animate-ping"
+                : "bg-white/30"
+            )}
+          />
+          {wakeLabel}
+        </div>
+      )}
+
       {/* Input Area */}
       <form
         ref={inputAreaRef}
@@ -293,10 +351,16 @@ export function AIChatBox({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isRecording ? "Listening…" : placeholder}
+            placeholder={
+              wakeState === "recording"
+                ? "Clara is listening…"
+                : isRecording
+                ? "Listening…"
+                : placeholder
+            }
             className={cn(
               "flex-1 max-h-32 resize-none min-h-9 bg-white/10 border-white/25 text-white placeholder:text-white/40 focus-visible:ring-white/30",
-              isRecording && "border-red-400/60 bg-red-500/10"
+              (isRecording || wakeState === "recording") && "border-red-400/60 bg-red-500/10"
             )}
             rows={1}
           />
@@ -305,7 +369,24 @@ export function AIChatBox({
           )}
         </div>
 
-        {/* Mic button */}
+        {/* Always-on toggle (Radio icon) */}
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          onClick={() => setAlwaysOnEnabled((v) => !v)}
+          title={alwaysOnEnabled ? "Always-on: ON — click to disable" : "Always-on: OFF — click to enable"}
+          className={cn(
+            "shrink-0 h-[38px] w-[38px]",
+            alwaysOnEnabled
+              ? "text-green-400 hover:text-green-300 hover:bg-green-500/10"
+              : "text-white/40 hover:text-white hover:bg-white/15"
+          )}
+        >
+          <Radio className={cn("size-4", alwaysOnEnabled && wakeState === "idle" && "animate-pulse")} />
+        </Button>
+
+        {/* Manual mic button */}
         <Button
           type="button"
           size="icon"
