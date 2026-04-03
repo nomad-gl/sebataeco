@@ -547,3 +547,8 @@
 - [x] getLoginUrl() updated to accept optional returnPath, encoded as JSON in the base64 state parameter
 - [x] OAuth callback (/api/oauth/callback) now decodes returnPath from state and redirects there instead of always going to /
 - [x] All sign-in buttons/links across Create, Admin, Challenge, GroupProgress, Groups, MyMaterials, Presentation, Progress, StudentProgress, DashboardLayout, and main.tsx updated to pass current path as returnPath
+
+## Bug: Practice mode correct answer misalignment
+- [x] Root cause: 68.8% of knowledge bank questions had correctIndex=1 (AI always placed correct answer in position 1 when generating questions)
+- [x] Fix: added shuffleQuestion() helper in lomloe router that shuffles options array and recalculates correctIndex to match the new position of the correct answer
+- [x] Applied to both getRandomQuestion (Practice mode) and getQuestions (Challenge, SampleQuestions) so all question consumers benefit

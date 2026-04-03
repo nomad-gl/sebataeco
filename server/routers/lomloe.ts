@@ -14,6 +14,19 @@ import { getClaraProfile, upsertClaraProfile, rateMessage, getUserRatings } from
 const CompetencyCodeSchema = z.enum(["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"]);
 const YearGroupSchema = z.enum(["junior", "primary", "secondary"]);
 
+/**
+ * Returns a copy of the question with its options shuffled into a random order
+ * and correctIndex updated to match the new position of the correct answer.
+ * This prevents students from noticing that the correct answer is almost always
+ * at index 1 in the raw knowledge bank data.
+ */
+function shuffleQuestion<T extends { options: string[]; correctIndex: number }>(q: T): T {
+  const correctAnswer = q.options[q.correctIndex];
+  const shuffled = [...q.options].sort(() => Math.random() - 0.5);
+  const newCorrectIndex = shuffled.indexOf(correctAnswer);
+  return { ...q, options: shuffled, correctIndex: newCorrectIndex };
+}
+
 // ─── Profile update helper (runs async, never blocks the response) ────────────
 
 /**
@@ -227,7 +240,9 @@ export const lomloeRouter = router({
       if (input.shuffle) {
         questions = [...questions].sort(() => Math.random() - 0.5);
       }
-      return questions.slice(0, input.limit);
+      // Always shuffle options within each question so the correct answer
+      // is not predictably at the same position across all questions.
+      return questions.slice(0, input.limit).map(shuffleQuestion);
     }),
 
   /** Get a single random question for practice */
@@ -248,7 +263,8 @@ export const lomloeRouter = router({
         pool = pool.filter((q) => !input.excludeIds.includes(q.id));
       }
       if (pool.length === 0) return null;
-      return pool[Math.floor(Math.random() * pool.length)];
+      const q = pool[Math.floor(Math.random() * pool.length)];
+      return shuffleQuestion(q);
     }),
 
   /** Get knowledge bank coverage statistics */
