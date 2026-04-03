@@ -35,6 +35,7 @@ export default function Practice() {
   const SESSION_SIZE = 10;
 
   const saveSession = trpc.materials.saveSession.useMutation();
+  const saveAnswer = trpc.lomloe.saveAnswer.useMutation();
 
   const { data: question, refetch: fetchNext, isFetching } = trpc.lomloe.getRandomQuestion.useQuery(
     { competency, yearGroup, excludeIds: answeredIds },
@@ -62,6 +63,13 @@ export default function Practice() {
     const correct = selectedOption === question.correctIndex;
     if (correct) setScore((s) => s + 1);
     setTotal((prev) => prev + 1);
+    // Fire-and-forget: record this answer for per-question analytics
+    saveAnswer.mutate({
+      questionId: question.id,
+      competency: question.competency,
+      yearGroup: question.yearGroup ?? "secondary",
+      isCorrect: correct,
+    });
   };
 
   const handleNext = useCallback(async () => {

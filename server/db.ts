@@ -1,6 +1,6 @@
 import { eq, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, InsertPracticeSession, InsertTeachingMaterial, users, practiceSessions, teachingMaterials, classChallenges, challengeParticipants, claraUserProfiles, claraMessageRatings, type ClaraUserProfile } from "../drizzle/schema";
+import { InsertUser, InsertPracticeSession, InsertTeachingMaterial, users, practiceSessions, teachingMaterials, classChallenges, challengeParticipants, claraUserProfiles, claraMessageRatings, questionAnswers, type ClaraUserProfile } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -367,6 +367,80 @@ export async function getUserRatings(userId: number, limit = 20) {
       .orderBy(desc(claraMessageRatings.updatedAt))
       .limit(limit);
   } catch {
+    return [];
+  }
+}
+
+/**
+ * Record a single question answer attempt for analytics.
+ * Fire-and-forget safe — errors are swallowed so they never block the UI.
+ */
+export async function saveQuestionAnswer(data: {
+  questionId: string;
+  competency: string;
+  yearGroup: string;
+  isCorrect: boolean;
+  userId?: number | null;
+}): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db.insert(questionAnswers).values({
+      questionId: data.questionId,
+      competency: data.competency,
+      yearGroup: data.yearGroup,
+      isCorrect: data.isCorrect,
+      userId: data.userId ?? null,
+    });
+  } catch (err) {
+    console.warn("[DB] saveQuestionAnswer failed:", err);
+  }
+}
+
+/**
+ * Aggregate per-question analytics for the Admin dashboard.
+ * Returns up to `limit` questions sorted by ascending correct rate
+ * (hardest first), with total attempts and correct count.
+ */
+export async function getQuestionAnalytics(limit = 50): Promise<Array<{
+  questionId: string;
+  competency: string;
+  yearGroup: string;
+  total: number;
+  correct: number;
+  correctRate: number;
+}>> {
+  const db = await getDb();
+  if (!db) return [];
+  try {
+    const { sql, count, sum } = await import("drizzle-orm");
+    const rows = await db
+      .select({
+        questionId: questionAnswers.questionId,
+        competency: questionAnswers.competency,
+        yearGroup: questionAnswers.yearGroup,
+        total: count(questionAnswers.id),
+        correct: sum(sql<number>`CASE WHEN ${questionAnswers.isCorrect} = 1 THEN 1 ELSE 0 END`),
+      })
+      .from(questionAnswers)
+      .groupBy(questionAnswers.questionId, questionAnswers.competency, questionAnswers.yearGroup)
+      .orderBy(sql`SUM(CASE WHEN ${questionAnswers.isCorrect} = 1 THEN 1 ELSE 0 END) / COUNT(*) ASC`)
+      .limit(limit);
+
+    return rows.map((r) => {
+      const total = Number(r.total) || 0;
+      const correct = Number(r.correct) || 0;
+      return {
+        questionId: r.questionId,
+        competency: r.competency,
+        yearGroup: r.yearGroup,
+        total,
+        correct,
+        correctRate: total > 0 ? Math.round((correct / total) * 100) : 0,
+      };
+    });
+  } catch (err) {
+    console.warn("[DB] getQuestionAnalytics failed:", err);
     return [];
   }
 }

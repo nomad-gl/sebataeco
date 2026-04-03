@@ -552,3 +552,15 @@
 - [x] Root cause: 68.8% of knowledge bank questions had correctIndex=1 (AI always placed correct answer in position 1 when generating questions)
 - [x] Fix: added shuffleQuestion() helper in lomloe router that shuffles options array and recalculates correctIndex to match the new position of the correct answer
 - [x] Applied to both getRandomQuestion (Practice mode) and getQuestions (Challenge, SampleQuestions) so all question consumers benefit
+
+## Feature: Balanced knowledge bank answer distribution
+- [x] Regenerated all 96 questions so correct answers are distributed evenly: 24 per position (0/1/2/3)
+- [x] Each question's explanation updated to match the correct answer text at its new position
+- [x] All correctIndex values verified valid (0-3), no out-of-range entries
+
+## Feature: Per-question analytics in Admin dashboard
+- [x] Added question_answers DB table (questionId, isCorrect, competency, yearGroup, userId, createdAt)
+- [x] Added saveAnswer tRPC mutation (public) called from Practice page on each answer reveal
+- [x] Added getQuestionAnalytics admin procedure returning per-question correct/incorrect counts sorted hardest first
+- [x] Added Question Difficulty Analytics section to Admin dashboard showing top 20 most-missed questions
+- [x] Shows question ID, competency badge, year group, total attempts, % correct with colour-coded bar (red/amber/green)

@@ -26,6 +26,10 @@ export default function Admin() {
     enabled: !!user && user.role === "admin",
     refetchInterval: 60_000,
   });
+  const { data: questionAnalytics } = trpc.lomloe.getQuestionAnalytics.useQuery(undefined, {
+    enabled: !!user && user.role === "admin",
+    refetchInterval: 120_000,
+  });
 
   const COMP_COLORS: Record<string, string> = {
     CCL: "#3b82f6", CP: "#8b5cf6", STEM: "#10b981", CD: "#f59e0b",
@@ -406,6 +410,72 @@ export default function Admin() {
                   </span>
                 </div>
               ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Per-question analytics */}
+        {questionAnalytics && questionAnalytics.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-orange-500" />
+                Question Difficulty Analytics
+                <span className="ml-auto text-xs text-muted-foreground font-normal">
+                  {questionAnalytics.length} questions tracked · sorted hardest first
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left py-2 pr-3 text-muted-foreground font-medium text-xs">Question ID</th>
+                      <th className="text-left py-2 pr-3 text-muted-foreground font-medium text-xs">Competency</th>
+                      <th className="text-left py-2 pr-3 text-muted-foreground font-medium text-xs">Year Group</th>
+                      <th className="text-right py-2 pr-3 text-muted-foreground font-medium text-xs">Attempts</th>
+                      <th className="text-left py-2 text-muted-foreground font-medium text-xs">Correct Rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {questionAnalytics.slice(0, 20).map((row) => {
+                      const pct = row.correctRate;
+                      const barColor = pct < 40 ? "#ef4444" : pct < 70 ? "#f59e0b" : "#22c55e";
+                      return (
+                        <tr key={row.questionId} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                          <td className="py-2 pr-3">
+                            <code className="text-xs bg-secondary px-1.5 py-0.5 rounded font-mono text-foreground">{row.questionId}</code>
+                          </td>
+                          <td className="py-2 pr-3">
+                            <span className={cn("badge-" + row.competency)}>{row.competency}</span>
+                          </td>
+                          <td className="py-2 pr-3 capitalize text-muted-foreground text-xs">{row.yearGroup}</td>
+                          <td className="py-2 pr-3 text-right text-foreground font-medium">{row.total}</td>
+                          <td className="py-2">
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 h-2 rounded-full bg-secondary overflow-hidden min-w-[60px]">
+                                <div
+                                  className="h-full rounded-full transition-all"
+                                  style={{ width: `${pct}%`, backgroundColor: barColor }}
+                                />
+                              </div>
+                              <span className="text-xs font-semibold w-9 text-right" style={{ color: barColor }}>
+                                {pct}%
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {questionAnalytics.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-6">
+                    No practice answers recorded yet. Data will appear after students complete practice sessions.
+                  </p>
+                )}
+              </div>
             </CardContent>
           </Card>
         )}

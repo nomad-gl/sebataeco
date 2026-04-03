@@ -367,3 +367,25 @@ export const claraMessageRatings = mysqlTable("clara_message_ratings", {
 
 export type ClaraMessageRating = typeof claraMessageRatings.$inferSelect;
 export type InsertClaraMessageRating = typeof claraMessageRatings.$inferInsert;
+
+/**
+ * Question answers — one row per question attempt in Practice mode.
+ * Used to compute per-question difficulty analytics in the Admin dashboard.
+ */
+export const questionAnswers = mysqlTable("question_answers", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Knowledge bank question ID, e.g. 'q001' */
+  questionId: varchar("questionId", { length: 16 }).notNull(),
+  /** Competency code for quick filtering */
+  competency: varchar("competency", { length: 16 }).notNull(),
+  /** Year group for quick filtering */
+  yearGroup: varchar("yearGroup", { length: 16 }).notNull(),
+  /** Whether the user selected the correct answer */
+  isCorrect: boolean("isCorrect").notNull(),
+  /** Logged-in user ID, null for anonymous practice */
+  userId: int("userId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type QuestionAnswer = typeof questionAnswers.$inferSelect;
+export type InsertQuestionAnswer = typeof questionAnswers.$inferInsert;

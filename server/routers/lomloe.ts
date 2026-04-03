@@ -9,7 +9,7 @@ import {
   type YearGroup,
 } from "../knowledge/lomloeKnowledgeBank";
 import { invokeLLM } from "../_core/llm";
-import { getClaraProfile, upsertClaraProfile, rateMessage, getUserRatings } from "../db";
+import { getClaraProfile, upsertClaraProfile, rateMessage, getUserRatings, saveQuestionAnswer, getQuestionAnalytics } from "../db";
 
 const CompetencyCodeSchema = z.enum(["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"]);
 const YearGroupSchema = z.enum(["junior", "primary", "secondary"]);
@@ -555,4 +555,33 @@ Guidelines:
 
       return { messages: translated };
     }),
+
+  /** Record a single question answer attempt for analytics (fire-and-forget) */
+  saveAnswer: publicProcedure
+    .input(
+      z.object({
+        questionId: z.string(),
+        competency: z.string(),
+        yearGroup: z.string(),
+        isCorrect: z.boolean(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      await saveQuestionAnswer({
+        questionId: input.questionId,
+        competency: input.competency,
+        yearGroup: input.yearGroup,
+        isCorrect: input.isCorrect,
+        userId: ctx.user?.id ?? null,
+      });
+      return { ok: true };
+    }),
+
+  /** Admin: per-question analytics sorted by hardest first */
+  getQuestionAnalytics: protectedProcedure.query(async ({ ctx }) => {
+    if (ctx.user.role !== "admin") {
+      throw new (await import("@trpc/server")).TRPCError({ code: "FORBIDDEN" });
+    }
+    return getQuestionAnalytics(100);
+  }),
 });

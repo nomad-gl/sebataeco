@@ -255,3 +255,72 @@ describe("Clara adaptive profile helpers", () => {
     }
   });
 });
+
+// ─── Balanced correctIndex distribution tests ─────────────────────────────────
+
+describe("lomloeKnowledgeBank correctIndex distribution", () => {
+  it("has correctIndex values distributed across all 4 positions", () => {
+    const counts = [0, 0, 0, 0];
+    for (const q of LOMLOE_QUESTIONS) {
+      counts[q.correctIndex]++;
+    }
+    // Each position should have at least 10% of questions (not all bunched at one index)
+    const minExpected = Math.floor(LOMLOE_QUESTIONS.length * 0.1);
+    for (let i = 0; i < 4; i++) {
+      expect(counts[i]).toBeGreaterThanOrEqual(minExpected);
+    }
+  });
+
+  it("no single correctIndex position has more than 40% of all questions", () => {
+    const counts = [0, 0, 0, 0];
+    for (const q of LOMLOE_QUESTIONS) {
+      counts[q.correctIndex]++;
+    }
+    const maxAllowed = Math.ceil(LOMLOE_QUESTIONS.length * 0.4);
+    for (let i = 0; i < 4; i++) {
+      expect(counts[i]).toBeLessThanOrEqual(maxAllowed);
+    }
+  });
+
+  it("getRandomQuestion returns shuffled options with valid correctIndex", async () => {
+    const caller = appRouter.createCaller(createCtx());
+    // Run 10 times to verify shuffling doesn't break correctIndex
+    for (let i = 0; i < 10; i++) {
+      const result = await caller.lomloe.getRandomQuestion({});
+      expect(result).not.toBeNull();
+      if (result) {
+        expect(result.correctIndex).toBeGreaterThanOrEqual(0);
+        expect(result.correctIndex).toBeLessThan(result.options.length);
+        // The correct answer text should appear in the explanation
+        const correctText = result.options[result.correctIndex];
+        expect(result.explanation).toContain(correctText);
+      }
+    }
+  });
+});
+
+// ─── saveAnswer procedure tests ───────────────────────────────────────────────
+
+describe("lomloe.saveAnswer", () => {
+  it("saveAnswer accepts a valid answer and returns ok:true", async () => {
+    const caller = appRouter.createCaller(createCtx());
+    const result = await caller.lomloe.saveAnswer({
+      questionId: "q001",
+      competency: "CCL",
+      yearGroup: "secondary",
+      isCorrect: true,
+    });
+    expect(result).toEqual({ ok: true });
+  });
+
+  it("saveAnswer works for incorrect answers too", async () => {
+    const caller = appRouter.createCaller(createCtx());
+    const result = await caller.lomloe.saveAnswer({
+      questionId: "q002",
+      competency: "CCL",
+      yearGroup: "secondary",
+      isCorrect: false,
+    });
+    expect(result).toEqual({ ok: true });
+  });
+});
