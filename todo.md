@@ -597,3 +597,10 @@
 ## Bug: "Generate 30 Questions Now" button fails on Admin page
 - [x] Root cause: questionGenerator.ts was writing to TypeScript source file on disk — fails on production read-only filesystem
 - [x] Fix: rewrote to save questions to generated_questions DB table instead — works in all environments
+
+## Feature: Show approved DB questions in Question Library
+- [x] Updated lomloe.getQuestions to merge approved generated_questions from DB with static knowledge bank (async, filters applied to both sources)
+- [x] Updated lomloe.getStats to include DB-approved question counts in totals (totalQuestions ≥ 240)
+- [x] Question Library page shows merged total automatically via filtered.length (no frontend change needed)
+- [x] Filters (competency, year group) applied to both static and DB questions via Drizzle WHERE conditions
+- [x] Updated tests to expect totalQuestions ≥ 240 and handle DB-merged pool correctly — 55/55 passing

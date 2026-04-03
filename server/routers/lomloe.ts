@@ -14,7 +14,7 @@ import { invokeLLM } from "../_core/llm";
 import { getClaraProfile, upsertClaraProfile, rateMessage, getUserRatings, saveQuestionAnswer, getQuestionAnalytics, getPendingQuestions, reviewQuestion } from "../db";
 import { getDb } from "../db";
 import { generatedQuestions } from "../../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 const CompetencyCodeSchema = z.enum(["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"]);
 const YearGroupSchema = z.enum(["junior", "primary", "secondary"]);
@@ -227,30 +227,59 @@ export const lomloeRouter = router({
     return Object.values(COMPETENCY_META);
   }),
 
-  /** Get questions filtered by competency and/or year group */
+  /** Get questions filtered by competency and/or year group — includes approved DB-generated questions */
   getQuestions: publicProcedure
     .input(
       z.object({
         competency: CompetencyCodeSchema.optional(),
         yearGroup: YearGroupSchema.optional(),
-        limit: z.number().min(1).max(200).default(200),
+        limit: z.number().min(1).max(500).default(500),
         shuffle: z.boolean().default(false),
       })
     )
-    .query(({ input }) => {
-      let questions = getQuestions(
+    .query(async ({ input }) => {
+      // 1. Static knowledge bank questions
+      let staticQs = getQuestions(
         input.competency as CompetencyCode | undefined,
         input.yearGroup as YearGroup | undefined
       );
+
+      // 2. Approved DB-generated questions
+      const db = await getDb();
+      let dbQs: typeof staticQs = [];
+      if (db) {
+        try {
+          const conditions = [eq(generatedQuestions.status, "approved")];
+          if (input.competency) conditions.push(eq(generatedQuestions.competency, input.competency));
+          if (input.yearGroup) conditions.push(eq(generatedQuestions.yearGroup, input.yearGroup));
+          const rows = await db
+            .select()
+            .from(generatedQuestions)
+            .where(conditions.length === 1 ? conditions[0] : and(...conditions));
+          dbQs = rows.map((r) => ({
+            id: r.questionId,
+            competency: r.competency as CompetencyCode,
+            yearGroup: r.yearGroup as YearGroup,
+            question: r.question,
+            options: JSON.parse(r.options) as string[],
+            correctIndex: r.correctIndex,
+            explanation: r.explanation,
+          }));
+        } catch (err) {
+          console.error("[getQuestions] DB merge error:", err);
+        }
+      }
+
+      let questions = [...staticQs, ...dbQs];
       if (input.shuffle) {
-        questions = [...questions].sort(() => Math.random() - 0.5);
+        questions = questions.sort(() => Math.random() - 0.5);
       }
       // Always shuffle options within each question so the correct answer
       // is not predictably at the same position across all questions.
       return questions.slice(0, input.limit).map(shuffleQuestion);
     }),
 
-  /** Get a single random question for practice */
+  /** Get a single random question for practice — includes approved DB-generated questions */
   getRandomQuestion: publicProcedure
     .input(
       z.object({
@@ -259,11 +288,39 @@ export const lomloeRouter = router({
         excludeIds: z.array(z.string()).default([]),
       })
     )
-    .query(({ input }) => {
+    .query(async ({ input }) => {
+      // 1. Static pool
       let pool = getQuestions(
         input.competency as CompetencyCode | undefined,
         input.yearGroup as YearGroup | undefined
       );
+
+      // 2. Merge approved DB questions
+      const db = await getDb();
+      if (db) {
+        try {
+          const conditions = [eq(generatedQuestions.status, "approved")];
+          if (input.competency) conditions.push(eq(generatedQuestions.competency, input.competency));
+          if (input.yearGroup) conditions.push(eq(generatedQuestions.yearGroup, input.yearGroup));
+          const rows = await db
+            .select()
+            .from(generatedQuestions)
+            .where(conditions.length === 1 ? conditions[0] : and(...conditions));
+          const dbQs = rows.map((r) => ({
+            id: r.questionId,
+            competency: r.competency as CompetencyCode,
+            yearGroup: r.yearGroup as YearGroup,
+            question: r.question,
+            options: JSON.parse(r.options) as string[],
+            correctIndex: r.correctIndex,
+            explanation: r.explanation,
+          }));
+          pool = [...pool, ...dbQs];
+        } catch (err) {
+          console.error("[getRandomQuestion] DB merge error:", err);
+        }
+      }
+
       if (input.excludeIds.length > 0) {
         pool = pool.filter((q) => !input.excludeIds.includes(q.id));
       }
@@ -272,21 +329,38 @@ export const lomloeRouter = router({
       return shuffleQuestion(q);
     }),
 
-  /** Get knowledge bank coverage statistics */
-  getStats: publicProcedure.query(() => {
+  /** Get knowledge bank coverage statistics — includes approved DB-generated questions */
+  getStats: publicProcedure.query(async () => {
     const stats = getCoverageStats();
-    const total = LOMLOE_QUESTIONS.length;
+    let total = LOMLOE_QUESTIONS.length;
     const competencies = Object.keys(COMPETENCY_META).length;
     const yearGroups = ["junior", "primary", "secondary"];
+
+    // Merge DB approved counts into breakdown
+    const dbCounts: Record<string, Record<string, number>> = {};
+    const db = await getDb();
+    if (db) {
+      try {
+        const rows = await db
+          .select()
+          .from(generatedQuestions)
+          .where(eq(generatedQuestions.status, "approved"));
+        for (const r of rows) {
+          if (!dbCounts[r.competency]) dbCounts[r.competency] = {};
+          dbCounts[r.competency][r.yearGroup] = (dbCounts[r.competency][r.yearGroup] ?? 0) + 1;
+          total++;
+        }
+      } catch {}
+    }
 
     const breakdown = Object.entries(stats).map(([code, yearData]) => ({
       code,
       name: COMPETENCY_META[code as CompetencyCode]?.name ?? code,
       emoji: COMPETENCY_META[code as CompetencyCode]?.emoji ?? "",
-      total: Object.values(yearData).reduce((a, b) => a + b, 0),
-      junior: yearData["junior"] ?? 0,
-      primary: yearData["primary"] ?? 0,
-      secondary: yearData["secondary"] ?? 0,
+      total: Object.values(yearData).reduce((a, b) => a + b, 0) + Object.values(dbCounts[code] ?? {}).reduce((a, b) => a + b, 0),
+      junior: (yearData["junior"] ?? 0) + (dbCounts[code]?.["junior"] ?? 0),
+      primary: (yearData["primary"] ?? 0) + (dbCounts[code]?.["primary"] ?? 0),
+      secondary: (yearData["secondary"] ?? 0) + (dbCounts[code]?.["secondary"] ?? 0),
     }));
 
     return {
