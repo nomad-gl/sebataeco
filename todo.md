@@ -574,3 +574,10 @@
 - [x] Correct answer positions balanced evenly: 60 per position (0/1/2/3)
 - [x] All questions aligned to LOMLOE curriculum standards
 - [x] Updated lomloe.test.ts to expect 240 questions — 55/55 tests passing
+
+## Feature: Weekly automatic question generation
+- [x] Built server/questionGenerator.ts with generateAndAppendQuestions() — calls LLM in batches per (competency, yearGroup), balances correctIndex, appends to lomloeKnowledgeBank.ts
+- [x] Added lomloe.generateNewQuestions admin tRPC mutation (count: 1-100, default 30)
+- [x] Scheduled weekly cron every Monday at 04:00 via Manus scheduler
+- [x] Owner notified via notifyOwner() after each run with added count and per-competency breakdown
+- [x] Added "Generate 30 Questions Now" button to Admin dashboard with loading/success/error states

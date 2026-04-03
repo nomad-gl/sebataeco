@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
+import { generateAndAppendQuestions } from "../questionGenerator";
+import { notifyOwner } from "../_core/notification";
 import {
   getQuestions,
   getCoverageStats,
@@ -584,4 +586,30 @@ Guidelines:
     }
     return getQuestionAnalytics(100);
   }),
+
+  /**
+   * Admin: generate new LOMLOE questions and append them to the knowledge bank.
+   * Also used by the weekly scheduled task.
+   */
+  generateNewQuestions: protectedProcedure
+    .input(
+      z.object({
+        count: z.number().min(1).max(100).default(30),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (ctx.user.role !== "admin") {
+        throw new (await import("@trpc/server")).TRPCError({ code: "FORBIDDEN" });
+      }
+      const result = await generateAndAppendQuestions(input.count);
+      // Notify the owner with a summary
+      const breakdownText = Object.entries(result.breakdown)
+        .map(([code, n]) => `${code}: +${n}`)
+        .join(", ");
+      await notifyOwner({
+        title: `SEBA: ${result.added} new questions added to knowledge bank`,
+        content: `Weekly question generation completed.\n\nAdded: ${result.added} questions\nBreakdown: ${breakdownText}\nNew total: ${result.newTotal} questions`,
+      }).catch(() => {});
+      return result;
+    }),
 });
