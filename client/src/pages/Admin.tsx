@@ -11,10 +11,39 @@ import { getLoginUrl } from "@/const";
 import { useI18n } from "@/contexts/I18nContext";
 
 const YEAR_GROUPS = ["junior", "primary", "secondary"] as const;
+const ADMIN_PIN = "2024";
 
 export default function Admin() {
   const { t } = useI18n();
   const { user, loading } = useAuth();
+
+  // PIN gate state — persisted in sessionStorage so re-entry is not needed on refresh
+  const [pinUnlocked, setPinUnlocked] = React.useState(() => {
+    try { return sessionStorage.getItem("admin_pin_unlocked") === "1"; } catch { return false; }
+  });
+  const [pinInput, setPinInput] = React.useState("");
+  const [pinError, setPinError] = React.useState(false);
+
+  const handlePinDigit = (digit: string) => {
+    if (pinInput.length >= 4) return;
+    const next = pinInput + digit;
+    setPinInput(next);
+    setPinError(false);
+    if (next.length === 4) {
+      if (next === ADMIN_PIN) {
+        try { sessionStorage.setItem("admin_pin_unlocked", "1"); } catch {}
+        setPinUnlocked(true);
+      } else {
+        setPinError(true);
+        setTimeout(() => setPinInput(""), 600);
+      }
+    }
+  };
+
+  const handlePinBackspace = () => {
+    setPinInput((p) => p.slice(0, -1));
+    setPinError(false);
+  };
   const { data: stats, isLoading: statsLoading } = trpc.lomloe.getStats.useQuery(undefined, {
     enabled: !!user && user.role === "admin",
   });
@@ -39,8 +68,17 @@ export default function Admin() {
     onSuccess: (result) => {
       setGenerateResult(result);
       refetchAnalytics();
+      refetchPending();
     },
   });
+  const { data: pendingQuestions, refetch: refetchPending, isLoading: pendingLoading } = trpc.lomloe.getQuestionsForReview.useQuery(undefined, {
+    enabled: !!user && user.role === "admin" && pinUnlocked,
+    refetchInterval: 60_000,
+  });
+  const reviewMutation = trpc.lomloe.reviewGeneratedQuestion.useMutation({
+    onSuccess: () => refetchPending(),
+  });
+  const [expandedQuestion, setExpandedQuestion] = React.useState<string | null>(null);
 
   const COMP_COLORS: Record<string, string> = {
     CCL: "#3b82f6", CP: "#8b5cf6", STEM: "#10b981", CD: "#f59e0b",
@@ -52,6 +90,9 @@ export default function Admin() {
     primary: `${t("admin_primary")} (5–6)`,
     secondary: `${t("admin_secondary")} (7–10)`,
   };
+
+  // PIN gate — shown after auth checks pass, before the dashboard
+  const showPinGate = !loading && !!user && user.role === "admin" && !pinUnlocked;
 
   // Loading auth state
   if (loading) {
@@ -99,6 +140,55 @@ export default function Admin() {
                 <Lock className="w-8 h-8 text-destructive" />
               </div>
               <h2 className="text-xl font-bold text-foreground">{t("sign_in_required")}</h2>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // PIN gate screen
+  if (showPinGate) {
+    return (
+      <div className="admin-bg flex flex-col min-h-screen">
+        <NavBar />
+        <div className="flex-1 flex items-center justify-center">
+          <Card className="max-w-xs w-full mx-4 shadow-xl">
+            <CardContent className="p-8 flex flex-col items-center gap-6">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                <Lock className="w-8 h-8 text-primary" />
+              </div>
+              <div className="text-center">
+                <h2 className="text-xl font-bold text-foreground">Admin Access</h2>
+                <p className="text-sm text-muted-foreground mt-1">Enter 4-digit PIN to continue</p>
+              </div>
+              {/* PIN dots */}
+              <div className="flex gap-3">
+                {[0,1,2,3].map((i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      "w-4 h-4 rounded-full border-2 transition-all",
+                      pinInput.length > i
+                        ? pinError ? "bg-destructive border-destructive" : "bg-primary border-primary"
+                        : "border-muted-foreground/40"
+                    )}
+                  />
+                ))}
+              </div>
+              {pinError && <p className="text-xs text-destructive -mt-2">Incorrect PIN. Try again.</p>}
+              {/* Numeric keypad */}
+              <div className="grid grid-cols-3 gap-3 w-full">
+                {["1","2","3","4","5","6","7","8","9","","0","⌫"].map((key, idx) => (
+                  key === "" ? <div key={idx} /> :
+                  <Button
+                    key={key}
+                    variant="outline"
+                    className="h-12 text-lg font-semibold bg-background"
+                    onClick={() => key === "⌫" ? handlePinBackspace() : handlePinDigit(key)}
+                  >{key}</Button>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -527,6 +617,80 @@ export default function Admin() {
             </Button>
           </CardContent>
         </Card>
+
+        {/* Question Review Section */}
+        {(pendingQuestions && pendingQuestions.length > 0) && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Lock className="w-4 h-4 text-amber-500" />
+                Question Review Queue
+                <span className="ml-auto text-xs bg-amber-500/20 text-amber-600 px-2 py-0.5 rounded-full font-medium">
+                  {pendingQuestions.length} pending
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              <p className="text-sm text-muted-foreground">Review and approve or reject newly generated questions before they appear in Practice mode.</p>
+              <div className="flex flex-col gap-2">
+                {pendingQuestions.map((q) => (
+                  <div key={q.questionId} className="border rounded-lg overflow-hidden">
+                    <div
+                      className="flex items-start gap-3 p-3 cursor-pointer hover:bg-muted/40 transition-colors"
+                      onClick={() => setExpandedQuestion(expandedQuestion === q.questionId ? null : q.questionId)}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-mono text-muted-foreground">{q.questionId}</span>
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">{q.competency}</span>
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">{q.yearGroup}</span>
+                        </div>
+                        <p className="text-sm font-medium text-foreground line-clamp-2">{q.question}</p>
+                      </div>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-green-600 border-green-300 hover:bg-green-50 h-8 px-3"
+                          onClick={(e) => { e.stopPropagation(); reviewMutation.mutate({ questionId: q.questionId, status: "approved" }); }}
+                          disabled={reviewMutation.isPending}
+                        >✓ Approve</Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-red-600 border-red-300 hover:bg-red-50 h-8 px-3"
+                          onClick={(e) => { e.stopPropagation(); reviewMutation.mutate({ questionId: q.questionId, status: "rejected" }); }}
+                          disabled={reviewMutation.isPending}
+                        >✗ Reject</Button>
+                      </div>
+                    </div>
+                    {expandedQuestion === q.questionId && (
+                      <div className="border-t bg-muted/20 p-3 flex flex-col gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                          {(q.options as string[]).map((opt, i) => (
+                            <div
+                              key={i}
+                              className={cn(
+                                "text-sm px-3 py-2 rounded border",
+                                i === q.correctIndex
+                                  ? "bg-green-50 border-green-300 text-green-800 font-medium"
+                                  : "bg-background border-border text-muted-foreground"
+                              )}
+                            >
+                              <span className="font-mono text-xs mr-2">{["A","B","C","D"][i]}.</span>{opt}
+                              {i === q.correctIndex && <span className="ml-2 text-xs text-green-600">(correct)</span>}
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground italic">{q.explanation}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Source info */}
         <Card className="bg-secondary/30 border-dashed">

@@ -581,3 +581,19 @@
 - [x] Scheduled weekly cron every Monday at 04:00 via Manus scheduler
 - [x] Owner notified via notifyOwner() after each run with added count and per-competency breakdown
 - [x] Added "Generate 30 Questions Now" button to Admin dashboard with loading/success/error states
+
+## Feature: Question review system (approve/reject auto-generated questions)
+- [x] Added generated_questions DB table (questionId, competency, yearGroup, question, options JSON, correctIndex, explanation, status: pending/approved/rejected, reviewedBy, notes, reviewedAt, createdAt)
+- [x] Rewrote questionGenerator.ts to save questions to DB instead of writing to TypeScript source file (fixes production read-only filesystem issue)
+- [x] Added getQuestionsForReview admin tRPC query returning all pending questions
+- [x] Added reviewGeneratedQuestion admin mutation to approve/reject with optional notes
+- [x] Added Question Review Queue section to Admin dashboard with expand/collapse, approve/reject buttons, and options display
+
+## Feature: 4-PIN gate on Admin page
+- [x] Added PIN gate (2024) shown after OAuth auth check, before the main dashboard content
+- [x] Persisted PIN unlock in sessionStorage so re-entry is not needed on page refresh
+- [x] Numeric keypad UI with PIN dots, error state, and backspace button
+
+## Bug: "Generate 30 Questions Now" button fails on Admin page
+- [x] Root cause: questionGenerator.ts was writing to TypeScript source file on disk — fails on production read-only filesystem
+- [x] Fix: rewrote to save questions to generated_questions DB table instead — works in all environments

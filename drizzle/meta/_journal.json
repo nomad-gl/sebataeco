@@ -85,6 +85,20 @@
       "when": 1775246305180,
       "tag": "0011_red_odin",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1775258179152,
+      "tag": "0012_bouncy_monster_badoon",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "5",
+      "when": 1775258566476,
+      "tag": "0013_nice_daimon_hellstrom",
+      "breakpoints": true
     }
   ]
 }

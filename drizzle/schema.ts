@@ -389,3 +389,54 @@ export const questionAnswers = mysqlTable("question_answers", {
 
 export type QuestionAnswer = typeof questionAnswers.$inferSelect;
 export type InsertQuestionAnswer = typeof questionAnswers.$inferInsert;
+
+/**
+ * Question review status — admin decisions on auto-generated questions.
+ * Questions not in this table default to "approved" (all original 240 questions).
+ * New auto-generated questions are inserted here as "pending" immediately after generation.
+ */
+export const questionReviewStatus = mysqlTable("question_review_status", {
+  /** Knowledge bank question ID, e.g. 'q241' */
+  questionId: varchar("questionId", { length: 16 }).primaryKey(),
+  /** Review decision */
+  status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  /** Admin user ID who reviewed, null if still pending */
+  reviewedBy: int("reviewedBy"),
+  /** Optional notes from the reviewer */
+  notes: text("notes"),
+  /** When the question was first submitted for review */
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  /** When the review decision was made */
+  reviewedAt: timestamp("reviewedAt"),
+});
+
+export type QuestionReviewStatus = typeof questionReviewStatus.$inferSelect;
+export type InsertQuestionReviewStatus = typeof questionReviewStatus.$inferInsert;
+
+/**
+ * Generated questions — LLM-generated LOMLOE questions stored in the DB.
+ * These are merged with the static knowledge bank at query time.
+ * New questions start as 'pending' and only appear in Practice/Challenge once 'approved'.
+ */
+export const generatedQuestions = mysqlTable("generated_questions", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Unique question ID, e.g. 'gq001' (prefixed with 'gq' to distinguish from static 'q' IDs) */
+  questionId: varchar("questionId", { length: 16 }).notNull().unique(),
+  competency: varchar("competency", { length: 16 }).notNull(),
+  yearGroup: varchar("yearGroup", { length: 16 }).notNull(),
+  question: text("question").notNull(),
+  /** JSON array of 4 option strings */
+  options: text("options").notNull(),
+  /** Index of the correct answer (0-3) */
+  correctIndex: int("correctIndex").notNull(),
+  explanation: text("explanation").notNull(),
+  /** Review status: pending until admin approves */
+  status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  reviewedBy: int("reviewedBy"),
+  notes: text("notes"),
+  reviewedAt: timestamp("reviewedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type GeneratedQuestion = typeof generatedQuestions.$inferSelect;
+export type InsertGeneratedQuestion = typeof generatedQuestions.$inferInsert;

@@ -1,6 +1,6 @@
 import { eq, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, InsertPracticeSession, InsertTeachingMaterial, users, practiceSessions, teachingMaterials, classChallenges, challengeParticipants, claraUserProfiles, claraMessageRatings, questionAnswers, type ClaraUserProfile } from "../drizzle/schema";
+import { InsertUser, InsertPracticeSession, InsertTeachingMaterial, users, practiceSessions, teachingMaterials, classChallenges, challengeParticipants, claraUserProfiles, claraMessageRatings, questionAnswers, questionReviewStatus, type ClaraUserProfile } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -442,5 +442,84 @@ export async function getQuestionAnalytics(limit = 50): Promise<Array<{
   } catch (err) {
     console.warn("[DB] getQuestionAnalytics failed:", err);
     return [];
+  }
+}
+
+// ─── Question Review Status ───────────────────────────────────────────────────
+
+/**
+ * Mark a newly generated question as pending review.
+ * Called by questionGenerator.ts after appending new questions to the knowledge bank.
+ */
+export async function markQuestionPending(questionId: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db
+      .insert(questionReviewStatus)
+      .values({ questionId, status: "pending" })
+      .onDuplicateKeyUpdate({ set: { status: "pending" } });
+  } catch (err) {
+    console.warn("[DB] markQuestionPending failed:", err);
+  }
+}
+
+/**
+ * Get all questions currently awaiting review (status = 'pending').
+ */
+export async function getPendingQuestions(): Promise<Array<{ questionId: string; createdAt: Date }>> {
+  const db = await getDb();
+  if (!db) return [];
+  try {
+    return await db
+      .select({ questionId: questionReviewStatus.questionId, createdAt: questionReviewStatus.createdAt })
+      .from(questionReviewStatus)
+      .where(eq(questionReviewStatus.status, "pending"))
+      .orderBy(desc(questionReviewStatus.createdAt));
+  } catch (err) {
+    console.warn("[DB] getPendingQuestions failed:", err);
+    return [];
+  }
+}
+
+/**
+ * Get the review status for a set of question IDs.
+ * Returns a map of questionId -> status for quick lookup.
+ */
+export async function getReviewStatuses(questionIds: string[]): Promise<Map<string, "pending" | "approved" | "rejected">> {
+  const db = await getDb();
+  const map = new Map<string, "pending" | "approved" | "rejected">();
+  if (!db || questionIds.length === 0) return map;
+  try {
+    const rows = await db
+      .select({ questionId: questionReviewStatus.questionId, status: questionReviewStatus.status })
+      .from(questionReviewStatus);
+    for (const row of rows) {
+      map.set(row.questionId, row.status);
+    }
+  } catch (err) {
+    console.warn("[DB] getReviewStatuses failed:", err);
+  }
+  return map;
+}
+
+/**
+ * Approve or reject a question. Updates the review record with the admin's decision.
+ */
+export async function reviewQuestion(
+  questionId: string,
+  status: "approved" | "rejected",
+  reviewedBy: number,
+  notes?: string
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db
+      .insert(questionReviewStatus)
+      .values({ questionId, status, reviewedBy, notes: notes ?? null, reviewedAt: new Date() })
+      .onDuplicateKeyUpdate({ set: { status, reviewedBy, notes: notes ?? null, reviewedAt: new Date() } });
+  } catch (err) {
+    console.warn("[DB] reviewQuestion failed:", err);
   }
 }

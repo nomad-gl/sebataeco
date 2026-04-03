@@ -11,7 +11,10 @@ import {
   type YearGroup,
 } from "../knowledge/lomloeKnowledgeBank";
 import { invokeLLM } from "../_core/llm";
-import { getClaraProfile, upsertClaraProfile, rateMessage, getUserRatings, saveQuestionAnswer, getQuestionAnalytics } from "../db";
+import { getClaraProfile, upsertClaraProfile, rateMessage, getUserRatings, saveQuestionAnswer, getQuestionAnalytics, getPendingQuestions, reviewQuestion } from "../db";
+import { getDb } from "../db";
+import { generatedQuestions } from "../../drizzle/schema";
+import { eq } from "drizzle-orm";
 
 const CompetencyCodeSchema = z.enum(["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"]);
 const YearGroupSchema = z.enum(["junior", "primary", "secondary"]);
@@ -586,6 +589,51 @@ Guidelines:
     }
     return getQuestionAnalytics(100);
   }),
+
+  /** Admin: get all questions pending review */
+  getQuestionsForReview: protectedProcedure.query(async ({ ctx }) => {
+    if (ctx.user.role !== "admin") {
+      throw new (await import("@trpc/server")).TRPCError({ code: "FORBIDDEN" });
+    }
+    const db = await getDb();
+    if (!db) return [];
+    const rows = await db
+      .select()
+      .from(generatedQuestions)
+      .where(eq(generatedQuestions.status, "pending"))
+      .orderBy(generatedQuestions.createdAt);
+    return rows.map((r) => ({
+      ...r,
+      options: JSON.parse(r.options) as string[],
+    }));
+  }),
+
+  /** Admin: approve or reject a generated question */
+  reviewGeneratedQuestion: protectedProcedure
+    .input(
+      z.object({
+        questionId: z.string(),
+        status: z.enum(["approved", "rejected"]),
+        notes: z.string().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (ctx.user.role !== "admin") {
+        throw new (await import("@trpc/server")).TRPCError({ code: "FORBIDDEN" });
+      }
+      const db = await getDb();
+      if (!db) throw new Error("DB not available");
+      await db
+        .update(generatedQuestions)
+        .set({
+          status: input.status,
+          reviewedBy: ctx.user.id,
+          notes: input.notes ?? null,
+          reviewedAt: new Date(),
+        })
+        .where(eq(generatedQuestions.questionId, input.questionId));
+      return { ok: true };
+    }),
 
   /**
    * Admin: generate new LOMLOE questions and append them to the knowledge bank.
