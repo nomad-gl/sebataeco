@@ -564,3 +564,13 @@
 - [x] Added getQuestionAnalytics admin procedure returning per-question correct/incorrect counts sorted hardest first
 - [x] Added Question Difficulty Analytics section to Admin dashboard showing top 20 most-missed questions
 - [x] Shows question ID, competency badge, year group, total attempts, % correct with colour-coded bar (red/amber/green)
+
+## Bug: Admin dashboard competency question counts out of sync
+- [x] Investigated: server returns correct data from live knowledge bank. Admin dashboard was showing correct numbers (96 at the time). Now updated to 240 after knowledge bank expansion.
+
+## Feature: Expand knowledge bank to 240 questions
+- [x] Generated 208 new questions via LLM (26 per competency × 8 competencies)
+- [x] Trimmed to exactly 10 per competency per year group = 240 total (30 per competency)
+- [x] Correct answer positions balanced evenly: 60 per position (0/1/2/3)
+- [x] All questions aligned to LOMLOE curriculum standards
+- [x] Updated lomloe.test.ts to expect 240 questions — 55/55 tests passing
