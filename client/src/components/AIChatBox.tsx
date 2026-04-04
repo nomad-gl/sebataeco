@@ -141,6 +141,9 @@ export function AIChatBox({
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [alwaysOnEnabled, setAlwaysOnEnabled] = useState(true);
 
+  /** True on any mobile/tablet device — voice prompt mode is disabled on mobile */
+  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -158,7 +161,9 @@ export function AIChatBox({
 
   const { wakeState, permissionError: wakePermissionError } = useClaraWakeWord({
     onTranscript: handleWakeTranscript,
-    enabled: alwaysOnEnabled,
+    // Disable the always-on wake-word listener entirely on mobile — every
+    // SpeechRecognition.start() triggers the OS mic notification banner.
+    enabled: !isMobile && alwaysOnEnabled,
     lang: document.documentElement.lang || navigator.language || "en",
   });
 
@@ -470,8 +475,8 @@ export function AIChatBox({
         )}
       </div>
 
-      {/* Wake-word status bar */}
-      {wakeLabel && (
+      {/* Wake-word status bar — hidden on mobile */}
+      {!isMobile && wakeLabel && (
         <div
           className={cn(
             "px-4 py-1 text-xs flex items-center gap-1.5 border-t border-white/10",
@@ -526,37 +531,41 @@ export function AIChatBox({
           )}
         </div>
 
-        {/* Always-on toggle (Radio icon) */}
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          onClick={() => setAlwaysOnEnabled((v) => !v)}
-          title={alwaysOnEnabled ? "Always-on: ON — click to disable" : "Always-on: OFF — click to enable"}
-          className={cn(
-            "shrink-0 h-[38px] w-[38px]",
-            alwaysOnEnabled
-              ? "text-green-400 hover:text-green-300 hover:bg-green-500/10"
-              : "text-white/40 hover:text-white hover:bg-white/15"
-          )}
-        >
-          <Radio className={cn("size-4", alwaysOnEnabled && wakeState === "idle" && "animate-pulse")} />
-        </Button>
+        {/* Always-on toggle (Radio icon) — hidden on mobile */}
+        {!isMobile && (
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            onClick={() => setAlwaysOnEnabled((v) => !v)}
+            title={alwaysOnEnabled ? "Always-on: ON — click to disable" : "Always-on: OFF — click to enable"}
+            className={cn(
+              "shrink-0 h-[38px] w-[38px]",
+              alwaysOnEnabled
+                ? "text-green-400 hover:text-green-300 hover:bg-green-500/10"
+                : "text-white/40 hover:text-white hover:bg-white/15"
+            )}
+          >
+            <Radio className={cn("size-4", alwaysOnEnabled && wakeState === "idle" && "animate-pulse")} />
+          </Button>
+        )}
 
-        {/* Manual mic button */}
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          onClick={toggleRecording}
-          title={isRecording ? "Stop recording" : "Voice input"}
-          className={cn(
-            "shrink-0 h-[38px] w-[38px] text-white/60 hover:text-white hover:bg-white/15",
-            isRecording && "text-red-400 hover:text-red-300 animate-pulse"
-          )}
-        >
-          {isRecording ? <MicOff className="size-4" /> : <Mic className="size-4" />}
-        </Button>
+        {/* Manual mic button — hidden on mobile */}
+        {!isMobile && (
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            onClick={toggleRecording}
+            title={isRecording ? "Stop recording" : "Voice input"}
+            className={cn(
+              "shrink-0 h-[38px] w-[38px] text-white/60 hover:text-white hover:bg-white/15",
+              isRecording && "text-red-400 hover:text-red-300 animate-pulse"
+            )}
+          >
+            {isRecording ? <MicOff className="size-4" /> : <Mic className="size-4" />}
+          </Button>
+        )}
 
         {/* Send button */}
         <Button
