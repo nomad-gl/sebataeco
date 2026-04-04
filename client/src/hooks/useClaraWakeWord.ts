@@ -191,9 +191,9 @@ export function useClaraWakeWord({
       }
       inputRef.current = null;
       updateState("idle");
-      // Re-enable wake word detection after error
+      // Restart the engine to re-acquire the microphone after SpeechRecognition error.
       if (enabledRef.current && engineRef.current && engineLoadedRef.current) {
-        try { engineRef.current.setActiveKeywords(["hey_jarvis"]); } catch { /* ignore */ }
+        engineRef.current.start().catch(() => { /* ignore */ });
       }
     };
 
@@ -205,9 +205,10 @@ export function useClaraWakeWord({
         playTimeoutTone();
       }
       updateState("idle");
-      // Re-enable wake word detection after transcription ends
+      // Restart the engine to re-acquire the microphone for wake word detection.
+      // The engine was stopped before SpeechRecognition started to avoid stream conflict.
       if (enabledRef.current && engineRef.current && engineLoadedRef.current) {
-        try { engineRef.current.setActiveKeywords(["hey_jarvis"]); } catch { /* ignore */ }
+        engineRef.current.start().catch(() => { /* ignore */ });
       }
     };
 
@@ -216,8 +217,9 @@ export function useClaraWakeWord({
     } catch {
       inputRef.current = null;
       updateState("idle");
+      // Restart the engine to re-acquire the microphone if rec.start() throws.
       if (enabledRef.current && engineRef.current && engineLoadedRef.current) {
-        try { engineRef.current.setActiveKeywords(["hey_jarvis"]); } catch { /* ignore */ }
+        engineRef.current.start().catch(() => { /* ignore */ });
       }
     }
   }, [updateState]);
@@ -267,11 +269,11 @@ export function useClaraWakeWord({
         if (wakeStateRef.current !== "idle") return;
         if (keyword !== "hey_jarvis") return;
 
-        // Temporarily disable detection while we handle the activation
-        try { engine.setActiveKeywords([]); } catch { /* ignore */ }
-
         updateState("activating");
-        playBeep().then(() => {
+        playBeep().then(async () => {
+          // Stop the engine to release the getUserMedia stream before SpeechRecognition
+          // tries to acquire the microphone — both cannot hold it simultaneously.
+          try { await engine.stop(); } catch { /* ignore */ }
           setTimeout(() => {
             if (enabledRef.current) startInputSession();
           }, 300);

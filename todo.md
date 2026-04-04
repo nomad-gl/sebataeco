@@ -647,6 +647,6 @@
 - [x] Wake word: "Hey Jarvis" (built-in model, no API key required)
 
 ## Bug: Voice-to-text not working after Hey Jarvis wake word fires
-- [ ] Diagnose why SpeechRecognition input session starts but captures no transcript
-- [ ] Fix: mic stream conflict between openWakeWord AudioWorklet and SpeechRecognition
-- [ ] Ensure onTranscript is called and Clara receives the question
+- [x] Diagnose why SpeechRecognition input session starts but captures no transcript
+- [x] Fix: mic stream conflict between openWakeWord AudioWorklet and SpeechRecognition — engine.stop() called before SpeechRecognition.start(), engine.start() called after transcription ends
+- [x] Ensure onTranscript is called and Clara receives the question
