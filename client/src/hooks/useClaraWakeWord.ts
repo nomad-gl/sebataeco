@@ -1,38 +1,29 @@
 /**
  * useClaraWakeWord
  *
- * Always-on wake-word listener for Clara using openWakeWord WASM.
- *
- * Architecture:
- *   - Wake word detection: openWakeWord (ONNX, runs in browser via onnxruntime-web)
- *     → single persistent getUserMedia stream, NO repeated OS mic notification banners.
- *   - Transcription: Web Speech API (SpeechRecognition) — only started AFTER the
- *     wake word fires, so the notification appears at most once per conversation.
- *
- * Wake word: "Clara" (custom-trained ONNX model, 875 synthetic TTS samples, 100% recall)
+ * A self-contained, always-on wake-word listener for Clara.
+ * Completely independent of the manual mic button in AIChatBox.
  *
  * State machine:
- *   idle       → WakeWordEngine running, waiting for "Clara"
+ *   idle       → wake listener running (continuous), waiting for "Clara"
  *   activating → wake detected, beep played, 300 ms pause before mic handover
- *   recording  → SpeechRecognition input session open, waiting for teacher's question
+ *   recording  → input session open, waiting for teacher's question
  *
  * When the teacher finishes speaking, the transcript is passed to onTranscript
- * and the hook returns to idle automatically (WakeWordEngine keeps running).
+ * and the hook returns to idle automatically.
+ *
+ * Mobile notification fix:
+ * - On mobile browsers (iOS Safari, Chrome for Android), every call to
+ *   SpeechRecognition.start() triggers the OS "site is using your microphone"
+ *   notification banner. The wake listener ends frequently due to OS-level
+ *   silence timeouts, so without throttling the notification fires every few
+ *   seconds.
+ * - Fix: exponential backoff on restarts (min 1 s, max 8 s) that resets after
+ *   a successful long session. On mobile we also skip restarting while the page
+ *   is hidden (visibilitychange) to avoid background mic churn.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import WakeWordEngine from "openwakeword-wasm-browser";
-import * as ort from "onnxruntime-web";
-
-// Set WASM paths at module load time (before any InferenceSession.create call)
-// so onnxruntime-web fetches binaries from CDN with correct application/wasm MIME type.
-// The Vite dev server serves .wasm files as text/html which breaks WebAssembly.compile.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(ort as any).env.wasm.wasmPaths = {
-  "ort-wasm-simd-threaded.wasm":          "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded_f686e602.wasm",
-  "ort-wasm-simd-threaded.asyncify.wasm": "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded.asyncify_a7147f2a.wasm",
-  "ort-wasm-simd-threaded.jsep.wasm":     "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded.jsep_545d5da0.wasm",
-};
 
 export type WakeWordState = "idle" | "activating" | "recording";
 
@@ -48,34 +39,20 @@ export type UseClaraWakeWordOptions = {
   enabled?: boolean;
 };
 
-// CDN URLs for the ONNX model files (uploaded via manus-upload-file --webdev)
-// The WakeWordEngine resolves model paths as: baseAssetUrl.replace(/\/+$/, '') + '/' + filename
-// Core models use hardcoded filenames (melspectrogram.onnx, embedding_model.onnx, silero_vad.onnx).
-// We intercept ort.InferenceSession.create to redirect those to CDN URLs.
-const CDN_MODEL_MAP: Record<string, string> = {
-  "melspectrogram.onnx":  "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/melspectrogram_248bb8f4.onnx",
-  "embedding_model.onnx": "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/embedding_model_a5eb9a9b.onnx",
-  "silero_vad.onnx":       "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/silero_vad_6e98b1e6.onnx",
-  "hey_jarvis_v0.1.onnx": "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/hey_jarvis_v0.1_c871a5f8.onnx",
-  "clara_v0.1.onnx":      "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/clara_v0.1_c4888bef.onnx",
-  // Inline version (weights embedded, no .data file needed)
-  "clara_v0.1_inline.onnx": "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/clara_v0.1_inline_c42e7149.onnx",
-};
-
-// Keyword model files map (only used for keyword models, not core models)
-// Use the inline version so onnxruntime-web does not need a separate .data file
-const MODEL_FILES = {
-  clara: "clara_v0.1_inline.onnx",
-};
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getSR = (): (new () => any) | null =>
   (window as any).SpeechRecognition ||
   (window as any).webkitSpeechRecognition ||
   null;
 
+/** Detect mobile browsers where every SpeechRecognition.start() triggers a system notification */
+function isMobileBrowser(): boolean {
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+}
+
 /**
  * Map app language codes to full BCP-47 locale tags that browsers accept.
+ * Passing just "en" or "es" causes silent failures on Chrome/Safari.
  */
 function toBCP47(lang: string | undefined): string {
   if (!lang) return "en-US";
@@ -142,15 +119,22 @@ export function useClaraWakeWord({
   const [permissionError, setPermissionError] = useState<string | null>(null);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const engineRef = useRef<any>(null);
-  const engineLoadedRef = useRef(false);
-  const engineLoadingRef = useRef(false);
+  const wakeRef = useRef<any>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const inputRef = useRef<any>(null);
   const enabledRef = useRef(enabled);
   const onTranscriptRef = useRef(onTranscript);
   const wakeStateRef = useRef<WakeWordState>("idle");
   const langRef = useRef(lang);
+
+  // Backoff state for mobile — prevents hammering the OS mic notification
+  const backoffMsRef = useRef<number>(isMobileBrowser() ? 1500 : 400);
+  const sessionStartTimeRef = useRef<number>(0);
+  const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // scheduleWakeListener stored as a ref so all callbacks always call the
+  // current version — prevents the stale-closure "second question" bug.
+  const scheduleWakeListenerRef = useRef<() => void>(() => {});
 
   // Keep refs in sync with latest prop values
   useEffect(() => { enabledRef.current = enabled; }, [enabled]);
@@ -162,9 +146,24 @@ export function useClaraWakeWord({
     setWakeState(s);
   }, []);
 
-  // ─── Input recording session (Web Speech API) ────────────────────────────────
-  // Only called AFTER wake word fires — the OS notification appears here, but
-  // only once per conversation, not repeatedly in the background.
+  // ─── Stop all recognition sessions ──────────────────────────────────────────
+
+  const stopAll = useCallback(() => {
+    if (restartTimerRef.current) {
+      clearTimeout(restartTimerRef.current);
+      restartTimerRef.current = null;
+    }
+    if (wakeRef.current) {
+      try { wakeRef.current.abort(); } catch { /* ignore */ }
+      wakeRef.current = null;
+    }
+    if (inputRef.current) {
+      try { inputRef.current.abort(); } catch { /* ignore */ }
+      inputRef.current = null;
+    }
+  }, []);
+
+  // ─── Input recording session ─────────────────────────────────────────────────
 
   const startInputSession = useCallback(() => {
     const SR = getSR();
@@ -195,25 +194,20 @@ export function useClaraWakeWord({
       }
       inputRef.current = null;
       updateState("idle");
-      // Restart the engine to re-acquire the microphone after SpeechRecognition error.
-      if (enabledRef.current && engineRef.current && engineLoadedRef.current) {
-        engineRef.current.start().catch(() => { /* ignore */ });
-      }
+      if (enabledRef.current) scheduleWakeListenerRef.current();
     };
 
     rec.onend = () => {
       inputRef.current = null;
       if (finalTranscript.trim()) {
         onTranscriptRef.current(finalTranscript.trim());
+        // Reset backoff after a successful transcript — session was productive
+        backoffMsRef.current = isMobileBrowser() ? 1500 : 400;
       } else {
         playTimeoutTone();
       }
       updateState("idle");
-      // Restart the engine to re-acquire the microphone for wake word detection.
-      // The engine was stopped before SpeechRecognition started to avoid stream conflict.
-      if (enabledRef.current && engineRef.current && engineLoadedRef.current) {
-        engineRef.current.start().catch(() => { /* ignore */ });
-      }
+      if (enabledRef.current) scheduleWakeListenerRef.current();
     };
 
     try {
@@ -221,148 +215,155 @@ export function useClaraWakeWord({
     } catch {
       inputRef.current = null;
       updateState("idle");
-      // Restart the engine to re-acquire the microphone if rec.start() throws.
-      if (enabledRef.current && engineRef.current && engineLoadedRef.current) {
-        engineRef.current.start().catch(() => { /* ignore */ });
-      }
+      if (enabledRef.current) scheduleWakeListenerRef.current();
     }
   }, [updateState]);
 
-  // ─── openWakeWord engine lifecycle ──────────────────────────────────────────
+  // ─── Wake-word listener ──────────────────────────────────────────────────────
 
-  const startEngine = useCallback(async () => {
-    if (engineLoadingRef.current || engineLoadedRef.current) return;
-    engineLoadingRef.current = true;
+  const startWakeListener = useCallback(() => {
+    const SR = getSR();
+    if (!SR || !enabledRef.current) return;
+    if (wakeStateRef.current !== "idle") return;
+    if (wakeRef.current) return;
+    // Don't start while the page is hidden (mobile background tab)
+    if (document.visibilityState === "hidden") return;
 
-    try {
-      // WakeWordEngine accepts ortWasmPath which it passes directly to
-      // ort.env.wasm.wasmPaths. We pass a map of filename → full CDN URL so
-      // onnxruntime-web fetches WASM binaries from CDN (correct MIME type)
-      // instead of from the Vite dev server (which serves them as text/html).
-      const ortWasmPath = {
-        "ort-wasm-simd-threaded.wasm":          "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded_f686e602.wasm",
-        "ort-wasm-simd-threaded.asyncify.wasm": "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded.asyncify_a7147f2a.wasm",
-        "ort-wasm-simd-threaded.jsep.wasm":     "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded.jsep_545d5da0.wasm",
-      };
+    sessionStartTimeRef.current = Date.now();
 
-      // Intercept ort.InferenceSession.create to redirect hardcoded ONNX model
-      // filenames (melspectrogram.onnx etc.) to their CDN URLs.
+    const rec = new SR();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = toBCP47(langRef.current);
+    wakeRef.current = rec;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onresult = (e: any) => {
+      if (wakeStateRef.current !== "idle") return;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const origCreate = (ort as any).InferenceSession.create.bind((ort as any).InferenceSession);
-      ort.InferenceSession.create = async (uri: string, opts?: unknown) => {
-        const filename = uri.split("/").pop() ?? uri;
-        const cdnUrl = CDN_MODEL_MAP[filename] ?? uri;
-        return origCreate(cdnUrl, opts);
-      };
+      const transcript = Array.from(e.results as any[])
+        .map((r: any) => r[0].transcript as string)
+        .join(" ")
+        .toLowerCase();
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const engine = new (WakeWordEngine as any)({
-        baseAssetUrl: "__cdn__",
-        modelFiles: MODEL_FILES,
-        keywords: ["clara"],
-        // Latency tuning:
-        // frameSize: 640 samples @ 16 kHz = 40 ms per chunk (default 1280 = 80 ms)
-        frameSize: 640,
-        // vadHangoverFrames: 4 × 40 ms = 160 ms VAD confirmation (default 12 = 480 ms)
-        vadHangoverFrames: 4,
-        // embeddingWindowSize: 8 (default 16) — shorter history window, earlier first detection
-        embeddingWindowSize: 8,
-        // detectionThreshold: 0.4 — slightly more sensitive, reduces missed detections
-        detectionThreshold: 0.4,
-        // cooldownMs: 1000 ms (default 2000) — allows re-detection sooner after a trigger
-        cooldownMs: 1000,
-        ortWasmPath,
-      });
-
-      engineRef.current = engine;
-
-      // Listen for wake word detection
-      engine.on("detect", ({ keyword }: { keyword: string; score: number }) => {
-        if (!enabledRef.current) return;
-        if (wakeStateRef.current !== "idle") return;
-        if (keyword !== "clara") return;
-
+      if (/\b(clara|klara)\b/.test(transcript)) {
         updateState("activating");
-        playBeep().then(async () => {
-          // Stop the engine to release the getUserMedia stream before SpeechRecognition
-          // tries to acquire the microphone — both cannot hold it simultaneously.
-          try { await engine.stop(); } catch { /* ignore */ }
-          // 100 ms pause (reduced from 300 ms) — just enough for the OS to release the
-          // mic track before SpeechRecognition tries to acquire it.
+        try { rec.abort(); } catch { /* ignore */ }
+        wakeRef.current = null;
+        // Reset backoff — wake word was detected, session was productive
+        backoffMsRef.current = isMobileBrowser() ? 1500 : 400;
+        playBeep().then(() => {
           setTimeout(() => {
             if (enabledRef.current) startInputSession();
-          }, 100);
+          }, 300);
         });
-      });
-
-      engine.on("error", (err: unknown) => {
-        console.warn("[WakeWord] Engine error:", err);
-      });
-
-      await engine.load();
-      engineLoadedRef.current = true;
-      engineLoadingRef.current = false;
-
-      if (enabledRef.current) {
-        await engine.start();
       }
-    } catch (err) {
-      console.warn("[WakeWord] Failed to start openWakeWord engine:", err);
-      engineLoadingRef.current = false;
-      engineLoadedRef.current = false;
-      engineRef.current = null;
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onerror = (e: any) => {
+      wakeRef.current = null;
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+        setPermissionError("Microphone access denied. Please allow microphone access in your browser settings.");
+        return;
+      }
+      if (enabledRef.current && wakeStateRef.current === "idle") {
+        // Increase backoff on error (network, aborted, etc.)
+        if (isMobileBrowser()) {
+          backoffMsRef.current = Math.min(backoffMsRef.current * 1.5, 8000);
+        }
+        scheduleWakeListenerRef.current();
+      }
+    };
+
+    rec.onend = () => {
+      wakeRef.current = null;
+      if (enabledRef.current && wakeStateRef.current === "idle") {
+        // If the session ended very quickly (< 2 s) it was likely an OS timeout
+        // on mobile — apply backoff to avoid hammering the mic notification.
+        const sessionDuration = Date.now() - sessionStartTimeRef.current;
+        if (isMobileBrowser() && sessionDuration < 2000) {
+          backoffMsRef.current = Math.min(backoffMsRef.current * 1.5, 8000);
+        } else if (sessionDuration > 5000) {
+          // Long session — reset backoff, things are working well
+          backoffMsRef.current = isMobileBrowser() ? 1500 : 400;
+        }
+        scheduleWakeListenerRef.current();
+      }
+    };
+
+    try {
+      rec.start();
+    } catch {
+      wakeRef.current = null;
+      if (enabledRef.current && wakeStateRef.current === "idle") {
+        scheduleWakeListenerRef.current();
+      }
     }
   }, [startInputSession, updateState]);
 
-  const stopEngine = useCallback(async () => {
-    if (engineRef.current) {
-      try { await engineRef.current.stop(); } catch { /* ignore */ }
-      engineRef.current = null;
-    }
-    engineLoadedRef.current = false;
-    engineLoadingRef.current = false;
-    if (inputRef.current) {
-      try { inputRef.current.abort(); } catch { /* ignore */ }
-      inputRef.current = null;
-    }
-  }, []);
+  // Keep scheduleWakeListenerRef current
+  useEffect(() => {
+    scheduleWakeListenerRef.current = () => {
+      if (restartTimerRef.current) {
+        clearTimeout(restartTimerRef.current);
+      }
+      restartTimerRef.current = setTimeout(() => {
+        restartTimerRef.current = null;
+        if (enabledRef.current && wakeStateRef.current === "idle") {
+          startWakeListener();
+        }
+      }, backoffMsRef.current);
+    };
+  }, [startWakeListener]);
 
-  // ─── Pause when page is hidden ───────────────────────────────────────────────
+  // ─── Pause when page is hidden (mobile background) ───────────────────────────
 
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (!engineRef.current || !engineLoadedRef.current) return;
       if (document.visibilityState === "hidden") {
-        try { engineRef.current.stop(); } catch { /* ignore */ }
-      } else if (document.visibilityState === "visible" && enabledRef.current) {
-        setTimeout(() => {
-          if (engineRef.current && enabledRef.current) {
-            try { engineRef.current.start(); } catch { /* ignore */ }
+        // Stop the wake listener when the tab goes to background
+        if (wakeRef.current) {
+          try { wakeRef.current.abort(); } catch { /* ignore */ }
+          wakeRef.current = null;
+        }
+        if (restartTimerRef.current) {
+          clearTimeout(restartTimerRef.current);
+          restartTimerRef.current = null;
+        }
+      } else if (document.visibilityState === "visible" && enabledRef.current && wakeStateRef.current === "idle") {
+        // Resume when the tab comes back to foreground — with a short delay
+        restartTimerRef.current = setTimeout(() => {
+          restartTimerRef.current = null;
+          if (enabledRef.current && wakeStateRef.current === "idle") {
+            startWakeListener();
           }
-        }, 500);
+        }, 800);
       }
     };
+
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, []);
+  }, [startWakeListener]);
 
   // ─── Lifecycle: start/stop based on enabled prop ─────────────────────────────
 
   useEffect(() => {
     if (enabled) {
       updateState("idle");
-      startEngine();
+      const t = setTimeout(() => startWakeListener(), 200);
       return () => {
-        stopEngine();
+        clearTimeout(t);
+        stopAll();
       };
     } else {
-      stopEngine();
+      stopAll();
       updateState("idle");
       return () => {
-        stopEngine();
+        stopAll();
       };
     }
-  }, [enabled, startEngine, stopEngine, updateState]);
+  }, [enabled, startWakeListener, stopAll, updateState]);
 
   return { wakeState, permissionError };
 }

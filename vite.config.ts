@@ -150,91 +150,10 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
-// CDN URLs for onnxruntime-web WASM binaries (uploaded via manus-upload-file --webdev)
-const ORT_CDN = {
-  jsep:     "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded.jsep_545d5da0.wasm",
-  plain:    "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded_f686e602.wasm",
-  asyncify: "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded.asyncify_a7147f2a.wasm",
-};
-
-/**
- * Vite plugin that rewrites onnxruntime-web's hardcoded `new URL("ort-wasm-*.wasm", import.meta.url)`
- * calls in the built chunks to use CDN URLs instead. This is needed because:
- *  1. Vite dep-optimisation bundles onnxruntime-web into a chunk.
- *  2. The chunk uses `new URL(filename, import.meta.url)` to locate WASM files.
- *  3. In production the chunk is at /assets/chunk-XXXX.js so the WASM would be
- *     expected at /assets/ort-wasm-*.wasm — which doesn't exist.
- *  4. ort.env.wasm.wasmPaths is ignored by the bundled chunk.
- * Solution: replace the string literals in the built chunk with CDN URLs.
- */
-const vitePluginOrtWasmCdn = (): Plugin => ({
-  name: "ort-wasm-cdn",
-  enforce: "post",
-  renderChunk(code: string) {
-    if (!code.includes("ort-wasm-simd-threaded")) return null;
-    let out = code;
-    out = out.replace(
-      /new URL\("ort-wasm-simd-threaded\.jsep\.wasm",import\.meta\.url\)\.href/g,
-      `"${ORT_CDN.jsep}"`
-    );
-    out = out.replace(
-      /new URL\("ort-wasm-simd-threaded\.asyncify\.wasm",import\.meta\.url\)\.href/g,
-      `"${ORT_CDN.asyncify}"`
-    );
-    // plain wasm — must come after jsep/asyncify to avoid partial matches
-    out = out.replace(
-      /new URL\("ort-wasm-simd-threaded\.wasm",import\.meta\.url\)\.href/g,
-      `"${ORT_CDN.plain}"`
-    );
-    return out === code ? null : { code: out, map: null };
-  },
-});
-
-// Plugin to serve ort-wasm-*.wasm files with the correct MIME type.
-// onnxruntime-web's Vite-bundled chunk uses `new URL("ort-wasm-*.wasm", import.meta.url).href`
-// which resolves relative to the chunk in .vite/deps/. The Vite dev server serves those
-// paths as text/html (404 page), breaking WebAssembly.compile.
-// This middleware intercepts any request for ort-wasm-*.wasm and serves the actual binary
-// directly from node_modules/onnxruntime-web/dist/ with the correct MIME type.
-const ORT_WASM_FILES = [
-  "ort-wasm-simd-threaded.jsep.wasm",
-  "ort-wasm-simd-threaded.wasm",
-  "ort-wasm-simd-threaded.asyncify.wasm",
-];
-const vitePluginWasmMime = (): Plugin => ({
-  name: "wasm-mime",
-  configureServer(server: ViteDevServer) {
-    const ortDist = path.join(PROJECT_ROOT, "node_modules", "onnxruntime-web", "dist");
-    server.middlewares.use((req, res, next) => {
-      if (!req.url) return next();
-      // Strip query string for filename matching
-      const urlPath = req.url.split("?")[0];
-      const basename = path.basename(urlPath);
-      if (ORT_WASM_FILES.includes(basename)) {
-        const wasmPath = path.join(ortDist, basename);
-        if (fs.existsSync(wasmPath)) {
-          res.setHeader("Content-Type", "application/wasm");
-          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-          fs.createReadStream(wasmPath).pipe(res);
-          return;
-        }
-      }
-      // Also set MIME type for any other .wasm files served by Vite
-      if (urlPath.endsWith(".wasm")) {
-        res.setHeader("Content-Type", "application/wasm");
-      }
-      next();
-    });
-  },
-});
-
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginWasmMime(), vitePluginOrtWasmCdn()];
+const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
 
 export default defineConfig({
   plugins,
-  optimizeDeps: {
-    include: ["onnxruntime-web"],
-  },
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
