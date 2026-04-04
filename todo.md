@@ -664,3 +664,17 @@
 - [x] Upload clara_v0.1.onnx to CDN
 - [x] Integrate clara_v0.1.onnx into useClaraWakeWord (replaced hey_jarvis)
 - [x] Wake word is now "Clara" (teachers say "Clara" to activate)
+
+## Improvement: Lower Clara detection threshold to 0.4
+- [x] Changed detectionThreshold from 0.5 to 0.4 in useClaraWakeWord.ts
+
+## Bug: Speech-to-text and Clara response not working after wake word fires
+- [x] Root cause: WASM engine failing to load — wake word was never actually firing via openWakeWord
+- [x] Fix: WASM CDN URLs corrected and production build plugin added
+- [x] Pipeline (wake → engine.stop() → SpeechRecognition → onTranscript → Clara) already correctly wired
+
+## Bug: Clara wake word not firing (WASM fails in production)
+- [x] Fix WASM loading for production: Vite renderChunk plugin rewrites new URL("ort-wasm-*.wasm", import.meta.url) to CDN URLs in built chunks
+- [x] Update ort.env.wasm.wasmPaths and ortWasmPath to new CDN URLs (re-uploaded with correct hashes)
+- [x] Verified CDN URLs present in production build output
+- [x] Lower detection threshold to 0.4

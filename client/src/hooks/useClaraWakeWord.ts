@@ -29,9 +29,9 @@ import * as ort from "onnxruntime-web";
 // The Vite dev server serves .wasm files as text/html which breaks WebAssembly.compile.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (ort as any).env.wasm.wasmPaths = {
-  "ort-wasm-simd-threaded.wasm":          "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded_f12ebab8.wasm",
-  "ort-wasm-simd-threaded.asyncify.wasm": "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded.asyncify_409e0b96.wasm",
-  "ort-wasm-simd-threaded.jsep.wasm":     "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded.jsep_28a733d3.wasm",
+  "ort-wasm-simd-threaded.wasm":          "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded_f686e602.wasm",
+  "ort-wasm-simd-threaded.asyncify.wasm": "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded.asyncify_a7147f2a.wasm",
+  "ort-wasm-simd-threaded.jsep.wasm":     "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded.jsep_545d5da0.wasm",
 };
 
 export type WakeWordState = "idle" | "activating" | "recording";
@@ -237,9 +237,9 @@ export function useClaraWakeWord({
       // onnxruntime-web fetches WASM binaries from CDN (correct MIME type)
       // instead of from the Vite dev server (which serves them as text/html).
       const ortWasmPath = {
-        "ort-wasm-simd-threaded.wasm":          "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded_f12ebab8.wasm",
-        "ort-wasm-simd-threaded.asyncify.wasm": "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded.asyncify_409e0b96.wasm",
-        "ort-wasm-simd-threaded.jsep.wasm":     "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded.jsep_28a733d3.wasm",
+        "ort-wasm-simd-threaded.wasm":          "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded_f686e602.wasm",
+        "ort-wasm-simd-threaded.asyncify.wasm": "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded.asyncify_a7147f2a.wasm",
+        "ort-wasm-simd-threaded.jsep.wasm":     "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded.jsep_545d5da0.wasm",
       };
 
       // Intercept ort.InferenceSession.create to redirect hardcoded ONNX model
@@ -264,8 +264,8 @@ export function useClaraWakeWord({
         vadHangoverFrames: 4,
         // embeddingWindowSize: 8 (default 16) — shorter history window, earlier first detection
         embeddingWindowSize: 8,
-        // detectionThreshold: 0.5 — unchanged, keeps false positive rate low
-        detectionThreshold: 0.5,
+        // detectionThreshold: 0.4 — slightly more sensitive, reduces missed detections
+        detectionThreshold: 0.4,
         // cooldownMs: 1000 ms (default 2000) — allows re-detection sooner after a trigger
         cooldownMs: 1000,
         ortWasmPath,

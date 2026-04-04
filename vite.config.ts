@@ -150,6 +150,46 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
+// CDN URLs for onnxruntime-web WASM binaries (uploaded via manus-upload-file --webdev)
+const ORT_CDN = {
+  jsep:     "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded.jsep_545d5da0.wasm",
+  plain:    "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded_f686e602.wasm",
+  asyncify: "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded.asyncify_a7147f2a.wasm",
+};
+
+/**
+ * Vite plugin that rewrites onnxruntime-web's hardcoded `new URL("ort-wasm-*.wasm", import.meta.url)`
+ * calls in the built chunks to use CDN URLs instead. This is needed because:
+ *  1. Vite dep-optimisation bundles onnxruntime-web into a chunk.
+ *  2. The chunk uses `new URL(filename, import.meta.url)` to locate WASM files.
+ *  3. In production the chunk is at /assets/chunk-XXXX.js so the WASM would be
+ *     expected at /assets/ort-wasm-*.wasm — which doesn't exist.
+ *  4. ort.env.wasm.wasmPaths is ignored by the bundled chunk.
+ * Solution: replace the string literals in the built chunk with CDN URLs.
+ */
+const vitePluginOrtWasmCdn = (): Plugin => ({
+  name: "ort-wasm-cdn",
+  enforce: "post",
+  renderChunk(code: string) {
+    if (!code.includes("ort-wasm-simd-threaded")) return null;
+    let out = code;
+    out = out.replace(
+      /new URL\("ort-wasm-simd-threaded\.jsep\.wasm",import\.meta\.url\)\.href/g,
+      `"${ORT_CDN.jsep}"`
+    );
+    out = out.replace(
+      /new URL\("ort-wasm-simd-threaded\.asyncify\.wasm",import\.meta\.url\)\.href/g,
+      `"${ORT_CDN.asyncify}"`
+    );
+    // plain wasm — must come after jsep/asyncify to avoid partial matches
+    out = out.replace(
+      /new URL\("ort-wasm-simd-threaded\.wasm",import\.meta\.url\)\.href/g,
+      `"${ORT_CDN.plain}"`
+    );
+    return out === code ? null : { code: out, map: null };
+  },
+});
+
 // Plugin to serve .wasm files with the correct MIME type so WebAssembly.compile works.
 // onnxruntime-web bundles a `new URL("ort-wasm-*.wasm", import.meta.url).href` path
 // that resolves relative to the Vite dep-optimized chunk. We copy the WASM files into
@@ -187,7 +227,7 @@ const vitePluginWasmMime = (): Plugin => ({
   },
 });
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginWasmMime()];
+const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginWasmMime(), vitePluginOrtWasmCdn()];
 
 export default defineConfig({
   plugins,
