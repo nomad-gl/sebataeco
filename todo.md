@@ -633,3 +633,9 @@
 ## Bug: Clara auto-prompt repeated microphone notification on mobile
 - [x] Root cause: SpeechRecognition.start() was called every 400ms on mobile when the OS ended sessions due to silence timeouts — each call triggers the system mic notification banner
 - [x] Fix: added exponential backoff (1.5s→8s on mobile, 400ms on desktop), page visibility pause/resume, and session duration tracking to reset backoff after productive sessions
+
+## Feature: Print layout with school/student metadata + answer sheet
+- [x] Print dialog: collect school name, student name, year/class before printing
+- [x] Print layout page 1: title heading, school name, student name, year/class, then material content (no answers)
+- [x] Print layout page 2: answer sheet with title + "Answer Sheet" heading and year/class
+- [x] Update printElement / ExportToolbar to accept metadata and render both pages

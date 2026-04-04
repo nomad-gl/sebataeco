@@ -13,10 +13,16 @@ import {
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/contexts/I18nContext";
 import {
-  exportPDF, exportPNG, exportWord, printElement,
+  exportPDF, exportPNG, exportWord, printWithMeta,
+  type PrintMeta,
   type QuizContent, type SlidesContent, type CrosswordContent,
   type MissingWordsContent, type WordsearchContent, type FlashcardsContent,
 } from "@/lib/exportUtils";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 // ─── Crossword grid renderer ──────────────────────────────────────────────────
 
@@ -710,6 +716,11 @@ function ExportToolbar({
   showAnswers: boolean;
 }) {
   const [exporting, setExporting] = useState<string | null>(null);
+  const [printDialogOpen, setPrintDialogOpen] = useState(false);
+  const [schoolName, setSchoolName] = useState("");
+  const [studentName, setStudentName] = useState("");
+  const [yearClass, setYearClass] = useState("");
+
   const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40);
   const hasTwoVersions = TWO_VERSION_TYPES.includes(type);
 
@@ -719,14 +730,26 @@ function ExportToolbar({
     finally { setExporting(null); }
   }
 
+  function handlePrint() {
+    const meta: PrintMeta = {
+      schoolName: schoolName.trim() || undefined,
+      studentName: studentName.trim() || undefined,
+      yearClass: yearClass.trim() || undefined,
+    };
+    setPrintDialogOpen(false);
+    // Small delay so the dialog closes before the print window opens
+    setTimeout(() => printWithMeta(contentId, title, meta, type, content), 150);
+  }
+
   return (
+    <>
     <div className="flex flex-wrap gap-2 items-center">
       {hasTwoVersions && (
         <Button size="sm" variant={showAnswers ? "default" : "outline"} onClick={onToggleAnswers}>
           {showAnswers ? "Showing Answers" : "Show Answers"}
         </Button>
       )}
-      <Button size="sm" variant="outline" onClick={() => printElement(contentId)} disabled={!!exporting}>
+      <Button size="sm" variant="outline" onClick={() => setPrintDialogOpen(true)} disabled={!!exporting}>
         <Printer className="w-4 h-4 mr-1.5" />
         Print
       </Button>
@@ -755,6 +778,56 @@ function ExportToolbar({
         PNG
       </Button>
     </div>
+
+    {/* Print metadata dialog */}
+    <Dialog open={printDialogOpen} onOpenChange={setPrintDialogOpen}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Printer className="w-4 h-4" /> Print Options
+          </DialogTitle>
+          <DialogDescription>
+            Enter the details to include on the printed sheet. All fields are optional.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-3 py-2">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="print-school">School Name</Label>
+            <Input
+              id="print-school"
+              value={schoolName}
+              onChange={e => setSchoolName(e.target.value)}
+              placeholder="e.g. Colegio San Sebastián"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="print-student">Student Name</Label>
+            <Input
+              id="print-student"
+              value={studentName}
+              onChange={e => setStudentName(e.target.value)}
+              placeholder="e.g. Ana García"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="print-year">Year / Class</Label>
+            <Input
+              id="print-year"
+              value={yearClass}
+              onChange={e => setYearClass(e.target.value)}
+              placeholder="e.g. 4ºA / Year 4"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setPrintDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handlePrint}>
+            <Printer className="w-4 h-4 mr-1.5" /> Print
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 

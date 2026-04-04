@@ -397,26 +397,180 @@ export async function exportWord(
 
 // ─── Print helper ─────────────────────────────────────────────────────────────
 
-export function printElement(elementId: string): void {
+export interface PrintMeta {
+  schoolName?: string;
+  studentName?: string;
+  yearClass?: string;
+}
+
+/**
+ * Open a print window with two pages:
+ *   Page 1 — content page: heading block (title, school, student, year/class) + material content
+ *   Page 2 — answer sheet: heading block (title + "Answer Sheet", year/class) + numbered answer lines
+ *
+ * The answer sheet is generated from the DOM element's data-answer-* attributes
+ * or, for quiz/crossword/missing-words, from the structured content object.
+ */
+export function printWithMeta(
+  elementId: string,
+  title: string,
+  meta: PrintMeta,
+  type?: string,
+  content?: unknown,
+): void {
   const el = document.getElementById(elementId);
   if (!el) return;
-  const printWindow = window.open("", "_blank", "width=900,height=700");
+
+  // ── Build the header block HTML ──────────────────────────────────────────────
+  function headerHtml(headingText: string, showStudent: boolean): string {
+    return `
+      <div class="print-header">
+        <h1 class="print-title">${headingText}</h1>
+        <table class="print-meta-table">
+          <tr>
+            <td class="meta-label">School:</td>
+            <td class="meta-value">${meta.schoolName || '&nbsp;'}</td>
+            <td class="meta-label">Year / Class:</td>
+            <td class="meta-value">${meta.yearClass || '&nbsp;'}</td>
+          </tr>
+          ${showStudent ? `<tr>
+            <td class="meta-label">Student Name:</td>
+            <td class="meta-value" colspan="3">${meta.studentName || '&nbsp;'}</td>
+          </tr>` : ''}
+        </table>
+        <hr class="print-rule" />
+      </div>
+    `;
+  }
+
+  // ── Build answer sheet HTML from content ─────────────────────────────────────
+  function answerSheetHtml(): string {
+    if (!content || !type) return '';
+
+    const lines: string[] = [];
+
+    if (type === 'quiz') {
+      const q = content as QuizContent;
+      q.questions.forEach((_item, i) => {
+        lines.push(`
+          <div class="answer-row">
+            <span class="answer-num">${i + 1}.</span>
+            <span class="answer-line"></span>
+          </div>
+        `);
+      });
+    } else if (type === 'crossword') {
+      const c = content as CrosswordContent;
+      const across = c.words.filter(w => w.direction === 'across');
+      const down   = c.words.filter(w => w.direction === 'down');
+      lines.push('<h3 class="answer-section">Across</h3>');
+      across.forEach(w => {
+        lines.push(`<div class="answer-row"><span class="answer-num">${w.number}.</span><span class="answer-clue">${w.clue}</span><span class="answer-line"></span></div>`);
+      });
+      lines.push('<h3 class="answer-section">Down</h3>');
+      down.forEach(w => {
+        lines.push(`<div class="answer-row"><span class="answer-num">${w.number}.</span><span class="answer-clue">${w.clue}</span><span class="answer-line"></span></div>`);
+      });
+    } else if (type === 'missing_words') {
+      const m = content as MissingWordsContent;
+      m.blanks.forEach((b, i) => {
+        lines.push(`<div class="answer-row"><span class="answer-num">${i + 1}.</span><span class="answer-clue">${b.hint}</span><span class="answer-line"></span></div>`);
+      });
+    } else if (type === 'flashcards') {
+      const f = content as FlashcardsContent;
+      f.cards.forEach((c, i) => {
+        lines.push(`<div class="answer-row"><span class="answer-num">${i + 1}.</span><span class="answer-clue">${c.term}</span><span class="answer-line"></span></div>`);
+      });
+    } else if (type === 'wordsearch') {
+      const w = content as WordsearchContent;
+      const wordList = w.words.map(item => typeof item === 'string' ? item : item.word);
+      wordList.forEach((word, i) => {
+        lines.push(`<div class="answer-row"><span class="answer-num">${i + 1}.</span><span class="answer-clue">${word}</span><span class="answer-line"></span></div>`);
+      });
+    }
+
+    if (lines.length === 0) return '';
+    return `<div class="answer-sheet-body">${lines.join('')}</div>`;
+  }
+
+  const answerSheet = answerSheetHtml();
+
+  const printWindow = window.open('', '_blank', 'width=900,height=700');
   if (!printWindow) { window.print(); return; }
+
   printWindow.document.write(`
-    <html><head><title>Print</title>
-    <style>
-      body { font-family: Arial, sans-serif; margin: 20px; color: #111; }
-      h1 { font-size: 20px; margin-bottom: 4px; }
-      h2 { font-size: 16px; margin-top: 16px; }
-      h3 { font-size: 14px; }
-      table { border-collapse: collapse; width: 100%; }
-      td, th { border: 1px solid #9ca3af; padding: 4px 6px; text-align: center; font-family: monospace; font-size: 13px; }
-      .no-print { display: none !important; }
-      @media print { .no-print { display: none !important; } }
-    </style>
-    </head><body>${el.innerHTML}</body></html>
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8" />
+      <title>${title}</title>
+      <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; color: #111; font-size: 13px; }
+
+        /* ── Page 1: content ── */
+        .content-page { padding: 24px 28px; }
+
+        /* ── Print header ── */
+        .print-header { margin-bottom: 16px; }
+        .print-title { font-size: 22px; font-weight: 700; margin-bottom: 10px; }
+        .print-meta-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+        .print-meta-table td { padding: 3px 6px; font-size: 12px; }
+        .meta-label { font-weight: 600; width: 110px; color: #374151; }
+        .meta-value { border-bottom: 1px solid #9ca3af; min-width: 140px; }
+        .print-rule { border: none; border-top: 2px solid #374151; margin: 10px 0 16px; }
+
+        /* ── Material content (inherited from element) ── */
+        h1 { font-size: 18px; margin-bottom: 4px; }
+        h2 { font-size: 15px; margin-top: 14px; }
+        h3 { font-size: 13px; }
+        table { border-collapse: collapse; }
+        td, th { border: 1px solid #9ca3af; padding: 4px 6px; text-align: center;
+                 font-family: monospace; font-size: 12px; }
+        .no-print { display: none !important; }
+
+        /* ── Page 2: answer sheet ── */
+        .answer-page { padding: 24px 28px; page-break-before: always; }
+        .answer-page .print-title { font-size: 20px; }
+        .answer-sheet-body { margin-top: 12px; }
+        .answer-section { font-size: 13px; font-weight: 700; margin: 14px 0 6px;
+                          text-transform: uppercase; letter-spacing: 0.05em; color: #374151; }
+        .answer-row { display: flex; align-items: flex-end; gap: 6px;
+                      margin-bottom: 10px; min-height: 26px; }
+        .answer-num { font-weight: 700; min-width: 22px; flex-shrink: 0; }
+        .answer-clue { color: #6b7280; font-size: 11px; flex-shrink: 0;
+                       max-width: 220px; white-space: nowrap; overflow: hidden;
+                       text-overflow: ellipsis; }
+        .answer-line { flex: 1; border-bottom: 1px solid #9ca3af; margin-bottom: 2px; }
+
+        @media print {
+          .no-print { display: none !important; }
+          .answer-page { page-break-before: always; }
+        }
+      </style>
+    </head>
+    <body>
+      <!-- Page 1: content -->
+      <div class="content-page">
+        ${headerHtml(title, true)}
+        ${el.innerHTML}
+      </div>
+
+      ${answerSheet ? `
+      <!-- Page 2: answer sheet -->
+      <div class="answer-page">
+        ${headerHtml(title + ' — Answer Sheet', false)}
+        ${answerSheet}
+      </div>` : ''}
+    </body>
+    </html>
   `);
   printWindow.document.close();
   printWindow.focus();
-  setTimeout(() => { printWindow.print(); printWindow.close(); }, 400);
+  setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
+}
+
+/** @deprecated Use printWithMeta instead */
+export function printElement(elementId: string): void {
+  printWithMeta(elementId, document.title, {});
 }
