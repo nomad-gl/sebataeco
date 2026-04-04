@@ -12,16 +12,15 @@
  * When the teacher finishes speaking, the transcript is passed to onTranscript
  * and the hook returns to idle automatically.
  *
- * Key reliability decisions:
- * - Wake listener uses `continuous: true` with `interimResults: true` so it
- *   never misses a word between utterances.
- * - The speech engine lang is always a full BCP-47 tag (e.g. "en-US", "es-ES",
- *   "ca-ES") — passing just "en" or "es" can cause silent failures on some
- *   browsers.
- * - scheduleWakeListenerRef is a stable ref so callbacks always call the
- *   current version — this prevents the "second question" stale-closure bug.
- * - Delays are kept short (300 ms handover, 400 ms restart) to minimise
- *   perceived latency between saying "Clara" and the mic opening.
+ * Mobile notification fix:
+ * - On mobile browsers (iOS Safari, Chrome for Android), every call to
+ *   SpeechRecognition.start() triggers the OS "site is using your microphone"
+ *   notification banner. The wake listener ends frequently due to OS-level
+ *   silence timeouts, so without throttling the notification fires every few
+ *   seconds.
+ * - Fix: exponential backoff on restarts (min 1 s, max 8 s) that resets after
+ *   a successful long session. On mobile we also skip restarting while the page
+ *   is hidden (visibilitychange) to avoid background mic churn.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -46,6 +45,11 @@ const getSR = (): (new () => any) | null =>
   (window as any).webkitSpeechRecognition ||
   null;
 
+/** Detect mobile browsers where every SpeechRecognition.start() triggers a system notification */
+function isMobileBrowser(): boolean {
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+}
+
 /**
  * Map app language codes to full BCP-47 locale tags that browsers accept.
  * Passing just "en" or "es" causes silent failures on Chrome/Safari.
@@ -57,7 +61,6 @@ function toBCP47(lang: string | undefined): string {
     es: "es-ES",
     ca: "ca-ES",
   };
-  // If already a full tag (e.g. "en-US") return as-is
   if (lang.includes("-")) return lang;
   return map[lang.toLowerCase()] ?? "en-US";
 }
@@ -124,6 +127,11 @@ export function useClaraWakeWord({
   const wakeStateRef = useRef<WakeWordState>("idle");
   const langRef = useRef(lang);
 
+  // Backoff state for mobile — prevents hammering the OS mic notification
+  const backoffMsRef = useRef<number>(isMobileBrowser() ? 1500 : 400);
+  const sessionStartTimeRef = useRef<number>(0);
+  const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // scheduleWakeListener stored as a ref so all callbacks always call the
   // current version — prevents the stale-closure "second question" bug.
   const scheduleWakeListenerRef = useRef<() => void>(() => {});
@@ -141,6 +149,10 @@ export function useClaraWakeWord({
   // ─── Stop all recognition sessions ──────────────────────────────────────────
 
   const stopAll = useCallback(() => {
+    if (restartTimerRef.current) {
+      clearTimeout(restartTimerRef.current);
+      restartTimerRef.current = null;
+    }
     if (wakeRef.current) {
       try { wakeRef.current.abort(); } catch { /* ignore */ }
       wakeRef.current = null;
@@ -162,7 +174,6 @@ export function useClaraWakeWord({
     const rec = new SR();
     rec.continuous = false;
     rec.interimResults = true;
-    // Use full BCP-47 locale — critical for reliable recognition
     rec.lang = toBCP47(langRef.current);
     inputRef.current = rec;
 
@@ -190,6 +201,8 @@ export function useClaraWakeWord({
       inputRef.current = null;
       if (finalTranscript.trim()) {
         onTranscriptRef.current(finalTranscript.trim());
+        // Reset backoff after a successful transcript — session was productive
+        backoffMsRef.current = isMobileBrowser() ? 1500 : 400;
       } else {
         playTimeoutTone();
       }
@@ -213,11 +226,14 @@ export function useClaraWakeWord({
     if (!SR || !enabledRef.current) return;
     if (wakeStateRef.current !== "idle") return;
     if (wakeRef.current) return;
+    // Don't start while the page is hidden (mobile background tab)
+    if (document.visibilityState === "hidden") return;
+
+    sessionStartTimeRef.current = Date.now();
 
     const rec = new SR();
     rec.continuous = true;
     rec.interimResults = true;
-    // Use full BCP-47 locale — passing just "en" or "es" causes silent failures
     rec.lang = toBCP47(langRef.current);
     wakeRef.current = rec;
 
@@ -230,12 +246,12 @@ export function useClaraWakeWord({
         .join(" ")
         .toLowerCase();
 
-      // Match "clara" in any language context — also catches "klara", "clara"
       if (/\b(clara|klara)\b/.test(transcript)) {
         updateState("activating");
         try { rec.abort(); } catch { /* ignore */ }
         wakeRef.current = null;
-        // Reduced handover delay: beep (250 ms) + 300 ms = ~550 ms total
+        // Reset backoff — wake word was detected, session was productive
+        backoffMsRef.current = isMobileBrowser() ? 1500 : 400;
         playBeep().then(() => {
           setTimeout(() => {
             if (enabledRef.current) startInputSession();
@@ -252,6 +268,10 @@ export function useClaraWakeWord({
         return;
       }
       if (enabledRef.current && wakeStateRef.current === "idle") {
+        // Increase backoff on error (network, aborted, etc.)
+        if (isMobileBrowser()) {
+          backoffMsRef.current = Math.min(backoffMsRef.current * 1.5, 8000);
+        }
         scheduleWakeListenerRef.current();
       }
     };
@@ -259,6 +279,15 @@ export function useClaraWakeWord({
     rec.onend = () => {
       wakeRef.current = null;
       if (enabledRef.current && wakeStateRef.current === "idle") {
+        // If the session ended very quickly (< 2 s) it was likely an OS timeout
+        // on mobile — apply backoff to avoid hammering the mic notification.
+        const sessionDuration = Date.now() - sessionStartTimeRef.current;
+        if (isMobileBrowser() && sessionDuration < 2000) {
+          backoffMsRef.current = Math.min(backoffMsRef.current * 1.5, 8000);
+        } else if (sessionDuration > 5000) {
+          // Long session — reset backoff, things are working well
+          backoffMsRef.current = isMobileBrowser() ? 1500 : 400;
+        }
         scheduleWakeListenerRef.current();
       }
     };
@@ -273,16 +302,48 @@ export function useClaraWakeWord({
     }
   }, [startInputSession, updateState]);
 
-  // Keep scheduleWakeListenerRef current — 400 ms restart delay (was 600 ms)
-  // to let React settle after setMessages without excessive dead time.
+  // Keep scheduleWakeListenerRef current
   useEffect(() => {
     scheduleWakeListenerRef.current = () => {
-      setTimeout(() => {
+      if (restartTimerRef.current) {
+        clearTimeout(restartTimerRef.current);
+      }
+      restartTimerRef.current = setTimeout(() => {
+        restartTimerRef.current = null;
         if (enabledRef.current && wakeStateRef.current === "idle") {
           startWakeListener();
         }
-      }, 400);
+      }, backoffMsRef.current);
     };
+  }, [startWakeListener]);
+
+  // ─── Pause when page is hidden (mobile background) ───────────────────────────
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        // Stop the wake listener when the tab goes to background
+        if (wakeRef.current) {
+          try { wakeRef.current.abort(); } catch { /* ignore */ }
+          wakeRef.current = null;
+        }
+        if (restartTimerRef.current) {
+          clearTimeout(restartTimerRef.current);
+          restartTimerRef.current = null;
+        }
+      } else if (document.visibilityState === "visible" && enabledRef.current && wakeStateRef.current === "idle") {
+        // Resume when the tab comes back to foreground — with a short delay
+        restartTimerRef.current = setTimeout(() => {
+          restartTimerRef.current = null;
+          if (enabledRef.current && wakeStateRef.current === "idle") {
+            startWakeListener();
+          }
+        }, 800);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [startWakeListener]);
 
   // ─── Lifecycle: start/stop based on enabled prop ─────────────────────────────

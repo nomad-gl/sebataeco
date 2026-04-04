@@ -606,16 +606,18 @@
 - [x] Updated tests to expect totalQuestions ≥ 240 and handle DB-merged pool correctly — 55/55 passing
 
 ## Bug: Generated questions not always in default language (English)
-- [ ] Update questionGenerator.ts LLM prompt to explicitly instruct the model to generate all questions, options, and explanations in English regardless of any other context
+- [x] Updated questionGenerator.ts LLM system and user prompts to explicitly instruct English-only output
+- [x] Rebuilt entire knowledge bank (480 questions) in English using the corrected prompt
 
 ## Bug: Generated questions may be duplicated
-- [ ] Add duplicate detection in questionGenerator.ts: before saving a new question, compare its normalised text against all existing static + DB questions using word-overlap similarity; skip any question that is too similar (>= 80% word overlap with an existing question)
-- [ ] Log skipped duplicates so the admin can see how many were filtered
+- [x] Added isTooSimilar() helper in questionGenerator.ts using word-overlap similarity (>= 80% threshold)
+- [x] Duplicate check runs against all static + DB questions before saving each new question
+- [x] Skipped duplicates are counted and included in the generation summary
 
 ## Feature: Auto-approve generated questions
-- [ ] Change questionGenerator.ts to save new questions with status = 'approved' instead of 'pending'
-- [ ] Add autoApprove option (default true) to generateAndAppendQuestions() so manual review can still be opted into
-- [ ] Update Admin dashboard to reflect the auto-approve behaviour (review queue becomes optional)
+- [x] questionGenerator.ts saves new questions with status = 'approved' by default (autoApprove: true)
+- [x] autoApprove option available to opt into manual review if needed
+- [x] Existing pending DB questions approved via migration script
 
 ## Feature: Expand knowledge bank to 60 questions per competency
 - [x] Generated 480 total questions (60 per competency × 8, 20 per year group) all in English
@@ -623,3 +625,11 @@
 - [x] correctIndex balanced evenly: 120 per position (0/1/2/3)
 - [x] All generated questions auto-approved (status = 'approved') immediately
 - [x] Updated tests to expect 480 questions — 55/55 passing
+
+## Bug: Clara auto-prompt repeated microphone notification on mobile
+- [x] Root cause: SpeechRecognition.start() was called every 400ms on mobile when the OS ended sessions due to silence timeouts — each call triggers the system mic notification banner
+- [x] Fix: added exponential backoff (1.5s→8s on mobile, 400ms on desktop), page visibility pause/resume, and session duration tracking to reset backoff after productive sessions
+
+## Bug: Clara auto-prompt repeated microphone notification on mobile
+- [x] Root cause: SpeechRecognition.start() was called every 400ms on mobile when the OS ended sessions due to silence timeouts — each call triggers the system mic notification banner
+- [x] Fix: added exponential backoff (1.5s→8s on mobile, 400ms on desktop), page visibility pause/resume, and session duration tracking to reset backoff after productive sessions
