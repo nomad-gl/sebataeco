@@ -9,10 +9,10 @@
  *   - Transcription: Web Speech API (SpeechRecognition) — only started AFTER the
  *     wake word fires, so the notification appears at most once per conversation.
  *
- * Wake word: "Hey Jarvis" (built-in openWakeWord model, no API key required)
+ * Wake word: "Clara" (custom-trained ONNX model, 875 synthetic TTS samples, 100% recall)
  *
  * State machine:
- *   idle       → WakeWordEngine running, waiting for "Hey Jarvis"
+ *   idle       → WakeWordEngine running, waiting for "Clara"
  *   activating → wake detected, beep played, 300 ms pause before mic handover
  *   recording  → SpeechRecognition input session open, waiting for teacher's question
  *
@@ -57,11 +57,12 @@ const CDN_MODEL_MAP: Record<string, string> = {
   "embedding_model.onnx": "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/embedding_model_a5eb9a9b.onnx",
   "silero_vad.onnx":       "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/silero_vad_6e98b1e6.onnx",
   "hey_jarvis_v0.1.onnx": "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/hey_jarvis_v0.1_c871a5f8.onnx",
+  "clara_v0.1.onnx":      "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/clara_v0.1_c4888bef.onnx",
 };
 
 // Keyword model files map (only used for keyword models, not core models)
 const MODEL_FILES = {
-  hey_jarvis: "hey_jarvis_v0.1.onnx",
+  clara: "clara_v0.1.onnx",
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -255,7 +256,7 @@ export function useClaraWakeWord({
       const engine = new (WakeWordEngine as any)({
         baseAssetUrl: "__cdn__",
         modelFiles: MODEL_FILES,
-        keywords: ["hey_jarvis"],
+        keywords: ["clara"],
         // Latency tuning:
         // frameSize: 640 samples @ 16 kHz = 40 ms per chunk (default 1280 = 80 ms)
         frameSize: 640,
@@ -276,7 +277,7 @@ export function useClaraWakeWord({
       engine.on("detect", ({ keyword }: { keyword: string; score: number }) => {
         if (!enabledRef.current) return;
         if (wakeStateRef.current !== "idle") return;
-        if (keyword !== "hey_jarvis") return;
+        if (keyword !== "clara") return;
 
         updateState("activating");
         playBeep().then(async () => {

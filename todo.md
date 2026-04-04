@@ -655,3 +655,12 @@
 - [x] Identify latency sources: frameSize 1280 (80ms/chunk), vadHangoverFrames 12, embeddingWindowSize 16, cooldownMs 2000, 300ms pre-SpeechRecognition pause
 - [x] Tune: frameSize→640 (40ms), vadHangoverFrames→4 (160ms), embeddingWindowSize→8, cooldownMs→1000ms
 - [x] Reduce pre-SpeechRecognition pause from 300ms to 100ms
+
+## Feature: Custom "Clara" wake word model
+- [x] Set up openWakeWord training environment (Python deps: openWakeWord, TTS, torch)
+- [x] Generate 875 synthetic TTS audio samples for "Clara" using espeak-ng (multiple voices, pitches, speeds)
+- [x] Train custom ONNX model using self-contained PyTorch pipeline (50 epochs, 100% accuracy, 100% recall)
+- [x] Export to clara_v0.1.onnx (11 KB)
+- [x] Upload clara_v0.1.onnx to CDN
+- [x] Integrate clara_v0.1.onnx into useClaraWakeWord (replaced hey_jarvis)
+- [x] Wake word is now "Clara" (teachers say "Clara" to activate)
