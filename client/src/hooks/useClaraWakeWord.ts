@@ -270,7 +270,7 @@ export function useClaraWakeWord({
       if (enabledRef.current && wakeStateRef.current === "idle") {
         // Increase backoff on error (network, aborted, etc.)
         if (isMobileBrowser()) {
-          backoffMsRef.current = Math.min(backoffMsRef.current * 1.5, 8000);
+          backoffMsRef.current = Math.min(backoffMsRef.current * 1.5, 60000);
         }
         scheduleWakeListenerRef.current();
       }
@@ -283,7 +283,7 @@ export function useClaraWakeWord({
         // on mobile — apply backoff to avoid hammering the mic notification.
         const sessionDuration = Date.now() - sessionStartTimeRef.current;
         if (isMobileBrowser() && sessionDuration < 2000) {
-          backoffMsRef.current = Math.min(backoffMsRef.current * 1.5, 8000);
+          backoffMsRef.current = Math.min(backoffMsRef.current * 1.5, 60000);
         } else if (sessionDuration > 5000) {
           // Long session — reset backoff, things are working well
           backoffMsRef.current = isMobileBrowser() ? 1500 : 400;

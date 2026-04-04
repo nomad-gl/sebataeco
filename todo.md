@@ -633,3 +633,6 @@
 ## Bug: Clara auto-prompt repeated microphone notification on mobile
 - [x] Root cause: SpeechRecognition.start() was called every 400ms on mobile when the OS ended sessions due to silence timeouts — each call triggers the system mic notification banner
 - [x] Fix: added exponential backoff (1.5s→8s on mobile, 400ms on desktop), page visibility pause/resume, and session duration tracking to reset backoff after productive sessions
+
+## Improvement: Raise mobile wake-word restart backoff cap to 60 seconds
+- [x] Change mobile backoff cap from 8000ms to 60000ms in useClaraWakeWord.ts
