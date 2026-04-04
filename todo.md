@@ -648,3 +648,8 @@
 - [x] After each AI response: call voice.tts, play MP3 audio automatically
 - [x] Add speaker/mute toggle so users can disable auto-TTS
 - [x] Show recording indicator and playback state in UI
+
+## Bug: TTS audio not playing
+- [x] Fix autoplay policy: unlock audio context on first user interaction, then auto-play TTS
+- [x] Fix TTS trigger: watch last assistant message content (not just messages.length) to handle streaming updates
+- [x] Add per-message "Speak" button on assistant bubbles as a reliable user-gesture fallback

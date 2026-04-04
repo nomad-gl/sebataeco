@@ -166,12 +166,41 @@ export function AIChatBox({
   const transcribeMutation = trpc.voice.transcribe.useMutation();
   const ttsMutation = trpc.voice.tts.useMutation();
 
+  // Track whether the user has interacted with the page (needed to unlock autoplay)
+  const audioUnlockedRef = useRef(false);
+  const pendingTTSRef = useRef<string | null>(null);
+
+  // Unlock audio context on first user interaction anywhere on the page
+  useEffect(() => {
+    const unlock = () => {
+      if (!audioUnlockedRef.current) {
+        audioUnlockedRef.current = true;
+        // If TTS was waiting for unlock, play it now
+        if (pendingTTSRef.current) {
+          const text = pendingTTSRef.current;
+          pendingTTSRef.current = null;
+          playTTSUnlocked(text);
+        }
+      }
+    };
+    window.addEventListener("click", unlock, { once: false, passive: true });
+    window.addEventListener("keydown", unlock, { once: false, passive: true });
+    window.addEventListener("touchstart", unlock, { once: false, passive: true });
+    return () => {
+      window.removeEventListener("click", unlock);
+      window.removeEventListener("keydown", unlock);
+      window.removeEventListener("touchstart", unlock);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ─── TTS playback ────────────────────────────────────────────────────────────
 
-  const playTTS = useCallback(async (text: string) => {
+  // Internal: actually fetch + play (assumes audio is unlocked)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const playTTSUnlocked = useCallback(async (text: string) => {
     if (!ttsEnabled || !text.trim()) return;
 
-    // Stop any currently playing audio
     if (currentAudioRef.current) {
       currentAudioRef.current.pause();
       currentAudioRef.current = null;
@@ -184,19 +213,33 @@ export function AIChatBox({
       const audioSrc = `data:${result.mimeType};base64,${result.audioBase64}`;
       const audio = new Audio(audioSrc);
       currentAudioRef.current = audio;
-      audio.onended = () => {
-        setIsSpeaking(false);
-        currentAudioRef.current = null;
-      };
-      audio.onerror = () => {
-        setIsSpeaking(false);
-        currentAudioRef.current = null;
-      };
-      await audio.play();
+      audio.onended = () => { setIsSpeaking(false); currentAudioRef.current = null; };
+      audio.onerror = () => { setIsSpeaking(false); currentAudioRef.current = null; };
+      // play() returns a promise; catch NotAllowedError gracefully
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err: unknown) => {
+          console.warn("[TTS] autoplay blocked:", err);
+          setIsSpeaking(false);
+          currentAudioRef.current = null;
+        });
+      }
     } catch {
       setIsSpeaking(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ttsEnabled, ttsMutation]);
+
+  // Public: queue or play immediately depending on whether audio is unlocked
+  const playTTS = useCallback((text: string) => {
+    if (!ttsEnabled || !text.trim()) return;
+    if (audioUnlockedRef.current) {
+      playTTSUnlocked(text);
+    } else {
+      // Store the text; it will be played once the user first interacts
+      pendingTTSRef.current = text;
+    }
+  }, [ttsEnabled, playTTSUnlocked]);
 
   const stopSpeaking = useCallback(() => {
     if (currentAudioRef.current) {
@@ -206,29 +249,31 @@ export function AIChatBox({
     setIsSpeaking(false);
   }, []);
 
-  // Auto-play TTS when a new assistant message arrives
-  const prevMessagesLengthRef = useRef(messages.length);
+  // Auto-play TTS when a new assistant message finishes streaming
+  // We watch the content of the last assistant message + isLoading so we
+  // catch both appended messages and in-place streaming completions.
+  const prevLastAssistantContentRef = useRef("");
   useEffect(() => {
-    const prevLen = prevMessagesLengthRef.current;
-    prevMessagesLengthRef.current = messages.length;
-
-    if (messages.length <= prevLen) return; // no new messages
-    if (isLoading) return; // still streaming
+    if (isLoading) return; // still streaming — wait until done
 
     const lastMsg = messages[messages.length - 1];
-    if (lastMsg?.role === "assistant" && lastMsg.content) {
-      // Strip markdown for cleaner TTS — remove code blocks, headers, bold/italic markers
-      const plainText = lastMsg.content
-        .replace(/```[\s\S]*?```/g, "")
-        .replace(/`[^`]+`/g, "")
-        .replace(/#{1,6}\s/g, "")
-        .replace(/[*_]{1,2}([^*_]+)[*_]{1,2}/g, "$1")
-        .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-        .trim();
-      playTTS(plainText);
-    }
+    if (!lastMsg || lastMsg.role !== "assistant" || !lastMsg.content) return;
+
+    // Only fire when the content is new (avoids re-triggering on re-renders)
+    if (lastMsg.content === prevLastAssistantContentRef.current) return;
+    prevLastAssistantContentRef.current = lastMsg.content;
+
+    // Strip markdown for cleaner TTS
+    const plainText = lastMsg.content
+      .replace(/```[\s\S]*?```/g, "")
+      .replace(/`[^`]+`/g, "")
+      .replace(/#{1,6}\s/g, "")
+      .replace(/[*_]{1,2}([^*_]+)[*_]{1,2}/g, "$1")
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+      .trim();
+    playTTS(plainText);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages.length, isLoading]);
+  }, [messages, isLoading]);
 
   // Stop speaking when loading starts (new question being answered)
   useEffect(() => {
@@ -534,6 +579,26 @@ export function AIChatBox({
                         <span className="text-[10px] text-white/35 mt-0.5 px-1 select-none">
                           {formatTime(message.timestamp)}
                         </span>
+                      )}
+                      {/* Per-bubble speak button — always available as a user-gesture fallback */}
+                      {message.role === "assistant" && !isLoading && message.content && (
+                        <button
+                          onClick={() => {
+                            audioUnlockedRef.current = true;
+                            const plain = message.content
+                              .replace(/```[\s\S]*?```/g, "")
+                              .replace(/`[^`]+`/g, "")
+                              .replace(/#{1,6}\s/g, "")
+                              .replace(/[*_]{1,2}([^*_]+)[*_]{1,2}/g, "$1")
+                              .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+                              .trim();
+                            playTTSUnlocked(plain);
+                          }}
+                          title="Read aloud"
+                          className="flex items-center justify-center w-6 h-6 rounded-md transition-colors text-white/30 hover:text-blue-400 hover:bg-blue-400/10 mt-1 ml-1"
+                        >
+                          <Volume2 className="size-3" />
+                        </button>
                       )}
                       {message.role === "assistant" && !isLoading && message.id && onRateMessage && (
                         <RatingButtons messageId={message.id} rating={message.rating} onRate={onRateMessage} />
