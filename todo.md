@@ -645,3 +645,8 @@
 - [x] Intercept ort.InferenceSession.create to redirect hardcoded filenames to CDN URLs
 - [x] Add TypeScript declaration files for openwakeword-wasm-browser and onnxruntime-web
 - [x] Wake word: "Hey Jarvis" (built-in model, no API key required)
+
+## Bug: Voice-to-text not working after Hey Jarvis wake word fires
+- [ ] Diagnose why SpeechRecognition input session starts but captures no transcript
+- [ ] Fix: mic stream conflict between openWakeWord AudioWorklet and SpeechRecognition
+- [ ] Ensure onTranscript is called and Clara receives the question

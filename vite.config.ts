@@ -150,7 +150,44 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
+// Plugin to serve .wasm files with the correct MIME type so WebAssembly.compile works.
+// onnxruntime-web bundles a `new URL("ort-wasm-*.wasm", import.meta.url).href` path
+// that resolves relative to the Vite dep-optimized chunk. We copy the WASM files into
+// the Vite deps directory so they are co-located with the chunk and served correctly.
+const ORT_WASM_FILES = [
+  "ort-wasm-simd-threaded.jsep.wasm",
+  "ort-wasm-simd-threaded.wasm",
+  "ort-wasm-simd-threaded.asyncify.wasm",
+];
+const vitePluginWasmMime = (): Plugin => ({
+  name: "wasm-mime",
+  configureServer(server: ViteDevServer) {
+    // Set MIME type for all .wasm requests
+    server.middlewares.use((req, res, next) => {
+      if (req.url?.endsWith(".wasm")) {
+        res.setHeader("Content-Type", "application/wasm");
+      }
+      next();
+    });
+    // Copy WASM files into Vite deps cache after dep optimisation completes
+    server.httpServer?.once("listening", () => {
+      setTimeout(() => {
+        const depsDir = path.join(PROJECT_ROOT, "node_modules", ".vite", "deps");
+        const ortDist = path.join(PROJECT_ROOT, "node_modules", "onnxruntime-web", "dist");
+        if (!fs.existsSync(depsDir)) return;
+        for (const file of ORT_WASM_FILES) {
+          const src = path.join(ortDist, file);
+          const dest = path.join(depsDir, file);
+          if (fs.existsSync(src) && !fs.existsSync(dest)) {
+            try { fs.copyFileSync(src, dest); } catch { /* ignore */ }
+          }
+        }
+      }, 3000); // wait 3 s for Vite dep optimisation to finish
+    });
+  },
+});
+
+const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginWasmMime()];
 
 export default defineConfig({
   plugins,

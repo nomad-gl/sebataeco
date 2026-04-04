@@ -24,6 +24,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import WakeWordEngine from "openwakeword-wasm-browser";
 import * as ort from "onnxruntime-web";
 
+// Set WASM paths at module load time (before any InferenceSession.create call)
+// so onnxruntime-web fetches binaries from CDN with correct application/wasm MIME type.
+// The Vite dev server serves .wasm files as text/html which breaks WebAssembly.compile.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(ort as any).env.wasm.wasmPaths = {
+  "ort-wasm-simd-threaded.wasm":          "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded_f12ebab8.wasm",
+  "ort-wasm-simd-threaded.asyncify.wasm": "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded.asyncify_409e0b96.wasm",
+  "ort-wasm-simd-threaded.jsep.wasm":     "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded.jsep_28a733d3.wasm",
+};
+
 export type WakeWordState = "idle" | "activating" | "recording";
 
 export type UseClaraWakeWordOptions = {
@@ -219,14 +229,21 @@ export function useClaraWakeWord({
     engineLoadingRef.current = true;
 
     try {
-      // The engine resolves: baseAssetUrl.replace(/\/+$/, '') + '/' + filename
-      // We use a fake baseAssetUrl of '__cdn__' and intercept ort.InferenceSession.create
-      // to redirect '__cdn__/filename.onnx' → actual CDN URL.
-      // This avoids storing large ONNX files in client/public.
+      // WakeWordEngine accepts ortWasmPath which it passes directly to
+      // ort.env.wasm.wasmPaths. We pass a map of filename → full CDN URL so
+      // onnxruntime-web fetches WASM binaries from CDN (correct MIME type)
+      // instead of from the Vite dev server (which serves them as text/html).
+      const ortWasmPath = {
+        "ort-wasm-simd-threaded.wasm":          "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded_f12ebab8.wasm",
+        "ort-wasm-simd-threaded.asyncify.wasm": "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded.asyncify_409e0b96.wasm",
+        "ort-wasm-simd-threaded.jsep.wasm":     "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/ort-wasm-simd-threaded.jsep_28a733d3.wasm",
+      };
+
+      // Intercept ort.InferenceSession.create to redirect hardcoded ONNX model
+      // filenames (melspectrogram.onnx etc.) to their CDN URLs.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const origCreate = (ort as any).InferenceSession.create.bind((ort as any).InferenceSession);
       ort.InferenceSession.create = async (uri: string, opts?: unknown) => {
-        // Extract the filename from the resolved path and look up the CDN URL
         const filename = uri.split("/").pop() ?? uri;
         const cdnUrl = CDN_MODEL_MAP[filename] ?? uri;
         return origCreate(cdnUrl, opts);
@@ -239,6 +256,7 @@ export function useClaraWakeWord({
         keywords: ["hey_jarvis"],
         detectionThreshold: 0.5,
         cooldownMs: 2000,
+        ortWasmPath,
       });
 
       engineRef.current = engine;
