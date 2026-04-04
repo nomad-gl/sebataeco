@@ -156,7 +156,7 @@ export function AIChatBox({
     onSendMessage(text);
   }, [onSendMessage]);
 
-  const { wakeState, permissionError: wakePermissionError } = useClaraWakeWord({
+  const { wakeState, permissionError: wakePermissionError, isMobile, mobileTapToRecord } = useClaraWakeWord({
     onTranscript: handleWakeTranscript,
     enabled: alwaysOnEnabled,
     lang: document.documentElement.lang || navigator.language || "en",
@@ -332,7 +332,7 @@ export function AIChatBox({
       ? "Clara is listening…"
       : wakeState === "activating"
       ? "Clara activated!"
-      : alwaysOnEnabled
+      : (!isMobile && alwaysOnEnabled)
       ? "Say 'Clara' to activate"
       : null;
 
@@ -526,36 +526,44 @@ export function AIChatBox({
           )}
         </div>
 
-        {/* Always-on toggle (Radio icon) */}
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          onClick={() => setAlwaysOnEnabled((v) => !v)}
-          title={alwaysOnEnabled ? "Always-on: ON — click to disable" : "Always-on: OFF — click to enable"}
-          className={cn(
-            "shrink-0 h-[38px] w-[38px]",
-            alwaysOnEnabled
-              ? "text-green-400 hover:text-green-300 hover:bg-green-500/10"
-              : "text-white/40 hover:text-white hover:bg-white/15"
-          )}
-        >
-          <Radio className={cn("size-4", alwaysOnEnabled && wakeState === "idle" && "animate-pulse")} />
-        </Button>
+        {/* Always-on toggle (Radio icon) — desktop only; hidden on mobile to prevent mic notification spam */}
+        {!isMobile && (
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            onClick={() => setAlwaysOnEnabled((v) => !v)}
+            title={alwaysOnEnabled ? "Always-on: ON — click to disable" : "Always-on: OFF — click to enable"}
+            className={cn(
+              "shrink-0 h-[38px] w-[38px]",
+              alwaysOnEnabled
+                ? "text-green-400 hover:text-green-300 hover:bg-green-500/10"
+                : "text-white/40 hover:text-white hover:bg-white/15"
+            )}
+          >
+            <Radio className={cn("size-4", alwaysOnEnabled && wakeState === "idle" && "animate-pulse")} />
+          </Button>
+        )}
 
-        {/* Manual mic button */}
+        {/* Mic button:
+            Desktop → toggles manual SpeechRecognition into the textarea
+            Mobile  → tap-to-activate: single session, auto-sends transcript (no background listener) */}
         <Button
           type="button"
           size="icon"
           variant="ghost"
-          onClick={toggleRecording}
-          title={isRecording ? "Stop recording" : "Voice input"}
+          onClick={isMobile ? mobileTapToRecord : toggleRecording}
+          title={
+            isMobile
+              ? wakeState === "recording" ? "Tap to cancel" : "Tap to speak to Clara"
+              : isRecording ? "Stop recording" : "Voice input"
+          }
           className={cn(
             "shrink-0 h-[38px] w-[38px] text-white/60 hover:text-white hover:bg-white/15",
-            isRecording && "text-red-400 hover:text-red-300 animate-pulse"
+            (isRecording || (isMobile && wakeState === "recording")) && "text-red-400 hover:text-red-300 animate-pulse"
           )}
         >
-          {isRecording ? <MicOff className="size-4" /> : <Mic className="size-4" />}
+          {(isRecording || (isMobile && wakeState === "recording")) ? <MicOff className="size-4" /> : <Mic className="size-4" />}
         </Button>
 
         {/* Send button */}

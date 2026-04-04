@@ -1,26 +1,27 @@
 /**
  * useClaraWakeWord
  *
- * A self-contained, always-on wake-word listener for Clara.
- * Completely independent of the manual mic button in AIChatBox.
+ * A self-contained wake-word listener for Clara.
  *
- * State machine:
+ * DESKTOP behaviour (non-mobile):
+ *   Always-on continuous SpeechRecognition session listens for "Clara".
+ *   When detected it plays a beep and opens a short recording window.
+ *
+ * MOBILE behaviour (iOS Safari, Chrome for Android, etc.):
+ *   The always-on listener is DISABLED on mobile because every call to
+ *   SpeechRecognition.start() triggers the OS "site is using your microphone"
+ *   notification banner regardless of backoff. Instead, mobile users tap the
+ *   mic button (exposed via the `mobileTapToRecord` callback) to start a single
+ *   recording session. No background mic usage, no notification spam.
+ *
+ * State machine (desktop):
  *   idle       → wake listener running (continuous), waiting for "Clara"
  *   activating → wake detected, beep played, 300 ms pause before mic handover
  *   recording  → input session open, waiting for teacher's question
  *
- * When the teacher finishes speaking, the transcript is passed to onTranscript
- * and the hook returns to idle automatically.
- *
- * Mobile notification fix:
- * - On mobile browsers (iOS Safari, Chrome for Android), every call to
- *   SpeechRecognition.start() triggers the OS "site is using your microphone"
- *   notification banner. The wake listener ends frequently due to OS-level
- *   silence timeouts, so without throttling the notification fires every few
- *   seconds.
- * - Fix: exponential backoff on restarts (min 1 s, max 8 s) that resets after
- *   a successful long session. On mobile we also skip restarting while the page
- *   is hidden (visibilitychange) to avoid background mic churn.
+ * State machine (mobile):
+ *   idle       → no mic activity
+ *   recording  → user tapped mic, single SpeechRecognition session open
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -45,7 +46,7 @@ const getSR = (): (new () => any) | null =>
   (window as any).webkitSpeechRecognition ||
   null;
 
-/** Detect mobile browsers where every SpeechRecognition.start() triggers a system notification */
+/** Detect mobile browsers — on these we NEVER run the always-on listener */
 function isMobileBrowser(): boolean {
   return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 }
@@ -117,6 +118,7 @@ export function useClaraWakeWord({
 }: UseClaraWakeWordOptions) {
   const [wakeState, setWakeState] = useState<WakeWordState>("idle");
   const [permissionError, setPermissionError] = useState<string | null>(null);
+  const isMobile = isMobileBrowser();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const wakeRef = useRef<any>(null);
@@ -127,9 +129,8 @@ export function useClaraWakeWord({
   const wakeStateRef = useRef<WakeWordState>("idle");
   const langRef = useRef(lang);
 
-  // Backoff state for mobile — prevents hammering the OS mic notification
-  const backoffMsRef = useRef<number>(isMobileBrowser() ? 1500 : 400);
-  const sessionStartTimeRef = useRef<number>(0);
+  // Desktop-only backoff state
+  const backoffMsRef = useRef<number>(400);
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // scheduleWakeListener stored as a ref so all callbacks always call the
@@ -163,7 +164,7 @@ export function useClaraWakeWord({
     }
   }, []);
 
-  // ─── Input recording session ─────────────────────────────────────────────────
+  // ─── Input recording session (shared by desktop wake-word and mobile tap) ───
 
   const startInputSession = useCallback(() => {
     const SR = getSR();
@@ -194,20 +195,20 @@ export function useClaraWakeWord({
       }
       inputRef.current = null;
       updateState("idle");
-      if (enabledRef.current) scheduleWakeListenerRef.current();
+      // Desktop only: restart wake listener after input error
+      if (!isMobile && enabledRef.current) scheduleWakeListenerRef.current();
     };
 
     rec.onend = () => {
       inputRef.current = null;
       if (finalTranscript.trim()) {
         onTranscriptRef.current(finalTranscript.trim());
-        // Reset backoff after a successful transcript — session was productive
-        backoffMsRef.current = isMobileBrowser() ? 1500 : 400;
       } else {
         playTimeoutTone();
       }
       updateState("idle");
-      if (enabledRef.current) scheduleWakeListenerRef.current();
+      // Desktop only: restart wake listener after input ends
+      if (!isMobile && enabledRef.current) scheduleWakeListenerRef.current();
     };
 
     try {
@@ -215,27 +216,46 @@ export function useClaraWakeWord({
     } catch {
       inputRef.current = null;
       updateState("idle");
-      if (enabledRef.current) scheduleWakeListenerRef.current();
+      if (!isMobile && enabledRef.current) scheduleWakeListenerRef.current();
     }
-  }, [updateState]);
+  }, [isMobile, updateState]);
 
-  // ─── Wake-word listener ──────────────────────────────────────────────────────
+  // ─── Mobile: tap-to-record (single session, no background listener) ─────────
+
+  const mobileTapToRecord = useCallback(() => {
+    if (!isMobile) return;
+    if (wakeStateRef.current === "recording") {
+      // Second tap cancels the active session
+      if (inputRef.current) {
+        try { inputRef.current.abort(); } catch { /* ignore */ }
+        inputRef.current = null;
+      }
+      updateState("idle");
+      return;
+    }
+    if (wakeStateRef.current !== "idle") return;
+    startInputSession();
+  }, [isMobile, startInputSession, updateState]);
+
+  // ─── Desktop: wake-word listener ────────────────────────────────────────────
 
   const startWakeListener = useCallback(() => {
+    // Never run always-on listener on mobile
+    if (isMobile) return;
+
     const SR = getSR();
     if (!SR || !enabledRef.current) return;
     if (wakeStateRef.current !== "idle") return;
     if (wakeRef.current) return;
-    // Don't start while the page is hidden (mobile background tab)
     if (document.visibilityState === "hidden") return;
-
-    sessionStartTimeRef.current = Date.now();
 
     const rec = new SR();
     rec.continuous = true;
     rec.interimResults = true;
     rec.lang = toBCP47(langRef.current);
     wakeRef.current = rec;
+
+    const sessionStart = Date.now();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rec.onresult = (e: any) => {
@@ -250,8 +270,7 @@ export function useClaraWakeWord({
         updateState("activating");
         try { rec.abort(); } catch { /* ignore */ }
         wakeRef.current = null;
-        // Reset backoff — wake word was detected, session was productive
-        backoffMsRef.current = isMobileBrowser() ? 1500 : 400;
+        backoffMsRef.current = 400; // reset backoff after successful detection
         playBeep().then(() => {
           setTimeout(() => {
             if (enabledRef.current) startInputSession();
@@ -268,10 +287,7 @@ export function useClaraWakeWord({
         return;
       }
       if (enabledRef.current && wakeStateRef.current === "idle") {
-        // Increase backoff on error (network, aborted, etc.)
-        if (isMobileBrowser()) {
-          backoffMsRef.current = Math.min(backoffMsRef.current * 1.5, 8000);
-        }
+        backoffMsRef.current = Math.min(backoffMsRef.current * 1.5, 8000);
         scheduleWakeListenerRef.current();
       }
     };
@@ -279,14 +295,11 @@ export function useClaraWakeWord({
     rec.onend = () => {
       wakeRef.current = null;
       if (enabledRef.current && wakeStateRef.current === "idle") {
-        // If the session ended very quickly (< 2 s) it was likely an OS timeout
-        // on mobile — apply backoff to avoid hammering the mic notification.
-        const sessionDuration = Date.now() - sessionStartTimeRef.current;
-        if (isMobileBrowser() && sessionDuration < 2000) {
+        const duration = Date.now() - sessionStart;
+        if (duration < 2000) {
           backoffMsRef.current = Math.min(backoffMsRef.current * 1.5, 8000);
-        } else if (sessionDuration > 5000) {
-          // Long session — reset backoff, things are working well
-          backoffMsRef.current = isMobileBrowser() ? 1500 : 400;
+        } else if (duration > 5000) {
+          backoffMsRef.current = 400;
         }
         scheduleWakeListenerRef.current();
       }
@@ -300,7 +313,7 @@ export function useClaraWakeWord({
         scheduleWakeListenerRef.current();
       }
     }
-  }, [startInputSession, updateState]);
+  }, [isMobile, startInputSession, updateState]);
 
   // Keep scheduleWakeListenerRef current
   useEffect(() => {
@@ -317,12 +330,13 @@ export function useClaraWakeWord({
     };
   }, [startWakeListener]);
 
-  // ─── Pause when page is hidden (mobile background) ───────────────────────────
+  // ─── Desktop: pause when page is hidden ─────────────────────────────────────
 
   useEffect(() => {
+    if (isMobile) return; // mobile has no background listener to pause
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
-        // Stop the wake listener when the tab goes to background
         if (wakeRef.current) {
           try { wakeRef.current.abort(); } catch { /* ignore */ }
           wakeRef.current = null;
@@ -332,7 +346,6 @@ export function useClaraWakeWord({
           restartTimerRef.current = null;
         }
       } else if (document.visibilityState === "visible" && enabledRef.current && wakeStateRef.current === "idle") {
-        // Resume when the tab comes back to foreground — with a short delay
         restartTimerRef.current = setTimeout(() => {
           restartTimerRef.current = null;
           if (enabledRef.current && wakeStateRef.current === "idle") {
@@ -344,11 +357,13 @@ export function useClaraWakeWord({
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [startWakeListener]);
+  }, [isMobile, startWakeListener]);
 
-  // ─── Lifecycle: start/stop based on enabled prop ─────────────────────────────
+  // ─── Lifecycle: start/stop based on enabled prop (desktop only) ─────────────
 
   useEffect(() => {
+    if (isMobile) return; // mobile never auto-starts
+
     if (enabled) {
       updateState("idle");
       const t = setTimeout(() => startWakeListener(), 200);
@@ -363,7 +378,21 @@ export function useClaraWakeWord({
         stopAll();
       };
     }
-  }, [enabled, startWakeListener, stopAll, updateState]);
+  }, [isMobile, enabled, startWakeListener, stopAll, updateState]);
 
-  return { wakeState, permissionError };
+  // ─── Mobile cleanup on unmount ───────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!isMobile) return;
+    return () => stopAll();
+  }, [isMobile, stopAll]);
+
+  return {
+    wakeState,
+    permissionError,
+    /** Mobile only: call this when the user taps the mic button */
+    mobileTapToRecord,
+    /** True when running on a mobile device (always-on listener disabled) */
+    isMobile,
+  };
 }
