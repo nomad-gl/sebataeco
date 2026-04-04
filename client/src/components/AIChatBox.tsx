@@ -2,10 +2,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Loader2, Send, User, Sparkles, Mic, MicOff, Radio, ThumbsUp, ThumbsDown } from "lucide-react";
+import {
+  Loader2, Send, User, Sparkles, Mic, MicOff, Radio,
+  ThumbsUp, ThumbsDown, Volume2, VolumeX,
+} from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Streamdown } from "streamdown";
 import { useClaraWakeWord } from "@/hooks/useClaraWakeWord";
+import { trpc } from "@/lib/trpc";
 
 /**
  * Message type matching server-side LLM Message interface
@@ -47,7 +51,6 @@ function RatingButtons({
 
   const handleDown = () => {
     if (rating === "down") {
-      // Toggle off report panel
       setShowReasons((v) => !v);
     } else {
       onRate(messageId, "down");
@@ -91,7 +94,6 @@ function RatingButtons({
           <span className="text-[10px] text-white/40 ml-1">Tell us why?</span>
         )}
       </div>
-      {/* Report reason dropdown */}
       {showReasons && rating === "down" && (
         <div className="mt-1.5 flex flex-wrap gap-1">
           {REPORT_REASONS.map((r) => (
@@ -140,46 +142,123 @@ export function AIChatBox({
   const [isRecording, setIsRecording] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [alwaysOnEnabled, setAlwaysOnEnabled] = useState(true);
+  /** Whether TTS auto-play is enabled (default: on) */
+  const [ttsEnabled, setTtsEnabled] = useState(true);
+  /** True while TTS audio is being fetched or playing */
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
-  /** True on any mobile/tablet device — voice prompt mode is disabled on mobile */
+  /** True on any mobile/tablet device */
   const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const lastUserMsgRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputAreaRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // ─── Always-on wake-word (independent of manual mic) ────────────────────────
+  // tRPC mutations for voice pipeline
+  const uploadAudioMutation = trpc.voice.uploadAudio.useMutation();
+  const transcribeMutation = trpc.voice.transcribe.useMutation();
+  const ttsMutation = trpc.voice.tts.useMutation();
+
+  // ─── TTS playback ────────────────────────────────────────────────────────────
+
+  const playTTS = useCallback(async (text: string) => {
+    if (!ttsEnabled || !text.trim()) return;
+
+    // Stop any currently playing audio
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current = null;
+    }
+
+    setIsSpeaking(true);
+    try {
+      const lang = document.documentElement.lang || navigator.language || "en";
+      const result = await ttsMutation.mutateAsync({ text, lang });
+      const audioSrc = `data:${result.mimeType};base64,${result.audioBase64}`;
+      const audio = new Audio(audioSrc);
+      currentAudioRef.current = audio;
+      audio.onended = () => {
+        setIsSpeaking(false);
+        currentAudioRef.current = null;
+      };
+      audio.onerror = () => {
+        setIsSpeaking(false);
+        currentAudioRef.current = null;
+      };
+      await audio.play();
+    } catch {
+      setIsSpeaking(false);
+    }
+  }, [ttsEnabled, ttsMutation]);
+
+  const stopSpeaking = useCallback(() => {
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current = null;
+    }
+    setIsSpeaking(false);
+  }, []);
+
+  // Auto-play TTS when a new assistant message arrives
+  const prevMessagesLengthRef = useRef(messages.length);
+  useEffect(() => {
+    const prevLen = prevMessagesLengthRef.current;
+    prevMessagesLengthRef.current = messages.length;
+
+    if (messages.length <= prevLen) return; // no new messages
+    if (isLoading) return; // still streaming
+
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg?.role === "assistant" && lastMsg.content) {
+      // Strip markdown for cleaner TTS — remove code blocks, headers, bold/italic markers
+      const plainText = lastMsg.content
+        .replace(/```[\s\S]*?```/g, "")
+        .replace(/`[^`]+`/g, "")
+        .replace(/#{1,6}\s/g, "")
+        .replace(/[*_]{1,2}([^*_]+)[*_]{1,2}/g, "$1")
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+        .trim();
+      playTTS(plainText);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages.length, isLoading]);
+
+  // Stop speaking when loading starts (new question being answered)
+  useEffect(() => {
+    if (isLoading) stopSpeaking();
+  }, [isLoading, stopSpeaking]);
+
+  // ─── Always-on wake-word (desktop only) ─────────────────────────────────────
 
   const handleWakeTranscript = useCallback((text: string) => {
-    // Auto-send the transcript directly — no need to put it in the input box
     onSendMessage(text);
   }, [onSendMessage]);
 
   const { wakeState, permissionError: wakePermissionError } = useClaraWakeWord({
     onTranscript: handleWakeTranscript,
-    // Disable the always-on wake-word listener entirely on mobile — every
-    // SpeechRecognition.start() triggers the OS mic notification banner.
     enabled: !isMobile && alwaysOnEnabled,
     lang: document.documentElement.lang || navigator.language || "en",
   });
 
-  // Show wake-word permission errors in the voice error area
   useEffect(() => {
     if (wakePermissionError) setVoiceError(wakePermissionError);
   }, [wakePermissionError]);
 
-  // ─── Manual mic button (independent of wake-word) ───────────────────────────
+  // ─── Desktop mic: Web Speech API ─────────────────────────────────────────────
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const getSR = (): (new () => any) | null => {
     return (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition || null;
   };
 
-  const stopRecording = useCallback(() => {
+  const stopDesktopRecording = useCallback(() => {
     if (recognitionRef.current) {
       try { recognitionRef.current.abort(); } catch { /* ignore */ }
       recognitionRef.current = null;
@@ -187,24 +266,17 @@ export function AIChatBox({
     setIsRecording(false);
   }, []);
 
-  // Cleanup on unmount
   useEffect(() => {
-    return () => {
-      stopRecording();
-    };
-  }, [stopRecording]);
+    return () => { stopDesktopRecording(); };
+  }, [stopDesktopRecording]);
 
-  const toggleRecording = useCallback(() => {
+  const toggleDesktopMic = useCallback(() => {
     const SR = getSR();
     if (!SR) {
       setVoiceError("Voice input is not supported in this browser.");
       return;
     }
-
-    if (isRecording) {
-      stopRecording();
-      return;
-    }
+    if (isRecording) { stopDesktopRecording(); return; }
 
     setVoiceError(null);
     const recognition = new SR();
@@ -213,67 +285,113 @@ export function AIChatBox({
     recognition.lang = document.documentElement.lang || navigator.language || "en";
     recognitionRef.current = recognition;
 
-    recognition.onstart = () => {
-      setIsRecording(true);
-      setInput("");
-    };
-
+    recognition.onstart = () => { setIsRecording(true); setInput(""); };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onresult = (e: any) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const transcript = Array.from(e.results as any[])
-        .map((r: any) => r[0].transcript as string)
-        .join("");
+      const transcript = Array.from(e.results as any[]).map((r: any) => r[0].transcript as string).join("");
       setInput(transcript);
     };
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onerror = (e: any) => {
-      if (e.error !== "aborted" && e.error !== "no-speech") {
-        setVoiceError("Voice input error: " + e.error);
-      }
+      if (e.error !== "aborted" && e.error !== "no-speech") setVoiceError("Voice input error: " + e.error);
       setIsRecording(false);
     };
-
     recognition.onend = () => {
       recognitionRef.current = null;
       setIsRecording(false);
       textareaRef.current?.focus();
     };
+    try { recognition.start(); } catch { setIsRecording(false); }
+  }, [isRecording, stopDesktopRecording]);
 
-    try {
-      recognition.start();
-    } catch {
-      setIsRecording(false);
+  // ─── Mobile mic: MediaRecorder → S3 → Whisper ────────────────────────────────
+
+  const stopMobileRecording = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
     }
-  }, [isRecording, stopRecording]);
+    setIsRecording(false);
+  }, []);
+
+  const startMobileRecording = useCallback(async () => {
+    setVoiceError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4";
+      const recorder = new MediaRecorder(stream, { mimeType });
+      audioChunksRef.current = [];
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        setIsRecording(false);
+
+        const blob = new Blob(audioChunksRef.current, { type: mimeType });
+        if (blob.size === 0) return;
+
+        // Convert to base64 and upload via server
+        const arrayBuffer = await blob.arrayBuffer();
+          const bytes = new Uint8Array(arrayBuffer);
+          let binary = "";
+          for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+          const base64 = btoa(binary);
+
+        try {
+          const { url } = await uploadAudioMutation.mutateAsync({ audioBase64: base64, mimeType });
+          const lang = document.documentElement.lang || navigator.language || "en";
+          const { text } = await transcribeMutation.mutateAsync({ audioUrl: url, language: lang.split("-")[0] });
+          if (text.trim()) {
+            onSendMessage(text.trim());
+          } else {
+            setVoiceError("No speech detected. Please try again.");
+          }
+        } catch (err) {
+          setVoiceError("Transcription failed. Please try again.");
+          console.error(err);
+        }
+      };
+
+      recorder.start();
+      setIsRecording(true);
+    } catch {
+      setVoiceError("Microphone access denied. Please allow microphone in your browser settings.");
+    }
+  }, [uploadAudioMutation, transcribeMutation, onSendMessage]);
+
+  const toggleMobileMic = useCallback(() => {
+    if (isRecording) {
+      stopMobileRecording();
+    } else {
+      startMobileRecording();
+    }
+  }, [isRecording, stopMobileRecording, startMobileRecording]);
+
+  // ─── Unified mic toggle ───────────────────────────────────────────────────────
+
+  const toggleMic = isMobile ? toggleMobileMic : toggleDesktopMic;
 
   // ─── Display helpers ─────────────────────────────────────────────────────────
 
   const displayMessages = messages.filter((msg) => msg.role !== "system");
 
-  // Typing indicator — three dots that pulse sequentially
   const TypingIndicator = () => (
     <div className="flex gap-3 justify-start items-start">
       <div className="size-8 shrink-0 mt-1 rounded-full bg-primary/10 flex items-center justify-center">
         <Sparkles className="size-4 text-primary animate-pulse" />
       </div>
       <div className="rounded-lg px-4 py-3 bg-white/15 text-white flex items-center gap-1.5">
-        <span
-          className="size-2 rounded-full bg-white/60 animate-bounce"
-          style={{ animationDelay: "0ms", animationDuration: "900ms" }}
-        />
-        <span
-          className="size-2 rounded-full bg-white/60 animate-bounce"
-          style={{ animationDelay: "180ms", animationDuration: "900ms" }}
-        />
-        <span
-          className="size-2 rounded-full bg-white/60 animate-bounce"
-          style={{ animationDelay: "360ms", animationDuration: "900ms" }}
-        />
+        <span className="size-2 rounded-full bg-white/60 animate-bounce" style={{ animationDelay: "0ms", animationDuration: "900ms" }} />
+        <span className="size-2 rounded-full bg-white/60 animate-bounce" style={{ animationDelay: "180ms", animationDuration: "900ms" }} />
+        <span className="size-2 rounded-full bg-white/60 animate-bounce" style={{ animationDelay: "360ms", animationDuration: "900ms" }} />
       </div>
     </div>
   );
+
   const [minHeightForLastMessage, setMinHeightForLastMessage] = useState(0);
 
   useEffect(() => {
@@ -287,27 +405,18 @@ export function AIChatBox({
     }
   }, []);
 
-  // Scroll the last user message into view at the top of the scroll area
-  // so the teacher can see their question and Clara's response together.
   const scrollToLastUserMsg = () => {
-    const viewport = scrollAreaRef.current?.querySelector(
-      '[data-radix-scroll-area-viewport]'
-    ) as HTMLDivElement | null;
+    const viewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLDivElement | null;
     const el = lastUserMsgRef.current;
     if (viewport && el) {
       requestAnimationFrame(() => {
-        // Scroll so the user bubble sits ~16 px from the top of the viewport
-        const elTop = el.offsetTop;
-        viewport.scrollTo({ top: Math.max(0, elTop - 16), behavior: "smooth" });
+        viewport.scrollTo({ top: Math.max(0, el.offsetTop - 16), behavior: "smooth" });
       });
     }
   };
 
-  // When messages update, scroll to the last user message (not the very bottom)
   useEffect(() => {
-    if (messages.length > 0) {
-      scrollToLastUserMsg();
-    }
+    if (messages.length > 0) scrollToLastUserMsg();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages.length]);
 
@@ -319,7 +428,6 @@ export function AIChatBox({
     if (!trimmedInput || isLoading) return;
     onSendMessage(trimmedInput);
     setInput("");
-    // Scroll will be triggered by the messages.length useEffect above
     textareaRef.current?.focus();
   };
 
@@ -333,12 +441,18 @@ export function AIChatBox({
   // ─── Wake-word status label ──────────────────────────────────────────────────
 
   const wakeLabel =
-    wakeState === "recording"
-      ? "Clara is listening…"
-      : wakeState === "activating"
-      ? "Clara activated!"
-      : alwaysOnEnabled
-      ? "Say 'Clara' to activate"
+    wakeState === "recording" ? "Clara is listening…"
+    : wakeState === "activating" ? "Clara activated!"
+    : alwaysOnEnabled ? "Say 'Clara' to activate"
+    : null;
+
+  // ─── Mobile recording status label ───────────────────────────────────────────
+
+  const mobileRecordingStatus =
+    isMobile && (uploadAudioMutation.isPending || transcribeMutation.isPending)
+      ? "Transcribing…"
+      : isMobile && isRecording
+      ? "Recording… tap mic to stop"
       : null;
 
   return (
@@ -380,9 +494,7 @@ export function AIChatBox({
             <div className="flex flex-col space-y-4 p-4">
               {displayMessages.map((message, index) => {
                 const isLastMessage = index === displayMessages.length - 1;
-                const shouldApplyMinHeight =
-                  isLastMessage && !isLoading && minHeightForLastMessage > 0;
-                // Track the last user message bubble for scroll anchoring
+                const shouldApplyMinHeight = isLastMessage && !isLoading && minHeightForLastMessage > 0;
                 const isLastUserMsg =
                   message.role === "user" &&
                   !displayMessages.slice(index + 1).some((m) => m.role === "user");
@@ -392,15 +504,9 @@ export function AIChatBox({
                     ref={isLastUserMsg ? lastUserMsgRef : undefined}
                     className={cn(
                       "flex gap-3",
-                      message.role === "user"
-                        ? "justify-end items-start"
-                        : "justify-start items-start"
+                      message.role === "user" ? "justify-end items-start" : "justify-start items-start"
                     )}
-                    style={
-                      shouldApplyMinHeight
-                        ? { minHeight: `${minHeightForLastMessage}px` }
-                        : undefined
-                    }
+                    style={shouldApplyMinHeight ? { minHeight: `${minHeightForLastMessage}px` } : undefined}
                   >
                     {message.role === "assistant" && (
                       <div className="size-8 shrink-0 mt-1 rounded-full bg-primary/10 flex items-center justify-center">
@@ -429,15 +535,9 @@ export function AIChatBox({
                           {formatTime(message.timestamp)}
                         </span>
                       )}
-                      {/* Thumbs-up/down rating — shown on all assistant messages */}
                       {message.role === "assistant" && !isLoading && message.id && onRateMessage && (
-                        <RatingButtons
-                          messageId={message.id}
-                          rating={message.rating}
-                          onRate={onRateMessage}
-                        />
+                        <RatingButtons messageId={message.id} rating={message.rating} onRate={onRateMessage} />
                       )}
-                      {/* Follow-on question chips — only on the last assistant message, not while loading */}
                       {message.role === "assistant" &&
                         isLastMessage &&
                         !isLoading &&
@@ -468,36 +568,54 @@ export function AIChatBox({
                   </div>
                 );
               })}
-
               {isLoading && <TypingIndicator />}
             </div>
           </ScrollArea>
         )}
       </div>
 
-      {/* Wake-word status bar — hidden on mobile */}
+      {/* Status bars */}
+      {/* Wake-word status bar — desktop only */}
       {!isMobile && wakeLabel && (
         <div
           className={cn(
             "px-4 py-1 text-xs flex items-center gap-1.5 border-t border-white/10",
-            wakeState === "recording"
-              ? "text-green-300 bg-green-500/10"
-              : wakeState === "activating"
-              ? "text-yellow-300 bg-yellow-500/10"
-              : "text-white/40 bg-transparent"
+            wakeState === "recording" ? "text-green-300 bg-green-500/10"
+            : wakeState === "activating" ? "text-yellow-300 bg-yellow-500/10"
+            : "text-white/40 bg-transparent"
           )}
         >
           <span
             className={cn(
               "inline-block size-1.5 rounded-full",
-              wakeState === "recording"
-                ? "bg-green-400 animate-pulse"
-                : wakeState === "activating"
-                ? "bg-yellow-400 animate-ping"
-                : "bg-white/30"
+              wakeState === "recording" ? "bg-green-400 animate-pulse"
+              : wakeState === "activating" ? "bg-yellow-400 animate-ping"
+              : "bg-white/30"
             )}
           />
           {wakeLabel}
+        </div>
+      )}
+
+      {/* Mobile recording / transcribing status */}
+      {isMobile && mobileRecordingStatus && (
+        <div className="px-4 py-1 text-xs flex items-center gap-1.5 border-t border-white/10 text-red-300 bg-red-500/10">
+          <span className="inline-block size-1.5 rounded-full bg-red-400 animate-pulse" />
+          {mobileRecordingStatus}
+        </div>
+      )}
+
+      {/* TTS speaking indicator */}
+      {isSpeaking && (
+        <div className="px-4 py-1 text-xs flex items-center gap-1.5 border-t border-white/10 text-blue-300 bg-blue-500/10">
+          <Volume2 className="size-3 animate-pulse" />
+          Speaking…
+          <button
+            onClick={stopSpeaking}
+            className="ml-auto text-white/50 hover:text-white text-[10px] underline"
+          >
+            stop
+          </button>
         </div>
       )}
 
@@ -514,7 +632,9 @@ export function AIChatBox({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={
-              wakeState === "recording"
+              mobileRecordingStatus
+                ? mobileRecordingStatus
+                : wakeState === "recording"
                 ? "Clara is listening…"
                 : isRecording
                 ? "Listening…"
@@ -531,7 +651,24 @@ export function AIChatBox({
           )}
         </div>
 
-        {/* Always-on toggle (Radio icon) — hidden on mobile */}
+        {/* TTS toggle — shown on all devices */}
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          onClick={() => { setTtsEnabled(v => !v); if (isSpeaking) stopSpeaking(); }}
+          title={ttsEnabled ? "Voice responses: ON — click to mute" : "Voice responses: OFF — click to enable"}
+          className={cn(
+            "shrink-0 h-[38px] w-[38px]",
+            ttsEnabled
+              ? "text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+              : "text-white/40 hover:text-white hover:bg-white/15"
+          )}
+        >
+          {ttsEnabled ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
+        </Button>
+
+        {/* Always-on toggle (Radio icon) — desktop only */}
         {!isMobile && (
           <Button
             type="button"
@@ -550,22 +687,30 @@ export function AIChatBox({
           </Button>
         )}
 
-        {/* Manual mic button — hidden on mobile */}
-        {!isMobile && (
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            onClick={toggleRecording}
-            title={isRecording ? "Stop recording" : "Voice input"}
-            className={cn(
-              "shrink-0 h-[38px] w-[38px] text-white/60 hover:text-white hover:bg-white/15",
-              isRecording && "text-red-400 hover:text-red-300 animate-pulse"
-            )}
-          >
-            {isRecording ? <MicOff className="size-4" /> : <Mic className="size-4" />}
-          </Button>
-        )}
+        {/* Mic button — shown on ALL devices (mobile uses MediaRecorder, desktop uses Web Speech API) */}
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          onClick={toggleMic}
+          disabled={
+            isMobile
+              ? uploadAudioMutation.isPending || transcribeMutation.isPending
+              : false
+          }
+          title={isRecording ? "Stop recording" : "Voice input"}
+          className={cn(
+            "shrink-0 h-[38px] w-[38px] text-white/60 hover:text-white hover:bg-white/15",
+            isRecording && "text-red-400 hover:text-red-300 animate-pulse"
+          )}
+        >
+          {uploadAudioMutation.isPending || transcribeMutation.isPending
+            ? <Loader2 className="size-4 animate-spin" />
+            : isRecording
+            ? <MicOff className="size-4" />
+            : <Mic className="size-4" />
+          }
+        </Button>
 
         {/* Send button */}
         <Button
@@ -574,11 +719,7 @@ export function AIChatBox({
           disabled={!input.trim() || isLoading}
           className="shrink-0 h-[38px] w-[38px]"
         >
-          {isLoading ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Send className="size-4" />
-          )}
+          {isLoading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
         </Button>
       </form>
     </div>

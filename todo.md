@@ -639,3 +639,12 @@
 - [x] Print layout page 1: title heading, school name, student name, year/class, then material content (no answers)
 - [x] Print layout page 2: answer sheet with title + "Answer Sheet" heading and year/class
 - [x] Update printElement / ExportToolbar to accept metadata and render both pages
+
+## Feature: Mic input + TTS response on mobile and desktop
+- [x] Add voice.transcribe and voice.tts tRPC procedures (server/routers/voice.ts)
+- [x] Register voiceRouter in appRouter
+- [x] Show mic button on mobile (was previously hidden)
+- [x] On mobile mic tap: record audio via MediaRecorder, upload to S3, call voice.transcribe, auto-send transcript
+- [x] After each AI response: call voice.tts, play MP3 audio automatically
+- [x] Add speaker/mute toggle so users can disable auto-TTS
+- [x] Show recording indicator and playback state in UI

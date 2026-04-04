@@ -11,6 +11,7 @@ import { forumRouter } from "./routers/forum";
 import { presentationsRouter } from "./routers/presentations";
 import { analyticsRouter } from "./routers/analytics";
 import { notificationsRouter } from "./routers/notifications";
+import { voiceRouter } from "./routers/voice";
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -32,6 +33,7 @@ export const appRouter = router({
   presentations: presentationsRouter,
   analytics: analyticsRouter,
   notifications: notificationsRouter,
+  voice: voiceRouter,
 });
 
 export type AppRouter = typeof appRouter;
