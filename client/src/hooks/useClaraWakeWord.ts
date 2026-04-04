@@ -256,8 +256,17 @@ export function useClaraWakeWord({
         baseAssetUrl: "__cdn__",
         modelFiles: MODEL_FILES,
         keywords: ["hey_jarvis"],
+        // Latency tuning:
+        // frameSize: 640 samples @ 16 kHz = 40 ms per chunk (default 1280 = 80 ms)
+        frameSize: 640,
+        // vadHangoverFrames: 4 × 40 ms = 160 ms VAD confirmation (default 12 = 480 ms)
+        vadHangoverFrames: 4,
+        // embeddingWindowSize: 8 (default 16) — shorter history window, earlier first detection
+        embeddingWindowSize: 8,
+        // detectionThreshold: 0.5 — unchanged, keeps false positive rate low
         detectionThreshold: 0.5,
-        cooldownMs: 2000,
+        // cooldownMs: 1000 ms (default 2000) — allows re-detection sooner after a trigger
+        cooldownMs: 1000,
         ortWasmPath,
       });
 
@@ -274,9 +283,11 @@ export function useClaraWakeWord({
           // Stop the engine to release the getUserMedia stream before SpeechRecognition
           // tries to acquire the microphone — both cannot hold it simultaneously.
           try { await engine.stop(); } catch { /* ignore */ }
+          // 100 ms pause (reduced from 300 ms) — just enough for the OS to release the
+          // mic track before SpeechRecognition tries to acquire it.
           setTimeout(() => {
             if (enabledRef.current) startInputSession();
-          }, 300);
+          }, 100);
         });
       });
 

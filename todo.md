@@ -650,3 +650,8 @@
 - [x] Diagnose why SpeechRecognition input session starts but captures no transcript
 - [x] Fix: mic stream conflict between openWakeWord AudioWorklet and SpeechRecognition — engine.stop() called before SpeechRecognition.start(), engine.start() called after transcription ends
 - [x] Ensure onTranscript is called and Clara receives the question
+
+## Bug: Hey Jarvis wake word detection is slow
+- [x] Identify latency sources: frameSize 1280 (80ms/chunk), vadHangoverFrames 12, embeddingWindowSize 16, cooldownMs 2000, 300ms pre-SpeechRecognition pause
+- [x] Tune: frameSize→640 (40ms), vadHangoverFrames→4 (160ms), embeddingWindowSize→8, cooldownMs→1000ms
+- [x] Reduce pre-SpeechRecognition pause from 300ms to 100ms
