@@ -44,6 +44,8 @@ async function generateBatch(
 
   const prompt = `You are an expert in Spain's LOMLOE education curriculum. Generate exactly ${count} multiple-choice questions about the "${meta.name}" competency (${meta.description}) for students aged ${yearDesc}.
 
+IMPORTANT: All questions, options, and explanations MUST be written in English. Do not use Spanish, Catalan, or any other language.
+
 Requirements:
 - Each question must have exactly 4 options (A, B, C, D)
 - Distribute the correct answer position: use different positions (0, 1, 2, 3) across questions — do NOT always put the correct answer at position 1
@@ -61,7 +63,7 @@ Return a JSON array of exactly ${count} objects with this structure:
 
   const response = await invokeLLM({
     messages: [
-      { role: "system", content: "You are an expert curriculum designer. Return only valid JSON arrays, no markdown." },
+      { role: "system", content: "You are an expert curriculum designer. You ALWAYS write in English. Return only valid JSON arrays, no markdown." },
       { role: "user", content: prompt },
     ],
     response_format: {
@@ -116,6 +118,26 @@ Return a JSON array of exactly ${count} objects with this structure:
 }
 
 /**
+ * Normalise a question string for comparison: lowercase, remove punctuation, collapse whitespace.
+ */
+function normalise(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Compute word-level Jaccard similarity between two strings (0 = no overlap, 1 = identical).
+ */
+function similarity(a: string, b: string): number {
+  const wordsA = normalise(a).split(" ");
+  const wordsB = normalise(b).split(" ");
+  const setA = new Set(wordsA);
+  const setB = new Set(wordsB);
+  const intersectionSize = wordsA.filter((w) => setB.has(w)).length;
+  const unionSize = new Set(wordsA.concat(wordsB)).size;
+  return unionSize === 0 ? 0 : intersectionSize / unionSize;
+}
+
+/**
  * Get the next available generated question ID (gq001, gq002, ...).
  */
 async function getNextGqId(): Promise<number> {
@@ -138,9 +160,10 @@ async function getNextGqId(): Promise<number> {
 
 /**
  * Main entry point: generate `totalCount` new questions, distribute evenly across
- * all 8 competencies and 3 year groups, balance correctIndex, and save to DB as 'pending'.
+ * all 8 competencies and 3 year groups, balance correctIndex, and save to DB.
+ * By default autoApprove=true so questions are immediately available in Practice/Challenge.
  */
-export async function generateAndAppendQuestions(totalCount: number = 30): Promise<{
+export async function generateAndAppendQuestions(totalCount: number = 30, autoApprove: boolean = true): Promise<{
   added: number;
   breakdown: Record<string, number>;
   newTotal: number;
@@ -176,8 +199,33 @@ export async function generateAndAppendQuestions(totalCount: number = 30): Promi
     return { added: 0, breakdown: {}, newTotal: LOMLOE_QUESTIONS.length, pendingIds: [] };
   }
 
+  // ── Duplicate detection ──────────────────────────────────────────────────────
+  // Build a corpus of all existing question texts (static + DB) to check against.
+  const existingTexts: string[] = LOMLOE_QUESTIONS.map((q) => q.question);
+  try {
+    const dbRows = await db.select({ question: generatedQuestions.question }).from(generatedQuestions);
+    for (const r of dbRows) existingTexts.push(r.question);
+  } catch { /* ignore — deduplication is best-effort */ }
+
+  const SIMILARITY_THRESHOLD = 0.8; // 80% word overlap = duplicate
+  let skippedDuplicates = 0;
+  const deduped = allNew.filter((q) => {
+    const isDuplicate = existingTexts.some((existing) => similarity(q.question, existing) >= SIMILARITY_THRESHOLD);
+    if (isDuplicate) {
+      skippedDuplicates++;
+      return false;
+    }
+    // Add to corpus so we also deduplicate within this batch
+    existingTexts.push(q.question);
+    return true;
+  });
+  if (skippedDuplicates > 0) {
+    console.log(`[QuestionGenerator] Skipped ${skippedDuplicates} duplicate(s) out of ${allNew.length} generated.`);
+  }
+  const uniqueNew = deduped;
+
   // Rebalance correctIndex evenly across 0/1/2/3
-  allNew.forEach((q, i) => {
+  uniqueNew.forEach((q, i) => {
     const target = i % 4;
     const current = q.correctIndex;
     if (current !== target) {
@@ -196,7 +244,7 @@ export async function generateAndAppendQuestions(totalCount: number = 30): Promi
   const pendingIds: string[] = [];
   const breakdown: Record<string, number> = {};
 
-  for (const q of allNew) {
+  for (const q of uniqueNew) {
     const questionId = `gq${String(nextId).padStart(3, "0")}`;
     nextId++;
     try {
@@ -208,7 +256,7 @@ export async function generateAndAppendQuestions(totalCount: number = 30): Promi
         options: JSON.stringify(q.options),
         correctIndex: q.correctIndex,
         explanation: q.explanation,
-        status: "pending",
+        status: autoApprove ? "approved" : "pending",
       });
       pendingIds.push(questionId);
       breakdown[q.competency] = (breakdown[q.competency] ?? 0) + 1;

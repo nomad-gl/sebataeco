@@ -604,3 +604,22 @@
 - [x] Question Library page shows merged total automatically via filtered.length (no frontend change needed)
 - [x] Filters (competency, year group) applied to both static and DB questions via Drizzle WHERE conditions
 - [x] Updated tests to expect totalQuestions ≥ 240 and handle DB-merged pool correctly — 55/55 passing
+
+## Bug: Generated questions not always in default language (English)
+- [ ] Update questionGenerator.ts LLM prompt to explicitly instruct the model to generate all questions, options, and explanations in English regardless of any other context
+
+## Bug: Generated questions may be duplicated
+- [ ] Add duplicate detection in questionGenerator.ts: before saving a new question, compare its normalised text against all existing static + DB questions using word-overlap similarity; skip any question that is too similar (>= 80% word overlap with an existing question)
+- [ ] Log skipped duplicates so the admin can see how many were filtered
+
+## Feature: Auto-approve generated questions
+- [ ] Change questionGenerator.ts to save new questions with status = 'approved' instead of 'pending'
+- [ ] Add autoApprove option (default true) to generateAndAppendQuestions() so manual review can still be opted into
+- [ ] Update Admin dashboard to reflect the auto-approve behaviour (review queue becomes optional)
+
+## Feature: Expand knowledge bank to 60 questions per competency
+- [x] Generated 480 total questions (60 per competency × 8, 20 per year group) all in English
+- [x] Replaced all Spanish questions with English ones
+- [x] correctIndex balanced evenly: 120 per position (0/1/2/3)
+- [x] All generated questions auto-approved (status = 'approved') immediately
+- [x] Updated tests to expect 480 questions — 55/55 passing
