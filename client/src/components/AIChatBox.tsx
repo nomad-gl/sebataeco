@@ -141,6 +141,11 @@ export function AIChatBox({
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [alwaysOnEnabled, setAlwaysOnEnabled] = useState(true);
 
+  // Detect whether the Web Speech API is available in this browser.
+  // Firefox and Safari do not support it — voice buttons are hidden when false.
+  const isSpeechSupported = typeof window !== "undefined" &&
+    ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -192,7 +197,7 @@ export function AIChatBox({
   const toggleRecording = useCallback(() => {
     const SR = getSR();
     if (!SR) {
-      setVoiceError("Voice input is not supported in this browser.");
+      setVoiceError("Voice input requires Chrome or Edge. Firefox and Safari do not support the Web Speech API.");
       return;
     }
 
@@ -526,33 +531,39 @@ export function AIChatBox({
           )}
         </div>
 
-        {/* Always-on toggle (Radio icon) */}
+        {/* Always-on toggle (Radio icon) — hidden on unsupported browsers */}
+        {isSpeechSupported && (
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            onClick={() => setAlwaysOnEnabled((v) => !v)}
+            title={alwaysOnEnabled ? "Always-on: ON — click to disable" : "Always-on: OFF — click to enable"}
+            className={cn(
+              "shrink-0 h-[38px] w-[38px]",
+              alwaysOnEnabled
+                ? "text-green-400 hover:text-green-300 hover:bg-green-500/10"
+                : "text-white/40 hover:text-white hover:bg-white/15"
+            )}
+          >
+            <Radio className={cn("size-4", alwaysOnEnabled && wakeState === "idle" && "animate-pulse")} />
+          </Button>
+        )}
+
+        {/* Manual mic button — shows tooltip on unsupported browsers */}
         <Button
           type="button"
           size="icon"
           variant="ghost"
-          onClick={() => setAlwaysOnEnabled((v) => !v)}
-          title={alwaysOnEnabled ? "Always-on: ON — click to disable" : "Always-on: OFF — click to enable"}
+          onClick={isSpeechSupported ? toggleRecording : () => setVoiceError("Voice input requires Chrome or Edge. Firefox and Safari do not support the Web Speech API.")}
+          title={!isSpeechSupported ? "Voice not supported — use Chrome or Edge" : isRecording ? "Stop recording" : "Voice input"}
           className={cn(
             "shrink-0 h-[38px] w-[38px]",
-            alwaysOnEnabled
-              ? "text-green-400 hover:text-green-300 hover:bg-green-500/10"
-              : "text-white/40 hover:text-white hover:bg-white/15"
-          )}
-        >
-          <Radio className={cn("size-4", alwaysOnEnabled && wakeState === "idle" && "animate-pulse")} />
-        </Button>
-
-        {/* Manual mic button */}
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          onClick={toggleRecording}
-          title={isRecording ? "Stop recording" : "Voice input"}
-          className={cn(
-            "shrink-0 h-[38px] w-[38px] text-white/60 hover:text-white hover:bg-white/15",
-            isRecording && "text-red-400 hover:text-red-300 animate-pulse"
+            !isSpeechSupported
+              ? "text-white/20 cursor-not-allowed"
+              : isRecording
+              ? "text-red-400 hover:text-red-300 animate-pulse text-white/60 hover:text-white hover:bg-white/15"
+              : "text-white/60 hover:text-white hover:bg-white/15"
           )}
         >
           {isRecording ? <MicOff className="size-4" /> : <Mic className="size-4" />}

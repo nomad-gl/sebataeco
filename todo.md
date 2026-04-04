@@ -678,3 +678,9 @@
 - [x] Update ort.env.wasm.wasmPaths and ortWasmPath to new CDN URLs (re-uploaded with correct hashes)
 - [x] Verified CDN URLs present in production build output
 - [x] Lower detection threshold to 0.4
+
+## Bug: "Voice input is not supported on this browser" error shown to user
+- [x] Found: AIChatBox.tsx toggleRecording() fires when window.SpeechRecognition is undefined (Firefox/Safari)
+- [x] Fix: isSpeechSupported flag added; Radio toggle hidden on unsupported browsers; mic button dimmed with cursor-not-allowed
+- [x] Error message updated to: "Voice input requires Chrome or Edge. Firefox and Safari do not support the Web Speech API."
+- [x] Text chat works normally on all browsers regardless of voice support
