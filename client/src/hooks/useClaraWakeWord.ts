@@ -22,6 +22,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import WakeWordEngine from "openwakeword-wasm-browser";
+import * as ort from "onnxruntime-web";
 
 export type WakeWordState = "idle" | "activating" | "recording";
 
@@ -223,8 +224,7 @@ export function useClaraWakeWord({
       // to redirect '__cdn__/filename.onnx' → actual CDN URL.
       // This avoids storing large ONNX files in client/public.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ort = (await import("onnxruntime-web")) as any;
-      const origCreate = ort.InferenceSession.create.bind(ort.InferenceSession);
+      const origCreate = (ort as any).InferenceSession.create.bind((ort as any).InferenceSession);
       ort.InferenceSession.create = async (uri: string, opts?: unknown) => {
         // Extract the filename from the resolved path and look up the CDN URL
         const filename = uri.split("/").pop() ?? uri;

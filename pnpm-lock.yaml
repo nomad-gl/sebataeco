@@ -178,6 +178,9 @@ importers:
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+      onnxruntime-web:
+        specifier: ^1.24.3
+        version: 1.24.3
       openwakeword-wasm-browser:
         specifier: ^0.1.1
         version: 0.1.1
