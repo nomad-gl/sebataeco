@@ -636,3 +636,12 @@
 
 ## Improvement: Raise mobile wake-word restart backoff cap to 60 seconds
 - [x] Change mobile backoff cap from 8000ms to 60000ms in useClaraWakeWord.ts
+
+## Feature: openWakeWord WASM wake word detection (no mic notification)
+- [x] Install openwakeword-wasm-browser package
+- [x] Upload ONNX model files (melspectrogram, embedding, VAD, hey_jarvis) to CDN
+- [x] Rewrite useClaraWakeWord to use openWakeWord engine for wake word (single getUserMedia stream, no restart)
+- [x] Keep Web Speech API only for post-wake transcription
+- [x] Intercept ort.InferenceSession.create to redirect hardcoded filenames to CDN URLs
+- [x] Add TypeScript declaration files for openwakeword-wasm-browser and onnxruntime-web
+- [x] Wake word: "Hey Jarvis" (built-in model, no API key required)
