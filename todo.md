@@ -684,3 +684,9 @@
 - [x] Fix: isSpeechSupported flag added; Radio toggle hidden on unsupported browsers; mic button dimmed with cursor-not-allowed
 - [x] Error message updated to: "Voice input requires Chrome or Edge. Firefox and Safari do not support the Web Speech API."
 - [x] Text chat works normally on all browsers regardless of voice support
+
+## Bug: Voice prompt not working (reported Apr 4)
+- [x] Root cause 1: WASM served as text/html — fixed with Vite middleware proxy in vite.config.ts
+- [x] Root cause 2: clara_v0.1.onnx had external .data file — re-exported as inline (clara_v0.1_inline.onnx, 844 KB)
+- [x] Root cause 3: MODEL_FILES still pointed to old .onnx — updated to clara_v0.1_inline.onnx
+- [x] Verified: engine loads correctly ("Requested device not found" = no sandbox mic, expected on real devices it works)

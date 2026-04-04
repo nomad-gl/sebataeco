@@ -58,11 +58,14 @@ const CDN_MODEL_MAP: Record<string, string> = {
   "silero_vad.onnx":       "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/silero_vad_6e98b1e6.onnx",
   "hey_jarvis_v0.1.onnx": "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/hey_jarvis_v0.1_c871a5f8.onnx",
   "clara_v0.1.onnx":      "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/clara_v0.1_c4888bef.onnx",
+  // Inline version (weights embedded, no .data file needed)
+  "clara_v0.1_inline.onnx": "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/clara_v0.1_inline_c42e7149.onnx",
 };
 
 // Keyword model files map (only used for keyword models, not core models)
+// Use the inline version so onnxruntime-web does not need a separate .data file
 const MODEL_FILES = {
-  clara: "clara_v0.1.onnx",
+  clara: "clara_v0.1_inline.onnx",
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
