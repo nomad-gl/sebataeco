@@ -653,3 +653,8 @@
 - [x] Fix autoplay policy: unlock audio context on first user interaction, then auto-play TTS
 - [x] Fix TTS trigger: watch last assistant message content (not just messages.length) to handle streaming updates
 - [x] Add per-message "Speak" button on assistant bubbles as a reliable user-gesture fallback
+
+## Bug: TTS server endpoint 404 - replace with Web Speech API
+- [x] Replace server-side TTS (voice.tts trpc call) with browser window.speechSynthesis
+- [x] Remove voice.tts procedure from server/routers/voice.ts (keep uploadAudio + transcribe)
+- [x] Update AIChatBox to use SpeechSynthesisUtterance for instant, no-network TTS

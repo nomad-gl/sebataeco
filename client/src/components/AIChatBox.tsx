@@ -161,93 +161,59 @@ export function AIChatBox({
   const inputAreaRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // tRPC mutations for voice pipeline
+  // tRPC mutations for voice pipeline (mic recording only — TTS uses browser API)
   const uploadAudioMutation = trpc.voice.uploadAudio.useMutation();
   const transcribeMutation = trpc.voice.transcribe.useMutation();
-  const ttsMutation = trpc.voice.tts.useMutation();
 
-  // Track whether the user has interacted with the page (needed to unlock autoplay)
-  const audioUnlockedRef = useRef(false);
-  const pendingTTSRef = useRef<string | null>(null);
+  // ─── TTS playback via Web Speech API (SpeechSynthesis) ───────────────────────
+  // Uses the browser's built-in speech synthesis — no server call, no autoplay
+  // restrictions, works on iOS Safari, Android Chrome, and all desktop browsers.
 
-  // Unlock audio context on first user interaction anywhere on the page
-  useEffect(() => {
-    const unlock = () => {
-      if (!audioUnlockedRef.current) {
-        audioUnlockedRef.current = true;
-        // If TTS was waiting for unlock, play it now
-        if (pendingTTSRef.current) {
-          const text = pendingTTSRef.current;
-          pendingTTSRef.current = null;
-          playTTSUnlocked(text);
-        }
-      }
-    };
-    window.addEventListener("click", unlock, { once: false, passive: true });
-    window.addEventListener("keydown", unlock, { once: false, passive: true });
-    window.addEventListener("touchstart", unlock, { once: false, passive: true });
-    return () => {
-      window.removeEventListener("click", unlock);
-      window.removeEventListener("keydown", unlock);
-      window.removeEventListener("touchstart", unlock);
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // ─── TTS playback ────────────────────────────────────────────────────────────
-
-  // Internal: actually fetch + play (assumes audio is unlocked)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const playTTSUnlocked = useCallback(async (text: string) => {
-    if (!ttsEnabled || !text.trim()) return;
-
-    if (currentAudioRef.current) {
-      currentAudioRef.current.pause();
-      currentAudioRef.current = null;
-    }
-
-    setIsSpeaking(true);
-    try {
-      const lang = document.documentElement.lang || navigator.language || "en";
-      const result = await ttsMutation.mutateAsync({ text, lang });
-      const audioSrc = `data:${result.mimeType};base64,${result.audioBase64}`;
-      const audio = new Audio(audioSrc);
-      currentAudioRef.current = audio;
-      audio.onended = () => { setIsSpeaking(false); currentAudioRef.current = null; };
-      audio.onerror = () => { setIsSpeaking(false); currentAudioRef.current = null; };
-      // play() returns a promise; catch NotAllowedError gracefully
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise.catch((err: unknown) => {
-          console.warn("[TTS] autoplay blocked:", err);
-          setIsSpeaking(false);
-          currentAudioRef.current = null;
-        });
-      }
-    } catch {
-      setIsSpeaking(false);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ttsEnabled, ttsMutation]);
-
-  // Public: queue or play immediately depending on whether audio is unlocked
-  const playTTS = useCallback((text: string) => {
-    if (!ttsEnabled || !text.trim()) return;
-    if (audioUnlockedRef.current) {
-      playTTSUnlocked(text);
-    } else {
-      // Store the text; it will be played once the user first interacts
-      pendingTTSRef.current = text;
-    }
-  }, [ttsEnabled, playTTSUnlocked]);
+  const hasSpeechSynthesis = typeof window !== "undefined" && "speechSynthesis" in window;
 
   const stopSpeaking = useCallback(() => {
-    if (currentAudioRef.current) {
-      currentAudioRef.current.pause();
-      currentAudioRef.current = null;
-    }
+    if (hasSpeechSynthesis) window.speechSynthesis.cancel();
     setIsSpeaking(false);
-  }, []);
+  }, [hasSpeechSynthesis]);
+
+  const playTTS = useCallback((text: string) => {
+    if (!ttsEnabled || !text.trim() || !hasSpeechSynthesis) return;
+
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = document.documentElement.lang || navigator.language || "en";
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+
+    // Pick a voice: prefer a female English voice when available
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      const lang = utterance.lang.split("-")[0];
+      // Prefer a natural-sounding voice in the right language
+      const preferred =
+        voices.find(v => v.lang.startsWith(lang) && /female|samantha|karen|moira|tessa|fiona|victoria|zira|hazel/i.test(v.name)) ||
+        voices.find(v => v.lang.startsWith(lang) && v.localService) ||
+        voices.find(v => v.lang.startsWith(lang)) ||
+        voices[0];
+      if (preferred) utterance.voice = preferred;
+    }
+
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
+    window.speechSynthesis.speak(utterance);
+  }, [ttsEnabled, hasSpeechSynthesis]);
+
+  // iOS Safari quirk: voices load asynchronously — re-trigger if voices not ready
+  useEffect(() => {
+    if (!hasSpeechSynthesis) return;
+    const handler = () => { /* voices loaded — no action needed, next speak() will pick them up */ };
+    window.speechSynthesis.addEventListener("voiceschanged", handler);
+    return () => window.speechSynthesis.removeEventListener("voiceschanged", handler);
+  }, [hasSpeechSynthesis]);
 
   // Auto-play TTS when a new assistant message finishes streaming
   // We watch the content of the last assistant message + isLoading so we
@@ -584,7 +550,6 @@ export function AIChatBox({
                       {message.role === "assistant" && !isLoading && message.content && (
                         <button
                           onClick={() => {
-                            audioUnlockedRef.current = true;
                             const plain = message.content
                               .replace(/```[\s\S]*?```/g, "")
                               .replace(/`[^`]+`/g, "")
@@ -592,7 +557,7 @@ export function AIChatBox({
                               .replace(/[*_]{1,2}([^*_]+)[*_]{1,2}/g, "$1")
                               .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
                               .trim();
-                            playTTSUnlocked(plain);
+                            playTTS(plain);
                           }}
                           title="Read aloud"
                           className="flex items-center justify-center w-6 h-6 rounded-md transition-colors text-white/30 hover:text-blue-400 hover:bg-blue-400/10 mt-1 ml-1"
