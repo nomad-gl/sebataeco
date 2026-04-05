@@ -663,3 +663,8 @@
 - [x] Fix Chrome long-text pause bug: use keepAlive interval to prevent synthesis from pausing mid-utterance
 - [x] Ensure isSpeaking resets to false reliably after onend fires
 - [x] Add utterance ref so cancel() properly clears state on component unmount
+
+## Feature: Speech rate control
+- [x] Add speechRate state (0.75, 1.0, 1.25) persisted to localStorage
+- [x] Apply rate to SpeechSynthesisUtterance in playTTS
+- [x] Add rate toggle button (0.75×/1×/1.25×) next to mute button in input bar

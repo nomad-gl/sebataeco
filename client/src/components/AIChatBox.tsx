@@ -146,6 +146,19 @@ export function AIChatBox({
   const [ttsEnabled, setTtsEnabled] = useState(true);
   /** True while TTS audio is being fetched or playing */
   const [isSpeaking, setIsSpeaking] = useState(false);
+  /** Speech rate: 0.75 | 1.0 | 1.25 — persisted to localStorage */
+  const [speechRate, setSpeechRate] = useState<0.75 | 1.0 | 1.25>(() => {
+    const saved = localStorage.getItem("seba_speech_rate");
+    return (saved === "0.75" || saved === "1.25") ? parseFloat(saved) as 0.75 | 1.25 : 1.0;
+  });
+
+  const cycleSpeechRate = useCallback(() => {
+    setSpeechRate(prev => {
+      const next: 0.75 | 1.0 | 1.25 = prev === 0.75 ? 1.0 : prev === 1.0 ? 1.25 : 0.75;
+      localStorage.setItem("seba_speech_rate", String(next));
+      return next;
+    });
+  }, []);
 
   /** True on any mobile/tablet device */
   const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
@@ -212,7 +225,7 @@ export function AIChatBox({
     setTimeout(() => {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = document.documentElement.lang || navigator.language || "en";
-      utterance.rate = 1.0;
+      utterance.rate = speechRate;
       utterance.pitch = 1.0;
 
       // Pick a voice: prefer a natural-sounding voice in the right language
@@ -258,7 +271,7 @@ export function AIChatBox({
       utteranceRef.current = utterance;
       window.speechSynthesis.speak(utterance);
     }, 50);
-  }, [ttsEnabled, hasSpeechSynthesis, clearKeepAlive]);
+  }, [ttsEnabled, hasSpeechSynthesis, clearKeepAlive, speechRate]);
 
   // iOS Safari quirk: voices load asynchronously
   useEffect(() => {
@@ -750,6 +763,20 @@ export function AIChatBox({
         >
           {ttsEnabled ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
         </Button>
+
+        {/* Speech rate toggle — only shown when TTS is enabled */}
+        {ttsEnabled && (
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            onClick={cycleSpeechRate}
+            title={`Speech speed: ${speechRate}× — click to change`}
+            className="shrink-0 h-[38px] w-[38px] text-blue-300/70 hover:text-blue-200 hover:bg-blue-500/10 text-[11px] font-semibold"
+          >
+            {speechRate === 0.75 ? "0.75×" : speechRate === 1.25 ? "1.25×" : "1×"}
+          </Button>
+        )}
 
         {/* Always-on toggle (Radio icon) — desktop only */}
         {!isMobile && (
