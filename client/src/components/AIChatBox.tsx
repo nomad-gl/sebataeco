@@ -171,46 +171,99 @@ export function AIChatBox({
 
   const hasSpeechSynthesis = typeof window !== "undefined" && "speechSynthesis" in window;
 
+  // Keep a ref to the active utterance so we can cancel it reliably
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  // Chrome pauses long utterances after ~15 s unless we nudge it
+  const keepAliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const clearKeepAlive = useCallback(() => {
+    if (keepAliveRef.current !== null) {
+      clearInterval(keepAliveRef.current);
+      keepAliveRef.current = null;
+    }
+  }, []);
+
   const stopSpeaking = useCallback(() => {
-    if (hasSpeechSynthesis) window.speechSynthesis.cancel();
+    clearKeepAlive();
+    if (hasSpeechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    utteranceRef.current = null;
     setIsSpeaking(false);
-  }, [hasSpeechSynthesis]);
+  }, [hasSpeechSynthesis, clearKeepAlive]);
+
+  // Cancel speech on component unmount
+  useEffect(() => {
+    return () => {
+      clearKeepAlive();
+      if (hasSpeechSynthesis) window.speechSynthesis.cancel();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const playTTS = useCallback((text: string) => {
     if (!ttsEnabled || !text.trim() || !hasSpeechSynthesis) return;
 
-    // Cancel any ongoing speech
+    // Cancel any ongoing speech first
+    clearKeepAlive();
     window.speechSynthesis.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = document.documentElement.lang || navigator.language || "en";
-    utterance.rate = 1.0;
-    utterance.pitch = 1.0;
+    // Small delay after cancel() so Chrome flushes its queue reliably
+    setTimeout(() => {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = document.documentElement.lang || navigator.language || "en";
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
 
-    // Pick a voice: prefer a female English voice when available
-    const voices = window.speechSynthesis.getVoices();
-    if (voices.length > 0) {
-      const lang = utterance.lang.split("-")[0];
-      // Prefer a natural-sounding voice in the right language
-      const preferred =
-        voices.find(v => v.lang.startsWith(lang) && /female|samantha|karen|moira|tessa|fiona|victoria|zira|hazel/i.test(v.name)) ||
-        voices.find(v => v.lang.startsWith(lang) && v.localService) ||
-        voices.find(v => v.lang.startsWith(lang)) ||
-        voices[0];
-      if (preferred) utterance.voice = preferred;
-    }
+      // Pick a voice: prefer a natural-sounding voice in the right language
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length > 0) {
+        const lang = utterance.lang.split("-")[0];
+        const preferred =
+          voices.find(v => v.lang.startsWith(lang) && /female|samantha|karen|moira|tessa|fiona|victoria|zira|hazel/i.test(v.name)) ||
+          voices.find(v => v.lang.startsWith(lang) && v.localService) ||
+          voices.find(v => v.lang.startsWith(lang)) ||
+          voices[0];
+        if (preferred) utterance.voice = preferred;
+      }
 
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+      utterance.onstart = () => {
+        setIsSpeaking(true);
+        // Chrome bug: synthesis pauses after ~15 s on long texts.
+        // Workaround: call resume() every 10 s to keep it going.
+        keepAliveRef.current = setInterval(() => {
+          if (window.speechSynthesis.speaking) {
+            window.speechSynthesis.pause();
+            window.speechSynthesis.resume();
+          } else {
+            clearKeepAlive();
+          }
+        }, 10_000);
+      };
 
-    window.speechSynthesis.speak(utterance);
-  }, [ttsEnabled, hasSpeechSynthesis]);
+      utterance.onend = () => {
+        clearKeepAlive();
+        utteranceRef.current = null;
+        setIsSpeaking(false);
+      };
 
-  // iOS Safari quirk: voices load asynchronously — re-trigger if voices not ready
+      utterance.onerror = (e) => {
+        // 'interrupted' fires when we cancel() intentionally — not a real error
+        if ((e as SpeechSynthesisErrorEvent).error === "interrupted") return;
+        clearKeepAlive();
+        utteranceRef.current = null;
+        setIsSpeaking(false);
+      };
+
+      utteranceRef.current = utterance;
+      window.speechSynthesis.speak(utterance);
+    }, 50);
+  }, [ttsEnabled, hasSpeechSynthesis, clearKeepAlive]);
+
+  // iOS Safari quirk: voices load asynchronously
   useEffect(() => {
     if (!hasSpeechSynthesis) return;
-    const handler = () => { /* voices loaded — no action needed, next speak() will pick them up */ };
+    const handler = () => { /* voices loaded — next speak() will pick them up */ };
     window.speechSynthesis.addEventListener("voiceschanged", handler);
     return () => window.speechSynthesis.removeEventListener("voiceschanged", handler);
   }, [hasSpeechSynthesis]);

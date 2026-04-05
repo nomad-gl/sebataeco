@@ -658,3 +658,8 @@
 - [x] Replace server-side TTS (voice.tts trpc call) with browser window.speechSynthesis
 - [x] Remove voice.tts procedure from server/routers/voice.ts (keep uploadAudio + transcribe)
 - [x] Update AIChatBox to use SpeechSynthesisUtterance for instant, no-network TTS
+
+## Bug: Speech synthesiser does not reset after reading a response
+- [x] Fix Chrome long-text pause bug: use keepAlive interval to prevent synthesis from pausing mid-utterance
+- [x] Ensure isSpeaking resets to false reliably after onend fires
+- [x] Add utterance ref so cancel() properly clears state on component unmount
