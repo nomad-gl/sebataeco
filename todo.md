@@ -673,3 +673,6 @@
 - [x] Replace keepAlive pause/resume hack with sentence-chunking: split text into short sentences and speak them sequentially via onend chaining
 - [x] Ensure isSpeaking resets to false only after the final chunk finishes
 - [x] Ensure stopSpeaking() cancels all pending chunks immediately
+
+## Feature: Input box above icon buttons
+- [x] On mobile only: move textarea to its own row above the speaker/mic/send icon row (desktop unchanged)

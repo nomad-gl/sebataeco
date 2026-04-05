@@ -724,9 +724,13 @@ export function AIChatBox({
       <form
         ref={inputAreaRef}
         onSubmit={handleSubmit}
-        className="flex gap-2 p-4 border-t border-white/15 bg-black/20 items-end"
+        className={cn(
+          "p-4 border-t border-white/15 bg-black/20",
+          isMobile ? "flex flex-col gap-2" : "flex gap-2 items-end"
+        )}
       >
-        <div className="flex flex-col flex-1 gap-1">
+        {/* Textarea row (full width on mobile, flex-1 on desktop) */}
+        <div className={cn("flex flex-col gap-1", isMobile ? "w-full" : "flex-1")}>
           <Textarea
             ref={textareaRef}
             value={input}
@@ -752,90 +756,94 @@ export function AIChatBox({
           )}
         </div>
 
-        {/* TTS toggle — shown on all devices */}
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          onClick={() => { setTtsEnabled(v => !v); if (isSpeaking) stopSpeaking(); }}
-          title={ttsEnabled ? "Voice responses: ON — click to mute" : "Voice responses: OFF — click to enable"}
-          className={cn(
-            "shrink-0 h-[38px] w-[38px]",
-            ttsEnabled
-              ? "text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
-              : "text-white/40 hover:text-white hover:bg-white/15"
-          )}
-        >
-          {ttsEnabled ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
-        </Button>
+        {/* Icon buttons row — on mobile this is a separate row below the textarea */}
+        <div className={cn("flex gap-2 items-center", isMobile && "justify-end")}>
 
-        {/* Speech rate toggle — only shown when TTS is enabled */}
-        {ttsEnabled && (
+          {/* TTS toggle — shown on all devices */}
           <Button
             type="button"
             size="icon"
             variant="ghost"
-            onClick={cycleSpeechRate}
-            title={`Speech speed: ${speechRate}× — click to change`}
-            className="shrink-0 h-[38px] w-[38px] text-blue-300/70 hover:text-blue-200 hover:bg-blue-500/10 text-[11px] font-semibold"
-          >
-            {speechRate === 0.75 ? "0.75×" : speechRate === 1.25 ? "1.25×" : "1×"}
-          </Button>
-        )}
-
-        {/* Always-on toggle (Radio icon) — desktop only */}
-        {!isMobile && (
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            onClick={() => setAlwaysOnEnabled((v) => !v)}
-            title={alwaysOnEnabled ? "Always-on: ON — click to disable" : "Always-on: OFF — click to enable"}
+            onClick={() => { setTtsEnabled(v => !v); if (isSpeaking) stopSpeaking(); }}
+            title={ttsEnabled ? "Voice responses: ON — click to mute" : "Voice responses: OFF — click to enable"}
             className={cn(
               "shrink-0 h-[38px] w-[38px]",
-              alwaysOnEnabled
-                ? "text-green-400 hover:text-green-300 hover:bg-green-500/10"
+              ttsEnabled
+                ? "text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
                 : "text-white/40 hover:text-white hover:bg-white/15"
             )}
           >
-            <Radio className={cn("size-4", alwaysOnEnabled && wakeState === "idle" && "animate-pulse")} />
+            {ttsEnabled ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
           </Button>
-        )}
 
-        {/* Mic button — shown on ALL devices (mobile uses MediaRecorder, desktop uses Web Speech API) */}
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          onClick={toggleMic}
-          disabled={
-            isMobile
-              ? uploadAudioMutation.isPending || transcribeMutation.isPending
-              : false
-          }
-          title={isRecording ? "Stop recording" : "Voice input"}
-          className={cn(
-            "shrink-0 h-[38px] w-[38px] text-white/60 hover:text-white hover:bg-white/15",
-            isRecording && "text-red-400 hover:text-red-300 animate-pulse"
+          {/* Speech rate toggle — only shown when TTS is enabled */}
+          {ttsEnabled && (
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              onClick={cycleSpeechRate}
+              title={`Speech speed: ${speechRate}× — click to change`}
+              className="shrink-0 h-[38px] w-[38px] text-blue-300/70 hover:text-blue-200 hover:bg-blue-500/10 text-[11px] font-semibold"
+            >
+              {speechRate === 0.75 ? "0.75×" : speechRate === 1.25 ? "1.25×" : "1×"}
+            </Button>
           )}
-        >
-          {uploadAudioMutation.isPending || transcribeMutation.isPending
-            ? <Loader2 className="size-4 animate-spin" />
-            : isRecording
-            ? <MicOff className="size-4" />
-            : <Mic className="size-4" />
-          }
-        </Button>
 
-        {/* Send button */}
-        <Button
-          type="submit"
-          size="icon"
-          disabled={!input.trim() || isLoading}
-          className="shrink-0 h-[38px] w-[38px]"
-        >
-          {isLoading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-        </Button>
+          {/* Always-on toggle (Radio icon) — desktop only */}
+          {!isMobile && (
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              onClick={() => setAlwaysOnEnabled((v) => !v)}
+              title={alwaysOnEnabled ? "Always-on: ON — click to disable" : "Always-on: OFF — click to enable"}
+              className={cn(
+                "shrink-0 h-[38px] w-[38px]",
+                alwaysOnEnabled
+                  ? "text-green-400 hover:text-green-300 hover:bg-green-500/10"
+                  : "text-white/40 hover:text-white hover:bg-white/15"
+              )}
+            >
+              <Radio className={cn("size-4", alwaysOnEnabled && wakeState === "idle" && "animate-pulse")} />
+            </Button>
+          )}
+
+          {/* Mic button — shown on ALL devices */}
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            onClick={toggleMic}
+            disabled={
+              isMobile
+                ? uploadAudioMutation.isPending || transcribeMutation.isPending
+                : false
+            }
+            title={isRecording ? "Stop recording" : "Voice input"}
+            className={cn(
+              "shrink-0 h-[38px] w-[38px] text-white/60 hover:text-white hover:bg-white/15",
+              isRecording && "text-red-400 hover:text-red-300 animate-pulse"
+            )}
+          >
+            {uploadAudioMutation.isPending || transcribeMutation.isPending
+              ? <Loader2 className="size-4 animate-spin" />
+              : isRecording
+              ? <MicOff className="size-4" />
+              : <Mic className="size-4" />
+            }
+          </Button>
+
+          {/* Send button */}
+          <Button
+            type="submit"
+            size="icon"
+            disabled={!input.trim() || isLoading}
+            className="shrink-0 h-[38px] w-[38px]"
+          >
+            {isLoading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+          </Button>
+        </div>
       </form>
     </div>
   );
