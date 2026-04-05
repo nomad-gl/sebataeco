@@ -668,3 +668,8 @@
 - [x] Add speechRate state (0.75, 1.0, 1.25) persisted to localStorage
 - [x] Apply rate to SpeechSynthesisUtterance in playTTS
 - [x] Add rate toggle button (0.75×/1×/1.25×) next to mute button in input bar
+
+## Bug: Chrome speech cuts out after a few seconds, UI stays stuck on "Speaking…"
+- [x] Replace keepAlive pause/resume hack with sentence-chunking: split text into short sentences and speak them sequentially via onend chaining
+- [x] Ensure isSpeaking resets to false only after the final chunk finishes
+- [x] Ensure stopSpeaking() cancels all pending chunks immediately

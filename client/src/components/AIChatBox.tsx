@@ -179,99 +179,104 @@ export function AIChatBox({
   const transcribeMutation = trpc.voice.transcribe.useMutation();
 
   // ─── TTS playback via Web Speech API (SpeechSynthesis) ───────────────────────
-  // Uses the browser's built-in speech synthesis — no server call, no autoplay
-  // restrictions, works on iOS Safari, Android Chrome, and all desktop browsers.
+  // Chrome has a well-known bug where it silently stops speaking after ~15 s and
+  // never fires onend, leaving the UI stuck. The reliable fix is to split the
+  // text into short sentences and speak them one at a time, chaining via onend.
+  // Each chunk is short enough that Chrome never hits the timeout.
 
   const hasSpeechSynthesis = typeof window !== "undefined" && "speechSynthesis" in window;
 
-  // Keep a ref to the active utterance so we can cancel it reliably
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
-  // Chrome pauses long utterances after ~15 s unless we nudge it
-  const keepAliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const clearKeepAlive = useCallback(() => {
-    if (keepAliveRef.current !== null) {
-      clearInterval(keepAliveRef.current);
-      keepAliveRef.current = null;
-    }
-  }, []);
+  // Flag set to true when the user calls stopSpeaking() so chained chunks abort
+  const cancelledRef = useRef(false);
 
   const stopSpeaking = useCallback(() => {
-    clearKeepAlive();
-    if (hasSpeechSynthesis) {
-      window.speechSynthesis.cancel();
-    }
-    utteranceRef.current = null;
+    cancelledRef.current = true;
+    if (hasSpeechSynthesis) window.speechSynthesis.cancel();
     setIsSpeaking(false);
-  }, [hasSpeechSynthesis, clearKeepAlive]);
+  }, [hasSpeechSynthesis]);
 
   // Cancel speech on component unmount
   useEffect(() => {
     return () => {
-      clearKeepAlive();
+      cancelledRef.current = true;
       if (hasSpeechSynthesis) window.speechSynthesis.cancel();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /** Split text into sentence-sized chunks (≤ 200 chars) so Chrome never times out */
+  const splitIntoChunks = (text: string): string[] => {
+    // Split on sentence-ending punctuation, keeping the delimiter
+    const sentences = text.match(/[^.!?\n]+[.!?\n]*/g) ?? [text];
+    const chunks: string[] = [];
+    let current = "";
+    for (const s of sentences) {
+      if ((current + s).length > 200) {
+        if (current.trim()) chunks.push(current.trim());
+        current = s;
+      } else {
+        current += s;
+      }
+    }
+    if (current.trim()) chunks.push(current.trim());
+    return chunks.filter(Boolean);
+  };
+
   const playTTS = useCallback((text: string) => {
     if (!ttsEnabled || !text.trim() || !hasSpeechSynthesis) return;
 
-    // Cancel any ongoing speech first
-    clearKeepAlive();
+    // Cancel any ongoing speech
+    cancelledRef.current = true;
     window.speechSynthesis.cancel();
 
-    // Small delay after cancel() so Chrome flushes its queue reliably
+    const chunks = splitIntoChunks(text);
+    if (chunks.length === 0) return;
+
+    const lang = document.documentElement.lang || navigator.language || "en";
+    const voices = window.speechSynthesis.getVoices();
+    let preferredVoice: SpeechSynthesisVoice | null = null;
+    if (voices.length > 0) {
+      const l = lang.split("-")[0];
+      preferredVoice =
+        voices.find(v => v.lang.startsWith(l) && /female|samantha|karen|moira|tessa|fiona|victoria|zira|hazel/i.test(v.name)) ??
+        voices.find(v => v.lang.startsWith(l) && v.localService) ??
+        voices.find(v => v.lang.startsWith(l)) ??
+        voices[0] ?? null;
+    }
+
+    // Small delay so Chrome finishes flushing after cancel()
     setTimeout(() => {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = document.documentElement.lang || navigator.language || "en";
-      utterance.rate = speechRate;
-      utterance.pitch = 1.0;
+      cancelledRef.current = false;
+      setIsSpeaking(true);
 
-      // Pick a voice: prefer a natural-sounding voice in the right language
-      const voices = window.speechSynthesis.getVoices();
-      if (voices.length > 0) {
-        const lang = utterance.lang.split("-")[0];
-        const preferred =
-          voices.find(v => v.lang.startsWith(lang) && /female|samantha|karen|moira|tessa|fiona|victoria|zira|hazel/i.test(v.name)) ||
-          voices.find(v => v.lang.startsWith(lang) && v.localService) ||
-          voices.find(v => v.lang.startsWith(lang)) ||
-          voices[0];
-        if (preferred) utterance.voice = preferred;
-      }
+      const speakChunk = (index: number) => {
+        if (cancelledRef.current || index >= chunks.length) {
+          setIsSpeaking(false);
+          return;
+        }
 
-      utterance.onstart = () => {
-        setIsSpeaking(true);
-        // Chrome bug: synthesis pauses after ~15 s on long texts.
-        // Workaround: call resume() every 10 s to keep it going.
-        keepAliveRef.current = setInterval(() => {
-          if (window.speechSynthesis.speaking) {
-            window.speechSynthesis.pause();
-            window.speechSynthesis.resume();
-          } else {
-            clearKeepAlive();
-          }
-        }, 10_000);
+        const utterance = new SpeechSynthesisUtterance(chunks[index]);
+        utterance.lang = lang;
+        utterance.rate = speechRate;
+        utterance.pitch = 1.0;
+        if (preferredVoice) utterance.voice = preferredVoice;
+
+        utterance.onend = () => {
+          if (cancelledRef.current) { setIsSpeaking(false); return; }
+          speakChunk(index + 1);
+        };
+
+        utterance.onerror = (e) => {
+          if ((e as SpeechSynthesisErrorEvent).error === "interrupted") return;
+          setIsSpeaking(false);
+        };
+
+        window.speechSynthesis.speak(utterance);
       };
 
-      utterance.onend = () => {
-        clearKeepAlive();
-        utteranceRef.current = null;
-        setIsSpeaking(false);
-      };
-
-      utterance.onerror = (e) => {
-        // 'interrupted' fires when we cancel() intentionally — not a real error
-        if ((e as SpeechSynthesisErrorEvent).error === "interrupted") return;
-        clearKeepAlive();
-        utteranceRef.current = null;
-        setIsSpeaking(false);
-      };
-
-      utteranceRef.current = utterance;
-      window.speechSynthesis.speak(utterance);
+      speakChunk(0);
     }, 50);
-  }, [ttsEnabled, hasSpeechSynthesis, clearKeepAlive, speechRate]);
+  }, [ttsEnabled, hasSpeechSynthesis, speechRate]);
 
   // iOS Safari quirk: voices load asynchronously
   useEffect(() => {
