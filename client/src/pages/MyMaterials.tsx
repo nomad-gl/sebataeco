@@ -265,7 +265,7 @@ export default function MyMaterials() {
                           {m.type.replace("_", " ")}
                         </Badge>
                         {m.competency && <Badge variant="outline" className="text-xs text-white/70 border-white/25">{m.competency}</Badge>}
-                        {m.yearGroup && <Badge variant="outline" className="text-xs capitalize text-white/70 border-white/25">{m.yearGroup}</Badge>}
+                        {m.yearGroup && <Badge variant="outline" className="text-xs text-white/70 border-white/25">{{ junior: t("admin_junior"), primary: t("admin_primary"), secondary: t("admin_secondary") }[m.yearGroup] ?? m.yearGroup}</Badge>}
                         <span className="text-xs text-white/50">
                           {new Date(m.createdAt).toLocaleDateString()}
                         </span>

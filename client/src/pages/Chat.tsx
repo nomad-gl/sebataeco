@@ -209,7 +209,7 @@ export default function Chat() {
             {(competency || yearGroup) && (
               <p className="text-xs text-white/60 mt-2">
                 {t("chat_context_filtered")}{" "}
-                {[competency, yearGroup ? `${yearGroup} ${t("chat_year_group")}` : null]
+                {[competency, yearGroup ? `${{ junior: t("admin_junior"), primary: t("admin_primary"), secondary: t("admin_secondary") }[yearGroup] ?? yearGroup} ${t("chat_year_group")}` : null]
                   .filter(Boolean)
                   .join(" · ")}
               </p>

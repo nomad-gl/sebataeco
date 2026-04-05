@@ -206,8 +206,8 @@ export default function Practice() {
                     <span className={cn("badge-" + question.competency)}>
                       {question.competency}
                     </span>
-                    <span className="text-xs text-white/60 capitalize">
-                      {question.yearGroup ?? ""}
+                    <span className="text-xs text-white/60">
+                      {{ junior: t("admin_junior"), primary: t("admin_primary"), secondary: t("admin_secondary") }[question.yearGroup ?? ""] ?? question.yearGroup ?? ""}
                     </span>
                   </div>
 

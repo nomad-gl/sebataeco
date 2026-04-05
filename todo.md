@@ -676,3 +676,7 @@
 
 ## Feature: Input box above icon buttons
 - [x] On mobile only: move textarea to its own row above the speaker/mic/send icon row (desktop unchanged)
+
+## Change: Rename 'Junior' to 'Primary' on learning descriptors
+- [x] Find all occurrences of 'junior'/'Junior' in learning descriptor files, shared constants, and UI
+- [x] Replace with 'primary'/'Primary' preserving case

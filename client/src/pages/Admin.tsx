@@ -551,7 +551,7 @@ export default function Admin() {
                           <td className="py-2 pr-3">
                             <span className={cn("badge-" + row.competency)}>{row.competency}</span>
                           </td>
-                          <td className="py-2 pr-3 capitalize text-muted-foreground text-xs">{row.yearGroup}</td>
+                           <td className="py-2 pr-3 text-muted-foreground text-xs">{{ junior: t("admin_junior"), primary: t("admin_primary"), secondary: t("admin_secondary") }[row.yearGroup] ?? row.yearGroup}</td>
                           <td className="py-2 pr-3 text-right text-foreground font-medium">{row.total}</td>
                           <td className="py-2">
                             <div className="flex items-center gap-2">
