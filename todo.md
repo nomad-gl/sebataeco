@@ -690,3 +690,8 @@
 - [x] Bulk-import: parse lines, validate, insert all students in one server call
 - [x] Inline edit: edit icon on each student row opens inline name/email fields
 - [x] Inline edit: save via updateStudent tRPC mutation, cancel restores original values
+
+## Feature: My Classes - CSV export, sort, count badges
+- [x] Export roster to CSV: "Download CSV" button on student table
+- [x] Sortable Name column: click header to toggle A→Z / Z→A sort
+- [x] Student count badge: show number of students next to each class name in the left panel

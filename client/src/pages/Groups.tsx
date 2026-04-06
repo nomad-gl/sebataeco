@@ -129,10 +129,12 @@ function StudentRoster({ group }: { group: Group }) {
   // Bulk import state
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkText, setBulkText] = useState("");
-  // Inline edit state: studentId -> { name, email }
+  // Inline edit state
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
+  // Sort state
+  const [sortAsc, setSortAsc] = useState(true);
 
   const { data: students = [], isLoading } = trpc.groups.listStudents.useQuery({ groupId: group.id });
 
@@ -201,6 +203,25 @@ function StudentRoster({ group }: { group: Group }) {
       toast.success(t("groups_student_removed"));
     },
   });
+
+  // Sorted students
+  const sortedStudents = [...students].sort((a, b) =>
+    sortAsc ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
+  );
+
+  // CSV export
+  const exportCSV = () => {
+    const header = "#,Name,Email";
+    const rows = sortedStudents.map((s) => `${s.studentNumber},"${s.name.replace(/"/g, '""')}","${s.email.replace(/"/g, '""')}"`);
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${group.className.replace(/[^a-z0-9]/gi, "_")}_students.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   // Parse preview for bulk import
   const bulkPreview = bulkText.split("\n").map(l => l.trim()).filter(Boolean).map(line => {
@@ -307,13 +328,21 @@ function StudentRoster({ group }: { group: Group }) {
             <thead className="bg-white/5 text-white/50 uppercase text-xs tracking-wide">
               <tr>
                 <th className="px-4 py-3 text-left w-12">#</th>
-                <th className="px-4 py-3 text-left">{t("groups_student_name")}</th>
+                <th
+                  className="px-4 py-3 text-left cursor-pointer select-none hover:text-white/80 transition-colors"
+                  onClick={() => setSortAsc(a => !a)}
+                >
+                  <span className="flex items-center gap-1">
+                    {t("groups_student_name")}
+                    <span className="text-white/30">{sortAsc ? "↑" : "↓"}</span>
+                  </span>
+                </th>
                 <th className="px-4 py-3 text-left hidden sm:table-cell">{t("groups_student_email")}</th>
                 <th className="px-4 py-3 text-right">{t("groups_actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {students.map((s) => (
+              {sortedStudents.map((s) => (
                 <tr key={s.id} className="text-white hover:bg-white/5 transition-colors">
                   <td className="px-4 py-3 font-mono text-white/50">{s.studentNumber}</td>
                   {editingId === s.id ? (
@@ -391,8 +420,18 @@ function StudentRoster({ group }: { group: Group }) {
               ))}
             </tbody>
           </table>
-          <div className="px-4 py-2 bg-white/5 text-white/40 text-xs">
-            {students.length} {t("groups_students_total")}
+          <div className="px-4 py-2 bg-white/5 text-white/40 text-xs flex items-center justify-between">
+            <span>{students.length} {t("groups_students_total")}</span>
+            {students.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={exportCSV}
+                className="text-white/50 hover:text-white hover:bg-white/10 h-6 px-2 text-xs gap-1"
+              >
+                <Upload className="w-3 h-3" /> Download CSV
+              </Button>
+            )}
           </div>
         </div>
       )}
@@ -654,6 +693,10 @@ export default function Groups() {
                       <p className="font-semibold text-white text-sm truncate">{g.className}</p>
                       <p className="text-white/50 text-xs mt-0.5 truncate">{g.level}</p>
                       <p className="text-white/40 text-xs mt-1 truncate">{g.assessmentTitle}</p>
+                      <span className="inline-flex items-center gap-1 mt-1.5 text-xs text-white/40">
+                        <Users className="w-3 h-3" />
+                        {(g as any).studentCount ?? 0} student{((g as any).studentCount ?? 0) === 1 ? "" : "s"}
+                      </span>
                     </div>
                     <ChevronRight className={`w-4 h-4 shrink-0 mt-0.5 transition-transform ${
                       selectedGroupId === g.id ? "text-blue-400 rotate-90" : "text-white/30 group-hover:text-white/60"

@@ -12,7 +12,7 @@ import {
 export const groupsRouter = router({
   // -- Groups CRUD ----------------------------------------------------------
 
-  /** List all groups owned by the current teacher */
+  /** List all groups owned by the current teacher, with student count */
   list: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     if (!db) return [];
@@ -21,7 +21,17 @@ export const groupsRouter = router({
       .from(classGroups)
       .where(eq(classGroups.userId, ctx.user.id))
       .orderBy(desc(classGroups.createdAt));
-    return rows;
+    // Fetch counts for all groups in one pass
+    const countMap: Record<number, number> = {};
+    if (rows.length) {
+      const allSt = await db
+        .select({ groupId: groupStudents.groupId })
+        .from(groupStudents);
+      for (const s of allSt) {
+        countMap[s.groupId] = (countMap[s.groupId] ?? 0) + 1;
+      }
+    }
+    return rows.map((r) => ({ ...r, studentCount: countMap[r.id] ?? 0 }));
   }),
 
 
