@@ -580,24 +580,69 @@ export default function StudentProgress() {
                     <Button
                       variant="outline"
                       className="w-full border-white/20 text-white hover:bg-white/10 bg-transparent gap-2"
-                      disabled={exportPdf.isPending}
                       onClick={() => {
                         if (!reportText) return;
-                        const scores = (summaryQ.data?.competencyAverages ?? []).map((c) => ({
-                          code: c.code,
-                          name: c.name,
-                          average: c.average !== null ? c.average : "No data",
-                        }));
-                        exportPdf.mutate({
-                          groupId: gId,
-                          studentId: sId,
-                          studentName: student?.name ?? "Student",
-                          className: `Group ${gId}`,
-                          reportText,
-                          grade: reportGrade,
-                          overall: summaryQ.data?.overall ?? null,
-                          scores,
-                        });
+                        const studentName = student?.name ?? "Student";
+                        const grade = reportGrade ?? "N/A";
+                        const overall = summaryQ.data?.overall ?? null;
+                        const date = new Date().toLocaleDateString();
+                        const scores = (summaryQ.data?.competencyAverages ?? []);
+                        const scoresHtml = scores.length
+                          ? `<table><thead><tr><th>Competency</th><th>Average Score</th></tr></thead><tbody>${
+                              scores.map((c) => `<tr><td>${c.code} — ${c.name}</td><td>${c.average !== null ? c.average + "%" : "No data"}</td></tr>`).join("")
+                            }</tbody></table>`
+                          : "";
+                        const bodyHtml = (reportText ?? "")
+                          .split("\n")
+                          .map((line) => {
+                            if (/^#{1,3}\s/.test(line)) {
+                              const lvl = line.match(/^(#{1,3})/)?.[1].length ?? 1;
+                              const tag = `h${lvl + 1}`;
+                              return `<${tag}>${line.replace(/^#{1,3}\s/, "")}</${tag}>`;
+                            }
+                            if (line.trim() === "") return "<br/>";
+                            return `<p>${line.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")}</p>`;
+                          })
+                          .join("");
+                        const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>${studentName} — Progress Report</title>
+  <style>
+    @page { size: A4; margin: 20mm 18mm; }
+    body { font-family: Georgia, serif; font-size: 12pt; color: #111; line-height: 1.6; }
+    header { border-bottom: 2px solid #1e3a5f; padding-bottom: 8px; margin-bottom: 20px; }
+    header h1 { font-size: 18pt; margin: 0 0 4px; color: #1e3a5f; }
+    header .meta { font-size: 10pt; color: #555; }
+    .grade-badge { display: inline-block; padding: 4px 12px; border-radius: 4px; font-weight: bold; font-size: 11pt; background: #1e3a5f; color: #fff; margin-bottom: 16px; }
+    h2 { font-size: 14pt; color: #1e3a5f; margin-top: 20px; }
+    h3 { font-size: 12pt; color: #1e3a5f; margin-top: 14px; }
+    p { margin: 6px 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 11pt; }
+    th { background: #1e3a5f; color: #fff; padding: 6px 10px; text-align: left; }
+    td { border-bottom: 1px solid #ddd; padding: 5px 10px; }
+    footer { border-top: 1px solid #ccc; margin-top: 32px; padding-top: 8px; font-size: 9pt; color: #888; text-align: center; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>${studentName} — Student Progress Report</h1>
+    <div class="meta">Overall Score: ${overall !== null ? overall + "%" : "N/A"} &nbsp;|&nbsp; Generated: ${date}</div>
+  </header>
+  <div class="grade-badge">LOMLOE Grade: ${grade}</div>
+  ${scoresHtml}
+  ${bodyHtml}
+  <footer>SEBA AI Studio — LOMLOE Teaching Assistant</footer>
+</body>
+</html>`;
+                        const win = window.open("", "_blank", "width=900,height=700");
+                        if (win) {
+                          win.document.write(html);
+                          win.document.close();
+                          win.focus();
+                          setTimeout(() => win.print(), 600);
+                        }
                       }}
                     >
                       <Download className="w-4 h-4" />

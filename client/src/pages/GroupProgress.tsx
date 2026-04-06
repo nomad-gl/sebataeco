@@ -385,19 +385,59 @@ export default function GroupProgress() {
                       variant="outline"
                       className="w-full border-white/20 text-white hover:bg-white/10 bg-transparent gap-2"
                       onClick={() => {
-                        const blob = new Blob([
-                          `SEBA AI Studio — Class Progress Report\n`,
-                          `Class: ${group?.className ?? "Class"} — ${group?.level ?? ""}\n`,
-                          `LOMLOE Grade: ${reportGrade ?? "N/A"}\n`,
-                          `Generated: ${new Date().toLocaleDateString()}\n\n`,
-                          reportText ?? "",
-                        ], { type: "text/plain" });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement("a");
-                        a.href = url;
-                        a.download = `${(group?.className ?? "class").replace(/\s+/g, "_")}_progress_report.txt`;
-                        a.click();
-                        URL.revokeObjectURL(url);
+                        const className = group?.className ?? "Class";
+                        const level = group?.level ?? "";
+                        const grade = reportGrade ?? "N/A";
+                        const date = new Date().toLocaleDateString();
+                        // Convert markdown-ish text to simple HTML paragraphs
+                        const bodyHtml = (reportText ?? "")
+                          .split("\n")
+                          .map((line) => {
+                            if (/^#{1,3}\s/.test(line)) {
+                              const level = line.match(/^(#{1,3})/)?.[1].length ?? 1;
+                              const tag = `h${level + 1}`;
+                              return `<${tag}>${line.replace(/^#{1,3}\s/, "")}</${tag}>`;
+                            }
+                            if (line.trim() === "") return "<br/>";
+                            return `<p>${line.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")}</p>`;
+                          })
+                          .join("");
+                        const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>${className} — Class Progress Report</title>
+  <style>
+    @page { size: A4; margin: 20mm 18mm; }
+    body { font-family: Georgia, serif; font-size: 12pt; color: #111; line-height: 1.6; }
+    header { border-bottom: 2px solid #1e3a5f; padding-bottom: 8px; margin-bottom: 20px; }
+    header h1 { font-size: 18pt; margin: 0 0 4px; color: #1e3a5f; }
+    header .meta { font-size: 10pt; color: #555; }
+    .grade-badge { display: inline-block; padding: 4px 12px; border-radius: 4px; font-weight: bold; font-size: 11pt; background: #1e3a5f; color: #fff; margin-bottom: 16px; }
+    h2 { font-size: 14pt; color: #1e3a5f; margin-top: 20px; }
+    h3 { font-size: 12pt; color: #1e3a5f; margin-top: 14px; }
+    p { margin: 6px 0; }
+    footer { border-top: 1px solid #ccc; margin-top: 32px; padding-top: 8px; font-size: 9pt; color: #888; text-align: center; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>${className} — Class Progress Report</h1>
+    <div class="meta">Level: ${level} &nbsp;|&nbsp; Generated: ${date}</div>
+  </header>
+  <div class="grade-badge">LOMLOE Grade: ${grade}</div>
+  ${bodyHtml}
+  <footer>SEBA AI Studio — LOMLOE Teaching Assistant</footer>
+</body>
+</html>`;
+                        const win = window.open("", "_blank", "width=900,height=700");
+                        if (win) {
+                          win.document.write(html);
+                          win.document.close();
+                          win.focus();
+                          // Small delay so the browser renders before opening print dialog
+                          setTimeout(() => win.print(), 600);
+                        }
                       }}
                     >
                       <Download className="w-4 h-4" />

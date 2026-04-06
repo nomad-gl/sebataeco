@@ -712,3 +712,8 @@
 - [x] Add server procedure groups.getClassSummary returning per-student assessment grades and competency coverage
 - [x] Add class summary tab/panel in Groups.tsx showing a table of students × assessments with grades
 - [x] Show a competency coverage column listing all competencies each student has been assessed on
+
+## Feature: Class Report - print preview on Download PDF
+- [x] Replace plain text blob download with window.print() print preview (allows printer or Save as PDF)
+- [x] Inject a styled @media print HTML page with the report content before calling window.print()
+- [x] Same fix for StudentProgress Download PDF button
