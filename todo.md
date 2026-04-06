@@ -695,3 +695,8 @@
 - [x] Export roster to CSV: "Download CSV" button on student table
 - [x] Sortable Name column: click header to toggle A→Z / Z→A sort
 - [x] Student count badge: show number of students next to each class name in the left panel
+
+## Feature: My Classes - last-active date per student
+- [x] Derive last-active date from challenge log or score entries per student
+- [x] Return lastActive timestamp in listStudents server procedure
+- [x] Display last-active date in the student roster table

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, max, inArray } from "drizzle-orm";
 import { getDb } from "../db";
 import { protectedProcedure, router } from "../_core/trpc";
 import {
@@ -7,6 +7,7 @@ import {
   groupStudents,
   groupMessages,
   groupChallengeLog,
+  studentProgress,
 } from "../../drizzle/schema";
 
 export const groupsRouter = router({
@@ -118,7 +119,28 @@ export const groupsRouter = router({
         .from(groupStudents)
         .where(eq(groupStudents.groupId, input.groupId))
         .orderBy(groupStudents.studentNumber);
-      return rows;
+
+      // Derive last-active per student from student_progress.recordedAt
+      let lastActiveMap: Record<number, Date | null> = {};
+      if (rows.length) {
+        const studentIds = rows.map((r) => r.id);
+        const activityRows = await db
+          .select({
+            studentId: studentProgress.studentId,
+            lastActive: max(studentProgress.recordedAt),
+          })
+          .from(studentProgress)
+          .where(inArray(studentProgress.studentId, studentIds))
+          .groupBy(studentProgress.studentId);
+        for (const a of activityRows) {
+          lastActiveMap[a.studentId] = a.lastActive ? new Date(a.lastActive) : null;
+        }
+      }
+
+      return rows.map((r) => ({
+        ...r,
+        lastActive: lastActiveMap[r.id] ?? null,
+      }));
     }),
 
   /** Add a student to a group (auto-assigns next studentNumber) */

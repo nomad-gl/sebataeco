@@ -338,6 +338,7 @@ function StudentRoster({ group }: { group: Group }) {
                   </span>
                 </th>
                 <th className="px-4 py-3 text-left hidden sm:table-cell">{t("groups_student_email")}</th>
+                <th className="px-4 py-3 text-left hidden md:table-cell">Last Active</th>
                 <th className="px-4 py-3 text-right">{t("groups_actions")}</th>
               </tr>
             </thead>
@@ -361,6 +362,7 @@ function StudentRoster({ group }: { group: Group }) {
                           className="bg-white/10 border-white/20 text-white h-7 text-sm"
                         />
                       </td>
+                      <td className="px-2 py-2 hidden md:table-cell" />
                       <td className="px-2 py-2 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <Button
@@ -385,6 +387,15 @@ function StudentRoster({ group }: { group: Group }) {
                     <>
                       <td className="px-4 py-3 font-medium">{s.name}</td>
                       <td className="px-4 py-3 text-white/60 hidden sm:table-cell">{s.email}</td>
+                      <td className="px-4 py-3 hidden md:table-cell">
+                        {(s as any).lastActive ? (
+                          <span className="text-white/50 text-xs">
+                            {new Date((s as any).lastActive).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}
+                          </span>
+                        ) : (
+                          <span className="text-white/25 text-xs italic">No activity</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <Link href={`/groups/${group.id}/student/${s.id}`}>
