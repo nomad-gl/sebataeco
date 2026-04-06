@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Plus, Sparkles, Trash2, Pencil, CalendarDays } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Sparkles, Trash2, Pencil, CalendarDays, ExternalLink, LayoutList } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
+import { useLocation } from "wouter";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const ACADEMIC_YEARS = [`${CURRENT_YEAR - 1}-${CURRENT_YEAR}`, `${CURRENT_YEAR}-${CURRENT_YEAR + 1}`, `${CURRENT_YEAR + 1}-${CURRENT_YEAR + 2}`];
@@ -61,6 +62,7 @@ const DEFAULT_TERMS = [
 ];
 
 export default function SchoolCalendar() {
+  const [, navigate] = useLocation();
   const [academicYear, setAcademicYear] = useState(ACADEMIC_YEARS[1]);
   const [viewMonth, setViewMonth] = useState(8); // September = 8
   const [viewYear, setViewYear] = useState(CURRENT_YEAR);
@@ -69,6 +71,7 @@ export default function SchoolCalendar() {
   const [showAiDialog, setShowAiDialog] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [editingEvent, setEditingEvent] = useState<CalEvent | null>(null);
+  const [showTermView, setShowTermView] = useState(false);
 
   // Form state
   const [form, setForm] = useState({ eventType: "lesson", title: "", description: "", competency: "", yearGroup: "", subject: "" });
@@ -190,6 +193,35 @@ export default function SchoolCalendar() {
     });
   };
 
+  // Open Lesson Planner pre-filled from a lesson event
+  const openLessonPlanner = (ev: CalEvent) => {
+    const date = new Date(ev.eventDate);
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    const params = new URLSearchParams({
+      title: ev.title,
+      date: dateStr,
+      ...(ev.yearGroup ? { yearGroup: ev.yearGroup } : {}),
+      ...(ev.subject ? { subject: ev.subject } : {}),
+      ...(ev.competency ? { competency: ev.competency } : {}),
+    });
+    navigate(`/lesson-planner?${params.toString()}`);
+  };
+
+  // Term overview: group events by ISO week for the current academic year
+  const termWeeks = useMemo(() => {
+    const weeks: Record<string, { weekLabel: string; events: CalEvent[] }> = {};
+    for (const ev of events) {
+      const d = new Date(ev.eventDate);
+      // ISO week number
+      const jan4 = new Date(d.getFullYear(), 0, 4);
+      const weekNum = Math.ceil(((d.getTime() - jan4.getTime()) / 86400000 + jan4.getDay() + 1) / 7);
+      const key = `${d.getFullYear()}-W${String(weekNum).padStart(2, "0")}`;
+      if (!weeks[key]) weeks[key] = { weekLabel: key, events: [] };
+      weeks[key].events.push(ev);
+    }
+    return Object.values(weeks).sort((a, b) => a.weekLabel.localeCompare(b.weekLabel));
+  }, [events]);
+
   // Summary stats
   const totalEvents = events.length;
   const aiEvents = events.filter(e => e.aiGenerated).length;
@@ -212,6 +244,9 @@ export default function SchoolCalendar() {
               <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
               <SelectContent>{ACADEMIC_YEARS.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
             </Select>
+            <Button variant="outline" onClick={() => setShowTermView(v => !v)} className="gap-2">
+              <LayoutList className="w-4 h-4" /> {showTermView ? "Month View" : "Term Overview"}
+            </Button>
             <Button variant="outline" onClick={() => setShowAiDialog(true)} className="gap-2">
               <Sparkles className="w-4 h-4" /> AI Infill
             </Button>
@@ -258,9 +293,13 @@ export default function SchoolCalendar() {
                       {dayEvents.slice(0, 3).map(ev => (
                         <div
                           key={ev.id}
-                          className={`text-[10px] px-1 py-0.5 rounded border truncate cursor-pointer ${EVENT_COLORS[ev.eventType] ?? "bg-gray-100 text-gray-800"}`}
-                          onClick={e => { e.stopPropagation(); openEdit(ev); }}
-                          title={ev.title}
+                          className={`text-[10px] px-1 py-0.5 rounded border truncate cursor-pointer ${EVENT_COLORS[ev.eventType] ?? "bg-gray-100 text-gray-800"} flex items-center gap-0.5`}
+                          onClick={e => {
+                            e.stopPropagation();
+                            if (ev.eventType === "lesson" || ev.eventType === "ai_generated") openLessonPlanner(ev);
+                            else openEdit(ev);
+                          }}
+                          title={(ev.eventType === "lesson" || ev.eventType === "ai_generated") ? `Open in Lesson Planner: ${ev.title}` : ev.title}
                         >
                           {ev.title}
                         </div>
@@ -275,6 +314,41 @@ export default function SchoolCalendar() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Term Overview (weekly strip) */}
+        {showTermView && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Term Overview — {academicYear}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {termWeeks.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No events yet. Use AI Infill or add events to see the term overview.</p>
+              ) : (
+                <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
+                  {termWeeks.map(({ weekLabel, events: wEvents }) => (
+                    <div key={weekLabel} className="flex gap-3 items-start">
+                      <div className="w-20 shrink-0 text-xs font-mono text-muted-foreground pt-1">{weekLabel}</div>
+                      <div className="flex flex-wrap gap-1 flex-1">
+                        {wEvents.map(ev => (
+                          <div
+                            key={ev.id}
+                            className={`text-xs px-2 py-0.5 rounded border cursor-pointer flex items-center gap-1 ${EVENT_COLORS[ev.eventType] ?? "bg-gray-100 text-gray-800"}`}
+                            onClick={() => (ev.eventType === "lesson" || ev.eventType === "ai_generated") ? openLessonPlanner(ev) : openEdit(ev)}
+                            title={(ev.eventType === "lesson" || ev.eventType === "ai_generated") ? `Open in Lesson Planner: ${ev.title}` : ev.title}
+                          >
+                            {ev.title}
+                            {(ev.eventType === "lesson" || ev.eventType === "ai_generated") && <ExternalLink className="w-3 h-3 opacity-60" />}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Legend */}
         <div className="flex flex-wrap gap-2">

@@ -730,3 +730,9 @@
 - [x] SchoolCalendar.tsx page: monthly calendar grid, event CRUD (holiday/special/lesson), AI infill for empty weeks
 - [x] LessonPlanner.tsx page: full LOMLOE fields (skills, systems, competencies, saberes basicos, learning outcomes, evaluation criteria, procedure table), AI generation, print preview with format picker
 - [x] Both pages wired into teacher dropdown in NavBar.tsx and App.tsx routes
+
+## Feature: Planner follow-ups (calendar link + term grid + i18n)
+- [ ] Calendar: clicking a lesson event opens Lesson Planner pre-filled with title, date, year group
+- [ ] Calendar: add term overview weekly grid view (horizontal strip for current term)
+- [ ] i18n: add nav_school_calendar and nav_lesson_planner keys to EN/ES/CA in I18nContext.tsx
+- [ ] i18n: translate all labels in SchoolCalendar.tsx and LessonPlanner.tsx for ES and CA

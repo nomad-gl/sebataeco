@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Plus, Sparkles, Trash2, Printer, BookOpen, ChevronDown, ChevronUp, Save, FileText } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
+import { useEffect } from "react";
 
 const COMPETENCIES = ["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"];
 const YEAR_GROUPS = ["1st Primary", "2nd Primary", "3rd Primary", "4th Primary", "5th Primary", "6th Primary", "1st Secondary", "2nd Secondary", "3rd Secondary", "4th Secondary"];
@@ -189,12 +190,35 @@ function buildPrintHtml(form: LessonFormState, logoDataUrl?: string): string {
 // ─── Main Component ────────────────────────────────────────────────────────────
 export default function LessonPlanner() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [form, setForm] = useState<LessonFormState>(emptyForm());
+  const [form, setForm] = useState<LessonFormState>(() => {
+    // Pre-fill from calendar deep-link query params
+    const params = new URLSearchParams(window.location.search);
+    const title = params.get("title");
+    if (!title) return emptyForm();
+    const base = emptyForm();
+    return {
+      ...base,
+      title,
+      yearGroup: params.get("yearGroup") ?? base.yearGroup,
+      subject: params.get("subject") ?? base.subject,
+      competencies: params.get("competency") ? [params.get("competency")!] : base.competencies,
+    };
+  });
   const [showAiDialog, setShowAiDialog] = useState(false);
   const [showPrintDialog, setShowPrintDialog] = useState(false);
   const [printFormat, setPrintFormat] = useState<"a4" | "a5" | "letter">("a4");
   const [isDirty, setIsDirty] = useState(false);
   const utils = trpc.useUtils();
+
+  // Show a toast when arriving from the calendar
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("title")) {
+      toast.success("Pre-filled from calendar event");
+      // Clean URL without reloading
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   const { data: plans = [] } = trpc.planner.listLessonPlans.useQuery();
 

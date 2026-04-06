@@ -62,8 +62,8 @@ export default function NavBar() {
     { href: "/questions",     label: t("nav_questions"),     icon: BookOpen },
     { href: "/progress",      label: t("nav_group_progress"), icon: TrendingUp },
     { href: "/admin",         label: t("nav_admin"),         icon: LayoutDashboard },
-    { href: "/school-calendar", label: "School Calendar", icon: CalendarDays },
-    { href: "/lesson-planner",  label: "Lesson Planner",  icon: FileText },
+    { href: "/school-calendar", label: t("nav_school_calendar"), icon: CalendarDays },
+    { href: "/lesson-planner",  label: t("nav_lesson_planner"),  icon: FileText },
   ];
 
   const isTeacherActive = teacherItems.some(

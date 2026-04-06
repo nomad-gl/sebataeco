@@ -17,6 +17,8 @@ export const translations = {
     nav_questions: "Question Library",
     nav_group_progress: "Group Progress",
     nav_admin: "Admin",
+    nav_school_calendar: "School Calendar",
+    nav_lesson_planner: "Lesson Planner",
     nav_sign_in: "Sign In",
     nav_sign_out: "Sign Out",
 
@@ -636,6 +638,8 @@ export const translations = {
     nav_questions: "Banco de Preguntas",
     nav_group_progress: "Progreso de Grupo",
     nav_admin: "Administración",
+    nav_school_calendar: "Calendario Escolar",
+    nav_lesson_planner: "Planificador de Clases",
     nav_sign_in: "Iniciar sesión",
     nav_sign_out: "Cerrar sesión",
 
@@ -1255,6 +1259,8 @@ export const translations = {
     nav_questions: "Banc de Preguntes",
     nav_group_progress: "Progrés del Grup",
     nav_admin: "Administració",
+    nav_school_calendar: "Calendari Escolar",
+    nav_lesson_planner: "Planificador de Classes",
     nav_sign_in: "Iniciar sessió",
     nav_sign_out: "Tancar sessió",
 
