@@ -12,7 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Users, Plus, Trash2, Mail, BookOpen, Calendar, ChevronRight,
-  UserPlus, Send, Loader2, AlertCircle, GraduationCap, ClipboardList, TrendingUp, ArrowLeft
+  UserPlus, Send, Loader2, AlertCircle, GraduationCap, ClipboardList, TrendingUp, ArrowLeft,
+  Pencil, Check, X, Upload
 } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "@/contexts/I18nContext";
@@ -125,6 +126,13 @@ function StudentRoster({ group }: { group: Group }) {
   const utils = trpc.useUtils();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  // Bulk import state
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkText, setBulkText] = useState("");
+  // Inline edit state: studentId -> { name, email }
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
 
   const { data: students = [], isLoading } = trpc.groups.listStudents.useQuery({ groupId: group.id });
 
@@ -144,6 +152,49 @@ function StudentRoster({ group }: { group: Group }) {
     addMutation.mutate({ groupId: group.id, name: cleanName, email: cleanEmail });
   };
 
+  const bulkMutation = trpc.groups.bulkAddStudents.useMutation({
+    onSuccess: (data) => {
+      utils.groups.listStudents.invalidate({ groupId: group.id });
+      setBulkOpen(false);
+      setBulkText("");
+      toast.success(`${data.added} student${data.added === 1 ? "" : "s"} added.`);
+    },
+    onError: (err) => toast.error("Bulk import failed: " + err.message),
+  });
+
+  const handleBulkImport = () => {
+    const lines = bulkText.split("\n").map(l => l.trim()).filter(Boolean);
+    const parsed = lines.map(line => {
+      const commaIdx = line.indexOf(",");
+      if (commaIdx === -1) return null;
+      const n = line.slice(0, commaIdx).trim();
+      const e = line.slice(commaIdx + 1).trim();
+      if (!n || !e) return null;
+      return { name: n, email: e };
+    }).filter((x): x is { name: string; email: string } => x !== null);
+    if (parsed.length === 0) { toast.error("No valid rows found. Format: Name, Email"); return; }
+    bulkMutation.mutate({ groupId: group.id, students: parsed });
+  };
+
+  const updateMutation = trpc.groups.updateStudent.useMutation({
+    onSuccess: () => {
+      utils.groups.listStudents.invalidate({ groupId: group.id });
+      setEditingId(null);
+      toast.success("Student updated.");
+    },
+    onError: (err) => toast.error("Update failed: " + err.message),
+  });
+
+  const startEdit = (s: { id: number; name: string; email: string }) => {
+    setEditingId(s.id);
+    setEditName(s.name);
+    setEditEmail(s.email);
+  };
+
+  const saveEdit = (studentId: number) => {
+    updateMutation.mutate({ studentId, groupId: group.id, name: editName.trim() || undefined, email: editEmail.trim() || undefined });
+  };
+
   const removeMutation = trpc.groups.removeStudent.useMutation({
     onSuccess: () => {
       utils.groups.listStudents.invalidate({ groupId: group.id });
@@ -151,14 +202,31 @@ function StudentRoster({ group }: { group: Group }) {
     },
   });
 
+  // Parse preview for bulk import
+  const bulkPreview = bulkText.split("\n").map(l => l.trim()).filter(Boolean).map(line => {
+    const ci = line.indexOf(",");
+    if (ci === -1) return { name: line, email: "", valid: false };
+    return { name: line.slice(0, ci).trim(), email: line.slice(ci + 1).trim(), valid: true };
+  });
+
   return (
     <div className="space-y-5">
       {/* Add student form */}
       <Card className="bg-white/5 border-white/10">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm text-white/70 flex items-center gap-2">
-            <UserPlus className="w-4 h-4" /> {t("groups_add_student")}
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm text-white/70 flex items-center gap-2">
+              <UserPlus className="w-4 h-4" /> {t("groups_add_student")}
+            </CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setBulkOpen(true)}
+              className="text-blue-300 hover:text-blue-200 hover:bg-blue-500/10 h-7 px-2 text-xs gap-1.5"
+            >
+              <Upload className="w-3.5 h-3.5" /> Paste a list
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-3">
@@ -188,6 +256,43 @@ function StudentRoster({ group }: { group: Group }) {
         </CardContent>
       </Card>
 
+      {/* Bulk import dialog */}
+      <Dialog open={bulkOpen} onOpenChange={(o) => { if (!o) { setBulkOpen(false); setBulkText(""); } }}>
+        <DialogContent className="bg-gray-900 border-white/10 text-white max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="w-5 h-5 text-blue-400" /> Paste student list
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-white/60">One student per line, format: <span className="font-mono text-white/80">Name, Email</span></p>
+            <Textarea
+              value={bulkText}
+              onChange={(e) => setBulkText(e.target.value)}
+              placeholder={"Alice Smith, alice@school.edu\nBob Jones, bob@school.edu"}
+              rows={8}
+              className="bg-white/5 border-white/10 text-white placeholder:text-white/30 font-mono text-sm"
+            />
+            {bulkPreview.length > 0 && (
+              <div className="text-xs text-white/50">
+                {bulkPreview.filter(r => r.valid).length} valid / {bulkPreview.filter(r => !r.valid).length} invalid rows
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setBulkOpen(false); setBulkText(""); }} className="text-white/60 hover:text-white">Cancel</Button>
+            <Button
+              onClick={handleBulkImport}
+              disabled={bulkPreview.filter(r => r.valid).length === 0 || bulkMutation.isPending}
+              className="bg-blue-600 hover:bg-blue-500 text-white"
+            >
+              {bulkMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+              Add {bulkPreview.filter(r => r.valid).length} student{bulkPreview.filter(r => r.valid).length === 1 ? "" : "s"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Roster table */}
       {isLoading ? (
         <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-white/40" /></div>
@@ -211,30 +316,77 @@ function StudentRoster({ group }: { group: Group }) {
               {students.map((s) => (
                 <tr key={s.id} className="text-white hover:bg-white/5 transition-colors">
                   <td className="px-4 py-3 font-mono text-white/50">{s.studentNumber}</td>
-                  <td className="px-4 py-3 font-medium">{s.name}</td>
-                  <td className="px-4 py-3 text-white/60 hidden sm:table-cell">{s.email}</td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Link href={`/groups/${group.id}/student/${s.id}`}>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-teal-400 hover:text-teal-300 hover:bg-teal-400/10 h-7 px-2 text-xs"
-                        >
-                          <TrendingUp className="w-3 h-3 mr-1" /> {t("gp_view_student")}
-                        </Button>
-                      </Link>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeMutation.mutate({ studentId: s.id, groupId: group.id })}
-                        disabled={removeMutation.isPending}
-                        className="text-red-400 hover:text-red-300 hover:bg-red-400/10 h-7 w-7 p-0"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  </td>
+                  {editingId === s.id ? (
+                    <>
+                      <td className="px-2 py-2">
+                        <Input
+                          value={editName}
+                          onChange={e => setEditName(e.target.value)}
+                          className="bg-white/10 border-white/20 text-white h-7 text-sm"
+                        />
+                      </td>
+                      <td className="px-2 py-2 hidden sm:table-cell">
+                        <Input
+                          value={editEmail}
+                          onChange={e => setEditEmail(e.target.value)}
+                          className="bg-white/10 border-white/20 text-white h-7 text-sm"
+                        />
+                      </td>
+                      <td className="px-2 py-2 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost" size="sm"
+                            onClick={() => saveEdit(s.id)}
+                            disabled={updateMutation.isPending}
+                            className="text-green-400 hover:text-green-300 hover:bg-green-400/10 h-7 w-7 p-0"
+                          >
+                            {updateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                          </Button>
+                          <Button
+                            variant="ghost" size="sm"
+                            onClick={() => setEditingId(null)}
+                            className="text-white/40 hover:text-white/70 hover:bg-white/10 h-7 w-7 p-0"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="px-4 py-3 font-medium">{s.name}</td>
+                      <td className="px-4 py-3 text-white/60 hidden sm:table-cell">{s.email}</td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Link href={`/groups/${group.id}/student/${s.id}`}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-teal-400 hover:text-teal-300 hover:bg-teal-400/10 h-7 px-2 text-xs"
+                            >
+                              <TrendingUp className="w-3 h-3 mr-1" /> {t("gp_view_student")}
+                            </Button>
+                          </Link>
+                          <Button
+                            variant="ghost" size="sm"
+                            onClick={() => startEdit(s)}
+                            className="text-blue-400 hover:text-blue-300 hover:bg-blue-400/10 h-7 w-7 p-0"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeMutation.mutate({ studentId: s.id, groupId: group.id })}
+                            disabled={removeMutation.isPending}
+                            className="text-red-400 hover:text-red-300 hover:bg-red-400/10 h-7 w-7 p-0"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </td>
+                    </>
+                  )}
                 </tr>
               ))}
             </tbody>

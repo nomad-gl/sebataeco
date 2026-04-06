@@ -147,6 +147,75 @@ export const groupsRouter = router({
       return { id: (result as any).insertId as number, studentNumber: nextNumber };
     }),
 
+  /** Update a student's name and/or email */
+  updateStudent: protectedProcedure
+    .input(
+      z.object({
+        studentId: z.number(),
+        groupId: z.number(),
+        name: z.string().min(1).max(128).optional(),
+        email: z.string().max(320).optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const [group] = await db
+        .select()
+        .from(classGroups)
+        .where(and(eq(classGroups.id, input.groupId), eq(classGroups.userId, ctx.user.id)));
+      if (!group) throw new Error("Group not found");
+      const updates: Record<string, unknown> = {};
+      if (input.name) updates.name = input.name.trim();
+      if (input.email) updates.email = input.email.trim();
+      if (Object.keys(updates).length === 0) return { success: true };
+      await db
+        .update(groupStudents)
+        .set(updates)
+        .where(and(eq(groupStudents.id, input.studentId), eq(groupStudents.groupId, input.groupId)));
+      return { success: true };
+    }),
+
+  /** Bulk-add multiple students to a group */
+  bulkAddStudents: protectedProcedure
+    .input(
+      z.object({
+        groupId: z.number(),
+        students: z.array(
+          z.object({
+            name: z.string().min(1).max(128),
+            email: z.string().max(320),
+          })
+        ).min(1).max(200),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const [group] = await db
+        .select()
+        .from(classGroups)
+        .where(and(eq(classGroups.id, input.groupId), eq(classGroups.userId, ctx.user.id)));
+      if (!group) throw new Error("Group not found");
+
+      // Get the current max studentNumber
+      const existing = await db
+        .select()
+        .from(groupStudents)
+        .where(eq(groupStudents.groupId, input.groupId))
+        .orderBy(desc(groupStudents.studentNumber));
+      let nextNumber = existing.length > 0 ? existing[0].studentNumber + 1 : 1;
+
+      const rows = input.students.map((s) => ({
+        groupId: input.groupId,
+        studentNumber: nextNumber++,
+        name: s.name.trim(),
+        email: s.email.trim(),
+      }));
+      await db.insert(groupStudents).values(rows);
+      return { added: rows.length };
+    }),
+
   /** Remove a student from a group */
   removeStudent: protectedProcedure
     .input(z.object({ studentId: z.number(), groupId: z.number() }))

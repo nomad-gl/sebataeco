@@ -684,3 +684,9 @@
 ## Bug: My Classes - can only add 1 student
 - [x] Diagnose why only one student can be added to a class
 - [x] Fix so multiple students can be added
+
+## Feature: My Classes - bulk import + inline edit
+- [x] Bulk-import: "Paste a list" button opens dialog accepting Name, Email per line
+- [x] Bulk-import: parse lines, validate, insert all students in one server call
+- [x] Inline edit: edit icon on each student row opens inline name/email fields
+- [x] Inline edit: save via updateStudent tRPC mutation, cancel restores original values
