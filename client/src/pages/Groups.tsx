@@ -64,7 +64,7 @@ function CreateGroupDialog({
   });
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
       <DialogContent className="bg-gray-900 border-white/10 text-white max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -134,8 +134,15 @@ function StudentRoster({ group }: { group: Group }) {
       setName(""); setEmail("");
       toast.success(t("groups_student_added"));
     },
-    onError: () => toast.error(t("groups_student_add_failed")),
+    onError: (err) => toast.error(t("groups_student_add_failed") + ": " + err.message),
   });
+
+  const handleAdd = () => {
+    const cleanName = name.trim();
+    const cleanEmail = email.trim();
+    if (!cleanName || !cleanEmail) return;
+    addMutation.mutate({ groupId: group.id, name: cleanName, email: cleanEmail });
+  };
 
   const removeMutation = trpc.groups.removeStudent.useMutation({
     onSuccess: () => {
@@ -165,11 +172,12 @@ function StudentRoster({ group }: { group: Group }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder={t("groups_student_email")}
-              type="email"
+              type="text"
+              autoComplete="email"
               className="bg-white/5 border-white/10 text-white placeholder:text-white/30 flex-1"
             />
             <Button
-              onClick={() => addMutation.mutate({ groupId: group.id, name, email })}
+              onClick={handleAdd}
               disabled={!name.trim() || !email.trim() || addMutation.isPending}
               className="bg-blue-600 hover:bg-blue-500 text-white shrink-0"
             >

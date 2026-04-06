@@ -680,3 +680,7 @@
 ## Change: Rename 'Junior' to 'Primary' on learning descriptors
 - [x] Find all occurrences of 'junior'/'Junior' in learning descriptor files, shared constants, and UI
 - [x] Replace with 'primary'/'Primary' preserving case
+
+## Bug: My Classes - can only add 1 student
+- [x] Diagnose why only one student can be added to a class
+- [x] Fix so multiple students can be added
