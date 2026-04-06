@@ -703,3 +703,7 @@
 
 ## Feature: My Classes - student search box
 - [x] Add search input above the student roster table to filter by name or email
+
+## Bug: Log a Score Manually - cannot log multiple competencies
+- [x] Diagnose why only one competency can be logged at a time
+- [x] Fix so multiple competencies can be logged in a single submission

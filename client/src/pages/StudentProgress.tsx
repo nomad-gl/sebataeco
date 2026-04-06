@@ -18,7 +18,7 @@ import {
 } from "recharts";
 import {
   ArrowLeft, User, TrendingUp, BookOpen, FileText,
-  CheckCircle2, Circle, Loader2, Sparkles, Trophy, Star, Download,
+  CheckCircle2, Circle, Loader2, Sparkles, Trophy, Star, Download, X, Plus,
 } from "lucide-react";
 import NavBar from "@/components/NavBar";
 import { Streamdown } from "streamdown";
@@ -361,13 +361,13 @@ export default function StudentProgress() {
               </CardHeader>
               <CardContent>
                 <ManualScoreEntry
-                  onSubmit={(competency, score, activityTitle) =>
+                  onSubmit={(rows, activityTitle) =>
                     logScore.mutate({
                       groupId: gId,
                       studentId: sId,
                       activityType: "practice",
                       activityTitle,
-                      scores: [{ competency, score }],
+                      scores: rows,
                     })
                   }
                   loading={logScore.isPending}
@@ -616,46 +616,44 @@ export default function StudentProgress() {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
+const ALL_COMPETENCIES = ["CCL","CP","STEM","CD","CPSAA","CC","CE","CCEC"];
+
 function ManualScoreEntry({
   onSubmit,
   loading,
   t,
 }: {
-  onSubmit: (competency: string, score: number, title: string) => void;
+  onSubmit: (rows: { competency: string; score: number }[], title: string) => void;
   loading: boolean;
   t: (k: import("@/contexts/I18nContext").TranslationKey) => string;
 }) {
-  const [comp, setComp] = useState("CCL");
-  const [score, setScore] = useState("75");
+  const [rows, setRows] = useState([{ competency: "CCL", score: "75" }]);
   const [title, setTitle] = useState("");
 
+  const addRow = () => {
+    // Pick first competency not already in the list, or default to CCL
+    const used = new Set(rows.map((r) => r.competency));
+    const next = ALL_COMPETENCIES.find((c) => !used.has(c)) ?? "CCL";
+    setRows((prev) => [...prev, { competency: next, score: "75" }]);
+  };
+
+  const removeRow = (idx: number) => setRows((prev) => prev.filter((_, i) => i !== idx));
+
+  const updateRow = (idx: number, field: "competency" | "score", value: string) =>
+    setRows((prev) => prev.map((r, i) => (i === idx ? { ...r, [field]: value } : r)));
+
+  const handleSubmit = () => {
+    const parsed = rows.map((r) => ({ competency: r.competency, score: parseInt(r.score) || 0 }));
+    onSubmit(parsed, title);
+    // Reset after submit
+    setRows([{ competency: "CCL", score: "75" }]);
+    setTitle("");
+  };
+
   return (
-    <div className="flex flex-wrap gap-3 items-end">
+    <div className="space-y-3">
+      {/* Activity title */}
       <div className="space-y-1">
-        <Label className="text-white/70 text-xs">{t("sp_competency")}</Label>
-        <Select value={comp} onValueChange={setComp}>
-          <SelectTrigger className="bg-white/10 border-white/20 text-white w-32">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {["CCL","CP","STEM","CD","CPSAA","CC","CE","CCEC"].map((c) => (
-              <SelectItem key={c} value={c}>{c}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-1">
-        <Label className="text-white/70 text-xs">{t("sp_score_0_100")}</Label>
-        <Input
-          type="number"
-          min={0}
-          max={100}
-          value={score}
-          onChange={(e) => setScore(e.target.value)}
-          className="bg-white/10 border-white/20 text-white w-24"
-        />
-      </div>
-      <div className="space-y-1 flex-1 min-w-[160px]">
         <Label className="text-white/70 text-xs">{t("sp_activity_title_label")}</Label>
         <Input
           value={title}
@@ -664,13 +662,69 @@ function ManualScoreEntry({
           className="bg-white/10 border-white/20 text-white placeholder:text-white/30"
         />
       </div>
-      <Button
-        onClick={() => onSubmit(comp, parseInt(score) || 0, title)}
-        disabled={loading}
-        className="bg-teal-600 hover:bg-teal-500 text-white"
-      >
-        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : t("sp_log_score")}
-      </Button>
+
+      {/* Competency rows */}
+      <div className="space-y-2">
+        {rows.map((row, idx) => (
+          <div key={idx} className="flex flex-wrap gap-2 items-end">
+            <div className="space-y-1">
+              {idx === 0 && <Label className="text-white/70 text-xs">{t("sp_competency")}</Label>}
+              <Select value={row.competency} onValueChange={(v) => updateRow(idx, "competency", v)}>
+                <SelectTrigger className="bg-white/10 border-white/20 text-white w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ALL_COMPETENCIES.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              {idx === 0 && <Label className="text-white/70 text-xs">{t("sp_score_0_100")}</Label>}
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                value={row.score}
+                onChange={(e) => updateRow(idx, "score", e.target.value)}
+                className="bg-white/10 border-white/20 text-white w-24"
+              />
+            </div>
+            {rows.length > 1 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => removeRow(idx)}
+                className="text-red-400 hover:text-red-300 hover:bg-red-400/10 h-9 w-9 p-0 self-end"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Add competency + Submit */}
+      <div className="flex gap-2 pt-1">
+        {rows.length < ALL_COMPETENCIES.length && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={addRow}
+            className="text-teal-400 hover:text-teal-300 hover:bg-teal-400/10 text-xs"
+          >
+            <Plus className="w-3.5 h-3.5 mr-1" /> Add competency
+          </Button>
+        )}
+        <Button
+          onClick={handleSubmit}
+          disabled={loading || !title.trim()}
+          className="bg-teal-600 hover:bg-teal-500 text-white ml-auto"
+        >
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : t("sp_log_score")}
+        </Button>
+      </div>
     </div>
   );
 }
