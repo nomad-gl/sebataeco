@@ -723,3 +723,10 @@
 - [x] Inject logo top-right of the print header in both Class Report and Student Report print pages
 - [x] Render competency scores as an inline SVG bar chart in the print HTML (no external libraries)
 - [x] Include chart in both Class Report and Student Report print output
+
+## Feature: School Calendar Planner + Lesson Planner
+- [x] school_calendar_events and lesson_plans tables added to schema and migrated
+- [x] plannerRouter with listCalendarEvents, createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, aiInfillCalendar, listLessonPlans, getLessonPlan, saveLessonPlan, deleteLessonPlan, aiGenerateLessonPlan procedures
+- [x] SchoolCalendar.tsx page: monthly calendar grid, event CRUD (holiday/special/lesson), AI infill for empty weeks
+- [x] LessonPlanner.tsx page: full LOMLOE fields (skills, systems, competencies, saberes basicos, learning outcomes, evaluation criteria, procedure table), AI generation, print preview with format picker
+- [x] Both pages wired into teacher dropdown in NavBar.tsx and App.tsx routes

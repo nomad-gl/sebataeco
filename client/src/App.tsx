@@ -22,6 +22,8 @@ import StudentProgress from "./pages/StudentProgress";
 import GroupProgress from "./pages/GroupProgress";
 import CompetencyDetail from "./pages/CompetencyDetail";
 import Forum from "./pages/Forum";
+import SchoolCalendar from "./pages/SchoolCalendar";
+import LessonPlanner from "./pages/LessonPlanner";
 import PwaInstallBanner from "./components/PwaInstallBanner";
 import UpdateBanner from "./components/UpdateBanner";
 import FirstLaunchLanguagePicker from "./components/FirstLaunchLanguagePicker";
@@ -47,6 +49,8 @@ function Router() {
         <Route path="/groups/:groupId/student/:studentId" component={StudentProgress} />
         <Route path="/competency/:code" component={CompetencyDetail} />
         <Route path="/forum" component={Forum} />
+        <Route path="/school-calendar" component={SchoolCalendar} />
+        <Route path="/lesson-planner" component={LessonPlanner} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

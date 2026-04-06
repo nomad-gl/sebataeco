@@ -440,3 +440,79 @@ export const generatedQuestions = mysqlTable("generated_questions", {
 
 export type GeneratedQuestion = typeof generatedQuestions.$inferSelect;
 export type InsertGeneratedQuestion = typeof generatedQuestions.$inferInsert;
+
+/**
+ * School calendar events — holidays, special days, and teacher-defined events
+ * mapped across a full academic year.
+ */
+export const schoolCalendarEvents = mysqlTable("school_calendar_events", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  /** Academic year label e.g. '2025-2026' */
+  academicYear: varchar("academicYear", { length: 16 }).notNull(),
+  /** Event date (stored as UTC midnight) */
+  eventDate: timestamp("eventDate").notNull(),
+  /** 'holiday' | 'special' | 'exam' | 'excursion' | 'event' | 'lesson' */
+  eventType: mysqlEnum("eventType", ["holiday", "special", "exam", "excursion", "event", "lesson", "ai_generated"]).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  /** LOMLOE competency code if this event is a lesson/activity */
+  competency: varchar("competency", { length: 16 }),
+  /** Year group this event applies to */
+  yearGroup: varchar("yearGroup", { length: 16 }),
+  /** Subject area */
+  subject: varchar("subject", { length: 128 }),
+  /** Whether this was AI-generated as infill */
+  aiGenerated: boolean("aiGenerated").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type SchoolCalendarEvent = typeof schoolCalendarEvents.$inferSelect;
+export type InsertSchoolCalendarEvent = typeof schoolCalendarEvents.$inferInsert;
+
+/**
+ * Lesson plans — full LOMLOE-compliant lesson plans created by teachers.
+ */
+export const lessonPlans = mysqlTable("lesson_plans", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  /** Unit name/number */
+  unit: varchar("unit", { length: 128 }),
+  lessonNumber: varchar("lessonNumber", { length: 16 }),
+  academicYear: varchar("academicYear", { length: 16 }),
+  /** Duration in minutes */
+  duration: int("duration"),
+  title: varchar("title", { length: 255 }).notNull(),
+  /** Year group / course e.g. '4th Primary' */
+  yearGroup: varchar("yearGroup", { length: 64 }),
+  subject: varchar("subject", { length: 128 }),
+  /** JSON: { listening, speaking, reading, writing } booleans */
+  skills: text("skills"),
+  /** JSON: { grammar, phonology, lexis, function, discourse } booleans */
+  systems: text("systems"),
+  /** JSON array of specific competence codes */
+  specificCompetences: text("specificCompetences"),
+  /** JSON array of saberes básicos */
+  saberesBasicos: text("saberesBasicos"),
+  /** JSON array of learning outcome strings */
+  learningOutcomes: text("learningOutcomes"),
+  /** JSON array of evaluation criteria strings */
+  evaluationCriteria: text("evaluationCriteria"),
+  previousKnowledge: text("previousKnowledge"),
+  materials: text("materials"),
+  spaces: text("spaces"),
+  /** JSON array of procedure steps: { timing, stage, activities, grouping } */
+  procedures: text("procedures"),
+  /** JSON array of LOMLOE competency codes covered */
+  competencies: text("competencies"),
+  /** Whether this plan was AI-generated */
+  aiGenerated: boolean("aiGenerated").default(false).notNull(),
+  /** Calendar event this lesson plan is linked to (optional) */
+  calendarEventId: int("calendarEventId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type LessonPlan = typeof lessonPlans.$inferSelect;
+export type InsertLessonPlan = typeof lessonPlans.$inferInsert;
