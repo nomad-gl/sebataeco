@@ -700,3 +700,6 @@
 - [x] Derive last-active date from challenge log or score entries per student
 - [x] Return lastActive timestamp in listStudents server procedure
 - [x] Display last-active date in the student roster table
+
+## Feature: My Classes - student search box
+- [x] Add search input above the student roster table to filter by name or email

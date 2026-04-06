@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Users, Plus, Trash2, Mail, BookOpen, Calendar, ChevronRight,
   UserPlus, Send, Loader2, AlertCircle, GraduationCap, ClipboardList, TrendingUp, ArrowLeft,
-  Pencil, Check, X, Upload
+  Pencil, Check, X, Upload, Search
 } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "@/contexts/I18nContext";
@@ -135,6 +135,8 @@ function StudentRoster({ group }: { group: Group }) {
   const [editEmail, setEditEmail] = useState("");
   // Sort state
   const [sortAsc, setSortAsc] = useState(true);
+  // Search state
+  const [search, setSearch] = useState("");
 
   const { data: students = [], isLoading } = trpc.groups.listStudents.useQuery({ groupId: group.id });
 
@@ -204,8 +206,13 @@ function StudentRoster({ group }: { group: Group }) {
     },
   });
 
-  // Sorted students
-  const sortedStudents = [...students].sort((a, b) =>
+  // Filtered + sorted students
+  const filteredStudents = students.filter((s) => {
+    if (!search.trim()) return true;
+    const q = search.trim().toLowerCase();
+    return s.name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q);
+  });
+  const sortedStudents = [...filteredStudents].sort((a, b) =>
     sortAsc ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
   );
 
@@ -313,6 +320,27 @@ function StudentRoster({ group }: { group: Group }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Search box */}
+      {!isLoading && students.length > 0 && (
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name or email…"
+            className="pl-9 bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-blue-500/50"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Roster table */}
       {isLoading ? (
