@@ -346,6 +346,83 @@ export const groupsRouter = router({
       }));
     }),
 
+  /** Class summary: per-student grades per activity + competency coverage */
+  getClassSummary: protectedProcedure
+    .input(z.object({ groupId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) return { students: [], activities: [] };
+
+      // Verify ownership
+      const [group] = await db
+        .select()
+        .from(classGroups)
+        .where(and(eq(classGroups.id, input.groupId), eq(classGroups.userId, ctx.user.id)));
+      if (!group) throw new Error("Group not found");
+
+      // Fetch all students in the group
+      const students = await db
+        .select({ id: groupStudents.id, name: groupStudents.name })
+        .from(groupStudents)
+        .where(eq(groupStudents.groupId, input.groupId))
+        .orderBy(groupStudents.studentNumber);
+
+      if (!students.length) return { students: [], activities: [] };
+
+      const studentIds = students.map((s) => s.id);
+
+      // Fetch all progress rows for these students in this group
+      const progressRows = await db
+        .select()
+        .from(studentProgress)
+        .where(
+          and(
+            eq(studentProgress.groupId, input.groupId),
+            inArray(studentProgress.studentId, studentIds)
+          )
+        )
+        .orderBy(studentProgress.recordedAt);
+
+      // Collect unique activity titles (each distinct activityTitle = one assessment column)
+      const activitySet = new Map<string, { title: string; type: string }>();
+      for (const row of progressRows) {
+        const key = row.activityTitle ?? "Untitled";
+        if (!activitySet.has(key)) {
+          activitySet.set(key, { title: key, type: row.activityType });
+        }
+      }
+      const activities = Array.from(activitySet.values());
+
+      // Build per-student summary
+      const studentSummaries = students.map((student) => {
+        const myRows = progressRows.filter((r) => r.studentId === student.id);
+
+        // Per-activity: average score across all competencies in that activity
+        const activityScores: Record<string, number | null> = {};
+        for (const act of activities) {
+          const actRows = myRows.filter((r) => (r.activityTitle ?? "Untitled") === act.title);
+          if (actRows.length === 0) {
+            activityScores[act.title] = null;
+          } else {
+            const avg = Math.round(actRows.reduce((sum, r) => sum + r.score, 0) / actRows.length);
+            activityScores[act.title] = avg;
+          }
+        }
+
+        // All unique competencies covered across all activities
+        const competencies = Array.from(new Set(myRows.map((r) => r.competency))).sort();
+
+        return {
+          studentId: student.id,
+          studentName: student.name,
+          activityScores,
+          competencies,
+        };
+      });
+
+      return { students: studentSummaries, activities };
+    }),
+
   /** Log a challenge run against a group */
   logChallenge: protectedProcedure
     .input(

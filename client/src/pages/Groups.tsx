@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Users, Plus, Trash2, Mail, BookOpen, Calendar, ChevronRight,
   UserPlus, Send, Loader2, AlertCircle, GraduationCap, ClipboardList, TrendingUp, ArrowLeft,
-  Pencil, Check, X, Upload, Search
+  Pencil, Check, X, Upload, Search, BarChart2
 } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "@/contexts/I18nContext";
@@ -808,9 +808,12 @@ export default function Groups() {
 
                 {/* Tabs */}
                 <Tabs defaultValue="students">
-                  <TabsList className="bg-white/5 border border-white/10 w-full sm:w-auto">
+                  <TabsList className="bg-white/5 border border-white/10 w-full sm:w-auto flex-wrap">
                     <TabsTrigger value="students" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-white/60 flex items-center gap-1.5">
                       <Users className="w-3.5 h-3.5" /> {t("groups_tab_students")}
+                    </TabsTrigger>
+                    <TabsTrigger value="summary" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-white/60 flex items-center gap-1.5">
+                      <BarChart2 className="w-3.5 h-3.5" /> Summary
                     </TabsTrigger>
                     <TabsTrigger value="messages" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-white/60 flex items-center gap-1.5">
                       <Mail className="w-3.5 h-3.5" /> {t("groups_tab_messages")}
@@ -822,6 +825,9 @@ export default function Groups() {
 
                   <TabsContent value="students" className="mt-4">
                     <StudentRoster group={selectedGroup} />
+                  </TabsContent>
+                  <TabsContent value="summary" className="mt-4">
+                    <ClassSummaryTab group={selectedGroup} />
                   </TabsContent>
                   <TabsContent value="messages" className="mt-4">
                     <SendMessageTab group={selectedGroup} />
@@ -841,6 +847,109 @@ export default function Groups() {
         onClose={() => setShowCreate(false)}
         onCreated={() => utils.groups.list.invalidate()}
       />
+    </div>
+  );
+}
+
+// ── Class Summary Tab ────────────────────────────────────────────────────────
+function ClassSummaryTab({ group }: { group: Group }) {
+  const summaryQ = trpc.groups.getClassSummary.useQuery({ groupId: group.id });
+
+  if (summaryQ.isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12 text-white/50">
+        <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading summary…
+      </div>
+    );
+  }
+
+  const { students, activities } = summaryQ.data ?? { students: [], activities: [] };
+
+  if (!students.length) {
+    return (
+      <div className="text-center py-12 text-white/40">
+        <BarChart2 className="w-10 h-10 mx-auto mb-3 opacity-40" />
+        <p className="text-sm">No students or assessment data yet.</p>
+        <p className="text-xs mt-1">Add students and log scores to see the summary.</p>
+      </div>
+    );
+  }
+
+  // Helper: colour a score badge
+  function scoreBadge(score: number | null) {
+    if (score === null) return <span className="text-white/25 text-xs">—</span>;
+    const colour =
+      score >= 90 ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" :
+      score >= 70 ? "bg-blue-500/20 text-blue-300 border-blue-500/30" :
+      score >= 50 ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/30" :
+                   "bg-red-500/20 text-red-300 border-red-500/30";
+    return (
+      <span className={`inline-block px-2 py-0.5 rounded border text-xs font-medium ${colour}`}>
+        {score}%
+      </span>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-white/50 text-xs">
+        Average score per assessment. Competencies column shows all LOMLOE competencies covered across every logged activity.
+      </p>
+
+      {/* Horizontally scrollable table */}
+      <div className="overflow-x-auto rounded-lg border border-white/10">
+        <table className="w-full text-sm text-white min-w-max">
+          <thead>
+            <tr className="bg-white/5 border-b border-white/10">
+              <th className="text-left px-4 py-2.5 font-medium text-white/70 sticky left-0 bg-gray-900/80 backdrop-blur-sm min-w-[140px]">
+                Student
+              </th>
+              {activities.map((act) => (
+                <th key={act.title} className="text-center px-3 py-2.5 font-medium text-white/70 max-w-[120px]">
+                  <div className="truncate max-w-[110px]" title={act.title}>{act.title}</div>
+                  <div className="text-white/30 text-xs font-normal capitalize">{act.type}</div>
+                </th>
+              ))}
+              <th className="text-left px-4 py-2.5 font-medium text-white/70 min-w-[180px]">
+                Competencies Covered
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {students.map((student, idx) => (
+              <tr
+                key={student.studentId}
+                className={`border-b border-white/5 hover:bg-white/5 transition-colors ${idx % 2 === 0 ? "" : "bg-white/[0.02]"}`}
+              >
+                <td className="px-4 py-3 font-medium sticky left-0 bg-gray-900/80 backdrop-blur-sm">
+                  {student.studentName}
+                </td>
+                {activities.map((act) => (
+                  <td key={act.title} className="px-3 py-3 text-center">
+                    {scoreBadge(student.activityScores[act.title] ?? null)}
+                  </td>
+                ))}
+                <td className="px-4 py-3">
+                  {student.competencies.length === 0 ? (
+                    <span className="text-white/25 text-xs">None yet</span>
+                  ) : (
+                    <div className="flex flex-wrap gap-1">
+                      {student.competencies.map((c) => (
+                        <span
+                          key={c}
+                          className={`inline-block px-1.5 py-0.5 rounded border text-xs font-medium ${COMP_COLORS[c] ?? "bg-white/10 text-white/60 border-white/20"}`}
+                        >
+                          {c}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

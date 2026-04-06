@@ -707,3 +707,8 @@
 ## Bug: Log a Score Manually - cannot log multiple competencies
 - [x] Diagnose why only one competency can be logged at a time
 - [x] Fix so multiple competencies can be logged in a single submission
+
+## Feature: My Classes - class summary panel
+- [x] Add server procedure groups.getClassSummary returning per-student assessment grades and competency coverage
+- [x] Add class summary tab/panel in Groups.tsx showing a table of students × assessments with grades
+- [x] Show a competency coverage column listing all competencies each student has been assessed on
