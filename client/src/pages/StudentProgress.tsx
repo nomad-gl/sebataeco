@@ -18,7 +18,7 @@ import {
 } from "recharts";
 import {
   ArrowLeft, User, TrendingUp, BookOpen, FileText,
-  CheckCircle2, Circle, Loader2, Sparkles, Trophy, Star, Download, X, Plus,
+  CheckCircle2, Circle, Loader2, Sparkles, Trophy, Star, Download, X, Plus, ImagePlus, X as XIcon,
 } from "lucide-react";
 import NavBar from "@/components/NavBar";
 import { Streamdown } from "streamdown";
@@ -61,6 +61,9 @@ export default function StudentProgress() {
   const [generating, setGenerating] = useState(false);
   const [reportText, setReportText] = useState<string | null>(null);
   const [reportGrade, setReportGrade] = useState<string | null>(null);
+  const [schoolLogo, setSchoolLogo] = useState<string | null>(
+    () => localStorage.getItem("seba_school_logo")
+  );
 
   // Assignment creation state
   const [newTitle, setNewTitle] = useState("");
@@ -577,6 +580,39 @@ export default function StudentProgress() {
                     <div className="prose prose-invert prose-sm max-w-none bg-white/5 rounded-lg p-4 border border-white/10">
                       <Streamdown>{reportText}</Streamdown>
                     </div>
+                    {/* School logo upload strip */}
+                    <div className="flex items-center gap-2 p-3 bg-white/5 rounded-lg border border-white/10">
+                      <ImagePlus className="w-4 h-4 text-white/50 flex-shrink-0" />
+                      <span className="text-white/60 text-xs flex-1">
+                        {schoolLogo ? "School logo attached" : "Add school logo to print header (optional)"}
+                      </span>
+                      {schoolLogo && (
+                        <>
+                          <img src={schoolLogo} alt="logo" className="h-7 w-auto rounded" />
+                          <button
+                            className="text-white/40 hover:text-red-400 transition-colors"
+                            onClick={() => { setSchoolLogo(null); localStorage.removeItem("seba_school_logo"); }}
+                          ><XIcon className="w-4 h-4" /></button>
+                        </>
+                      )}
+                      <label className="cursor-pointer">
+                        <span className="text-xs text-teal-400 hover:text-teal-300 underline">
+                          {schoolLogo ? "Change" : "Upload"}
+                        </span>
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const reader = new FileReader();
+                          reader.onload = () => {
+                            const b64 = reader.result as string;
+                            setSchoolLogo(b64);
+                            localStorage.setItem("seba_school_logo", b64);
+                          };
+                          reader.readAsDataURL(file);
+                          e.target.value = "";
+                        }} />
+                      </label>
+                    </div>
                     <Button
                       variant="outline"
                       className="w-full border-white/20 text-white hover:bg-white/10 bg-transparent gap-2"
@@ -586,8 +622,30 @@ export default function StudentProgress() {
                         const grade = reportGrade ?? "N/A";
                         const overall = summaryQ.data?.overall ?? null;
                         const date = new Date().toLocaleDateString();
-                        const scores = (summaryQ.data?.competencyAverages ?? []);
-                        const scoresHtml = scores.length
+                        const logo = schoolLogo;
+                        const scores = (summaryQ.data?.competencyAverages ?? []).filter(c => c.average !== null);
+                        // Build SVG bar chart
+                        const chartSvg = scores.length ? (() => {
+                          const W = 520, H = 160, padL = 48, padB = 32, padT = 10, padR = 10;
+                          const innerW = W - padL - padR;
+                          const innerH = H - padT - padB;
+                          const barW = Math.floor(innerW / scores.length) - 6;
+                          const bars = scores.map((c, i) => {
+                            const x = padL + i * (innerW / scores.length) + 3;
+                            const barH = Math.round(((c.average ?? 0) / 100) * innerH);
+                            const y = padT + innerH - barH;
+                            const color = COMP_COLORS[i % COMP_COLORS.length];
+                            return `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" fill="${color}" rx="2"/>
+<text x="${x + barW / 2}" y="${y - 3}" text-anchor="middle" font-size="9" fill="#333">${c.average}</text>
+<text x="${x + barW / 2}" y="${H - 6}" text-anchor="middle" font-size="9" fill="#555">${c.code}</text>`;
+                          }).join("");
+                          return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" style="display:block;margin:12px 0">
+<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + innerH}" stroke="#ccc" stroke-width="1"/>
+<line x1="${padL}" y1="${padT + innerH}" x2="${W - padR}" y2="${padT + innerH}" stroke="#ccc" stroke-width="1"/>
+${bars}
+</svg>`;
+                        })() : "";
+                        const scoresTableHtml = scores.length
                           ? `<table><thead><tr><th>Competency</th><th>Average Score</th></tr></thead><tbody>${
                               scores.map((c) => `<tr><td>${c.code} — ${c.name}</td><td>${c.average !== null ? c.average + "%" : "No data"}</td></tr>`).join("")
                             }</tbody></table>`
@@ -604,6 +662,9 @@ export default function StudentProgress() {
                             return `<p>${line.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")}</p>`;
                           })
                           .join("");
+                        const logoHtml = logo
+                          ? `<img src="${logo}" alt="School logo" style="max-height:56px;max-width:140px;object-fit:contain;float:right;margin-left:12px" />`
+                          : "";
                         const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -612,7 +673,7 @@ export default function StudentProgress() {
   <style>
     @page { size: A4; margin: 20mm 18mm; }
     body { font-family: Georgia, serif; font-size: 12pt; color: #111; line-height: 1.6; }
-    header { border-bottom: 2px solid #1e3a5f; padding-bottom: 8px; margin-bottom: 20px; }
+    header { border-bottom: 2px solid #1e3a5f; padding-bottom: 8px; margin-bottom: 20px; overflow: hidden; }
     header h1 { font-size: 18pt; margin: 0 0 4px; color: #1e3a5f; }
     header .meta { font-size: 10pt; color: #555; }
     .grade-badge { display: inline-block; padding: 4px 12px; border-radius: 4px; font-weight: bold; font-size: 11pt; background: #1e3a5f; color: #fff; margin-bottom: 16px; }
@@ -622,18 +683,21 @@ export default function StudentProgress() {
     table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 11pt; }
     th { background: #1e3a5f; color: #fff; padding: 6px 10px; text-align: left; }
     td { border-bottom: 1px solid #ddd; padding: 5px 10px; }
+    .chart-title { font-size: 11pt; font-weight: bold; color: #1e3a5f; margin-top: 20px; margin-bottom: 4px; }
     footer { border-top: 1px solid #ccc; margin-top: 32px; padding-top: 8px; font-size: 9pt; color: #888; text-align: center; }
   </style>
 </head>
 <body>
   <header>
+    ${logoHtml}
     <h1>${studentName} — Student Progress Report</h1>
     <div class="meta">Overall Score: ${overall !== null ? overall + "%" : "N/A"} &nbsp;|&nbsp; Generated: ${date}</div>
   </header>
   <div class="grade-badge">LOMLOE Grade: ${grade}</div>
-  ${scoresHtml}
+  ${scores.length ? `<div class="chart-title">Competency Scores</div>${chartSvg}` : ""}
+  ${scoresTableHtml}
   ${bodyHtml}
-  <footer>SEBA AI Studio — LOMLOE Teaching Assistant</footer>
+  <footer>SEBA AI Studio — LOMLOE Teaching Assistant &nbsp;|&nbsp; Powered by SEBA</footer>
 </body>
 </html>`;
                         const win = window.open("", "_blank", "width=900,height=700");

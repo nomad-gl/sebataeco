@@ -13,7 +13,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
 import {
-  ArrowLeft, Users, TrendingUp, Loader2, Sparkles, Trophy, Medal, Download,
+  ArrowLeft, Users, TrendingUp, Loader2, Sparkles, Trophy, Medal, Download, ImagePlus, X as XIcon,
 } from "lucide-react";
 import NavBar from "@/components/NavBar";
 import { Streamdown } from "streamdown";
@@ -49,6 +49,9 @@ export default function GroupProgress() {
   const [generating, setGenerating] = useState(false);
   const [reportText, setReportText] = useState<string | null>(null);
   const [reportGrade, setReportGrade] = useState<string | null>(null);
+  const [schoolLogo, setSchoolLogo] = useState<string | null>(
+    () => localStorage.getItem("seba_school_logo")
+  );
 
   const utils = trpc.useUtils();
 
@@ -381,6 +384,39 @@ export default function GroupProgress() {
                     <div className="prose prose-invert prose-sm max-w-none bg-white/5 rounded-lg p-4 border border-white/10">
                       <Streamdown>{reportText}</Streamdown>
                     </div>
+                    {/* School logo upload strip */}
+                    <div className="flex items-center gap-2 p-3 bg-white/5 rounded-lg border border-white/10">
+                      <ImagePlus className="w-4 h-4 text-white/50 flex-shrink-0" />
+                      <span className="text-white/60 text-xs flex-1">
+                        {schoolLogo ? "School logo attached" : "Add school logo to print header (optional)"}
+                      </span>
+                      {schoolLogo && (
+                        <>
+                          <img src={schoolLogo} alt="logo" className="h-7 w-auto rounded" />
+                          <button
+                            className="text-white/40 hover:text-red-400 transition-colors"
+                            onClick={() => { setSchoolLogo(null); localStorage.removeItem("seba_school_logo"); }}
+                          ><XIcon className="w-4 h-4" /></button>
+                        </>
+                      )}
+                      <label className="cursor-pointer">
+                        <span className="text-xs text-teal-400 hover:text-teal-300 underline">
+                          {schoolLogo ? "Change" : "Upload"}
+                        </span>
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const reader = new FileReader();
+                          reader.onload = () => {
+                            const b64 = reader.result as string;
+                            setSchoolLogo(b64);
+                            localStorage.setItem("seba_school_logo", b64);
+                          };
+                          reader.readAsDataURL(file);
+                          e.target.value = "";
+                        }} />
+                      </label>
+                    </div>
                     <Button
                       variant="outline"
                       className="w-full border-white/20 text-white hover:bg-white/10 bg-transparent gap-2"
@@ -389,19 +425,45 @@ export default function GroupProgress() {
                         const level = group?.level ?? "";
                         const grade = reportGrade ?? "N/A";
                         const date = new Date().toLocaleDateString();
-                        // Convert markdown-ish text to simple HTML paragraphs
+                        const logo = schoolLogo;
+                        // Build SVG bar chart for competency averages
+                        const comps = classComps.filter(c => c.average !== null);
+                        const chartSvg = comps.length ? (() => {
+                          const W = 520, H = 160, padL = 48, padB = 32, padT = 10, padR = 10;
+                          const innerW = W - padL - padR;
+                          const innerH = H - padT - padB;
+                          const barW = Math.floor(innerW / comps.length) - 6;
+                          const bars = comps.map((c, i) => {
+                            const x = padL + i * (innerW / comps.length) + 3;
+                            const barH = Math.round(((c.average ?? 0) / 100) * innerH);
+                            const y = padT + innerH - barH;
+                            const color = COMP_COLORS[i % COMP_COLORS.length];
+                            return `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" fill="${color}" rx="2"/>
+<text x="${x + barW / 2}" y="${y - 3}" text-anchor="middle" font-size="9" fill="#333">${c.average}</text>
+<text x="${x + barW / 2}" y="${H - 6}" text-anchor="middle" font-size="9" fill="#555">${c.code}</text>`;
+                          }).join("");
+                          return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" style="display:block;margin:12px 0">
+<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + innerH}" stroke="#ccc" stroke-width="1"/>
+<line x1="${padL}" y1="${padT + innerH}" x2="${W - padR}" y2="${padT + innerH}" stroke="#ccc" stroke-width="1"/>
+${bars}
+</svg>`;
+                        })() : "";
+                        // Convert markdown body to HTML
                         const bodyHtml = (reportText ?? "")
                           .split("\n")
                           .map((line) => {
                             if (/^#{1,3}\s/.test(line)) {
-                              const level = line.match(/^(#{1,3})/)?.[1].length ?? 1;
-                              const tag = `h${level + 1}`;
+                              const lvl = line.match(/^(#{1,3})/)?.[1].length ?? 1;
+                              const tag = `h${lvl + 1}`;
                               return `<${tag}>${line.replace(/^#{1,3}\s/, "")}</${tag}>`;
                             }
                             if (line.trim() === "") return "<br/>";
                             return `<p>${line.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")}</p>`;
                           })
                           .join("");
+                        const logoHtml = logo
+                          ? `<img src="${logo}" alt="School logo" style="max-height:56px;max-width:140px;object-fit:contain;float:right;margin-left:12px" />`
+                          : "";
                         const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -410,24 +472,27 @@ export default function GroupProgress() {
   <style>
     @page { size: A4; margin: 20mm 18mm; }
     body { font-family: Georgia, serif; font-size: 12pt; color: #111; line-height: 1.6; }
-    header { border-bottom: 2px solid #1e3a5f; padding-bottom: 8px; margin-bottom: 20px; }
+    header { border-bottom: 2px solid #1e3a5f; padding-bottom: 8px; margin-bottom: 20px; overflow: hidden; }
     header h1 { font-size: 18pt; margin: 0 0 4px; color: #1e3a5f; }
     header .meta { font-size: 10pt; color: #555; }
     .grade-badge { display: inline-block; padding: 4px 12px; border-radius: 4px; font-weight: bold; font-size: 11pt; background: #1e3a5f; color: #fff; margin-bottom: 16px; }
     h2 { font-size: 14pt; color: #1e3a5f; margin-top: 20px; }
     h3 { font-size: 12pt; color: #1e3a5f; margin-top: 14px; }
     p { margin: 6px 0; }
+    .chart-title { font-size: 11pt; font-weight: bold; color: #1e3a5f; margin-top: 20px; margin-bottom: 4px; }
     footer { border-top: 1px solid #ccc; margin-top: 32px; padding-top: 8px; font-size: 9pt; color: #888; text-align: center; }
   </style>
 </head>
 <body>
   <header>
+    ${logoHtml}
     <h1>${className} — Class Progress Report</h1>
     <div class="meta">Level: ${level} &nbsp;|&nbsp; Generated: ${date}</div>
   </header>
   <div class="grade-badge">LOMLOE Grade: ${grade}</div>
+  ${comps.length ? `<div class="chart-title">Competency Averages</div>${chartSvg}` : ""}
   ${bodyHtml}
-  <footer>SEBA AI Studio — LOMLOE Teaching Assistant</footer>
+  <footer>SEBA AI Studio — LOMLOE Teaching Assistant &nbsp;|&nbsp; Powered by SEBA</footer>
 </body>
 </html>`;
                         const win = window.open("", "_blank", "width=900,height=700");
@@ -435,7 +500,6 @@ export default function GroupProgress() {
                           win.document.write(html);
                           win.document.close();
                           win.focus();
-                          // Small delay so the browser renders before opening print dialog
                           setTimeout(() => win.print(), 600);
                         }
                       }}

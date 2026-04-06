@@ -717,3 +717,9 @@
 - [x] Replace plain text blob download with window.print() print preview (allows printer or Save as PDF)
 - [x] Inject a styled @media print HTML page with the report content before calling window.print()
 - [x] Same fix for StudentProgress Download PDF button
+
+## Feature: Print report - school logo + competency chart
+- [x] Add school logo upload (stored as base64 in localStorage) accessible from a settings panel or print dialog
+- [x] Inject logo top-right of the print header in both Class Report and Student Report print pages
+- [x] Render competency scores as an inline SVG bar chart in the print HTML (no external libraries)
+- [x] Include chart in both Class Report and Student Report print output
