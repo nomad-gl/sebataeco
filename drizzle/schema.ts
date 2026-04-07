@@ -463,6 +463,8 @@ export const schoolCalendars = mysqlTable("school_calendars", {
   endDate: timestamp("endDate"),
   /** Optional description of the topic/unit — used by AI infill to scope lesson generation */
   topicDescription: text("topicDescription"),
+  /** Optional link to a class group — lesson events are auto-created as assignments for this group */
+  linkedGroupId: int("linkedGroupId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -539,6 +541,10 @@ export const lessonPlans = mysqlTable("lesson_plans", {
   competencies: text("competencies"),
   /** Whether this plan was AI-generated */
   aiGenerated: boolean("aiGenerated").default(false).notNull(),
+  /** Whether this plan is saved as a reusable template */
+  isTemplate: boolean("isTemplate").default(false).notNull(),
+  /** Optional display name for the template (defaults to title if blank) */
+  templateName: varchar("templateName", { length: 255 }),
   /** Calendar event this lesson plan is linked to (optional) */
   calendarEventId: int("calendarEventId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

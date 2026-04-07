@@ -1,0 +1,1 @@
+ALTER TABLE `school_calendars` ADD `linkedGroupId` int;

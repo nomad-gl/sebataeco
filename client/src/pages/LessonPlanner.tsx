@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { Plus, Sparkles, Trash2, Printer, BookOpen, Save, List, X, Copy } from "lucide-react";
+import { Plus, Sparkles, Trash2, Printer, BookOpen, Save, List, X, Copy, LayoutTemplate, FolderOpen } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import LogoUploader from "@/components/LogoUploader";
 import { useI18n } from "@/contexts/I18nContext";
@@ -265,6 +265,9 @@ export default function LessonPlanner() {
   });
   const [showAiDialog, setShowAiDialog] = useState(false);
   const [showPrintDialog, setShowPrintDialog] = useState(false);
+  const [showSaveTemplateDialog, setShowSaveTemplateDialog] = useState(false);
+  const [showLoadTemplateDialog, setShowLoadTemplateDialog] = useState(false);
+  const [templateNameInput, setTemplateNameInput] = useState("");
   const [printFormat, setPrintFormat] = useState<"a4" | "a5" | "letter">("a4");
   const [isDirty, setIsDirty] = useState(false);
   const utils = trpc.useUtils();
@@ -323,6 +326,32 @@ export default function LessonPlanner() {
       procedures: JSON.stringify(f.procedures),
       competencies: JSON.stringify(f.competencies),
     });
+  };
+
+  // ── Templates ────────────────────────────────────────────────────────────
+  const { data: templates = [] } = trpc.planner.listTemplates.useQuery();
+
+  const saveTemplateMutation = trpc.planner.saveAsTemplate.useMutation({
+    onSuccess: () => {
+      utils.planner.listTemplates.invalidate();
+      setShowSaveTemplateDialog(false);
+      setTemplateNameInput("");
+      toast.success(t("lp_template_saved"));
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const deleteTemplateMutation = trpc.planner.deleteTemplate.useMutation({
+    onSuccess: () => { utils.planner.listTemplates.invalidate(); toast.success(t("lp_template_deleted")); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const loadTemplate = (tmpl: any) => {
+    setSelectedId(null);
+    setForm(planToForm(tmpl));
+    setIsDirty(true);
+    setShowLoadTemplateDialog(false);
+    toast.success(t("lp_template_loaded"));
   };
 
   const aiMutation = trpc.planner.aiGenerateLessonPlan.useMutation({
@@ -468,6 +497,16 @@ export default function LessonPlanner() {
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 )}
+                <Button variant="outline" size="sm" onClick={() => setShowLoadTemplateDialog(true)} className="gap-1" title={t("lp_load_template")}>
+                  <FolderOpen className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t("lp_load_template")}</span>
+                </Button>
+                {selectedId && (
+                  <Button variant="outline" size="sm" onClick={() => { setTemplateNameInput(form.title || ""); setShowSaveTemplateDialog(true); }} className="gap-1" title={t("lp_save_as_template")}>
+                    <LayoutTemplate className="w-4 h-4" />
+                    <span className="hidden sm:inline">{t("lp_save_as_template")}</span>
+                  </Button>
+                )}
                 <Button variant="outline" size="sm" onClick={() => setShowPrintDialog(true)} className="gap-1">
                   <Printer className="w-4 h-4" />
                   <span className="hidden sm:inline">{t("lp_print_pdf")}</span>
@@ -486,17 +525,17 @@ export default function LessonPlanner() {
               <CardContent className="space-y-4">
                 <div>
                   <Label>{t("lp_lesson_title")}</Label>
-                  <Input value={form.title} onChange={e => setField("title", e.target.value)} placeholder="e.g. Present Perfect for Experiences" />
+                  <Input value={form.title} onChange={e => setField("title", e.target.value)} placeholder={t('lp_ph_title')} />
                 </div>
                 {/* Row 1: unit / lesson no / academic year / duration — 2 cols on mobile, 4 on md+ */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div>
                     <Label>{t("lp_unit")}</Label>
-                    <Input value={form.unit} onChange={e => setField("unit", e.target.value)} placeholder="e.g. 3" />
+                    <Input value={form.unit} onChange={e => setField("unit", e.target.value)} placeholder={t('lp_ph_unit')} />
                   </div>
                   <div>
                     <Label>{t("lp_lesson_no")}</Label>
-                    <Input value={form.lessonNumber} onChange={e => setField("lessonNumber", e.target.value)} placeholder="e.g. 2" />
+                    <Input value={form.lessonNumber} onChange={e => setField("lessonNumber", e.target.value)} placeholder={t('lp_ph_lesson_number')} />
                   </div>
                   <div>
                     <Label>{t("lp_academic_year")}</Label>
@@ -528,7 +567,7 @@ export default function LessonPlanner() {
                   </div>
                   <div>
                     <Label>{t("lp_spaces")}</Label>
-                    <Input value={form.spaces} onChange={e => setField("spaces", e.target.value)} placeholder="Classroom, Lab…" />
+                    <Input value={form.spaces} onChange={e => setField("spaces", e.target.value)} placeholder={t('lp_ph_spaces')} />
                   </div>
                 </div>
               </CardContent>
@@ -586,7 +625,7 @@ export default function LessonPlanner() {
                   <Label className="mb-2 block">{t("lp_specific_competences")}</Label>
                   {form.specificCompetences.map((v, i) => (
                     <div key={i} className="flex gap-2 mb-2">
-                      <Input value={v} onChange={e => updateListItem("specificCompetences", i, e.target.value)} placeholder="e.g. CCL-1" className="flex-1" />
+                      <Input value={v} onChange={e => updateListItem("specificCompetences", i, e.target.value)} placeholder={t('lp_ph_competence')} className="flex-1" />
                       <Button variant="ghost" size="icon" className="shrink-0" onClick={() => removeListItem("specificCompetences", i)}><Trash2 className="w-4 h-4 text-red-400" /></Button>
                     </div>
                   ))}
@@ -603,7 +642,7 @@ export default function LessonPlanner() {
                   <Label className="mb-2 block">{t("lp_saberes_basicos")}</Label>
                   {form.saberesBasicos.map((v, i) => (
                     <div key={i} className="flex gap-2 mb-2">
-                      <Input value={v} onChange={e => updateListItem("saberesBasicos", i, e.target.value)} placeholder="Basic knowledge item" className="flex-1" />
+                      <Input value={v} onChange={e => updateListItem("saberesBasicos", i, e.target.value)} placeholder={t('lp_ph_saberes')} className="flex-1" />
                       <Button variant="ghost" size="icon" className="shrink-0" onClick={() => removeListItem("saberesBasicos", i)}><Trash2 className="w-4 h-4 text-red-400" /></Button>
                     </div>
                   ))}
@@ -614,7 +653,7 @@ export default function LessonPlanner() {
                   <Label className="mb-2 block">{t("lp_learning_outcomes")}</Label>
                   {form.learningOutcomes.map((v, i) => (
                     <div key={i} className="flex gap-2 mb-2">
-                      <Input value={v} onChange={e => updateListItem("learningOutcomes", i, e.target.value)} placeholder="Students will be able to…" className="flex-1" />
+                      <Input value={v} onChange={e => updateListItem("learningOutcomes", i, e.target.value)} placeholder={t('lp_ph_outcomes')} className="flex-1" />
                       <Button variant="ghost" size="icon" className="shrink-0" onClick={() => removeListItem("learningOutcomes", i)}><Trash2 className="w-4 h-4 text-red-400" /></Button>
                     </div>
                   ))}
@@ -625,7 +664,7 @@ export default function LessonPlanner() {
                   <Label className="mb-2 block">{t("lp_evaluation_criteria")}</Label>
                   {form.evaluationCriteria.map((v, i) => (
                     <div key={i} className="flex gap-2 mb-2">
-                      <Input value={v} onChange={e => updateListItem("evaluationCriteria", i, e.target.value)} placeholder="Students demonstrate…" className="flex-1" />
+                      <Input value={v} onChange={e => updateListItem("evaluationCriteria", i, e.target.value)} placeholder={t('lp_ph_criteria')} className="flex-1" />
                       <Button variant="ghost" size="icon" className="shrink-0" onClick={() => removeListItem("evaluationCriteria", i)}><Trash2 className="w-4 h-4 text-red-400" /></Button>
                     </div>
                   ))}
@@ -640,11 +679,11 @@ export default function LessonPlanner() {
               <CardContent className="space-y-4">
                 <div>
                   <Label>{t("lp_previous_knowledge")}</Label>
-                  <Textarea value={form.previousKnowledge} onChange={e => setField("previousKnowledge", e.target.value)} rows={2} placeholder="What students already know…" />
+                  <Textarea value={form.previousKnowledge} onChange={e => setField("previousKnowledge", e.target.value)} rows={2} placeholder={t('lp_ph_prev_knowledge')} />
                 </div>
                 <div>
                   <Label>{t("lp_materials_resources")}</Label>
-                  <Textarea value={form.materials} onChange={e => setField("materials", e.target.value)} rows={2} placeholder="Textbook, worksheets, projector…" />
+                  <Textarea value={form.materials} onChange={e => setField("materials", e.target.value)} rows={2} placeholder={t('lp_ph_materials')} />
                 </div>
               </CardContent>
             </Card>
@@ -665,10 +704,10 @@ export default function LessonPlanner() {
                   <div key={i}>
                     {/* Desktop row */}
                     <div className="hidden sm:grid grid-cols-12 gap-2 items-start">
-                      <Input className="col-span-2" value={p.timing} onChange={e => updateProcedure(i, "timing", e.target.value)} placeholder="10 min" />
-                      <Input className="col-span-2" value={p.stage} onChange={e => updateProcedure(i, "stage", e.target.value)} placeholder="Warm-up" />
-                      <Textarea className="col-span-6 min-h-[60px]" value={p.activities} onChange={e => updateProcedure(i, "activities", e.target.value)} placeholder="Describe activities…" />
-                      <Input className="col-span-1" value={p.grouping} onChange={e => updateProcedure(i, "grouping", e.target.value)} placeholder="Pairs" />
+                      <Input className="col-span-2" value={p.timing} onChange={e => updateProcedure(i, "timing", e.target.value)} placeholder={t('lp_ph_timing')} />
+                      <Input className="col-span-2" value={p.stage} onChange={e => updateProcedure(i, "stage", e.target.value)} placeholder={t('lp_ph_stage')} />
+                      <Textarea className="col-span-6 min-h-[60px]" value={p.activities} onChange={e => updateProcedure(i, "activities", e.target.value)} placeholder={t('lp_ph_activities')} />
+                      <Input className="col-span-1" value={p.grouping} onChange={e => updateProcedure(i, "grouping", e.target.value)} placeholder={t('lp_ph_grouping')} />
                       <Button variant="ghost" size="icon" className="col-span-1" onClick={() => removeProcedure(i)}><Trash2 className="w-4 h-4 text-red-400" /></Button>
                     </div>
 
@@ -681,20 +720,20 @@ export default function LessonPlanner() {
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <Label className="text-xs">{t("lp_timing")}</Label>
-                          <Input value={p.timing} onChange={e => updateProcedure(i, "timing", e.target.value)} placeholder="10 min" className="h-8 text-sm" />
+                          <Input value={p.timing} onChange={e => updateProcedure(i, "timing", e.target.value)} placeholder={t('lp_ph_timing')} className="h-8 text-sm" />
                         </div>
                         <div>
                           <Label className="text-xs">{t("lp_stage")}</Label>
-                          <Input value={p.stage} onChange={e => updateProcedure(i, "stage", e.target.value)} placeholder="Warm-up" className="h-8 text-sm" />
+                          <Input value={p.stage} onChange={e => updateProcedure(i, "stage", e.target.value)} placeholder={t('lp_ph_stage')} className="h-8 text-sm" />
                         </div>
                       </div>
                       <div>
                         <Label className="text-xs">{t("lp_activities")}</Label>
-                        <Textarea value={p.activities} onChange={e => updateProcedure(i, "activities", e.target.value)} placeholder="Describe activities…" rows={3} className="text-sm" />
+                        <Textarea value={p.activities} onChange={e => updateProcedure(i, "activities", e.target.value)} placeholder={t('lp_ph_activities')} rows={3} className="text-sm" />
                       </div>
                       <div>
                         <Label className="text-xs">{t("lp_grouping")}</Label>
-                        <Input value={p.grouping} onChange={e => updateProcedure(i, "grouping", e.target.value)} placeholder="Pairs" className="h-8 text-sm" />
+                        <Input value={p.grouping} onChange={e => updateProcedure(i, "grouping", e.target.value)} placeholder={t('lp_ph_grouping')} className="h-8 text-sm" />
                       </div>
                     </div>
                   </div>
@@ -723,7 +762,7 @@ export default function LessonPlanner() {
           <div className="space-y-3">
             <div>
               <Label>{t("lp_lesson_title")}</Label>
-              <Input value={aiTitle} onChange={e => setAiTitle(e.target.value)} placeholder="e.g. Present Perfect for Experiences" />
+              <Input value={aiTitle} onChange={e => setAiTitle(e.target.value)} placeholder={t('lp_ph_title')} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -792,6 +831,60 @@ export default function LessonPlanner() {
           <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
             <Button variant="outline" onClick={() => setShowPrintDialog(false)}>{t("cal_cancel")}</Button>
             <Button onClick={handlePrint} className="gap-1"><Printer className="w-4 h-4" /> {t("lp_open_preview")}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Save as Template Dialog */}
+      <Dialog open={showSaveTemplateDialog} onOpenChange={setShowSaveTemplateDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><LayoutTemplate className="w-4 h-4" /> {t("lp_save_as_template")}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>{t("lp_template_name")}</Label>
+              <Input value={templateNameInput} onChange={e => setTemplateNameInput(e.target.value)} placeholder={t("lp_template_name_ph")} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSaveTemplateDialog(false)}>{t("cal_cancel")}</Button>
+            <Button
+              disabled={!templateNameInput.trim() || saveTemplateMutation.isPending || !selectedId}
+              onClick={() => selectedId && saveTemplateMutation.mutate({ planId: selectedId, templateName: templateNameInput.trim() })}
+              className="gap-1"
+            >
+              <LayoutTemplate className="w-4 h-4" /> {t("lp_save_as_template")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Load Template Dialog */}
+      <Dialog open={showLoadTemplateDialog} onOpenChange={setShowLoadTemplateDialog}>
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><FolderOpen className="w-4 h-4" /> {t("lp_templates")}</DialogTitle></DialogHeader>
+          {(templates as any[]).length === 0 ? (
+            <p className="text-sm text-muted-foreground italic">{t("lp_no_templates")}</p>
+          ) : (
+            <div className="space-y-2">
+              {(templates as any[]).map((tmpl: any) => (
+                <div key={tmpl.id} className="flex items-center justify-between gap-2 p-3 rounded-lg border hover:bg-accent/50 transition-colors">
+                  <div className="min-w-0">
+                    <div className="font-medium text-sm truncate">{tmpl.templateName || tmpl.title}</div>
+                    <div className="text-xs text-muted-foreground truncate">{tmpl.subject} · {tmpl.yearGroup}</div>
+                  </div>
+                  <div className="flex gap-1.5 shrink-0">
+                    <Button size="sm" variant="outline" onClick={() => loadTemplate(tmpl)} className="gap-1">
+                      <FolderOpen className="w-3.5 h-3.5" /> {t("lp_load_template")}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => deleteTemplateMutation.mutate({ id: tmpl.id })} className="text-red-500 hover:text-red-600 px-2">
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowLoadTemplateDialog(false)}>{t("cal_cancel")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

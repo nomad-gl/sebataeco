@@ -1,9 +1,10 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
-import { schoolCalendarEvents, schoolCalendars, lessonPlans } from "../../drizzle/schema";
+import { schoolCalendarEvents, schoolCalendars, lessonPlans, classGroups } from "../../drizzle/schema";
 import { eq, and, desc, isNull, or } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
+import { generateCalendarPdf } from "../calendarPdf";
 
 const eventTypeEnum = z.enum(["holiday", "special", "exam", "excursion", "event", "lesson", "ai_generated"]);
 
@@ -407,6 +408,57 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
       }
     }),
 
+  exportCalendarPdf: protectedProcedure
+    .input(z.object({
+      calendarId: z.number(),
+      locale: z.enum(["en", "es", "ca"]).default("en"),
+      logoDataUrl: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+
+      const [cal] = await db
+        .select()
+        .from(schoolCalendars)
+        .where(and(eq(schoolCalendars.id, input.calendarId), eq(schoolCalendars.userId, ctx.user.id)));
+      if (!cal) throw new Error("Calendar not found");
+
+      const events = await db
+        .select()
+        .from(schoolCalendarEvents)
+        .where(and(eq(schoolCalendarEvents.calendarId, input.calendarId), eq(schoolCalendarEvents.userId, ctx.user.id)))
+        .orderBy(schoolCalendarEvents.eventDate);
+
+      const pdfBuf = await generateCalendarPdf({
+        calendarName: cal.name,
+        schoolName: cal.schoolName,
+        tutorName: cal.tutorName,
+        subject: cal.subject,
+        yearLevel: cal.yearLevel,
+        academicYear: cal.academicYear,
+        calendarType: cal.calendarType ?? "full_year",
+        startDate: cal.startDate ? new Date(cal.startDate) : null,
+        endDate: cal.endDate ? new Date(cal.endDate) : null,
+        topicDescription: cal.topicDescription,
+        events: events.map(e => ({
+          id: e.id,
+          eventDate: new Date(e.eventDate),
+          eventType: e.eventType,
+          title: e.title,
+          description: e.description,
+          competency: e.competency,
+          yearGroup: e.yearGroup,
+          subject: e.subject,
+          aiGenerated: e.aiGenerated ?? false,
+        })),
+        locale: input.locale,
+        logoDataUrl: input.logoDataUrl,
+      });
+
+      return { pdf: pdfBuf.toString("base64") };
+    }),
+
   deleteLessonPlan: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
@@ -471,5 +523,84 @@ Return JSON:
       });
 
       return { id: (result as any).insertId, ...generated };
+    }),
+
+  /** Link a school calendar to a class group (stores groupId on the calendar) */
+  linkCalendarToGroup: protectedProcedure
+    .input(z.object({ calendarId: z.number(), groupId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      // Verify group ownership
+      const [group] = await db.select().from(classGroups).where(and(eq(classGroups.id, input.groupId), eq(classGroups.userId, ctx.user.id)));
+      if (!group) throw new Error("Group not found");
+      await db.update(schoolCalendars).set({ linkedGroupId: input.groupId }).where(and(eq(schoolCalendars.id, input.calendarId), eq(schoolCalendars.userId, ctx.user.id)));
+      return { success: true, groupName: group.className };
+    }),
+
+  /** Remove the group link from a school calendar */
+  unlinkCalendarFromGroup: protectedProcedure
+    .input(z.object({ calendarId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      await db.update(schoolCalendars).set({ linkedGroupId: null }).where(and(eq(schoolCalendars.id, input.calendarId), eq(schoolCalendars.userId, ctx.user.id)));
+      return { success: true };
+    }),
+
+  /** Save an existing lesson plan as a reusable template */
+  saveAsTemplate: protectedProcedure
+    .input(z.object({ planId: z.number(), templateName: z.string().min(1).max(255) }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      // Fetch the source plan
+      const [src] = await db.select().from(lessonPlans).where(and(eq(lessonPlans.id, input.planId), eq(lessonPlans.userId, ctx.user.id)));
+      if (!src) throw new Error("Plan not found");
+      // Insert a copy flagged as template
+      const [result] = await db.insert(lessonPlans).values({
+        userId: ctx.user.id,
+        title: src.title,
+        subject: src.subject,
+        yearGroup: src.yearGroup,
+        duration: src.duration,
+        unit: src.unit,
+        lessonNumber: src.lessonNumber,
+        academicYear: src.academicYear,
+        skills: src.skills,
+        systems: src.systems,
+        specificCompetences: src.specificCompetences,
+        saberesBasicos: src.saberesBasicos,
+        learningOutcomes: src.learningOutcomes,
+        evaluationCriteria: src.evaluationCriteria,
+        previousKnowledge: src.previousKnowledge,
+        materials: src.materials,
+        spaces: src.spaces,
+        procedures: src.procedures,
+        competencies: src.competencies,
+        aiGenerated: src.aiGenerated,
+        isTemplate: true,
+        templateName: input.templateName,
+      });
+      return { id: (result as any).insertId };
+    }),
+
+  /** List all lesson plan templates for the current teacher */
+  listTemplates: protectedProcedure.query(async ({ ctx }) => {
+    const db = await getDb();
+    if (!db) return [];
+    return db.select().from(lessonPlans)
+      .where(and(eq(lessonPlans.userId, ctx.user.id), eq(lessonPlans.isTemplate, true)))
+      .orderBy(desc(lessonPlans.createdAt));
+  }),
+
+  /** Delete a lesson plan template */
+  deleteTemplate: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      await db.delete(lessonPlans).where(and(eq(lessonPlans.id, input.id), eq(lessonPlans.userId, ctx.user.id), eq(lessonPlans.isTemplate, true)));
+      return { success: true };
     }),
 });

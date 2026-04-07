@@ -843,3 +843,29 @@
 - [x] LessonPlanner: add "Duplicate" button (copy icon) on each saved plan row in the plans list
 - [x] Clicking Duplicate creates a copy of the plan with title suffixed "(copy)" and opens it for editing
 - [x] Add i18n keys for duplicate action (EN/ES/CA)
+
+## Feature: Calendar PDF Export
+- [x] Server: calendarPdf.ts helper using PDFKit — generates timetable with school logo, header (school name, subject, tutor, year), and lesson rows with LOMLOE details
+- [x] tRPC planner.exportCalendarPdf procedure: accepts calendarId, returns base64 PDF
+- [x] SchoolCalendar header: "Download PDF" button triggers export and triggers browser download
+- [x] PDF includes school logo from localStorage if available
+- [x] i18n keys for export labels (EN/ES/CA)
+
+## Feature: Link Calendar to My Classes Group
+- [x] DB: add linkedGroupId FK (nullable) to school_calendars table; run migration
+- [x] tRPC planner.linkCalendarToGroup and unlinkCalendarFromGroup procedures
+- [x] SchoolCalendar header: "Link to Class" button opens group picker dialog
+- [x] Calendar header: shows linked group name with unlink button when linked
+- [x] i18n keys (EN/ES/CA)
+
+## Feature: Lesson Plan Templates
+- [x] DB: add isTemplate + templateName columns to lesson_plans table; run migration
+- [x] tRPC planner.listTemplates, saveAsTemplate, deleteTemplate procedures
+- [x] LessonPlanner: "Save as Template" button in toolbar (saves copy of current plan as template)
+- [x] LessonPlanner: "Load Template" button opens template picker dialog; loads fields into form
+- [x] i18n keys (EN/ES/CA)
+
+## Bug: Placeholder/example texts not translating
+- [x] SchoolCalendar: all placeholder= and example text strings use t() keys (calendar name, school name, subject, topic description, event title, etc.)
+- [x] LessonPlanner: all placeholder= strings use t() keys (lesson title, objectives, materials, etc.)
+- [x] Add any missing placeholder i18n keys to I18nContext.tsx (EN/ES/CA)

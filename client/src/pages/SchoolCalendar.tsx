@@ -10,10 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import {
-  ChevronLeft, ChevronRight, Plus, Sparkles, Trash2, CalendarDays,
+import { ChevronLeft, ChevronRight, Plus, Sparkles, Trash2, CalendarDays,
   ExternalLink, LayoutList, Pencil, School, BookOpen, User, GraduationCap,
-  FolderOpen, X, Check,
+  FolderOpen, X, Check, Download, Link, Unlink, Users,
 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useLocation } from "wouter";
@@ -62,6 +61,7 @@ type SchoolCalendar = {
   startDate?: Date | string | null;
   endDate?: Date | string | null;
   topicDescription?: string | null;
+  linkedGroupId?: number | null;
 };
 
 const DEFAULT_TERMS = [
@@ -100,6 +100,9 @@ export default function SchoolCalendar() {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [editingEvent, setEditingEvent] = useState<CalEvent | null>(null);
   const [showTermView, setShowTermView] = useState(false);
+  const [isPdfExporting, setIsPdfExporting] = useState(false);
+  const [showLinkGroupDialog, setShowLinkGroupDialog] = useState(false);
+  const [linkGroupId, setLinkGroupId] = useState<string>("");
 
   // Calendar form
   const [calForm, setCalForm] = useState(emptyCalForm());
@@ -177,6 +180,26 @@ export default function SchoolCalendar() {
       utils.planner.listCalendarEvents.invalidate();
       setShowAiDialog(false);
       toast.success(`${t("cal_ai_infill")}: ${data.generated} lessons`);
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  // ── Group linking ──────────────────────────────────────────────────────────
+  const { data: classGroupsList = [] } = trpc.groups.list.useQuery();
+
+  const linkGroupMutation = trpc.planner.linkCalendarToGroup.useMutation({
+    onSuccess: (data) => {
+      utils.planner.listCalendars.invalidate();
+      setShowLinkGroupDialog(false);
+      toast.success(`${t("cal_linked_to_group")}: ${data.groupName}`);
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const unlinkGroupMutation = trpc.planner.unlinkCalendarFromGroup.useMutation({
+    onSuccess: () => {
+      utils.planner.listCalendars.invalidate();
+      toast.success(t("cal_unlinked_from_group"));
     },
     onError: (e) => toast.error(e.message),
   });
@@ -355,6 +378,35 @@ export default function SchoolCalendar() {
     return { planned, total: totalDays };
   }, [selectedCalendar, events]);
 
+  const exportPdfMutation = trpc.planner.exportCalendarPdf.useMutation({
+    onSuccess: (data) => {
+      const binary = atob(data.pdf);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const blob = new Blob([bytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${selectedCalendar?.name ?? "calendar"}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setIsPdfExporting(false);
+    },
+    onError: (e) => { toast.error(e.message); setIsPdfExporting(false); },
+  });
+
+  const handleExportPdf = () => {
+    if (!selectedCalendarId) return;
+    setIsPdfExporting(true);
+    const logo = localStorage.getItem("seba_school_logo") || undefined;
+    const storedLang = (localStorage.getItem("seba_lang") || "en") as "en" | "es" | "ca";
+    exportPdfMutation.mutate({
+      calendarId: selectedCalendarId,
+      locale: storedLang,
+      logoDataUrl: logo,
+    });
+  };
+
   const eventLabels: Record<string, string> = {
     holiday: t("cal_event_holiday"),
     special: t("cal_event_special"),
@@ -483,9 +535,22 @@ export default function SchoolCalendar() {
                       <Button variant="outline" size="sm" onClick={() => setShowTermView(v => !v)} className="gap-1.5">
                         <LayoutList className="w-3.5 h-3.5" /> {showTermView ? t("cal_month_view") : t("cal_term_overview")}
                       </Button>
+                      <Button variant="outline" size="sm" onClick={handleExportPdf} disabled={isPdfExporting} className="gap-1.5" title={t("cal_export_pdf")}>
+                        <Download className="w-3.5 h-3.5" /> {isPdfExporting ? "…" : t("cal_export_pdf")}
+                      </Button>
                       <Button variant="outline" size="sm" onClick={() => setShowAiDialog(true)} className="gap-1.5">
                         <Sparkles className="w-3.5 h-3.5" /> {t("cal_ai_infill")}
                       </Button>
+                      {(selectedCalendar as SchoolCalendar).linkedGroupId ? (
+                        <Button variant="outline" size="sm" onClick={() => unlinkGroupMutation.mutate({ calendarId: selectedCalendarId! })} disabled={unlinkGroupMutation.isPending} className="gap-1.5 text-amber-700 border-amber-300 hover:bg-amber-50">
+                          <Unlink className="w-3.5 h-3.5" />
+                          {(classGroupsList as any[]).find(g => g.id === (selectedCalendar as SchoolCalendar).linkedGroupId)?.className ?? t("cal_link_group")}
+                        </Button>
+                      ) : (
+                        <Button variant="outline" size="sm" onClick={() => { setLinkGroupId(""); setShowLinkGroupDialog(true); }} className="gap-1.5">
+                          <Link className="w-3.5 h-3.5" /> {t("cal_link_group")}
+                        </Button>
+                      )}
                       <Button size="sm" onClick={() => openAdd(new Date())} className="gap-1.5">
                         <Plus className="w-3.5 h-3.5" /> {t("cal_add_event")}
                       </Button>
@@ -640,7 +705,7 @@ export default function SchoolCalendar() {
 
             <div>
               <Label>Calendar Name *</Label>
-              <Input value={calForm.name} onChange={e => setCalForm(f => ({ ...f, name: e.target.value }))} placeholder={calForm.calendarType === "topic_block" ? "e.g. Fractions Unit – 4th Primary" : "e.g. 4th Primary English 2025-26"} />
+              <Input value={calForm.name} onChange={e => setCalForm(f => ({ ...f, name: e.target.value }))} placeholder={t('cal_ph_cal_name')} />
             </div>
 
             {/* Topic block: start/end dates + topic description */}
@@ -661,7 +726,7 @@ export default function SchoolCalendar() {
                   <Textarea
                     value={calForm.topicDescription}
                     onChange={e => setCalForm(f => ({ ...f, topicDescription: e.target.value }))}
-                    placeholder="Describe the topic or unit (e.g. 'Introduction to fractions: halves, quarters, and eighths. Students will compare, order, and add simple fractions using visual models.'). The AI will use this to generate LOMLOE-aligned lessons scoped to this topic."
+                    placeholder={t('cal_ph_topic_desc')}
                     rows={4}
                     className="resize-none"
                   />
@@ -673,11 +738,11 @@ export default function SchoolCalendar() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label><School className="w-3.5 h-3.5 inline mr-1" /> School Name</Label>
-                <Input value={calForm.schoolName} onChange={e => setCalForm(f => ({ ...f, schoolName: e.target.value }))} placeholder="e.g. IES Montserrat" />
+                <Input value={calForm.schoolName} onChange={e => setCalForm(f => ({ ...f, schoolName: e.target.value }))} placeholder={t('cal_ph_school_name')} />
               </div>
               <div>
                 <Label><User className="w-3.5 h-3.5 inline mr-1" /> Tutor Name</Label>
-                <Input value={calForm.tutorName} onChange={e => setCalForm(f => ({ ...f, tutorName: e.target.value }))} placeholder="e.g. Ms García" />
+                <Input value={calForm.tutorName} onChange={e => setCalForm(f => ({ ...f, tutorName: e.target.value }))} placeholder={t('cal_ph_tutor_name')} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -780,7 +845,7 @@ export default function SchoolCalendar() {
                   <Textarea
                     value={calForm.topicDescription}
                     onChange={e => setCalForm(f => ({ ...f, topicDescription: e.target.value }))}
-                    placeholder="Describe the topic or unit. The AI will use this to generate LOMLOE-aligned lessons scoped to this topic."
+                    placeholder={t('cal_ph_topic_desc_short')}
                     rows={4}
                     className="resize-none"
                   />
@@ -861,7 +926,7 @@ export default function SchoolCalendar() {
             </div>
             <div>
               <Label>{t("cal_event_title")} *</Label>
-              <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Event title" />
+              <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder={t('cal_ph_event_title')} />
             </div>
             <div>
               <Label>{t("cal_description")}</Label>
@@ -873,14 +938,14 @@ export default function SchoolCalendar() {
                   <div>
                     <Label>{t("cal_year_group")}</Label>
                     <Select value={form.yearGroup} onValueChange={v => setForm(f => ({ ...f, yearGroup: v }))}>
-                      <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder={t('cal_ph_select')} /></SelectTrigger>
                       <SelectContent>{YEAR_GROUPS.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div>
                     <Label>{t("cal_subject")}</Label>
                     <Select value={form.subject} onValueChange={v => setForm(f => ({ ...f, subject: v }))}>
-                      <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder={t('cal_ph_select')} /></SelectTrigger>
                       <SelectContent>{SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
@@ -888,7 +953,7 @@ export default function SchoolCalendar() {
                 <div>
                   <Label>{t("cal_competency")}</Label>
                   <Select value={form.competency} onValueChange={v => setForm(f => ({ ...f, competency: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={t('cal_ph_select')} /></SelectTrigger>
                     <SelectContent>{COMPETENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
@@ -926,14 +991,14 @@ export default function SchoolCalendar() {
               <div>
                 <Label>{t("cal_year_group")}</Label>
                 <Select value={form.yearGroup} onValueChange={v => setForm(f => ({ ...f, yearGroup: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t('cal_ph_select')} /></SelectTrigger>
                   <SelectContent>{YEAR_GROUPS.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
                 <Label>{t("cal_subject")}</Label>
                 <Select value={form.subject} onValueChange={v => setForm(f => ({ ...f, subject: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t('cal_ph_select')} /></SelectTrigger>
                   <SelectContent>{SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
@@ -941,7 +1006,7 @@ export default function SchoolCalendar() {
             <div>
               <Label>{t("cal_competency")}</Label>
               <Select value={form.competency} onValueChange={v => setForm(f => ({ ...f, competency: v }))}>
-                <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t('cal_ph_select')} /></SelectTrigger>
                 <SelectContent>{COMPETENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
               </Select>
             </div>
@@ -1021,6 +1086,40 @@ export default function SchoolCalendar() {
             <Button onClick={handleAiInfill} disabled={aiInfillMutation.isPending} className="gap-2">
               <Sparkles className="w-4 h-4" />
               {aiInfillMutation.isPending ? t("cal_generating") : t("cal_generate_lessons")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Link to Class Group Dialog ───────────────────────────────── */}
+      <Dialog open={showLinkGroupDialog} onOpenChange={setShowLinkGroupDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Users className="w-4 h-4" /> {t("cal_link_group_title")}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">{t("cal_link_group_desc")}</p>
+          {(classGroupsList as any[]).length === 0 ? (
+            <p className="text-sm text-muted-foreground italic">{t("cal_no_groups")}</p>
+          ) : (
+            <Select value={linkGroupId} onValueChange={setLinkGroupId}>
+              <SelectTrigger>
+                <SelectValue placeholder={t("cal_ph_select")} />
+              </SelectTrigger>
+              <SelectContent>
+                {(classGroupsList as any[]).map(g => (
+                  <SelectItem key={g.id} value={String(g.id)}>{g.className} – {g.level}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowLinkGroupDialog(false)}>{t("cal_cancel")}</Button>
+            <Button
+              disabled={!linkGroupId || linkGroupMutation.isPending}
+              onClick={() => selectedCalendarId && linkGroupMutation.mutate({ calendarId: selectedCalendarId, groupId: Number(linkGroupId) })}
+              className="gap-2"
+            >
+              <Link className="w-4 h-4" /> {t("cal_link_group")}
             </Button>
           </DialogFooter>
         </DialogContent>
