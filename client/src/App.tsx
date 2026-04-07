@@ -25,6 +25,7 @@ import Forum from "./pages/Forum";
 import SchoolCalendar from "./pages/SchoolCalendar";
 import LessonPlanner from "./pages/LessonPlanner";
 import Settings from "./pages/Settings";
+import Accountability from "./pages/Accountability";
 import PwaInstallBanner from "./components/PwaInstallBanner";
 import UpdateBanner from "./components/UpdateBanner";
 import FirstLaunchLanguagePicker from "./components/FirstLaunchLanguagePicker";
@@ -54,6 +55,7 @@ function Router() {
         <Route path="/school-calendar" component={SchoolCalendar} />
         <Route path="/lesson-planner" component={LessonPlanner} />
         <Route path="/settings" component={Settings} />
+        <Route path="/accountability" component={Accountability} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

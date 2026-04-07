@@ -913,3 +913,30 @@
 - [x] Wire dialect into Chat.tsx: caDialect passed from useI18n() to chatMutation
 - [x] DialectBadge component in NavBar: shows e.g. 'Val', 'Bal' next to CA label when a non-central dialect is active
 - [x] TypeScript: 0 errors; 69/69 tests pass
+
+## Feature: AI Governance — Grade Override Audit Trail
+- [x] DB: ai_assessments + ai_grade_overrides tables created and migrated
+- [x] tRPC: accountability.grades.listAssessments, createAssessment, overrideGrade, listOverrides
+- [x] UI: Grade Override panel with Override button, override dialog (mandatory reason), audit log dialog
+- [x] i18n keys (EN/ES/CA)
+
+## Feature: AI Governance — Bias Guard
+- [x] DB: ai_bias_flags table created and migrated
+- [x] Server: biasGuard.ts middleware with LLM-based bias detection + pattern matching; logs incidents to DB
+- [x] Wire biasGuard into lomloe.chat procedure
+- [x] tRPC: accountability.bias.listFlags, resolveFlag
+- [x] UI: Bias Incidents panel with severity badges, expand/collapse input+output, resolve button
+- [x] i18n keys (EN/ES/CA)
+
+## Feature: AI Governance — Learning Path Justification
+- [x] DB: ai_learning_paths table created and migrated
+- [x] tRPC: accountability.paths.generate (LLM produces structured path + justification + LOMLOE refs + evidence summary)
+- [x] tRPC: accountability.paths.list, getJustification
+- [x] UI: Learning Paths panel with generate dialog, step preview, full justification dialog (printable)
+- [x] i18n keys (EN/ES/CA)
+
+## Feature: AI Accountability Dashboard Page
+- [x] New route /accountability — protected, teacher/admin only
+- [x] Three tabs: Grade Overrides | Bias Incidents | Learning Paths
+- [x] Nav link added to NavBar Teacher dropdown (ShieldAlert icon)
+- [x] i18n keys for page title and tab labels (EN/ES/CA)

@@ -576,3 +576,107 @@ export const questionTranslations = mysqlTable("question_translations", {
 
 export type QuestionTranslation = typeof questionTranslations.$inferSelect;
 export type InsertQuestionTranslation = typeof questionTranslations.$inferInsert;
+
+// ─── AI Governance Tables ────────────────────────────────────────────────────
+
+/**
+ * AI-generated assessments — one row per AI evaluation of a student's
+ * competency performance. Teachers can override the AI grade.
+ */
+export const aiAssessments = mysqlTable("ai_assessments", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Teacher who requested the assessment */
+  teacherId: int("teacherId").notNull(),
+  /** Student being assessed (references users.id) */
+  studentId: int("studentId").notNull(),
+  /** LOMLOE competency code e.g. 'CCL' */
+  competency: varchar("competency", { length: 16 }).notNull(),
+  /** Year group e.g. 'junior', 'primary', 'secondary' */
+  yearGroup: varchar("yearGroup", { length: 32 }),
+  /** AI-generated score 0–100 */
+  aiScore: int("aiScore").notNull(),
+  /** AI-generated performance summary */
+  aiSummary: text("aiSummary").notNull(),
+  /** Evidence used by the AI (JSON array of practice session IDs) */
+  evidenceSessionIds: text("evidenceSessionIds"),
+  /** Whether a teacher has overridden this assessment */
+  overridden: boolean("overridden").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type AiAssessment = typeof aiAssessments.$inferSelect;
+export type InsertAiAssessment = typeof aiAssessments.$inferInsert;
+
+/**
+ * Teacher grade overrides — full audit trail of every time a teacher
+ * changes an AI-generated grade. Immutable once written.
+ */
+export const aiGradeOverrides = mysqlTable("ai_grade_overrides", {
+  id: int("id").autoincrement().primaryKey(),
+  /** The AI assessment being overridden */
+  assessmentId: int("assessmentId").notNull(),
+  /** Teacher performing the override */
+  teacherId: int("teacherId").notNull(),
+  /** Original AI score */
+  aiScore: int("aiScore").notNull(),
+  /** Teacher's replacement score 0–100 */
+  teacherScore: int("teacherScore").notNull(),
+  /** Mandatory justification — teacher must explain the override */
+  reason: text("reason").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type AiGradeOverride = typeof aiGradeOverrides.$inferSelect;
+export type InsertAiGradeOverride = typeof aiGradeOverrides.$inferInsert;
+
+/**
+ * AI bias flags — logged whenever the bias-guard middleware detects
+ * potentially biased content in an AI response.
+ */
+export const aiBiasFlags = mysqlTable("ai_bias_flags", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Session or request identifier */
+  sessionId: varchar("sessionId", { length: 64 }),
+  /** User who triggered the request */
+  userId: int("userId"),
+  /** The input prompt that led to the flagged output */
+  inputText: text("inputText").notNull(),
+  /** The AI output that was flagged */
+  outputText: text("outputText").notNull(),
+  /** Short description of the detected bias */
+  flagReason: text("flagReason").notNull(),
+  /** 'low' | 'medium' | 'high' */
+  severity: mysqlEnum("severity", ["low", "medium", "high"]).default("medium").notNull(),
+  /** Whether an admin has reviewed and resolved this flag */
+  resolved: boolean("resolved").default(false).notNull(),
+  resolvedAt: timestamp("resolvedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type AiBiasFlag = typeof aiBiasFlags.$inferSelect;
+export type InsertAiBiasFlag = typeof aiBiasFlags.$inferInsert;
+
+/**
+ * AI learning path recommendations — each row is a full personalised
+ * learning path generated for a student, with a structured justification
+ * that a teacher or parent can audit.
+ */
+export const aiLearningPaths = mysqlTable("ai_learning_paths", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Teacher who requested the path */
+  teacherId: int("teacherId").notNull(),
+  /** Student the path is for */
+  studentId: int("studentId").notNull(),
+  /** LOMLOE competency focus */
+  competency: varchar("competency", { length: 16 }).notNull(),
+  /** Year group */
+  yearGroup: varchar("yearGroup", { length: 32 }),
+  /** JSON array of path steps: { step, activity, duration, resources } */
+  recommendedPath: text("recommendedPath").notNull(),
+  /** Plain-language justification paragraph citing LOMLOE evidence */
+  justification: text("justification").notNull(),
+  /** JSON: evidence summary used — session scores, competency gaps */
+  evidenceSummary: text("evidenceSummary"),
+  /** LOMLOE article / competency references cited */
+  lomloeReferences: text("lomloeReferences"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type AiLearningPath = typeof aiLearningPaths.$inferSelect;
+export type InsertAiLearningPath = typeof aiLearningPaths.$inferInsert;
