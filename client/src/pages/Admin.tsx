@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import NavBar from "@/components/NavBar";
 import { cn } from "@/lib/utils";
-import { BookOpen, Layers, Users, BarChart3, Lock, Activity, MessageSquare, Zap, TrendingUp, ArrowLeft } from "lucide-react";
+import { BookOpen, Layers, Users, BarChart3, Lock, Activity, MessageSquare, Zap, TrendingUp, ArrowLeft, Languages, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { getLoginUrl } from "@/const";
 import { useI18n } from "@/contexts/I18nContext";
@@ -79,6 +80,32 @@ export default function Admin() {
     onSuccess: () => refetchPending(),
   });
   const [expandedQuestion, setExpandedQuestion] = React.useState<string | null>(null);
+
+  // Translation management
+  const { data: translationProgress, refetch: refetchTranslationProgress } = trpc.lomloe.getTranslationProgress.useQuery(undefined, {
+    enabled: !!user && user.role === "admin" && pinUnlocked,
+    refetchInterval: 30_000,
+  });
+  const [translatingLocale, setTranslatingLocale] = React.useState<"es" | "ca" | null>(null);
+  const translateMutation = trpc.lomloe.translateQuestions.useMutation({
+    onSuccess: (result) => {
+      refetchTranslationProgress();
+      setTranslatingLocale(null);
+      if (result.remaining > 0) {
+        toast.success(`${result.translated} questions translated`, { description: `${result.remaining} remaining.` });
+      } else {
+        toast.success("All questions translated!");
+      }
+    },
+    onError: (err) => {
+      toast.error("Translation failed", { description: err.message });
+      setTranslatingLocale(null);
+    },
+  });
+  const handleTranslate = (locale: "es" | "ca") => {
+    setTranslatingLocale(locale);
+    translateMutation.mutate({ locale, batchSize: 30 });
+  };
 
   const COMP_COLORS: Record<string, string> = {
     CCL: "#3b82f6", CP: "#8b5cf6", STEM: "#10b981", CD: "#f59e0b",
@@ -615,6 +642,83 @@ export default function Admin() {
                 <><Zap className="w-4 h-4" /> Generate 30 Questions Now</>
               )}
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Translation Management Card */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Languages className="w-4 h-4 text-blue-500" />
+              Knowledge Bank — Translations (ES &amp; CA)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Translate the {translationProgress?.total ?? 480} static questions into Spanish and Catalan using AI.
+              Translations are cached — untranslated questions fall back to English.
+              Click the button repeatedly until all questions are translated.
+            </p>
+            {/* Spanish */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium flex items-center gap-1.5">🇪🇸 Spanish (ES)</span>
+                <span className="text-xs text-muted-foreground">
+                  {translationProgress?.es ?? 0} / {translationProgress?.total ?? 480} translated
+                </span>
+              </div>
+              <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
+                <div
+                  className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.round(((translationProgress?.es ?? 0) / (translationProgress?.total ?? 480)) * 100)}%` }}
+                />
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleTranslate("es")}
+                disabled={translatingLocale !== null || (translationProgress?.es ?? 0) >= (translationProgress?.total ?? 480)}
+                className="gap-1.5"
+              >
+                {translatingLocale === "es" ? (
+                  <><Loader2 className="w-3.5 h-3.5 animate-spin" />Translating…</>
+                ) : (translationProgress?.es ?? 0) >= (translationProgress?.total ?? 480) ? (
+                  <><Languages className="w-3.5 h-3.5 text-green-500" />All translated ✓</>
+                ) : (
+                  <><Languages className="w-3.5 h-3.5" />Translate next 30 into Spanish</>
+                )}
+              </Button>
+            </div>
+            {/* Catalan */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium flex items-center gap-1.5">🏴 Catalan (CA)</span>
+                <span className="text-xs text-muted-foreground">
+                  {translationProgress?.ca ?? 0} / {translationProgress?.total ?? 480} translated
+                </span>
+              </div>
+              <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
+                <div
+                  className="h-full bg-yellow-500 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.round(((translationProgress?.ca ?? 0) / (translationProgress?.total ?? 480)) * 100)}%` }}
+                />
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleTranslate("ca")}
+                disabled={translatingLocale !== null || (translationProgress?.ca ?? 0) >= (translationProgress?.total ?? 480)}
+                className="gap-1.5"
+              >
+                {translatingLocale === "ca" ? (
+                  <><Loader2 className="w-3.5 h-3.5 animate-spin" />Translating…</>
+                ) : (translationProgress?.ca ?? 0) >= (translationProgress?.total ?? 480) ? (
+                  <><Languages className="w-3.5 h-3.5 text-green-500" />All translated ✓</>
+                ) : (
+                  <><Languages className="w-3.5 h-3.5" />Translate next 30 into Catalan</>
+                )}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 

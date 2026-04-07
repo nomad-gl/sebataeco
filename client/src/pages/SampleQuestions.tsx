@@ -4,7 +4,14 @@ import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, ChevronUp, Search, BookOpen, ArrowLeft, Languages, Loader2 } from "lucide-react";
+import {
+  ChevronDown, ChevronUp, Search, BookOpen, ArrowLeft,
+  Languages, Loader2, FileDown, CheckSquare, Square, X, Printer,
+} from "lucide-react";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { useI18n } from "@/contexts/I18nContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
@@ -23,6 +30,19 @@ const COMP_COLORS: Record<CompetencyCode, string> = {
   CCEC: "bg-pink-500/30 text-pink-200 border-pink-400/40",
 };
 
+function downloadBase64Pdf(base64: string, filename: string) {
+  const byteChars = atob(base64);
+  const byteNums = new Array(byteChars.length);
+  for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
+  const blob = new Blob([new Uint8Array(byteNums)], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function SampleQuestions() {
   const { t, lang } = useI18n();
   const { user } = useAuth();
@@ -32,17 +52,26 @@ export default function SampleQuestions() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [translating, setTranslating] = useState(false);
 
+  // Worksheet export state
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [worksheetTitle, setWorksheetTitle] = useState("LOMLOE Question Worksheet");
+  const [worksheetSubtitle, setWorksheetSubtitle] = useState("");
+
   const YG_LABELS: Record<YearGroup, string> = {
     junior: `${t("admin_junior")} (Yr 3–4)`,
     primary: `${t("admin_primary")} (Yr 5–6)`,
     secondary: `${t("admin_secondary")} (Yr 7–10)`,
   };
 
+  const locale = lang === "en" ? "en" : lang === "es" ? "es" : "ca";
+
   const { data: competencies } = trpc.lomloe.getCompetencies.useQuery();
   const { data: questions, isLoading, refetch } = trpc.lomloe.getQuestions.useQuery({
     competency: filterComp || undefined,
     yearGroup: filterYG || undefined,
-    locale: lang === "en" ? "en" : lang === "es" ? "es" : "ca",
+    locale,
   });
 
   const translateMutation = trpc.lomloe.translateQuestions.useMutation({
@@ -61,10 +90,36 @@ export default function SampleQuestions() {
     },
   });
 
+  const exportMutation = trpc.lomloe.exportWorksheet.useMutation({
+    onSuccess: (result) => {
+      const safeTitle = worksheetTitle.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+      downloadBase64Pdf(result.withoutAnswers, `${safeTitle}_student.pdf`);
+      downloadBase64Pdf(result.withAnswers, `${safeTitle}_answers.pdf`);
+      toast.success("Worksheet downloaded!", {
+        description: "Two PDFs saved: student copy (no answers) and answer key.",
+      });
+      setShowExportModal(false);
+    },
+    onError: (err) => {
+      toast.error("Export failed", { description: err.message });
+    },
+  });
+
   const handleTranslate = () => {
     if (lang === "en") return;
     setTranslating(true);
     translateMutation.mutate({ locale: lang as "es" | "ca", batchSize: 30 });
+  };
+
+  const handleExport = () => {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    exportMutation.mutate({
+      questionIds: ids,
+      locale,
+      title: worksheetTitle || "LOMLOE Question Worksheet",
+      subtitle: worksheetSubtitle || undefined,
+    });
   };
 
   const filtered = (questions ?? []).filter((q) => {
@@ -83,6 +138,18 @@ export default function SampleQuestions() {
       return next;
     });
   };
+
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => setSelected(new Set(filtered.map((q) => q.id)));
+  const clearSelection = () => setSelected(new Set());
 
   return (
     <div className="min-h-screen samples-bg">
@@ -126,7 +193,7 @@ export default function SampleQuestions() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-4 mb-6 flex flex-wrap gap-3 items-end">
+        <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-4 mb-4 flex flex-wrap gap-3 items-end">
           <div className="flex-1 min-w-[180px] space-y-1">
             <label className="text-xs font-semibold text-white/60 uppercase tracking-wide">{t("questions_filter_competency")}</label>
             <select
@@ -177,10 +244,47 @@ export default function SampleQuestions() {
           )}
         </div>
 
-        {/* Count */}
-        <p className="text-sm text-white/60 mb-4">
-          {filtered.length} {t("questions_title").toLowerCase()}
-        </p>
+        {/* Toolbar: count + worksheet export */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <p className="text-sm text-white/60">
+            {filtered.length} {t("questions_title").toLowerCase()}
+            {selectMode && selected.size > 0 && (
+              <span className="ml-2 text-white/80 font-medium">· {selected.size} selected</span>
+            )}
+          </p>
+          <div className="flex items-center gap-2">
+            {selectMode ? (
+              <>
+                <Button size="sm" variant="ghost" onClick={selectAll} className="text-white/70 hover:text-white hover:bg-white/10 text-xs h-7 gap-1">
+                  <CheckSquare className="w-3.5 h-3.5" />Select all ({filtered.length})
+                </Button>
+                <Button size="sm" variant="ghost" onClick={clearSelection} className="text-white/70 hover:text-white hover:bg-white/10 text-xs h-7 gap-1">
+                  <Square className="w-3.5 h-3.5" />Clear
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => { if (selected.size > 0) setShowExportModal(true); }}
+                  disabled={selected.size === 0}
+                  className="bg-white text-slate-900 hover:bg-white/90 text-xs h-7 gap-1"
+                >
+                  <Printer className="w-3.5 h-3.5" />Print Worksheet ({selected.size})
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => { setSelectMode(false); clearSelection(); }} className="text-white/50 hover:text-white hover:bg-white/10 h-7 w-7 p-0">
+                  <X className="w-3.5 h-3.5" />
+                </Button>
+              </>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setSelectMode(true)}
+                className="bg-white/10 border-white/30 text-white hover:bg-white/20 text-xs h-7 gap-1.5"
+              >
+                <FileDown className="w-3.5 h-3.5" />Print Worksheet
+              </Button>
+            )}
+          </div>
+        </div>
 
         {/* Question list */}
         {isLoading ? (
@@ -198,15 +302,25 @@ export default function SampleQuestions() {
           <div className="space-y-3">
             {filtered.map((q) => {
               const isOpen = expanded.has(q.id);
+              const isSelected = selected.has(q.id);
               return (
                 <div
                   key={q.id}
-                  className="bg-white/10 backdrop-blur-md rounded-xl border border-white/20 overflow-hidden transition-all hover:bg-white/15"
+                  className={`bg-white/10 backdrop-blur-md rounded-xl border overflow-hidden transition-all hover:bg-white/15 ${
+                    isSelected ? "border-white/60 ring-1 ring-white/40" : "border-white/20"
+                  }`}
                 >
                   <button
                     className="w-full text-left p-4 flex items-start gap-3"
-                    onClick={() => toggle(q.id)}
+                    onClick={() => selectMode ? toggleSelect(q.id) : toggle(q.id)}
                   >
+                    {selectMode && (
+                      <div className="shrink-0 mt-0.5 text-white/70">
+                        {isSelected
+                          ? <CheckSquare className="w-4 h-4 text-white" />
+                          : <Square className="w-4 h-4" />}
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0 space-y-1.5">
                       <div className="flex flex-wrap gap-2">
                         <Badge className={`text-xs border ${COMP_COLORS[q.competency as CompetencyCode] ?? "bg-white/10 text-white/70 border-white/20"}`}>
@@ -218,12 +332,14 @@ export default function SampleQuestions() {
                       </div>
                       <p className="text-sm sm:text-base font-medium text-white leading-snug">{q.question}</p>
                     </div>
-                    <div className="shrink-0 mt-1 text-white/50">
-                      {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    </div>
+                    {!selectMode && (
+                      <div className="shrink-0 mt-1 text-white/50">
+                        {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </div>
+                    )}
                   </button>
 
-                  {isOpen && (
+                  {isOpen && !selectMode && (
                     <div className="border-t border-white/15 p-4 space-y-3 bg-black/20 backdrop-blur-sm">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {q.options.map((opt, i) => (
@@ -256,6 +372,58 @@ export default function SampleQuestions() {
           </div>
         )}
       </div>
+
+      {/* Export Worksheet Modal */}
+      <Dialog open={showExportModal} onOpenChange={setShowExportModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Printer className="w-5 h-5" />
+              Print Worksheet ({selected.size} questions)
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="ws-title">Worksheet Title</Label>
+              <Input
+                id="ws-title"
+                value={worksheetTitle}
+                onChange={(e) => setWorksheetTitle(e.target.value)}
+                placeholder="LOMLOE Question Worksheet"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ws-subtitle">Subtitle / Class Info (optional)</Label>
+              <Input
+                id="ws-subtitle"
+                value={worksheetSubtitle}
+                onChange={(e) => setWorksheetSubtitle(e.target.value)}
+                placeholder="e.g. Year 5 – Term 2 Review"
+              />
+            </div>
+            <div className="rounded-lg bg-muted/50 border p-3 text-sm text-muted-foreground space-y-1">
+              <p className="font-medium text-foreground">Two PDFs will be downloaded:</p>
+              <p>• <strong>Student copy</strong> — questions with A/B/C/D options, answer lines</p>
+              <p>• <strong>Answer key</strong> — correct answers highlighted with explanations</p>
+              <p className="text-xs mt-1">Language: {lang === "en" ? "English" : lang === "es" ? "Spanish" : "Catalan"}</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowExportModal(false)}>Cancel</Button>
+            <Button
+              onClick={handleExport}
+              disabled={exportMutation.isPending}
+              className="gap-2"
+            >
+              {exportMutation.isPending ? (
+                <><Loader2 className="w-4 h-4 animate-spin" />Generating PDFs…</>
+              ) : (
+                <><FileDown className="w-4 h-4" />Download PDFs</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

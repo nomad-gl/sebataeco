@@ -759,3 +759,14 @@
 ## Bug: Mobile dropdown menu does not scroll
 - [x] NavBar mobile menu panel: add overflow-y-auto and max-h (e.g. max-h-[80vh]) so the menu scrolls when content exceeds viewport height
 - [x] Ensure the mobile menu backdrop/overlay does not block scrolling
+
+## Feature: Admin – Translation Progress Panel
+- [x] lomloe.getTranslationProgress procedure: returns total questions, translated count per locale (es, ca)
+- [x] Admin page: Translation Management section with ES/CA progress bars and "Translate next 30" buttons per locale
+- [x] Admin page: shows remaining count and allows repeated batch translation until complete
+
+## Feature: Question Library – PDF Worksheet Export
+- [x] lomloe.exportWorksheet tRPC procedure: accepts questionIds, locale, includeAnswers flag; returns PDF as base64
+- [x] SampleQuestions.tsx: "Print Worksheet" button opens modal to select questions and export options
+- [x] PDF worksheet: two versions generated — with answers (correct option highlighted) and without answers (blank lines)
+- [x] PDF uses current locale for question text

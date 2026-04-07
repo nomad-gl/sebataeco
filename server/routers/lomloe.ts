@@ -869,6 +869,105 @@ Guidelines:
     }),
 
   /**
+   * Export a PDF worksheet for selected questions in the requested locale.
+   * Returns base64-encoded PDFs for both with-answers and without-answers versions.
+   */
+  exportWorksheet: publicProcedure
+    .input(
+      z.object({
+        questionIds: z.array(z.string()).min(1).max(100),
+        locale: z.enum(["en", "es", "ca"]).default("en"),
+        title: z.string().max(120).default("LOMLOE Question Worksheet"),
+        subtitle: z.string().max(200).optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const { generateWorksheets } = await import("../worksheetPdf");
+
+      // Fetch all questions (with locale translations if applicable)
+      const allStatic = getQuestions();
+      const db = await getDb();
+
+      // Build a map of all questions by id
+      const questionMap = new Map(allStatic.map((q) => [q.id, q]));
+
+      // Overlay translations if locale is ES or CA
+      if (input.locale !== "en" && db) {
+        try {
+          const translations = await db
+            .select()
+            .from(questionTranslations)
+            .where(
+              and(
+                eq(questionTranslations.locale, input.locale),
+                inArray(questionTranslations.questionId, input.questionIds)
+              )
+            );
+          for (const tr of translations) {
+            const q = questionMap.get(tr.questionId);
+            if (q) {
+              questionMap.set(tr.questionId, {
+                ...q,
+                question: tr.question,
+                options: JSON.parse(tr.options) as string[],
+                explanation: tr.explanation,
+              });
+            }
+          }
+        } catch (err) {
+          console.error("[exportWorksheet] Translation overlay error:", err);
+        }
+      }
+
+      // Collect requested questions in order
+      const questions = input.questionIds
+        .map((id) => questionMap.get(id))
+        .filter(Boolean) as Array<{
+          id: string;
+          question: string;
+          options: string[];
+          correctIndex: number;
+          competency: string;
+          yearGroup: string;
+          explanation: string;
+        }>;
+
+      if (questions.length === 0) {
+        throw new (await import("@trpc/server")).TRPCError({ code: "BAD_REQUEST", message: "No valid questions found" });
+      }
+
+      const result = await generateWorksheets({
+        title: input.title,
+        subtitle: input.subtitle,
+        questions,
+        locale: input.locale,
+      });
+
+      return result; // { withAnswers: base64, withoutAnswers: base64 }
+    }),
+
+  /**
+   * Admin: get translation progress for ES and CA locales.
+   * Returns total static questions and translated count per locale.
+   */
+  getTranslationProgress: protectedProcedure.query(async ({ ctx }) => {
+    if (ctx.user.role !== "admin") {
+      throw new (await import("@trpc/server")).TRPCError({ code: "FORBIDDEN" });
+    }
+    const db = await getDb();
+    const totalStatic = getQuestions().length; // 480 static questions
+    if (!db) return { total: totalStatic, es: 0, ca: 0 };
+
+    const rows = await db
+      .select({ locale: questionTranslations.locale })
+      .from(questionTranslations);
+
+    const esCnt = rows.filter((r) => r.locale === "es").length;
+    const caCnt = rows.filter((r) => r.locale === "ca").length;
+    return { total: totalStatic, es: esCnt, ca: caCnt };
+  }),
+
+  /**
    * Admin: generate new LOMLOE questions and append them to the knowledge bank.
    * Also used by the weekly scheduled task.
    */
