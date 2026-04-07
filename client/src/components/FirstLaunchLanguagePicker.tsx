@@ -5,11 +5,11 @@ const STORAGE_KEY = "seba_lang_chosen";
 
 const LANGUAGES: { code: Lang; label: string; nativeLabel: string; flag: string; desc: string }[] = [
   {
-    code: "en",
-    label: "English",
-    nativeLabel: "English",
-    flag: "🇬🇧",
-    desc: "Continue in English",
+    code: "ca",
+    label: "Catalan",
+    nativeLabel: "Català",
+    flag: "🏴󠁥󠁳󠁣󠁴󠁿",
+    desc: "Continua en Català",
   },
   {
     code: "es",
@@ -19,11 +19,11 @@ const LANGUAGES: { code: Lang; label: string; nativeLabel: string; flag: string;
     desc: "Continuar en Español",
   },
   {
-    code: "ca",
-    label: "Catalan",
-    nativeLabel: "Català",
-    flag: "🏴󠁥󠁳󠁣󠁴󠁿",
-    desc: "Continua en Català",
+    code: "en",
+    label: "English",
+    nativeLabel: "English",
+    flag: "🇬🇧",
+    desc: "Continue in English",
   },
 ];
 

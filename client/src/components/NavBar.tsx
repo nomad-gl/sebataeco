@@ -14,9 +14,9 @@ import { usePwaInstall } from "@/hooks/usePwaInstall";
 import { Share, Plus } from "lucide-react";
 
 const LANG_OPTIONS: { code: Lang; label: string; flag: string }[] = [
-  { code: "en", label: "EN", flag: "🇬🇧" },
-  { code: "es", label: "ES", flag: "🇪🇸" },
   { code: "ca", label: "CA", flag: "🏴" },
+  { code: "es", label: "ES", flag: "🇪🇸" },
+  { code: "en", label: "EN", flag: "🇬🇧" },
 ];
 
 export default function NavBar() {

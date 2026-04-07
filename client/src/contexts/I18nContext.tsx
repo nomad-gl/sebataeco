@@ -2795,7 +2795,8 @@ function detectBrowserLang(): Lang {
     if (l.startsWith("es")) return "es";
     if (l.startsWith("en")) return "en";
   }
-  return "en";
+  // Default to Catalan — primary operational language
+  return "ca";
 }
 
 export function I18nProvider({ children }: { children: ReactNode }) {

@@ -894,3 +894,10 @@
 - [x] Replace LLM-based batch translation in translateQuestions with Aina HF translation helper
 - [x] Test translation quality: EN→ES and EN→CA tests pass (69/69 tests green)
 - [x] TypeScript: 0 errors
+
+## Task: Make Catalan the primary operational language
+- [x] I18nContext: change default fallback language from 'en' to 'ca'
+- [x] I18nContext: detectBrowserLang() already prioritises 'ca' first; fallback now returns 'ca'
+- [x] NavBar language switcher: reordered to CA | ES | EN
+- [x] FirstLaunchLanguagePicker: reordered to CA | ES | EN
+- [x] Update <html lang=""> default to 'ca' in client/index.html
