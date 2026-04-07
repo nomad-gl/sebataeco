@@ -719,6 +719,19 @@ export const translations = {
     lp_deleted_toast: "Lesson plan deleted",
     lp_generated_toast: "Lesson plan generated!",
     lp_popup_blocked: "Please allow popups to print",
+    // Settings
+    nav_settings: "Settings",
+    settings_title: "Settings",
+    settings_branding: "Branding",
+    settings_branding_desc: "Upload your school logo once and it will appear automatically on all printed lesson plans and PDF worksheets.",
+    settings_logo_preview_title: "Print Header Preview",
+    settings_logo_preview_school: "School Name",
+    settings_logo_preview_subject: "Subject · Year Group",
+    settings_logo_preview_date: "Date:",
+    settings_logo_preview_teacher: "Teacher:",
+    settings_where_used: "Where this logo appears",
+    settings_where_lesson: "Lesson Planner — printed lesson plans",
+    settings_where_worksheet: "Question Library — PDF worksheets",
   },
 
   es: {
@@ -1437,6 +1450,19 @@ export const translations = {
     lp_deleted_toast: "Programación eliminada",
     lp_generated_toast: "Programación generada",
     lp_popup_blocked: "Por favor, permite las ventanas emergentes para imprimir",
+    // Settings
+    nav_settings: "Ajustes",
+    settings_title: "Ajustes",
+    settings_branding: "Identidad Visual",
+    settings_branding_desc: "Sube el logotipo de tu centro una vez y aparecerá automáticamente en todas las programaciones impresas y las hojas de trabajo en PDF.",
+    settings_logo_preview_title: "Vista Previa del Encabezado",
+    settings_logo_preview_school: "Nombre del Centro",
+    settings_logo_preview_subject: "Asignatura · Nivel",
+    settings_logo_preview_date: "Fecha:",
+    settings_logo_preview_teacher: "Docente:",
+    settings_where_used: "Dónde aparece este logotipo",
+    settings_where_lesson: "Programación — programaciones impresas",
+    settings_where_worksheet: "Banco de Preguntas — hojas de trabajo en PDF",
   },
 
   ca: {
@@ -2155,6 +2181,19 @@ export const translations = {
     lp_deleted_toast: "Programació eliminada",
     lp_generated_toast: "Programació generada",
     lp_popup_blocked: "Si us plau, permet les finestres emergents per imprimir",
+    // Settings
+    nav_settings: "Configuració",
+    settings_title: "Configuració",
+    settings_branding: "Identitat Visual",
+    settings_branding_desc: "Puja el logotip del teu centre una vegada i apareixerà automàticament a totes les programacions impreses i els fulls de treball en PDF.",
+    settings_logo_preview_title: "Vista Prèvia de la Capçalera",
+    settings_logo_preview_school: "Nom del Centre",
+    settings_logo_preview_subject: "Assignatura · Nivell",
+    settings_logo_preview_date: "Data:",
+    settings_logo_preview_teacher: "Docent:",
+    settings_where_used: "On apareix aquest logotip",
+    settings_where_lesson: "Programació — programacions impreses",
+    settings_where_worksheet: "Banc de Preguntes — fulls de treball en PDF",
   },
 } as const;
 

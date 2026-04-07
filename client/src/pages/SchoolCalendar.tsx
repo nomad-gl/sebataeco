@@ -348,13 +348,20 @@ export default function SchoolCalendar() {
     <DashboardLayout>
       <div className="flex h-[calc(100vh-64px)] overflow-hidden">
         {/* ── Calendar Picker Sidebar ─────────────────────────────────────── */}
-        <aside className="w-60 border-r flex flex-col shrink-0 overflow-hidden bg-muted/20">
-          <div className="p-3 border-b flex items-center justify-between">
-            <span className="font-semibold text-sm flex items-center gap-1.5">
-              <FolderOpen className="w-4 h-4 text-primary" /> {t("cal_title").split(" ")[0]}
+        <aside className="w-60 border-r flex flex-col shrink-0 bg-muted/20">
+          <div className="p-3 border-b flex items-center justify-between gap-2 min-h-[48px]">
+            <span className="font-semibold text-sm flex items-center gap-1.5 truncate">
+              <FolderOpen className="w-4 h-4 text-primary shrink-0" /> {t("cal_title").split(" ")[0]}
             </span>
-            <Button size="sm" variant="ghost" onClick={() => { setCalForm(emptyCalForm()); setShowCreateCalDialog(true); }}>
-              <Plus className="w-4 h-4" />
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0 h-7 px-2 gap-1 text-xs"
+              onClick={() => { setCalForm(emptyCalForm()); setShowCreateCalDialog(true); }}
+              title="Create new calendar"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">New</span>
             </Button>
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-1">

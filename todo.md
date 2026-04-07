@@ -797,3 +797,21 @@
 - [x] LessonPlanner buildPrintHtml: already reads localStorage logo — ensure it renders correctly top-right of printed page
 - [x] SampleQuestions worksheet export modal: add LogoUploader section so logo appears on both answer-key and student PDF versions
 - [x] server/worksheetPdf.ts: accept optional logoDataUrl param and render logo top-right of each PDF page header
+
+## Feature: Settings – Branding Section
+- [ ] Settings page: add "Branding" tab/section with LogoUploader component
+- [ ] Branding section: shows current logo preview if one is stored in localStorage
+- [ ] Branding section: upload button accepts PNG/JPG, stores to localStorage key "seba_school_logo"
+- [ ] Branding section: remove/clear logo button resets localStorage and preview
+- [ ] Branding section: shows a "Where this logo appears" note listing Lesson Planner print and Question Library PDF export
+- [ ] Branding section: live preview card showing how the logo looks on a printed header
+
+## Feature: Settings Page – Branding
+- [x] Create /settings route and Settings.tsx page with Branding section
+- [x] Branding section uses LogoUploader component with live print-header preview card
+- [x] Add nav_settings i18n key in EN/ES/CA
+- [x] Add Settings link to NavBar (desktop user area and mobile menu)
+- [x] Register /settings route in App.tsx
+
+## Bug: School Calendar – Create Calendar button hidden
+- [x] Fix Create Calendar button visibility in the calendar sidebar (ensure it is not clipped or hidden behind overflow)

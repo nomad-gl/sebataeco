@@ -5,7 +5,7 @@ import {
   BookOpen, MessageCircle, Dumbbell, LayoutDashboard,
   Sparkles, Library, TrendingUp, ChevronDown, Menu, X, Zap,
   Presentation as PresentationIcon, Globe, Users, MessagesSquare, Bell, Download,
-  CalendarDays, FileText,
+  CalendarDays, FileText, Settings as SettingsIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
@@ -190,6 +190,25 @@ export default function NavBar() {
                 </div>
               )}
             </div>
+
+            {/* Settings link (desktop) */}
+            {user && (
+              <Link
+                href="/settings"
+                className={cn(
+                  "flex items-center justify-center w-9 h-9 rounded-lg transition-all",
+                  location === "/settings"
+                    ? "bg-primary text-primary-foreground"
+                    : isClassroomPage
+                      ? "text-white/80 hover:text-white hover:bg-white/15"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                )}
+                aria-label={t("nav_settings")}
+                title={t("nav_settings")}
+              >
+                <SettingsIcon className="w-4 h-4" />
+              </Link>
+            )}
 
             {/* Notification bell */}
             {user && (
@@ -421,6 +440,24 @@ export default function NavBar() {
               <p className={cn("text-xs font-semibold uppercase tracking-wider mb-2 px-1", isClassroomPage ? "text-white/50" : "text-muted-foreground")}>
                 {t("nav_teacher")}
               </p>
+              {/* Settings link in mobile menu */}
+              {user && (
+                <Link
+                  href="/settings"
+                  onClick={() => setMobileOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mb-1",
+                    location === "/settings"
+                      ? "bg-primary text-primary-foreground"
+                      : isClassroomPage
+                        ? "text-white/80 hover:text-white hover:bg-white/15"
+                        : "text-foreground hover:bg-secondary"
+                  )}
+                >
+                  <SettingsIcon className="w-5 h-5 flex-shrink-0" />
+                  {t("nav_settings")}
+                </Link>
+              )}
               {teacherItems.map(({ href, label, icon: Icon }) => {
                 const active = location === href || (href !== "/" && location.startsWith(href));
                 return (
