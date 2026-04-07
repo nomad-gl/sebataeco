@@ -15,6 +15,7 @@ import { voiceRouter } from "./routers/voice";
 import { plannerRouter } from "./routers/planner";
 import { geoDialectRouter } from "./routers/geoDialect";
 import { accountabilityRouter } from "./routers/accountability";
+import { privacyRouter } from "./routers/privacy";
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -40,6 +41,7 @@ export const appRouter = router({
   planner: plannerRouter,
   geoDialect: geoDialectRouter,
   accountability: accountabilityRouter,
+  privacy: privacyRouter,
 });
 
 export type AppRouter = typeof appRouter;

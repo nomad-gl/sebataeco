@@ -940,3 +940,16 @@
 - [x] Three tabs: Grade Overrides | Bias Incidents | Learning Paths
 - [x] Nav link added to NavBar Teacher dropdown (ShieldAlert icon)
 - [x] i18n keys for page title and tab labels (EN/ES/CA)
+
+## Feature: Prevent Digital Shadow — Privacy by Design
+- [x] Audit all DB tables for unnecessary PII or over-collection
+- [x] Server: data retention policy — auto-purge practice sessions (cap 200/user), bias flags (30d), notifications (30d), forum messages (90d)
+- [x] Server: tRPC privacy.getMyDataSummary — returns counts of all stored records per category
+- [x] Server: tRPC privacy.deleteMyData — cascading delete of all user data (requires typed confirmation)
+- [x] Server: tRPC privacy.exportMyData — returns a JSON export of all user data (GDPR data portability)
+- [x] Server: PII guard — bias log inputText/outputText truncated to 200 chars on write
+- [x] Server: cap practice session history to 200 most recent per user (rolling window)
+- [x] UI: Privacy Dashboard page (/privacy) — data summary cards, retention policy, export and delete-all buttons
+- [x] UI: Privacy nav link added to NavBar Teacher menu (Lock icon)
+- [x] i18n keys for all privacy UI (EN/ES/CA)
+- [x] TypeScript: 0 errors; 69/69 tests pass

@@ -238,8 +238,9 @@ async function logBiasFlag(params: {
     await db.insert(aiBiasFlags).values({
       sessionId: params.sessionId ?? null,
       userId: params.userId ?? null,
-      inputText: params.inputText.slice(0, 5000),
-      outputText: params.outputText.slice(0, 5000),
+      // Truncate to 200 chars to prevent PII accumulation in bias logs
+      inputText: params.inputText.slice(0, 200),
+      outputText: params.outputText.slice(0, 200),
       flagReason: params.flagReason,
       severity: params.severity,
       resolved: false,
