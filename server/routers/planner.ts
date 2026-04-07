@@ -1,27 +1,88 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
-import { schoolCalendarEvents, lessonPlans } from "../../drizzle/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { schoolCalendarEvents, schoolCalendars, lessonPlans } from "../../drizzle/schema";
+import { eq, and, desc, isNull, or } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
 
 const eventTypeEnum = z.enum(["holiday", "special", "exam", "excursion", "event", "lesson", "ai_generated"]);
 
 export const plannerRouter = router({
+  // ─── School Calendars (multi-calendar) ────────────────────────────────────────
+
+  listCalendars: protectedProcedure
+    .query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      return db
+        .select()
+        .from(schoolCalendars)
+        .where(eq(schoolCalendars.userId, ctx.user.id))
+        .orderBy(desc(schoolCalendars.updatedAt));
+    }),
+
+  createCalendar: protectedProcedure
+    .input(z.object({
+      name: z.string().min(1),
+      schoolName: z.string().optional(),
+      tutorName: z.string().optional(),
+      subject: z.string().optional(),
+      yearLevel: z.string().optional(),
+      academicYear: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const [result] = await db.insert(schoolCalendars).values({ ...input, userId: ctx.user.id });
+      return { id: (result as any).insertId };
+    }),
+
+  updateCalendar: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      name: z.string().optional(),
+      schoolName: z.string().optional(),
+      tutorName: z.string().optional(),
+      subject: z.string().optional(),
+      yearLevel: z.string().optional(),
+      academicYear: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const { id, ...data } = input;
+      await db.update(schoolCalendars).set(data).where(and(eq(schoolCalendars.id, id), eq(schoolCalendars.userId, ctx.user.id)));
+      return { success: true };
+    }),
+
+  deleteCalendar: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      // Delete all events belonging to this calendar first
+      await db.delete(schoolCalendarEvents).where(and(eq(schoolCalendarEvents.calendarId, input.id), eq(schoolCalendarEvents.userId, ctx.user.id)));
+      await db.delete(schoolCalendars).where(and(eq(schoolCalendars.id, input.id), eq(schoolCalendars.userId, ctx.user.id)));
+      return { success: true };
+    }),
+
+  // ─── Calendar Events ──────────────────────────────────────────────────────────
+
   listCalendarEvents: protectedProcedure
-    .input(z.object({ academicYear: z.string() }))
+    .input(z.object({ calendarId: z.number() }))
     .query(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) return [];
       return db
         .select()
         .from(schoolCalendarEvents)
-        .where(and(eq(schoolCalendarEvents.userId, ctx.user.id), eq(schoolCalendarEvents.academicYear, input.academicYear)))
+        .where(and(eq(schoolCalendarEvents.userId, ctx.user.id), eq(schoolCalendarEvents.calendarId, input.calendarId)))
         .orderBy(schoolCalendarEvents.eventDate);
     }),
 
   createCalendarEvent: protectedProcedure
     .input(z.object({
+      calendarId: z.number(),
       academicYear: z.string(),
       eventDate: z.string(),
       eventType: eventTypeEnum,
@@ -36,6 +97,7 @@ export const plannerRouter = router({
       if (!db) throw new Error("DB unavailable");
       const [result] = await db.insert(schoolCalendarEvents).values({
         userId: ctx.user.id,
+        calendarId: input.calendarId,
         academicYear: input.academicYear,
         eventDate: new Date(input.eventDate),
         eventType: input.eventType,
@@ -84,6 +146,7 @@ export const plannerRouter = router({
 
   aiInfillCalendar: protectedProcedure
     .input(z.object({
+      calendarId: z.number(),
       academicYear: z.string(),
       yearGroup: z.string(),
       subject: z.string(),
@@ -97,7 +160,7 @@ export const plannerRouter = router({
       const existing = await db
         .select()
         .from(schoolCalendarEvents)
-        .where(and(eq(schoolCalendarEvents.userId, ctx.user.id), eq(schoolCalendarEvents.academicYear, input.academicYear)));
+        .where(and(eq(schoolCalendarEvents.userId, ctx.user.id), eq(schoolCalendarEvents.calendarId, input.calendarId)));
 
       const takenDates = new Set(existing.map(e => new Date(e.eventDate).toISOString().split("T")[0]));
 
@@ -121,12 +184,40 @@ export const plannerRouter = router({
       const step = Math.max(1, Math.floor(5 / input.sessionsPerWeek));
       const selectedDays = teachingDays.filter((_, i) => i % step === 0).slice(0, 60);
 
-      let lessons: Array<{ title: string; competency: string }> = [];
+      type LessonDetail = {
+        title: string;
+        competency: string;
+        specificCompetences: string[];
+        saberesBasicos: string[];
+        learningOutcomes: string[];
+        evaluationCriteria: string[];
+      };
+
+      let lessons: LessonDetail[] = [];
       try {
         const resp = await invokeLLM({
           messages: [
-            { role: "system", content: "You are a LOMLOE curriculum planning assistant. Return only valid JSON." },
-            { role: "user", content: `Generate a sequence of ${selectedDays.length} lesson titles for ${input.subject} in ${input.yearGroup} for academic year ${input.academicYear}. Each lesson should cover a different LOMLOE competency (CCL, CP, STEM, CD, CPSAA, CC, CE, CCEC) in rotation. Return JSON: {"lessons":[{"title":"...","competency":"CCL"},...]}.` },
+            {
+              role: "system",
+              content: "You are a LOMLOE curriculum planning expert. Generate detailed, pedagogically sound lesson sequences fully aligned with the Spanish LOMLOE law. Return only valid JSON.",
+            },
+            {
+              role: "user",
+              content: `Generate a sequence of ${selectedDays.length} LOMLOE-aligned lessons for:
+- Subject: ${input.subject}
+- Year Group: ${input.yearGroup}
+- Academic Year: ${input.academicYear}
+
+Each lesson must include:
+- A clear, engaging lesson title
+- The primary LOMLOE key competency (CCL, CP, STEM, CD, CPSAA, CC, CE, CCEC) — rotate through all 8
+- 1-2 specific competences (e.g. CCL-1, CCL-2, STEM-3)
+- 2-3 saberes básicos (basic knowledge items relevant to the lesson)
+- 2 learning outcomes starting with "Students will be able to..."
+- 1-2 evaluation criteria starting with "Students demonstrate..."
+
+Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences":["CCL-1"],"saberesBasicos":["...","..."],"learningOutcomes":["Students will be able to..."],"evaluationCriteria":["Students demonstrate..."]},...]}`,
+            },
           ],
           response_format: {
             type: "json_schema",
@@ -140,8 +231,15 @@ export const plannerRouter = router({
                     type: "array",
                     items: {
                       type: "object",
-                      properties: { title: { type: "string" }, competency: { type: "string" } },
-                      required: ["title", "competency"],
+                      properties: {
+                        title: { type: "string" },
+                        competency: { type: "string" },
+                        specificCompetences: { type: "array", items: { type: "string" } },
+                        saberesBasicos: { type: "array", items: { type: "string" } },
+                        learningOutcomes: { type: "array", items: { type: "string" } },
+                        evaluationCriteria: { type: "array", items: { type: "string" } },
+                      },
+                      required: ["title", "competency", "specificCompetences", "saberesBasicos", "learningOutcomes", "evaluationCriteria"],
                       additionalProperties: false,
                     },
                   },
@@ -154,23 +252,49 @@ export const plannerRouter = router({
         });
         const raw = resp.choices?.[0]?.message?.content;
         const content = typeof raw === "string" ? raw : JSON.stringify(raw);
-        if (content) lessons = (JSON.parse(content) as { lessons: Array<{ title: string; competency: string }> }).lessons || [];
+        if (content) lessons = (JSON.parse(content) as { lessons: LessonDetail[] }).lessons || [];
       } catch (_err) {
         const comps = ["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"];
-        lessons = selectedDays.map((_, i) => ({ title: `${input.subject} Lesson ${i + 1}`, competency: comps[i % comps.length] }));
+        lessons = selectedDays.map((_, i) => ({
+          title: `${input.subject} Lesson ${i + 1}`,
+          competency: comps[i % comps.length],
+          specificCompetences: [`${comps[i % comps.length]}-1`],
+          saberesBasicos: ["Core vocabulary and structures"],
+          learningOutcomes: ["Students will be able to use language in context"],
+          evaluationCriteria: ["Students demonstrate understanding through task completion"],
+        }));
       }
 
-      const toInsert = selectedDays.map((date, i) => ({
-        userId: ctx.user.id,
-        academicYear: input.academicYear,
-        eventDate: new Date(date + "T09:00:00Z"),
-        eventType: "ai_generated" as const,
-        title: lessons[i]?.title ?? `${input.subject} Lesson ${i + 1}`,
-        competency: lessons[i]?.competency,
-        yearGroup: input.yearGroup,
-        subject: input.subject,
-        aiGenerated: true,
-      }));
+      const toInsert = selectedDays.map((date, i) => {
+        const lesson = lessons[i] ?? {
+          title: `${input.subject} Lesson ${i + 1}`,
+          competency: "CCL",
+          specificCompetences: [],
+          saberesBasicos: [],
+          learningOutcomes: [],
+          evaluationCriteria: [],
+        };
+        // Store LOMLOE details in the description field as JSON so the Lesson Planner can pre-fill them
+        const descriptionPayload = JSON.stringify({
+          specificCompetences: lesson.specificCompetences,
+          saberesBasicos: lesson.saberesBasicos,
+          learningOutcomes: lesson.learningOutcomes,
+          evaluationCriteria: lesson.evaluationCriteria,
+        });
+        return {
+          userId: ctx.user.id,
+          calendarId: input.calendarId,
+          academicYear: input.academicYear,
+          eventDate: new Date(date + "T09:00:00Z"),
+          eventType: "ai_generated" as const,
+          title: lesson.title,
+          description: descriptionPayload,
+          competency: lesson.competency,
+          yearGroup: input.yearGroup,
+          subject: input.subject,
+          aiGenerated: true,
+        };
+      });
 
       if (toInsert.length > 0) await db.insert(schoolCalendarEvents).values(toInsert);
       return { generated: toInsert.length };
@@ -274,7 +398,6 @@ Return JSON:
 
       const raw = resp.choices?.[0]?.message?.content;
       const content = typeof raw === "string" ? raw : JSON.stringify(raw ?? "{}");
-      // Extract JSON from possible markdown code block
       const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, content];
       const jsonStr = jsonMatch[1]?.trim() ?? content;
       const generated = JSON.parse(jsonStr);

@@ -732,7 +732,17 @@
 - [x] Both pages wired into teacher dropdown in NavBar.tsx and App.tsx routes
 
 ## Feature: Planner follow-ups (calendar link + term grid + i18n)
-- [ ] Calendar: clicking a lesson event opens Lesson Planner pre-filled with title, date, year group
-- [ ] Calendar: add term overview weekly grid view (horizontal strip for current term)
-- [ ] i18n: add nav_school_calendar and nav_lesson_planner keys to EN/ES/CA in I18nContext.tsx
-- [ ] i18n: translate all labels in SchoolCalendar.tsx and LessonPlanner.tsx for ES and CA
+- [x] Calendar: clicking a lesson event opens Lesson Planner pre-filled with title, date, year group
+- [x] Calendar: add term overview weekly grid view (horizontal strip for current term)
+- [x] i18n: add nav_school_calendar and nav_lesson_planner keys to EN/ES/CA in I18nContext.tsx
+- [x] i18n: translate all labels in SchoolCalendar.tsx and LessonPlanner.tsx for ES and CA
+
+## Feature: School Calendar - header panel + LOMLOE-aligned AI infill
+- [x] i18n: translate all labels in LessonPlanner.tsx for ES and CA (wire t() calls)
+- [x] School Calendar: add header panel with school name, subject title, tutor name, year/level
+- [x] School Calendar: AI infill generates full LOMLOE-aligned lesson details per day (competencies, saberes básicos, learning outcomes, not just titles)
+- [x] School Calendar: AI-generated events store competency + learning outcome in description field so Lesson Planner deep-link pre-fills them
+- [x] School Calendar: support multiple named calendars per teacher (each with own school name, subject, tutor, year/level, academic year)
+- [x] School Calendar: calendar picker sidebar/dropdown to create, switch, rename, delete calendars
+- [x] School Calendar: all events scoped to selected calendar (calendarId FK)
+- [x] School Calendar: DB migration - add school_calendars table and calendarId FK on school_calendar_events

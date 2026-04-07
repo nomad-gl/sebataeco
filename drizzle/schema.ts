@@ -442,12 +442,35 @@ export type GeneratedQuestion = typeof generatedQuestions.$inferSelect;
 export type InsertGeneratedQuestion = typeof generatedQuestions.$inferInsert;
 
 /**
+ * School calendars — named calendar instances per teacher.
+ * One teacher can have multiple calendars (e.g. "4th Primary English", "2nd Secondary Maths").
+ */
+export const schoolCalendars = mysqlTable("school_calendars", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  /** Human-readable name, e.g. '4th Primary English 2025-26' */
+  name: varchar("name", { length: 255 }).notNull(),
+  schoolName: varchar("schoolName", { length: 255 }),
+  tutorName: varchar("tutorName", { length: 128 }),
+  subject: varchar("subject", { length: 128 }),
+  yearLevel: varchar("yearLevel", { length: 64 }),
+  academicYear: varchar("academicYear", { length: 16 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type SchoolCalendar = typeof schoolCalendars.$inferSelect;
+export type InsertSchoolCalendar = typeof schoolCalendars.$inferInsert;
+
+/**
  * School calendar events — holidays, special days, and teacher-defined events
  * mapped across a full academic year.
  */
 export const schoolCalendarEvents = mysqlTable("school_calendar_events", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
+  /** FK to school_calendars — null for legacy rows created before multi-calendar */
+  calendarId: int("calendarId"),
   /** Academic year label e.g. '2025-2026' */
   academicYear: varchar("academicYear", { length: 16 }).notNull(),
   /** Event date (stored as UTC midnight) */

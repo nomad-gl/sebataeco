@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,9 +11,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Plus, Sparkles, Trash2, Printer, BookOpen, ChevronDown, ChevronUp, Save, FileText } from "lucide-react";
+import { Plus, Sparkles, Trash2, Printer, BookOpen, Save } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
-import { useEffect } from "react";
+import { useI18n } from "@/contexts/I18nContext";
 
 const COMPETENCIES = ["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"];
 const YEAR_GROUPS = ["1st Primary", "2nd Primary", "3rd Primary", "4th Primary", "5th Primary", "6th Primary", "1st Secondary", "2nd Secondary", "3rd Secondary", "4th Secondary"];
@@ -189,6 +189,7 @@ function buildPrintHtml(form: LessonFormState, logoDataUrl?: string): string {
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 export default function LessonPlanner() {
+  const { t } = useI18n();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [form, setForm] = useState<LessonFormState>(() => {
     // Pre-fill from calendar deep-link query params
@@ -214,8 +215,7 @@ export default function LessonPlanner() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("title")) {
-      toast.success("Pre-filled from calendar event");
-      // Clean URL without reloading
+      toast.success(t("lp_prefilled_toast"));
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);
@@ -227,7 +227,7 @@ export default function LessonPlanner() {
       utils.planner.listLessonPlans.invalidate();
       setSelectedId(data.id);
       setIsDirty(false);
-      toast.success("Lesson plan saved");
+      toast.success(t("lp_saved_toast"));
     },
     onError: (e) => toast.error(e.message),
   });
@@ -237,7 +237,7 @@ export default function LessonPlanner() {
       utils.planner.listLessonPlans.invalidate();
       setSelectedId(null);
       setForm(emptyForm());
-      toast.success("Lesson plan deleted");
+      toast.success(t("lp_deleted_toast"));
     },
     onError: (e) => toast.error(e.message),
   });
@@ -246,13 +246,12 @@ export default function LessonPlanner() {
     onSuccess: (data) => {
       utils.planner.listLessonPlans.invalidate();
       setSelectedId(data.id);
-      // Reload the plan from server
       utils.planner.getLessonPlan.fetch({ id: data.id }).then(plan => {
         if (plan) setForm(planToForm(plan));
       });
       setShowAiDialog(false);
       setIsDirty(false);
-      toast.success("Lesson plan generated!");
+      toast.success(t("lp_generated_toast"));
     },
     onError: (e) => toast.error(e.message),
   });
@@ -275,7 +274,7 @@ export default function LessonPlanner() {
   };
 
   const handleSave = () => {
-    if (!form.title.trim()) { toast.error("Title is required"); return; }
+    if (!form.title.trim()) { toast.error(t("lp_title_required")); return; }
     saveMutation.mutate({ id: selectedId ?? undefined, ...formToSave(form) });
   };
 
@@ -283,7 +282,7 @@ export default function LessonPlanner() {
     const logo = localStorage.getItem("seba_school_logo") ?? undefined;
     const html = buildPrintHtml(form, logo);
     const win = window.open("", "_blank");
-    if (!win) { toast.error("Please allow popups to print"); return; }
+    if (!win) { toast.error(t("lp_popup_blocked")); return; }
     win.document.write(html);
     win.document.close();
     setTimeout(() => win.print(), 600);
@@ -325,25 +324,25 @@ export default function LessonPlanner() {
         {/* Sidebar — saved plans */}
         <aside className="w-64 border-r flex flex-col shrink-0 overflow-hidden">
           <div className="p-3 border-b flex items-center justify-between">
-            <span className="font-semibold text-sm">Lesson Plans</span>
+            <span className="font-semibold text-sm">{t("lp_lesson_plans")}</span>
             <Button size="sm" variant="ghost" onClick={newPlan}><Plus className="w-4 h-4" /></Button>
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
-            {plans.length === 0 && <p className="text-xs text-muted-foreground p-2">No plans yet. Create one!</p>}
+            {plans.length === 0 && <p className="text-xs text-muted-foreground p-2">{t("lp_no_plans")}</p>}
             {plans.map((p: any) => (
               <button
                 key={p.id}
                 onClick={() => loadPlan(p)}
                 className={`w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-accent transition-colors ${selectedId === p.id ? "bg-accent font-medium" : ""}`}
               >
-                <div className="truncate">{p.title || "Untitled"}</div>
+                <div className="truncate">{p.title || t("lp_untitled")}</div>
                 <div className="text-xs text-muted-foreground truncate">{p.subject} · {p.yearGroup}</div>
               </button>
             ))}
           </div>
           <div className="p-2 border-t">
             <Button size="sm" className="w-full gap-1" onClick={() => setShowAiDialog(true)}>
-              <Sparkles className="w-3 h-3" /> Generate with AI
+              <Sparkles className="w-3 h-3" /> {t("lp_generate_ai")}
             </Button>
           </div>
         </aside>
@@ -354,8 +353,8 @@ export default function LessonPlanner() {
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-primary" />
-              <h1 className="text-xl font-bold">Lesson Plan Editor</h1>
-              {isDirty && <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">Unsaved</Badge>}
+              <h1 className="text-xl font-bold">{t("lp_title")}</h1>
+              {isDirty && <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">{t("lp_unsaved")}</Badge>}
             </div>
             <div className="flex gap-2">
               {selectedId && (
@@ -364,61 +363,61 @@ export default function LessonPlanner() {
                 </Button>
               )}
               <Button variant="outline" size="sm" onClick={() => setShowPrintDialog(true)} className="gap-1">
-                <Printer className="w-4 h-4" /> Print / PDF
+                <Printer className="w-4 h-4" /> {t("lp_print_pdf")}
               </Button>
               <Button size="sm" onClick={handleSave} disabled={saveMutation.isPending} className="gap-1">
                 <Save className="w-4 h-4" />
-                {saveMutation.isPending ? "Saving…" : "Save"}
+                {saveMutation.isPending ? t("lp_saving") : t("lp_save")}
               </Button>
             </div>
           </div>
 
           {/* Section 1: Header info */}
           <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">Lesson Information</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">{t("lp_section_info")}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label>Lesson Title *</Label>
+                <Label>{t("lp_lesson_title")}</Label>
                 <Input value={form.title} onChange={e => setField("title", e.target.value)} placeholder="e.g. Present Perfect for Experiences" />
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div>
-                  <Label>Unit</Label>
+                  <Label>{t("lp_unit")}</Label>
                   <Input value={form.unit} onChange={e => setField("unit", e.target.value)} placeholder="e.g. 3" />
                 </div>
                 <div>
-                  <Label>Lesson No.</Label>
+                  <Label>{t("lp_lesson_no")}</Label>
                   <Input value={form.lessonNumber} onChange={e => setField("lessonNumber", e.target.value)} placeholder="e.g. 2" />
                 </div>
                 <div>
-                  <Label>Academic Year</Label>
+                  <Label>{t("lp_academic_year")}</Label>
                   <Select value={form.academicYear} onValueChange={v => setField("academicYear", v)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>{ACADEMIC_YEARS.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label>Duration (min)</Label>
+                  <Label>{t("lp_duration_min")}</Label>
                   <Input type="number" value={form.duration} onChange={e => setField("duration", Number(e.target.value))} min={15} max={180} step={5} />
                 </div>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <div>
-                  <Label>Year Group</Label>
+                  <Label>{t("lp_year_group")}</Label>
                   <Select value={form.yearGroup} onValueChange={v => setField("yearGroup", v)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>{YEAR_GROUPS.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label>Subject</Label>
+                  <Label>{t("lp_subject")}</Label>
                   <Select value={form.subject} onValueChange={v => setField("subject", v)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>{SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label>Spaces</Label>
+                  <Label>{t("lp_spaces")}</Label>
                   <Input value={form.spaces} onChange={e => setField("spaces", e.target.value)} placeholder="Classroom, Lab…" />
                 </div>
               </div>
@@ -427,10 +426,10 @@ export default function LessonPlanner() {
 
           {/* Section 2: Skills & Systems */}
           <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">Skills & Language Systems</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">{t("lp_section_skills")}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label className="mb-2 block">Skills</Label>
+                <Label className="mb-2 block">{t("lp_skills")}</Label>
                 <div className="flex flex-wrap gap-4">
                   {SKILL_KEYS.map(k => (
                     <div key={k} className="flex items-center gap-2">
@@ -441,7 +440,7 @@ export default function LessonPlanner() {
                 </div>
               </div>
               <div>
-                <Label className="mb-2 block">Language Systems</Label>
+                <Label className="mb-2 block">{t("lp_language_systems")}</Label>
                 <div className="flex flex-wrap gap-4">
                   {SYSTEM_KEYS.map(k => (
                     <div key={k} className="flex items-center gap-2">
@@ -456,10 +455,10 @@ export default function LessonPlanner() {
 
           {/* Section 3: LOMLOE Competencies */}
           <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">LOMLOE Competencies</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">{t("lp_section_competencies")}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label className="mb-2 block">Key Competencies</Label>
+                <Label className="mb-2 block">{t("lp_key_competencies")}</Label>
                 <div className="flex flex-wrap gap-2">
                   {COMPETENCIES.map(c => (
                     <button
@@ -474,67 +473,67 @@ export default function LessonPlanner() {
                 </div>
               </div>
               <div>
-                <Label className="mb-2 block">Specific Competences (e.g. CCL-1, CCL-2)</Label>
+                <Label className="mb-2 block">{t("lp_specific_competences")}</Label>
                 {form.specificCompetences.map((v, i) => (
                   <div key={i} className="flex gap-2 mb-2">
                     <Input value={v} onChange={e => updateListItem("specificCompetences", i, e.target.value)} placeholder="e.g. CCL-1" />
                     <Button variant="ghost" size="icon" onClick={() => removeListItem("specificCompetences", i)}><Trash2 className="w-4 h-4 text-red-400" /></Button>
                   </div>
                 ))}
-                <Button variant="outline" size="sm" onClick={() => addListItem("specificCompetences")}><Plus className="w-3 h-3 mr-1" /> Add</Button>
+                <Button variant="outline" size="sm" onClick={() => addListItem("specificCompetences")}><Plus className="w-3 h-3 mr-1" /> {t("lp_add")}</Button>
               </div>
             </CardContent>
           </Card>
 
           {/* Section 4: Curriculum */}
           <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">Curriculum Content</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">{t("lp_section_curriculum")}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label className="mb-2 block">Saberes Básicos</Label>
+                <Label className="mb-2 block">{t("lp_saberes_basicos")}</Label>
                 {form.saberesBasicos.map((v, i) => (
                   <div key={i} className="flex gap-2 mb-2">
                     <Input value={v} onChange={e => updateListItem("saberesBasicos", i, e.target.value)} placeholder="Basic knowledge item" />
                     <Button variant="ghost" size="icon" onClick={() => removeListItem("saberesBasicos", i)}><Trash2 className="w-4 h-4 text-red-400" /></Button>
                   </div>
                 ))}
-                <Button variant="outline" size="sm" onClick={() => addListItem("saberesBasicos")}><Plus className="w-3 h-3 mr-1" /> Add</Button>
+                <Button variant="outline" size="sm" onClick={() => addListItem("saberesBasicos")}><Plus className="w-3 h-3 mr-1" /> {t("lp_add")}</Button>
               </div>
               <Separator />
               <div>
-                <Label className="mb-2 block">Learning Outcomes</Label>
+                <Label className="mb-2 block">{t("lp_learning_outcomes")}</Label>
                 {form.learningOutcomes.map((v, i) => (
                   <div key={i} className="flex gap-2 mb-2">
                     <Input value={v} onChange={e => updateListItem("learningOutcomes", i, e.target.value)} placeholder="Students will be able to…" />
                     <Button variant="ghost" size="icon" onClick={() => removeListItem("learningOutcomes", i)}><Trash2 className="w-4 h-4 text-red-400" /></Button>
                   </div>
                 ))}
-                <Button variant="outline" size="sm" onClick={() => addListItem("learningOutcomes")}><Plus className="w-3 h-3 mr-1" /> Add</Button>
+                <Button variant="outline" size="sm" onClick={() => addListItem("learningOutcomes")}><Plus className="w-3 h-3 mr-1" /> {t("lp_add")}</Button>
               </div>
               <Separator />
               <div>
-                <Label className="mb-2 block">Evaluation Criteria</Label>
+                <Label className="mb-2 block">{t("lp_evaluation_criteria")}</Label>
                 {form.evaluationCriteria.map((v, i) => (
                   <div key={i} className="flex gap-2 mb-2">
                     <Input value={v} onChange={e => updateListItem("evaluationCriteria", i, e.target.value)} placeholder="Students demonstrate…" />
                     <Button variant="ghost" size="icon" onClick={() => removeListItem("evaluationCriteria", i)}><Trash2 className="w-4 h-4 text-red-400" /></Button>
                   </div>
                 ))}
-                <Button variant="outline" size="sm" onClick={() => addListItem("evaluationCriteria")}><Plus className="w-3 h-3 mr-1" /> Add</Button>
+                <Button variant="outline" size="sm" onClick={() => addListItem("evaluationCriteria")}><Plus className="w-3 h-3 mr-1" /> {t("lp_add")}</Button>
               </div>
             </CardContent>
           </Card>
 
           {/* Section 5: Context */}
           <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">Context & Resources</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">{t("lp_section_context")}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label>Previous Knowledge</Label>
+                <Label>{t("lp_previous_knowledge")}</Label>
                 <Textarea value={form.previousKnowledge} onChange={e => setField("previousKnowledge", e.target.value)} rows={2} placeholder="What students already know…" />
               </div>
               <div>
-                <Label>Materials & Resources</Label>
+                <Label>{t("lp_materials_resources")}</Label>
                 <Textarea value={form.materials} onChange={e => setField("materials", e.target.value)} rows={2} placeholder="Textbook, worksheets, projector…" />
               </div>
             </CardContent>
@@ -542,13 +541,13 @@ export default function LessonPlanner() {
 
           {/* Section 6: Procedure */}
           <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">Lesson Procedure</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">{t("lp_section_procedure")}</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground px-1">
-                <span className="col-span-2">Timing</span>
-                <span className="col-span-2">Stage</span>
-                <span className="col-span-6">Activities</span>
-                <span className="col-span-2">Grouping</span>
+                <span className="col-span-2">{t("lp_timing")}</span>
+                <span className="col-span-2">{t("lp_stage")}</span>
+                <span className="col-span-6">{t("lp_activities")}</span>
+                <span className="col-span-2">{t("lp_grouping")}</span>
               </div>
               {form.procedures.map((p, i) => (
                 <div key={i} className="grid grid-cols-12 gap-2 items-start">
@@ -559,7 +558,7 @@ export default function LessonPlanner() {
                   <Button variant="ghost" size="icon" className="col-span-1" onClick={() => removeProcedure(i)}><Trash2 className="w-4 h-4 text-red-400" /></Button>
                 </div>
               ))}
-              <Button variant="outline" size="sm" onClick={addProcedure}><Plus className="w-3 h-3 mr-1" /> Add Stage</Button>
+              <Button variant="outline" size="sm" onClick={addProcedure}><Plus className="w-3 h-3 mr-1" /> {t("lp_add_stage")}</Button>
             </CardContent>
           </Card>
         </div>
@@ -568,22 +567,22 @@ export default function LessonPlanner() {
       {/* AI Generate Dialog */}
       <Dialog open={showAiDialog} onOpenChange={setShowAiDialog}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><Sparkles className="w-5 h-5 text-teal-500" /> Generate Lesson Plan with AI</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Sparkles className="w-5 h-5 text-teal-500" /> {t("lp_ai_dialog_title")}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label>Lesson Title *</Label>
+              <Label>{t("lp_lesson_title")}</Label>
               <Input value={aiTitle} onChange={e => setAiTitle(e.target.value)} placeholder="e.g. Present Perfect for Experiences" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Subject</Label>
+                <Label>{t("lp_subject")}</Label>
                 <Select value={aiSubject} onValueChange={setAiSubject}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>Year Group</Label>
+                <Label>{t("lp_year_group")}</Label>
                 <Select value={aiYearGroup} onValueChange={setAiYearGroup}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{YEAR_GROUPS.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
@@ -591,11 +590,11 @@ export default function LessonPlanner() {
               </div>
             </div>
             <div>
-              <Label>Duration (min)</Label>
+              <Label>{t("lp_duration_field")}</Label>
               <Input type="number" value={aiDuration} onChange={e => setAiDuration(Number(e.target.value))} min={15} max={180} step={5} />
             </div>
             <div>
-              <Label className="mb-2 block">Focus Competencies (optional)</Label>
+              <Label className="mb-2 block">{t("lp_focus_competencies")}</Label>
               <div className="flex flex-wrap gap-2">
                 {COMPETENCIES.map(c => (
                   <button key={c} type="button" onClick={() => toggleComp(c)}
@@ -607,10 +606,10 @@ export default function LessonPlanner() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAiDialog(false)}>Cancel</Button>
-            <Button onClick={() => { if (!aiTitle.trim()) { toast.error("Title is required"); return; } aiMutation.mutate({ title: aiTitle, subject: aiSubject, yearGroup: aiYearGroup, duration: aiDuration, competencies: aiComps }); }} disabled={aiMutation.isPending} className="gap-1">
+            <Button variant="outline" onClick={() => setShowAiDialog(false)}>{t("cal_cancel")}</Button>
+            <Button onClick={() => { if (!aiTitle.trim()) { toast.error(t("lp_title_required")); return; } aiMutation.mutate({ title: aiTitle, subject: aiSubject, yearGroup: aiYearGroup, duration: aiDuration, competencies: aiComps }); }} disabled={aiMutation.isPending} className="gap-1">
               <Sparkles className="w-4 h-4" />
-              {aiMutation.isPending ? "Generating…" : "Generate"}
+              {aiMutation.isPending ? t("lp_generating") : t("lp_generate")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -619,10 +618,10 @@ export default function LessonPlanner() {
       {/* Print Dialog */}
       <Dialog open={showPrintDialog} onOpenChange={setShowPrintDialog}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><Printer className="w-5 h-5" /> Print / Save as PDF</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Printer className="w-5 h-5" /> {t("lp_print_dialog_title")}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Paper Format</Label>
+              <Label>{t("lp_paper_format")}</Label>
               <Select value={printFormat} onValueChange={v => setPrintFormat(v as any)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -632,12 +631,12 @@ export default function LessonPlanner() {
                 </SelectContent>
               </Select>
             </div>
-            <p className="text-sm text-muted-foreground">A print preview will open in a new tab. Select your printer or choose <strong>Save as PDF</strong> in the destination dropdown.</p>
-            <p className="text-xs text-muted-foreground">Your school logo (if uploaded on the Reports page) will appear in the top-right corner.</p>
+            <p className="text-sm text-muted-foreground">{t("lp_print_desc")}</p>
+            <p className="text-xs text-muted-foreground">{t("lp_print_logo_note")}</p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPrintDialog(false)}>Cancel</Button>
-            <Button onClick={handlePrint} className="gap-1"><Printer className="w-4 h-4" /> Open Print Preview</Button>
+            <Button variant="outline" onClick={() => setShowPrintDialog(false)}>{t("cal_cancel")}</Button>
+            <Button onClick={handlePrint} className="gap-1"><Printer className="w-4 h-4" /> {t("lp_open_preview")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
