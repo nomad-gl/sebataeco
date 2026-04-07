@@ -572,7 +572,7 @@ export default function Forum() {
                 <p className="text-sm font-semibold text-white truncate">{user.name}</p>
                 <p className="text-[10px] text-emerald-300 font-medium">{t("forum_you_online")}</p>
               </div>
-              <span className="text-[10px] text-white/40 font-medium">Clara</span>
+              <span className="text-[10px] text-white/40 font-medium">Aina</span>
             </div>
           )}
         </aside>

@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { useI18n } from "@/contexts/I18nContext";
 import type { TranslationKey, Lang } from "@/contexts/I18nContext";
 import { Loader2, ArrowLeft } from "lucide-react";
-import { ClaraProfilePanel } from "@/components/ClaraProfilePanel";
+import { AinaProfilePanel } from "@/components/AinaProfilePanel";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 
@@ -193,8 +193,8 @@ export default function Chat() {
           </div>
         </div>
 
-        {/* Clara Knows You panel — only shown to signed-in users */}
-        {user && <ClaraProfilePanel />}
+        {/* Aina Knows You panel — only shown to signed-in users */}
+        {user && <AinaProfilePanel />}
 
         {/* Filters */}
         {showFilters && (

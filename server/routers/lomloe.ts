@@ -11,7 +11,8 @@ import {
   type YearGroup,
 } from "../knowledge/lomloeKnowledgeBank";
 import { invokeLLM } from "../_core/llm";
-import { getClaraProfile, upsertClaraProfile, rateMessage, getUserRatings, saveQuestionAnswer, getQuestionAnalytics, getPendingQuestions, reviewQuestion } from "../db";
+import { ainaTranslateBatch } from "../ainaTranslation";
+import { getAinaProfile, upsertAinaProfile, rateMessage, getUserRatings, saveQuestionAnswer, getQuestionAnalytics, getPendingQuestions, reviewQuestion } from "../db";
 import { getDb } from "../db";
 import { generatedQuestions, questionTranslations } from "../../drizzle/schema";
 import { eq, and, inArray } from "drizzle-orm";
@@ -36,10 +37,10 @@ function shuffleQuestion<T extends { options: string[]; correctIndex: number }>(
 
 /**
  * Extracts style signals from the latest user message + assistant response
- * and persists them to the clara_user_profiles table.
+ * and persists them to the aina_user_profiles table.
  * Called fire-and-forget after every chat turn.
  */
-async function updateClaraProfile(
+async function updateAinaProfile(
   userId: number,
   userMessage: string,
   assistantResponse: string,
@@ -49,7 +50,7 @@ async function updateClaraProfile(
 ): Promise<void> {
   try {
     // Fetch current profile (may be null for first-time users)
-    const current = await getClaraProfile(userId);
+    const current = await getAinaProfile(userId);
 
     const newCount = (current?.questionCount ?? 0) + 1;
     const wordCount = userMessage.trim().split(/\s+/).length;
@@ -125,7 +126,7 @@ Respond ONLY in ${langName}. Return JSON only.`,
     // Only update context summary every 3 turns to avoid thrashing
     const shouldUpdateSummary = newCount % 3 === 0 || !current?.teachingContextSummary;
 
-    await upsertClaraProfile(userId, {
+    await upsertAinaProfile(userId, {
       questionCount: newCount,
       avgQuestionLength: newAvg,
       competencyFrequency: JSON.stringify(freqMap),
@@ -139,14 +140,14 @@ Respond ONLY in ${langName}. Return JSON only.`,
     });
   } catch (err) {
     // Profile updates are non-critical — log but never throw
-    console.error("[Clara] Profile update failed:", err);
+    console.error("[Aina] Profile update failed:", err);
   }
 }
 
 // ─── Build the adaptive context block from a user's profile ──────────────────
 
 function buildAdaptiveContext(
-  profile: Awaited<ReturnType<typeof getClaraProfile>>,
+  profile: Awaited<ReturnType<typeof getAinaProfile>>,
   ratings?: Awaited<ReturnType<typeof getUserRatings>>
 ): string {
   if (!profile || profile.questionCount < 2) return "";
@@ -203,7 +204,7 @@ function buildAdaptiveContext(
       } else if (pct <= 40) {
         lines.push(`Quality signal: Only ${pct}% of your recent responses were rated helpful. Try adjusting your approach — consider being more practical, concrete, and directly relevant to classroom teaching.`);
       }
-      // Surface topics from down-rated messages so Clara can improve on them
+      // Surface topics from down-rated messages so Aina can improve on them
       const downRated = ratings.filter((r) => r.rating === "down" && r.userQuestion);
       if (downRated.length > 0) {
         const topics = downRated.slice(0, 3).map((r) => r.userQuestion?.slice(0, 60)).filter(Boolean);
@@ -449,7 +450,7 @@ export const lomloeRouter = router({
         ),
         competency: CompetencyCodeSchema.optional(),
         yearGroup: YearGroupSchema.optional(),
-        /** Active UI language — Clara must always respond in this language */
+        /** Active UI language — Aina must always respond in this language */
         uiLang: z.enum(["en", "es", "ca"]).optional(),
         /** Authenticated user ID — used to load/update the adaptive profile */
         userId: z.number().optional(),
@@ -458,7 +459,7 @@ export const lomloeRouter = router({
     .mutation(async ({ input }) => {
       // Load adaptive profile and recent ratings (non-blocking — null for anonymous/first-time users)
       const [profile, ratings] = input.userId
-        ? await Promise.all([getClaraProfile(input.userId), getUserRatings(input.userId, 20)])
+        ? await Promise.all([getAinaProfile(input.userId), getUserRatings(input.userId, 20)])
         : [null, []];
       const adaptiveContext = buildAdaptiveContext(profile, ratings);
 
@@ -488,7 +489,7 @@ export const lomloeRouter = router({
       const langName =
         input.uiLang === "es" ? "Spanish (Castilian)" : input.uiLang === "ca" ? "Catalan" : "English";
 
-      const systemPrompt = `You are Clara, a warm, encouraging, and deeply knowledgeable teaching assistant specialised in Spain's LOMLOE curriculum. You exist to support teachers — not students — with expert guidance, practical ideas, and genuine enthusiasm for education.
+      const systemPrompt = `You are Aina, a warm, encouraging, and deeply knowledgeable teaching assistant specialised in Spain's LOMLOE curriculum. You exist to support teachers — not students — with expert guidance, practical ideas, and genuine enthusiasm for education.
 
 Your personality:
 - You are warm, approachable, and genuinely excited about teaching and learning.
@@ -577,7 +578,7 @@ Guidelines:
       if (input.userId) {
         const lastUserMsg = [...input.messages].reverse().find((m) => m.role === "user");
         if (lastUserMsg) {
-          updateClaraProfile(
+          updateAinaProfile(
             input.userId,
             lastUserMsg.content,
             content,
@@ -591,9 +592,9 @@ Guidelines:
       return { content, followUpQuestions };
     }),
 
-  /** Get the Clara learning profile for the current user */
-  getClaraProfile: protectedProcedure.query(async ({ ctx }) => {
-    const profile = await getClaraProfile(ctx.user.id);
+  /** Get the Aina learning profile for the current user */
+  getAinaProfile: protectedProcedure.query(async ({ ctx }) => {
+    const profile = await getAinaProfile(ctx.user.id);
     if (!profile) return null;
     return {
       questionCount: profile.questionCount,
@@ -612,7 +613,7 @@ Guidelines:
     };
   }),
 
-  /** Rate a Clara assistant message thumbs-up or thumbs-down */
+  /** Rate a Aina assistant message thumbs-up or thumbs-down */
   rateMessage: protectedProcedure
     .input(
       z.object({
@@ -635,8 +636,8 @@ Guidelines:
       return { ok: true };
     }),
 
-  /** Get a summary of the current user's Clara ratings */
-  getClaraRatingSummary: protectedProcedure.query(async ({ ctx }) => {
+  /** Get a summary of the current user's Aina ratings */
+  getAinaRatingSummary: protectedProcedure.query(async ({ ctx }) => {
     const ratings = await getUserRatings(ctx.user.id, 100);
     const upCount = ratings.filter((r) => r.rating === "up").length;
     const downCount = ratings.filter((r) => r.rating === "down").length;
@@ -645,9 +646,9 @@ Guidelines:
     return { upCount, downCount, total, pctHelpful };
   }),
 
-  /** Reset the Clara adaptive learning profile for the current user */
-  resetClaraProfile: protectedProcedure.mutation(async ({ ctx }) => {
-    await upsertClaraProfile(ctx.user.id, {
+  /** Reset the Aina adaptive learning profile for the current user */
+  resetAinaProfile: protectedProcedure.mutation(async ({ ctx }) => {
+    await upsertAinaProfile(ctx.user.id, {
       questionCount: 0,
       avgQuestionLength: 0,
       competencyFrequency: "{}",
@@ -815,77 +816,41 @@ Guidelines:
       }
 
       const localeName = input.locale === "es" ? "Spanish" : "Catalan";
-      const localeCode = input.locale === "es" ? "es-ES" : "ca-ES";
 
-      // Batch LLM call — translate all questions in one request
-      const questionsPayload = toTranslate.map((q, i) => ({
-        index: i,
-        id: q.id,
-        question: q.question,
-        options: q.options,
-        explanation: q.explanation,
-      }));
-
-      const llmResponse = await invokeLLM({
-        messages: [
-          {
-            role: "system",
-            content: `You are a professional educational translator specialising in ${localeName} (${localeCode}). Translate the given LOMLOE educational questions accurately. Preserve the pedagogical meaning, difficulty level, and LOMLOE competency alignment. Return ONLY a valid JSON array, no markdown, no extra text.`,
-          },
-          {
-            role: "user",
-            content: `Translate each of the following educational questions into ${localeName}. Return a JSON array where each element has: { "id": "<original id>", "question": "<translated>", "options": ["<opt0>","<opt1>","<opt2>","<opt3>"], "explanation": "<translated>" }\n\nQuestions:\n${JSON.stringify(questionsPayload, null, 2)}`,
-          },
-        ],
-        response_format: {
-          type: "json_schema",
-          json_schema: {
-            name: "question_translations",
-            strict: true,
-            schema: {
-              type: "object",
-              properties: {
-                translations: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      id: { type: "string" },
-                      question: { type: "string" },
-                      options: { type: "array", items: { type: "string" } },
-                      explanation: { type: "string" },
-                    },
-                    required: ["id", "question", "options", "explanation"],
-                    additionalProperties: false,
-                  },
-                },
-              },
-              required: ["translations"],
-              additionalProperties: false,
-            },
-          },
-        },
-      });
-
-      const raw = (llmResponse.choices[0]?.message?.content as string) ?? "{}";
-      let parsed: { translations: Array<{ id: string; question: string; options: string[]; explanation: string }> };
-      try {
-        parsed = JSON.parse(raw);
-      } catch {
-        throw new (await import("@trpc/server")).TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "LLM returned invalid JSON" });
+      // Build flat list of all strings to translate per question:
+      // [question, opt0, opt1, opt2, opt3, explanation]  × N questions
+      const allTexts: string[] = [];
+      for (const q of toTranslate) {
+        allTexts.push(q.question, ...q.options, q.explanation);
       }
 
-      // Insert translations into DB
+      // Translate all strings in parallel batches via Aina (HF Inference API)
+      let translatedTexts: string[];
+      try {
+        translatedTexts = await ainaTranslateBatch(allTexts, input.locale, 5);
+      } catch (err) {
+        throw new (await import("@trpc/server")).TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Aina translation failed: ${(err as Error).message}`,
+        });
+      }
+
+      // Re-assemble per-question translation objects
       let inserted = 0;
-      for (const tr of parsed.translations) {
-        if (!tr.id || !tr.question || !Array.isArray(tr.options) || tr.options.length !== 4 || !tr.explanation) continue;
+      for (let i = 0; i < toTranslate.length; i++) {
+        const base = i * 6; // question + 4 options + explanation
+        const q = toTranslate[i];
+        const translatedQuestion = translatedTexts[base];
+        const translatedOptions = translatedTexts.slice(base + 1, base + 5);
+        const translatedExplanation = translatedTexts[base + 5];
+        if (!translatedQuestion || translatedOptions.length !== 4 || !translatedExplanation) continue;
         try {
           await db.insert(questionTranslations).values({
-            questionId: tr.id,
+            questionId: q.id,
             locale: input.locale,
-            question: tr.question,
-            options: JSON.stringify(tr.options),
-            explanation: tr.explanation,
+            question: translatedQuestion,
+            options: JSON.stringify(translatedOptions),
+            explanation: translatedExplanation,
           });
           inserted++;
         } catch (err) {

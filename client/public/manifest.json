@@ -1,7 +1,7 @@
 {
   "name": "SEBA AI | TA",
   "short_name": "SEBA",
-  "description": "Your LOMLOE Teaching Assistant — Clara, Practice, Progress and more",
+  "description": "Your LOMLOE Teaching Assistant — Aina, Practice, Progress and more",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
@@ -25,9 +25,9 @@
   ],
   "shortcuts": [
     {
-      "name": "Ask Clara",
-      "short_name": "Clara",
-      "description": "Open the Clara AI teaching assistant",
+      "name": "Ask Aina",
+      "short_name": "Aina",
+      "description": "Open the Aina AI teaching assistant",
       "url": "/chat",
       "icons": [
         {

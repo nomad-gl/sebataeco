@@ -877,3 +877,20 @@
 - [x] Server: getRandomQuestion now accepts locale param and returns translated question, options, explanation when locale is 'es' or 'ca'
 - [x] Fall back to English if no translation exists for a question
 - [x] SampleQuestions already passes locale correctly (no change needed)
+
+## Task: Rename AI assistant from 'Clara' to 'Aina'
+- [x] Find all occurrences of 'Clara' in server, client, and i18n files
+- [x] Replace in server system prompts (lomloe.ts, chat procedure)
+- [x] Replace in DB helper function names (getClaraProfile, upsertClaraProfile → getAinaProfile, upsertAinaProfile)
+- [x] Replace in i18n keys and translation strings (I18nContext.tsx)
+- [x] Replace in client UI pages (Chat.tsx, any greeting/label text)
+- [x] Replace in any other files (db.ts, schema column names if any)
+- [x] Rename ClaraProfilePanel.tsx → AinaProfilePanel.tsx and useClaraWakeWord.ts → useAinaWakeWord.ts
+
+## Feature: Integrate Hugging Face Translation API (Project Aina)
+- [x] Research best HF models for EN→ES and EN→CA translation (Helsinki-NLP/opus-mt-en-es + opus-mt-en-ROMANCE)
+- [x] Store HF_API_KEY as a project secret
+- [x] Build server/ainaTranslation.ts helper (calls HF Inference API router endpoint)
+- [x] Replace LLM-based batch translation in translateQuestions with Aina HF translation helper
+- [x] Test translation quality: EN→ES and EN→CA tests pass (69/69 tests green)
+- [x] TypeScript: 0 errors

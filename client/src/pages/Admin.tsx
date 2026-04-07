@@ -301,13 +301,13 @@ export default function Admin() {
               </Card>
             )}
 
-            {/* Clara ratings chart */}
+            {/* Aina ratings chart */}
             {ratingSummary && ratingSummary.totalUp + ratingSummary.totalDown > 0 && (
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base flex items-center gap-2">
                     <BarChart3 className="w-4 h-4 text-violet-500" />
-                    Clara Response Quality
+                    Aina Response Quality
                     {ratingSummary.pctHelpful !== null && (
                       <span className={cn(
                         "ml-auto text-sm font-semibold",

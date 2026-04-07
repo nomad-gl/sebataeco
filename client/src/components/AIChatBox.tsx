@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Streamdown } from "streamdown";
-import { useClaraWakeWord } from "@/hooks/useClaraWakeWord";
+import { useAinaWakeWord } from "@/hooks/useAinaWakeWord";
 import { trpc } from "@/lib/trpc";
 
 /**
@@ -323,7 +323,7 @@ export function AIChatBox({
     onSendMessage(text);
   }, [onSendMessage]);
 
-  const { wakeState, permissionError: wakePermissionError } = useClaraWakeWord({
+  const { wakeState, permissionError: wakePermissionError } = useAinaWakeWord({
     onTranscript: handleWakeTranscript,
     enabled: !isMobile && alwaysOnEnabled,
     lang: document.documentElement.lang || navigator.language || "en",
@@ -523,9 +523,9 @@ export function AIChatBox({
   // ─── Wake-word status label ──────────────────────────────────────────────────
 
   const wakeLabel =
-    wakeState === "recording" ? "Clara is listening…"
-    : wakeState === "activating" ? "Clara activated!"
-    : alwaysOnEnabled ? "Say 'Clara' to activate"
+    wakeState === "recording" ? "Aina is listening…"
+    : wakeState === "activating" ? "Aina activated!"
+    : alwaysOnEnabled ? "Say 'Aina' to activate"
     : null;
 
   // ─── Mobile recording status label ───────────────────────────────────────────
@@ -740,7 +740,7 @@ export function AIChatBox({
               mobileRecordingStatus
                 ? mobileRecordingStatus
                 : wakeState === "recording"
-                ? "Clara is listening…"
+                ? "Aina is listening…"
                 : isRecording
                 ? "Listening…"
                 : placeholder

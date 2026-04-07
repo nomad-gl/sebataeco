@@ -298,10 +298,10 @@ export type ForumPresence = typeof forumPresence.$inferSelect;
 export type InsertForumPresence = typeof forumPresence.$inferInsert;
 
 /**
- * Clara adaptive learning profiles — one row per teacher.
+ * Aina adaptive learning profiles — one row per teacher.
  * Updated after every chat turn to reflect evolving style signals.
  */
-export const claraUserProfiles = mysqlTable("clara_user_profiles", {
+export const ainaUserProfiles = mysqlTable("aina_user_profiles", {
   userId: int("userId").primaryKey(),
   /** Total number of questions asked across all sessions */
   questionCount: int("questionCount").default(0).notNull(),
@@ -341,14 +341,14 @@ export const claraUserProfiles = mysqlTable("clara_user_profiles", {
   lastUpdated: timestamp("lastUpdated").defaultNow().onUpdateNow().notNull(),
 });
 
-export type ClaraUserProfile = typeof claraUserProfiles.$inferSelect;
-export type InsertClaraUserProfile = typeof claraUserProfiles.$inferInsert;
+export type AinaUserProfile = typeof ainaUserProfiles.$inferSelect;
+export type InsertAinaUserProfile = typeof ainaUserProfiles.$inferInsert;
 
 /**
- * Clara message ratings — thumbs-up/down feedback on individual assistant responses.
+ * Aina message ratings — thumbs-up/down feedback on individual assistant responses.
  * One row per user per message (upsert on re-rating).
  */
-export const claraMessageRatings = mysqlTable("clara_message_ratings", {
+export const ainaMessageRatings = mysqlTable("aina_message_ratings", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   /** Client-generated stable message ID (uuid) */
@@ -365,8 +365,8 @@ export const claraMessageRatings = mysqlTable("clara_message_ratings", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
-export type ClaraMessageRating = typeof claraMessageRatings.$inferSelect;
-export type InsertClaraMessageRating = typeof claraMessageRatings.$inferInsert;
+export type AinaMessageRating = typeof ainaMessageRatings.$inferSelect;
+export type InsertAinaMessageRating = typeof ainaMessageRatings.$inferInsert;
 
 /**
  * Question answers — one row per question attempt in Practice mode.

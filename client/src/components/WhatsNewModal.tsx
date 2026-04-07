@@ -10,15 +10,15 @@ const CHANGELOG = [
     icon: Bot,
     color: "text-blue-400",
     bg: "bg-blue-400/10",
-    title: "Clara self-learning",
-    desc: "Clara now remembers your questioning style, preferred competencies, and teaching context — adapting her tone and depth with every conversation.",
+    title: "Aina self-learning",
+    desc: "Aina now remembers your questioning style, preferred competencies, and teaching context — adapting her tone and depth with every conversation.",
   },
   {
     icon: Sparkles,
     color: "text-purple-400",
     bg: "bg-purple-400/10",
     title: "Follow-on question chips",
-    desc: "After each Clara response, 2–3 contextual follow-on questions appear as chips so you can keep the conversation going with one tap.",
+    desc: "After each Aina response, 2–3 contextual follow-on questions appear as chips so you can keep the conversation going with one tap.",
   },
   {
     icon: Download,
@@ -38,8 +38,8 @@ const CHANGELOG = [
     icon: Zap,
     color: "text-rose-400",
     bg: "bg-rose-400/10",
-    title: "Faster Clara responses",
-    desc: "Wake-word detection is more responsive and language consistency is improved — Clara now always replies in your selected UI language.",
+    title: "Faster Aina responses",
+    desc: "Wake-word detection is more responsive and language consistency is improved — Aina now always replies in your selected UI language.",
   },
 ];
 

@@ -14,7 +14,7 @@ import {
   classChallenges,
   forumMessages,
   forumPresence,
-  claraMessageRatings,
+  ainaMessageRatings,
 } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
 
@@ -126,7 +126,7 @@ export const analyticsRouter = router({
   }),
 
   /**
-   * Returns a weekly breakdown of Clara thumbs-up vs thumbs-down ratings
+   * Returns a weekly breakdown of Aina thumbs-up vs thumbs-down ratings
    * for the last 8 weeks, plus an overall helpfulness percentage.
    */
   getRatingSummary: adminProcedure.query(async () => {
@@ -139,7 +139,7 @@ export const analyticsRouter = router({
         DATE_FORMAT(DATE_SUB(updatedAt, INTERVAL (DAYOFWEEK(updatedAt) - 2 + 7) % 7 DAY), '%Y-%m-%d') AS weekStart,
         SUM(CASE WHEN rating = 'up' THEN 1 ELSE 0 END) AS upCount,
         SUM(CASE WHEN rating = 'down' THEN 1 ELSE 0 END) AS downCount
-      FROM clara_message_ratings
+      FROM aina_message_ratings
       WHERE updatedAt >= DATE_SUB(NOW(), INTERVAL 8 WEEK)
       GROUP BY weekStart
       ORDER BY weekStart ASC
@@ -170,7 +170,7 @@ export const analyticsRouter = router({
       SELECT
         SUM(CASE WHEN rating = 'up' THEN 1 ELSE 0 END) AS totalUp,
         SUM(CASE WHEN rating = 'down' THEN 1 ELSE 0 END) AS totalDown
-      FROM clara_message_ratings
+      FROM aina_message_ratings
     `) as unknown as Array<{ totalUp: number; totalDown: number }>;
     const totalUp = Number(totalRows[0]?.totalUp ?? 0);
     const totalDown = Number(totalRows[0]?.totalDown ?? 0);
@@ -180,7 +180,7 @@ export const analyticsRouter = router({
     // Report reason breakdown
     const reasonRows = await db.execute(sql`
       SELECT reportReason, COUNT(*) AS cnt
-      FROM clara_message_ratings
+      FROM aina_message_ratings
       WHERE reportReason IS NOT NULL
       GROUP BY reportReason
       ORDER BY cnt DESC

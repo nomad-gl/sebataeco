@@ -1,6 +1,6 @@
 import { eq, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, InsertPracticeSession, InsertTeachingMaterial, users, practiceSessions, teachingMaterials, classChallenges, challengeParticipants, claraUserProfiles, claraMessageRatings, questionAnswers, questionReviewStatus, type ClaraUserProfile } from "../drizzle/schema";
+import { InsertUser, InsertPracticeSession, InsertTeachingMaterial, users, practiceSessions, teachingMaterials, classChallenges, challengeParticipants, ainaUserProfiles, ainaMessageRatings, questionAnswers, questionReviewStatus, type AinaUserProfile } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -261,17 +261,17 @@ export async function getParticipants(challengeId: number) {
   return db.select().from(challengeParticipants).where(eq(challengeParticipants.challengeId, challengeId)).orderBy(desc(challengeParticipants.score));
 }
 
-// ─── Clara adaptive learning profiles ────────────────────────────────────────
+// ─── Aina adaptive learning profiles ────────────────────────────────────────
 
-/** Fetch the Clara learning profile for a user, or null if none exists yet. */
-export async function getClaraProfile(userId: number): Promise<ClaraUserProfile | null> {
+/** Fetch the Aina learning profile for a user, or null if none exists yet. */
+export async function getAinaProfile(userId: number): Promise<AinaUserProfile | null> {
   const db = await getDb();
   if (!db) return null;
   try {
     const rows = await db
       .select()
-      .from(claraUserProfiles)
-      .where(eq(claraUserProfiles.userId, userId))
+      .from(ainaUserProfiles)
+      .where(eq(ainaUserProfiles.userId, userId))
       .limit(1);
     return rows[0] ?? null;
   } catch {
@@ -280,10 +280,10 @@ export async function getClaraProfile(userId: number): Promise<ClaraUserProfile 
 }
 
 /**
- * Upsert the Clara learning profile for a user.
+ * Upsert the Aina learning profile for a user.
  * Merges the supplied patch into the existing row (or creates a new one).
  */
-export async function upsertClaraProfile(
+export async function upsertAinaProfile(
   userId: number,
   patch: {
     questionCount?: number;
@@ -300,7 +300,7 @@ export async function upsertClaraProfile(
   if (!db) return;
   try {
     await db
-      .insert(claraUserProfiles)
+      .insert(ainaUserProfiles)
       .values({
         userId,
         questionCount: patch.questionCount ?? 0,
@@ -314,11 +314,11 @@ export async function upsertClaraProfile(
       })
       .onDuplicateKeyUpdate({ set: patch });
   } catch (err) {
-    console.error("[Clara] Failed to upsert profile:", err);
+    console.error("[Aina] Failed to upsert profile:", err);
   }
 }
 
-// ─── Clara message ratings ────────────────────────────────────────────────────
+// ─── Aina message ratings ────────────────────────────────────────────────────
 
 /**
  * Upsert a thumbs-up/down rating for a specific assistant message.
@@ -336,7 +336,7 @@ export async function rateMessage(data: {
   if (!db) return;
   try {
     await db
-      .insert(claraMessageRatings)
+      .insert(ainaMessageRatings)
       .values({
         userId: data.userId,
         messageId: data.messageId,
@@ -349,7 +349,7 @@ export async function rateMessage(data: {
         set: { rating: data.rating, reportReason: data.reportReason ?? null, updatedAt: new Date() },
       });
   } catch (err) {
-    console.error("[Clara] Failed to save rating:", err);
+    console.error("[Aina] Failed to save rating:", err);
   }
 }
 
@@ -362,9 +362,9 @@ export async function getUserRatings(userId: number, limit = 20) {
   try {
     return db
       .select()
-      .from(claraMessageRatings)
-      .where(eq(claraMessageRatings.userId, userId))
-      .orderBy(desc(claraMessageRatings.updatedAt))
+      .from(ainaMessageRatings)
+      .where(eq(ainaMessageRatings.userId, userId))
+      .orderBy(desc(ainaMessageRatings.updatedAt))
       .limit(limit);
   } catch {
     return [];

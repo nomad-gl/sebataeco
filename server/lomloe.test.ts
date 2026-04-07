@@ -197,9 +197,9 @@ describe("lomloe tRPC procedures", () => {
   });
 });
 
-// ─── Clara adaptive profile helpers ──────────────────────────────────────────
+// ─── Aina adaptive profile helpers ──────────────────────────────────────────
 
-import { getClaraProfile, upsertClaraProfile } from "./db";
+import { getAinaProfile, upsertAinaProfile } from "./db";
 import type { User } from "../drizzle/schema";
 
 function createAuthCtx(): TrpcContext {
@@ -220,17 +220,17 @@ function createAuthCtx(): TrpcContext {
   };
 }
 
-describe("Clara adaptive profile helpers", () => {
-  it("getClaraProfile returns null for a user with no profile", async () => {
+describe("Aina adaptive profile helpers", () => {
+  it("getAinaProfile returns null for a user with no profile", async () => {
     // Use a user ID that is very unlikely to exist in the test DB
-    const profile = await getClaraProfile(999998);
+    const profile = await getAinaProfile(999998);
     expect(profile).toBeNull();
   });
 
-  it("upsertClaraProfile creates a new profile row without throwing", async () => {
+  it("upsertAinaProfile creates a new profile row without throwing", async () => {
     // Should not throw even if DB is unavailable (graceful degradation)
     await expect(
-      upsertClaraProfile(999997, {
+      upsertAinaProfile(999997, {
         questionCount: 1,
         avgQuestionLength: 8,
         communicationStyle: "conversational",
@@ -243,16 +243,16 @@ describe("Clara adaptive profile helpers", () => {
     ).resolves.not.toThrow();
   });
 
-  it("getClaraProfile procedure requires authentication", async () => {
+  it("getAinaProfile procedure requires authentication", async () => {
     const caller = appRouter.createCaller(createCtx());
-    await expect(caller.lomloe.getClaraProfile()).rejects.toMatchObject({
+    await expect(caller.lomloe.getAinaProfile()).rejects.toMatchObject({
       code: "UNAUTHORIZED",
     });
   });
 
-  it("getClaraProfile procedure returns null or a valid profile for an authenticated user", async () => {
+  it("getAinaProfile procedure returns null or a valid profile for an authenticated user", async () => {
     const caller = appRouter.createCaller(createAuthCtx());
-    const result = await caller.lomloe.getClaraProfile();
+    const result = await caller.lomloe.getAinaProfile();
     // Either null (no profile yet) or a valid profile shape
     if (result !== null) {
       expect(result).toHaveProperty("questionCount");
