@@ -799,12 +799,12 @@
 - [x] server/worksheetPdf.ts: accept optional logoDataUrl param and render logo top-right of each PDF page header
 
 ## Feature: Settings – Branding Section
-- [ ] Settings page: add "Branding" tab/section with LogoUploader component
-- [ ] Branding section: shows current logo preview if one is stored in localStorage
-- [ ] Branding section: upload button accepts PNG/JPG, stores to localStorage key "seba_school_logo"
-- [ ] Branding section: remove/clear logo button resets localStorage and preview
-- [ ] Branding section: shows a "Where this logo appears" note listing Lesson Planner print and Question Library PDF export
-- [ ] Branding section: live preview card showing how the logo looks on a printed header
+- [x] Settings page: add "Branding" tab/section with LogoUploader component
+- [x] Branding section: shows current logo preview if one is stored in localStorage
+- [x] Branding section: upload button accepts PNG/JPG, stores to localStorage key "seba_school_logo"
+- [x] Branding section: remove/clear logo button resets localStorage and preview
+- [x] Branding section: shows a "Where this logo appears" note listing Lesson Planner print and Question Library PDF export
+- [x] Branding section: live preview card showing how the logo looks on a printed header
 
 ## Feature: Settings Page – Branding
 - [x] Create /settings route and Settings.tsx page with Branding section
@@ -815,3 +815,14 @@
 
 ## Bug: School Calendar – Create Calendar button hidden
 - [x] Fix Create Calendar button visibility in the calendar sidebar (ensure it is not clipped or hidden behind overflow)
+
+## Task: Full i18n – translate all hardcoded English strings
+- [x] Audit all pages/components for hardcoded English strings
+- [x] Add all missing keys to I18nContext.tsx (EN/ES/CA)
+- [x] Wire t() into SchoolCalendar.tsx (all dialogs, toasts, empty states, placeholders, buttons)
+- [x] Wire t() into Settings.tsx
+- [x] Wire t() into Admin.tsx
+- [x] Wire t() into NavBar.tsx remaining hardcoded strings
+- [x] Wire t() into SampleQuestions.tsx remaining hardcoded strings
+- [x] Wire t() into Home.tsx remaining hardcoded strings
+- [x] Wire t() into Chat.tsx, Create.tsx, MaterialView.tsx, Groups.tsx remaining hardcoded strings

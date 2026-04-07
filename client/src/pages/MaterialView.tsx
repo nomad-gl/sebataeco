@@ -339,6 +339,7 @@ function QuizViewer({ content, showAnswers }: { content: QuizContent; showAnswer
 // ─── Slides viewer ────────────────────────────────────────────────────────────
 
 function SlidesViewer({ content }: { content: SlidesContent }) {
+  const { t } = useI18n();
   const [current, setCurrent] = useState(0);
   const [localImages, setLocalImages] = useState<Partial<Record<number, string>>>({});
   const [regeneratingIdx, setRegeneratingIdx] = useState<number | null>(null);
@@ -349,9 +350,9 @@ function SlidesViewer({ content }: { content: SlidesContent }) {
     try {
       const { url } = await generateImageMut.mutateAsync({ prompt });
       setLocalImages(prev => ({ ...prev, [idx]: url }));
-      toast.success("Image regenerated!");
+      toast.success(t("create_image_generated"));
     } catch {
-      toast.error("Image regeneration failed. Please try again.");
+      toast.error(t("create_image_failed"));
     } finally {
       setRegeneratingIdx(null);
     }
@@ -715,6 +716,7 @@ function ExportToolbar({
   onToggleAnswers: () => void;
   showAnswers: boolean;
 }) {
+  const { t } = useI18n();
   const [exporting, setExporting] = useState<string | null>(null);
   const [printDialogOpen, setPrintDialogOpen] = useState(false);
   const [schoolName, setSchoolName] = useState("");
@@ -726,7 +728,7 @@ function ExportToolbar({
 
   async function run(fn: () => Promise<void>, key: string) {
     setExporting(key);
-    try { await fn(); } catch (e) { toast.error("Export failed. Please try again."); console.error(e); }
+    try { await fn(); } catch (e) { toast.error(t("sample_export_failed")); console.error(e); }
     finally { setExporting(null); }
   }
 

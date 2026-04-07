@@ -138,7 +138,7 @@ export default function Chat() {
           setMessages((prev) =>
             prev.map((m) => (m.id === messageId ? { ...m, rating: undefined } : m))
           );
-          toast.error("Could not save your rating. Please try again.");
+          toast.error(t("chat_rating_failed"));
         },
       }
     );

@@ -161,9 +161,9 @@ function StudentRoster({ group }: { group: Group }) {
       utils.groups.listStudents.invalidate({ groupId: group.id });
       setBulkOpen(false);
       setBulkText("");
-      toast.success(`${data.added} student${data.added === 1 ? "" : "s"} added.`);
+      toast.success(`${data.added} ${data.added === 1 ? t("groups_student_added_one") : t("groups_student_added_many")}`);  
     },
-    onError: (err) => toast.error("Bulk import failed: " + err.message),
+    onError: (err) => toast.error(t("groups_bulk_failed") + ": " + err.message),
   });
 
   const handleBulkImport = () => {
@@ -176,7 +176,7 @@ function StudentRoster({ group }: { group: Group }) {
       if (!n || !e) return null;
       return { name: n, email: e };
     }).filter((x): x is { name: string; email: string } => x !== null);
-    if (parsed.length === 0) { toast.error("No valid rows found. Format: Name, Email"); return; }
+    if (parsed.length === 0) { toast.error(t("groups_no_valid_rows")); return; }
     bulkMutation.mutate({ groupId: group.id, students: parsed });
   };
 
@@ -184,9 +184,9 @@ function StudentRoster({ group }: { group: Group }) {
     onSuccess: () => {
       utils.groups.listStudents.invalidate({ groupId: group.id });
       setEditingId(null);
-      toast.success("Student updated.");
+      toast.success(t("groups_student_updated"));
     },
-    onError: (err) => toast.error("Update failed: " + err.message),
+    onError: (err) => toast.error(t("groups_update_failed") + ": " + err.message),
   });
 
   const startEdit = (s: { id: number; name: string; email: string }) => {

@@ -120,6 +120,7 @@ function FlashcardsPreview({ content, onChange }: { content: Record<string, unkn
 }
 
 function SlidesPreview({ content, onChange }: { content: Record<string, unknown>; onChange: (c: Record<string, unknown>) => void }) {
+  const { t } = useI18n();
   const slides = (content.slides as Array<Record<string, unknown>>) ?? [];
   const [generatingIdx, setGeneratingIdx] = React.useState<number | null>(null);
   const [generatingAll, setGeneratingAll] = React.useState(false);
@@ -130,7 +131,7 @@ function SlidesPreview({ content, onChange }: { content: Record<string, unknown>
     const slidesWithoutImages = slides
       .map((s, i) => ({ s, i }))
       .filter(({ s }) => !s.imageUrl);
-    if (slidesWithoutImages.length === 0) { toast.info("All slides already have images"); return; }
+    if (slidesWithoutImages.length === 0) { toast.info(t("create_slides_all_have_images")); return; }
     setGeneratingAll(true);
     let updated = [...slides];
     for (const { s, i } of slidesWithoutImages) {
@@ -145,22 +146,22 @@ function SlidesPreview({ content, onChange }: { content: Record<string, unknown>
       }
     }
     setGeneratingAll(false);
-    toast.success("All images generated!");
+    toast.success(t("create_slides_all_images_done"));
   };
 
   const handleGenerateImage = async (si: number) => {
     const slide = slides[si];
     const prompt = String(slide.imagePrompt ?? slide.heading ?? "");
-    if (!prompt) { toast.error("No image prompt available for this slide"); return; }
+    if (!prompt) { toast.error(t("create_slides_no_prompt")); return; }
     setGeneratingIdx(si);
     try {
       const { url } = await generateImageMutation.mutateAsync({ prompt });
       const updated = [...slides];
       updated[si] = { ...slide, imageUrl: url };
       onChange({ ...content, slides: updated });
-      toast.success("Image generated!");
+      toast.success(t("create_image_generated"));
     } catch {
-      toast.error("Image generation failed. Please try again.");
+      toast.error(t("create_image_failed"));
     } finally {
       setGeneratingIdx(null);
     }
@@ -176,9 +177,9 @@ function SlidesPreview({ content, onChange }: { content: Record<string, unknown>
         const updated = [...slides];
         updated[si] = { ...slides[si], imageUrl: url };
         onChange({ ...content, slides: updated });
-        toast.success("Image uploaded!");
+        toast.success(t("create_image_uploaded"));
       } catch {
-        toast.error("Image upload failed. Please try again.");
+        toast.error(t("create_image_upload_failed"));
       }
     };
     reader.readAsDataURL(file);

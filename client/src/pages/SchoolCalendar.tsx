@@ -574,7 +574,7 @@ export default function SchoolCalendar() {
           <div className="space-y-4">
             {/* Calendar type toggle */}
             <div>
-              <Label className="text-sm font-semibold mb-2 block">Calendar Type</Label>
+              <Label className="text-sm font-semibold mb-2 block">{t("cal_type_label")}</Label>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -585,8 +585,8 @@ export default function SchoolCalendar() {
                       : "border-border hover:border-primary/40"
                   }`}
                 >
-                  <div className="font-semibold text-sm flex items-center gap-1.5"><CalendarDays className="w-4 h-4" /> Full Academic Year</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">Standard school year with term dates</div>
+                  <div className="font-semibold text-sm flex items-center gap-1.5"><CalendarDays className="w-4 h-4" /> {t("cal_type_full_year")}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{t("cal_type_full_year_desc")}</div>
                 </button>
                 <button
                   type="button"
@@ -597,8 +597,8 @@ export default function SchoolCalendar() {
                       : "border-border hover:border-primary/40"
                   }`}
                 >
-                  <div className="font-semibold text-sm flex items-center gap-1.5"><BookOpen className="w-4 h-4" /> Topic Block</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">Short-term unit with specific dates</div>
+                  <div className="font-semibold text-sm flex items-center gap-1.5"><BookOpen className="w-4 h-4" /> {t("cal_type_topic_block")}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{t("cal_type_topic_block_desc")}</div>
                 </button>
               </div>
             </div>
@@ -694,7 +694,7 @@ export default function SchoolCalendar() {
           <div className="space-y-4">
             {/* Calendar type toggle */}
             <div>
-              <Label className="text-sm font-semibold mb-2 block">Calendar Type</Label>
+              <Label className="text-sm font-semibold mb-2 block">{t("cal_type_label")}</Label>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -705,8 +705,8 @@ export default function SchoolCalendar() {
                       : "border-border hover:border-primary/40"
                   }`}
                 >
-                  <div className="font-semibold text-sm flex items-center gap-1.5"><CalendarDays className="w-4 h-4" /> Full Academic Year</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">Standard school year with term dates</div>
+                  <div className="font-semibold text-sm flex items-center gap-1.5"><CalendarDays className="w-4 h-4" /> {t("cal_type_full_year")}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{t("cal_type_full_year_desc")}</div>
                 </button>
                 <button
                   type="button"
@@ -717,8 +717,8 @@ export default function SchoolCalendar() {
                       : "border-border hover:border-primary/40"
                   }`}
                 >
-                  <div className="font-semibold text-sm flex items-center gap-1.5"><BookOpen className="w-4 h-4" /> Topic Block</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">Short-term unit with specific dates</div>
+                  <div className="font-semibold text-sm flex items-center gap-1.5"><BookOpen className="w-4 h-4" /> {t("cal_type_topic_block")}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{t("cal_type_topic_block_desc")}</div>
                 </button>
               </div>
             </div>

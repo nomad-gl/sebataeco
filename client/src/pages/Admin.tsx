@@ -92,13 +92,13 @@ export default function Admin() {
       refetchTranslationProgress();
       setTranslatingLocale(null);
       if (result.remaining > 0) {
-        toast.success(`${result.translated} questions translated`, { description: `${result.remaining} remaining.` });
+        toast.success(`${result.translated} ${t("admin_translate_done_count")}`, { description: `${result.remaining} ${t("admin_translate_remaining")}.` });
       } else {
-        toast.success("All questions translated!");
+        toast.success(t("sample_translate_all_done"));
       }
     },
     onError: (err) => {
-      toast.error("Translation failed", { description: err.message });
+      toast.error(t("sample_translate_failed"), { description: err.message });
       setTranslatingLocale(null);
     },
   });
@@ -681,11 +681,11 @@ export default function Admin() {
                 className="gap-1.5"
               >
                 {translatingLocale === "es" ? (
-                  <><Loader2 className="w-3.5 h-3.5 animate-spin" />Translating…</>
+                  <><Loader2 className="w-3.5 h-3.5 animate-spin" />{t("admin_translating")}</>
                 ) : (translationProgress?.es ?? 0) >= (translationProgress?.total ?? 480) ? (
-                  <><Languages className="w-3.5 h-3.5 text-green-500" />All translated ✓</>
+                  <><Languages className="w-3.5 h-3.5 text-green-500" />{t("admin_translate_all_es")}</>
                 ) : (
-                  <><Languages className="w-3.5 h-3.5" />Translate next 30 into Spanish</>
+                  <><Languages className="w-3.5 h-3.5" />{t("admin_translate_next_es")}</>
                 )}
               </Button>
             </div>
@@ -711,11 +711,11 @@ export default function Admin() {
                 className="gap-1.5"
               >
                 {translatingLocale === "ca" ? (
-                  <><Loader2 className="w-3.5 h-3.5 animate-spin" />Translating…</>
+                  <><Loader2 className="w-3.5 h-3.5 animate-spin" />{t("admin_translating")}</>
                 ) : (translationProgress?.ca ?? 0) >= (translationProgress?.total ?? 480) ? (
-                  <><Languages className="w-3.5 h-3.5 text-green-500" />All translated ✓</>
+                  <><Languages className="w-3.5 h-3.5 text-green-500" />{t("admin_translate_all_ca")}</>
                 ) : (
-                  <><Languages className="w-3.5 h-3.5" />Translate next 30 into Catalan</>
+                  <><Languages className="w-3.5 h-3.5" />{t("admin_translate_next_ca")}</>
                 )}
               </Button>
             </div>

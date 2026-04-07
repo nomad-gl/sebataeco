@@ -79,15 +79,15 @@ export default function SampleQuestions() {
   const translateMutation = trpc.lomloe.translateQuestions.useMutation({
     onSuccess: async (result) => {
       if (result.remaining > 0) {
-        toast.success(`${result.translated} questions translated`, { description: `${result.remaining} remaining — click again to translate more.` });
+        toast.success(`${result.translated} ${t("admin_translate_done_count")}`, { description: `${result.remaining} ${t("admin_translate_remaining")} — ${t("sample_translate_click_more")}.` });
       } else {
-        toast.success("All questions are now translated!");
+        toast.success(t("sample_translate_all_done"));
       }
       await refetch();
       setTranslating(false);
     },
     onError: (err) => {
-      toast.error("Translation failed", { description: err.message });
+      toast.error(t("sample_translate_failed"), { description: err.message });
       setTranslating(false);
     },
   });
@@ -97,13 +97,13 @@ export default function SampleQuestions() {
       const safeTitle = worksheetTitle.replace(/[^a-z0-9]/gi, "_").toLowerCase();
       downloadBase64Pdf(result.withoutAnswers, `${safeTitle}_student.pdf`);
       downloadBase64Pdf(result.withAnswers, `${safeTitle}_answers.pdf`);
-      toast.success("Worksheet downloaded!", {
-        description: "Two PDFs saved: student copy (no answers) and answer key.",
+      toast.success(t("sample_worksheet_downloaded"), {
+        description: t("sample_worksheet_downloaded_desc"),
       });
       setShowExportModal(false);
     },
     onError: (err) => {
-      toast.error("Export failed", { description: err.message });
+      toast.error(t("sample_export_failed"), { description: err.message });
     },
   });
 
@@ -175,7 +175,7 @@ export default function SampleQuestions() {
             <div className="flex flex-wrap items-center gap-3 pt-1">
               <div className="inline-flex items-center gap-1.5 bg-white/10 border border-white/20 rounded-full px-3 py-1 text-xs text-white/70">
                 <Languages className="w-3.5 h-3.5" />
-                {lang === "es" ? "Preguntas en Español · Las sin traducción aparecen en inglés" : "Preguntes en Català · Les sense traducció apareixen en anglès"}
+                {lang === "es" ? t("sample_es_note") : t("sample_ca_note")}
               </div>
               {user?.role === "admin" && (
                 <Button
@@ -186,9 +186,9 @@ export default function SampleQuestions() {
                   className="bg-white/10 border-white/30 text-white hover:bg-white/20 text-xs h-7"
                 >
                   {translating ? (
-                    <><Loader2 className="w-3 h-3 mr-1.5 animate-spin" />Translating…</>
+                    <><Loader2 className="w-3 h-3 mr-1.5 animate-spin" />{t("admin_translating")}</>
                   ) : (
-                    <><Languages className="w-3 h-3 mr-1.5" />Translate next 30</>
+                    <><Languages className="w-3 h-3 mr-1.5" />{t("sample_translate_next_30")}</>
                   )}
                 </Button>
               )}
