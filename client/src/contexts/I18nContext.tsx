@@ -853,6 +853,30 @@ export const translations = {
     gp_add_logo: "Add school logo to print header (optional)",
     gp_logo_change: "Change",
     gp_logo_upload: "Upload",
+
+    // Settings – School & Class quick-fill
+    settings_school_profile: "School & Class Defaults",
+    settings_school_profile_desc: "These values auto-fill when you create a new calendar or lesson plan. You can always override them individually.",
+    settings_school_name: "School Name",
+    settings_school_name_ph: "e.g. IES Cervantes",
+    settings_default_subject: "Default Subject",
+    settings_default_subject_ph: "e.g. English Language",
+    settings_default_year: "Default Year / Level",
+    settings_default_year_ph: "e.g. 4th Primary",
+    settings_default_tutor: "Default Tutor Name",
+    settings_default_tutor_ph: "e.g. Ms Garc\u00eda",
+    settings_profile_saved: "School profile saved",
+    settings_profile_cleared: "School profile cleared",
+    settings_save_profile: "Save Defaults",
+    settings_clear_profile: "Clear",
+
+    // Calendar progress
+    cal_progress_days: "school days planned",
+    cal_progress_label: "Topic Progress",
+
+    // Lesson Planner – duplicate
+    planner_duplicate: "Duplicate",
+    planner_duplicated: "Plan duplicated",
   },
 
   es: {
@@ -1705,6 +1729,30 @@ export const translations = {
     gp_add_logo: "Añadir logotipo del centro al encabezado de impresión (opcional)",
     gp_logo_change: "Cambiar",
     gp_logo_upload: "Subir",
+
+    // Settings – School & Class quick-fill
+    settings_school_profile: "Centro y Clase (Valores por Defecto)",
+    settings_school_profile_desc: "Estos valores se rellenan autom\u00e1ticamente al crear un nuevo calendario o programaci\u00f3n. Siempre puedes modificarlos individualmente.",
+    settings_school_name: "Nombre del Centro",
+    settings_school_name_ph: "p.ej. IES Cervantes",
+    settings_default_subject: "Asignatura por Defecto",
+    settings_default_subject_ph: "p.ej. Lengua Inglesa",
+    settings_default_year: "Curso / Nivel por Defecto",
+    settings_default_year_ph: "p.ej. 4.\u00ba Primaria",
+    settings_default_tutor: "Nombre del Tutor/a por Defecto",
+    settings_default_tutor_ph: "p.ej. Sra. Garc\u00eda",
+    settings_profile_saved: "Perfil del centro guardado",
+    settings_profile_cleared: "Perfil del centro borrado",
+    settings_save_profile: "Guardar Valores",
+    settings_clear_profile: "Borrar",
+
+    // Calendar progress
+    cal_progress_days: "d\u00edas lectivos planificados",
+    cal_progress_label: "Progreso del Tema",
+
+    // Lesson Planner – duplicate
+    planner_duplicate: "Duplicar",
+    planner_duplicated: "Programaci\u00f3n duplicada",
   },
 
   ca: {
@@ -2557,6 +2605,30 @@ export const translations = {
     gp_add_logo: "Afegir logotip del centre a la capçalera d'impressió (opcional)",
     gp_logo_change: "Canviar",
     gp_logo_upload: "Pujar",
+
+    // Settings – School & Class quick-fill
+    settings_school_profile: "Centre i Classe (Valors per Defecte)",
+    settings_school_profile_desc: "Aquests valors s'omplen autom\u00e0ticament quan creeu un nou calendari o programaci\u00f3. Sempre podeu modificar-los individualment.",
+    settings_school_name: "Nom del Centre",
+    settings_school_name_ph: "p.ex. IES Cervantes",
+    settings_default_subject: "Assignatura per Defecte",
+    settings_default_subject_ph: "p.ex. Llengua Anglesa",
+    settings_default_year: "Curs / Nivell per Defecte",
+    settings_default_year_ph: "p.ex. 4t de Prim\u00e0ria",
+    settings_default_tutor: "Nom del Tutor/a per Defecte",
+    settings_default_tutor_ph: "p.ex. Sra. Garc\u00eda",
+    settings_profile_saved: "Perfil del centre desat",
+    settings_profile_cleared: "Perfil del centre esborrat",
+    settings_save_profile: "Desar Valors",
+    settings_clear_profile: "Esborrar",
+
+    // Calendar progress
+    cal_progress_days: "dies lectius planificats",
+    cal_progress_label: "Progr\u00e9s del Tema",
+
+    // Lesson Planner – duplicate
+    planner_duplicate: "Duplicar",
+    planner_duplicated: "Programaci\u00f3 duplicada",
   },
 } as const;
 

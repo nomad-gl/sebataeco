@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { Plus, Sparkles, Trash2, Printer, BookOpen, Save, List, X } from "lucide-react";
+import { Plus, Sparkles, Trash2, Printer, BookOpen, Save, List, X, Copy } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import LogoUploader from "@/components/LogoUploader";
 import { useI18n } from "@/contexts/I18nContext";
@@ -50,26 +50,33 @@ type LessonFormState = {
   competencies: string[];
 };
 
-const emptyForm = (): LessonFormState => ({
-  title: "",
-  unit: "",
-  lessonNumber: "",
-  academicYear: ACADEMIC_YEARS[1],
-  duration: 60,
-  yearGroup: YEAR_GROUPS[3],
-  subject: "English",
-  skills: { listening: false, speaking: false, reading: false, writing: false },
-  systems: { grammar: false, phonology: false, lexis: false, function: false, discourse: false },
-  specificCompetences: [],
-  saberesBasicos: [""],
-  learningOutcomes: [""],
-  evaluationCriteria: [""],
-  previousKnowledge: "",
-  materials: "",
-  spaces: "Classroom",
-  procedures: [{ timing: "10 min", stage: "Warm-up", activities: "", grouping: "Whole class" }],
-  competencies: [],
-});
+const emptyForm = (): LessonFormState => {
+  let profile = { defaultSubject: "", defaultYear: "" };
+  try {
+    const raw = localStorage.getItem("seba_school_profile");
+    if (raw) profile = JSON.parse(raw);
+  } catch { /* ignore */ }
+  return {
+    title: "",
+    unit: "",
+    lessonNumber: "",
+    academicYear: ACADEMIC_YEARS[1],
+    duration: 60,
+    yearGroup: profile.defaultYear || YEAR_GROUPS[3],
+    subject: profile.defaultSubject || "English",
+    skills: { listening: false, speaking: false, reading: false, writing: false },
+    systems: { grammar: false, phonology: false, lexis: false, function: false, discourse: false },
+    specificCompetences: [],
+    saberesBasicos: [""],
+    learningOutcomes: [""],
+    evaluationCriteria: [""],
+    previousKnowledge: "",
+    materials: "",
+    spaces: "Classroom",
+    procedures: [{ timing: "10 min", stage: "Warm-up", activities: "", grouping: "Whole class" }],
+    competencies: [],
+  };
+};
 
 function parseJsonField<T>(val: string | null | undefined, fallback: T): T {
   if (!val) return fallback;
@@ -191,12 +198,13 @@ function buildPrintHtml(form: LessonFormState, logoDataUrl?: string): string {
 }
 
 // ─── Saved Plans List (shared between sidebar and sheet) ───────────────────────
-function PlansList({ plans, selectedId, onLoad, onNew, onAi, t }: {
+function PlansList({ plans, selectedId, onLoad, onNew, onAi, onDuplicate, t }: {
   plans: any[];
   selectedId: number | null;
   onLoad: (p: any) => void;
   onNew: () => void;
   onAi: () => void;
+  onDuplicate: (p: any) => void;
   t: (k: any) => string;
 }) {
   return (
@@ -208,14 +216,22 @@ function PlansList({ plans, selectedId, onLoad, onNew, onAi, t }: {
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
         {plans.length === 0 && <p className="text-xs text-muted-foreground p-2">{t("lp_no_plans")}</p>}
         {plans.map((p: any) => (
-          <button
-            key={p.id}
-            onClick={() => onLoad(p)}
-            className={`w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-accent transition-colors ${selectedId === p.id ? "bg-accent font-medium" : ""}`}
-          >
-            <div className="truncate">{p.title || t("lp_untitled")}</div>
-            <div className="text-xs text-muted-foreground truncate">{p.subject} · {p.yearGroup}</div>
-          </button>
+          <div key={p.id} className="group relative">
+            <button
+              onClick={() => onLoad(p)}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-accent transition-colors pr-8 ${selectedId === p.id ? "bg-accent font-medium" : ""}`}
+            >
+              <div className="truncate">{p.title || t("lp_untitled")}</div>
+              <div className="text-xs text-muted-foreground truncate">{p.subject} · {p.yearGroup}</div>
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onDuplicate(p); }}
+              title={t("planner_duplicate")}
+              className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-muted"
+            >
+              <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+            </button>
+          </div>
         ))}
       </div>
       <div className="p-2 border-t shrink-0">
@@ -283,6 +299,31 @@ export default function LessonPlanner() {
     },
     onError: (e) => toast.error(e.message),
   });
+
+  const duplicateMutation = trpc.planner.saveLessonPlan.useMutation({
+    onSuccess: (data) => {
+      utils.planner.listLessonPlans.invalidate();
+      setSelectedId(data.id);
+      toast.success(t("planner_duplicated"));
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const handleDuplicate = (plan: any) => {
+    const f = planToForm(plan);
+    duplicateMutation.mutate({
+      ...f,
+      title: f.title ? `${f.title} (copy)` : "Copy",
+      skills: JSON.stringify(f.skills),
+      systems: JSON.stringify(f.systems),
+      specificCompetences: JSON.stringify(f.specificCompetences),
+      saberesBasicos: JSON.stringify(f.saberesBasicos),
+      learningOutcomes: JSON.stringify(f.learningOutcomes),
+      evaluationCriteria: JSON.stringify(f.evaluationCriteria),
+      procedures: JSON.stringify(f.procedures),
+      competencies: JSON.stringify(f.competencies),
+    });
+  };
 
   const aiMutation = trpc.planner.aiGenerateLessonPlan.useMutation({
     onSuccess: (data) => {
@@ -369,6 +410,7 @@ export default function LessonPlanner() {
       onLoad={loadPlan}
       onNew={newPlan}
       onAi={() => { setSheetOpen(false); setShowAiDialog(true); }}
+      onDuplicate={handleDuplicate}
       t={t}
     />
   );

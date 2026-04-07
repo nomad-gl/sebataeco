@@ -18,6 +18,7 @@ import {
 import DashboardLayout from "@/components/DashboardLayout";
 import { useLocation } from "wouter";
 import { useI18n } from "@/contexts/I18nContext";
+import { loadSchoolProfile } from "@/pages/Settings";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const ACADEMIC_YEARS = [`${CURRENT_YEAR - 1}-${CURRENT_YEAR}`, `${CURRENT_YEAR}-${CURRENT_YEAR + 1}`, `${CURRENT_YEAR + 1}-${CURRENT_YEAR + 2}`];
@@ -69,18 +70,21 @@ const DEFAULT_TERMS = [
   { label: "Term 3", start: "", end: "" },
 ];
 
-const emptyCalForm = (academicYear = ACADEMIC_YEARS[1]) => ({
-  name: "",
-  schoolName: "",
-  tutorName: "",
-  subject: "English",
-  yearLevel: YEAR_GROUPS[3],
-  academicYear,
-  calendarType: "full_year" as "full_year" | "topic_block",
-  startDate: "",
-  endDate: "",
-  topicDescription: "",
-});
+const emptyCalForm = (academicYear = ACADEMIC_YEARS[1]) => {
+  const profile = loadSchoolProfile();
+  return {
+    name: "",
+    schoolName: profile.schoolName || "",
+    tutorName: profile.defaultTutor || "",
+    subject: profile.defaultSubject || "English",
+    yearLevel: profile.defaultYear || YEAR_GROUPS[3],
+    academicYear,
+    calendarType: "full_year" as "full_year" | "topic_block",
+    startDate: "",
+    endDate: "",
+    topicDescription: "",
+  };
+};
 
 export default function SchoolCalendar() {
   const [, navigate] = useLocation();
@@ -334,6 +338,23 @@ export default function SchoolCalendar() {
   const aiEvents = events.filter(e => e.aiGenerated).length;
   const holidays = events.filter(e => e.eventType === "holiday").length;
 
+  // Topic block progress: count school days (Mon-Fri) in the date range
+  const topicProgress = useMemo(() => {
+    const cal = selectedCalendar as SchoolCalendar | null;
+    if (!cal || cal.calendarType !== "topic_block" || !cal.startDate || !cal.endDate) return null;
+    const start = new Date(cal.startDate as string);
+    const end = new Date(cal.endDate as string);
+    let totalDays = 0;
+    const cur = new Date(start);
+    while (cur <= end) {
+      const dow = cur.getDay();
+      if (dow !== 0 && dow !== 6) totalDays++;
+      cur.setDate(cur.getDate() + 1);
+    }
+    const planned = events.filter(e => e.eventType === "lesson" || e.eventType === "ai_generated").length;
+    return { planned, total: totalDays };
+  }, [selectedCalendar, events]);
+
   const eventLabels: Record<string, string> = {
     holiday: t("cal_event_holiday"),
     special: t("cal_event_special"),
@@ -440,8 +461,22 @@ export default function SchoolCalendar() {
                       </div>
                       {(selectedCalendar as SchoolCalendar).calendarType === "topic_block" && (selectedCalendar as SchoolCalendar).topicDescription && (
                         <p className="text-xs text-muted-foreground mt-1.5 italic line-clamp-2">
-                          “{(selectedCalendar as SchoolCalendar).topicDescription}”
+                          "{(selectedCalendar as SchoolCalendar).topicDescription}"
                         </p>
+                      )}
+                      {topicProgress && (
+                        <div className="mt-2 space-y-1">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-medium text-foreground">{t("cal_progress_label")}</span>
+                            <span className="text-muted-foreground">{topicProgress.planned} / {topicProgress.total} {t("cal_progress_days")}</span>
+                          </div>
+                          <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                            <div
+                              className="h-full bg-teal-500 rounded-full transition-all duration-500"
+                              style={{ width: topicProgress.total > 0 ? `${Math.min(100, Math.round((topicProgress.planned / topicProgress.total) * 100))}%` : "0%" }}
+                            />
+                          </div>
+                        </div>
                       )}
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">

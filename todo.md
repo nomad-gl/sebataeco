@@ -826,3 +826,20 @@
 - [x] Wire t() into SampleQuestions.tsx remaining hardcoded strings
 - [x] Wire t() into Home.tsx remaining hardcoded strings
 - [x] Wire t() into Chat.tsx, Create.tsx, MaterialView.tsx, Groups.tsx remaining hardcoded strings
+
+## Feature: Settings – School & Class quick-fill
+- [x] Settings page: add "School & Class" section with fields: school name, default subject, default year/level, default tutor name
+- [x] Store values in localStorage key "seba_school_profile"
+- [x] SchoolCalendar create/edit modal: auto-populate schoolName, tutorName, subject, yearLevel from localStorage on open
+- [x] LessonPlanner: auto-populate subject, yearGroup, teacherName from localStorage on new plan
+- [x] Add i18n keys for all new Settings labels (EN/ES/CA)
+
+## Feature: Topic Block Progress Indicator
+- [x] Server: add getCalendarProgress procedure returning assignedDays and totalSchoolDays for a calendar
+- [x] SchoolCalendar header: show progress bar (e.g. "8 / 15 school days planned") for topic_block calendars
+- [x] Progress bar updates reactively when events are added/deleted
+
+## Feature: Duplicate Lesson Plan
+- [x] LessonPlanner: add "Duplicate" button (copy icon) on each saved plan row in the plans list
+- [x] Clicking Duplicate creates a copy of the plan with title suffixed "(copy)" and opens it for editing
+- [x] Add i18n keys for duplicate action (EN/ES/CA)

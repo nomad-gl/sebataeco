@@ -1,31 +1,65 @@
 /**
  * Settings page
  *
- * Provides teacher-facing configuration options.
- * Currently includes:
- *   - Branding: upload/manage school logo (stored in localStorage)
- *
- * Additional settings sections can be added as new Card blocks below.
+ * Sections:
+ *   1. Branding – school logo (stored in localStorage "seba_school_logo")
+ *   2. School & Class Defaults – school name, subject, year/level, tutor
+ *      (stored in localStorage "seba_school_profile", auto-fills calendars & lesson plans)
  */
 
 import { useEffect, useState } from "react";
-import { Settings as SettingsIcon, Palette, CheckCircle2, BookOpen, FileText } from "lucide-react";
+import {
+  Settings as SettingsIcon,
+  Palette,
+  CheckCircle2,
+  BookOpen,
+  FileText,
+  School,
+  Save,
+  Trash2,
+} from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import NavBar from "@/components/NavBar";
 import LogoUploader from "@/components/LogoUploader";
 import { useI18n, type TranslationKey } from "@/contexts/I18nContext";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { Button } from "@/components/ui/button";
 import { getLoginUrl } from "@/const";
+import { toast } from "sonner";
 
-const STORAGE_KEY = "seba_school_logo";
+const LOGO_KEY = "seba_school_logo";
+const PROFILE_KEY = "seba_school_profile";
+
+export interface SchoolProfile {
+  schoolName: string;
+  defaultSubject: string;
+  defaultYear: string;
+  defaultTutor: string;
+}
+
+export function loadSchoolProfile(): SchoolProfile {
+  try {
+    const raw = localStorage.getItem(PROFILE_KEY);
+    if (raw) return JSON.parse(raw) as SchoolProfile;
+  } catch {
+    // ignore
+  }
+  return { schoolName: "", defaultSubject: "", defaultYear: "", defaultTutor: "" };
+}
+
+export function saveSchoolProfile(p: SchoolProfile) {
+  localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
+  window.dispatchEvent(new CustomEvent("seba_profile_changed", { detail: p }));
+}
 
 // ── Live print-header preview ────────────────────────────────────────────────
 function PrintHeaderPreview({ t }: { t: (k: TranslationKey) => string }) {
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(LOGO_KEY);
     if (stored) setLogoDataUrl(stored);
 
     const handler = (e: Event) => {
@@ -38,7 +72,6 @@ function PrintHeaderPreview({ t }: { t: (k: TranslationKey) => string }) {
 
   return (
     <div className="rounded-lg border border-border bg-white shadow-sm overflow-hidden">
-      {/* Simulated A4 header strip */}
       <div className="px-5 pt-4 pb-3 border-b border-border/60 flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <p className="text-[11px] font-bold text-gray-800 leading-tight truncate">
@@ -49,10 +82,12 @@ function PrintHeaderPreview({ t }: { t: (k: TranslationKey) => string }) {
           </p>
           <div className="flex gap-4 mt-1.5">
             <span className="text-[9px] text-gray-400">
-              <span className="font-semibold text-gray-600">{t("settings_logo_preview_date")}</span> 07/04/2026
+              <span className="font-semibold text-gray-600">{t("settings_logo_preview_date")}</span>{" "}
+              07/04/2026
             </span>
             <span className="text-[9px] text-gray-400">
-              <span className="font-semibold text-gray-600">{t("settings_logo_preview_teacher")}</span> Ms García
+              <span className="font-semibold text-gray-600">{t("settings_logo_preview_teacher")}</span>{" "}
+              Ms García
             </span>
           </div>
         </div>
@@ -97,6 +132,118 @@ function WhereUsed({ t }: { t: (k: TranslationKey) => string }) {
   );
 }
 
+// ── School & Class defaults card ─────────────────────────────────────────────
+function SchoolProfileCard({ t }: { t: (k: TranslationKey) => string }) {
+  const [form, setForm] = useState<SchoolProfile>(() => loadSchoolProfile());
+
+  const handleSave = () => {
+    saveSchoolProfile(form);
+    toast.success(t("settings_profile_saved"));
+  };
+
+  const handleClear = () => {
+    const empty: SchoolProfile = {
+      schoolName: "",
+      defaultSubject: "",
+      defaultYear: "",
+      defaultTutor: "",
+    };
+    setForm(empty);
+    saveSchoolProfile(empty);
+    toast.success(t("settings_profile_cleared"));
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <School className="w-4 h-4 text-primary" />
+          <CardTitle className="text-base">{t("settings_school_profile")}</CardTitle>
+        </div>
+        <CardDescription className="text-sm leading-relaxed">
+          {t("settings_school_profile_desc")}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* School Name */}
+          <div className="space-y-1.5">
+            <Label htmlFor="sp-school" className="text-xs font-medium">
+              {t("settings_school_name")}
+            </Label>
+            <Input
+              id="sp-school"
+              value={form.schoolName}
+              onChange={(e) => setForm((f) => ({ ...f, schoolName: e.target.value }))}
+              placeholder={t("settings_school_name_ph")}
+              className="h-9 text-sm"
+            />
+          </div>
+
+          {/* Default Subject */}
+          <div className="space-y-1.5">
+            <Label htmlFor="sp-subject" className="text-xs font-medium">
+              {t("settings_default_subject")}
+            </Label>
+            <Input
+              id="sp-subject"
+              value={form.defaultSubject}
+              onChange={(e) => setForm((f) => ({ ...f, defaultSubject: e.target.value }))}
+              placeholder={t("settings_default_subject_ph")}
+              className="h-9 text-sm"
+            />
+          </div>
+
+          {/* Default Year / Level */}
+          <div className="space-y-1.5">
+            <Label htmlFor="sp-year" className="text-xs font-medium">
+              {t("settings_default_year")}
+            </Label>
+            <Input
+              id="sp-year"
+              value={form.defaultYear}
+              onChange={(e) => setForm((f) => ({ ...f, defaultYear: e.target.value }))}
+              placeholder={t("settings_default_year_ph")}
+              className="h-9 text-sm"
+            />
+          </div>
+
+          {/* Default Tutor Name */}
+          <div className="space-y-1.5">
+            <Label htmlFor="sp-tutor" className="text-xs font-medium">
+              {t("settings_default_tutor")}
+            </Label>
+            <Input
+              id="sp-tutor"
+              value={form.defaultTutor}
+              onChange={(e) => setForm((f) => ({ ...f, defaultTutor: e.target.value }))}
+              placeholder={t("settings_default_tutor_ph")}
+              className="h-9 text-sm"
+            />
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex items-center gap-2 pt-1">
+          <Button size="sm" onClick={handleSave} className="gap-1.5">
+            <Save className="w-3.5 h-3.5" />
+            {t("settings_save_profile")}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleClear}
+            className="gap-1.5 text-destructive hover:text-destructive"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            {t("settings_clear_profile")}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Main page ────────────────────────────────────────────────────────────────
 export default function Settings() {
   const { t } = useI18n();
@@ -136,6 +283,9 @@ export default function Settings() {
           </Card>
         ) : (
           <div className="space-y-6">
+            {/* ── School & Class Defaults card ── */}
+            <SchoolProfileCard t={t} />
+
             {/* ── Branding card ── */}
             <Card>
               <CardHeader className="pb-3">
@@ -163,8 +313,6 @@ export default function Settings() {
                 <WhereUsed t={t} />
               </CardContent>
             </Card>
-
-            {/* Placeholder for future settings sections */}
           </div>
         )}
       </main>
