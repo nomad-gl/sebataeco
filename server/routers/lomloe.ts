@@ -879,6 +879,7 @@ Guidelines:
         locale: z.enum(["en", "es", "ca"]).default("en"),
         title: z.string().max(120).default("LOMLOE Question Worksheet"),
         subtitle: z.string().max(200).optional(),
+        logoDataUrl: z.string().max(600_000).optional(), // base64 data URL from client localStorage
       })
     )
     .mutation(async ({ input }) => {
@@ -941,6 +942,7 @@ Guidelines:
         subtitle: input.subtitle,
         questions,
         locale: input.locale,
+        logoDataUrl: input.logoDataUrl,
       });
 
       return result; // { withAnswers: base64, withoutAnswers: base64 }

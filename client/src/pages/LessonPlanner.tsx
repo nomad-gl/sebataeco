@@ -14,6 +14,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { toast } from "sonner";
 import { Plus, Sparkles, Trash2, Printer, BookOpen, Save, List, X } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
+import LogoUploader from "@/components/LogoUploader";
 import { useI18n } from "@/contexts/I18nContext";
 import { useIsMobile } from "@/hooks/useMobile";
 
@@ -726,9 +727,13 @@ export default function LessonPlanner() {
 
       {/* Print Dialog */}
       <Dialog open={showPrintDialog} onOpenChange={setShowPrintDialog}>
-        <DialogContent className="max-w-sm max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="flex items-center gap-2"><Printer className="w-5 h-5" /> {t("lp_print_dialog_title")}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-5">
+            {/* Logo upload */}
+            <LogoUploader />
+            <Separator />
+            {/* Paper format */}
             <div>
               <Label>{t("lp_paper_format")}</Label>
               <Select value={printFormat} onValueChange={v => setPrintFormat(v as any)}>
@@ -741,7 +746,6 @@ export default function LessonPlanner() {
               </Select>
             </div>
             <p className="text-sm text-muted-foreground">{t("lp_print_desc")}</p>
-            <p className="text-xs text-muted-foreground">{t("lp_print_logo_note")}</p>
           </div>
           <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
             <Button variant="outline" onClick={() => setShowPrintDialog(false)}>{t("cal_cancel")}</Button>

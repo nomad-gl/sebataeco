@@ -26,6 +26,7 @@ interface WorksheetOptions {
   questions: WorksheetQuestion[];
   includeAnswers: boolean;
   locale: "en" | "es" | "ca";
+  logoDataUrl?: string; // base64 data URL (PNG/JPG/SVG) from client localStorage
 }
 
 const LABELS = {
@@ -72,10 +73,42 @@ function buildPdf(opts: WorksheetOptions): Promise<Buffer> {
     const labels = LABELS[opts.locale];
     const pageWidth = doc.page.width - 100; // margins
 
+    // ── Logo (top-right corner) ──────────────────────────────────────────────
+    const LOGO_MAX_W = 110;
+    const LOGO_MAX_H = 50;
+    const LOGO_X = doc.page.width - 50 - LOGO_MAX_W;
+    const LOGO_Y = 40;
+    if (opts.logoDataUrl) {
+      try {
+        // Extract mime type and raw base64 from data URL
+        const match = opts.logoDataUrl.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
+        if (match) {
+          const mimeType = match[1];
+          const base64Data = match[2];
+          const imgBuffer = Buffer.from(base64Data, "base64");
+          // PDFKit accepts Buffer for image; SVG is not natively supported, skip gracefully
+          if (mimeType !== "image/svg+xml") {
+            doc.image(imgBuffer, LOGO_X, LOGO_Y, {
+              fit: [LOGO_MAX_W, LOGO_MAX_H],
+            });
+          }
+        }
+      } catch (_) {
+        // Logo rendering failed — continue without it
+      }
+    }
+
     // ── Header ──────────────────────────────────────────────────────────────
-    doc.fontSize(18).font("Helvetica-Bold").text(opts.title, { align: "center" });
+    // Title area is narrower when logo is present to avoid overlap
+    const titleWidth = opts.logoDataUrl ? pageWidth - LOGO_MAX_W - 10 : pageWidth;
+    doc.fontSize(18).font("Helvetica-Bold").text(opts.title, 50, 50, { width: titleWidth });
     if (opts.subtitle) {
-      doc.fontSize(11).font("Helvetica").fillColor("#555555").text(opts.subtitle, { align: "center" });
+      doc.fontSize(11).font("Helvetica").fillColor("#555555").text(opts.subtitle, 50, doc.y, { width: titleWidth });
+    }
+    // Reset Y to below the logo if logo is taller than the title block
+    if (opts.logoDataUrl) {
+      const afterLogo = LOGO_Y + LOGO_MAX_H + 8;
+      if (doc.y < afterLogo) doc.y = afterLogo;
     }
 
     if (opts.includeAnswers) {

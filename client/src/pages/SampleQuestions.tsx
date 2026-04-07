@@ -12,9 +12,11 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { useI18n } from "@/contexts/I18nContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
+import LogoUploader from "@/components/LogoUploader";
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
 type YearGroup = "junior" | "primary" | "secondary";
@@ -114,11 +116,13 @@ export default function SampleQuestions() {
   const handleExport = () => {
     const ids = Array.from(selected);
     if (ids.length === 0) return;
+    const logoDataUrl = localStorage.getItem("seba_school_logo") ?? undefined;
     exportMutation.mutate({
       questionIds: ids,
       locale,
       title: worksheetTitle || "LOMLOE Question Worksheet",
       subtitle: worksheetSubtitle || undefined,
+      logoDataUrl,
     });
   };
 
@@ -375,7 +379,7 @@ export default function SampleQuestions() {
 
       {/* Export Worksheet Modal */}
       <Dialog open={showExportModal} onOpenChange={setShowExportModal}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Printer className="w-5 h-5" />
@@ -383,6 +387,9 @@ export default function SampleQuestions() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            {/* Logo upload */}
+            <LogoUploader />
+            <Separator />
             <div className="space-y-1.5">
               <Label htmlFor="ws-title">Worksheet Title</Label>
               <Input

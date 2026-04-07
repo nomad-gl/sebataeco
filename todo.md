@@ -790,3 +790,10 @@
 - [x] LessonPlanner: section headers and labels have adequate font size and tap targets on mobile
 - [x] LessonPlanner: print preview modal is scrollable and readable on mobile
 - [x] LessonPlanner: saved plans list sidebar collapses or moves below main content on mobile
+
+## Feature: School Logo in Print/PDF dialogs
+- [x] Build reusable LogoUploader component: file input (PNG/JPG/SVG), preview thumbnail, remove button, persists to localStorage key "seba_school_logo"
+- [x] LessonPlanner print dialog: show LogoUploader before paper format selector; logo preview visible in dialog
+- [x] LessonPlanner buildPrintHtml: already reads localStorage logo — ensure it renders correctly top-right of printed page
+- [x] SampleQuestions worksheet export modal: add LogoUploader section so logo appears on both answer-key and student PDF versions
+- [x] server/worksheetPdf.ts: accept optional logoDataUrl param and render logo top-right of each PDF page header
