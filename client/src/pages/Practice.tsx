@@ -18,7 +18,7 @@ type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CC
 type YearGroup = "junior" | "primary" | "secondary";
 
 export default function Practice() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [location] = useLocation();
   const urlParams = new URLSearchParams(location.split("?")[1] ?? "");
   const initialCompetency = (urlParams.get("competency") as CompetencyCode) || undefined;
@@ -38,7 +38,7 @@ export default function Practice() {
   const saveAnswer = trpc.lomloe.saveAnswer.useMutation();
 
   const { data: question, refetch: fetchNext, isFetching } = trpc.lomloe.getRandomQuestion.useQuery(
-    { competency, yearGroup, excludeIds: answeredIds },
+    { competency, yearGroup, excludeIds: answeredIds, locale: (lang as "en" | "es" | "ca") },
     { enabled: sessionStarted && !sessionDone, staleTime: 0 }
   );
 

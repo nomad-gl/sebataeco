@@ -869,3 +869,11 @@
 - [x] SchoolCalendar: all placeholder= and example text strings use t() keys (calendar name, school name, subject, topic description, event title, etc.)
 - [x] LessonPlanner: all placeholder= strings use t() keys (lesson title, objectives, materials, etc.)
 - [x] Add any missing placeholder i18n keys to I18nContext.tsx (EN/ES/CA)
+
+## Bug: Practice Mode questions/answers always in English
+- [x] Audit lomloe.getQuestions procedure — check if it returns translated text based on locale
+- [x] Check questionTranslations table usage in the lomloe router
+- [x] Pass current UI language (locale) from Practice page to the getRandomQuestion query
+- [x] Server: getRandomQuestion now accepts locale param and returns translated question, options, explanation when locale is 'es' or 'ca'
+- [x] Fall back to English if no translation exists for a question
+- [x] SampleQuestions already passes locale correctly (no change needed)

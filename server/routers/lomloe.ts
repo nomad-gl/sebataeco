@@ -322,6 +322,8 @@ export const lomloeRouter = router({
         competency: CompetencyCodeSchema.optional(),
         yearGroup: YearGroupSchema.optional(),
         excludeIds: z.array(z.string()).default([]),
+        /** UI locale — when 'es' or 'ca', translated text is returned if available */
+        locale: z.enum(["en", "es", "ca"]).default("en"),
       })
     )
     .query(async ({ input }) => {
@@ -361,7 +363,35 @@ export const lomloeRouter = router({
         pool = pool.filter((q) => !input.excludeIds.includes(q.id));
       }
       if (pool.length === 0) return null;
+
       const q = pool[Math.floor(Math.random() * pool.length)];
+
+      // 3. Apply translation overlay if locale is ES or CA
+      if (input.locale !== "en" && db) {
+        try {
+          const [tr] = await db
+            .select()
+            .from(questionTranslations)
+            .where(
+              and(
+                eq(questionTranslations.locale, input.locale),
+                eq(questionTranslations.questionId, q.id)
+              )
+            );
+          if (tr) {
+            const translatedQ = {
+              ...q,
+              question: tr.question,
+              options: JSON.parse(tr.options) as string[],
+              explanation: tr.explanation,
+            };
+            return shuffleQuestion(translatedQ);
+          }
+        } catch (err) {
+          console.error("[getRandomQuestion] Translation lookup error:", err);
+        }
+      }
+
       return shuffleQuestion(q);
     }),
 
