@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,10 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { Plus, Sparkles, Trash2, Printer, BookOpen, Save } from "lucide-react";
+import { Plus, Sparkles, Trash2, Printer, BookOpen, Save, List, X } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useI18n } from "@/contexts/I18nContext";
+import { useIsMobile } from "@/hooks/useMobile";
 
 const COMPETENCIES = ["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"];
 const YEAR_GROUPS = ["1st Primary", "2nd Primary", "3rd Primary", "4th Primary", "5th Primary", "6th Primary", "1st Secondary", "2nd Secondary", "3rd Secondary", "4th Secondary"];
@@ -187,10 +189,49 @@ function buildPrintHtml(form: LessonFormState, logoDataUrl?: string): string {
 </body></html>`;
 }
 
+// ─── Saved Plans List (shared between sidebar and sheet) ───────────────────────
+function PlansList({ plans, selectedId, onLoad, onNew, onAi, t }: {
+  plans: any[];
+  selectedId: number | null;
+  onLoad: (p: any) => void;
+  onNew: () => void;
+  onAi: () => void;
+  t: (k: any) => string;
+}) {
+  return (
+    <div className="flex flex-col h-full">
+      <div className="p-3 border-b flex items-center justify-between shrink-0">
+        <span className="font-semibold text-sm">{t("lp_lesson_plans")}</span>
+        <Button size="sm" variant="ghost" onClick={onNew}><Plus className="w-4 h-4" /></Button>
+      </div>
+      <div className="flex-1 overflow-y-auto p-2 space-y-1">
+        {plans.length === 0 && <p className="text-xs text-muted-foreground p-2">{t("lp_no_plans")}</p>}
+        {plans.map((p: any) => (
+          <button
+            key={p.id}
+            onClick={() => onLoad(p)}
+            className={`w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-accent transition-colors ${selectedId === p.id ? "bg-accent font-medium" : ""}`}
+          >
+            <div className="truncate">{p.title || t("lp_untitled")}</div>
+            <div className="text-xs text-muted-foreground truncate">{p.subject} · {p.yearGroup}</div>
+          </button>
+        ))}
+      </div>
+      <div className="p-2 border-t shrink-0">
+        <Button size="sm" className="w-full gap-1" onClick={onAi}>
+          <Sparkles className="w-3 h-3" /> {t("lp_generate_ai")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ────────────────────────────────────────────────────────────
 export default function LessonPlanner() {
   const { t } = useI18n();
+  const isMobile = useIsMobile();
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [form, setForm] = useState<LessonFormState>(() => {
     // Pre-fill from calendar deep-link query params
     const params = new URLSearchParams(window.location.search);
@@ -265,12 +306,14 @@ export default function LessonPlanner() {
     setSelectedId(plan.id);
     setForm(planToForm(plan));
     setIsDirty(false);
+    setSheetOpen(false); // close sheet on mobile after selecting
   };
 
   const newPlan = () => {
     setSelectedId(null);
     setForm(emptyForm());
     setIsDirty(false);
+    setSheetOpen(false);
   };
 
   const handleSave = () => {
@@ -318,262 +361,328 @@ export default function LessonPlanner() {
   const addProcedure = () => setField("procedures", [...form.procedures, { timing: "", stage: "", activities: "", grouping: "Pairs" }]);
   const removeProcedure = (idx: number) => setField("procedures", form.procedures.filter((_, i) => i !== idx));
 
+  const plansList = (
+    <PlansList
+      plans={plans as any[]}
+      selectedId={selectedId}
+      onLoad={loadPlan}
+      onNew={newPlan}
+      onAi={() => { setSheetOpen(false); setShowAiDialog(true); }}
+      t={t}
+    />
+  );
+
   return (
     <DashboardLayout>
+      {/* ── Layout shell: sidebar on desktop, sheet on mobile ── */}
       <div className="flex h-[calc(100vh-64px)] overflow-hidden">
-        {/* Sidebar — saved plans */}
-        <aside className="w-64 border-r flex flex-col shrink-0 overflow-hidden">
-          <div className="p-3 border-b flex items-center justify-between">
-            <span className="font-semibold text-sm">{t("lp_lesson_plans")}</span>
-            <Button size="sm" variant="ghost" onClick={newPlan}><Plus className="w-4 h-4" /></Button>
-          </div>
-          <div className="flex-1 overflow-y-auto p-2 space-y-1">
-            {plans.length === 0 && <p className="text-xs text-muted-foreground p-2">{t("lp_no_plans")}</p>}
-            {plans.map((p: any) => (
-              <button
-                key={p.id}
-                onClick={() => loadPlan(p)}
-                className={`w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-accent transition-colors ${selectedId === p.id ? "bg-accent font-medium" : ""}`}
-              >
-                <div className="truncate">{p.title || t("lp_untitled")}</div>
-                <div className="text-xs text-muted-foreground truncate">{p.subject} · {p.yearGroup}</div>
-              </button>
-            ))}
-          </div>
-          <div className="p-2 border-t">
-            <Button size="sm" className="w-full gap-1" onClick={() => setShowAiDialog(true)}>
-              <Sparkles className="w-3 h-3" /> {t("lp_generate_ai")}
-            </Button>
-          </div>
-        </aside>
+
+        {/* Desktop sidebar */}
+        {!isMobile && (
+          <aside className="w-64 border-r flex flex-col shrink-0 overflow-hidden">
+            {plansList}
+          </aside>
+        )}
 
         {/* Main editor */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Toolbar */}
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-primary" />
-              <h1 className="text-xl font-bold">{t("lp_title")}</h1>
-              {isDirty && <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">{t("lp_unsaved")}</Badge>}
-            </div>
-            <div className="flex gap-2">
-              {selectedId && (
-                <Button variant="outline" size="sm" onClick={() => deleteMutation.mutate({ id: selectedId })} className="text-red-600 hover:text-red-700">
-                  <Trash2 className="w-4 h-4" />
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-4 sm:p-6 space-y-5 max-w-3xl mx-auto">
+
+            {/* Toolbar */}
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Mobile: plans sheet trigger */}
+                {isMobile && (
+                  <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+                    <SheetTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-1.5">
+                        <List className="w-4 h-4" />
+                        {t("lp_lesson_plans")}
+                        {plans.length > 0 && (
+                          <Badge variant="secondary" className="text-xs ml-0.5">{plans.length}</Badge>
+                        )}
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent side="left" className="w-72 p-0 flex flex-col">
+                      <SheetHeader className="sr-only">
+                        <SheetTitle>{t("lp_lesson_plans")}</SheetTitle>
+                      </SheetHeader>
+                      <div className="flex-1 overflow-hidden">
+                        {plansList}
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+                )}
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-primary" />
+                  <h1 className="text-lg sm:text-xl font-bold">{t("lp_title")}</h1>
+                </div>
+                {isDirty && <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">{t("lp_unsaved")}</Badge>}
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {selectedId && (
+                  <Button variant="outline" size="sm" onClick={() => deleteMutation.mutate({ id: selectedId })} className="text-red-600 hover:text-red-700">
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" onClick={() => setShowPrintDialog(true)} className="gap-1">
+                  <Printer className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t("lp_print_pdf")}</span>
                 </Button>
-              )}
-              <Button variant="outline" size="sm" onClick={() => setShowPrintDialog(true)} className="gap-1">
-                <Printer className="w-4 h-4" /> {t("lp_print_pdf")}
-              </Button>
-              <Button size="sm" onClick={handleSave} disabled={saveMutation.isPending} className="gap-1">
-                <Save className="w-4 h-4" />
-                {saveMutation.isPending ? t("lp_saving") : t("lp_save")}
-              </Button>
+                <Button size="sm" onClick={handleSave} disabled={saveMutation.isPending} className="gap-1">
+                  <Save className="w-4 h-4" />
+                  <span className="hidden sm:inline">{saveMutation.isPending ? t("lp_saving") : t("lp_save")}</span>
+                  <span className="sm:hidden">{saveMutation.isPending ? "…" : t("lp_save")}</span>
+                </Button>
+              </div>
             </div>
+
+            {/* Section 1: Header info */}
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">{t("lp_section_info")}</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>{t("lp_lesson_title")}</Label>
+                  <Input value={form.title} onChange={e => setField("title", e.target.value)} placeholder="e.g. Present Perfect for Experiences" />
+                </div>
+                {/* Row 1: unit / lesson no / academic year / duration — 2 cols on mobile, 4 on md+ */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div>
+                    <Label>{t("lp_unit")}</Label>
+                    <Input value={form.unit} onChange={e => setField("unit", e.target.value)} placeholder="e.g. 3" />
+                  </div>
+                  <div>
+                    <Label>{t("lp_lesson_no")}</Label>
+                    <Input value={form.lessonNumber} onChange={e => setField("lessonNumber", e.target.value)} placeholder="e.g. 2" />
+                  </div>
+                  <div>
+                    <Label>{t("lp_academic_year")}</Label>
+                    <Select value={form.academicYear} onValueChange={v => setField("academicYear", v)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{ACADEMIC_YEARS.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>{t("lp_duration_min")}</Label>
+                    <Input type="number" value={form.duration} onChange={e => setField("duration", Number(e.target.value))} min={15} max={180} step={5} />
+                  </div>
+                </div>
+                {/* Row 2: year group / subject / spaces — 1 col on mobile, 3 on md+ */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <Label>{t("lp_year_group")}</Label>
+                    <Select value={form.yearGroup} onValueChange={v => setField("yearGroup", v)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{YEAR_GROUPS.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>{t("lp_subject")}</Label>
+                    <Select value={form.subject} onValueChange={v => setField("subject", v)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>{t("lp_spaces")}</Label>
+                    <Input value={form.spaces} onChange={e => setField("spaces", e.target.value)} placeholder="Classroom, Lab…" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Section 2: Skills & Systems */}
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">{t("lp_section_skills")}</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label className="mb-2 block">{t("lp_skills")}</Label>
+                  <div className="flex flex-wrap gap-4">
+                    {SKILL_KEYS.map(k => (
+                      <div key={k} className="flex items-center gap-2">
+                        <Checkbox id={`skill-${k}`} checked={!!form.skills[k]} onCheckedChange={v => setField("skills", { ...form.skills, [k]: !!v })} />
+                        <label htmlFor={`skill-${k}`} className="text-sm capitalize">{k}</label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <Label className="mb-2 block">{t("lp_language_systems")}</Label>
+                  <div className="flex flex-wrap gap-4">
+                    {SYSTEM_KEYS.map(k => (
+                      <div key={k} className="flex items-center gap-2">
+                        <Checkbox id={`sys-${k}`} checked={!!form.systems[k]} onCheckedChange={v => setField("systems", { ...form.systems, [k]: !!v })} />
+                        <label htmlFor={`sys-${k}`} className="text-sm capitalize">{k}</label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Section 3: LOMLOE Competencies */}
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">{t("lp_section_competencies")}</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label className="mb-2 block">{t("lp_key_competencies")}</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {COMPETENCIES.map(c => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setField("competencies", form.competencies.includes(c) ? form.competencies.filter(x => x !== c) : [...form.competencies, c])}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors min-h-[36px] ${form.competencies.includes(c) ? "bg-teal-600 text-white border-teal-600" : "bg-background border-border hover:bg-accent"}`}
+                      >
+                        {c}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <Label className="mb-2 block">{t("lp_specific_competences")}</Label>
+                  {form.specificCompetences.map((v, i) => (
+                    <div key={i} className="flex gap-2 mb-2">
+                      <Input value={v} onChange={e => updateListItem("specificCompetences", i, e.target.value)} placeholder="e.g. CCL-1" className="flex-1" />
+                      <Button variant="ghost" size="icon" className="shrink-0" onClick={() => removeListItem("specificCompetences", i)}><Trash2 className="w-4 h-4 text-red-400" /></Button>
+                    </div>
+                  ))}
+                  <Button variant="outline" size="sm" onClick={() => addListItem("specificCompetences")}><Plus className="w-3 h-3 mr-1" /> {t("lp_add")}</Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Section 4: Curriculum */}
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">{t("lp_section_curriculum")}</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label className="mb-2 block">{t("lp_saberes_basicos")}</Label>
+                  {form.saberesBasicos.map((v, i) => (
+                    <div key={i} className="flex gap-2 mb-2">
+                      <Input value={v} onChange={e => updateListItem("saberesBasicos", i, e.target.value)} placeholder="Basic knowledge item" className="flex-1" />
+                      <Button variant="ghost" size="icon" className="shrink-0" onClick={() => removeListItem("saberesBasicos", i)}><Trash2 className="w-4 h-4 text-red-400" /></Button>
+                    </div>
+                  ))}
+                  <Button variant="outline" size="sm" onClick={() => addListItem("saberesBasicos")}><Plus className="w-3 h-3 mr-1" /> {t("lp_add")}</Button>
+                </div>
+                <Separator />
+                <div>
+                  <Label className="mb-2 block">{t("lp_learning_outcomes")}</Label>
+                  {form.learningOutcomes.map((v, i) => (
+                    <div key={i} className="flex gap-2 mb-2">
+                      <Input value={v} onChange={e => updateListItem("learningOutcomes", i, e.target.value)} placeholder="Students will be able to…" className="flex-1" />
+                      <Button variant="ghost" size="icon" className="shrink-0" onClick={() => removeListItem("learningOutcomes", i)}><Trash2 className="w-4 h-4 text-red-400" /></Button>
+                    </div>
+                  ))}
+                  <Button variant="outline" size="sm" onClick={() => addListItem("learningOutcomes")}><Plus className="w-3 h-3 mr-1" /> {t("lp_add")}</Button>
+                </div>
+                <Separator />
+                <div>
+                  <Label className="mb-2 block">{t("lp_evaluation_criteria")}</Label>
+                  {form.evaluationCriteria.map((v, i) => (
+                    <div key={i} className="flex gap-2 mb-2">
+                      <Input value={v} onChange={e => updateListItem("evaluationCriteria", i, e.target.value)} placeholder="Students demonstrate…" className="flex-1" />
+                      <Button variant="ghost" size="icon" className="shrink-0" onClick={() => removeListItem("evaluationCriteria", i)}><Trash2 className="w-4 h-4 text-red-400" /></Button>
+                    </div>
+                  ))}
+                  <Button variant="outline" size="sm" onClick={() => addListItem("evaluationCriteria")}><Plus className="w-3 h-3 mr-1" /> {t("lp_add")}</Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Section 5: Context */}
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">{t("lp_section_context")}</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>{t("lp_previous_knowledge")}</Label>
+                  <Textarea value={form.previousKnowledge} onChange={e => setField("previousKnowledge", e.target.value)} rows={2} placeholder="What students already know…" />
+                </div>
+                <div>
+                  <Label>{t("lp_materials_resources")}</Label>
+                  <Textarea value={form.materials} onChange={e => setField("materials", e.target.value)} rows={2} placeholder="Textbook, worksheets, projector…" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Section 6: Procedure */}
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">{t("lp_section_procedure")}</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                {/* Desktop: grid header */}
+                <div className="hidden sm:grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground px-1">
+                  <span className="col-span-2">{t("lp_timing")}</span>
+                  <span className="col-span-2">{t("lp_stage")}</span>
+                  <span className="col-span-6">{t("lp_activities")}</span>
+                  <span className="col-span-2">{t("lp_grouping")}</span>
+                </div>
+
+                {form.procedures.map((p, i) => (
+                  <div key={i}>
+                    {/* Desktop row */}
+                    <div className="hidden sm:grid grid-cols-12 gap-2 items-start">
+                      <Input className="col-span-2" value={p.timing} onChange={e => updateProcedure(i, "timing", e.target.value)} placeholder="10 min" />
+                      <Input className="col-span-2" value={p.stage} onChange={e => updateProcedure(i, "stage", e.target.value)} placeholder="Warm-up" />
+                      <Textarea className="col-span-6 min-h-[60px]" value={p.activities} onChange={e => updateProcedure(i, "activities", e.target.value)} placeholder="Describe activities…" />
+                      <Input className="col-span-1" value={p.grouping} onChange={e => updateProcedure(i, "grouping", e.target.value)} placeholder="Pairs" />
+                      <Button variant="ghost" size="icon" className="col-span-1" onClick={() => removeProcedure(i)}><Trash2 className="w-4 h-4 text-red-400" /></Button>
+                    </div>
+
+                    {/* Mobile card */}
+                    <div className="sm:hidden rounded-lg border p-3 space-y-2 bg-muted/30">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-semibold text-muted-foreground uppercase">Stage {i + 1}</span>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeProcedure(i)}><X className="w-3.5 h-3.5 text-red-400" /></Button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs">{t("lp_timing")}</Label>
+                          <Input value={p.timing} onChange={e => updateProcedure(i, "timing", e.target.value)} placeholder="10 min" className="h-8 text-sm" />
+                        </div>
+                        <div>
+                          <Label className="text-xs">{t("lp_stage")}</Label>
+                          <Input value={p.stage} onChange={e => updateProcedure(i, "stage", e.target.value)} placeholder="Warm-up" className="h-8 text-sm" />
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-xs">{t("lp_activities")}</Label>
+                        <Textarea value={p.activities} onChange={e => updateProcedure(i, "activities", e.target.value)} placeholder="Describe activities…" rows={3} className="text-sm" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">{t("lp_grouping")}</Label>
+                        <Input value={p.grouping} onChange={e => updateProcedure(i, "grouping", e.target.value)} placeholder="Pairs" className="h-8 text-sm" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" onClick={addProcedure}><Plus className="w-3 h-3 mr-1" /> {t("lp_add_stage")}</Button>
+              </CardContent>
+            </Card>
+
+            {/* Bottom save button for mobile convenience */}
+            {isMobile && (
+              <div className="pb-4">
+                <Button className="w-full gap-2" onClick={handleSave} disabled={saveMutation.isPending}>
+                  <Save className="w-4 h-4" />
+                  {saveMutation.isPending ? t("lp_saving") : t("lp_save")}
+                </Button>
+              </div>
+            )}
           </div>
-
-          {/* Section 1: Header info */}
-          <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">{t("lp_section_info")}</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label>{t("lp_lesson_title")}</Label>
-                <Input value={form.title} onChange={e => setField("title", e.target.value)} placeholder="e.g. Present Perfect for Experiences" />
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div>
-                  <Label>{t("lp_unit")}</Label>
-                  <Input value={form.unit} onChange={e => setField("unit", e.target.value)} placeholder="e.g. 3" />
-                </div>
-                <div>
-                  <Label>{t("lp_lesson_no")}</Label>
-                  <Input value={form.lessonNumber} onChange={e => setField("lessonNumber", e.target.value)} placeholder="e.g. 2" />
-                </div>
-                <div>
-                  <Label>{t("lp_academic_year")}</Label>
-                  <Select value={form.academicYear} onValueChange={v => setField("academicYear", v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{ACADEMIC_YEARS.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>{t("lp_duration_min")}</Label>
-                  <Input type="number" value={form.duration} onChange={e => setField("duration", Number(e.target.value))} min={15} max={180} step={5} />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                <div>
-                  <Label>{t("lp_year_group")}</Label>
-                  <Select value={form.yearGroup} onValueChange={v => setField("yearGroup", v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{YEAR_GROUPS.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>{t("lp_subject")}</Label>
-                  <Select value={form.subject} onValueChange={v => setField("subject", v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>{t("lp_spaces")}</Label>
-                  <Input value={form.spaces} onChange={e => setField("spaces", e.target.value)} placeholder="Classroom, Lab…" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Section 2: Skills & Systems */}
-          <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">{t("lp_section_skills")}</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label className="mb-2 block">{t("lp_skills")}</Label>
-                <div className="flex flex-wrap gap-4">
-                  {SKILL_KEYS.map(k => (
-                    <div key={k} className="flex items-center gap-2">
-                      <Checkbox id={`skill-${k}`} checked={!!form.skills[k]} onCheckedChange={v => setField("skills", { ...form.skills, [k]: !!v })} />
-                      <label htmlFor={`skill-${k}`} className="text-sm capitalize">{k}</label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <Label className="mb-2 block">{t("lp_language_systems")}</Label>
-                <div className="flex flex-wrap gap-4">
-                  {SYSTEM_KEYS.map(k => (
-                    <div key={k} className="flex items-center gap-2">
-                      <Checkbox id={`sys-${k}`} checked={!!form.systems[k]} onCheckedChange={v => setField("systems", { ...form.systems, [k]: !!v })} />
-                      <label htmlFor={`sys-${k}`} className="text-sm capitalize">{k}</label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Section 3: LOMLOE Competencies */}
-          <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">{t("lp_section_competencies")}</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label className="mb-2 block">{t("lp_key_competencies")}</Label>
-                <div className="flex flex-wrap gap-2">
-                  {COMPETENCIES.map(c => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => setField("competencies", form.competencies.includes(c) ? form.competencies.filter(x => x !== c) : [...form.competencies, c])}
-                      className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${form.competencies.includes(c) ? "bg-teal-600 text-white border-teal-600" : "bg-background border-border hover:bg-accent"}`}
-                    >
-                      {c}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <Label className="mb-2 block">{t("lp_specific_competences")}</Label>
-                {form.specificCompetences.map((v, i) => (
-                  <div key={i} className="flex gap-2 mb-2">
-                    <Input value={v} onChange={e => updateListItem("specificCompetences", i, e.target.value)} placeholder="e.g. CCL-1" />
-                    <Button variant="ghost" size="icon" onClick={() => removeListItem("specificCompetences", i)}><Trash2 className="w-4 h-4 text-red-400" /></Button>
-                  </div>
-                ))}
-                <Button variant="outline" size="sm" onClick={() => addListItem("specificCompetences")}><Plus className="w-3 h-3 mr-1" /> {t("lp_add")}</Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Section 4: Curriculum */}
-          <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">{t("lp_section_curriculum")}</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label className="mb-2 block">{t("lp_saberes_basicos")}</Label>
-                {form.saberesBasicos.map((v, i) => (
-                  <div key={i} className="flex gap-2 mb-2">
-                    <Input value={v} onChange={e => updateListItem("saberesBasicos", i, e.target.value)} placeholder="Basic knowledge item" />
-                    <Button variant="ghost" size="icon" onClick={() => removeListItem("saberesBasicos", i)}><Trash2 className="w-4 h-4 text-red-400" /></Button>
-                  </div>
-                ))}
-                <Button variant="outline" size="sm" onClick={() => addListItem("saberesBasicos")}><Plus className="w-3 h-3 mr-1" /> {t("lp_add")}</Button>
-              </div>
-              <Separator />
-              <div>
-                <Label className="mb-2 block">{t("lp_learning_outcomes")}</Label>
-                {form.learningOutcomes.map((v, i) => (
-                  <div key={i} className="flex gap-2 mb-2">
-                    <Input value={v} onChange={e => updateListItem("learningOutcomes", i, e.target.value)} placeholder="Students will be able to…" />
-                    <Button variant="ghost" size="icon" onClick={() => removeListItem("learningOutcomes", i)}><Trash2 className="w-4 h-4 text-red-400" /></Button>
-                  </div>
-                ))}
-                <Button variant="outline" size="sm" onClick={() => addListItem("learningOutcomes")}><Plus className="w-3 h-3 mr-1" /> {t("lp_add")}</Button>
-              </div>
-              <Separator />
-              <div>
-                <Label className="mb-2 block">{t("lp_evaluation_criteria")}</Label>
-                {form.evaluationCriteria.map((v, i) => (
-                  <div key={i} className="flex gap-2 mb-2">
-                    <Input value={v} onChange={e => updateListItem("evaluationCriteria", i, e.target.value)} placeholder="Students demonstrate…" />
-                    <Button variant="ghost" size="icon" onClick={() => removeListItem("evaluationCriteria", i)}><Trash2 className="w-4 h-4 text-red-400" /></Button>
-                  </div>
-                ))}
-                <Button variant="outline" size="sm" onClick={() => addListItem("evaluationCriteria")}><Plus className="w-3 h-3 mr-1" /> {t("lp_add")}</Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Section 5: Context */}
-          <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">{t("lp_section_context")}</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label>{t("lp_previous_knowledge")}</Label>
-                <Textarea value={form.previousKnowledge} onChange={e => setField("previousKnowledge", e.target.value)} rows={2} placeholder="What students already know…" />
-              </div>
-              <div>
-                <Label>{t("lp_materials_resources")}</Label>
-                <Textarea value={form.materials} onChange={e => setField("materials", e.target.value)} rows={2} placeholder="Textbook, worksheets, projector…" />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Section 6: Procedure */}
-          <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">{t("lp_section_procedure")}</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground px-1">
-                <span className="col-span-2">{t("lp_timing")}</span>
-                <span className="col-span-2">{t("lp_stage")}</span>
-                <span className="col-span-6">{t("lp_activities")}</span>
-                <span className="col-span-2">{t("lp_grouping")}</span>
-              </div>
-              {form.procedures.map((p, i) => (
-                <div key={i} className="grid grid-cols-12 gap-2 items-start">
-                  <Input className="col-span-2" value={p.timing} onChange={e => updateProcedure(i, "timing", e.target.value)} placeholder="10 min" />
-                  <Input className="col-span-2" value={p.stage} onChange={e => updateProcedure(i, "stage", e.target.value)} placeholder="Warm-up" />
-                  <Textarea className="col-span-6 min-h-[60px]" value={p.activities} onChange={e => updateProcedure(i, "activities", e.target.value)} placeholder="Describe activities…" />
-                  <Input className="col-span-1" value={p.grouping} onChange={e => updateProcedure(i, "grouping", e.target.value)} placeholder="Pairs" />
-                  <Button variant="ghost" size="icon" className="col-span-1" onClick={() => removeProcedure(i)}><Trash2 className="w-4 h-4 text-red-400" /></Button>
-                </div>
-              ))}
-              <Button variant="outline" size="sm" onClick={addProcedure}><Plus className="w-3 h-3 mr-1" /> {t("lp_add_stage")}</Button>
-            </CardContent>
-          </Card>
         </div>
       </div>
 
       {/* AI Generate Dialog */}
       <Dialog open={showAiDialog} onOpenChange={setShowAiDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="flex items-center gap-2"><Sparkles className="w-5 h-5 text-teal-500" /> {t("lp_ai_dialog_title")}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div>
               <Label>{t("lp_lesson_title")}</Label>
               <Input value={aiTitle} onChange={e => setAiTitle(e.target.value)} placeholder="e.g. Present Perfect for Experiences" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label>{t("lp_subject")}</Label>
                 <Select value={aiSubject} onValueChange={setAiSubject}>
@@ -598,14 +707,14 @@ export default function LessonPlanner() {
               <div className="flex flex-wrap gap-2">
                 {COMPETENCIES.map(c => (
                   <button key={c} type="button" onClick={() => toggleComp(c)}
-                    className={`px-2 py-0.5 rounded-full text-xs font-medium border transition-colors ${aiComps.includes(c) ? "bg-teal-600 text-white border-teal-600" : "bg-background border-border hover:bg-accent"}`}>
+                    className={`px-2 py-1.5 rounded-full text-xs font-medium border transition-colors min-h-[34px] ${aiComps.includes(c) ? "bg-teal-600 text-white border-teal-600" : "bg-background border-border hover:bg-accent"}`}>
                     {c}
                   </button>
                 ))}
               </div>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
             <Button variant="outline" onClick={() => setShowAiDialog(false)}>{t("cal_cancel")}</Button>
             <Button onClick={() => { if (!aiTitle.trim()) { toast.error(t("lp_title_required")); return; } aiMutation.mutate({ title: aiTitle, subject: aiSubject, yearGroup: aiYearGroup, duration: aiDuration, competencies: aiComps }); }} disabled={aiMutation.isPending} className="gap-1">
               <Sparkles className="w-4 h-4" />
@@ -617,7 +726,7 @@ export default function LessonPlanner() {
 
       {/* Print Dialog */}
       <Dialog open={showPrintDialog} onOpenChange={setShowPrintDialog}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="flex items-center gap-2"><Printer className="w-5 h-5" /> {t("lp_print_dialog_title")}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
@@ -634,7 +743,7 @@ export default function LessonPlanner() {
             <p className="text-sm text-muted-foreground">{t("lp_print_desc")}</p>
             <p className="text-xs text-muted-foreground">{t("lp_print_logo_note")}</p>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
             <Button variant="outline" onClick={() => setShowPrintDialog(false)}>{t("cal_cancel")}</Button>
             <Button onClick={handlePrint} className="gap-1"><Printer className="w-4 h-4" /> {t("lp_open_preview")}</Button>
           </DialogFooter>

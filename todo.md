@@ -781,3 +781,12 @@
 - [x] Topic Block mode shows start date picker, end date picker, and topic description textarea
 - [x] Calendar header panel displays topic description when calendarType is topic_block
 - [x] Calendar view auto-navigates to startDate when a topic block calendar is selected
+
+## Bug: Lesson Planner – mobile layout improvements
+- [x] LessonPlanner: top action bar (Save, Print, AI Generate buttons) stacks properly on mobile without overflow
+- [x] LessonPlanner: metadata grid (date, year group, subject, duration) switches to single-column on mobile
+- [x] LessonPlanner: procedure/activities table scrolls horizontally on mobile (or collapses to card layout)
+- [x] LessonPlanner: competency/saberes/outcomes/criteria tag inputs are full-width on mobile
+- [x] LessonPlanner: section headers and labels have adequate font size and tap targets on mobile
+- [x] LessonPlanner: print preview modal is scrollable and readable on mobile
+- [x] LessonPlanner: saved plans list sidebar collapses or moves below main content on mobile
