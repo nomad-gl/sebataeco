@@ -746,3 +746,16 @@
 - [x] School Calendar: calendar picker sidebar/dropdown to create, switch, rename, delete calendars
 - [x] School Calendar: all events scoped to selected calendar (calendarId FK)
 - [x] School Calendar: DB migration - add school_calendars table and calendarId FK on school_calendar_events
+
+## Feature: Question Library – multilingual questions (EN/ES/CA)
+- [x] Add question_translations DB table (questionId, locale, question, options JSON, explanation)
+- [x] DB migration applied for question_translations
+- [x] lomloe.getQuestions accepts optional locale param and merges translations
+- [x] lomloe.translateQuestions protected procedure: batch-translates untranslated static questions via LLM and stores in question_translations
+- [x] SampleQuestions.tsx passes current locale to getQuestions query
+- [x] Question Library search also searches translated text when locale is ES or CA
+- [x] Vitest tests updated/added for locale-aware getQuestions
+
+## Bug: Mobile dropdown menu does not scroll
+- [x] NavBar mobile menu panel: add overflow-y-auto and max-h (e.g. max-h-[80vh]) so the menu scrolls when content exceeds viewport height
+- [x] Ensure the mobile menu backdrop/overlay does not block scrolling

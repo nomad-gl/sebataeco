@@ -539,3 +539,26 @@ export const lessonPlans = mysqlTable("lesson_plans", {
 
 export type LessonPlan = typeof lessonPlans.$inferSelect;
 export type InsertLessonPlan = typeof lessonPlans.$inferInsert;
+
+/**
+ * Question translations — stores ES and CA translations for static knowledge bank questions.
+ * Keyed by questionId (matches LomloeQuestion.id from the static bank or generatedQuestions.questionId).
+ * One row per (questionId, locale) pair.
+ */
+export const questionTranslations = mysqlTable("question_translations", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Matches LomloeQuestion.id or generatedQuestions.questionId */
+  questionId: varchar("questionId", { length: 32 }).notNull(),
+  /** Language code: 'es' or 'ca' */
+  locale: varchar("locale", { length: 8 }).notNull(),
+  /** Translated question text */
+  question: text("question").notNull(),
+  /** JSON array of 4 translated option strings */
+  options: text("options").notNull(),
+  /** Translated explanation */
+  explanation: text("explanation").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type QuestionTranslation = typeof questionTranslations.$inferSelect;
+export type InsertQuestionTranslation = typeof questionTranslations.$inferInsert;

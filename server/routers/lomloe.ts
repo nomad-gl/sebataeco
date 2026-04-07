@@ -13,8 +13,8 @@ import {
 import { invokeLLM } from "../_core/llm";
 import { getClaraProfile, upsertClaraProfile, rateMessage, getUserRatings, saveQuestionAnswer, getQuestionAnalytics, getPendingQuestions, reviewQuestion } from "../db";
 import { getDb } from "../db";
-import { generatedQuestions } from "../../drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { generatedQuestions, questionTranslations } from "../../drizzle/schema";
+import { eq, and, inArray } from "drizzle-orm";
 
 const CompetencyCodeSchema = z.enum(["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"]);
 const YearGroupSchema = z.enum(["junior", "primary", "secondary"]);
@@ -235,6 +235,8 @@ export const lomloeRouter = router({
         yearGroup: YearGroupSchema.optional(),
         limit: z.number().min(1).max(500).default(500),
         shuffle: z.boolean().default(false),
+        /** UI locale — when 'es' or 'ca', translated text is returned if available */
+        locale: z.enum(["en", "es", "ca"]).default("en"),
       })
     )
     .query(async ({ input }) => {
@@ -271,6 +273,40 @@ export const lomloeRouter = router({
       }
 
       let questions = [...staticQs, ...dbQs];
+
+      // 3. If locale is ES or CA, overlay translations where available
+      if (input.locale !== "en" && db) {
+        try {
+          const allIds = questions.map((q) => q.id);
+          if (allIds.length > 0) {
+            const translations = await db
+              .select()
+              .from(questionTranslations)
+              .where(
+                and(
+                  eq(questionTranslations.locale, input.locale),
+                  inArray(questionTranslations.questionId, allIds)
+                )
+              );
+            const translationMap = new Map(
+              translations.map((t) => [t.questionId, t])
+            );
+            questions = questions.map((q) => {
+              const tr = translationMap.get(q.id);
+              if (!tr) return q;
+              return {
+                ...q,
+                question: tr.question,
+                options: JSON.parse(tr.options) as string[],
+                explanation: tr.explanation,
+              };
+            });
+          }
+        } catch (err) {
+          console.error("[getQuestions] Translation merge error:", err);
+        }
+      }
+
       if (input.shuffle) {
         questions = questions.sort(() => Math.random() - 0.5);
       }
@@ -707,6 +743,129 @@ Guidelines:
         })
         .where(eq(generatedQuestions.questionId, input.questionId));
       return { ok: true };
+    }),
+
+  /**
+   * Batch-translate questions into ES or CA and store in question_translations.
+   * Translates up to `batchSize` untranslated questions per call.
+   * Can be called repeatedly until all questions are translated.
+   */
+  translateQuestions: protectedProcedure
+    .input(
+      z.object({
+        locale: z.enum(["es", "ca"]),
+        batchSize: z.number().min(1).max(50).default(20),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (ctx.user.role !== "admin") {
+        throw new (await import("@trpc/server")).TRPCError({ code: "FORBIDDEN" });
+      }
+      const db = await getDb();
+      if (!db) throw new (await import("@trpc/server")).TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      // Get all static question IDs
+      const allStaticQs = getQuestions();
+      const allIds = allStaticQs.map((q) => q.id);
+
+      // Find which IDs already have a translation for this locale
+      const existing = await db
+        .select({ questionId: questionTranslations.questionId })
+        .from(questionTranslations)
+        .where(eq(questionTranslations.locale, input.locale));
+      const existingIds = new Set(existing.map((r) => r.questionId));
+
+      // Pick untranslated questions up to batchSize
+      const toTranslate = allStaticQs
+        .filter((q) => !existingIds.has(q.id))
+        .slice(0, input.batchSize);
+
+      if (toTranslate.length === 0) {
+        return { translated: 0, remaining: 0, message: "All questions already translated" };
+      }
+
+      const localeName = input.locale === "es" ? "Spanish" : "Catalan";
+      const localeCode = input.locale === "es" ? "es-ES" : "ca-ES";
+
+      // Batch LLM call — translate all questions in one request
+      const questionsPayload = toTranslate.map((q, i) => ({
+        index: i,
+        id: q.id,
+        question: q.question,
+        options: q.options,
+        explanation: q.explanation,
+      }));
+
+      const llmResponse = await invokeLLM({
+        messages: [
+          {
+            role: "system",
+            content: `You are a professional educational translator specialising in ${localeName} (${localeCode}). Translate the given LOMLOE educational questions accurately. Preserve the pedagogical meaning, difficulty level, and LOMLOE competency alignment. Return ONLY a valid JSON array, no markdown, no extra text.`,
+          },
+          {
+            role: "user",
+            content: `Translate each of the following educational questions into ${localeName}. Return a JSON array where each element has: { "id": "<original id>", "question": "<translated>", "options": ["<opt0>","<opt1>","<opt2>","<opt3>"], "explanation": "<translated>" }\n\nQuestions:\n${JSON.stringify(questionsPayload, null, 2)}`,
+          },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "question_translations",
+            strict: true,
+            schema: {
+              type: "object",
+              properties: {
+                translations: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      id: { type: "string" },
+                      question: { type: "string" },
+                      options: { type: "array", items: { type: "string" } },
+                      explanation: { type: "string" },
+                    },
+                    required: ["id", "question", "options", "explanation"],
+                    additionalProperties: false,
+                  },
+                },
+              },
+              required: ["translations"],
+              additionalProperties: false,
+            },
+          },
+        },
+      });
+
+      const raw = (llmResponse.choices[0]?.message?.content as string) ?? "{}";
+      let parsed: { translations: Array<{ id: string; question: string; options: string[]; explanation: string }> };
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        throw new (await import("@trpc/server")).TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "LLM returned invalid JSON" });
+      }
+
+      // Insert translations into DB
+      let inserted = 0;
+      for (const tr of parsed.translations) {
+        if (!tr.id || !tr.question || !Array.isArray(tr.options) || tr.options.length !== 4 || !tr.explanation) continue;
+        try {
+          await db.insert(questionTranslations).values({
+            questionId: tr.id,
+            locale: input.locale,
+            question: tr.question,
+            options: JSON.stringify(tr.options),
+            explanation: tr.explanation,
+          });
+          inserted++;
+        } catch (err) {
+          // Skip duplicates silently
+          console.warn("[translateQuestions] Insert skipped:", (err as Error).message);
+        }
+      }
+
+      const remaining = allIds.filter((id) => !existingIds.has(id)).length - inserted;
+      return { translated: inserted, remaining: Math.max(0, remaining), message: `Translated ${inserted} questions into ${localeName}` };
     }),
 
   /**

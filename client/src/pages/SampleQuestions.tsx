@@ -4,8 +4,10 @@ import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, ChevronUp, Search, BookOpen, ArrowLeft } from "lucide-react";
+import { ChevronDown, ChevronUp, Search, BookOpen, ArrowLeft, Languages, Loader2 } from "lucide-react";
 import { useI18n } from "@/contexts/I18nContext";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { toast } from "sonner";
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
 type YearGroup = "junior" | "primary" | "secondary";
@@ -22,11 +24,13 @@ const COMP_COLORS: Record<CompetencyCode, string> = {
 };
 
 export default function SampleQuestions() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const { user } = useAuth();
   const [filterComp, setFilterComp] = useState<CompetencyCode | "">("");
   const [filterYG, setFilterYG] = useState<YearGroup | "">("");
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [translating, setTranslating] = useState(false);
 
   const YG_LABELS: Record<YearGroup, string> = {
     junior: `${t("admin_junior")} (Yr 3–4)`,
@@ -35,10 +39,33 @@ export default function SampleQuestions() {
   };
 
   const { data: competencies } = trpc.lomloe.getCompetencies.useQuery();
-  const { data: questions, isLoading } = trpc.lomloe.getQuestions.useQuery({
+  const { data: questions, isLoading, refetch } = trpc.lomloe.getQuestions.useQuery({
     competency: filterComp || undefined,
     yearGroup: filterYG || undefined,
+    locale: lang === "en" ? "en" : lang === "es" ? "es" : "ca",
   });
+
+  const translateMutation = trpc.lomloe.translateQuestions.useMutation({
+    onSuccess: async (result) => {
+      if (result.remaining > 0) {
+        toast.success(`${result.translated} questions translated`, { description: `${result.remaining} remaining — click again to translate more.` });
+      } else {
+        toast.success("All questions are now translated!");
+      }
+      await refetch();
+      setTranslating(false);
+    },
+    onError: (err) => {
+      toast.error("Translation failed", { description: err.message });
+      setTranslating(false);
+    },
+  });
+
+  const handleTranslate = () => {
+    if (lang === "en") return;
+    setTranslating(true);
+    translateMutation.mutate({ locale: lang as "es" | "ca", batchSize: 30 });
+  };
 
   const filtered = (questions ?? []).filter((q) => {
     if (!search.trim()) return true;
@@ -71,6 +98,31 @@ export default function SampleQuestions() {
           </div>
           <h1 className="text-3xl sm:text-4xl font-heading font-bold text-white drop-shadow-lg">{t("questions_title")}</h1>
           <p className="text-white/75 max-w-2xl">{t("questions_subtitle")}</p>
+
+          {/* Language indicator + admin translate button */}
+          {lang !== "en" && (
+            <div className="flex flex-wrap items-center gap-3 pt-1">
+              <div className="inline-flex items-center gap-1.5 bg-white/10 border border-white/20 rounded-full px-3 py-1 text-xs text-white/70">
+                <Languages className="w-3.5 h-3.5" />
+                {lang === "es" ? "Preguntas en Español · Las sin traducción aparecen en inglés" : "Preguntes en Català · Les sense traducció apareixen en anglès"}
+              </div>
+              {user?.role === "admin" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleTranslate}
+                  disabled={translating}
+                  className="bg-white/10 border-white/30 text-white hover:bg-white/20 text-xs h-7"
+                >
+                  {translating ? (
+                    <><Loader2 className="w-3 h-3 mr-1.5 animate-spin" />Translating…</>
+                  ) : (
+                    <><Languages className="w-3 h-3 mr-1.5" />Translate next 30</>
+                  )}
+                </Button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Filters */}

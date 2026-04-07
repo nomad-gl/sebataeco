@@ -84,11 +84,8 @@ export default function NavBar() {
   // Close mobile menu on route change
   useEffect(() => { setMobileOpen(false); setDropOpen(false); setLangOpen(false); }, [location]);
 
-  // Prevent body scroll when mobile menu open
-  useEffect(() => {
-    document.body.style.overflow = mobileOpen ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
-  }, [mobileOpen]);
+  // Note: body scroll lock removed — the mobile nav panel itself scrolls instead
+  // (overflow-y-auto on the nav element handles long menus on small screens)
 
   const currentLang = LANG_OPTIONS.find((l) => l.code === lang) ?? LANG_OPTIONS[0];
   const { state: pwaState, install: pwaInstall, showIosModal, setShowIosModal } = usePwaInstall();
@@ -367,7 +364,7 @@ export default function NavBar() {
         <div className="md:hidden fixed inset-0 top-14 z-40 bg-black/40" onClick={() => setMobileOpen(false)}>
           <nav
             className={cn(
-              "border-b shadow-xl flex flex-col",
+              "border-b shadow-xl flex flex-col overflow-y-auto max-h-[calc(100vh-3.5rem)]",
               isClassroomPage
                 ? "bg-black/70 backdrop-blur-md border-white/15"
                 : "bg-white border-border"

@@ -113,6 +113,13 @@
       "when": 1775519810255,
       "tag": "0015_perfect_golden_guardian",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "5",
+      "when": 1775522641053,
+      "tag": "0016_orange_rictor",
+      "breakpoints": true
     }
   ]
 }
