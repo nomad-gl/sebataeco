@@ -57,6 +57,10 @@ type SchoolCalendar = {
   subject?: string | null;
   yearLevel?: string | null;
   academicYear: string;
+  calendarType?: "full_year" | "topic_block";
+  startDate?: Date | string | null;
+  endDate?: Date | string | null;
+  topicDescription?: string | null;
 };
 
 const DEFAULT_TERMS = [
@@ -72,6 +76,10 @@ const emptyCalForm = (academicYear = ACADEMIC_YEARS[1]) => ({
   subject: "English",
   yearLevel: YEAR_GROUPS[3],
   academicYear,
+  calendarType: "full_year" as "full_year" | "topic_block",
+  startDate: "",
+  endDate: "",
+  topicDescription: "",
 });
 
 export default function SchoolCalendar() {
@@ -250,16 +258,37 @@ export default function SchoolCalendar() {
 
   const handleAiInfill = () => {
     if (!selectedCalendarId || !selectedCalendar) return;
-    const validTerms = aiForm.terms.filter(t => t.start && t.end);
-    if (validTerms.length === 0) { toast.error(t("cal_term_dates")); return; }
-    aiInfillMutation.mutate({
-      calendarId: selectedCalendarId,
-      academicYear: selectedCalendar.academicYear,
-      yearGroup: selectedCalendar.yearLevel ?? YEAR_GROUPS[3],
-      subject: selectedCalendar.subject ?? "English",
-      sessionsPerWeek: aiForm.sessionsPerWeek,
-      termDates: validTerms,
-    });
+    const cal = selectedCalendar as SchoolCalendar;
+    const isTopicBlock = cal.calendarType === "topic_block";
+
+    if (isTopicBlock) {
+      // For topic blocks, use the calendar's own start/end dates directly
+      const startDate = cal.startDate ? new Date(cal.startDate as string).toISOString().split("T")[0] : "";
+      const endDate = cal.endDate ? new Date(cal.endDate as string).toISOString().split("T")[0] : "";
+      if (!startDate || !endDate) { toast.error("Topic block calendar must have start and end dates set"); return; }
+      aiInfillMutation.mutate({
+        calendarId: selectedCalendarId,
+        academicYear: cal.academicYear,
+        yearGroup: cal.yearLevel ?? YEAR_GROUPS[3],
+        subject: cal.subject ?? "English",
+        sessionsPerWeek: aiForm.sessionsPerWeek,
+        termDates: [], // not used for topic blocks
+        topicDescription: cal.topicDescription ?? undefined,
+        startDate,
+        endDate,
+      });
+    } else {
+      const validTerms = aiForm.terms.filter(t => t.start && t.end);
+      if (validTerms.length === 0) { toast.error(t("cal_term_dates")); return; }
+      aiInfillMutation.mutate({
+        calendarId: selectedCalendarId,
+        academicYear: cal.academicYear,
+        yearGroup: cal.yearLevel ?? YEAR_GROUPS[3],
+        subject: cal.subject ?? "English",
+        sessionsPerWeek: aiForm.sessionsPerWeek,
+        termDates: validTerms,
+      });
+    }
   };
 
   const openLessonPlanner = (ev: CalEvent) => {
@@ -344,7 +373,7 @@ export default function SchoolCalendar() {
                 </div>
                 {selectedCalendarId === cal.id && (
                   <button
-                    onClick={e => { e.stopPropagation(); setCalForm({ name: cal.name, schoolName: cal.schoolName ?? "", tutorName: cal.tutorName ?? "", subject: cal.subject ?? "English", yearLevel: cal.yearLevel ?? YEAR_GROUPS[3], academicYear: cal.academicYear }); setShowEditCalDialog(true); }}
+                    onClick={e => { e.stopPropagation(); setCalForm({ name: cal.name, schoolName: cal.schoolName ?? "", tutorName: cal.tutorName ?? "", subject: cal.subject ?? "English", yearLevel: cal.yearLevel ?? YEAR_GROUPS[3], academicYear: cal.academicYear, calendarType: (cal as SchoolCalendar).calendarType ?? "full_year", startDate: (cal as SchoolCalendar).startDate ? new Date((cal as SchoolCalendar).startDate as string).toISOString().split("T")[0] : "", endDate: (cal as SchoolCalendar).endDate ? new Date((cal as SchoolCalendar).endDate as string).toISOString().split("T")[0] : "", topicDescription: (cal as SchoolCalendar).topicDescription ?? "" }); setShowEditCalDialog(true); }}
                     className="opacity-0 group-hover:opacity-100 shrink-0 mt-0.5"
                   >
                     <Pencil className="w-3 h-3 text-muted-foreground" />
@@ -393,7 +422,20 @@ export default function SchoolCalendar() {
                           <span className="flex items-center gap-1"><GraduationCap className="w-3.5 h-3.5" /> {selectedCalendar.yearLevel}</span>
                         )}
                         <Badge variant="outline" className="text-xs">{selectedCalendar.academicYear}</Badge>
+                        {(selectedCalendar as SchoolCalendar).calendarType === "topic_block" && (
+                          <Badge className="text-xs bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100"><BookOpen className="w-3 h-3 mr-1" /> Topic Block</Badge>
+                        )}
+                        {(selectedCalendar as SchoolCalendar).calendarType === "topic_block" && (selectedCalendar as SchoolCalendar).startDate && (selectedCalendar as SchoolCalendar).endDate && (
+                          <span className="flex items-center gap-1 text-xs">
+                            {new Date((selectedCalendar as SchoolCalendar).startDate as string).toLocaleDateString()} – {new Date((selectedCalendar as SchoolCalendar).endDate as string).toLocaleDateString()}
+                          </span>
+                        )}
                       </div>
+                      {(selectedCalendar as SchoolCalendar).calendarType === "topic_block" && (selectedCalendar as SchoolCalendar).topicDescription && (
+                        <p className="text-xs text-muted-foreground mt-1.5 italic line-clamp-2">
+                          “{(selectedCalendar as SchoolCalendar).topicDescription}”
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <Button variant="outline" size="sm" onClick={() => setShowTermView(v => !v)} className="gap-1.5">
@@ -520,16 +562,75 @@ export default function SchoolCalendar() {
 
       {/* ── Create Calendar Dialog ──────────────────────────────────────────── */}
       <Dialog open={showCreateCalDialog} onOpenChange={setShowCreateCalDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="flex items-center gap-2"><CalendarDays className="w-5 h-5 text-primary" /> Create New Calendar</DialogTitle></DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-4">
+            {/* Calendar type toggle */}
+            <div>
+              <Label className="text-sm font-semibold mb-2 block">Calendar Type</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCalForm(f => ({ ...f, calendarType: "full_year", startDate: "", endDate: "" }))}
+                  className={`rounded-lg border-2 p-3 text-left transition-all ${
+                    calForm.calendarType === "full_year"
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-border hover:border-primary/40"
+                  }`}
+                >
+                  <div className="font-semibold text-sm flex items-center gap-1.5"><CalendarDays className="w-4 h-4" /> Full Academic Year</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">Standard school year with term dates</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCalForm(f => ({ ...f, calendarType: "topic_block" }))}
+                  className={`rounded-lg border-2 p-3 text-left transition-all ${
+                    calForm.calendarType === "topic_block"
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-border hover:border-primary/40"
+                  }`}
+                >
+                  <div className="font-semibold text-sm flex items-center gap-1.5"><BookOpen className="w-4 h-4" /> Topic Block</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">Short-term unit with specific dates</div>
+                </button>
+              </div>
+            </div>
+
             <div>
               <Label>Calendar Name *</Label>
-              <Input value={calForm.name} onChange={e => setCalForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. 4th Primary English 2025-26" />
+              <Input value={calForm.name} onChange={e => setCalForm(f => ({ ...f, name: e.target.value }))} placeholder={calForm.calendarType === "topic_block" ? "e.g. Fractions Unit – 4th Primary" : "e.g. 4th Primary English 2025-26"} />
             </div>
+
+            {/* Topic block: start/end dates + topic description */}
+            {calForm.calendarType === "topic_block" && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Start Date *</Label>
+                    <Input type="date" value={calForm.startDate} onChange={e => setCalForm(f => ({ ...f, startDate: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>End Date *</Label>
+                    <Input type="date" value={calForm.endDate} onChange={e => setCalForm(f => ({ ...f, endDate: e.target.value }))} />
+                  </div>
+                </div>
+                <div>
+                  <Label>Topic / Unit Description</Label>
+                  <Textarea
+                    value={calForm.topicDescription}
+                    onChange={e => setCalForm(f => ({ ...f, topicDescription: e.target.value }))}
+                    placeholder="Describe the topic or unit (e.g. 'Introduction to fractions: halves, quarters, and eighths. Students will compare, order, and add simple fractions using visual models.'). The AI will use this to generate LOMLOE-aligned lessons scoped to this topic."
+                    rows={4}
+                    className="resize-none"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">The AI will use this description to generate lessons specifically aligned to this topic/unit.</p>
+                </div>
+              </>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label><School className="w-3.5 h-3.5 inline mr-1" /> {t("cal_title").includes("School") ? "School Name" : "School Name"}</Label>
+                <Label><School className="w-3.5 h-3.5 inline mr-1" /> School Name</Label>
                 <Input value={calForm.schoolName} onChange={e => setCalForm(f => ({ ...f, schoolName: e.target.value }))} placeholder="e.g. IES Montserrat" />
               </div>
               <div>
@@ -563,7 +664,16 @@ export default function SchoolCalendar() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateCalDialog(false)}>{t("cal_cancel")}</Button>
-            <Button onClick={() => createCalMutation.mutate(calForm)} disabled={createCalMutation.isPending || !calForm.name.trim()} className="gap-1">
+            <Button
+              onClick={() => createCalMutation.mutate({
+                ...calForm,
+                startDate: calForm.startDate || undefined,
+                endDate: calForm.endDate || undefined,
+                topicDescription: calForm.topicDescription || undefined,
+              })}
+              disabled={createCalMutation.isPending || !calForm.name.trim() || (calForm.calendarType === "topic_block" && (!calForm.startDate || !calForm.endDate))}
+              className="gap-1"
+            >
               <Check className="w-4 h-4" /> Create
             </Button>
           </DialogFooter>
@@ -572,13 +682,70 @@ export default function SchoolCalendar() {
 
       {/* ── Edit Calendar Dialog ────────────────────────────────────────────── */}
       <Dialog open={showEditCalDialog} onOpenChange={setShowEditCalDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="flex items-center gap-2"><Pencil className="w-5 h-5" /> Edit Calendar</DialogTitle></DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-4">
+            {/* Calendar type toggle */}
+            <div>
+              <Label className="text-sm font-semibold mb-2 block">Calendar Type</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCalForm(f => ({ ...f, calendarType: "full_year", startDate: "", endDate: "" }))}
+                  className={`rounded-lg border-2 p-3 text-left transition-all ${
+                    calForm.calendarType === "full_year"
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-border hover:border-primary/40"
+                  }`}
+                >
+                  <div className="font-semibold text-sm flex items-center gap-1.5"><CalendarDays className="w-4 h-4" /> Full Academic Year</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">Standard school year with term dates</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCalForm(f => ({ ...f, calendarType: "topic_block" }))}
+                  className={`rounded-lg border-2 p-3 text-left transition-all ${
+                    calForm.calendarType === "topic_block"
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-border hover:border-primary/40"
+                  }`}
+                >
+                  <div className="font-semibold text-sm flex items-center gap-1.5"><BookOpen className="w-4 h-4" /> Topic Block</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">Short-term unit with specific dates</div>
+                </button>
+              </div>
+            </div>
+
             <div>
               <Label>Calendar Name *</Label>
               <Input value={calForm.name} onChange={e => setCalForm(f => ({ ...f, name: e.target.value }))} />
             </div>
+
+            {calForm.calendarType === "topic_block" && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Start Date</Label>
+                    <Input type="date" value={calForm.startDate} onChange={e => setCalForm(f => ({ ...f, startDate: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>End Date</Label>
+                    <Input type="date" value={calForm.endDate} onChange={e => setCalForm(f => ({ ...f, endDate: e.target.value }))} />
+                  </div>
+                </div>
+                <div>
+                  <Label>Topic / Unit Description</Label>
+                  <Textarea
+                    value={calForm.topicDescription}
+                    onChange={e => setCalForm(f => ({ ...f, topicDescription: e.target.value }))}
+                    placeholder="Describe the topic or unit. The AI will use this to generate LOMLOE-aligned lessons scoped to this topic."
+                    rows={4}
+                    className="resize-none"
+                  />
+                </div>
+              </>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>School Name</Label>
@@ -619,7 +786,18 @@ export default function SchoolCalendar() {
             </Button>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setShowEditCalDialog(false)}>{t("cal_cancel")}</Button>
-              <Button onClick={() => { if (selectedCalendarId) updateCalMutation.mutate({ id: selectedCalendarId, ...calForm }); }} disabled={updateCalMutation.isPending}>
+              <Button
+                onClick={() => {
+                  if (selectedCalendarId) updateCalMutation.mutate({
+                    id: selectedCalendarId,
+                    ...calForm,
+                    startDate: calForm.startDate || undefined,
+                    endDate: calForm.endDate || undefined,
+                    topicDescription: calForm.topicDescription || undefined,
+                  });
+                }}
+                disabled={updateCalMutation.isPending}
+              >
                 {t("cal_save")}
               </Button>
             </div>
@@ -750,6 +928,16 @@ export default function SchoolCalendar() {
               <Badge variant="secondary"><BookOpen className="w-3 h-3 mr-1" />{selectedCalendar.subject}</Badge>
               <Badge variant="secondary"><GraduationCap className="w-3 h-3 mr-1" />{selectedCalendar.yearLevel}</Badge>
               <Badge variant="secondary">{selectedCalendar.academicYear}</Badge>
+              {(selectedCalendar as SchoolCalendar).calendarType === "topic_block" && (
+                <Badge className="bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100"><BookOpen className="w-3 h-3 mr-1" /> Topic Block</Badge>
+              )}
+            </div>
+          )}
+          {selectedCalendar && (selectedCalendar as SchoolCalendar).calendarType === "topic_block" && (selectedCalendar as SchoolCalendar).topicDescription && (
+            <div className="rounded-md bg-amber-50 border border-amber-200 p-3">
+              <p className="text-xs font-semibold text-amber-800 mb-1">Topic / Unit</p>
+              <p className="text-xs text-amber-700 italic">"{(selectedCalendar as SchoolCalendar).topicDescription}"</p>
+              <p className="text-xs text-amber-600 mt-1">The AI will generate lessons specifically aligned to this topic.</p>
             </div>
           )}
           <div className="space-y-4">
@@ -760,16 +948,31 @@ export default function SchoolCalendar() {
                 <SelectContent>{[1, 2, 3, 4, 5].map(n => <SelectItem key={n} value={String(n)}>{n} {n === 1 ? t("cal_sessions_suffix_one") : t("cal_sessions_suffix_many")}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>{t("cal_term_dates")}</Label>
-              {aiForm.terms.map((term, i) => (
-                <div key={i} className="grid grid-cols-3 gap-2 items-center">
-                  <span className="text-sm text-muted-foreground">{term.label}</span>
-                  <Input type="date" value={term.start} onChange={e => setAiForm(f => ({ ...f, terms: f.terms.map((tt, j) => j === i ? { ...tt, start: e.target.value } : tt) }))} />
-                  <Input type="date" value={term.end} onChange={e => setAiForm(f => ({ ...f, terms: f.terms.map((tt, j) => j === i ? { ...tt, end: e.target.value } : tt) }))} />
-                </div>
-              ))}
-            </div>
+            {/* Only show term date inputs for full-year calendars */}
+            {(selectedCalendar as SchoolCalendar)?.calendarType !== "topic_block" && (
+              <div className="space-y-2">
+                <Label>{t("cal_term_dates")}</Label>
+                {aiForm.terms.map((term, i) => (
+                  <div key={i} className="grid grid-cols-3 gap-2 items-center">
+                    <span className="text-sm text-muted-foreground">{term.label}</span>
+                    <Input type="date" value={term.start} onChange={e => setAiForm(f => ({ ...f, terms: f.terms.map((tt, j) => j === i ? { ...tt, start: e.target.value } : tt) }))} />
+                    <Input type="date" value={term.end} onChange={e => setAiForm(f => ({ ...f, terms: f.terms.map((tt, j) => j === i ? { ...tt, end: e.target.value } : tt) }))} />
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* For topic blocks: show the date range from the calendar */}
+            {(selectedCalendar as SchoolCalendar)?.calendarType === "topic_block" && (
+              <div className="rounded-md bg-muted/50 p-3 text-sm">
+                <p className="font-medium mb-1">Date Range</p>
+                <p className="text-muted-foreground">
+                  {(selectedCalendar as SchoolCalendar).startDate
+                    ? `${new Date((selectedCalendar as SchoolCalendar).startDate as string).toLocaleDateString()} – ${new Date((selectedCalendar as SchoolCalendar).endDate as string).toLocaleDateString()}`
+                    : "No dates set — please edit the calendar to add start and end dates first."}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">Lessons will be generated for every school day in this range at the selected frequency.</p>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAiDialog(false)}>{t("cal_cancel")}</Button>

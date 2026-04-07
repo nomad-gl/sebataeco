@@ -455,6 +455,14 @@ export const schoolCalendars = mysqlTable("school_calendars", {
   subject: varchar("subject", { length: 128 }),
   yearLevel: varchar("yearLevel", { length: 64 }),
   academicYear: varchar("academicYear", { length: 16 }).notNull(),
+  /** 'full_year' = standard academic year calendar; 'topic_block' = short-term unit with defined start/end */
+  calendarType: mysqlEnum("calendarType", ["full_year", "topic_block"]).default("full_year").notNull(),
+  /** For topic_block calendars: first day of the unit (stored as UTC midnight) */
+  startDate: timestamp("startDate"),
+  /** For topic_block calendars: last day of the unit (stored as UTC midnight) */
+  endDate: timestamp("endDate"),
+  /** Optional description of the topic/unit — used by AI infill to scope lesson generation */
+  topicDescription: text("topicDescription"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

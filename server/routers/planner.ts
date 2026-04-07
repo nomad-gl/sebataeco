@@ -29,11 +29,21 @@ export const plannerRouter = router({
       subject: z.string().optional(),
       yearLevel: z.string().optional(),
       academicYear: z.string(),
+      calendarType: z.enum(["full_year", "topic_block"]).default("full_year"),
+      startDate: z.string().optional(), // ISO date string
+      endDate: z.string().optional(),   // ISO date string
+      topicDescription: z.string().max(2000).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      const [result] = await db.insert(schoolCalendars).values({ ...input, userId: ctx.user.id });
+      const { startDate, endDate, ...rest } = input;
+      const [result] = await db.insert(schoolCalendars).values({
+        ...rest,
+        userId: ctx.user.id,
+        ...(startDate ? { startDate: new Date(startDate) } : {}),
+        ...(endDate ? { endDate: new Date(endDate) } : {}),
+      });
       return { id: (result as any).insertId };
     }),
 
@@ -46,12 +56,20 @@ export const plannerRouter = router({
       subject: z.string().optional(),
       yearLevel: z.string().optional(),
       academicYear: z.string().optional(),
+      calendarType: z.enum(["full_year", "topic_block"]).optional(),
+      startDate: z.string().optional(),
+      endDate: z.string().optional(),
+      topicDescription: z.string().max(2000).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      const { id, ...data } = input;
-      await db.update(schoolCalendars).set(data).where(and(eq(schoolCalendars.id, id), eq(schoolCalendars.userId, ctx.user.id)));
+      const { id, startDate, endDate, ...rest } = input;
+      await db.update(schoolCalendars).set({
+        ...rest,
+        ...(startDate !== undefined ? { startDate: startDate ? new Date(startDate) : null } : {}),
+        ...(endDate !== undefined ? { endDate: endDate ? new Date(endDate) : null } : {}),
+      }).where(and(eq(schoolCalendars.id, id), eq(schoolCalendars.userId, ctx.user.id)));
       return { success: true };
     }),
 
@@ -152,6 +170,11 @@ export const plannerRouter = router({
       subject: z.string(),
       termDates: z.array(z.object({ start: z.string(), end: z.string(), label: z.string() })),
       sessionsPerWeek: z.number().default(3),
+      /** Optional topic/unit description — scopes AI lesson generation to a specific topic */
+      topicDescription: z.string().optional(),
+      /** For topic_block calendars: constrain lesson dates within this range */
+      startDate: z.string().optional(),
+      endDate: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -164,18 +187,37 @@ export const plannerRouter = router({
 
       const takenDates = new Set(existing.map(e => new Date(e.eventDate).toISOString().split("T")[0]));
 
+      // For topic_block calendars, if startDate/endDate are provided, use them directly
+      // instead of iterating over term dates.
       const teachingDays: string[] = [];
-      for (const term of input.termDates) {
-        const start = new Date(term.start);
-        const end = new Date(term.end);
-        const cur = new Date(start);
-        while (cur <= end) {
+      const blockStart = input.startDate ? new Date(input.startDate) : null;
+      const blockEnd = input.endDate ? new Date(input.endDate) : null;
+
+      if (blockStart && blockEnd) {
+        // Topic block: iterate every weekday between startDate and endDate
+        const cur = new Date(blockStart);
+        while (cur <= blockEnd) {
           const dayOfWeek = cur.getDay();
           if (dayOfWeek >= 1 && dayOfWeek <= 5) {
             const iso = cur.toISOString().split("T")[0];
             if (!takenDates.has(iso)) teachingDays.push(iso);
           }
           cur.setDate(cur.getDate() + 1);
+        }
+      } else {
+        // Full year: iterate over provided term dates
+        for (const term of input.termDates) {
+          const start = new Date(term.start);
+          const end = new Date(term.end);
+          const cur = new Date(start);
+          while (cur <= end) {
+            const dayOfWeek = cur.getDay();
+            if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+              const iso = cur.toISOString().split("T")[0];
+              if (!takenDates.has(iso)) teachingDays.push(iso);
+            }
+            cur.setDate(cur.getDate() + 1);
+          }
         }
       }
 
@@ -206,7 +248,10 @@ export const plannerRouter = router({
               content: `Generate a sequence of ${selectedDays.length} LOMLOE-aligned lessons for:
 - Subject: ${input.subject}
 - Year Group: ${input.yearGroup}
-- Academic Year: ${input.academicYear}
+- Academic Year: ${input.academicYear}${input.topicDescription ? `
+- Topic / Unit: ${input.topicDescription}
+
+IMPORTANT: All lessons MUST be scoped to the topic/unit described above. Each lesson title, saberes básicos, learning outcomes, and evaluation criteria must directly relate to this specific topic.` : ""}
 
 Each lesson must include:
 - A clear, engaging lesson title

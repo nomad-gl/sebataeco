@@ -770,3 +770,14 @@
 - [x] SampleQuestions.tsx: "Print Worksheet" button opens modal to select questions and export options
 - [x] PDF worksheet: two versions generated — with answers (correct option highlighted) and without answers (blank lines)
 - [x] PDF uses current locale for question text
+
+## Feature: School Calendar – Topic Block Creation
+- [x] DB: add calendarType (enum: 'full_year' | 'topic_block'), startDate, endDate, topicDescription columns to school_calendars
+- [x] DB migration applied for new school_calendars columns
+- [x] tRPC createCalendar and updateCalendar accept calendarType, startDate, endDate, topicDescription
+- [x] AI infill prompt uses topicDescription to scope LOMLOE lesson generation to the specific topic/unit
+- [x] AI infill uses startDate/endDate to constrain generated lesson dates within the topic block range
+- [x] SchoolCalendar UI: creation modal has a type toggle (Full Year vs Topic Block)
+- [x] Topic Block mode shows start date picker, end date picker, and topic description textarea
+- [x] Calendar header panel displays topic description when calendarType is topic_block
+- [x] Calendar view auto-navigates to startDate when a topic block calendar is selected
