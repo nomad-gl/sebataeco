@@ -703,3 +703,20 @@ export const adminAuditLogs = mysqlTable("admin_audit_logs", {
 });
 export type AdminAuditLog = typeof adminAuditLogs.$inferSelect;
 export type InsertAdminAuditLog = typeof adminAuditLogs.$inferInsert;
+
+/**
+ * DPA acceptances — records each user's acceptance of the Data Processing Agreement.
+ * Required for GDPR Article 28 compliance (documented consent to data processing).
+ */
+export const dpaAcceptances = mysqlTable("dpa_acceptances", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  /** DPA version string, e.g. "1.0" */
+  dpaVersion: varchar("dpaVersion", { length: 16 }).notNull().default("1.0"),
+  /** UTC timestamp of acceptance */
+  acceptedAt: timestamp("acceptedAt").defaultNow().notNull(),
+  /** Anonymised IP address (/24 prefix) for audit trail */
+  ipAddress: varchar("ipAddress", { length: 64 }),
+});
+export type DpaAcceptance = typeof dpaAcceptances.$inferSelect;
+export type InsertDpaAcceptance = typeof dpaAcceptances.$inferInsert;

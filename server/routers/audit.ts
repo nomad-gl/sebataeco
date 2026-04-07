@@ -186,6 +186,125 @@ export const auditRouter = router({
     }),
 
   /**
+   * Export the full audit log as a CSV string.
+   */
+  exportCsv: adminProcedure
+    .input(
+      z.object({
+        eventType: z
+          .enum(["all", "grade_override", "bias_flag", "learning_path", "assessment"])
+          .default("all"),
+      })
+    )
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      const events: Array<{
+        id: string;
+        type: string;
+        typeLabel: string;
+        severity: string;
+        summary: string;
+        userId: number | null;
+        createdAt: number;
+        resolved: boolean;
+      }> = [];
+
+      if (input.eventType === "all" || input.eventType === "grade_override") {
+        const overrides = await db
+          .select()
+          .from(aiGradeOverrides)
+          .orderBy(desc(aiGradeOverrides.createdAt))
+          .limit(1000);
+        for (const o of overrides) {
+          events.push({
+            id: `override-${o.id}`,
+            type: "grade_override",
+            typeLabel: "Grade Override",
+            severity: "info",
+            summary: `AI score ${o.aiScore} → Teacher score ${o.teacherScore} (${o.reason ?? "no reason"})`,
+            userId: o.teacherId,
+            createdAt: o.createdAt instanceof Date ? o.createdAt.getTime() : Number(o.createdAt),
+            resolved: true,
+          });
+        }
+      }
+
+      if (input.eventType === "all" || input.eventType === "bias_flag") {
+        const flags = await db
+          .select()
+          .from(aiBiasFlags)
+          .orderBy(desc(aiBiasFlags.createdAt))
+          .limit(1000);
+        for (const f of flags) {
+          events.push({
+            id: `bias-${f.id}`,
+            type: "bias_flag",
+            typeLabel: "Bias Flag",
+            severity: f.severity === "high" ? "critical" : f.severity === "medium" ? "warning" : "info",
+            summary: f.flagReason ?? "Bias detected in AI output",
+            userId: f.userId ?? null,
+            createdAt: f.createdAt instanceof Date ? f.createdAt.getTime() : Number(f.createdAt),
+            resolved: f.resolved ?? false,
+          });
+        }
+      }
+
+      if (input.eventType === "all" || input.eventType === "learning_path") {
+        const paths = await db
+          .select()
+          .from(aiLearningPaths)
+          .orderBy(desc(aiLearningPaths.createdAt))
+          .limit(1000);
+        for (const p of paths) {
+          events.push({
+            id: `path-${p.id}`,
+            type: "learning_path",
+            typeLabel: "Learning Path",
+            severity: "info",
+            summary: `Learning path generated for student ${p.studentId} — ${p.competency ?? "all competencies"}`,
+            userId: p.teacherId,
+            createdAt: p.createdAt instanceof Date ? p.createdAt.getTime() : Number(p.createdAt),
+            resolved: true,
+          });
+        }
+      }
+
+      if (input.eventType === "all" || input.eventType === "assessment") {
+        const assessmentRows = await db
+          .select()
+          .from(aiAssessments)
+          .orderBy(desc(aiAssessments.createdAt))
+          .limit(1000);
+        for (const a of assessmentRows) {
+          events.push({
+            id: `assessment-${a.id}`,
+            type: "assessment",
+            typeLabel: "AI Assessment",
+            severity: a.overridden ? "warning" : "info",
+            summary: `AI assessed student ${a.studentId} — ${a.competency ?? "general"} — score ${a.aiScore}`,
+            userId: a.teacherId,
+            createdAt: a.createdAt instanceof Date ? a.createdAt.getTime() : Number(a.createdAt),
+            resolved: !a.overridden,
+          });
+        }
+      }
+
+      events.sort((a, b) => b.createdAt - a.createdAt);
+
+      // Build CSV
+      const header = "id,type,typeLabel,severity,summary,userId,date,resolved";
+      const rows = events.map((e) => {
+        const date = new Date(e.createdAt).toISOString();
+        const summary = `"${(e.summary ?? "").replace(/"/g, '""')}"`;
+        return `${e.id},${e.type},${e.typeLabel},${e.severity},${summary},${e.userId ?? ""},${date},${e.resolved}`;
+      });
+
+      return { csv: [header, ...rows].join("\n"), count: events.length };
+    }),
+
+  /**
    * Get aggregate statistics for the audit dashboard.
    */
   getStats: adminProcedure.query(async () => {

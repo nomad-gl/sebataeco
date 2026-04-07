@@ -33,6 +33,7 @@ import UpdateBanner from "./components/UpdateBanner";
 import FirstLaunchLanguagePicker from "./components/FirstLaunchLanguagePicker";
 import CatalanDialectDetector from "./components/CatalanDialectDetector";
 import DataNoticeBanner from "./components/DataNoticeBanner";
+import DpaAcceptanceDialog from "./components/DpaAcceptanceDialog";
 
 function Router() {
   return (
@@ -80,6 +81,7 @@ function App() {
           <UpdateBanner />
           <PwaInstallBanner />
           <DataNoticeBanner />
+          <DpaAcceptanceDialog />
           <Router />
         </TooltipProvider>
       </ThemeProvider>

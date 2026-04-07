@@ -41,7 +41,9 @@ import {
   ChevronRight,
   RefreshCw,
   FileText,
+  Download,
 } from "lucide-react";
+import { toast } from "sonner";
 
 type EventType = "all" | "grade_override" | "bias_flag" | "learning_path" | "assessment";
 
@@ -79,6 +81,25 @@ export default function AuditDashboard() {
     void refetchLog();
   };
 
+  const csvQuery = trpc.audit.exportCsv.useQuery(
+    { eventType },
+    { enabled: false, refetchOnWindowFocus: false }
+  );
+
+  const handleExportCsv = async () => {
+    const result = await csvQuery.refetch();
+    if (result.data) {
+      const blob = new Blob([result.data.csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `seba-audit-log-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`${t("audit_export_csv_title")} — ${result.data.count} events`);
+    }
+  };
+
   const formatDate = (ts: number) =>
     new Date(ts).toLocaleString(undefined, {
       day: "2-digit",
@@ -97,10 +118,16 @@ export default function AuditDashboard() {
             <h1 className="text-2xl font-bold tracking-tight">{t("audit_title")}</h1>
             <p className="text-muted-foreground text-sm mt-1">{t("audit_subtitle")}</p>
           </div>
-          <Button variant="outline" size="sm" onClick={handleRefresh}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            {t("audit_refresh")}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={csvQuery.isFetching}>
+              <Download className="h-4 w-4 mr-2" />
+              {csvQuery.isFetching ? "…" : t("audit_export_csv")}
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleRefresh}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              {t("audit_refresh")}
+            </Button>
+          </div>
         </div>
 
         {/* Stats row */}

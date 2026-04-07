@@ -1017,3 +1017,24 @@
 - [x] Generate DPA document covering: data controller/processor roles, categories of data, processing purposes, retention periods, sub-processors, data subject rights, security measures, international transfers
 - [x] Stored as docs/DATA_PROCESSING_AGREEMENT.md
 - [x] i18n keys for DPA section labels (EN/ES/CA)
+
+## Follow-up: Audit Dashboard CSV Export
+- [x] Add "Download CSV" button to Audit Dashboard header
+- [x] tRPC audit.exportCsv procedure: returns all events as CSV text (admin-only)
+- [x] Browser triggers file download with timestamped filename
+- [x] i18n keys (EN/ES/CA)
+
+## Follow-up: DPA Acceptance Flow
+- [x] DB: dpa_acceptances table (userId, version, acceptedAt, ipAddress)
+- [x] tRPC dpa.getStatus — returns whether current user has accepted the current DPA version
+- [x] tRPC dpa.accept — records acceptance with timestamp
+- [x] UI: DPA acceptance dialog shown on first login (after OAuth callback) if not yet accepted
+- [x] Dialog shows DPA summary with link to full document; requires explicit checkbox + Accept button
+- [x] Acceptance stored in DB; dialog not shown again after acceptance
+- [x] i18n keys (EN/ES/CA)
+
+## Follow-up: Data Protection Contact Card on Privacy Dashboard
+- [x] Add "Data Protection Contacts" card to Privacy Dashboard
+- [x] Card links to APDCAT (https://apdcat.gencat.cat), AEPD (https://www.aepd.es), EDPB (https://edpb.europa.eu)
+- [x] Card includes platform DPA version and acceptance date for the logged-in user
+- [x] i18n keys (EN/ES/CA)

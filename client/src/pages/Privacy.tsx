@@ -29,7 +29,43 @@ import {
   AlertTriangle,
   Clock,
   Users,
+  Scale,
+  ExternalLink,
+  BadgeCheck,
 } from "lucide-react";
+
+function DpaStatusBadge() {
+  const { t } = useI18n();
+  const { data: dpaStatus } = trpc.dpa.getStatus.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
+
+  if (!dpaStatus) return null;
+
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      {dpaStatus.accepted ? (
+        <>
+          <BadgeCheck className="h-4 w-4 text-green-600" />
+          <span className="text-muted-foreground">
+            {t("privacy_dpa_accepted")}{" "}
+            {dpaStatus.acceptedAt
+              ? new Date(dpaStatus.acceptedAt).toLocaleDateString()
+              : ""}
+          </span>
+          <Badge variant="outline" className="text-xs gap-1 text-green-700 border-green-300">
+            {t("privacy_dpa_version")} {dpaStatus.currentVersion}
+          </Badge>
+        </>
+      ) : (
+        <>
+          <AlertTriangle className="h-4 w-4 text-amber-500" />
+          <span className="text-muted-foreground">{t("privacy_dpa_not_accepted")}</span>
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function Privacy() {
   const { t } = useI18n();
@@ -279,6 +315,64 @@ export default function Privacy() {
             {t("privacy_delete_btn")}
           </Button>
         </div>
+
+        {/* Data Protection Contact Card */}
+        <Card className="border-green-200/50 bg-green-50/30 dark:bg-green-900/10">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Scale className="h-4 w-4 text-green-600" />
+              {t("privacy_dpa_title")}
+            </CardTitle>
+            <CardDescription>{t("privacy_dpa_desc")}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* DPA acceptance status */}
+            <DpaStatusBadge />
+
+            {/* Supervisory authority links */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <a
+                href="https://apdcat.gencat.cat/ca/inici"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 p-3 rounded-lg border bg-background hover:bg-muted/50 transition-colors text-sm"
+              >
+                <span className="text-lg">🏴󠁥󠁳󠁣󠁴󠁿</span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-xs leading-tight">{t("privacy_dpa_apdcat")}</p>
+                  <p className="text-[10px] text-muted-foreground">apdcat.gencat.cat</p>
+                </div>
+                <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0" />
+              </a>
+              <a
+                href="https://www.aepd.es"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 p-3 rounded-lg border bg-background hover:bg-muted/50 transition-colors text-sm"
+              >
+                <span className="text-lg">🇪🇸</span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-xs leading-tight">{t("privacy_dpa_aepd")}</p>
+                  <p className="text-[10px] text-muted-foreground">aepd.es</p>
+                </div>
+                <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0" />
+              </a>
+              <a
+                href="https://www.edpb.europa.eu"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 p-3 rounded-lg border bg-background hover:bg-muted/50 transition-colors text-sm"
+              >
+                <span className="text-lg">🇪🇺</span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-xs leading-tight">{t("privacy_dpa_edpb")}</p>
+                  <p className="text-[10px] text-muted-foreground">edpb.europa.eu</p>
+                </div>
+                <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0" />
+              </a>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Delete confirmation dialog */}
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
