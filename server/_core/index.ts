@@ -9,6 +9,7 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import cron from "node-cron";
 import { runRetentionPurge } from "../routers/privacy";
+import { runAuditRetentionPurge, auditRetentionStatus } from "../routers/audit";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -63,14 +64,26 @@ async function startServer() {
     console.log(`Server running on http://localhost:${port}/`);
   });
 
-  // Nightly retention purge at 03:00 UTC
+  // Nightly privacy data retention purge at 03:00 UTC
   cron.schedule("0 3 * * *", async () => {
-    console.log("[Retention] Running nightly data purge...");
+    console.log("[Retention] Running nightly privacy data purge...");
     try {
       const result = await runRetentionPurge();
-      console.log("[Retention] Purge complete:", JSON.stringify(result));
+      console.log("[Retention] Privacy purge complete:", JSON.stringify(result));
     } catch (err) {
-      console.error("[Retention] Purge failed:", err);
+      console.error("[Retention] Privacy purge failed:", err);
+    }
+  });
+
+  // Nightly audit log retention purge at 03:30 UTC (24-month rolling window)
+  cron.schedule("30 3 * * *", async () => {
+    console.log("[AuditRetention] Running nightly audit log purge (>24 months)...");
+    try {
+      const deleted = await runAuditRetentionPurge();
+      console.log(`[AuditRetention] Purge complete: ${deleted} rows deleted.`);
+    } catch (err) {
+      auditRetentionStatus.lastError = err instanceof Error ? err.message : String(err);
+      console.error("[AuditRetention] Purge failed:", err);
     }
   });
 }

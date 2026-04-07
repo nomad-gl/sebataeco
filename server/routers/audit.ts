@@ -15,8 +15,60 @@ import {
   aiBiasFlags,
   aiLearningPaths,
   aiAssessments,
+  adminAuditLogs,
 } from "../../drizzle/schema";
-import { desc, gte, and, eq, sql } from "drizzle-orm";
+import { desc, gte, and, eq, sql, lt } from "drizzle-orm";
+import { writeAuditLog } from "../auditLog";
+
+// ─── Audit retention constants ────────────────────────────────────────────────
+const AUDIT_RETENTION_MONTHS = 24;
+
+/** In-memory record of the last audit retention purge run. */
+export const auditRetentionStatus: {
+  lastRunAt: number | null;
+  lastDeletedCount: number | null;
+  lastError: string | null;
+} = {
+  lastRunAt: null,
+  lastDeletedCount: null,
+  lastError: null,
+};
+
+/**
+ * Delete admin_audit_logs rows older than AUDIT_RETENTION_MONTHS months.
+ * Returns the number of rows deleted.
+ * Called by the nightly cron and by the admin tRPC procedure.
+ */
+export async function runAuditRetentionPurge(triggeredByUserId?: number): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("DB unavailable");
+
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - AUDIT_RETENTION_MONTHS);
+
+  const result = await db
+    .delete(adminAuditLogs)
+    .where(lt(adminAuditLogs.createdAt, cutoff));
+
+  const deleted = (result as any)[0]?.affectedRows ?? 0;
+
+  // Update in-memory status
+  auditRetentionStatus.lastRunAt = Date.now();
+  auditRetentionStatus.lastDeletedCount = deleted;
+  auditRetentionStatus.lastError = null;
+
+  // Write an audit log entry for the purge itself (system user = 0 if cron)
+  if (triggeredByUserId !== undefined) {
+    await writeAuditLog({
+      userId: triggeredByUserId,
+      action: "retention_purge",
+      resource: "admin_audit_logs",
+      details: { deleted, cutoffDate: cutoff.toISOString(), retentionMonths: AUDIT_RETENTION_MONTHS },
+    });
+  }
+
+  return deleted;
+}
 
 // Admin guard middleware
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -303,6 +355,30 @@ export const auditRouter = router({
 
       return { csv: [header, ...rows].join("\n"), count: events.length };
     }),
+
+  /**
+   * Manually trigger the audit log retention purge (admin only).
+   * Deletes all admin_audit_logs rows older than 24 months.
+   */
+  runRetentionPurge: adminProcedure.mutation(async ({ ctx }) => {
+    try {
+      const deleted = await runAuditRetentionPurge(ctx.user.id);
+      return { success: true, deleted };
+    } catch (err) {
+      auditRetentionStatus.lastError = err instanceof Error ? err.message : String(err);
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Purge failed" });
+    }
+  }),
+
+  /**
+   * Return the in-memory status of the last audit retention purge run.
+   */
+  getRetentionStatus: adminProcedure.query(() => ({
+    lastRunAt: auditRetentionStatus.lastRunAt,
+    lastDeletedCount: auditRetentionStatus.lastDeletedCount,
+    lastError: auditRetentionStatus.lastError,
+    retentionMonths: AUDIT_RETENTION_MONTHS,
+  })),
 
   /**
    * Get aggregate statistics for the audit dashboard.

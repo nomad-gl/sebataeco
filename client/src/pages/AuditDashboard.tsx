@@ -42,6 +42,8 @@ import {
   RefreshCw,
   FileText,
   Download,
+  Trash2,
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -100,6 +102,22 @@ export default function AuditDashboard() {
     }
   };
 
+  const utils = trpc.useUtils();
+
+  const { data: retentionStatus, refetch: refetchRetention } = trpc.audit.getRetentionStatus.useQuery(
+    undefined,
+    { refetchOnWindowFocus: false }
+  );
+
+  const purgeMutation = trpc.audit.runRetentionPurge.useMutation({
+    onSuccess: (data) => {
+      toast.success(`${t("audit_retention_success")} — ${data.deleted} ${t("audit_retention_deleted")}`);
+      void refetchRetention();
+      void utils.audit.getStats.invalidate();
+    },
+    onError: () => toast.error(t("audit_retention_error")),
+  });
+
   const formatDate = (ts: number) =>
     new Date(ts).toLocaleString(undefined, {
       day: "2-digit",
@@ -129,6 +147,49 @@ export default function AuditDashboard() {
             </Button>
           </div>
         </div>
+
+        {/* Retention status card */}
+        <Card className="border-amber-200/50 bg-amber-50/30 dark:bg-amber-900/10">
+          <CardContent className="py-3 px-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="p-1.5 rounded-md bg-amber-100 dark:bg-amber-900/30 mt-0.5">
+                  <Trash2 className="h-4 w-4 text-amber-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">{t("audit_retention_title")}</p>
+                  <p className="text-xs text-muted-foreground">{t("audit_retention_months")}</p>
+                  {retentionStatus && (
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <Clock className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">
+                        {t("audit_retention_status")}:{" "}
+                        {retentionStatus.lastRunAt
+                          ? `${new Date(retentionStatus.lastRunAt).toLocaleString()} — ${retentionStatus.lastDeletedCount} ${t("audit_retention_deleted")}`
+                          : t("audit_retention_never")}
+                      </span>
+                      {retentionStatus.lastError && (
+                        <Badge variant="destructive" className="text-[10px] py-0">
+                          {t("audit_retention_error")}
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0 border-amber-300 hover:bg-amber-100"
+                onClick={() => purgeMutation.mutate(undefined as unknown as void)}
+                disabled={purgeMutation.isPending}
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                {purgeMutation.isPending ? t("audit_retention_running") : t("audit_retention_run_btn")}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Stats row */}
         {stats && (

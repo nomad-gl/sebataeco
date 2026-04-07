@@ -1038,3 +1038,10 @@
 - [x] Card links to APDCAT (https://apdcat.gencat.cat), AEPD (https://www.aepd.es), EDPB (https://edpb.europa.eu)
 - [x] Card includes platform DPA version and acceptance date for the logged-in user
 - [x] i18n keys (EN/ES/CA)
+
+## Feature: Nightly Audit Log Retention Purge
+- [x] tRPC audit.runRetentionPurge (adminProcedure): deletes admin_audit_logs rows older than 24 months, returns deleted count
+- [x] Server-side nightly cron at 03:30 UTC using node-cron: calls purge logic and logs result to console
+- [x] Persist last purge run metadata (timestamp + deleted count) in a server-side in-memory store and expose via audit.getRetentionStatus
+- [x] Audit Dashboard: show "Last purge" timestamp and deleted count in a small status badge
+- [x] i18n keys for purge status labels (EN/ES/CA)
