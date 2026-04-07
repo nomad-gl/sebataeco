@@ -54,15 +54,8 @@ export default function CatalanDialectDetector() {
     setDetected({ dialect: data.dialect, region: regionKey, dialectLabel: data.dialectLabel });
 
     if (!alreadyChosen) {
-      // First time — show initial confirmation (only if dialect differs from default central)
-      if (data.dialect !== "central" && data.dialect !== "standard") {
-        setPopup("initial");
-      } else {
-        // Central / standard — accept silently
-        setDialect(data.dialect);
-        localStorage.setItem(STORAGE_DIALECT_CHOSEN, "true");
-        localStorage.setItem(STORAGE_LAST_REGION, regionKey);
-      }
+      // First time — always show confirmation so user can choose IEC standard or regional variant
+      setPopup("initial");
       return;
     }
 
@@ -98,41 +91,75 @@ export default function CatalanDialectDetector() {
 
   return (
     <Dialog open onOpenChange={(open) => { if (!open) keepCurrent(); }}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <span className="text-2xl">🏴󠁥󠁳󠁣󠁴󠁿</span>
-            {isInitial
-              ? `Variant detectada: ${detected.dialectLabel}`
-              : "Canvi de regió detectat"}
+            {isInitial ? "Benvingut/da a SEBA" : "Canvi de regió detectat"}
           </DialogTitle>
           <DialogDescription className="text-sm leading-relaxed">
             {isInitial
-              ? `Hem detectat que et trobes en una zona on es parla la variant "${detected.dialectLabel}" del català. Vols que SEBA adapti el llenguatge a aquesta variant?`
+              ? `SEBA utilitza el català estàndard IEC per defecte. Hem detectat que et trobes a una zona de variant "${detected.dialectLabel}". Tria la variant que prefereixes:`
               : `La teva ubicació ha canviat. Hem detectat la variant "${detected.dialectLabel}". Vols actualitzar la variant lingüística de SEBA?`}
           </DialogDescription>
         </DialogHeader>
 
-        {/* Dialect info card */}
-        <div className="rounded-lg border bg-muted/40 px-4 py-3 text-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Variant actual</span>
-            <span className="font-semibold">{DIALECT_LABELS[dialect]}</span>
+        {isInitial ? (
+          <div className="grid grid-cols-1 gap-2">
+            {/* IEC Standard option */}
+            <button
+              onClick={() => {
+                setDialect("standard");
+                localStorage.setItem(STORAGE_DIALECT_CHOSEN, "true");
+                if (detected) localStorage.setItem(STORAGE_LAST_REGION, detected.region);
+                setPopup(null);
+              }}
+              className="flex items-center gap-3 rounded-lg border-2 border-primary/30 hover:border-primary bg-primary/5 px-4 py-3 text-left transition-colors"
+            >
+              <span className="text-xl">🏴󠁥󠁳󠁣󠁴󠁿</span>
+              <div>
+                <div className="font-semibold text-sm">Català estàndard (IEC)</div>
+                <div className="text-xs text-muted-foreground">Norma de l'Institut d'Estudis Catalans — recomanat</div>
+              </div>
+            </button>
+            {/* Regional variant option — only show if different from standard */}
+            {detected.dialect !== "standard" && detected.dialect !== "central" && (
+              <button
+                onClick={acceptDetected}
+                className="flex items-center gap-3 rounded-lg border hover:border-primary/50 bg-muted/30 px-4 py-3 text-left transition-colors"
+              >
+                <span className="text-xl">🌍</span>
+                <div>
+                  <div className="font-semibold text-sm">{detected.dialectLabel}</div>
+                  <div className="text-xs text-muted-foreground">Variant regional detectada per la teva ubicació</div>
+                </div>
+              </button>
+            )}
           </div>
-          <div className="flex items-center justify-between mt-1">
-            <span className="text-muted-foreground">Variant detectada</span>
-            <span className="font-semibold text-primary">{detected.dialectLabel}</span>
+        ) : (
+          /* Region-changed info card */
+          <div className="rounded-lg border bg-muted/40 px-4 py-3 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Variant actual</span>
+              <span className="font-semibold">{DIALECT_LABELS[dialect]}</span>
+            </div>
+            <div className="flex items-center justify-between mt-1">
+              <span className="text-muted-foreground">Variant detectada</span>
+              <span className="font-semibold text-primary">{detected.dialectLabel}</span>
+            </div>
           </div>
-        </div>
+        )}
 
-        <DialogFooter className="flex-col gap-2 sm:flex-row">
-          <Button variant="outline" className="w-full sm:w-auto" onClick={keepCurrent}>
-            {isInitial ? "No, mantenir l'estàndard" : "Mantenir la variant actual"}
-          </Button>
-          <Button className="w-full sm:w-auto" onClick={acceptDetected}>
-            {isInitial ? `Sí, usar ${detected.dialectLabel}` : "Actualitzar variant"}
-          </Button>
-        </DialogFooter>
+        {!isInitial && (
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button variant="outline" className="w-full sm:w-auto" onClick={keepCurrent}>
+              Mantenir la variant actual
+            </Button>
+            <Button className="w-full sm:w-auto" onClick={acceptDetected}>
+              Actualitzar variant
+            </Button>
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );

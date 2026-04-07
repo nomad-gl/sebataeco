@@ -28,6 +28,7 @@ import {
   Route,
   AlertTriangle,
   Clock,
+  Users,
 } from "lucide-react";
 
 export default function Privacy() {
@@ -39,6 +40,22 @@ export default function Privacy() {
 
   const exportMutation = trpc.privacy.exportMyData.useQuery(undefined, {
     enabled: false,
+  });
+
+  const [parentReportLoading, setParentReportLoading] = useState(false);
+
+  const parentReportMutation = trpc.privacy.generateParentReport.useMutation({
+    onSuccess: (data) => {
+      const link = document.createElement("a");
+      link.href = `data:application/pdf;base64,${data.pdf}`;
+      link.download = data.filename;
+      link.click();
+      setParentReportLoading(false);
+    },
+    onError: (err) => {
+      toast.error(err.message);
+      setParentReportLoading(false);
+    },
   });
 
   const deleteMutation = trpc.privacy.deleteMyData.useMutation({
@@ -195,6 +212,33 @@ export default function Privacy() {
           </CardContent>
         </Card>
 
+        {/* EEA / Catalan Public Cloud data hosting notice */}
+        <Card className="border-blue-200/50 bg-blue-50/30 dark:bg-blue-900/10">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <span className="text-lg">🇪🇺</span>
+              {t("privacy_hosting_title")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground space-y-2">
+            <p>{t("privacy_hosting_desc")}</p>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Badge variant="outline" className="text-xs gap-1">
+                <span>🇪🇺</span> GDPR Compliant
+              </Badge>
+              <Badge variant="outline" className="text-xs gap-1">
+                <span>🏴󠁥󠁳󠁣󠁴󠁿</span> Núvol Públic de Catalunya
+              </Badge>
+              <Badge variant="outline" className="text-xs gap-1">
+                <span>🔒</span> EEA Hosted
+              </Badge>
+            </div>
+            <p className="text-[11px] text-muted-foreground/70 pt-1">
+              {t("privacy_hosting_note")}
+            </p>
+          </CardContent>
+        </Card>
+
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-3">
           <Button
@@ -205,6 +249,18 @@ export default function Privacy() {
           >
             <Download className="h-4 w-4" />
             {exportMutation.isFetching ? t("privacy_exporting") : t("privacy_export_btn")}
+          </Button>
+          <Button
+            variant="outline"
+            className="flex-1 gap-2"
+            onClick={() => {
+              setParentReportLoading(true);
+              parentReportMutation.mutate({});
+            }}
+            disabled={parentReportLoading}
+          >
+            <Users className="h-4 w-4" />
+            {parentReportLoading ? "Generating…" : t("privacy_parent_report_btn")}
           </Button>
           <Button
             variant="outline"

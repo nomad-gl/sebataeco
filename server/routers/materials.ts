@@ -2,6 +2,7 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { ENV } from "../_core/env";
 import { invokeLLM } from "../_core/llm";
+import { checkBias } from "../biasGuard";
 import { generateImage } from "../_core/imageGeneration";
 import { storagePut } from "../storage";
 import {
@@ -343,9 +344,12 @@ export const materialsRouter = router({
         ],
       });
       const rawContent = String(response.choices?.[0]?.message?.content ?? "{}");
+      // Bias guard: scan generated content before returning to teacher
+      const biasResult = await checkBias(userPrompt, rawContent, undefined, undefined);
+      const guardedContent = biasResult.safeOutput;
       let parsed: Record<string, unknown>;
       try {
-        const cleaned = rawContent.replace(/^```json?\n?/, "").replace(/\n?```$/, "").trim();
+        const cleaned = guardedContent.replace(/^```json?\n?/, "").replace(/\n?```$/, "").trim();
         parsed = JSON.parse(cleaned) as Record<string, unknown>;
       } catch {
         throw new Error("AI returned invalid JSON. Please try again.");
@@ -411,10 +415,13 @@ export const materialsRouter = router({
       });
 
       const rawContent = String(response.choices?.[0]?.message?.content ?? "{}");
+      // Bias guard: scan generated content before saving
+      const biasResult = await checkBias(userPrompt, rawContent, undefined, ctx.user.id);
+      const guardedContent = biasResult.safeOutput;
 
       let parsed: Record<string, unknown>;
       try {
-        const cleaned = rawContent.replace(/^```json?\n?/, "").replace(/\n?```$/, "").trim();
+        const cleaned = guardedContent.replace(/^```json?\n?/, "").replace(/\n?```$/, "").trim();
         parsed = JSON.parse(cleaned) as Record<string, unknown>;
       } catch {
         throw new Error("AI returned invalid JSON. Please try again.");

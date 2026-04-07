@@ -7,6 +7,8 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import cron from "node-cron";
+import { runRetentionPurge } from "../routers/privacy";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -59,6 +61,17 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
+  });
+
+  // Nightly retention purge at 03:00 UTC
+  cron.schedule("0 3 * * *", async () => {
+    console.log("[Retention] Running nightly data purge...");
+    try {
+      const result = await runRetentionPurge();
+      console.log("[Retention] Purge complete:", JSON.stringify(result));
+    } catch (err) {
+      console.error("[Retention] Purge failed:", err);
+    }
   });
 }
 

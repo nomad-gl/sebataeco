@@ -29,6 +29,7 @@ import {
 } from "../../drizzle/schema";
 import { eq, lt, and, sql, desc } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
+import PDFDocument from "pdfkit";
 
 // ─── Retention constants ─────────────────────────────────────────────────────
 const DAYS_90 = 90 * 24 * 60 * 60 * 1000;
@@ -280,4 +281,116 @@ export const privacyRouter = router({
     }
     return runRetentionPurge();
   }),
+
+  /** Generate a parent-readable PDF report of a student's stored data */
+  generateParentReport: protectedProcedure
+    .input(z.object({ studentName: z.string().optional() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      const uid = ctx.user.id;
+      const now = new Date();
+
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      const [sessions, materials, plans, assessments, learningPaths] = await Promise.all([
+        db.select().from(practiceSessions).where(eq(practiceSessions.userId, uid)).orderBy(desc(practiceSessions.createdAt)).limit(20),
+        db.select().from(teachingMaterials).where(eq(teachingMaterials.userId, uid)).limit(20),
+        db.select().from(lessonPlans).where(eq(lessonPlans.userId, uid)).limit(20),
+        db.select().from(aiAssessments).where(eq(aiAssessments.teacherId, uid)).limit(20),
+        db.select().from(aiLearningPaths).where(eq(aiLearningPaths.teacherId, uid)).limit(10),
+      ]);
+
+      const studentLabel = input.studentName || ctx.user.name || "Student";
+
+      // Build PDF in memory
+      const doc = new PDFDocument({ margin: 50, size: "A4" });
+      const chunks: Buffer[] = [];
+      doc.on("data", (chunk: Buffer) => chunks.push(chunk));
+
+      await new Promise<void>((resolve) => {
+        doc.on("end", resolve);
+
+        // Header
+        doc.fontSize(20).font("Helvetica-Bold").text("SEBA — Student Data Report", { align: "center" });
+        doc.fontSize(11).font("Helvetica").text(`Generated: ${now.toISOString().split("T")[0]}`, { align: "center" });
+        doc.text(`Student: ${studentLabel}`, { align: "center" });
+        doc.moveDown(1.5);
+
+        // Privacy statement
+        doc.fontSize(10).font("Helvetica-Oblique")
+          .text("This report summarises the data SEBA holds about this student. All data is stored within the EEA and is processed in accordance with GDPR and the Catalan data protection framework.");
+        doc.moveDown(1);
+
+        const section = (title: string) => {
+          doc.fontSize(13).font("Helvetica-Bold").text(title);
+          doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
+          doc.moveDown(0.4);
+          doc.fontSize(10).font("Helvetica");
+        };
+
+        // Practice sessions
+        section("Practice Sessions");
+        if (sessions.length === 0) {
+          doc.text("No practice sessions recorded.");
+        } else {
+          sessions.forEach((s) => {
+            const date = new Date(s.createdAt).toLocaleDateString();
+            doc.text(`• ${date} — Score: ${s.score ?? "N/A"} — Competency: ${s.competency ?? "All"}`);
+          });
+        }
+        doc.moveDown(1);
+
+        // Teaching materials
+        section("Teaching Materials Created");
+        if (materials.length === 0) {
+          doc.text("No teaching materials recorded.");
+        } else {
+          materials.forEach((m) => {
+            const date = new Date(m.createdAt).toLocaleDateString();
+            doc.text(`• ${date} — ${m.title ?? "Untitled"} (${m.type ?? "unknown"})`);
+          });
+        }
+        doc.moveDown(1);
+
+        // AI assessments
+        section("AI Assessments");
+        if (assessments.length === 0) {
+          doc.text("No AI assessments recorded.");
+        } else {
+          assessments.forEach((a) => {
+            const date = new Date(a.createdAt).toLocaleDateString();
+            const override = a.overridden ? " [Teacher Override Applied]" : "";
+            doc.text(`• ${date} — ${a.competency} — AI Score: ${a.aiScore}${override}`);
+          });
+        }
+        doc.moveDown(1);
+
+        // Learning paths
+        section("AI Learning Path Recommendations");
+        if (learningPaths.length === 0) {
+          doc.text("No learning path recommendations recorded.");
+        } else {
+          learningPaths.forEach((lp) => {
+            const date = new Date(lp.createdAt).toLocaleDateString();
+            doc.text(`• ${date} — ${lp.competency} — ${lp.yearGroup}`);
+            if (lp.justification) {
+              doc.fontSize(9).font("Helvetica-Oblique")
+                .text(`  Justification: ${String(lp.justification).slice(0, 300)}...`, { indent: 10 });
+              doc.fontSize(10).font("Helvetica");
+            }
+          });
+        }
+        doc.moveDown(1);
+
+        // Footer
+        doc.fontSize(9).font("Helvetica-Oblique")
+          .text("SEBA AI Teaching Assistant — Powered by BSC Salamandra — Data hosted within the EEA", { align: "center" });
+        doc.text("For data enquiries: hola@sebaecos.com", { align: "center" });
+
+        doc.end();
+      });
+
+      const pdfBuffer = Buffer.concat(chunks);
+      return { pdf: pdfBuffer.toString("base64"), filename: `seba-student-report-${now.toISOString().split("T")[0]}.pdf` };
+    }),
 });

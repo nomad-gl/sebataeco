@@ -191,6 +191,15 @@ export function AinaProfilePanel() {
           )}
         </Card>
       )}
+      {/* BSC Salamandra attribution */}
+      <a
+        href="https://projecteaina.cat/tech/en/introducing-the-salamandra-family-of-models/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block text-center text-[10px] text-white/30 hover:text-white/60 transition-colors mt-2 px-2"
+      >
+        🔬 Powered by Salamandra · Barcelona Supercomputing Center (BSC)
+      </a>
     </div>
   );
 }

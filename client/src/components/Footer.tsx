@@ -23,10 +23,27 @@ export default function Footer() {
             />
           </a>
 
-          {/* Centre: site description */}
-          <p className="text-xs text-muted-foreground text-center">
-            Aina · {t("footer_aligned")}
-          </p>
+          {/* Centre: site description + BSC Salamandra attribution */}
+          <div className="flex flex-col items-center gap-1.5">
+            <p className="text-xs text-muted-foreground text-center">
+              Aina · {t("footer_aligned")}
+            </p>
+            <a
+              href="https://projecteaina.cat/tech/en/introducing-the-salamandra-family-of-models/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+              title="Salamandra — Barcelona Supercomputing Center (BSC)"
+            >
+              <span className="opacity-70">🔬</span>
+              <span>
+                AI powered by{" "}
+                <span className="font-semibold text-primary/80">Salamandra</span>
+                {" "}·{" "}
+                <span className="font-semibold">Barcelona Supercomputing Center (BSC)</span>
+              </span>
+            </a>
+          </div>
 
           {/* Right: Powered by SEBA + sebasnap link */}
           <div className="flex flex-col items-center sm:items-end gap-1">

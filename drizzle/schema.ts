@@ -680,3 +680,26 @@ export const aiLearningPaths = mysqlTable("ai_learning_paths", {
 });
 export type AiLearningPath = typeof aiLearningPaths.$inferSelect;
 export type InsertAiLearningPath = typeof aiLearningPaths.$inferInsert;
+
+/**
+ * Admin audit logs — records every significant admin or teacher action
+ * for compliance, GDPR accountability, and EU AI Act audit trail requirements.
+ */
+export const adminAuditLogs = mysqlTable("admin_audit_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  /** User who performed the action */
+  userId: int("userId").notNull(),
+  /** Action verb: e.g. 'grade_override', 'bias_resolve', 'data_delete', 'question_approve' */
+  action: varchar("action", { length: 128 }).notNull(),
+  /** Resource type: e.g. 'assessment', 'bias_flag', 'question', 'user' */
+  resource: varchar("resource", { length: 128 }).notNull(),
+  /** ID of the affected resource */
+  resourceId: varchar("resourceId", { length: 64 }),
+  /** JSON details of the action (before/after values, reason, etc.) */
+  details: text("details"),
+  /** Client IP address (anonymised to /24 prefix for privacy) */
+  ipAddress: varchar("ipAddress", { length: 64 }),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+});
+export type AdminAuditLog = typeof adminAuditLogs.$inferSelect;
+export type InsertAdminAuditLog = typeof adminAuditLogs.$inferInsert;

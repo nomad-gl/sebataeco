@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { invokeLLM } from "../_core/llm";
+import { checkBias } from "../biasGuard";
 import { getDb } from "../db";
 import {
   studentProgress,
@@ -409,8 +410,10 @@ Use a warm, professional tone suitable for sharing with parents and students. Fo
         ],
       });
 
-      const report =
-        response.choices?.[0]?.message?.content ?? "Report generation failed.";
+      const rawReport = String(response.choices?.[0]?.message?.content ?? "Report generation failed.");
+      // Bias guard: scan student report before returning
+      const biasResult = await checkBias(prompt, rawReport, undefined, undefined);
+      const report = biasResult.safeOutput;
 
       // Derive letter grade
       const grade =
@@ -544,8 +547,10 @@ Use a professional, analytical tone. Format with clear headings.`;
         ],
       });
 
-      const report =
-        response.choices?.[0]?.message?.content ?? "Report generation failed.";
+      const rawReport = String(response.choices?.[0]?.message?.content ?? "Report generation failed.");
+      // Bias guard: scan class report before returning
+      const classReportBias = await checkBias(prompt, rawReport, undefined, ctx.user.id);
+      const report = classReportBias.safeOutput;
 
       const grade =
         classOverall === null

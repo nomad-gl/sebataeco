@@ -953,3 +953,67 @@
 - [x] UI: Privacy nav link added to NavBar Teacher menu (Lock icon)
 - [x] i18n keys for all privacy UI (EN/ES/CA)
 - [x] TypeScript: 0 errors; 69/69 tests pass
+
+## Follow-up: First-visit data notice banner
+- [x] Dismissible banner on home page explaining what data SEBA collects
+- [x] Links to Privacy Dashboard
+- [x] Stored in localStorage so it only shows once
+- [x] i18n keys (EN/ES/CA)
+
+## Follow-up: Nightly retention cron
+- [x] Schedule nightly cron at 03:00 to call privacy.runRetentionPurge
+- [x] Log purge results to server console
+
+## Follow-up: Parent privacy PDF report
+- [x] tRPC privacy.generateParentReport — produces a structured summary of a student's stored data
+- [x] PDF export using PDFKit
+- [x] Teacher can generate and download from Privacy Dashboard
+
+## Compliance: Catalan IEC Standard detection
+- [x] On first CA load, detect Standard Catalan (IEC) as the base dialect
+- [x] Show a dialect confirmation dialog: "We detected Standard Catalan. Is this correct? Or select your regional variant."
+- [x] Options: Standard Catalan (IEC), Valencian, Balearic, Northern, Algherese
+- [x] Store confirmed dialect in localStorage
+- [x] Update CatalanDialectDetector component to use this flow
+
+## Compliance: BSC Salamandra attribution
+- [x] Add "Powered by BSC Salamandra" attribution in Footer
+- [x] Add AI model credits section in About/Settings page
+- [x] Add attribution tooltip on Aina chat header
+- [x] i18n keys (EN/ES/CA)
+
+## Compliance: EEA data hosting notice
+- [x] Add data residency statement to Privacy Dashboard: "All data is processed within the EEA"
+- [x] Add hosting provider and region info to Privacy page
+- [x] Add data residency badge to footer
+- [x] i18n keys (EN/ES/CA)
+
+## Compliance: HITL formal documentation
+- [x] Identify all HITL touchpoints in SEBA (grade override, bias flag resolution, learning path review, dialect confirmation)
+- [x] Generate HITL Policy document (docs/HITL_Policy.md)
+- [x] Add HITL policy link to Accountability page and Admin panel
+- [x] i18n keys for HITL section labels (EN/ES/CA)
+
+## Compliance: EU AI Act Technical Documentation (Article 11)
+- [x] Generate full technical file: system description, intended purpose, risk classification, training data, performance metrics, human oversight measures, post-market monitoring plan
+- [x] Stored as docs/EU_AI_Act_Technical_Documentation.md
+- [x] Add EU AI Act compliance badge to About/Settings page
+- [x] i18n keys (EN/ES/CA)
+
+## Compliance: Improved bias mitigation
+- [x] Extend biasGuard to scan materials.create, presentation, and lesson plan AI outputs
+- [x] Add demographic parity check: flag if AI responses differ significantly by student gender/background
+- [x] Add bias mitigation report tab to Accountability page
+- [x] Add bias trend chart (flags per week) to Accountability bias tab
+- [x] i18n keys (EN/ES/CA)
+
+## Compliance: Audit Dashboard with algorithm description
+- [x] New /audit route: full audit log of all AI decisions (chat, assessments, learning paths, bias flags, grade overrides)
+- [x] Plain-language algorithm description panel: explains in non-technical terms how SEBA's AI makes decisions
+- [x] Add audit log link to Admin panel sidebar
+- [x] i18n keys (EN/ES/CA)
+
+## Compliance: Formal Data Processing Agreement (DPA)
+- [x] Generate DPA document covering: data controller/processor roles, categories of data, processing purposes, retention periods, sub-processors, data subject rights, security measures, international transfers
+- [x] Stored as docs/DATA_PROCESSING_AGREEMENT.md
+- [x] i18n keys for DPA section labels (EN/ES/CA)

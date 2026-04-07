@@ -26,11 +26,13 @@ import SchoolCalendar from "./pages/SchoolCalendar";
 import LessonPlanner from "./pages/LessonPlanner";
 import Settings from "./pages/Settings";
 import Accountability from "./pages/Accountability";
+import AuditDashboard from "./pages/AuditDashboard";
 import Privacy from "./pages/Privacy";
 import PwaInstallBanner from "./components/PwaInstallBanner";
 import UpdateBanner from "./components/UpdateBanner";
 import FirstLaunchLanguagePicker from "./components/FirstLaunchLanguagePicker";
 import CatalanDialectDetector from "./components/CatalanDialectDetector";
+import DataNoticeBanner from "./components/DataNoticeBanner";
 
 function Router() {
   return (
@@ -57,6 +59,7 @@ function Router() {
         <Route path="/lesson-planner" component={LessonPlanner} />
         <Route path="/settings" component={Settings} />
         <Route path="/accountability" component={Accountability} />
+        <Route path="/audit" component={AuditDashboard} />
         <Route path="/privacy" component={Privacy} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
@@ -76,6 +79,7 @@ function App() {
           <CatalanDialectDetector />
           <UpdateBanner />
           <PwaInstallBanner />
+          <DataNoticeBanner />
           <Router />
         </TooltipProvider>
       </ThemeProvider>
