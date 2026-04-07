@@ -26,7 +26,7 @@ const SUGGESTED_KEYS: TranslationKey[] = [
 ];
 
 export default function Chat() {
-  const { t, lang } = useI18n();
+  const { t, lang, dialect } = useI18n();
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [competency, setCompetency] = useState<CompetencyCode | undefined>();
@@ -92,6 +92,7 @@ export default function Chat() {
         competency,
         yearGroup,
         uiLang: lang as "en" | "es" | "ca",
+        caDialect: lang === "ca" ? (dialect as "central" | "valencian" | "balearic" | "northern" | "alguerese" | "standard") : undefined,
         userId: user?.id ?? undefined,
       });
       const aiContent =

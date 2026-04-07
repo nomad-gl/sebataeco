@@ -452,6 +452,8 @@ export const lomloeRouter = router({
         yearGroup: YearGroupSchema.optional(),
         /** Active UI language — Aina must always respond in this language */
         uiLang: z.enum(["en", "es", "ca"]).optional(),
+        /** Catalan dialect variant — only relevant when uiLang is 'ca' */
+        caDialect: z.enum(["central", "valencian", "balearic", "northern", "alguerese", "standard"]).optional(),
         /** Authenticated user ID — used to load/update the adaptive profile */
         userId: z.number().optional(),
       })
@@ -486,8 +488,16 @@ export const lomloeRouter = router({
         ? `Year group: ${input.yearGroup === "junior" ? "Primary (Years 3–4)" : input.yearGroup === "primary" ? "Upper Primary (Years 5–6)" : "Secondary (Years 7–10)"}`
         : "All year groups";
 
+      const dialectNote = input.uiLang === "ca" && input.caDialect && input.caDialect !== "central" && input.caDialect !== "standard"
+        ? ` (${{
+            valencian: "Valencian dialect — use Valencian vocabulary: 'xiquet/a' for child, 'hui' for today, 'ahir' for yesterday, 'col·legi' for school, 'huit' for eight, 'eixir' for to go out. Use AVL norms.",
+            balearic:  "Balearic dialect — use Balearic vocabulary: 'al·lot/a' for boy/girl, 'jo som' for I am, 'bon dia' greeting. Use IEC norms adapted for Balearic.",
+            northern:  "Northern Catalan (Roussillonnais) — use 'bonjorn' as greeting, slightly French-influenced vocabulary. Keep formal IEC register.",
+            alguerese: "Algherese Catalan — use archaic forms and 'bona jornada' greeting. Sardinian-influenced vocabulary.",
+          }[input.caDialect] ?? ""})`
+        : "";
       const langName =
-        input.uiLang === "es" ? "Spanish (Castilian)" : input.uiLang === "ca" ? "Catalan" : "English";
+        input.uiLang === "es" ? "Spanish (Castilian)" : input.uiLang === "ca" ? `Catalan${dialectNote}` : "English";
 
       const systemPrompt = `You are Aina, a warm, encouraging, and deeply knowledgeable teaching assistant specialised in Spain's LOMLOE curriculum. You exist to support teachers — not students — with expert guidance, practical ideas, and genuine enthusiasm for education.
 

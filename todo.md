@@ -901,3 +901,15 @@
 - [x] NavBar language switcher: reordered to CA | ES | EN
 - [x] FirstLaunchLanguagePicker: reordered to CA | ES | EN
 - [x] Update <html lang=""> default to 'ca' in client/index.html
+
+## Feature: Catalan dialect adaptation by IP region
+- [x] Server: tRPC geoDialect.detect publicProcedure — calls ip-api.com with client IP, returns { country, region, dialect, dialectLabel }
+- [x] Dialect mapping: Central (ES-CT, AD), Valencian (ES-VC), Balearic (ES-IB), Northern/Roussillonnais (FR-OCC), Alguerese (IT-SS), Standard fallback
+- [x] I18nContext: CatalanDialect type added; dialect state stored in localStorage 'seba_ca_dialect'; setDialect exposed via context
+- [x] dialectOverrides.ts: per-dialect CA string patches for greetings, nav labels, home hero, practice labels, chat greetings
+- [x] CatalanDialectDetector component: on first CA load shows confirmation dialog; on region change shows reset dialog
+- [x] Dialect choice and last-known region persisted in localStorage; region-change popup only shown when dialect actually differs
+- [x] Wire dialect into Aina system prompt: caDialect param added to chat procedure; LLM instructed to use dialect vocabulary
+- [x] Wire dialect into Chat.tsx: caDialect passed from useI18n() to chatMutation
+- [x] DialectBadge component in NavBar: shows e.g. 'Val', 'Bal' next to CA label when a non-central dialect is active
+- [x] TypeScript: 0 errors; 69/69 tests pass

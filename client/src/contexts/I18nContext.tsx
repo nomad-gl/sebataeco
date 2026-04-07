@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { type CatalanDialect, applyDialectOverrides } from "./dialectOverrides";
 
 export type Lang = "en" | "es" | "ca";
+export type { CatalanDialect } from "./dialectOverrides";
 
 export const translations = {
   en: {
@@ -2773,12 +2775,16 @@ type I18nContextType = {
   lang: Lang;
   setLang: (l: Lang) => void;
   t: (key: TranslationKey) => string;
+  dialect: CatalanDialect;
+  setDialect: (d: CatalanDialect) => void;
 };
 
 const I18nContext = createContext<I18nContextType>({
-  lang: "en",
+  lang: "ca",
   setLang: () => {},
   t: (key) => key,
+  dialect: "central",
+  setDialect: () => {},
 });
 
 function detectBrowserLang(): Lang {
@@ -2805,23 +2811,41 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     return stored ?? detectBrowserLang();
   });
 
+  const [dialect, setDialectState] = useState<CatalanDialect>(() => {
+    const stored = localStorage.getItem("seba_ca_dialect") as CatalanDialect | null;
+    return stored ?? "central";
+  });
+
   const setLang = (l: Lang) => {
     setLangState(l);
     localStorage.setItem("seba_lang", l);
   };
 
+  const setDialect = (d: CatalanDialect) => {
+    setDialectState(d);
+    localStorage.setItem("seba_ca_dialect", d);
+  };
+
   // Keep <html lang=""> in sync for accessibility and SEO
   useEffect(() => {
-    document.documentElement.lang = lang;
-  }, [lang]);
+    document.documentElement.lang = lang === "ca" ? `ca-${dialect}` : lang;
+  }, [lang, dialect]);
 
-  const t = (key: TranslationKey): string =>
-    (translations[lang] as Record<string, string>)[key] ??
-    (translations.en as Record<string, string>)[key] ??
-    key;
+  const t = (key: TranslationKey): string => {
+    if (lang === "ca") {
+      const baseCA = translations.ca as Record<string, string>;
+      const patched = applyDialectOverrides(baseCA, dialect);
+      return patched[key] ?? (translations.en as Record<string, string>)[key] ?? key;
+    }
+    return (
+      (translations[lang] as Record<string, string>)[key] ??
+      (translations.en as Record<string, string>)[key] ??
+      key
+    );
+  };
 
   return (
-    <I18nContext.Provider value={{ lang, setLang, t }}>
+    <I18nContext.Provider value={{ lang, setLang, t, dialect, setDialect }}>
       {children}
     </I18nContext.Provider>
   );

@@ -28,6 +28,7 @@ import Settings from "./pages/Settings";
 import PwaInstallBanner from "./components/PwaInstallBanner";
 import UpdateBanner from "./components/UpdateBanner";
 import FirstLaunchLanguagePicker from "./components/FirstLaunchLanguagePicker";
+import CatalanDialectDetector from "./components/CatalanDialectDetector";
 
 function Router() {
   return (
@@ -68,6 +69,7 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <FirstLaunchLanguagePicker />
+          <CatalanDialectDetector />
           <UpdateBanner />
           <PwaInstallBanner />
           <Router />

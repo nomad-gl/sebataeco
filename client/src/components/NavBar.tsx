@@ -10,6 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
 import { useI18n, Lang } from "@/contexts/I18nContext";
+import { DialectBadge } from "@/components/CatalanDialectDetector";
 import { usePwaInstall } from "@/hooks/usePwaInstall";
 import { Share, Plus } from "lucide-react";
 
@@ -311,7 +312,7 @@ export default function NavBar() {
                 aria-label={t("nav_change_language")}
               >
                 <Globe className="w-4 h-4" />
-                <span>{currentLang.flag} {currentLang.label}</span>
+                <span>{currentLang.flag} {currentLang.label}<DialectBadge /></span>
                 <ChevronDown className={cn("w-3 h-3 transition-transform", langOpen && "rotate-180")} />
               </button>
 
