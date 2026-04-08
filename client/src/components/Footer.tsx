@@ -75,6 +75,10 @@ export default function Footer() {
               <Link href="/dpa" className="text-[11px] text-muted-foreground hover:text-foreground hover:underline transition-colors">
                 DPA
               </Link>
+              <span className="text-muted-foreground text-[11px]">·</span>
+              <Link href="/audit" className="text-[11px] text-muted-foreground hover:text-foreground hover:underline transition-colors">
+                {t("audit_title")}
+              </Link>
             </div>
           </div>
         </div>

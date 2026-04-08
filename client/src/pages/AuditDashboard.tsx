@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
-import DashboardLayout from "@/components/DashboardLayout";
+import NavBar from "@/components/NavBar";
+import Footer from "@/components/Footer";
+import { useAuth } from "@/_core/hooks/useAuth";
 import {
   Card,
   CardContent,
@@ -64,6 +66,8 @@ const TYPE_ICONS: Record<string, React.ReactNode> = {
 
 export default function AuditDashboard() {
   const { t } = useI18n();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [eventType, setEventType] = useState<EventType>("all");
   const [offset, setOffset] = useState(0);
   const [selectedEvent, setSelectedEvent] = useState<Record<string, unknown> | null>(null);
@@ -128,7 +132,9 @@ export default function AuditDashboard() {
     });
 
   return (
-    <DashboardLayout>
+    <div className="min-h-screen flex flex-col bg-background">
+      <NavBar />
+      <main className="flex-1">
       <div className="container max-w-6xl py-8 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -137,10 +143,12 @@ export default function AuditDashboard() {
             <p className="text-muted-foreground text-sm mt-1">{t("audit_subtitle")}</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={csvQuery.isFetching}>
-              <Download className="h-4 w-4 mr-2" />
-              {csvQuery.isFetching ? "…" : t("audit_export_csv")}
-            </Button>
+            {isAdmin && (
+              <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={csvQuery.isFetching}>
+                <Download className="h-4 w-4 mr-2" />
+                {csvQuery.isFetching ? "…" : t("audit_export_csv")}
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={handleRefresh}>
               <RefreshCw className="h-4 w-4 mr-2" />
               {t("audit_refresh")}
@@ -177,16 +185,18 @@ export default function AuditDashboard() {
                   )}
                 </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="shrink-0 border-amber-300 hover:bg-amber-100"
-                onClick={() => purgeMutation.mutate(undefined as unknown as void)}
-                disabled={purgeMutation.isPending}
-              >
-                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                {purgeMutation.isPending ? t("audit_retention_running") : t("audit_retention_run_btn")}
-              </Button>
+          {isAdmin && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0 border-amber-300 hover:bg-amber-100"
+              onClick={() => purgeMutation.mutate(undefined as unknown as void)}
+              disabled={purgeMutation.isPending}
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+              {purgeMutation.isPending ? t("audit_retention_running") : t("audit_retention_run_btn")}
+            </Button>
+          )}
             </div>
           </CardContent>
         </Card>
@@ -355,6 +365,7 @@ export default function AuditDashboard() {
           </TabsContent>
         </Tabs>
       </div>
+      </main>
 
       {/* Event detail dialog */}
       <Dialog open={!!selectedEvent} onOpenChange={() => setSelectedEvent(null)}>
@@ -388,6 +399,8 @@ export default function AuditDashboard() {
           )}
         </DialogContent>
       </Dialog>
-    </DashboardLayout>
+      <Footer />
+    </div>
   );
 }
+

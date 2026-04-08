@@ -7,7 +7,7 @@
  */
 
 import { z } from "zod";
-import { protectedProcedure, router } from "../_core/trpc";
+import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
 import {
@@ -82,7 +82,7 @@ export const auditRouter = router({
   /**
    * Get a paginated audit log of all significant events.
    */
-  getAuditLog: adminProcedure
+  getAuditLog: publicProcedure
     .input(
       z.object({
         limit: z.number().min(1).max(200).default(50),
@@ -373,7 +373,7 @@ export const auditRouter = router({
   /**
    * Return the in-memory status of the last audit retention purge run.
    */
-  getRetentionStatus: adminProcedure.query(() => ({
+  getRetentionStatus: publicProcedure.query(() => ({
     lastRunAt: auditRetentionStatus.lastRunAt,
     lastDeletedCount: auditRetentionStatus.lastDeletedCount,
     lastError: auditRetentionStatus.lastError,
@@ -383,7 +383,7 @@ export const auditRouter = router({
   /**
    * Get aggregate statistics for the audit dashboard.
    */
-  getStats: adminProcedure.query(async () => {
+  getStats: publicProcedure.query(async () => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 

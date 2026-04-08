@@ -1072,3 +1072,10 @@
 - [x] Update DPA document (docs/DATA_PROCESSING_AGREEMENT.md) Section 7.1 with Nuvulus + AI 2030 Strategy details
 - [x] Update /dpa page Section 7 with infrastructure breakdown table
 - [x] Add hosting confirmation badge/notice to AI Models page
+
+## Feature: Public Audit Log
+- [x] Change audit tRPC procedures (getEvents, getStats, getRetentionStatus) from protectedProcedure/adminProcedure to publicProcedure
+- [x] Keep runRetentionPurge and exportCsv as admin-only (sensitive operations)
+- [x] Remove auth check / redirect from AuditDashboard.tsx so unauthenticated users can view it
+- [x] Add "Audit Log" link to Footer and public navigation
+- [x] i18n keys for any new nav labels (EN/ES/CA)
