@@ -1079,3 +1079,11 @@
 - [x] Remove auth check / redirect from AuditDashboard.tsx so unauthenticated users can view it
 - [x] Add "Audit Log" link to Footer and public navigation
 - [x] i18n keys for any new nav labels (EN/ES/CA)
+
+## Fix: Practice Questions Language + Catalan Default
+- [x] Audit practice question generation — found root cause: question_translations table was empty
+- [x] Added on-demand inline translation fallback to getRandomQuestion: translates via Aina and caches in DB
+- [x] Added background startup job to pre-populate all 480 CA translations on server boot
+- [x] Changed default locale in getRandomQuestion and getQuestions tRPC procedures from "en" to "ca"
+- [x] Confirmed Catalan is already the default in I18nContext (detectBrowserLang returns "ca" as fallback)
+- [x] Fixed 3 lomloe tests that timed out due to inline translation — now pass locale "en" explicitly

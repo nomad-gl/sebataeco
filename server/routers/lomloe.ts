@@ -237,10 +237,10 @@ export const lomloeRouter = router({
         limit: z.number().min(1).max(500).default(500),
         shuffle: z.boolean().default(false),
         /** UI locale — when 'es' or 'ca', translated text is returned if available */
-        locale: z.enum(["en", "es", "ca"]).default("en"),
+        locale: z.enum(["en", "es", "ca"]).default("ca"),
       })
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       // 1. Static knowledge bank questions
       let staticQs = getQuestions(
         input.competency as CompetencyCode | undefined,
@@ -324,7 +324,7 @@ export const lomloeRouter = router({
         yearGroup: YearGroupSchema.optional(),
         excludeIds: z.array(z.string()).default([]),
         /** UI locale — when 'es' or 'ca', translated text is returned if available */
-        locale: z.enum(["en", "es", "ca"]).default("en"),
+        locale: z.enum(["en", "es", "ca"]).default("ca"),
       })
     )
     .query(async ({ input }) => {
@@ -385,6 +385,30 @@ export const lomloeRouter = router({
               question: tr.question,
               options: JSON.parse(tr.options) as string[],
               explanation: tr.explanation,
+            };
+            return shuffleQuestion(translatedQ);
+          }
+
+          // No cached translation — translate on-the-fly via Aina and cache the result
+          const textsToTranslate = [q.question, ...q.options, q.explanation];
+          const translated = await ainaTranslateBatch(textsToTranslate, input.locale, 1);
+          if (translated.length === 6) {
+            const translatedQuestion = translated[0];
+            const translatedOptions = translated.slice(1, 5);
+            const translatedExplanation = translated[5];
+            // Cache in DB for future requests (fire-and-forget)
+            db.insert(questionTranslations).values({
+              questionId: q.id,
+              locale: input.locale,
+              question: translatedQuestion,
+              options: JSON.stringify(translatedOptions),
+              explanation: translatedExplanation,
+            }).catch((e: Error) => console.warn("[getRandomQuestion] Cache insert skipped:", e.message));
+            const translatedQ = {
+              ...q,
+              question: translatedQuestion,
+              options: translatedOptions,
+              explanation: translatedExplanation,
             };
             return shuffleQuestion(translatedQ);
           }

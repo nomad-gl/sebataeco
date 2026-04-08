@@ -10,6 +10,11 @@ import { serveStatic, setupVite } from "./vite";
 import cron from "node-cron";
 import { runRetentionPurge } from "../routers/privacy";
 import { runAuditRetentionPurge, auditRetentionStatus } from "../routers/audit";
+import { getDb } from "../db";
+import { questionTranslations } from "../../drizzle/schema";
+import { eq } from "drizzle-orm";
+import { getQuestions } from "../knowledge/lomloeKnowledgeBank";
+import { ainaTranslateBatch } from "../ainaTranslation";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -63,6 +68,62 @@ async function startServer() {
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
   });
+
+  // Background: pre-populate Catalan question translations on startup
+  // Runs in small batches to avoid overloading the Aina API
+  setTimeout(async () => {
+    try {
+      const db = await getDb();
+      if (!db) return;
+      const allQs = getQuestions();
+      const existing = await db
+        .select({ questionId: questionTranslations.questionId })
+        .from(questionTranslations)
+        .where(eq(questionTranslations.locale, "ca"));
+      const existingIds = new Set(existing.map((r) => r.questionId));
+      const toTranslate = allQs.filter((q) => !existingIds.has(q.id));
+      if (toTranslate.length === 0) {
+        console.log("[StartupTranslation] All CA questions already translated.");
+        return;
+      }
+      console.log(`[StartupTranslation] Translating ${toTranslate.length} questions into Catalan in background...`);
+      const BATCH = 10;
+      let done = 0;
+      for (let i = 0; i < toTranslate.length; i += BATCH) {
+        const batch = toTranslate.slice(i, i + BATCH);
+        const allTexts: string[] = [];
+        for (const q of batch) allTexts.push(q.question, ...q.options, q.explanation);
+        try {
+          const translated = await ainaTranslateBatch(allTexts, "ca", 5);
+          for (let j = 0; j < batch.length; j++) {
+            const base = j * 6;
+            const q = batch[j];
+            const tq = translated[base];
+            const topts = translated.slice(base + 1, base + 5);
+            const texpl = translated[base + 5];
+            if (!tq || topts.length !== 4 || !texpl) continue;
+            await db.insert(questionTranslations).values({
+              questionId: q.id,
+              locale: "ca",
+              question: tq,
+              options: JSON.stringify(topts),
+              explanation: texpl,
+            }).catch(() => {});
+            done++;
+          }
+          console.log(`[StartupTranslation] CA: ${done}/${toTranslate.length} done`);
+        } catch (err) {
+          console.warn("[StartupTranslation] Batch failed, will retry on next restart:", (err as Error).message);
+          break;
+        }
+        // Small delay between batches to be polite to the API
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+      console.log(`[StartupTranslation] CA translation complete: ${done} questions cached.`);
+    } catch (err) {
+      console.error("[StartupTranslation] Failed:", err);
+    }
+  }, 10000); // Start 10 seconds after server boot
 
   // Nightly privacy data retention purge at 03:00 UTC
   cron.schedule("0 3 * * *", async () => {

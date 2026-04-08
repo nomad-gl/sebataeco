@@ -143,7 +143,8 @@ describe("lomloe tRPC procedures", () => {
 
   it("getRandomQuestion returns a valid question", async () => {
     const caller = appRouter.createCaller(createCtx());
-    const result = await caller.lomloe.getRandomQuestion({});
+    // Use locale "en" to avoid triggering the Aina translation API in tests
+    const result = await caller.lomloe.getRandomQuestion({ locale: "en" });
     expect(result).not.toBeNull();
     expect(result).toHaveProperty("question");
     expect(result).toHaveProperty("options");
@@ -160,6 +161,7 @@ describe("lomloe tRPC procedures", () => {
       competency: "CCL",
       yearGroup: "junior",
       excludeIds: allStaticIds,
+      locale: "en",
     });
     // Result is either null (no DB questions) or a DB-generated question
     if (result !== null) {
@@ -175,7 +177,7 @@ describe("lomloe tRPC procedures", () => {
     const allStaticIds = LOMLOE_QUESTIONS.map((q) => q.id);
     // Generate fake IDs to also cover DB-generated questions (gq001..gq9999)
     const fakeDbIds = Array.from({ length: 9999 }, (_, i) => `gq${String(i + 1).padStart(3, "0")}`);
-    const result = await caller.lomloe.getRandomQuestion({ excludeIds: [...allStaticIds, ...fakeDbIds] });
+    const result = await caller.lomloe.getRandomQuestion({ excludeIds: [...allStaticIds, ...fakeDbIds], locale: "en" });
     expect(result).toBeNull();
   });
 
@@ -295,7 +297,8 @@ describe("lomloeKnowledgeBank correctIndex distribution", () => {
     const caller = appRouter.createCaller(createCtx());
     // Run 10 times to verify shuffling doesn't break correctIndex
     for (let i = 0; i < 10; i++) {
-      const result = await caller.lomloe.getRandomQuestion({});
+      // Use locale "en" to avoid triggering the Aina translation API in tests
+      const result = await caller.lomloe.getRandomQuestion({ locale: "en" });
       expect(result).not.toBeNull();
       if (result) {
         expect(result.correctIndex).toBeGreaterThanOrEqual(0);
