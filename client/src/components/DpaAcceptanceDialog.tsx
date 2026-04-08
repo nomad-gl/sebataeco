@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { ShieldCheck, ExternalLink } from "lucide-react";
+import { Link } from "wouter";
 
 export default function DpaAcceptanceDialog() {
   const { t } = useI18n();
@@ -78,15 +79,10 @@ export default function DpaAcceptanceDialog() {
           </div>
 
           {/* Link to full DPA */}
-          <a
-            href="https://github.com/seba-ai-studio/docs/blob/main/DATA_PROCESSING_AGREEMENT.md"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
-          >
+          <Link href="/dpa" className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
             <ExternalLink className="h-3.5 w-3.5" />
             {t("dpa_dialog_view_full")}
-          </a>
+          </Link>
 
           {/* Acceptance checkbox */}
           <div className="flex items-start gap-3 pt-1">

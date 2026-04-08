@@ -1,4 +1,5 @@
 import { useI18n } from "@/contexts/I18nContext";
+import { Link } from "wouter";
 
 const LOMLOE_LOGO =
   "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/lomloe_23170104.png";
@@ -45,7 +46,7 @@ export default function Footer() {
             </a>
           </div>
 
-          {/* Right: Powered by SEBA + sebasnap link */}
+          {/* Right: Powered by SEBA + sebasnap link + legal links */}
           <div className="flex flex-col items-center sm:items-end gap-1">
             <a
               href="https://sebasnap.com"
@@ -56,6 +57,15 @@ export default function Footer() {
               sebasnap.com →
             </a>
             <span className="text-xs text-muted-foreground">{t("footer_powered")} SEBA</span>
+            <div className="flex items-center gap-2 mt-0.5">
+              <Link href="/privacy" className="text-[11px] text-muted-foreground hover:text-foreground hover:underline transition-colors">
+                {t("footer_privacy")}
+              </Link>
+              <span className="text-muted-foreground text-[11px]">·</span>
+              <Link href="/dpa" className="text-[11px] text-muted-foreground hover:text-foreground hover:underline transition-colors">
+                DPA
+              </Link>
+            </div>
           </div>
         </div>
       </div>

@@ -34,6 +34,7 @@ import FirstLaunchLanguagePicker from "./components/FirstLaunchLanguagePicker";
 import CatalanDialectDetector from "./components/CatalanDialectDetector";
 import DataNoticeBanner from "./components/DataNoticeBanner";
 import DpaAcceptanceDialog from "./components/DpaAcceptanceDialog";
+import Dpa from "./pages/Dpa";
 
 function Router() {
   return (
@@ -62,6 +63,7 @@ function Router() {
         <Route path="/accountability" component={Accountability} />
         <Route path="/audit" component={AuditDashboard} />
         <Route path="/privacy" component={Privacy} />
+        <Route path="/dpa" component={Dpa} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

@@ -81,6 +81,8 @@ export const translations = {
     audit_retention_running: "Purging…",
     audit_retention_success: "Purge complete",
     audit_retention_error: "Purge failed",
+    back: "Back",
+    dpa_page_title: "Data Processing Agreement",
     dpa_dialog_title: "Data Processing Agreement",
     dpa_dialog_subtitle: "Before you continue, please review and accept our Data Processing Agreement (DPA).",
     dpa_dialog_version: "DPA Version",
@@ -325,6 +327,7 @@ export const translations = {
     footer_powered: "Powered by",
     footer_aligned: "LOMLOE Curriculum Aligned",
     footer_rights: "All rights reserved.",
+    footer_privacy: "Privacy",
 
     // Presentation
     presentation_title: "Create a Presentation",
@@ -1186,6 +1189,8 @@ export const translations = {
     audit_retention_running: "Purgando\u2026",
     audit_retention_success: "Purga completada",
     audit_retention_error: "Error en la purga",
+    back: "Volver",
+    dpa_page_title: "Acuerdo de Tratamiento de Datos",
     dpa_dialog_title: "Acuerdo de Tratamiento de Datos",
     dpa_dialog_subtitle: "Antes de continuar, revisa y acepta nuestro Acuerdo de Tratamiento de Datos (ATD).",
     dpa_dialog_version: "Versi\u00f3n del ATD",
@@ -1427,6 +1432,7 @@ export const translations = {
     footer_powered: "Desarrollado por",
     footer_aligned: "Alineado con el currículo LOMLOE",
     footer_rights: "Todos los derechos reservados.",
+    footer_privacy: "Privacidad",
 
     // Presentation
     presentation_title: "Crear una Presentación",
@@ -2288,6 +2294,8 @@ export const translations = {
     audit_retention_running: "Purgant\u2026",
     audit_retention_success: "Purga completada",
     audit_retention_error: "Error en la purga",
+    back: "Enrere",
+    dpa_page_title: "Acord de Tractament de Dades",
     dpa_dialog_title: "Acord de Tractament de Dades",
     dpa_dialog_subtitle: "Abans de continuar, revisa i accepta el nostre Acord de Tractament de Dades (ATD).",
     dpa_dialog_version: "Versi\u00f3 de l'ATD",
@@ -2529,6 +2537,7 @@ export const translations = {
     footer_powered: "Desenvolupat per",
     footer_aligned: "Alineat amb el currículum LOMLOE",
     footer_rights: "Tots els drets reservats.",
+    footer_privacy: "Privadesa",
 
     // Presentation
     presentation_title: "Crear una Presentació",
