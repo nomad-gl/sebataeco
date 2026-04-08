@@ -35,6 +35,7 @@ import CatalanDialectDetector from "./components/CatalanDialectDetector";
 import DataNoticeBanner from "./components/DataNoticeBanner";
 import DpaAcceptanceDialog from "./components/DpaAcceptanceDialog";
 import Dpa from "./pages/Dpa";
+import AiModels from "./pages/AiModels";
 
 function Router() {
   return (
@@ -64,6 +65,7 @@ function Router() {
         <Route path="/audit" component={AuditDashboard} />
         <Route path="/privacy" component={Privacy} />
         <Route path="/dpa" component={Dpa} />
+        <Route path="/ai-models" component={AiModels} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

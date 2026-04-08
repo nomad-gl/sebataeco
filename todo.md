@@ -1054,4 +1054,12 @@
 - [x] i18n keys for DPA page title and section headings (EN/ES/CA)
 
 ## Fix: DPA dialog "View full DPA" link
-- [ ] Change link to open /dpa in a new browser tab (target="_blank") so the blocking dialog stays open while the user reads the agreement
+- [x] Change link to open /dpa in a new browser tab (target="_blank") so the blocking dialog stays open while the user reads the agreement
+
+## Feature: BSC Salamandra + Àguila Public Attribution
+- [x] Update Footer: show both Salamandra and Àguila with BSC links
+- [x] Update Aina chat header: attribution tooltip/badge for Salamandra + Àguila
+- [x] Update Settings/About page: AI model credits section listing Salamandra and Àguila
+- [x] Create /ai-models page: dedicated public page with full model descriptions, BSC links, and licence info
+- [x] Register /ai-models route in App.tsx and link from Footer and About page
+- [x] Add i18n keys for all new attribution strings (EN/ES/CA)

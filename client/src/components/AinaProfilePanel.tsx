@@ -191,15 +191,25 @@ export function AinaProfilePanel() {
           )}
         </Card>
       )}
-      {/* BSC Salamandra attribution */}
-      <a
-        href="https://projecteaina.cat/tech/en/introducing-the-salamandra-family-of-models/"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="block text-center text-[10px] text-white/30 hover:text-white/60 transition-colors mt-2 px-2"
-      >
-        🔬 Powered by Salamandra · Barcelona Supercomputing Center (BSC)
-      </a>
+      {/* BSC Salamandra & Àguila attribution */}
+      <div className="flex flex-col items-center gap-0.5 mt-2 px-2">
+        <a
+          href="https://projecteaina.cat/tech/en/introducing-the-salamandra-family-of-models/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-center text-[10px] text-white/30 hover:text-white/60 transition-colors"
+        >
+          🔬 Powered by <strong>Salamandra</strong> &amp; <strong>Àguila</strong> · Barcelona Supercomputing Center (BSC)
+        </a>
+        <a
+          href="/ai-models"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[9px] text-white/20 hover:text-white/50 transition-colors underline-offset-2 hover:underline"
+        >
+          View model credits
+        </a>
+      </div>
     </div>
   );
 }

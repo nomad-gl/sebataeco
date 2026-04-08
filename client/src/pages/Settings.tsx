@@ -17,7 +17,10 @@ import {
   School,
   Save,
   Trash2,
+  Cpu,
+  ExternalLink,
 } from "lucide-react";
+import { Link } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -285,6 +288,46 @@ export default function Settings() {
           <div className="space-y-6">
             {/* ── School & Class Defaults card ── */}
             <SchoolProfileCard t={t} />
+
+            {/* ── AI Model Attribution card ── */}
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <Cpu className="w-4 h-4 text-primary" />
+                  <CardTitle className="text-base">{t("settings_ai_models_title")}</CardTitle>
+                </div>
+                <CardDescription className="text-sm leading-relaxed">
+                  {t("settings_ai_models_desc")}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Salamandra 2</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{t("settings_salamandra_desc")}</p>
+                    </div>
+                    <a href="https://projecteaina.cat/tech/en/introducing-the-salamandra-family-of-models/" target="_blank" rel="noopener noreferrer" className="shrink-0 inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                      <ExternalLink className="h-3 w-3" /> BSC
+                    </a>
+                  </div>
+                  <div className="border-t border-border" />
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Àguila</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{t("settings_aguila_desc")}</p>
+                    </div>
+                    <a href="https://huggingface.co/BSC-LT/aguila-7b" target="_blank" rel="noopener noreferrer" className="shrink-0 inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                      <ExternalLink className="h-3 w-3" /> BSC
+                    </a>
+                  </div>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  {t("settings_ai_models_note")}{" "}
+                  <Link href="/ai-models" className="text-primary hover:underline">{t("settings_ai_models_full_page")}</Link>
+                </p>
+              </CardContent>
+            </Card>
 
             {/* ── Branding card ── */}
             <Card>

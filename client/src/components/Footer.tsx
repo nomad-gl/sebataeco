@@ -24,26 +24,36 @@ export default function Footer() {
             />
           </a>
 
-          {/* Centre: site description + BSC Salamandra attribution */}
+          {/* Centre: site description + BSC Salamandra & Àguila attribution */}
           <div className="flex flex-col items-center gap-1.5">
             <p className="text-xs text-muted-foreground text-center">
               Aina · {t("footer_aligned")}
             </p>
-            <a
-              href="https://projecteaina.cat/tech/en/introducing-the-salamandra-family-of-models/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
-              title="Salamandra — Barcelona Supercomputing Center (BSC)"
-            >
-              <span className="opacity-70">🔬</span>
-              <span>
-                AI powered by{" "}
-                <span className="font-semibold text-primary/80">Salamandra</span>
-                {" "}·{" "}
-                <span className="font-semibold">Barcelona Supercomputing Center (BSC)</span>
-              </span>
-            </a>
+            <div className="flex flex-col items-center gap-0.5">
+              <a
+                href="https://projecteaina.cat/tech/en/introducing-the-salamandra-family-of-models/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                title="Salamandra — Barcelona Supercomputing Center (BSC)"
+              >
+                <span className="opacity-70">🔬</span>
+                <span>
+                  AI powered by{" "}
+                  <span className="font-semibold text-primary/80">Salamandra</span>
+                  {" "}&amp;{" "}
+                  <span className="font-semibold text-primary/80">Àguila</span>
+                  {" "}·{" "}
+                  <span className="font-semibold">Barcelona Supercomputing Center (BSC)</span>
+                </span>
+              </a>
+              <Link
+                href="/ai-models"
+                className="text-[10px] text-muted-foreground/70 hover:text-primary hover:underline transition-colors"
+              >
+                {t("footer_ai_models")}
+              </Link>
+            </div>
           </div>
 
           {/* Right: Powered by SEBA + sebasnap link + legal links */}
