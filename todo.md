@@ -1052,3 +1052,6 @@
 - [x] Update DpaAcceptanceDialog "View full DPA" link to point to /dpa
 - [x] Update Footer to include a "Data Processing Agreement" link pointing to /dpa
 - [x] i18n keys for DPA page title and section headings (EN/ES/CA)
+
+## Fix: DPA dialog "View full DPA" link
+- [ ] Change link to open /dpa in a new browser tab (target="_blank") so the blocking dialog stays open while the user reads the agreement

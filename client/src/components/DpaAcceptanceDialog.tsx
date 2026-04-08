@@ -78,11 +78,16 @@ export default function DpaAcceptanceDialog() {
             </p>
           </div>
 
-          {/* Link to full DPA */}
-          <Link href="/dpa" className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
+          {/* Link to full DPA — opens in new window so the dialog stays open */}
+          <a
+            href="/dpa"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+          >
             <ExternalLink className="h-3.5 w-3.5" />
             {t("dpa_dialog_view_full")}
-          </Link>
+          </a>
 
           {/* Acceptance checkbox */}
           <div className="flex items-start gap-3 pt-1">
