@@ -191,7 +191,15 @@ The Processor applies the following automated retention policy:
 
 ### 7.1 EEA Hosting Commitment
 
-All personal data processed by SEBA AI Studio is stored and processed exclusively within the European Economic Area. Where technically feasible, data is hosted on the **Núvol Públic de Catalunya** (Catalan Public Cloud), operated under the authority of the Generalitat de Catalunya, in accordance with Catalan data sovereignty principles.
+All personal data processed by SEBA AI Studio is stored and processed exclusively within the **European Economic Area (EEA)**. The platform's primary infrastructure is hosted on the **Manus Platform**, whose data centres are located within the EEA. Where technically feasible, data is additionally hosted on or migrated towards the **Núvol Públic de Catalunya** (Catalan Public Cloud), in accordance with Catalan data sovereignty principles.
+
+The Catalan Public Cloud initiative is supported by two complementary frameworks:
+
+1. **Nuvulus Public Cloud** — a Catalan-sovereign cloud platform operated by Sercom, running from three interconnected data centres located entirely within Catalonia (Spain, EEA). Nuvulus is designed for enterprises and public institutions requiring full data sovereignty, with all data remaining within Catalan territory and subject to Spanish/EU jurisdiction, with no dependency on non-EEA legal requirements.
+
+2. **Generalitat de Catalunya AI 2030 Strategy** — the Catalan Government's €1 billion AI strategy (announced November 2025) includes the creation of a sovereign Catalan public cloud infrastructure to guarantee the sovereignty of digital data and services for public-sector applications. SEBA AI Studio, as an educational platform serving Catalan schools, aligns with this strategic objective.
+
+The Processor commits to prioritising EEA-sovereign hosting providers and to migrating to the Catalan Public Cloud infrastructure as it becomes available for production educational workloads.
 
 ### 7.2 Sub-processor Transfers
 

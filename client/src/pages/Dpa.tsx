@@ -252,11 +252,26 @@ export default function Dpa() {
           <div className="rounded-lg border border-green-200/60 bg-green-50/30 dark:bg-green-900/10 p-4 flex gap-3">
             <Globe className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
             <p className="text-sm text-muted-foreground">
-              All personal data processed by SEBA AI Studio is stored and processed exclusively within the European Economic Area. Where technically feasible, data is hosted on the <strong className="text-foreground">Núvol Públic de Catalunya</strong> (Catalan Public Cloud), operated under the authority of the Generalitat de Catalunya.
+              All personal data processed by SEBA AI Studio is stored and processed exclusively within the <strong className="text-foreground">European Economic Area (EEA)</strong>. Primary infrastructure runs on the Manus Platform (EEA data centres). Where technically feasible, data is hosted on the <strong className="text-foreground">Núvol Públic de Catalunya</strong> (Catalan Public Cloud), in accordance with Catalan data sovereignty principles.
             </p>
           </div>
+          {/* Infrastructure breakdown */}
+          <div className="rounded-md border border-border/50 divide-y divide-border/40 text-sm">
+            <div className="flex items-start gap-3 px-4 py-3">
+              <span className="font-semibold text-foreground shrink-0 w-32">Primary</span>
+              <span className="text-muted-foreground">Manus Platform — EEA data centres (production database &amp; authentication)</span>
+            </div>
+            <div className="flex items-start gap-3 px-4 py-3">
+              <span className="font-semibold text-foreground shrink-0 w-32">Target</span>
+              <span className="text-muted-foreground"><strong className="text-foreground">Nuvulus Public Cloud</strong> — 3 interconnected data centres entirely within Catalonia, operated by Sercom under Spanish/EU jurisdiction. Aligned with the <a href="https://web.gencat.cat/en/ciutadania/actualitat/noticies/2025/11/1000-milions-en-lEstrategia-IA" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Generalitat de Catalunya AI 2030 Strategy</a> for sovereign digital infrastructure.</span>
+            </div>
+            <div className="flex items-start gap-3 px-4 py-3">
+              <span className="font-semibold text-foreground shrink-0 w-32">AI Inference</span>
+              <span className="text-muted-foreground">BSC Salamandra 2 &amp; Àguila via Hugging Face Inference API — EEA data centres. Only non-personal data (question text, curriculum content) is transmitted. No student identifiers or personal data are included in API requests.</span>
+            </div>
+          </div>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            AI inference for the Aina assistant uses models accessed via the Hugging Face Inference API. Only non-personal data (question text, curriculum content) is sent to Hugging Face. Student identifiers, names, and other personal data are never included in API requests. Hugging Face operates data centres within the EEA and is subject to a Data Processing Agreement with the Processor.
+            The Processor commits to prioritising EEA-sovereign hosting providers and to migrating to the Catalan Public Cloud infrastructure as it becomes available for production educational workloads.
           </p>
         </Section>
 

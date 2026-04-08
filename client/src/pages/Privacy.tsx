@@ -256,7 +256,7 @@ export default function Privacy() {
               {t("privacy_hosting_title")}
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground space-y-2">
+          <CardContent className="text-sm text-muted-foreground space-y-3">
             <p>{t("privacy_hosting_desc")}</p>
             <div className="flex flex-wrap gap-2 pt-1">
               <Badge variant="outline" className="text-xs gap-1">
@@ -268,10 +268,36 @@ export default function Privacy() {
               <Badge variant="outline" className="text-xs gap-1">
                 <span>🔒</span> EEA Hosted
               </Badge>
+              <Badge variant="outline" className="text-xs gap-1 text-green-700 border-green-300">
+                <span>🇸🇲</span> Catalan AI 2030
+              </Badge>
             </div>
-            <p className="text-[11px] text-muted-foreground/70 pt-1">
+            {/* Infrastructure detail rows */}
+            <div className="rounded-md border border-border/50 bg-background/60 divide-y divide-border/40 text-xs">
+              <div className="flex items-start gap-2 px-3 py-2">
+                <span className="font-semibold text-foreground shrink-0 w-28">Primary</span>
+                <span>Manus Platform — EEA data centres (production database &amp; auth)</span>
+              </div>
+              <div className="flex items-start gap-2 px-3 py-2">
+                <span className="font-semibold text-foreground shrink-0 w-28">Target</span>
+                <span>Nuvulus Public Cloud — 3 interconnected data centres within Catalonia, operated by Sercom under Spanish/EU jurisdiction</span>
+              </div>
+              <div className="flex items-start gap-2 px-3 py-2">
+                <span className="font-semibold text-foreground shrink-0 w-28">AI Inference</span>
+                <span>BSC Salamandra 2 &amp; Àguila via Hugging Face — EEA data centres; no personal data transmitted</span>
+              </div>
+            </div>
+            <p className="text-[11px] text-muted-foreground/70">
               {t("privacy_hosting_note")}
             </p>
+            <div className="flex gap-3 flex-wrap">
+              <a href="https://web.gencat.cat/en/ciutadania/actualitat/noticies/2025/11/1000-milions-en-lEstrategia-IA" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                <ExternalLink className="h-3 w-3" /> Catalan AI 2030 Strategy
+              </a>
+              <a href="https://www.datacentermarket.es/cloud-computing/nace-nuvulus-nube-publica-catalana-para-empresas-locales/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                <ExternalLink className="h-3 w-3" /> Nuvulus Public Cloud
+              </a>
+            </div>
           </CardContent>
         </Card>
 

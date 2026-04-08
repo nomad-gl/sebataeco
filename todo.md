@@ -1063,3 +1063,12 @@
 - [x] Create /ai-models page: dedicated public page with full model descriptions, BSC links, and licence info
 - [x] Register /ai-models route in App.tsx and link from Footer and About page
 - [x] Add i18n keys for all new attribution strings (EN/ES/CA)
+
+## Feature: Data Hosting Confirmation (Catalan Public Cloud / EEA)
+- [x] Research Catalan Public Cloud (Núvol Públic de Catalunya) and confirm EEA hosting facts
+- [x] Update Privacy page hosting section with accurate Catalan Public Cloud / EEA statement
+- [x] Update Privacy Dashboard data residency card with hosting provider details
+- [x] Update i18n keys for hosting statements (EN/ES/CA)
+- [x] Update DPA document (docs/DATA_PROCESSING_AGREEMENT.md) Section 7.1 with Nuvulus + AI 2030 Strategy details
+- [x] Update /dpa page Section 7 with infrastructure breakdown table
+- [x] Add hosting confirmation badge/notice to AI Models page
