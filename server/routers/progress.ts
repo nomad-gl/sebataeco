@@ -9,8 +9,9 @@ import {
   assignmentCompletions,
   groupStudents,
   classGroups,
+  studentReports,
 } from "../../drizzle/schema";
-import { eq, and, desc, inArray } from "drizzle-orm";
+import { eq, and, desc, inArray, sql } from "drizzle-orm";
 
 const COMPETENCY_NAMES: Record<string, string> = {
   CCL: "Communication & Linguistic Competency",
@@ -429,7 +430,84 @@ Use a warm, professional tone suitable for sharing with parents and students. Fo
           ? "Suficiente"
           : "Insuficiente";
 
+      // Persist the AI report to DB so it can be loaded and edited later
+      const db2 = await getDb();
+      if (db2) {
+        const existing = await db2
+          .select({ id: studentReports.id })
+          .from(studentReports)
+          .where(and(eq(studentReports.groupId, input.groupId), eq(studentReports.studentId, input.studentId)))
+          .limit(1);
+        if (existing.length > 0) {
+          await db2
+            .update(studentReports)
+            .set({ aiText: report, editedText: null, grade: grade ?? undefined, overall: overall ?? undefined })
+            .where(eq(studentReports.id, existing[0].id));
+        } else {
+          await db2.insert(studentReports).values({
+            groupId: input.groupId,
+            studentId: input.studentId,
+            aiText: report,
+            editedText: null,
+            grade: grade ?? undefined,
+            overall: overall ?? undefined,
+          });
+        }
+      }
+
       return { report, grade, overall };
+    }),
+
+  /** Fetch the saved (possibly teacher-edited) report for a student */
+  getStudentReport: protectedProcedure
+    .input(z.object({ groupId: z.number(), studentId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return null;
+      const rows = await db
+        .select()
+        .from(studentReports)
+        .where(and(eq(studentReports.groupId, input.groupId), eq(studentReports.studentId, input.studentId)))
+        .limit(1);
+      return rows[0] ?? null;
+    }),
+
+  /** Save teacher edits to a student report */
+  saveStudentReport: protectedProcedure
+    .input(
+      z.object({
+        groupId: z.number(),
+        studentId: z.number(),
+        editedText: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const existing = await db
+        .select({ id: studentReports.id })
+        .from(studentReports)
+        .where(and(eq(studentReports.groupId, input.groupId), eq(studentReports.studentId, input.studentId)))
+        .limit(1);
+      if (existing.length === 0) throw new Error("Report not found — generate it first");
+      await db
+        .update(studentReports)
+        .set({ editedText: input.editedText, lastEditedBy: ctx.user.id })
+        .where(eq(studentReports.id, existing[0].id));
+      return { ok: true };
+    }),
+
+  /** Reset teacher edits — clears editedText so AI version is used */
+  resetStudentReport: protectedProcedure
+    .input(z.object({ groupId: z.number(), studentId: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      await db
+        .update(studentReports)
+        .set({ editedText: null, lastEditedBy: null })
+        .where(and(eq(studentReports.groupId, input.groupId), eq(studentReports.studentId, input.studentId)));
+      return { ok: true };
     }),
 
   /** Generate an AI group summary report */

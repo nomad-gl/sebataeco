@@ -720,3 +720,27 @@ export const dpaAcceptances = mysqlTable("dpa_acceptances", {
 });
 export type DpaAcceptance = typeof dpaAcceptances.$inferSelect;
 export type InsertDpaAcceptance = typeof dpaAcceptances.$inferInsert;
+
+/**
+ * Student progress reports — stores AI-generated and teacher-edited LOMLOE reports.
+ * One row per (groupId, studentId) — upserted on each save.
+ */
+export const studentReports = mysqlTable("student_reports", {
+  id: int("id").autoincrement().primaryKey(),
+  groupId: int("groupId").notNull(),
+  studentId: int("studentId").notNull(),
+  /** The original AI-generated report text (markdown) */
+  aiText: text("aiText").notNull(),
+  /** Teacher-edited version (null = not yet edited, use aiText) */
+  editedText: text("editedText"),
+  /** LOMLOE grade derived by the AI */
+  grade: varchar("grade", { length: 32 }),
+  /** Overall score at time of generation */
+  overall: int("overall"),
+  /** userId of the teacher who last saved an edit */
+  lastEditedBy: int("lastEditedBy"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type StudentReport = typeof studentReports.$inferSelect;
+export type InsertStudentReport = typeof studentReports.$inferInsert;

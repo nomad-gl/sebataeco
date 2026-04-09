@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
@@ -19,6 +19,7 @@ import {
 import {
   ArrowLeft, User, TrendingUp, BookOpen, FileText,
   CheckCircle2, Circle, Loader2, Sparkles, Trophy, Star, Download, X, Plus, ImagePlus, X as XIcon,
+  Pencil, Eye, RotateCcw, Save,
 } from "lucide-react";
 import NavBar from "@/components/NavBar";
 import { Streamdown } from "streamdown";
@@ -64,6 +65,10 @@ export default function StudentProgress() {
   const [schoolLogo, setSchoolLogo] = useState<string | null>(
     () => localStorage.getItem("seba_school_logo")
   );
+  // Report editing state
+  const [editMode, setEditMode] = useState(false);
+  const [editedText, setEditedText] = useState<string | null>(null);
+  const [isEdited, setIsEdited] = useState(false);
 
   // Assignment creation state
   const [newTitle, setNewTitle] = useState("");
@@ -73,6 +78,45 @@ export default function StudentProgress() {
   const [newDue, setNewDue] = useState("");
 
   const utils = trpc.useUtils();
+
+  // Load saved report from DB on mount
+  const savedReportQ = trpc.progress.getStudentReport.useQuery(
+    { groupId: gId, studentId: sId },
+    { enabled: !!user && gId > 0 && sId > 0 }
+  );
+
+  // Sync saved report into local state when it arrives
+  useEffect(() => {
+    const saved = savedReportQ.data;
+    if (!saved) return;
+    setReportText(saved.editedText ?? saved.aiText);
+    setReportGrade(saved.grade ?? null);
+    setIsEdited(!!saved.editedText);
+    if (!editedText) setEditedText(saved.editedText ?? saved.aiText);
+  }, [savedReportQ.data]);
+
+  const saveReportMutation = trpc.progress.saveStudentReport.useMutation({
+    onSuccess: () => {
+      toast.success(t("sp_save_success"));
+      setIsEdited(true);
+      setEditMode(false);
+      utils.progress.getStudentReport.invalidate({ groupId: gId, studentId: sId });
+    },
+    onError: () => toast.error(t("sp_save_failed")),
+  });
+
+  const resetReportMutation = trpc.progress.resetStudentReport.useMutation({
+    onSuccess: () => {
+      toast.success(t("sp_reset_success"));
+      setIsEdited(false);
+      setEditMode(false);
+      const aiText = savedReportQ.data?.aiText ?? reportText ?? "";
+      setReportText(aiText);
+      setEditedText(aiText);
+      utils.progress.getStudentReport.invalidate({ groupId: gId, studentId: sId });
+    },
+    onError: () => toast.error(t("sp_reset_failed")),
+  });
 
   // Queries
   const summaryQ = trpc.progress.getStudentSummary.useQuery(
@@ -566,20 +610,110 @@ export default function StudentProgress() {
                 )}
                 {reportText && !generating && (
                   <div className="space-y-4">
-                    {reportGrade && (
-                      <div className="flex items-center gap-3 p-4 bg-white/5 rounded-lg border border-white/10">
-                        <Trophy className="w-6 h-6 text-yellow-400" />
-                        <div>
-                          <div className="text-white/60 text-xs">{t("sp_lomloe_grade")}</div>
-                          <Badge className={`${GRADE_COLORS[reportGrade] ?? "bg-slate-500"} text-white text-sm mt-1`}>
-                            {reportGrade}
-                          </Badge>
+                    {/* Grade + edit/view toggle row */}
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      {reportGrade && (
+                        <div className="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/10 flex-1 min-w-0">
+                          <Trophy className="w-5 h-5 text-yellow-400 flex-shrink-0" />
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-white/60 text-xs">{t("sp_lomloe_grade")}:</span>
+                            <Badge className={`${GRADE_COLORS[reportGrade] ?? "bg-slate-500"} text-white text-sm`}>
+                              {reportGrade}
+                            </Badge>
+                            {isEdited && (
+                              <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs">
+                                <Pencil className="w-3 h-3 mr-1" />{t("sp_edited_badge")}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        {isEdited && !editMode && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-white/20 text-white/70 hover:bg-white/10 bg-transparent gap-1 text-xs"
+                            onClick={() => {
+                              resetReportMutation.mutate({ groupId: gId, studentId: sId });
+                            }}
+                            disabled={resetReportMutation.isPending}
+                          >
+                            {resetReportMutation.isPending
+                              ? <Loader2 className="w-3 h-3 animate-spin" />
+                              : <RotateCcw className="w-3 h-3" />}
+                            {t("sp_reset_to_ai")}
+                          </Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className={`border-white/20 bg-transparent gap-1 text-xs ${
+                            editMode
+                              ? "text-teal-300 border-teal-500/40 hover:bg-teal-500/10"
+                              : "text-white/70 hover:bg-white/10"
+                          }`}
+                          onClick={() => {
+                            if (!editMode) {
+                              // Entering edit mode — pre-fill with current text
+                              setEditedText(reportText ?? "");
+                            }
+                            setEditMode((m) => !m);
+                          }}
+                        >
+                          {editMode ? <Eye className="w-3 h-3" /> : <Pencil className="w-3 h-3" />}
+                          {editMode ? t("sp_view_report") : t("sp_edit_report")}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* View mode */}
+                    {!editMode && (
+                      <div className="prose prose-invert prose-sm max-w-none bg-white/5 rounded-lg p-4 border border-white/10">
+                        <Streamdown>{reportText ?? ""}</Streamdown>
+                      </div>
+                    )}
+
+                    {/* Edit mode */}
+                    {editMode && (
+                      <div className="space-y-3">
+                        <textarea
+                          className="w-full min-h-[420px] bg-white/5 border border-teal-500/30 rounded-lg p-4 text-white text-sm leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-teal-500/50 placeholder:text-white/30 font-mono"
+                          value={editedText ?? ""}
+                          onChange={(e) => setEditedText(e.target.value)}
+                          placeholder={t("sp_edit_placeholder")}
+                        />
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-white/20 text-white/70 hover:bg-white/10 bg-transparent"
+                            onClick={() => setEditMode(false)}
+                          >
+                            {t("sp_view_report")}
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="bg-teal-600 hover:bg-teal-500 text-white gap-1"
+                            onClick={() => {
+                              if (!editedText) return;
+                              // Update local view immediately
+                              setReportText(editedText);
+                              saveReportMutation.mutate({
+                                groupId: gId,
+                                studentId: sId,
+                                editedText,
+                              });
+                            }}
+                            disabled={saveReportMutation.isPending || !editedText}
+                          >
+                            {saveReportMutation.isPending
+                              ? <><Loader2 className="w-3 h-3 animate-spin" />{t("sp_saving")}</>
+                              : <><Save className="w-3 h-3" />{t("sp_save_edits")}</>}
+                          </Button>
                         </div>
                       </div>
                     )}
-                    <div className="prose prose-invert prose-sm max-w-none bg-white/5 rounded-lg p-4 border border-white/10">
-                      <Streamdown>{reportText}</Streamdown>
-                    </div>
                     {/* School logo upload strip */}
                     <div className="flex items-center gap-2 p-3 bg-white/5 rounded-lg border border-white/10">
                       <ImagePlus className="w-4 h-4 text-white/50 flex-shrink-0" />

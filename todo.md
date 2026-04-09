@@ -1125,3 +1125,19 @@
 - [x] Audit Progress.tsx, GroupProgress.tsx, StudentProgress.tsx for hardcoded English strings
 - [x] Move all hardcoded strings to i18n keys (21 new keys: gp_table_student/avg, gp_activities_label, gp_logo_*, gp_print_*, gp_radar_score)
 - [x] Add CA and ES translations for all new keys in I18nContext.tsx
+
+## Feature: Editable AI Student Progress Reports
+- [x] DB: add student_reports table (groupId, studentId, aiText, editedText, grade, overall, lastEditedBy, timestamps)
+- [x] Server: progress.saveStudentReport mutation — upsert editedText for a student
+- [x] Server: progress.getStudentReport query — fetch saved report for a student
+- [x] Server: progress.resetStudentReport mutation — clears editedText to restore AI version
+- [x] Server: generateStudentReport now auto-persists AI report to student_reports table
+- [x] Client: StudentProgress report tab — view/edit toggle with Streamdown view and textarea editor
+- [x] Client: "Edit Report" toggle button switches between view mode and edit mode
+- [x] Client: Edit mode shows a monospace textarea pre-filled with AI/saved text, resizable
+- [x] Client: "Save Changes" button persists edited text to DB via tRPC mutation
+- [x] Client: "Reset to AI Version" button restores the original AI-generated text
+- [x] Client: Print/PDF export uses the active reportText (edited or AI) automatically
+- [x] Client: Amber "Edited" badge shown when report has been manually edited
+- [x] Client: Saved report auto-loaded from DB on page mount (persists across sessions)
+- [x] i18n keys for all new UI strings (EN/ES/CA): sp_edit_report, sp_view_report, sp_save_edits, sp_saving, sp_reset_to_ai, sp_edited_badge, sp_edit_placeholder, sp_save_success, sp_save_failed, sp_reset_success, sp_reset_failed, sp_report_loaded
