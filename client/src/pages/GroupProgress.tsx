@@ -492,7 +492,7 @@ ${bars}
   <div class="grade-badge">LOMLOE Grade: ${grade}</div>
   ${comps.length ? `<div class="chart-title">Competency Averages</div>${chartSvg}` : ""}
   ${bodyHtml}
-  <footer>SEBA AI Studio — LOMLOE Teaching Assistant &nbsp;|&nbsp; Powered by SEBA</footer>
+  <footer>AINA | TA — LOMLOE Teaching Assistant &nbsp;|&nbsp; Powered by SEBA</footer>
 </body>
 </html>`;
                         const win = window.open("", "_blank", "width=900,height=700");

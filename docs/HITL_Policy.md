@@ -4,7 +4,7 @@
 **Version:** 1.0  
 **Date:** April 2026  
 **Classification:** Public  
-**Owner:** SEBA AI Studio / sebasnap.com  
+**Owner:** AINA | TA / sebasnap.com  
 
 ---
 

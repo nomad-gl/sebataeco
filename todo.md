@@ -1087,3 +1087,10 @@
 - [x] Changed default locale in getRandomQuestion and getQuestions tRPC procedures from "en" to "ca"
 - [x] Confirmed Catalan is already the default in I18nContext (detectBrowserLang returns "ca" as fallback)
 - [x] Fixed 3 lomloe tests that timed out due to inline translation — now pass locale "en" explicitly
+
+## Fix: Rename app title to AINA | TA
+- [x] Update HTML <title> in client/index.html to "AINA | TA"
+- [x] Update apple-mobile-web-app-title and OG title meta tags
+- [x] Update PWA manifest name and short_name to AINA / AINA | TA
+- [x] Update NavBar iOS install prompt text
+- [x] Replace all "SEBA AI Studio" strings in pages, server files, i18n, and compliance docs

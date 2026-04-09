@@ -5,7 +5,7 @@
 **Date:** April 2026  
 **Classification:** Public  
 **Prepared in accordance with:** Regulation (EU) 2024/1689 (EU AI Act), Article 11 and Annex IV  
-**Provider:** SEBA AI Studio / sebasnap.com  
+**Provider:** AINA | TA / sebasnap.com  
 **Deployer context:** Schools and educational institutions in Spain and the Catalan-speaking territories  
 
 ---
@@ -163,7 +163,7 @@ This section will be updated with each significant change to the AI components o
 
 ## 7. Declaration of Conformity
 
-The provider, SEBA AI Studio, declares that SEBA version 1.0 has been developed in accordance with the requirements of Regulation (EU) 2024/1689 (EU AI Act) for high-risk AI systems, including:
+The provider, AINA | TA, declares that SEBA version 1.0 has been developed in accordance with the requirements of Regulation (EU) 2024/1689 (EU AI Act) for high-risk AI systems, including:
 
 - Risk management system (Art. 9)
 - Data governance (Art. 10)

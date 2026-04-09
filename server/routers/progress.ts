@@ -696,7 +696,7 @@ Use a professional, analytical tone. Format with clear headings.`;
 
         // Footer
         doc.moveDown(1);
-        doc.fontSize(8).fillColor("#9ca3af").text("Powered by SEBA AI Studio", { align: "center" });
+        doc.fontSize(8).fillColor("#9ca3af").text("Powered by AINA | TA", { align: "center" });
 
         doc.end();
       });

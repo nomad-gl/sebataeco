@@ -1,6 +1,6 @@
 # Data Processing Agreement (DPA)
 
-**SEBA AI Studio — Educational Platform**
+**AINA | TA — Educational Platform**
 **Version:** 1.0
 **Effective Date:** 8 April 2026
 **Review Date:** 8 April 2027
@@ -11,11 +11,11 @@
 
 This Data Processing Agreement ("Agreement") is entered into between:
 
-**Data Controller:** The educational institution or individual teacher ("Controller") accessing SEBA AI Studio through the platform at `sebaaihub-zdur4nnh.manus.space` or any associated domain.
+**Data Controller:** The educational institution or individual teacher ("Controller") accessing AINA | TA through the platform at `sebaaihub-zdur4nnh.manus.space` or any associated domain.
 
-**Data Processor:** The operator of SEBA AI Studio ("Processor"), acting on behalf of the Controller to process personal data as described in this Agreement.
+**Data Processor:** The operator of AINA | TA ("Processor"), acting on behalf of the Controller to process personal data as described in this Agreement.
 
-This Agreement forms part of the Terms of Service and is incorporated by reference. It governs all processing of personal data carried out by the Processor on behalf of the Controller in connection with the SEBA AI Studio platform.
+This Agreement forms part of the Terms of Service and is incorporated by reference. It governs all processing of personal data carried out by the Processor on behalf of the Controller in connection with the AINA | TA platform.
 
 ---
 
@@ -34,7 +34,7 @@ For the purposes of this Agreement, the following definitions apply:
 | **EEA** | European Economic Area, comprising the EU Member States plus Iceland, Liechtenstein, and Norway |
 | **Catalan Public Cloud** | Núvol Públic de Catalunya, the sovereign cloud infrastructure operated under the authority of the Generalitat de Catalunya |
 | **Sub-processor** | Any third party engaged by the Processor to carry out processing activities on behalf of the Controller |
-| **Aina** | The AI assistant integrated into SEBA AI Studio, powered by large language models and the BSC Salamandra framework |
+| **Aina** | The AI assistant integrated into AINA | TA, powered by large language models and the BSC Salamandra framework |
 
 ---
 
@@ -42,7 +42,7 @@ For the purposes of this Agreement, the following definitions apply:
 
 ### 2.1 Subject Matter
 
-The Processor provides an AI-powered educational platform ("SEBA AI Studio") that enables teachers to:
+The Processor provides an AI-powered educational platform ("AINA | TA") that enables teachers to:
 
 - Conduct AI-assisted chat sessions with the Aina assistant for curriculum guidance;
 - Generate teaching materials, lesson plans, and school calendars;
@@ -92,7 +92,7 @@ All processing is carried out exclusively for the following purposes:
 | **Students** | Learners whose practice session data and progress information is processed (identified by pseudonymous student IDs assigned by the teacher) |
 | **School Administrators** | Users with elevated access for administrative and compliance functions |
 
-> **Important:** SEBA AI Studio does not directly collect personal data from students. Student data is entered by teachers using pseudonymous identifiers. The platform does not collect student names, dates of birth, national identification numbers, or other directly identifying information.
+> **Important:** AINA | TA does not directly collect personal data from students. Student data is entered by teachers using pseudonymous identifiers. The platform does not collect student names, dates of birth, national identification numbers, or other directly identifying information.
 
 ### 4.2 Categories of Personal Data
 
@@ -191,13 +191,13 @@ The Processor applies the following automated retention policy:
 
 ### 7.1 EEA Hosting Commitment
 
-All personal data processed by SEBA AI Studio is stored and processed exclusively within the **European Economic Area (EEA)**. The platform's primary infrastructure is hosted on the **Manus Platform**, whose data centres are located within the EEA. Where technically feasible, data is additionally hosted on or migrated towards the **Núvol Públic de Catalunya** (Catalan Public Cloud), in accordance with Catalan data sovereignty principles.
+All personal data processed by AINA | TA is stored and processed exclusively within the **European Economic Area (EEA)**. The platform's primary infrastructure is hosted on the **Manus Platform**, whose data centres are located within the EEA. Where technically feasible, data is additionally hosted on or migrated towards the **Núvol Públic de Catalunya** (Catalan Public Cloud), in accordance with Catalan data sovereignty principles.
 
 The Catalan Public Cloud initiative is supported by two complementary frameworks:
 
 1. **Nuvulus Public Cloud** — a Catalan-sovereign cloud platform operated by Sercom, running from three interconnected data centres located entirely within Catalonia (Spain, EEA). Nuvulus is designed for enterprises and public institutions requiring full data sovereignty, with all data remaining within Catalan territory and subject to Spanish/EU jurisdiction, with no dependency on non-EEA legal requirements.
 
-2. **Generalitat de Catalunya AI 2030 Strategy** — the Catalan Government's €1 billion AI strategy (announced November 2025) includes the creation of a sovereign Catalan public cloud infrastructure to guarantee the sovereignty of digital data and services for public-sector applications. SEBA AI Studio, as an educational platform serving Catalan schools, aligns with this strategic objective.
+2. **Generalitat de Catalunya AI 2030 Strategy** — the Catalan Government's €1 billion AI strategy (announced November 2025) includes the creation of a sovereign Catalan public cloud infrastructure to guarantee the sovereignty of digital data and services for public-sector applications. AINA | TA, as an educational platform serving Catalan schools, aligns with this strategic objective.
 
 The Processor commits to prioritising EEA-sovereign hosting providers and to migrating to the Catalan Public Cloud infrastructure as it becomes available for production educational workloads.
 
@@ -232,7 +232,7 @@ The Processor shall notify the Controller of any intended changes concerning the
 
 ## 9. EU AI Act Compliance
 
-SEBA AI Studio is classified as a **high-risk AI system** under Annex III of the EU AI Act (educational and vocational training AI systems). The Processor has implemented the following measures in accordance with the EU AI Act:
+AINA | TA is classified as a **high-risk AI system** under Annex III of the EU AI Act (educational and vocational training AI systems). The Processor has implemented the following measures in accordance with the EU AI Act:
 
 ### 9.1 Risk Management (Article 9)
 
@@ -302,7 +302,7 @@ This Agreement may be amended by the Processor with 30 days' written notice to t
 For data protection enquiries, to exercise data subject rights, or to report a data breach, contact:
 
 **Data Protection Contact:**
-SEBA AI Studio — Data Protection
+AINA | TA — Data Protection
 Email: privacy@seba-ai.edu (placeholder — to be updated by the Controller)
 
 **Supervisory Authorities:**
@@ -355,4 +355,4 @@ Security measures are reviewed at least annually. Automated TypeScript type-chec
 
 ---
 
-*This document was prepared in accordance with Article 28(3) GDPR and reflects the data processing practices of SEBA AI Studio as of the effective date stated above. It should be reviewed annually or whenever significant changes are made to the platform's data processing activities.*
+*This document was prepared in accordance with Article 28(3) GDPR and reflects the data processing practices of AINA | TA as of the effective date stated above. It should be reviewed annually or whenever significant changes are made to the platform's data processing activities.*

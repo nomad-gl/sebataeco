@@ -109,7 +109,7 @@ export default function Dpa() {
           </div>
           <h1 className="text-3xl font-bold tracking-tight">Data Processing Agreement</h1>
           <p className="text-muted-foreground max-w-xl mx-auto">
-            SEBA AI Studio — Educational Platform
+            AINA | TA — Educational Platform
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3 text-sm text-muted-foreground">
             <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> Effective: 8 April 2026</span>
@@ -131,7 +131,7 @@ export default function Dpa() {
                 <Users className="h-4 w-4 text-blue-500" /> Data Controller
               </p>
               <p className="text-sm text-muted-foreground">
-                The educational institution or individual teacher ("Controller") accessing SEBA AI Studio through the platform or any associated domain.
+                The educational institution or individual teacher ("Controller") accessing AINA | TA through the platform or any associated domain.
               </p>
             </div>
             <div className="rounded-lg border p-4 space-y-1">
@@ -139,12 +139,12 @@ export default function Dpa() {
                 <Lock className="h-4 w-4 text-green-500" /> Data Processor
               </p>
               <p className="text-sm text-muted-foreground">
-                The operator of SEBA AI Studio ("Processor"), acting on behalf of the Controller to process personal data as described in this Agreement.
+                The operator of AINA | TA ("Processor"), acting on behalf of the Controller to process personal data as described in this Agreement.
               </p>
             </div>
           </div>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            This Agreement forms part of the Terms of Service and is incorporated by reference. It governs all processing of personal data carried out by the Processor on behalf of the Controller in connection with the SEBA AI Studio platform.
+            This Agreement forms part of the Terms of Service and is incorporated by reference. It governs all processing of personal data carried out by the Processor on behalf of the Controller in connection with the AINA | TA platform.
           </p>
         </Section>
 
@@ -162,7 +162,7 @@ export default function Dpa() {
               ["EEA", "European Economic Area, comprising the EU Member States plus Iceland, Liechtenstein, and Norway"],
               ["Catalan Public Cloud", "Núvol Públic de Catalunya, the sovereign cloud infrastructure operated under the authority of the Generalitat de Catalunya"],
               ["Sub-processor", "Any third party engaged by the Processor to carry out processing activities on behalf of the Controller"],
-              ["Aina", "The AI assistant integrated into SEBA AI Studio, powered by large language models and the BSC Salamandra framework"],
+              ["Aina", "The AI assistant integrated into AINA | TA, powered by large language models and the BSC Salamandra framework"],
             ]}
           />
         </Section>
@@ -170,7 +170,7 @@ export default function Dpa() {
         {/* 2. Subject Matter */}
         <Section id="subject-matter" title="2. Subject Matter and Duration">
           <p className="text-muted-foreground leading-relaxed">
-            The Processor provides an AI-powered educational platform ("SEBA AI Studio") that enables teachers to conduct AI-assisted chat sessions, generate teaching materials and lesson plans, administer practice assessments aligned with LOMLOE competency frameworks, receive AI-generated student progress assessments, and manage class groups.
+            The Processor provides an AI-powered educational platform ("AINA | TA") that enables teachers to conduct AI-assisted chat sessions, generate teaching materials and lesson plans, administer practice assessments aligned with LOMLOE competency frameworks, receive AI-generated student progress assessments, and manage class groups.
           </p>
           <p className="text-muted-foreground leading-relaxed">
             This Agreement remains in force for as long as the Processor processes personal data on behalf of the Controller. Upon termination, the Processor shall delete or return all personal data within 30 days, unless applicable law requires longer retention.
@@ -189,7 +189,7 @@ export default function Dpa() {
           <div className="rounded-lg border border-amber-200/60 bg-amber-50/30 dark:bg-amber-900/10 p-4 flex gap-3">
             <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
             <p className="text-sm text-muted-foreground">
-              <strong className="text-foreground">Important:</strong> SEBA AI Studio does not directly collect personal data from students. Student data is entered by teachers using pseudonymous identifiers. The platform does not collect student names, dates of birth, or other directly identifying information.
+              <strong className="text-foreground">Important:</strong> AINA | TA does not directly collect personal data from students. Student data is entered by teachers using pseudonymous identifiers. The platform does not collect student names, dates of birth, or other directly identifying information.
             </p>
           </div>
           <DpaTable
@@ -252,7 +252,7 @@ export default function Dpa() {
           <div className="rounded-lg border border-green-200/60 bg-green-50/30 dark:bg-green-900/10 p-4 flex gap-3">
             <Globe className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
             <p className="text-sm text-muted-foreground">
-              All personal data processed by SEBA AI Studio is stored and processed exclusively within the <strong className="text-foreground">European Economic Area (EEA)</strong>. Primary infrastructure runs on the Manus Platform (EEA data centres). Where technically feasible, data is hosted on the <strong className="text-foreground">Núvol Públic de Catalunya</strong> (Catalan Public Cloud), in accordance with Catalan data sovereignty principles.
+              All personal data processed by AINA | TA is stored and processed exclusively within the <strong className="text-foreground">European Economic Area (EEA)</strong>. Primary infrastructure runs on the Manus Platform (EEA data centres). Where technically feasible, data is hosted on the <strong className="text-foreground">Núvol Públic de Catalunya</strong> (Catalan Public Cloud), in accordance with Catalan data sovereignty principles.
             </p>
           </div>
           {/* Infrastructure breakdown */}
@@ -294,7 +294,7 @@ export default function Dpa() {
         {/* 9. EU AI Act */}
         <Section id="eu-ai-act" title="9. EU AI Act Compliance">
           <p className="text-sm text-muted-foreground leading-relaxed">
-            SEBA AI Studio is classified as a <strong className="text-foreground">high-risk AI system</strong> under Annex III of the EU AI Act (educational and vocational training AI systems). The following measures are implemented:
+            AINA | TA is classified as a <strong className="text-foreground">high-risk AI system</strong> under Annex III of the EU AI Act (educational and vocational training AI systems). The following measures are implemented:
           </p>
           <div className="grid sm:grid-cols-2 gap-3">
             {[
@@ -356,7 +356,7 @@ export default function Dpa() {
               <Mail className="h-4 w-4 text-primary mt-0.5 shrink-0" />
               <div>
                 <p className="text-sm font-semibold">Data Protection Contact</p>
-                <p className="text-sm text-muted-foreground">SEBA AI Studio — Data Protection</p>
+                <p className="text-sm text-muted-foreground">AINA | TA — Data Protection</p>
                 <p className="text-sm text-muted-foreground">privacy@seba-ai.edu (placeholder — to be updated by the Controller)</p>
               </div>
             </div>
@@ -414,7 +414,7 @@ export default function Dpa() {
         <Separator />
 
         <p className="text-xs text-muted-foreground text-center pb-4">
-          This document was prepared in accordance with Article 28(3) GDPR and reflects the data processing practices of SEBA AI Studio as of 8 April 2026. It should be reviewed annually or whenever significant changes are made to the platform's data processing activities.
+          This document was prepared in accordance with Article 28(3) GDPR and reflects the data processing practices of AINA | TA as of 8 April 2026. It should be reviewed annually or whenever significant changes are made to the platform's data processing activities.
         </p>
       </main>
 

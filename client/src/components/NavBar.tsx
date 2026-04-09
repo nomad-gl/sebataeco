@@ -294,7 +294,7 @@ export default function NavBar() {
                     ? "text-white border-white/30 hover:bg-white/15"
                     : "text-primary border-primary/40 hover:bg-primary/5"
                 )}
-                title="Install SEBA as an app"
+                title="Install AINA as an app"
               >
                 <Download className="w-4 h-4 animate-pulse-subtle" />
                 Install App
@@ -490,7 +490,7 @@ export default function NavBar() {
         <div className="fixed inset-0 z-[100] flex items-end justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowIosModal(false)}>
           <div className="w-full max-w-sm bg-[#0f172a] border border-white/20 rounded-2xl shadow-2xl p-5" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-2 mb-4">
-              <p className="text-base font-semibold text-white">Install SEBA on your iPhone</p>
+              <p className="text-base font-semibold text-white">Install AINA on your iPhone</p>
               <button onClick={() => setShowIosModal(false)} className="text-white/40 hover:text-white transition-colors">
                 <X className="w-5 h-5" />
               </button>
@@ -506,7 +506,7 @@ export default function NavBar() {
               </li>
               <li className="flex items-center gap-3 text-sm text-white/70">
                 <span className="flex-shrink-0 w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-white text-xs font-bold">3</span>
-                <span>Tap <strong className="text-white">"Add"</strong> — SEBA will appear on your home screen</span>
+                <span>Tap <strong className="text-white">"Add"</strong> — AINA will appear on your home screen</span>
               </li>
             </ol>
             <button

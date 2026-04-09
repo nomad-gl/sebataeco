@@ -791,7 +791,7 @@ export default function Forum() {
 
       {/* Powered by SEBA footer strip */}
       <div className="hidden md:flex items-center justify-center py-1 bg-black/30 border-t border-white/15 text-[10px] text-white/40 relative z-10">
-        Powered by SEBA AI Studio · TA Fòrum
+        Powered by AINA | TA · TA Fòrum
       </div>
     </div>
   );

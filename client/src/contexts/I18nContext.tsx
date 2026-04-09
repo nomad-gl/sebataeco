@@ -87,7 +87,7 @@ export const translations = {
     dpa_dialog_subtitle: "Before you continue, please review and accept our Data Processing Agreement (DPA).",
     dpa_dialog_version: "DPA Version",
     dpa_dialog_summary_title: "What this agreement covers",
-    dpa_dialog_summary: "This agreement governs how SEBA AI Studio processes personal data on your behalf as a teacher. It covers: the categories of data we store, how long we keep it, your rights as a data controller, our obligations as a data processor, and how we comply with GDPR and the EU AI Act.",
+    dpa_dialog_summary: "This agreement governs how AINA | TA processes personal data on your behalf as a teacher. It covers: the categories of data we store, how long we keep it, your rights as a data controller, our obligations as a data processor, and how we comply with GDPR and the EU AI Act.",
     dpa_dialog_checkbox: "I have read and accept the Data Processing Agreement",
     dpa_dialog_view_full: "View full DPA",
     dpa_dialog_accept: "Accept & Continue",
@@ -736,7 +736,7 @@ export const translations = {
 
     // TA Forum
     forum_title: "TA F\u00f2rum",
-    forum_powered: "Powered by SEBA AI Studio",
+    forum_powered: "Powered by AINA | TA",
     forum_channels: "Channels",
     forum_dms: "Messages",
     forum_members: "Members",
@@ -1208,7 +1208,7 @@ export const translations = {
     dpa_dialog_subtitle: "Antes de continuar, revisa y acepta nuestro Acuerdo de Tratamiento de Datos (ATD).",
     dpa_dialog_version: "Versi\u00f3n del ATD",
     dpa_dialog_summary_title: "Qu\u00e9 cubre este acuerdo",
-    dpa_dialog_summary: "Este acuerdo regula c\u00f3mo SEBA AI Studio trata los datos personales en tu nombre como docente. Cubre: las categor\u00edas de datos que almacenamos, cu\u00e1nto tiempo los conservamos, tus derechos como responsable del tratamiento, nuestras obligaciones como encargado del tratamiento y c\u00f3mo cumplimos con el RGPD y la Ley de IA de la UE.",
+    dpa_dialog_summary: "Este acuerdo regula c\u00f3mo AINA | TA trata los datos personales en tu nombre como docente. Cubre: las categor\u00edas de datos que almacenamos, cu\u00e1nto tiempo los conservamos, tus derechos como responsable del tratamiento, nuestras obligaciones como encargado del tratamiento y c\u00f3mo cumplimos con el RGPD y la Ley de IA de la UE.",
     dpa_dialog_checkbox: "He le\u00eddo y acepto el Acuerdo de Tratamiento de Datos",
     dpa_dialog_view_full: "Ver ATD completo",
     dpa_dialog_accept: "Aceptar y continuar",
@@ -1854,7 +1854,7 @@ export const translations = {
 
     // TA Forum
     forum_title: "TA F\u00f2rum",
-    forum_powered: "Desarrollado por SEBA AI Studio",
+    forum_powered: "Desarrollado por AINA | TA",
     forum_channels: "Canales",
     forum_dms: "Mensajes",
     forum_members: "Miembros",
@@ -2326,7 +2326,7 @@ export const translations = {
     dpa_dialog_subtitle: "Abans de continuar, revisa i accepta el nostre Acord de Tractament de Dades (ATD).",
     dpa_dialog_version: "Versi\u00f3 de l'ATD",
     dpa_dialog_summary_title: "Qu\u00e8 cobreix aquest acord",
-    dpa_dialog_summary: "Aquest acord regula com SEBA AI Studio tracta les dades personals en nom teu com a docent. Cobreix: les categories de dades que emmagatzemem, quant de temps les conservem, els teus drets com a responsable del tractament, les nostres obligacions com a encarregat del tractament i com complim amb el RGPD i la Llei d'IA de la UE.",
+    dpa_dialog_summary: "Aquest acord regula com AINA | TA tracta les dades personals en nom teu com a docent. Cobreix: les categories de dades que emmagatzemem, quant de temps les conservem, els teus drets com a responsable del tractament, les nostres obligacions com a encarregat del tractament i com complim amb el RGPD i la Llei d'IA de la UE.",
     dpa_dialog_checkbox: "He llegit i accepto l'Acord de Tractament de Dades",
     dpa_dialog_view_full: "Veure ATD complet",
     dpa_dialog_accept: "Acceptar i continuar",
@@ -2972,7 +2972,7 @@ export const translations = {
 
     // TA Forum
     forum_title: "TA F\u00f2rum",
-    forum_powered: "Impulsat per SEBA AI Studio",
+    forum_powered: "Impulsat per AINA | TA",
     forum_channels: "Canals",
     forum_dms: "Missatges",
     forum_members: "Membres",
