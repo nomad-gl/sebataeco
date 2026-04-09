@@ -1209,3 +1209,17 @@
 - [x] Test production chat endpoint directly — server responds correctly with the right format
 - [x] Root cause: production site was running an old JS bundle (index-DKyBED7d.js) from before the AbortSignal timeout fix was applied; bundle did not contain SILENT_UNAUTH_PATHS or 90s timeout code
 - [x] Fix: saved new checkpoint and republished to deploy the latest bundle with all fixes
+
+## Feature: AINA "Thinking" Animated Indicator
+- [ ] AIChatBox: show animated "AINA is thinking..." message after 5 seconds of waiting
+- [ ] Indicator disappears when the real response arrives
+- [ ] i18n key for the thinking message in EN/ES/CA
+
+## Feature: PDF Text Extraction for Assignment Submissions
+- [ ] Install pdf-parse npm package on the server
+- [ ] progress.assessUploadedAssignment: detect PDF mime type and extract text via pdf-parse before sending to LLM
+- [ ] Fall back to vision LLM for image files; use text extraction for PDF/docx
+
+## Feature: Session Keep-Alive Ping
+- [ ] Add a lightweight background ping (trpc.auth.me.useQuery with refetchInterval: 15 minutes) to prevent JWT session expiry during idle periods
+- [ ] Only active when user is logged in

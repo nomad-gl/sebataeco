@@ -5,6 +5,7 @@ import { invokeLLM } from "../_core/llm";
 import { checkBias } from "../biasGuard";
 import { getDb } from "../db";
 import { storagePut } from "../storage";
+import { PDFParse } from "pdf-parse";
 import {
   studentProgress,
   assignments,
@@ -1333,6 +1334,19 @@ Format your response exactly as:
 **Detailed Feedback:**
 [Full paragraph feedback]`;
 
+      // For PDFs: extract text server-side with pdf-parse so the LLM gets
+      // full textual content even for multi-page documents.
+      let pdfExtractedText: string | null = null;
+      if (isPdf) {
+        try {
+          const parser = new PDFParse({ url: assignment.submissionUrl });
+          const result = await parser.getText();
+          pdfExtractedText = result.text?.trim() || null;
+        } catch (err) {
+          console.warn("[assessUploadedAssignment] pdf-parse failed, falling back to file_url:", err);
+        }
+      }
+
       let userContent: any[];
       if (isImage) {
         userContent = [
@@ -1340,10 +1354,18 @@ Format your response exactly as:
           { type: "image_url", image_url: { url: assignment.submissionUrl, detail: "high" } },
         ];
       } else if (isPdf) {
-        userContent = [
-          { type: "text", text: `Assignment brief:\n${assignmentContent}\n\nStudent: ${studentLabel}\n\nPlease assess the student's submission in the attached PDF:` },
-          { type: "file_url", file_url: { url: assignment.submissionUrl, mime_type: "application/pdf" as const } },
-        ];
+        if (pdfExtractedText) {
+          // Use extracted text — more reliable for multi-page PDFs
+          userContent = [
+            { type: "text", text: `Assignment brief:\n${assignmentContent}\n\nStudent: ${studentLabel}\n\nThe student's PDF submission text (extracted):\n\n${pdfExtractedText}\n\nPlease assess the above submission against the assignment brief and LOMLOE competency standards.` },
+          ];
+        } else {
+          // Fallback: send as file_url for vision-capable models
+          userContent = [
+            { type: "text", text: `Assignment brief:\n${assignmentContent}\n\nStudent: ${studentLabel}\n\nPlease assess the student's submission in the attached PDF:` },
+            { type: "file_url", file_url: { url: assignment.submissionUrl, mime_type: "application/pdf" as const } },
+          ];
+        }
       } else {
         // Fallback for docx/other formats
         userContent = [

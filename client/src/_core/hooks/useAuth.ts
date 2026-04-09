@@ -16,6 +16,9 @@ export function useAuth(options?: UseAuthOptions) {
   const meQuery = trpc.auth.me.useQuery(undefined, {
     retry: false,
     refetchOnWindowFocus: false,
+    // Keep the JWT session alive by refreshing auth state every 15 minutes.
+    // This prevents the session cookie from expiring during idle periods.
+    refetchInterval: 15 * 60 * 1000,
   });
 
   const logoutMutation = trpc.auth.logout.useMutation({

@@ -139,7 +139,7 @@ export function AIChatBox({
   followUpLabel = "You might also ask:",
   onRateMessage,
 }: AIChatBoxProps) {
-  const { lang } = useI18n();
+  const { lang, t } = useI18n();
   const [input, setInput] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
@@ -406,15 +406,29 @@ export function AIChatBox({
 
   const displayMessages = messages.filter((msg) => msg.role !== "system");
 
+  // Track elapsed loading seconds to show extended thinking label after 5s
+  const [loadingSeconds, setLoadingSeconds] = useState(0);
+  useEffect(() => {
+    if (!isLoading) { setLoadingSeconds(0); return; }
+    setLoadingSeconds(0);
+    const interval = setInterval(() => setLoadingSeconds((s) => s + 1), 1000);
+    return () => clearInterval(interval);
+  }, [isLoading]);
+
   const TypingIndicator = () => (
     <div className="flex gap-3 justify-start items-start">
       <div className="size-8 shrink-0 mt-1 rounded-full bg-primary/10 flex items-center justify-center">
         <Sparkles className="size-4 text-primary animate-pulse" />
       </div>
-      <div className="rounded-lg px-4 py-3 bg-white/15 text-white flex items-center gap-1.5">
-        <span className="size-2 rounded-full bg-white/60 animate-bounce" style={{ animationDelay: "0ms", animationDuration: "900ms" }} />
-        <span className="size-2 rounded-full bg-white/60 animate-bounce" style={{ animationDelay: "180ms", animationDuration: "900ms" }} />
-        <span className="size-2 rounded-full bg-white/60 animate-bounce" style={{ animationDelay: "360ms", animationDuration: "900ms" }} />
+      <div className="rounded-lg px-4 py-3 bg-white/15 text-white flex flex-col gap-2">
+        <div className="flex items-center gap-1.5">
+          <span className="size-2 rounded-full bg-white/60 animate-bounce" style={{ animationDelay: "0ms", animationDuration: "900ms" }} />
+          <span className="size-2 rounded-full bg-white/60 animate-bounce" style={{ animationDelay: "180ms", animationDuration: "900ms" }} />
+          <span className="size-2 rounded-full bg-white/60 animate-bounce" style={{ animationDelay: "360ms", animationDuration: "900ms" }} />
+        </div>
+        {loadingSeconds >= 5 && (
+          <span className="text-xs text-white/60 animate-pulse">{t("aina_thinking")}</span>
+        )}
       </div>
     </div>
   );
