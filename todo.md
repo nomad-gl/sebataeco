@@ -1151,3 +1151,19 @@
 - [x] Client: "View Report" link per student navigates to their StudentProgress report tab
 - [x] Client: "Regenerate All" button shown after first run
 - [x] i18n keys for all new UI strings in EN/ES/CA (11 new gp_all_reports_* keys)
+
+## Bug: AINA not responding to user messages
+- [x] Check server logs for errors in the chat/LLM tRPC procedure — backend is healthy, responds in ~10-14s
+- [x] Root cause identified: production site was running old code with duplicate useState import in StudentProgress.tsx causing module graph errors
+- [x] Fix: republished the site to deploy the latest checkpoint (2bb8a800) which has the duplicate import removed
+- [x] Verified: sebata.forum chat endpoint responds correctly in Catalan, English, and Spanish
+
+## Bug: Site keeps redirecting to sign-in page
+- [x] Root cause: dpa.getStatus (protectedProcedure) called on every page — 401 for unauthenticated users triggered global redirect handler in main.tsx
+- [x] Fix 1: Added SILENT_UNAUTH_PATHS set in main.tsx — dpa.getStatus, notifications.getUnreadCount, lomloe.getAinaProfile no longer trigger redirect
+- [x] Fix 2: Added enabled: !!user guard to dpa.getStatus query in DpaAcceptanceDialog.tsx so it never fires for logged-out users
+
+## Bug: AINA shows error message instead of response
+- [x] Root cause: long/complex questions take 30-60s, exceeding default browser fetch timeout → catch block shows error message
+- [x] Fix: Added per-endpoint timeout in main.tsx tRPC fetch — 90s for lomloe.chat, progress.generateStudent*, lomloe.translateMessages; 30s for everything else
+- [x] Verified: production endpoint responds correctly in ~8-30s depending on complexity

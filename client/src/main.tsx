@@ -11,13 +11,24 @@ import "./index.css";
 
 const queryClient = new QueryClient();
 
-const redirectToLoginIfUnauthorized = (error: unknown) => {
+// Procedures that legitimately return 401 for unauthenticated users and should
+// NOT trigger a login redirect — they are background/optional queries.
+const SILENT_UNAUTH_PATHS = new Set([
+  "dpa.getStatus",
+  "notifications.getUnreadCount",
+  "notifications.getMyNotifications",
+  "lomloe.getAinaProfile",
+]);
+
+const redirectToLoginIfUnauthorized = (error: unknown, queryPath?: string) => {
   if (!(error instanceof TRPCClientError)) return;
   if (typeof window === "undefined") return;
 
   const isUnauthorized = error.message === UNAUTHED_ERR_MSG;
-
   if (!isUnauthorized) return;
+
+  // Suppress redirect for background queries that silently fail when logged out
+  if (queryPath && SILENT_UNAUTH_PATHS.has(queryPath)) return;
 
   // Preserve the current path so the user is returned here after login
   const returnPath = window.location.pathname + window.location.search;
@@ -27,8 +38,14 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
 queryClient.getQueryCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.query.state.error;
-    redirectToLoginIfUnauthorized(error);
-    console.error("[API Query Error]", error);
+    // Extract the tRPC path from the query key (first element is the path array)
+    const queryKey = event.query.queryKey as unknown[];
+    const pathArr = Array.isArray(queryKey?.[0]) ? (queryKey[0] as string[]) : [];
+    const queryPath = pathArr.join(".");
+    redirectToLoginIfUnauthorized(error, queryPath);
+    if (!(error instanceof TRPCClientError && error.message === UNAUTHED_ERR_MSG && SILENT_UNAUTH_PATHS.has(queryPath))) {
+      console.error("[API Query Error]", error);
+    }
   }
 });
 
@@ -46,10 +63,18 @@ const trpcClient = trpc.createClient({
       url: "/api/trpc",
       transformer: superjson,
       fetch(input, init) {
+        // Use a 90-second timeout for LLM-backed endpoints (chat, report generation)
+        // which can take 30-60 seconds for complex responses.
+        const url = typeof input === "string" ? input : input instanceof URL ? input.href : (input as Request).url;
+        const isLlmCall = url.includes("lomloe.chat") || url.includes("progress.generateStudent") || url.includes("lomloe.translateMessages");
+        const timeout = isLlmCall ? 90_000 : 30_000;
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeout);
         return globalThis.fetch(input, {
           ...(init ?? {}),
           credentials: "include",
-        });
+          signal: init?.signal ?? controller.signal,
+        }).finally(() => clearTimeout(timer));
       },
     }),
   ],

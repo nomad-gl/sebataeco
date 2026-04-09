@@ -7,6 +7,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
+import { useAuth } from "@/_core/hooks/useAuth";
 import {
   Dialog,
   DialogContent,
@@ -25,8 +26,11 @@ export default function DpaAcceptanceDialog() {
   const { t } = useI18n();
   const [checked, setChecked] = useState(false);
 
+  const { user } = useAuth();
   const { data: status, isLoading } = trpc.dpa.getStatus.useQuery(undefined, {
     refetchOnWindowFocus: false,
+    enabled: !!user,
+    retry: false,
   });
 
   const utils = trpc.useUtils();
