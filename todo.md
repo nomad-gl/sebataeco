@@ -1204,3 +1204,8 @@
 - [x] Client: AI grade result shows score (0-100), LOMLOE grade badge, and detailed feedback (Streamdown)
 - [x] Client: Re-upload supported via "Change file" button
 - [x] i18n keys for all new UI strings in EN/ES/CA (14 new sp_upload_* / sp_assess_uploaded keys)
+
+## Bug: AINA works on dev preview but not on published site (sebata.forum)
+- [x] Test production chat endpoint directly — server responds correctly with the right format
+- [x] Root cause: production site was running an old JS bundle (index-DKyBED7d.js) from before the AbortSignal timeout fix was applied; bundle did not contain SILENT_UNAUTH_PATHS or 90s timeout code
+- [x] Fix: saved new checkpoint and republished to deploy the latest bundle with all fixes
