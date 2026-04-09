@@ -109,7 +109,8 @@ export default function Chat() {
           id: msgId,
         },
       ]);
-    } catch {
+    } catch (err) {
+      console.error("[AINA chat error]", err);
       setMessages([
         ...newMessages,
         { role: "assistant", content: t("chat_error"), timestamp: Date.now() },

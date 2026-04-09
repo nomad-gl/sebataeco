@@ -70,10 +70,16 @@ const trpcClient = trpc.createClient({
         const timeout = isLlmCall ? 90_000 : 30_000;
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), timeout);
+        // Combine our timeout signal with tRPC's own abort signal (e.g. component unmount)
+        // so either can cancel the request, but our timeout takes precedence for LLM calls.
+        const existingSignal = init?.signal;
+        if (existingSignal) {
+          existingSignal.addEventListener("abort", () => controller.abort(), { once: true });
+        }
         return globalThis.fetch(input, {
           ...(init ?? {}),
           credentials: "include",
-          signal: init?.signal ?? controller.signal,
+          signal: controller.signal,
         }).finally(() => clearTimeout(timer));
       },
     }),
