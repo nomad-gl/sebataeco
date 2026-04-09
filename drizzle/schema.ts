@@ -211,6 +211,16 @@ export const assignments = mysqlTable("assignments", {
   aiScore: int("aiScore"),
   /** When the AI assessment was last run */
   aiAssessedAt: timestamp("aiAssessedAt"),
+  /** S3 key of the uploaded student submission file */
+  submissionKey: text("submissionKey"),
+  /** Public URL of the uploaded student submission file */
+  submissionUrl: text("submissionUrl"),
+  /** MIME type of the uploaded submission (image/jpeg, application/pdf, etc.) */
+  submissionMime: varchar("submissionMime", { length: 128 }),
+  /** Original filename of the uploaded submission */
+  submissionName: varchar("submissionName", { length: 255 }),
+  /** When the submission was uploaded */
+  submissionUploadedAt: timestamp("submissionUploadedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

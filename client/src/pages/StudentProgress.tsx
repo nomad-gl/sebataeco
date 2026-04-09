@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
@@ -1152,7 +1152,7 @@ function AssignmentRow({
   onDelete,
   t,
 }: {
-  assignment: { id: number; title: string; competency: string | null; frequency: string; dueDate: Date | null; description: string | null; aiContent?: string | null; editedContent?: string | null; studentResponse?: string | null; aiFeedback?: string | null; aiScore?: number | null };
+  assignment: { id: number; title: string; competency: string | null; frequency: string; dueDate: Date | null; description: string | null; aiContent?: string | null; editedContent?: string | null; studentResponse?: string | null; aiFeedback?: string | null; aiScore?: number | null; submissionUrl?: string | null; submissionName?: string | null; submissionMime?: string | null };
   studentId: number;
   onComplete: (score?: number) => void;
   onDelete: () => void;
@@ -1164,10 +1164,50 @@ function AssignmentRow({
   const [editedContent, setEditedContent] = useState(assignment.editedContent ?? assignment.aiContent ?? "");
   const [showAssess, setShowAssess] = useState(false);
   const [studentResponse, setStudentResponse] = useState(assignment.studentResponse ?? "");
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<"idle" | "uploading" | "done" | "error">("idle");
+  const [localSubmission, setLocalSubmission] = useState<{ url: string; name: string; mime: string } | null>(
+    assignment.submissionUrl ? { url: assignment.submissionUrl, name: assignment.submissionName ?? "file", mime: assignment.submissionMime ?? "" } : null
+  );
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const utils = trpc.useUtils();
 
   const completionsQ = trpc.progress.getAssignmentCompletions.useQuery({ assignmentId: assignment.id });
   const isCompleted = completionsQ.data?.some((c) => c.studentId === studentId);
+
+  const uploadFile = trpc.progress.uploadAssignmentFile.useMutation({
+    onSuccess: (data) => {
+      setLocalSubmission({ url: data.url, name: data.fileName, mime: data.mimeType });
+      setUploadProgress("done");
+      toast.success(t("sp_upload_success"));
+      utils.progress.listAssignments.invalidate();
+    },
+    onError: () => { setUploadProgress("error"); toast.error(t("sp_upload_failed")); },
+  });
+
+  const assessUploaded = trpc.progress.assessUploadedAssignment.useMutation({
+    onSuccess: () => {
+      toast.success(t("sp_assessment_done"));
+      utils.progress.listAssignments.invalidate();
+    },
+    onError: () => toast.error(t("sp_assessment_failed")),
+  });
+
+  const handleFileUpload = async (file: File) => {
+    const MAX_MB = 16;
+    if (file.size > MAX_MB * 1024 * 1024) {
+      toast.error(t("sp_upload_too_large"));
+      return;
+    }
+    setUploadProgress("uploading");
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(",")[1];
+      uploadFile.mutate({ assignmentId: assignment.id, fileBase64: base64, fileName: file.name, mimeType: file.type });
+    };
+    reader.onerror = () => { setUploadProgress("error"); toast.error(t("sp_upload_failed")); };
+    reader.readAsDataURL(file);
+  };
 
   const saveEdit = trpc.progress.saveAssignmentEdit.useMutation({
     onSuccess: () => {
@@ -1333,25 +1373,103 @@ function AssignmentRow({
 
           {/* AI Assessment panel */}
           {showAssess && (
-            <div className="border-t border-purple-500/20 pt-3 space-y-3">
+            <div className="border-t border-purple-500/20 pt-3 space-y-4">
               <p className="text-purple-300 text-xs font-medium">{t("sp_assess_with_ai")}</p>
+
+              {/* File upload zone */}
+              <div className="space-y-2">
+                <Label className="text-white/60 text-xs">{t("sp_upload_section")}</Label>
+                {localSubmission ? (
+                  <div className="flex items-center gap-3 bg-white/5 border border-white/20 rounded p-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-xs font-medium truncate">{localSubmission.name}</p>
+                      <p className="text-white/40 text-xs">{t("sp_upload_preview")}</p>
+                    </div>
+                    {localSubmission.mime.startsWith("image/") && (
+                      <img src={localSubmission.url} alt="preview" className="w-16 h-16 object-cover rounded border border-white/20" />
+                    )}
+                    <div className="flex flex-col gap-1">
+                      <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()}
+                        className="border-white/20 text-white/60 hover:text-white bg-transparent text-xs h-6">
+                        {t("sp_upload_change")}
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setLocalSubmission(null)}
+                        className="border-red-500/30 text-red-400 hover:text-red-300 bg-transparent text-xs h-6">
+                        {t("sp_upload_remove")}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                      isDragging ? "border-purple-400 bg-purple-900/20" : "border-white/20 hover:border-purple-400/50 hover:bg-white/5"
+                    }`}
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsDragging(false);
+                      const file = e.dataTransfer.files[0];
+                      if (file) handleFileUpload(file);
+                    }}
+                  >
+                    {uploadProgress === "uploading" ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <Loader2 className="w-6 h-6 text-purple-400 animate-spin" />
+                        <p className="text-white/60 text-xs">{t("sp_upload_uploading")}</p>
+                      </div>
+                    ) : (
+                      <>
+                        <Plus className="w-6 h-6 text-white/30 mx-auto mb-2" />
+                        <p className="text-white/60 text-xs">{t("sp_upload_drop_zone")}</p>
+                        <p className="text-white/30 text-xs mt-1">{t("sp_upload_supported")}</p>
+                      </>
+                    )}
+                  </div>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,.pdf,.doc,.docx,.txt"
+                  className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileUpload(f); }}
+                />
+              </div>
+
+              {/* Assess uploaded file */}
+              {localSubmission && (
+                <Button
+                  size="sm"
+                  onClick={() => assessUploaded.mutate({ assignmentId: assignment.id, studentName: `Student ${studentId}` })}
+                  disabled={assessUploaded.isPending}
+                  className="bg-purple-600 hover:bg-purple-500 text-white text-xs"
+                >
+                  {assessUploaded.isPending
+                    ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />{t("sp_assessing_uploaded")}</>
+                    : <><Sparkles className="w-3 h-3 mr-1" />{t("sp_assess_uploaded")}</>}
+                </Button>
+              )}
+
+              {/* Text response fallback */}
               <div className="space-y-1">
                 <Label className="text-white/60 text-xs">{t("sp_student_response_label")}</Label>
                 <textarea
                   value={studentResponse}
                   onChange={(e) => setStudentResponse(e.target.value)}
                   placeholder={t("sp_student_response_placeholder")}
-                  className="w-full min-h-[120px] bg-white/5 border border-white/20 rounded p-3 text-white text-sm resize-y focus:outline-none focus:border-purple-400"
+                  className="w-full min-h-[100px] bg-white/5 border border-white/20 rounded p-3 text-white text-sm resize-y focus:outline-none focus:border-purple-400"
                 />
               </div>
               <Button
                 size="sm"
                 onClick={() => assess.mutate({ assignmentId: assignment.id, studentResponse, studentName: `Student ${studentId}` })}
                 disabled={!studentResponse.trim() || assess.isPending}
-                className="bg-purple-600 hover:bg-purple-500 text-white text-xs"
+                className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs"
               >
                 {assess.isPending ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />{t("sp_assessing")}</> : <><Sparkles className="w-3 h-3 mr-1" />{t("sp_assess_with_ai")}</>}
               </Button>
+
               {assignment.aiFeedback && (
                 <div className="bg-purple-900/20 border border-purple-500/20 rounded p-3 space-y-2">
                   <div className="flex items-center gap-2">

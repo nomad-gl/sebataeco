@@ -1,8 +1,10 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../_core/trpc";
 import { invokeLLM } from "../_core/llm";
 import { checkBias } from "../biasGuard";
 import { getDb } from "../db";
+import { storagePut } from "../storage";
 import {
   studentProgress,
   assignments,
@@ -1236,6 +1238,133 @@ Use a professional, analytical tone. Format with clear headings.`;
           aiScore: aiScore ?? undefined,
           aiAssessedAt: new Date(),
         })
+        .where(eq(assignments.id, input.assignmentId));
+
+      return { aiFeedback, aiScore };
+    }),
+
+  // ── Upload student submission file ────────────────────────────────────────
+  uploadAssignmentFile: protectedProcedure
+    .input(z.object({
+      assignmentId: z.number(),
+      /** Base64-encoded file content */
+      fileBase64: z.string(),
+      /** Original filename */
+      fileName: z.string(),
+      /** MIME type */
+      mimeType: z.string(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      // Verify assignment belongs to this teacher's group
+      const [assignment] = await db.select().from(assignments)
+        .where(eq(assignments.id, input.assignmentId)).limit(1);
+      if (!assignment) throw new TRPCError({ code: "NOT_FOUND", message: "Assignment not found" });
+      const [group] = await db.select().from(classGroups)
+        .where(eq(classGroups.id, assignment.groupId)).limit(1);
+      if (!group || group.userId !== ctx.user.id)
+        throw new TRPCError({ code: "FORBIDDEN", message: "Not your assignment" });
+
+      // Decode base64 and upload to S3
+      const buffer = Buffer.from(input.fileBase64, "base64");
+      const ext = input.fileName.split(".").pop() ?? "bin";
+      const key = `assignment-submissions/${ctx.user.id}/${input.assignmentId}-${Date.now()}.${ext}`;
+      const { url } = await storagePut(key, buffer, input.mimeType);
+
+      // Persist file metadata to DB
+      await db.update(assignments)
+        .set({
+          submissionKey: key,
+          submissionUrl: url,
+          submissionMime: input.mimeType,
+          submissionName: input.fileName,
+          submissionUploadedAt: new Date(),
+          // Clear previous assessment when a new file is uploaded
+          aiFeedback: null,
+          aiScore: null,
+          aiAssessedAt: null,
+        })
+        .where(eq(assignments.id, input.assignmentId));
+
+      return { url, key, fileName: input.fileName, mimeType: input.mimeType };
+    }),
+
+  // ── Assess uploaded submission with AI vision ─────────────────────────────
+  assessUploadedAssignment: protectedProcedure
+    .input(z.object({
+      assignmentId: z.number(),
+      studentName: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      const [assignment] = await db.select().from(assignments)
+        .where(eq(assignments.id, input.assignmentId)).limit(1);
+      if (!assignment) throw new TRPCError({ code: "NOT_FOUND", message: "Assignment not found" });
+      if (!assignment.submissionUrl)
+        throw new TRPCError({ code: "BAD_REQUEST", message: "No submission file uploaded" });
+
+      const assignmentContent = assignment.editedContent ?? assignment.aiContent ?? assignment.title;
+      const studentLabel = input.studentName ?? "the student";
+      const mime = assignment.submissionMime ?? "";
+      const isImage = mime.startsWith("image/");
+      const isPdf = mime === "application/pdf";
+
+      const systemPrompt = `You are an expert LOMLOE curriculum teacher and assessor.
+You will be given a student assignment submission (either as an image of handwritten/printed work, or a PDF/document) and the original assignment brief.
+Your task is to:
+1. Read and understand the student's submission carefully (OCR the handwriting/text if needed).
+2. Assess the quality, accuracy, and depth of the response against the assignment brief and LOMLOE competency standards.
+3. Provide a score from 0 to 100 and a detailed, constructive feedback report in the same language as the assignment.
+
+Format your response exactly as:
+**Score:** [0-100]
+**LOMLOE Grade:** [Insuficient / Suficient / Bé / Notable / Excel·lent]
+**Summary:** [2-3 sentence overview]
+**Strengths:**
+- [strength 1]
+- [strength 2]
+**Areas for Improvement:**
+- [area 1]
+- [area 2]
+**Detailed Feedback:**
+[Full paragraph feedback]`;
+
+      let userContent: any[];
+      if (isImage) {
+        userContent = [
+          { type: "text", text: `Assignment brief:\n${assignmentContent}\n\nStudent: ${studentLabel}\n\nPlease assess the student's handwritten/printed submission shown in the image below:` },
+          { type: "image_url", image_url: { url: assignment.submissionUrl, detail: "high" } },
+        ];
+      } else if (isPdf) {
+        userContent = [
+          { type: "text", text: `Assignment brief:\n${assignmentContent}\n\nStudent: ${studentLabel}\n\nPlease assess the student's submission in the attached PDF:` },
+          { type: "file_url", file_url: { url: assignment.submissionUrl, mime_type: "application/pdf" as const } },
+        ];
+      } else {
+        // Fallback for docx/other formats
+        userContent = [
+          { type: "text", text: `Assignment brief:\n${assignmentContent}\n\nStudent: ${studentLabel}\n\nThe student has submitted a file (${assignment.submissionName}, type: ${mime}). Please assess based on the assignment brief and note that this file format could not be directly read — advise the teacher to convert it to PDF or image for best AI grading results.` },
+        ];
+      }
+
+      const response = await invokeLLM({
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userContent },
+        ],
+      });
+
+      const raw = response.choices?.[0]?.message?.content ?? "";
+      const aiFeedback = typeof raw === "string" ? raw : JSON.stringify(raw);
+      const scoreMatch = aiFeedback.match(/\*\*Score:\*\*\s*(\d+)/);
+      const aiScore = scoreMatch ? Math.min(100, Math.max(0, parseInt(scoreMatch[1], 10))) : null;
+
+      await db.update(assignments)
+        .set({ aiFeedback, aiScore: aiScore ?? undefined, aiAssessedAt: new Date() })
         .where(eq(assignments.id, input.assignmentId));
 
       return { aiFeedback, aiScore };

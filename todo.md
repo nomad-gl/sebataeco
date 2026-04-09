@@ -1191,3 +1191,16 @@
 - [x] Client: expanded assignment shows the content + a student response textarea + "Assess with AI" button
 - [x] Client: AI assessment result shows score (0-100), grade badge, and detailed feedback (Streamdown)
 - [x] i18n keys for all new UI strings in EN/ES/CA (50+ new sp_ keys)
+
+## Feature: Student Assignment Upload & AI Grading
+- [x] DB: add submissionUrl, submissionKey, submissionMime, submissionName, submissionUploadedAt columns to assignments table
+- [x] Server: progress.uploadAssignmentFile mutation — accepts base64 file, uploads to S3, saves URL + key to DB
+- [x] Server: progress.assessUploadedAssignment mutation — fetches file from S3 URL, sends to vision LLM (image_url), returns score + feedback
+- [x] Client: AssignmentRow — drag-and-drop + click file upload zone supporting jpg/png/gif/webp/pdf/docx/doc/txt
+- [x] Client: 16MB file size limit enforced client-side with translated error message
+- [x] Client: After upload, show image thumbnail (for photos) or file name (for PDF/doc) with change/remove buttons
+- [x] Client: "Assess with AI" (purple) triggers assessUploadedAssignment with vision LLM
+- [x] Client: Text response fallback (indigo) still available for typed responses
+- [x] Client: AI grade result shows score (0-100), LOMLOE grade badge, and detailed feedback (Streamdown)
+- [x] Client: Re-upload supported via "Change file" button
+- [x] i18n keys for all new UI strings in EN/ES/CA (14 new sp_upload_* / sp_assess_uploaded keys)
