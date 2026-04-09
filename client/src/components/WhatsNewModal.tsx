@@ -25,14 +25,14 @@ const CHANGELOG = [
     color: "text-green-400",
     bg: "bg-green-400/10",
     title: "Install as an app",
-    desc: "SEBA is now a Progressive Web App. Use the Download App button on the homepage or NavBar to install it directly to your home screen.",
+    desc: "AINA is now a Progressive Web App. Use the Download App button on the homepage or NavBar to install it directly to your home screen.",
   },
   {
     icon: Bell,
     color: "text-amber-400",
     bg: "bg-amber-400/10",
     title: "Update notifications",
-    desc: "A banner now appears at the top of the page whenever a new version of SEBA is available, so you're always on the latest release.",
+    desc: "A banner now appears at the top of the page whenever a new version of AINA is available, so you're always on the latest release.",
   },
   {
     icon: Zap,
@@ -59,7 +59,7 @@ export default function WhatsNewModal({ open, onClose }: WhatsNewModalProps) {
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary" />
-            <h2 className="text-base font-bold text-white">What's New in SEBA</h2>
+            <h2 className="text-base font-bold text-white">What's New in AINA</h2>
           </div>
           <button
             onClick={onClose}

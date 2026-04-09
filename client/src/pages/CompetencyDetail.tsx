@@ -834,8 +834,8 @@ export default function CompetencyDetail({ params }: { params: { code: string } 
           </Button>
         </section>
 
-        {/* Powered by SEBA */}
-        <p className="text-xs text-muted-foreground text-center pb-4">Powered by SEBA</p>
+        {/* Powered by AINA */}
+        <p className="text-xs text-muted-foreground text-center pb-4">Powered by AINA</p>
       </div>
     </div>
   );

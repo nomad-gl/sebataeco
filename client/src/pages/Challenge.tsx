@@ -478,13 +478,13 @@ export default function Challenge() {
           const q = room.questions[room.currentQuestion];
           return (
             <div className="max-w-2xl mx-auto space-y-6">
-              {/* SEBA logo — enlarged for gaming mode */}
+              {/* AINA logo — enlarged for gaming mode */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-10 h-10 rounded-xl bg-yellow-400/20 border border-yellow-400/40 flex items-center justify-center">
                     <Zap className="w-5 h-5 text-yellow-300" />
                   </div>
-                  <span className="text-white font-heading font-bold text-lg">SEBA</span>
+                  <span className="text-white font-heading font-bold text-lg">AINA</span>
                 </div>
                 <span className="text-white/70 text-sm">{t("practice_question")} {room.currentQuestion + 1} / {room.questions.length}</span>
                 <div className="flex items-center gap-2 text-white/70 text-sm">

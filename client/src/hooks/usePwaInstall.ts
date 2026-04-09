@@ -22,7 +22,7 @@ function trackInstallEvent(event: string, meta?: Record<string, unknown>) {
   } catch {
     // localStorage unavailable — ignore
   }
-  console.info("[SEBA install analytics]", entry);
+  console.info("[AINA install analytics]", entry);
 }
 
 export function usePwaInstall() {
@@ -56,7 +56,7 @@ export function usePwaInstall() {
     // Track successful installation
     const installedHandler = () => {
       trackInstallEvent("app_installed");
-      toast.success("SEBA installed successfully!", {
+      toast.success("AINA installed successfully!", {
         description: "Open it anytime from your home screen.",
         duration: 5000,
       });

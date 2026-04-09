@@ -95,12 +95,12 @@ export default function CatalanDialectDetector() {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <span className="text-2xl">🏴󠁥󠁳󠁣󠁴󠁿</span>
-            {isInitial ? "Benvingut/da a SEBA" : "Canvi de regió detectat"}
+            {isInitial ? "Benvingut/da a AINA" : "Canvi de regió detectat"}
           </DialogTitle>
           <DialogDescription className="text-sm leading-relaxed">
             {isInitial
-              ? `SEBA utilitza el català estàndard IEC per defecte. Hem detectat que et trobes a una zona de variant "${detected.dialectLabel}". Tria la variant que prefereixes:`
-              : `La teva ubicació ha canviat. Hem detectat la variant "${detected.dialectLabel}". Vols actualitzar la variant lingüística de SEBA?`}
+              ? `AINA utilitza el català estàndard IEC per defecte. Hem detectat que et trobes a una zona de variant "${detected.dialectLabel}". Tria la variant que prefereixes:`
+              : `La teva ubicació ha canviat. Hem detectat la variant "${detected.dialectLabel}". Vols actualitzar la variant lingüística de AINA?`}
           </DialogDescription>
         </DialogHeader>
 

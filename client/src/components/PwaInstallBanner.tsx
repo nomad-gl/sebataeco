@@ -71,7 +71,7 @@ export default function PwaInstallBanner() {
             <Download className="size-5 text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-white">Install SEBA on your device</p>
+            <p className="text-sm font-semibold text-white">Install AINA on your device</p>
             <p className="text-xs text-white/60 mt-0.5">
               Add to your home screen for instant access — works like a native app.
             </p>
@@ -111,7 +111,7 @@ export default function PwaInstallBanner() {
       <div className="fixed bottom-4 left-4 right-4 z-50 max-w-md mx-auto">
         <div className="bg-[#0f172a] border border-white/20 rounded-2xl shadow-2xl p-4">
           <div className="flex items-start justify-between gap-2 mb-3">
-            <p className="text-sm font-semibold text-white">Install SEBA on your iPhone</p>
+            <p className="text-sm font-semibold text-white">Install AINA on your iPhone</p>
             <button
               onClick={handleDismiss}
               className="flex-shrink-0 text-white/40 hover:text-white transition-colors"
@@ -131,7 +131,7 @@ export default function PwaInstallBanner() {
             </li>
             <li className="flex items-center gap-2 text-xs text-white/70">
               <span className="flex-shrink-0 w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-white text-[10px] font-bold">3</span>
-              <span>Tap <strong className="text-white">"Add"</strong> — SEBA will appear on your home screen</span>
+              <span>Tap <strong className="text-white">"Add"</strong> — AINA will appear on your home screen</span>
             </li>
           </ol>
           <div className="mt-3 pt-3 border-t border-white/10">

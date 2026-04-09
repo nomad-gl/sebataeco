@@ -93,7 +93,7 @@ export const dialectOverrides: Record<CatalanDialect, PartialTranslations> = {
 
     // Dialect popup
     dialect_detected_title:   "Variant detectada: Valencià",
-    dialect_detected_desc:    "Hem detectat que et trobes a la Comunitat Valenciana. Vols que SEBA use la variant valenciana del català?",
+    dialect_detected_desc:    "Hem detectat que et trobes a la Comunitat Valenciana. Vols que AINA use la variant valenciana del català?",
     dialect_keep:             "Sí, usar Valencià",
     dialect_dismiss:          "No, mantenir l'estàndard",
     dialect_region_changed_title: "Canvi de regió detectat",
@@ -121,7 +121,7 @@ export const dialectOverrides: Record<CatalanDialect, PartialTranslations> = {
 
     // Dialect popup
     dialect_detected_title:   "Variant detectada: Balear",
-    dialect_detected_desc:    "Hem detectat que et trobes a les Illes Balears. Vols que SEBA usi la variant balear del català?",
+    dialect_detected_desc:    "Hem detectat que et trobes a les Illes Balears. Vols que AINA usi la variant balear del català?",
     dialect_keep:             "Sí, usar Balear",
     dialect_dismiss:          "No, mantenir l'estàndard",
     dialect_region_changed_title: "Canvi de regió detectat",
@@ -142,7 +142,7 @@ export const dialectOverrides: Record<CatalanDialect, PartialTranslations> = {
       "Bonjorn! Sóc Aina, el teu assistent d'ensenyament LOMLOE. Pregunta'm qualsevol cosa sobre les vuit competències del currículum.",
 
     dialect_detected_title:   "Variant detectada: Català septentrional",
-    dialect_detected_desc:    "Hem detectat que et trobes a la Catalunya del Nord. Vols que SEBA usi la variant septentrional del català?",
+    dialect_detected_desc:    "Hem detectat que et trobes a la Catalunya del Nord. Vols que AINA usi la variant septentrional del català?",
     dialect_keep:             "Sí, usar Septentrional",
     dialect_dismiss:          "No, mantenir l'estàndard",
     dialect_region_changed_title: "Canvi de regió detectat",
@@ -160,7 +160,7 @@ export const dialectOverrides: Record<CatalanDialect, PartialTranslations> = {
       "Bona jornada! Sóc Aina, el teu assistent d'ensenyament LOMLOE. Pregunta'm qualsevol cosa sobre les vuit competències del currículum.",
 
     dialect_detected_title:   "Variant detectada: Alguerès",
-    dialect_detected_desc:    "Hem detectat que et trobes a l'Alguer (Sardenya). Vols que SEBA usi la variant algueresa del català?",
+    dialect_detected_desc:    "Hem detectat que et trobes a l'Alguer (Sardenya). Vols que AINA usi la variant algueresa del català?",
     dialect_keep:             "Sí, usar Alguerès",
     dialect_dismiss:          "No, mantenir l'estàndard",
     dialect_region_changed_title: "Canvi de regió detectat",

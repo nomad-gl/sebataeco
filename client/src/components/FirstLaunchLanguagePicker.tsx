@@ -81,7 +81,7 @@ export default function FirstLaunchLanguagePicker() {
         />
 
         <h1 className="text-2xl font-bold text-white mb-1 text-center">
-          Welcome to SEBA
+          Welcome to AINA
         </h1>
         <p className="text-sm text-white/55 mb-8 text-center">
           Choose your preferred language to get started

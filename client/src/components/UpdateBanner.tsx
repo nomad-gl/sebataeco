@@ -21,7 +21,7 @@ export default function UpdateBanner() {
         <div className="flex items-center gap-2 min-w-0">
           <Sparkles className="w-4 h-4 flex-shrink-0 opacity-90" />
           <span className="text-sm font-medium truncate">
-            A new version of SEBA is available
+            A new version of AINA is available
           </span>
           <button
             onClick={() => setShowChangelog(true)}

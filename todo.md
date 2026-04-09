@@ -1094,3 +1094,11 @@
 - [x] Update PWA manifest name and short_name to AINA / AINA | TA
 - [x] Update NavBar iOS install prompt text
 - [x] Replace all "SEBA AI Studio" strings in pages, server files, i18n, and compliance docs
+
+## Fix: Complete AINA rebrand (banner + privacy notice + app title)
+- [x] Update version banner: "A new version of AINA is available" (UpdateBanner.tsx + WhatsNewModal.tsx)
+- [x] Update privacy notice banner: "AINA stores only what is needed…" (i18n EN/ES/CA)
+- [x] Update all remaining SEBA → AINA in i18n context (audit algo descriptions, privacy subtitle, hosting desc, AI models desc)
+- [x] Update PwaInstallBanner, FirstLaunchLanguagePicker, CatalanDialectDetector, Challenge gaming mode, CompetencyDetail, Footer, usePwaInstall
+- [x] Update dialectOverrides.ts Valencian/Balearic/Northern/Algherese dialect descriptions
+- [x] SEBA Snap references intentionally preserved (separate product)

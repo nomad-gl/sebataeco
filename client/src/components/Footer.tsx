@@ -56,7 +56,7 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Right: Powered by SEBA + sebasnap link + legal links */}
+          {/* Right: Powered by AINA + sebasnap link + legal links */}
           <div className="flex flex-col items-center sm:items-end gap-1">
             <a
               href="https://sebasnap.com"
