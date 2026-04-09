@@ -10,6 +10,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Streamdown } from "streamdown";
 import { useAinaWakeWord } from "@/hooks/useAinaWakeWord";
 import { trpc } from "@/lib/trpc";
+import { useI18n } from "@/contexts/I18nContext";
 
 /**
  * Message type matching server-side LLM Message interface
@@ -138,6 +139,7 @@ export function AIChatBox({
   followUpLabel = "You might also ask:",
   onRateMessage,
 }: AIChatBoxProps) {
+  const { lang } = useI18n();
   const [input, setInput] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
@@ -160,14 +162,11 @@ export function AIChatBox({
     });
   }, []);
 
-  /** True on any mobile/tablet device */
+  /** True on any mobile/tablet device — kept for layout-only decisions (input row direction) */
   const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const recognitionRef = useRef<any>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const lastUserMsgRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -326,77 +325,34 @@ export function AIChatBox({
   const { wakeState, permissionError: wakePermissionError } = useAinaWakeWord({
     onTranscript: handleWakeTranscript,
     enabled: !isMobile && alwaysOnEnabled,
-    lang: document.documentElement.lang || navigator.language || "en",
+    lang: lang || "ca",
   });
 
   useEffect(() => {
     if (wakePermissionError) setVoiceError(wakePermissionError);
   }, [wakePermissionError]);
 
-  // ─── Desktop mic: Web Speech API ─────────────────────────────────────────────
+  // ─── Unified mic: MediaRecorder → S3 → Whisper (all devices) ────────────────
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const getSR = (): (new () => any) | null => {
-    return (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition || null;
-  };
+  /** True when MediaRecorder + getUserMedia are available (all modern browsers on HTTPS) */
+  const hasMediaRecorder = typeof MediaRecorder !== "undefined" && !!(navigator.mediaDevices?.getUserMedia);
 
-  const stopDesktopRecording = useCallback(() => {
-    if (recognitionRef.current) {
-      try { recognitionRef.current.abort(); } catch { /* ignore */ }
-      recognitionRef.current = null;
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      try { mediaRecorderRef.current.stop(); } catch { /* ignore */ }
     }
     setIsRecording(false);
   }, []);
 
   useEffect(() => {
-    return () => { stopDesktopRecording(); };
-  }, [stopDesktopRecording]);
+    return () => { stopRecording(); };
+  }, [stopRecording]);
 
-  const toggleDesktopMic = useCallback(() => {
-    const SR = getSR();
-    if (!SR) {
-      setVoiceError("Voice input is not supported in this browser.");
+  const startRecording = useCallback(async () => {
+    if (!hasMediaRecorder) {
+      setVoiceError("Voice input requires a modern browser with microphone access over HTTPS.");
       return;
     }
-    if (isRecording) { stopDesktopRecording(); return; }
-
-    setVoiceError(null);
-    const recognition = new SR();
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.lang = document.documentElement.lang || navigator.language || "en";
-    recognitionRef.current = recognition;
-
-    recognition.onstart = () => { setIsRecording(true); setInput(""); };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    recognition.onresult = (e: any) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const transcript = Array.from(e.results as any[]).map((r: any) => r[0].transcript as string).join("");
-      setInput(transcript);
-    };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    recognition.onerror = (e: any) => {
-      if (e.error !== "aborted" && e.error !== "no-speech") setVoiceError("Voice input error: " + e.error);
-      setIsRecording(false);
-    };
-    recognition.onend = () => {
-      recognitionRef.current = null;
-      setIsRecording(false);
-      textareaRef.current?.focus();
-    };
-    try { recognition.start(); } catch { setIsRecording(false); }
-  }, [isRecording, stopDesktopRecording]);
-
-  // ─── Mobile mic: MediaRecorder → S3 → Whisper ────────────────────────────────
-
-  const stopMobileRecording = useCallback(() => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-      mediaRecorderRef.current.stop();
-    }
-    setIsRecording(false);
-  }, []);
-
-  const startMobileRecording = useCallback(async () => {
     setVoiceError(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -404,31 +360,27 @@ export function AIChatBox({
       const recorder = new MediaRecorder(stream, { mimeType });
       audioChunksRef.current = [];
       mediaRecorderRef.current = recorder;
-
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
-
       recorder.onstop = async () => {
         stream.getTracks().forEach(t => t.stop());
         setIsRecording(false);
-
         const blob = new Blob(audioChunksRef.current, { type: mimeType });
         if (blob.size === 0) return;
-
-        // Convert to base64 and upload via server
         const arrayBuffer = await blob.arrayBuffer();
-          const bytes = new Uint8Array(arrayBuffer);
-          let binary = "";
-          for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-          const base64 = btoa(binary);
-
+        const bytes = new Uint8Array(arrayBuffer);
+        let binary = "";
+        for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+        const base64 = btoa(binary);
         try {
           const { url } = await uploadAudioMutation.mutateAsync({ audioBase64: base64, mimeType });
-          const lang = document.documentElement.lang || navigator.language || "en";
-          const { text } = await transcribeMutation.mutateAsync({ audioUrl: url, language: lang.split("-")[0] });
+          // Use the active app language (defaults to "ca" for Catalan)
+          const whisperLang = (lang || "ca").split("-")[0];
+          const { text } = await transcribeMutation.mutateAsync({ audioUrl: url, language: whisperLang });
           if (text.trim()) {
-            onSendMessage(text.trim());
+            setInput(text.trim());
+            textareaRef.current?.focus();
           } else {
             setVoiceError("No speech detected. Please try again.");
           }
@@ -437,25 +389,18 @@ export function AIChatBox({
           console.error(err);
         }
       };
-
       recorder.start();
       setIsRecording(true);
     } catch {
       setVoiceError("Microphone access denied. Please allow microphone in your browser settings.");
     }
-  }, [uploadAudioMutation, transcribeMutation, onSendMessage]);
-
-  const toggleMobileMic = useCallback(() => {
-    if (isRecording) {
-      stopMobileRecording();
-    } else {
-      startMobileRecording();
-    }
-  }, [isRecording, stopMobileRecording, startMobileRecording]);
+  }, [hasMediaRecorder, uploadAudioMutation, transcribeMutation, lang]);
 
   // ─── Unified mic toggle ───────────────────────────────────────────────────────
 
-  const toggleMic = isMobile ? toggleMobileMic : toggleDesktopMic;
+  const toggleMic = useCallback(() => {
+    if (isRecording) { stopRecording(); } else { startRecording(); }
+  }, [isRecording, stopRecording, startRecording]);
 
   // ─── Display helpers ─────────────────────────────────────────────────────────
 
@@ -531,9 +476,9 @@ export function AIChatBox({
   // ─── Mobile recording status label ───────────────────────────────────────────
 
   const mobileRecordingStatus =
-    isMobile && (uploadAudioMutation.isPending || transcribeMutation.isPending)
+    (uploadAudioMutation.isPending || transcribeMutation.isPending)
       ? "Transcribing…"
-      : isMobile && isRecording
+      : isRecording
       ? "Recording… tap mic to stop"
       : null;
 
@@ -698,8 +643,8 @@ export function AIChatBox({
         </div>
       )}
 
-      {/* Mobile recording / transcribing status */}
-      {isMobile && mobileRecordingStatus && (
+      {/* Recording / transcribing status (shown on all devices) */}
+      {mobileRecordingStatus && (
         <div className="px-4 py-1 text-xs flex items-center gap-1.5 border-t border-white/10 text-red-300 bg-red-500/10">
           <span className="inline-block size-1.5 rounded-full bg-red-400 animate-pulse" />
           {mobileRecordingStatus}
@@ -815,11 +760,7 @@ export function AIChatBox({
             size="icon"
             variant="ghost"
             onClick={toggleMic}
-            disabled={
-              isMobile
-                ? uploadAudioMutation.isPending || transcribeMutation.isPending
-                : false
-            }
+            disabled={uploadAudioMutation.isPending || transcribeMutation.isPending}
             title={isRecording ? "Stop recording" : "Voice input"}
             className={cn(
               "shrink-0 h-[38px] w-[38px] text-white/60 hover:text-white hover:bg-white/15",

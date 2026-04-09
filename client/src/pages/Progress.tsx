@@ -84,6 +84,15 @@ export default function Progress() {
     },
   });
 
+  // Grade labels keyed by English canonical name (used in GRADE_COLORS map)
+  const gradeLabels: Record<string, string> = {
+    Sobresaliente: t("progress_grade_outstanding"),
+    Notable: t("progress_grade_notable"),
+    Bien: t("progress_grade_bien"),
+    Suficiente: t("progress_grade_sufficient"),
+    Insuficiente: t("progress_grade_insufficient"),
+  };
+
   if (loading || isLoading) {
     return (
       <div className="progress-bg flex flex-col min-h-screen">
@@ -106,7 +115,7 @@ export default function Progress() {
                 <Lock className="w-8 h-8 text-white/70" />
               </div>
               <h2 className="text-xl font-bold text-white">{t("sign_in_required")}</h2>
-              <p className="text-sm text-white/60">Sign in to view your groups' progress and LOMLOE grades.</p>
+              <p className="text-sm text-white/60">{t("progress_sign_in_desc")}</p>
               <Button asChild className="w-full">
                 <a href={getLoginUrl(window.location.pathname + window.location.search)}>{t("nav_sign_in")}</a>
               </Button>
@@ -134,26 +143,26 @@ export default function Progress() {
         {/* Page header */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white">Group Progress</h1>
+            <h1 className="text-3xl font-bold text-white">{t("progress_page_title")}</h1>
             <p className="text-white/60 text-sm mt-1">
-              LOMLOE-aligned grades across all your class groups
+              {t("progress_page_subtitle")}
             </p>
           </div>
           <Button
             onClick={() => navigate("/groups")}
             className="bg-teal-600 hover:bg-teal-500 text-white gap-2 self-start sm:self-auto"
           >
-            <Plus className="w-4 h-4" /> Manage Groups
+            <Plus className="w-4 h-4" /> {t("progress_manage_groups")}
           </Button>
         </div>
 
         {/* Summary stat cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: "Groups", value: totalGroups, icon: BookOpen, color: "text-blue-400" },
-            { label: "Students", value: totalStudents, icon: Users, color: "text-purple-400" },
-            { label: "Activities", value: totalActivities, icon: Target, color: "text-emerald-400" },
-            { label: "Overall Avg", value: overallAvg !== null ? `${overallAvg}/100` : "—", icon: Trophy, color: "text-yellow-400" },
+            { label: t("progress_stat_groups"), value: totalGroups, icon: BookOpen, color: "text-blue-400" },
+            { label: t("progress_stat_students"), value: totalStudents, icon: Users, color: "text-purple-400" },
+            { label: t("progress_stat_activities"), value: totalActivities, icon: Target, color: "text-emerald-400" },
+            { label: t("progress_stat_avg"), value: overallAvg !== null ? `${overallAvg}/100` : "—", icon: Trophy, color: "text-yellow-400" },
           ].map((stat) => (
             <Card key={stat.label} className="bg-white/10 backdrop-blur-md border-white/20">
               <CardContent className="p-4 flex flex-col gap-1">
@@ -175,19 +184,19 @@ export default function Progress() {
                 <Users className="w-8 h-8 text-white/70" />
               </div>
               <div>
-                <h3 className="font-semibold text-white text-lg">No groups yet</h3>
+                <h3 className="font-semibold text-white text-lg">{t("progress_no_groups_title")}</h3>
                 <p className="text-white/60 text-sm mt-1">
-                  Create a class group to start tracking student progress and LOMLOE grades.
+                  {t("progress_no_groups_desc")}
                 </p>
               </div>
               <Button onClick={() => navigate("/groups")} className="gap-2 bg-teal-600 hover:bg-teal-500">
-                <Plus className="w-4 h-4" /> Create First Group
+                <Plus className="w-4 h-4" /> {t("progress_create_first")}
               </Button>
             </CardContent>
           </Card>
         ) : (
           <div className="flex flex-col gap-4">
-            <h2 className="text-white font-semibold text-lg">Your Class Groups</h2>
+            <h2 className="text-white font-semibold text-lg">{t("progress_your_groups")}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {groups?.map((item) => (
                 <Link key={item.group.id} href={`/groups/${item.group.id}/progress`}>
@@ -210,7 +219,7 @@ export default function Progress() {
                             </div>
                             {item.grade && (
                               <Badge className={`text-xs shrink-0 ${GRADE_COLORS[item.grade] ?? "bg-slate-500 text-white"}`}>
-                                {item.grade}
+                                {gradeLabels[item.grade] ?? item.grade}
                               </Badge>
                             )}
                           </div>
@@ -218,10 +227,10 @@ export default function Progress() {
                           {/* Stats row */}
                           <div className="flex items-center gap-4 mt-3 text-xs text-white/60">
                             <span className="flex items-center gap-1">
-                              <Users className="w-3 h-3" /> {item.studentCount} students
+                              <Users className="w-3 h-3" /> {item.studentCount} {t("progress_students_label")}
                             </span>
                             <span className="flex items-center gap-1">
-                              <TrendingUp className="w-3 h-3" /> {item.totalActivities} activities
+                              <TrendingUp className="w-3 h-3" /> {item.totalActivities} {t("progress_activities_label")}
                             </span>
                           </div>
 
@@ -229,7 +238,7 @@ export default function Progress() {
                           {item.topCompetencies.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-2">
                               <span className="text-white/40 text-xs flex items-center gap-0.5">
-                                <Star className="w-3 h-3" /> Top:
+                                <Star className="w-3 h-3" /> {t("progress_top_label")}
                               </span>
                               {item.topCompetencies.map((code) => (
                                 <span
@@ -243,7 +252,7 @@ export default function Progress() {
                           )}
 
                           {item.totalActivities === 0 && (
-                            <p className="text-white/40 text-xs mt-2 italic">No activities recorded yet</p>
+                            <p className="text-white/40 text-xs mt-2 italic">{t("progress_no_activities")}</p>
                           )}
                         </div>
 
@@ -251,7 +260,7 @@ export default function Progress() {
                           <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-teal-400 transition-colors" />
                           <button
                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); exportCSV.mutate({ groupId: item.group.id }); }}
-                            title="Download grades CSV"
+                            title={t("progress_download_csv")}
                             className="p-1 rounded text-white/30 hover:text-teal-400 hover:bg-white/10 transition-colors"
                           >
                             {exportCSV.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
@@ -269,18 +278,18 @@ export default function Progress() {
         {/* LOMLOE grade legend */}
         <Card className="bg-white/5 border-white/10">
           <CardContent className="p-4">
-            <p className="text-white/50 text-xs font-medium uppercase tracking-wide mb-3">LOMLOE Grade Scale</p>
+            <p className="text-white/50 text-xs font-medium uppercase tracking-wide mb-3">{t("progress_grade_scale")}</p>
             <div className="flex flex-wrap gap-2">
               {[
-                { grade: "Sobresaliente", range: "90–100" },
-                { grade: "Notable", range: "70–89" },
-                { grade: "Bien", range: "60–69" },
-                { grade: "Suficiente", range: "50–59" },
-                { grade: "Insuficiente", range: "0–49" },
-              ].map(({ grade, range }) => (
-                <div key={grade} className="flex items-center gap-1.5">
-                  <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${GRADE_COLORS[grade]}`}>
-                    {grade}
+                { key: "Sobresaliente", range: "90–100" },
+                { key: "Notable", range: "70–89" },
+                { key: "Bien", range: "60–69" },
+                { key: "Suficiente", range: "50–59" },
+                { key: "Insuficiente", range: "0–49" },
+              ].map(({ key, range }) => (
+                <div key={key} className="flex items-center gap-1.5">
+                  <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${GRADE_COLORS[key]}`}>
+                    {gradeLabels[key] ?? key}
                   </span>
                   <span className="text-white/40 text-xs">{range}</span>
                 </div>

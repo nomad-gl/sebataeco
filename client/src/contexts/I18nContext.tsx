@@ -756,6 +756,8 @@ export const translations = {
     cd_practice_this: "Practice This Competency",
     cd_create_materials: "Create Materials",
     cd_back_to_competencies: "Back to Competencies",
+    cd_not_found: "Competency not found",
+    cd_powered_by: "Powered by AINA",
 
     // NavBar - Forum
     nav_forum: "TA Fòrum",
@@ -1076,6 +1078,20 @@ export const translations = {
     progress_grade_approved: "Aprobado",
     progress_grade_sufficient: "Suficiente",
     progress_grade_insufficient: "Insuficiente",
+    progress_page_title: "Group Progress",
+    progress_page_subtitle: "LOMLOE-aligned grades across all your class groups",
+    progress_manage_groups: "Manage Groups",
+    progress_no_groups_title: "No groups yet",
+    progress_no_groups_desc: "Create a class group to start tracking student progress and LOMLOE grades.",
+    progress_create_first: "Create First Group",
+    progress_your_groups: "Your Class Groups",
+    progress_students_label: "students",
+    progress_activities_label: "activities",
+    progress_top_label: "Top:",
+    progress_no_activities: "No activities recorded yet",
+    progress_grade_scale: "LOMLOE Grade Scale",
+    progress_sign_in_desc: "Sign in to view your groups\u2019 progress and LOMLOE grades.",
+    progress_grade_bien: "Bien",
 
     // GroupProgress
     gp_logo_attached: "School logo attached",
@@ -1900,6 +1916,8 @@ export const translations = {
     cd_practice_this: "Practicar Esta Competencia",
     cd_create_materials: "Crear Materiales",
     cd_back_to_competencies: "Volver a las Competencias",
+    cd_not_found: "Competencia no encontrada",
+    cd_powered_by: "Con tecnología de AINA",
 
     // NavBar - Forum
     nav_forum: "TA F\u00f2rum",
@@ -2220,6 +2238,20 @@ export const translations = {
     progress_grade_approved: "Aprobado",
     progress_grade_sufficient: "Suficiente",
     progress_grade_insufficient: "Insuficiente",
+    progress_page_title: "Progreso del Grupo",
+    progress_page_subtitle: "Calificaciones alineadas con LOMLOE de todos tus grupos",
+    progress_manage_groups: "Gestionar Grupos",
+    progress_no_groups_title: "Sin grupos todav\u00eda",
+    progress_no_groups_desc: "Crea un grupo de clase para empezar a hacer seguimiento del progreso y las calificaciones LOMLOE.",
+    progress_create_first: "Crear Primer Grupo",
+    progress_your_groups: "Tus Grupos de Clase",
+    progress_students_label: "alumnos",
+    progress_activities_label: "actividades",
+    progress_top_label: "Top:",
+    progress_no_activities: "Sin actividades registradas todav\u00eda",
+    progress_grade_scale: "Escala de Calificaciones LOMLOE",
+    progress_sign_in_desc: "Inicia sesi\u00f3n para ver el progreso de tus grupos y las calificaciones LOMLOE.",
+    progress_grade_bien: "Bien",
 
     // GroupProgress
     gp_logo_attached: "Logotipo del centro adjunto",
@@ -3044,6 +3076,8 @@ export const translations = {
     cd_practice_this: "Practicar Aquesta Competència",
     cd_create_materials: "Crear Materials",
     cd_back_to_competencies: "Tornar a les Competències",
+    cd_not_found: "Competència no trobada",
+    cd_powered_by: "Impulsat per AINA",
 
     // NavBar - Forum
     nav_forum: "TA F\u00f2rum",
@@ -3364,6 +3398,20 @@ export const translations = {
     progress_grade_approved: "Aprovat",
     progress_grade_sufficient: "Suficient",
     progress_grade_insufficient: "Insuficient",
+    progress_page_title: "Progrés del Grup",
+    progress_page_subtitle: "Qualificacions alineades amb la LOMLOE de tots els teus grups",
+    progress_manage_groups: "Gestionar Grups",
+    progress_no_groups_title: "Encara no hi ha grups",
+    progress_no_groups_desc: "Crea un grup de classe per començar a fer el seguiment del progrés i les qualificacions LOMLOE.",
+    progress_create_first: "Crear el Primer Grup",
+    progress_your_groups: "Els Teus Grups de Classe",
+    progress_students_label: "alumnes",
+    progress_activities_label: "activitats",
+    progress_top_label: "Top:",
+    progress_no_activities: "Encara no hi ha activitats registrades",
+    progress_grade_scale: "Escala de Qualificacions LOMLOE",
+    progress_sign_in_desc: "Inicia sessió per veure el progrés dels teus grups i les qualificacions LOMLOE.",
+    progress_grade_bien: "Bé",
 
     // GroupProgress
     gp_logo_attached: "Logotip del centre adjunt",

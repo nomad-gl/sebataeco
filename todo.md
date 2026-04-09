@@ -1109,3 +1109,19 @@
 - [x] Rewrote AinaProfilePanel to use t() for all user-visible text (style/depth labels, profile states, reset button, toast messages, confirm dialog)
 - [x] Fixed Footer: footer_ai_powered_by key replaces hardcoded "AI powered by"; "SEBA" → "AINA"
 - [x] Added all new keys to EN, ES, and CA language blocks in I18nContext
+
+## Fix: Practice Questions page — translate all hardcoded English text
+- [ ] Audit Practice.tsx for all hardcoded English strings
+- [ ] Add new i18n keys to EN, ES, and CA blocks
+- [ ] Replace all hardcoded strings in Practice.tsx with t() calls
+
+## Bug: Speech prompt not working on laptop/desktop
+- [ ] Diagnose why speech/microphone prompt fails on desktop browsers (Chrome, Firefox, Safari on macOS/Windows)
+- [ ] Check if the issue is getUserMedia permissions, Web Speech API vs MediaRecorder API, or HTTPS requirement
+- [ ] Fix the desktop speech input flow
+- [ ] Test on both desktop and mobile to confirm fix does not break mobile
+
+## Bug: Progress page does not translate
+- [ ] Audit Progress.tsx for hardcoded English strings
+- [ ] Move all hardcoded strings to i18n keys
+- [ ] Add CA and ES translations for all new keys

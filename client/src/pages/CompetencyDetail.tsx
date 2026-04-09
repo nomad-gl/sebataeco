@@ -593,7 +593,7 @@ export default function CompetencyDetail({ params }: { params: { code: string } 
         <NavBar />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <p className="text-2xl font-bold text-foreground mb-2">Competency not found</p>
+            <p className="text-2xl font-bold text-foreground mb-2">{t("cd_not_found")}</p>
             <Button asChild variant="outline">
               <Link href="/">{t("cd_back_to_competencies")}</Link>
             </Button>
@@ -835,7 +835,7 @@ export default function CompetencyDetail({ params }: { params: { code: string } 
         </section>
 
         {/* Powered by AINA */}
-        <p className="text-xs text-muted-foreground text-center pb-4">Powered by AINA</p>
+        <p className="text-xs text-muted-foreground text-center pb-4">{t("cd_powered_by")}</p>
       </div>
     </div>
   );
