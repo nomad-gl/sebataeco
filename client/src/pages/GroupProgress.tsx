@@ -234,11 +234,11 @@ export default function GroupProgress() {
                   <table className="w-full text-xs min-w-[600px]">
                     <thead>
                       <tr>
-                        <th className="text-left text-white/60 pb-2 pr-3 font-medium">Student</th>
+                        <th className="text-left text-white/60 pb-2 pr-3 font-medium">{t("gp_table_student")}</th>
                         {classComps.map((c) => (
                           <th key={c.code} className="text-center text-white/60 pb-2 px-1 font-medium w-12">{c.code}</th>
                         ))}
-                        <th className="text-center text-white/60 pb-2 pl-3 font-medium">Avg</th>
+                        <th className="text-center text-white/60 pb-2 pl-3 font-medium">{t("gp_table_avg")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -296,7 +296,7 @@ export default function GroupProgress() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-white text-sm">{s.student.name}</div>
-                          <div className="text-white/40 text-xs">{s.student.email} · {s.totalActivities} activities</div>
+                          <div className="text-white/40 text-xs">{s.student.email} · {s.totalActivities} {t("gp_activities_label")}</div>
                         </div>
                         <div className="flex gap-1 flex-wrap justify-end max-w-[200px]">
                           {s.competencyScores.filter((c) => c.average !== null).map((c) => (
@@ -388,7 +388,7 @@ export default function GroupProgress() {
                     <div className="flex items-center gap-2 p-3 bg-white/5 rounded-lg border border-white/10">
                       <ImagePlus className="w-4 h-4 text-white/50 flex-shrink-0" />
                       <span className="text-white/60 text-xs flex-1">
-                        {schoolLogo ? "School logo attached" : "Add school logo to print header (optional)"}
+                        {schoolLogo ? t("gp_logo_attached") : t("gp_logo_add")}
                       </span>
                       {schoolLogo && (
                         <>
@@ -401,7 +401,7 @@ export default function GroupProgress() {
                       )}
                       <label className="cursor-pointer">
                         <span className="text-xs text-teal-400 hover:text-teal-300 underline">
-                          {schoolLogo ? "Change" : "Upload"}
+                          {schoolLogo ? t("gp_logo_change") : t("gp_logo_upload")}
                         </span>
                         <input type="file" accept="image/*" className="hidden" onChange={(e) => {
                           const file = e.target.files?.[0];
@@ -465,10 +465,10 @@ ${bars}
                           ? `<img src="${logo}" alt="School logo" style="max-height:56px;max-width:140px;object-fit:contain;float:right;margin-left:12px" />`
                           : "";
                         const html = `<!DOCTYPE html>
-<html lang="en">
+<html lang="${lang}">
 <head>
   <meta charset="UTF-8" />
-  <title>${className} — Class Progress Report</title>
+  <title>${className} — ${t("gp_print_class_report")}</title>
   <style>
     @page { size: A4; margin: 20mm 18mm; }
     body { font-family: Georgia, serif; font-size: 12pt; color: #111; line-height: 1.6; }
@@ -486,11 +486,11 @@ ${bars}
 <body>
   <header>
     ${logoHtml}
-    <h1>${className} — Class Progress Report</h1>
-    <div class="meta">Level: ${level} &nbsp;|&nbsp; Generated: ${date}</div>
+    <h1>${className} — ${t("gp_print_class_report")}</h1>
+    <div class="meta">${t("gp_print_level")}: ${level} &nbsp;|&nbsp; ${t("gp_print_generated")}: ${date}</div>
   </header>
-  <div class="grade-badge">LOMLOE Grade: ${grade}</div>
-  ${comps.length ? `<div class="chart-title">Competency Averages</div>${chartSvg}` : ""}
+  <div class="grade-badge">${t("gp_print_lomloe_grade")}: ${grade}</div>
+  ${comps.length ? `<div class="chart-title">${t("gp_print_comp_averages")}</div>${chartSvg}` : ""}
   ${bodyHtml}
   <footer>AINA | TA — LOMLOE Teaching Assistant &nbsp;|&nbsp; Powered by SEBA</footer>
 </body>

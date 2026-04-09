@@ -284,7 +284,7 @@ export default function StudentProgress() {
                         <PolarGrid stroke="rgba(255,255,255,0.15)" />
                         <PolarAngleAxis dataKey="subject" tick={{ fill: "rgba(255,255,255,0.7)", fontSize: 12 }} />
                         <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10 }} />
-                        <Radar name="Score" dataKey="value" stroke="#14b8a6" fill="#14b8a6" fillOpacity={0.3} />
+                        <Radar name={t("gp_radar_score")} dataKey="value" stroke="#14b8a6" fill="#14b8a6" fillOpacity={0.3} />
                       </RadarChart>
                     </ResponsiveContainer>
                   ) : (
@@ -584,7 +584,7 @@ export default function StudentProgress() {
                     <div className="flex items-center gap-2 p-3 bg-white/5 rounded-lg border border-white/10">
                       <ImagePlus className="w-4 h-4 text-white/50 flex-shrink-0" />
                       <span className="text-white/60 text-xs flex-1">
-                        {schoolLogo ? "School logo attached" : "Add school logo to print header (optional)"}
+                        {schoolLogo ? t("gp_logo_attached") : t("gp_logo_add")}
                       </span>
                       {schoolLogo && (
                         <>
@@ -597,7 +597,7 @@ export default function StudentProgress() {
                       )}
                       <label className="cursor-pointer">
                         <span className="text-xs text-teal-400 hover:text-teal-300 underline">
-                          {schoolLogo ? "Change" : "Upload"}
+                          {schoolLogo ? t("gp_logo_change") : t("gp_logo_upload")}
                         </span>
                         <input type="file" accept="image/*" className="hidden" onChange={(e) => {
                           const file = e.target.files?.[0];
@@ -646,8 +646,8 @@ ${bars}
 </svg>`;
                         })() : "";
                         const scoresTableHtml = scores.length
-                          ? `<table><thead><tr><th>Competency</th><th>Average Score</th></tr></thead><tbody>${
-                              scores.map((c) => `<tr><td>${c.code} — ${c.name}</td><td>${c.average !== null ? c.average + "%" : "No data"}</td></tr>`).join("")
+                          ? `<table><thead><tr><th>${t("gp_print_competency")}</th><th>${t("gp_print_average_score")}</th></tr></thead><tbody>${
+                              scores.map((c) => `<tr><td>${c.code} — ${c.name}</td><td>${c.average !== null ? c.average + "%" : t("gp_print_no_data")}</td></tr>`).join("")
                             }</tbody></table>`
                           : "";
                         const bodyHtml = (reportText ?? "")
@@ -666,10 +666,10 @@ ${bars}
                           ? `<img src="${logo}" alt="School logo" style="max-height:56px;max-width:140px;object-fit:contain;float:right;margin-left:12px" />`
                           : "";
                         const html = `<!DOCTYPE html>
-<html lang="en">
+<html lang="${lang}">
 <head>
   <meta charset="UTF-8" />
-  <title>${studentName} — Progress Report</title>
+  <title>${studentName} — ${t("gp_print_student_report")}</title>
   <style>
     @page { size: A4; margin: 20mm 18mm; }
     body { font-family: Georgia, serif; font-size: 12pt; color: #111; line-height: 1.6; }
@@ -690,11 +690,11 @@ ${bars}
 <body>
   <header>
     ${logoHtml}
-    <h1>${studentName} — Student Progress Report</h1>
-    <div class="meta">Overall Score: ${overall !== null ? overall + "%" : "N/A"} &nbsp;|&nbsp; Generated: ${date}</div>
+    <h1>${studentName} — ${t("gp_print_student_report")}</h1>
+    <div class="meta">${t("gp_print_overall_score")}: ${overall !== null ? overall + "%" : "N/A"} &nbsp;|&nbsp; ${t("gp_print_generated")}: ${date}</div>
   </header>
-  <div class="grade-badge">LOMLOE Grade: ${grade}</div>
-  ${scores.length ? `<div class="chart-title">Competency Scores</div>${chartSvg}` : ""}
+  <div class="grade-badge">${t("gp_print_lomloe_grade")}: ${grade}</div>
+  ${scores.length ? `<div class="chart-title">${t("gp_print_comp_scores")}</div>${chartSvg}` : ""}
   ${scoresTableHtml}
   ${bodyHtml}
   <footer>AINA | TA — LOMLOE Teaching Assistant &nbsp;|&nbsp; Powered by SEBA</footer>

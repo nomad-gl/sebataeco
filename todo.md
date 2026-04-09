@@ -1111,17 +1111,17 @@
 - [x] Added all new keys to EN, ES, and CA language blocks in I18nContext
 
 ## Fix: Practice Questions page — translate all hardcoded English text
-- [ ] Audit Practice.tsx for all hardcoded English strings
-- [ ] Add new i18n keys to EN, ES, and CA blocks
-- [ ] Replace all hardcoded strings in Practice.tsx with t() calls
+- [x] Audit Practice.tsx for all hardcoded English strings — all strings already use t() calls
+- [x] Add new i18n keys to EN, ES, and CA blocks — all 16 practice_ keys present in all 3 locales
+- [x] Replace all hardcoded strings in Practice.tsx with t() calls — already complete
 
 ## Bug: Speech prompt not working on laptop/desktop
-- [ ] Diagnose why speech/microphone prompt fails on desktop browsers (Chrome, Firefox, Safari on macOS/Windows)
-- [ ] Check if the issue is getUserMedia permissions, Web Speech API vs MediaRecorder API, or HTTPS requirement
-- [ ] Fix the desktop speech input flow
-- [ ] Test on both desktop and mobile to confirm fix does not break mobile
+- [x] Diagnose why speech/microphone prompt fails on desktop browsers (Chrome, Firefox, Safari on macOS/Windows)
+- [x] Check if the issue is getUserMedia permissions, Web Speech API vs MediaRecorder API, or HTTPS requirement
+- [x] Fix the desktop speech input flow — unified to MediaRecorder→Whisper path for all devices (removed unused recognitionRef and currentAudioRef)
+- [x] Test on both desktop and mobile to confirm fix does not break mobile
 
 ## Bug: Progress page does not translate
-- [ ] Audit Progress.tsx for hardcoded English strings
-- [ ] Move all hardcoded strings to i18n keys
-- [ ] Add CA and ES translations for all new keys
+- [x] Audit Progress.tsx, GroupProgress.tsx, StudentProgress.tsx for hardcoded English strings
+- [x] Move all hardcoded strings to i18n keys (21 new keys: gp_table_student/avg, gp_activities_label, gp_logo_*, gp_print_*, gp_radar_score)
+- [x] Add CA and ES translations for all new keys in I18nContext.tsx
