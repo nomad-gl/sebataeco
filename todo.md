@@ -1167,3 +1167,27 @@
 - [x] Root cause: long/complex questions take 30-60s, exceeding default browser fetch timeout → catch block shows error message
 - [x] Fix: Added per-endpoint timeout in main.tsx tRPC fetch — 90s for lomloe.chat, progress.generateStudent*, lomloe.translateMessages; 30s for everything else
 - [x] Verified: production endpoint responds correctly in ~8-30s depending on complexity
+
+## Feature: AI-Generated Assignments from Student Page Form
+- [x] Read current NewAssignmentCard form inputs (type, topic, competency, year group, difficulty, notes)
+- [x] Server: progress.generateAssignment mutation — uses LLM to create type-appropriate assignment content
+- [x] Server: persist generated assignment to assignments table with aiContent field
+- [x] Client: wire "Create Assignment" button to call the mutation with form inputs
+- [x] Client: show generated assignment in an expandable preview panel below the form
+- [x] Client: loading state with spinner and "Generating assignment..." message
+- [x] i18n keys for all new UI strings (EN/ES/CA)
+
+## Feature: AI Assignment Generation, Editing & Assessment (extended)
+- [x] DB: add aiContent, assignmentType, editedContent, studentResponse, aiFeedback, aiScore, aiAssessedAt to assignments table
+- [x] Server: progress.generateAssignment — LLM generates full type-appropriate assignment content
+- [x] Server: progress.saveAssignmentEdit — teacher saves edited assignment content
+- [x] Server: progress.assessAssignment — LLM assesses student response, returns score + detailed feedback
+- [x] Client: add assignmentType selector to the New Assignment form (worksheet, essay, quiz, project, etc.)
+- [x] Client: "Generate with AI" button calls generateAssignment, shows loading state
+- [x] Client: generated assignment shown in expandable preview below the form (Streamdown rendered)
+- [x] Client: "Edit" toggle switches to textarea for teacher to modify content; "Save" persists edits
+- [x] Client: "Edited" badge shown when teacher has modified the AI content
+- [x] Client: assignment list shows a "View / Assess" expand button per assignment with AI badge
+- [x] Client: expanded assignment shows the content + a student response textarea + "Assess with AI" button
+- [x] Client: AI assessment result shows score (0-100), grade badge, and detailed feedback (Streamdown)
+- [x] i18n keys for all new UI strings in EN/ES/CA (50+ new sp_ keys)

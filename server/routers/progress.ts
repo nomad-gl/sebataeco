@@ -1106,4 +1106,138 @@ Use a professional, analytical tone. Format with clear headings.`;
       });
       return { overdue: uncompleted.length };
     }),
+
+  /** Generate AI assignment content based on form inputs and student context */
+  generateAssignment: protectedProcedure
+    .input(
+      z.object({
+        assignmentId: z.number().optional(), // if set, update existing; else just return content
+        studentName: z.string(),
+        title: z.string().min(1).max(255),
+        description: z.string().optional(),
+        competency: z.string().optional(),
+        assignmentType: z.enum(["worksheet", "essay", "quiz", "project", "presentation", "research", "creative", "debate", "experiment", "other"]).default("worksheet"),
+        yearGroup: z.enum(["junior", "primary", "secondary"]).optional(),
+        difficulty: z.enum(["easy", "medium", "hard"]).default("medium"),
+        uiLang: z.enum(["en", "es", "ca"]).default("en"),
+        competencyScores: z.array(z.object({ code: z.string(), average: z.number().nullable() })).optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const competencyName = input.competency ? (COMPETENCY_NAMES[input.competency] ?? input.competency) : "all LOMLOE competencies";
+      const yearGroupLabel = input.yearGroup === "junior" ? "Primary Years 3\u20134 (ages 8\u201310)"
+        : input.yearGroup === "primary" ? "Upper Primary Years 5\u20136 (ages 10\u201312)"
+        : input.yearGroup === "secondary" ? "Secondary Years 7\u201310 (ages 12\u201316)"
+        : "mixed year groups";
+      const langName = input.uiLang === "es" ? "Spanish" : input.uiLang === "ca" ? "Catalan" : "English";
+      const difficultyLabel = input.difficulty === "easy" ? "accessible/supportive" : input.difficulty === "hard" ? "challenging/extension" : "standard";
+
+      const profileLines = (input.competencyScores ?? [])
+        .filter((c) => c.average !== null)
+        .sort((a, b) => (a.average ?? 0) - (b.average ?? 0))
+        .map((c) => `  ${c.code}: ${c.average}/100`);
+      const profileSection = profileLines.length > 0
+        ? `\nStudent competency profile (lower scores = areas needing support):\n${profileLines.join("\n")}`
+        : "";
+
+      const typeInstructions: Record<string, string> = {
+        worksheet: "Create a structured worksheet with clear instructions, 4\u20136 varied exercises (fill-in, short answer, matching, or diagram labelling), and a reflection question at the end.",
+        essay: "Provide a clear essay prompt with guiding questions, a suggested structure (introduction, 2\u20133 body paragraphs, conclusion), a word count target, and assessment criteria.",
+        quiz: "Create 8\u201310 questions in a mix of formats: multiple choice (4 options each), true/false, and 1\u20132 short-answer questions. Include an answer key at the end.",
+        project: "Outline a project with a clear goal, step-by-step tasks, required materials/resources, a timeline suggestion, and an assessment rubric with 3\u20134 criteria.",
+        presentation: "Provide a presentation brief with topic, suggested slide structure (6\u20138 slides), key points to cover, speaker notes guidance, and delivery tips.",
+        research: "Design a research task with a guiding question, 3\u20134 sub-questions, suggested sources, a note-taking template, and a short write-up format.",
+        creative: "Design a creative task with a clear brief, examples for inspiration, step-by-step guidance, and criteria for what makes a strong creative response.",
+        debate: "Set up a debate with a clear motion, arguments for both sides (3 points each), suggested evidence, debate structure, and judging criteria.",
+        experiment: "Design a simple experiment with hypothesis, materials list, step-by-step method, results table, and analysis questions.",
+        other: "Create a well-structured, engaging assignment appropriate for the topic and year group.",
+      };
+      const typeGuide = typeInstructions[input.assignmentType] ?? typeInstructions.other;
+
+      const systemPrompt = `You are an expert LOMLOE curriculum teacher creating a high-quality, ready-to-use assignment for a Spanish school. Write entirely in ${langName}. Format your response in clean Markdown.`;
+      const userPrompt = `Create a complete, ready-to-use **${input.assignmentType}** assignment:\n\n**Student:** ${input.studentName}\n**Year group:** ${yearGroupLabel}\n**Competency focus:** ${competencyName}\n**Difficulty level:** ${difficultyLabel}\n**Assignment title:** ${input.title}${input.description ? `\n**Teacher notes:** ${input.description}` : ""}${profileSection}\n\n**Type instructions:** ${typeGuide}\n\n**Requirements:**\n- Align all tasks to LOMLOE ${competencyName} descriptors\n- Use age-appropriate language for ${yearGroupLabel}\n- Make it engaging and practical\n- Include clear student instructions at the top\n- Use Markdown formatting\n- End with a brief teacher note on how to assess/use this assignment`;
+
+      const response = await invokeLLM({
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+      });
+      const raw = response.choices?.[0]?.message?.content ?? "";
+      const aiContent = typeof raw === "string" ? raw : JSON.stringify(raw);
+
+      // Persist to DB if an assignmentId was provided
+      if (input.assignmentId) {
+        const db = await getDb();
+        if (db) {
+          await db.update(assignments)
+            .set({ aiContent, assignmentType: input.assignmentType, editedContent: null })
+            .where(eq(assignments.id, input.assignmentId));
+        }
+      }
+      return { aiContent };
+    }),
+
+  /** Save teacher-edited assignment content */
+  saveAssignmentEdit: protectedProcedure
+    .input(z.object({
+      assignmentId: z.number(),
+      editedContent: z.string(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      await db.update(assignments)
+        .set({ editedContent: input.editedContent })
+        .where(eq(assignments.id, input.assignmentId));
+      return { ok: true };
+    }),
+
+  /** AI-assess a student's response to an assignment */
+  assessAssignment: protectedProcedure
+    .input(z.object({
+      assignmentId: z.number(),
+      studentName: z.string(),
+      studentResponse: z.string().min(1),
+      uiLang: z.enum(["en", "es", "ca"]).default("en"),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+
+      // Load the assignment to get its content and type
+      const [assignment] = await db.select().from(assignments).where(eq(assignments.id, input.assignmentId));
+      if (!assignment) throw new Error("Assignment not found");
+
+      const assignmentContent = assignment.editedContent ?? assignment.aiContent ?? assignment.title;
+      const langName = input.uiLang === "es" ? "Spanish" : input.uiLang === "ca" ? "Catalan" : "English";
+
+      const systemPrompt = `You are an expert LOMLOE curriculum teacher providing detailed, constructive assessment feedback. Write entirely in ${langName}. Format your response in clean Markdown.`;
+      const userPrompt = `Assess the following student response to a LOMLOE assignment.\n\n**Student:** ${input.studentName}\n**Assignment:** ${assignment.title}${assignment.competency ? ` (${assignment.competency})` : ""}\n\n**Assignment content:**\n${assignmentContent}\n\n**Student's response:**\n${input.studentResponse}\n\nProvide:\n1. A score from 0\u2013100 based on LOMLOE criteria\n2. An overall grade (Insuficiente / Suficiente / Bien / Notable / Sobresaliente)\n3. Detailed feedback covering: strengths, areas for improvement, and specific suggestions\n4. 2\u20133 follow-up activities to address any gaps\n\nFormat your response as follows:\n**Score:** [number 0-100]\n**Grade:** [grade name]\n\n[Then provide the detailed feedback in Markdown]`;
+
+      const response = await invokeLLM({
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+      });
+      const raw = response.choices?.[0]?.message?.content ?? "";
+      const aiFeedback = typeof raw === "string" ? raw : JSON.stringify(raw);
+
+      // Parse score from the response
+      const scoreMatch = aiFeedback.match(/\*\*Score:\*\*\s*(\d+)/);
+      const aiScore = scoreMatch ? Math.min(100, Math.max(0, parseInt(scoreMatch[1], 10))) : null;
+
+      // Persist results
+      await db.update(assignments)
+        .set({
+          studentResponse: input.studentResponse,
+          aiFeedback,
+          aiScore: aiScore ?? undefined,
+          aiAssessedAt: new Date(),
+        })
+        .where(eq(assignments.id, input.assignmentId));
+
+      return { aiFeedback, aiScore };
+    }),
 });

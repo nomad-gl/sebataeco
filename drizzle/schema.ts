@@ -197,6 +197,20 @@ export const assignments = mysqlTable("assignments", {
   competency: varchar("competency", { length: 16 }),
   dueDate: timestamp("dueDate"),
   frequency: mysqlEnum("frequency", ["once", "daily", "weekly"]).default("once").notNull(),
+  /** AI-generated assignment content (markdown) — null if not yet generated */
+  aiContent: text("aiContent"),
+  /** Teacher-edited version of the assignment content */
+  editedContent: text("editedContent"),
+  /** Assignment type — e.g. 'worksheet', 'essay', 'quiz', 'project' */
+  assignmentType: varchar("assignmentType", { length: 64 }),
+  /** Student's submitted response text (entered by teacher for AI assessment) */
+  studentResponse: text("studentResponse"),
+  /** AI-generated assessment feedback (markdown) */
+  aiFeedback: text("aiFeedback"),
+  /** AI-assigned score 0-100 */
+  aiScore: int("aiScore"),
+  /** When the AI assessment was last run */
+  aiAssessedAt: timestamp("aiAssessedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

@@ -76,6 +76,18 @@ export default function StudentProgress() {
   const [newComp, setNewComp] = useState("any");
   const [newFreq, setNewFreq] = useState<"once" | "daily" | "weekly">("once");
   const [newDue, setNewDue] = useState("");
+  const [newType, setNewType] = useState<"worksheet"|"essay"|"quiz"|"project"|"presentation"|"research"|"creative"|"debate"|"experiment"|"other">("worksheet");
+  const [newDifficulty, setNewDifficulty] = useState<"easy"|"medium"|"hard">("medium");
+  const [newYearGroup, setNewYearGroup] = useState<"junior"|"primary"|"secondary">("primary");
+  // AI generation state
+  const [generatedContent, setGeneratedContent] = useState<string | null>(null);
+  const [generatedAssignmentId, setGeneratedAssignmentId] = useState<number | null>(null);
+  const [editingContent, setEditingContent] = useState(false);
+  const [editedAssignmentContent, setEditedAssignmentContent] = useState<string>("");
+  // Per-assignment expand/assess state
+  const [expandedAssignmentId, setExpandedAssignmentId] = useState<number | null>(null);
+  const [assessingId, setAssessingId] = useState<number | null>(null);
+  const [studentResponseInputs, setStudentResponseInputs] = useState<Record<number, string>>({});
 
   const utils = trpc.useUtils();
 
@@ -150,12 +162,44 @@ export default function StudentProgress() {
   });
 
   const createAssignment = trpc.progress.createAssignment.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast.success(t("sp_assignment_created"));
-      setNewTitle(""); setNewDesc(""); setNewComp("any"); setNewFreq("once"); setNewDue("");
+      setGeneratedAssignmentId(data.id);
       utils.progress.listAssignments.invalidate({ groupId: gId });
     },
     onError: () => toast.error(t("sp_assignment_failed")),
+  });
+
+  const generateAssignment = trpc.progress.generateAssignment.useMutation({
+    onSuccess: (data) => {
+      setGeneratedContent(data.aiContent);
+      setEditedAssignmentContent(data.aiContent);
+      setEditingContent(false);
+      toast.success(t("sp_assignment_generated"));
+      // Also persist to DB if we already have an assignment ID
+      if (generatedAssignmentId) {
+        utils.progress.listAssignments.invalidate({ groupId: gId });
+      }
+    },
+    onError: () => toast.error(t("sp_assignment_gen_failed")),
+  });
+
+  const saveAssignmentEdit = trpc.progress.saveAssignmentEdit.useMutation({
+    onSuccess: () => {
+      toast.success(t("sp_assignment_edit_saved"));
+      setEditingContent(false);
+      utils.progress.listAssignments.invalidate({ groupId: gId });
+    },
+    onError: () => toast.error(t("sp_assignment_edit_failed")),
+  });
+
+  const assessAssignment = trpc.progress.assessAssignment.useMutation({
+    onSuccess: () => {
+      toast.success(t("sp_assessment_done"));
+      setAssessingId(null);
+      utils.progress.listAssignments.invalidate({ groupId: gId });
+    },
+    onError: () => toast.error(t("sp_assessment_failed")),
   });
 
   const deleteAssignment = trpc.progress.deleteAssignment.useMutation({
@@ -458,7 +502,10 @@ export default function StudentProgress() {
             {/* Create assignment */}
             <Card className="bg-white/10 border-white/20 text-white">
               <CardHeader>
-                <CardTitle className="text-white text-base">{t("sp_new_assignment")}</CardTitle>
+                <CardTitle className="text-white text-base flex items-center gap-2">
+                  <Plus className="w-4 h-4 text-teal-400" />
+                  {t("sp_new_assignment")}
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
@@ -482,6 +529,45 @@ export default function StudentProgress() {
                         {["CCL","CP","STEM","CD","CPSAA","CC","CE","CCEC"].map((c) => (
                           <SelectItem key={c} value={c}>{c}</SelectItem>
                         ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-white/70 text-xs">{t("sp_assignment_type")}</Label>
+                    <Select value={newType} onValueChange={(v) => setNewType(v as typeof newType)}>
+                      <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(["worksheet","essay","quiz","project","presentation","research","creative","debate","experiment","other"] as const).map((tp) => (
+                          <SelectItem key={tp} value={tp}>{t(`sp_type_${tp}` as import("@/contexts/I18nContext").TranslationKey)}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-white/70 text-xs">{t("sp_assignment_difficulty")}</Label>
+                    <Select value={newDifficulty} onValueChange={(v) => setNewDifficulty(v as "easy"|"medium"|"hard")}>
+                      <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="easy">{t("sp_diff_easy")}</SelectItem>
+                        <SelectItem value="medium">{t("sp_diff_medium")}</SelectItem>
+                        <SelectItem value="hard">{t("sp_diff_hard")}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-white/70 text-xs">{t("sp_assignment_year_group")}</Label>
+                    <Select value={newYearGroup} onValueChange={(v) => setNewYearGroup(v as "junior"|"primary"|"secondary")}>
+                      <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="junior">{t("sp_year_junior")}</SelectItem>
+                        <SelectItem value="primary">{t("sp_year_primary")}</SelectItem>
+                        <SelectItem value="secondary">{t("sp_year_secondary")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -514,23 +600,110 @@ export default function StudentProgress() {
                   placeholder={t("sp_assignment_desc_placeholder")}
                   className="bg-white/10 border-white/20 text-white placeholder:text-white/30"
                 />
-                <Button
-                  onClick={() =>
-                    createAssignment.mutate({
-                      groupId: gId,
-                      title: newTitle,
-                      description: newDesc || undefined,
-                      competency: newComp === "any" ? undefined : newComp,
-                      dueDate: newDue || undefined,
-                      frequency: newFreq,
-                    })
-                  }
-                  disabled={!newTitle || createAssignment.isPending}
-                  className="bg-teal-600 hover:bg-teal-500 text-white"
-                >
-                  {createAssignment.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                  {t("sp_create_assignment")}
-                </Button>
+                <div className="flex gap-3 flex-wrap">
+                  <Button
+                    onClick={() => {
+                      if (!newTitle) return;
+                      createAssignment.mutate({
+                        groupId: gId,
+                        title: newTitle,
+                        description: newDesc || undefined,
+                        competency: newComp === "any" ? undefined : newComp,
+                        dueDate: newDue || undefined,
+                        frequency: newFreq,
+                      }, {
+                        onSuccess: (data) => {
+                          // After creating, immediately generate AI content
+                          generateAssignment.mutate({
+                            assignmentId: data.id,
+                            studentName: student?.name ?? "Student",
+                            title: newTitle,
+                            description: newDesc || undefined,
+                            competency: newComp === "any" ? undefined : newComp,
+                            assignmentType: newType,
+                            yearGroup: newYearGroup,
+                            difficulty: newDifficulty,
+                            uiLang: lang as "en"|"es"|"ca",
+                            competencyScores: summary?.competencyAverages ?? [],
+                          });
+                          setNewTitle(""); setNewDesc(""); setNewComp("any"); setNewFreq("once"); setNewDue("");
+                        }
+                      });
+                    }}
+                    disabled={!newTitle || createAssignment.isPending || generateAssignment.isPending}
+                    className="bg-teal-600 hover:bg-teal-500 text-white"
+                  >
+                    {(createAssignment.isPending || generateAssignment.isPending) ? (
+                      <><Loader2 className="w-4 h-4 animate-spin mr-2" />{t("sp_generating_assignment")}</>
+                    ) : (
+                      <><Sparkles className="w-4 h-4 mr-2" />{t("sp_save_and_generate")}</>
+                    )}
+                  </Button>
+                </div>
+
+                {/* AI-generated assignment preview/edit panel */}
+                {generatedContent && (
+                  <div className="mt-4 border border-teal-500/30 rounded-lg bg-teal-900/20 p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-teal-400" />
+                        <span className="text-white font-medium text-sm">{t("sp_ai_assignment_preview")}</span>
+                        <Badge className="bg-teal-600 text-white text-xs border-0">{t("sp_ai_badge")}</Badge>
+                        {editingContent && <Badge className="bg-amber-500 text-white text-xs border-0">{t("sp_edited_assignment_badge")}</Badge>}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            if (editingContent) {
+                              setEditingContent(false);
+                            } else {
+                              setEditingContent(true);
+                              setEditedAssignmentContent(generatedContent);
+                            }
+                          }}
+                          className="border-white/20 text-white/80 hover:text-white bg-transparent text-xs h-7"
+                        >
+                          {editingContent ? <><Eye className="w-3 h-3 mr-1" />{t("sp_view_assignment")}</> : <><Pencil className="w-3 h-3 mr-1" />{t("sp_edit_assignment")}</>}
+                        </Button>
+                        {editingContent && generatedAssignmentId && (
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={() => saveAssignmentEdit.mutate({ assignmentId: generatedAssignmentId, editedContent: editedAssignmentContent })}
+                              disabled={saveAssignmentEdit.isPending}
+                              className="bg-teal-600 hover:bg-teal-500 text-white text-xs h-7"
+                            >
+                              {saveAssignmentEdit.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Save className="w-3 h-3 mr-1" />}
+                              {t("sp_save_assignment_edit")}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => { setEditedAssignmentContent(generatedContent); setEditingContent(false); }}
+                              className="border-white/20 text-white/60 hover:text-white bg-transparent text-xs h-7"
+                            >
+                              <RotateCcw className="w-3 h-3 mr-1" />{t("sp_reset_assignment")}
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    {editingContent ? (
+                      <textarea
+                        value={editedAssignmentContent}
+                        onChange={(e) => setEditedAssignmentContent(e.target.value)}
+                        className="w-full min-h-[300px] bg-white/5 border border-white/20 rounded p-3 text-white text-sm font-mono resize-y focus:outline-none focus:border-teal-400"
+                        placeholder={t("sp_student_response_placeholder")}
+                      />
+                    ) : (
+                      <div className="prose prose-invert prose-sm max-w-none text-white/90">
+                        <Streamdown>{generatedContent}</Streamdown>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -979,19 +1152,47 @@ function AssignmentRow({
   onDelete,
   t,
 }: {
-  assignment: { id: number; title: string; competency: string | null; frequency: string; dueDate: Date | null; description: string | null };
+  assignment: { id: number; title: string; competency: string | null; frequency: string; dueDate: Date | null; description: string | null; aiContent?: string | null; editedContent?: string | null; studentResponse?: string | null; aiFeedback?: string | null; aiScore?: number | null };
   studentId: number;
   onComplete: (score?: number) => void;
   onDelete: () => void;
   t: (k: import("@/contexts/I18nContext").TranslationKey) => string;
 }) {
   const [scoreInput, setScoreInput] = useState("");
+  const [expanded, setExpanded] = useState(false);
+  const [editingContent, setEditingContent] = useState(false);
+  const [editedContent, setEditedContent] = useState(assignment.editedContent ?? assignment.aiContent ?? "");
+  const [showAssess, setShowAssess] = useState(false);
+  const [studentResponse, setStudentResponse] = useState(assignment.studentResponse ?? "");
+  const utils = trpc.useUtils();
+
   const completionsQ = trpc.progress.getAssignmentCompletions.useQuery({ assignmentId: assignment.id });
   const isCompleted = completionsQ.data?.some((c) => c.studentId === studentId);
 
+  const saveEdit = trpc.progress.saveAssignmentEdit.useMutation({
+    onSuccess: () => {
+      toast.success(t("sp_assignment_edit_saved"));
+      setEditingContent(false);
+      utils.progress.listAssignments.invalidate();
+    },
+    onError: () => toast.error(t("sp_assignment_edit_failed")),
+  });
+
+  const assess = trpc.progress.assessAssignment.useMutation({
+    onSuccess: () => {
+      toast.success(t("sp_assessment_done"));
+      setShowAssess(false);
+      utils.progress.listAssignments.invalidate();
+    },
+    onError: () => toast.error(t("sp_assessment_failed")),
+  });
+
+  const displayContent = assignment.editedContent ?? assignment.aiContent;
+
   return (
-    <div className={`p-3 rounded-lg border ${isCompleted ? "bg-emerald-900/20 border-emerald-500/30" : "bg-white/5 border-white/10"}`}>
-      <div className="flex items-start gap-3">
+    <div className={`rounded-lg border ${isCompleted ? "bg-emerald-900/20 border-emerald-500/30" : "bg-white/5 border-white/10"}`}>
+      {/* Header row */}
+      <div className="flex items-start gap-3 p-3">
         <button
           onClick={() => !isCompleted && onComplete(scoreInput ? parseInt(scoreInput) : undefined)}
           className="mt-0.5 flex-shrink-0"
@@ -1010,6 +1211,17 @@ function AssignmentRow({
               <Badge className="bg-indigo-600/40 text-indigo-200 text-xs border-0">{assignment.competency}</Badge>
             )}
             <Badge className="bg-white/10 text-white/60 text-xs border-0">{assignment.frequency}</Badge>
+            {displayContent && (
+              <Badge className="bg-teal-600/40 text-teal-200 text-xs border-0">
+                <Sparkles className="w-3 h-3 mr-1" />{t("sp_ai_badge")}
+              </Badge>
+            )}
+            {assignment.editedContent && (
+              <Badge className="bg-amber-500/40 text-amber-200 text-xs border-0">{t("sp_edited_assignment_badge")}</Badge>
+            )}
+            {assignment.aiScore !== null && assignment.aiScore !== undefined && (
+              <Badge className="bg-purple-600/40 text-purple-200 text-xs border-0">{t("sp_ai_score_label")}: {assignment.aiScore}%</Badge>
+            )}
           </div>
           {assignment.description && (
             <p className="text-white/50 text-xs mt-1">{assignment.description}</p>
@@ -1020,8 +1232,8 @@ function AssignmentRow({
             </p>
           )}
         </div>
-        {!isCompleted && (
-          <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+          {!isCompleted && (
             <Input
               type="number"
               min={0}
@@ -1031,15 +1243,132 @@ function AssignmentRow({
               onChange={(e) => setScoreInput(e.target.value)}
               className="bg-white/10 border-white/20 text-white placeholder:text-white/30 w-20 h-7 text-xs"
             />
-          </div>
-        )}
-        <button
-          onClick={onDelete}
-          className="text-white/20 hover:text-red-400 text-xs flex-shrink-0"
-        >
-          ✕
-        </button>
+          )}
+          {displayContent && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setExpanded(!expanded)}
+              className="border-white/20 text-white/70 hover:text-white bg-transparent text-xs h-7"
+            >
+              <FileText className="w-3 h-3 mr-1" />
+              {expanded ? t("sp_view_assignment") : t("sp_edit_assignment")}
+            </Button>
+          )}
+          <button
+            onClick={onDelete}
+            className="text-white/20 hover:text-red-400 text-xs flex-shrink-0"
+          >
+            ✕
+          </button>
+        </div>
       </div>
+
+      {/* Expandable AI content panel */}
+      {expanded && displayContent && (
+        <div className="border-t border-white/10 p-4 space-y-3">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <span className="text-white/70 text-xs font-medium">{t("sp_ai_assignment_preview")}</span>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  if (editingContent) {
+                    setEditingContent(false);
+                  } else {
+                    setEditingContent(true);
+                    setEditedContent(assignment.editedContent ?? assignment.aiContent ?? "");
+                  }
+                }}
+                className="border-white/20 text-white/80 hover:text-white bg-transparent text-xs h-7"
+              >
+                {editingContent
+                  ? <><Eye className="w-3 h-3 mr-1" />{t("sp_view_assignment")}</>
+                  : <><Pencil className="w-3 h-3 mr-1" />{t("sp_edit_assignment")}</>}
+              </Button>
+              {editingContent && (
+                <>
+                  <Button
+                    size="sm"
+                    onClick={() => saveEdit.mutate({ assignmentId: assignment.id, editedContent })}
+                    disabled={saveEdit.isPending}
+                    className="bg-teal-600 hover:bg-teal-500 text-white text-xs h-7"
+                  >
+                    {saveEdit.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Save className="w-3 h-3 mr-1" />}
+                    {t("sp_save_assignment_edit")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { setEditedContent(assignment.aiContent ?? ""); setEditingContent(false); }}
+                    className="border-white/20 text-white/60 hover:text-white bg-transparent text-xs h-7"
+                  >
+                    <RotateCcw className="w-3 h-3 mr-1" />{t("sp_reset_assignment")}
+                  </Button>
+                </>
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowAssess(!showAssess)}
+                className="border-purple-500/40 text-purple-300 hover:text-purple-200 bg-transparent text-xs h-7"
+              >
+                <Sparkles className="w-3 h-3 mr-1" />{t("sp_assess_with_ai")}
+              </Button>
+            </div>
+          </div>
+
+          {editingContent ? (
+            <textarea
+              value={editedContent}
+              onChange={(e) => setEditedContent(e.target.value)}
+              className="w-full min-h-[280px] bg-white/5 border border-white/20 rounded p-3 text-white text-sm font-mono resize-y focus:outline-none focus:border-teal-400"
+            />
+          ) : (
+            <div className="prose prose-invert prose-sm max-w-none text-white/90">
+              <Streamdown>{displayContent}</Streamdown>
+            </div>
+          )}
+
+          {/* AI Assessment panel */}
+          {showAssess && (
+            <div className="border-t border-purple-500/20 pt-3 space-y-3">
+              <p className="text-purple-300 text-xs font-medium">{t("sp_assess_with_ai")}</p>
+              <div className="space-y-1">
+                <Label className="text-white/60 text-xs">{t("sp_student_response_label")}</Label>
+                <textarea
+                  value={studentResponse}
+                  onChange={(e) => setStudentResponse(e.target.value)}
+                  placeholder={t("sp_student_response_placeholder")}
+                  className="w-full min-h-[120px] bg-white/5 border border-white/20 rounded p-3 text-white text-sm resize-y focus:outline-none focus:border-purple-400"
+                />
+              </div>
+              <Button
+                size="sm"
+                onClick={() => assess.mutate({ assignmentId: assignment.id, studentResponse, studentName: `Student ${studentId}` })}
+                disabled={!studentResponse.trim() || assess.isPending}
+                className="bg-purple-600 hover:bg-purple-500 text-white text-xs"
+              >
+                {assess.isPending ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />{t("sp_assessing")}</> : <><Sparkles className="w-3 h-3 mr-1" />{t("sp_assess_with_ai")}</>}
+              </Button>
+              {assignment.aiFeedback && (
+                <div className="bg-purple-900/20 border border-purple-500/20 rounded p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-purple-300 text-xs font-medium">{t("sp_ai_feedback_title")}</span>
+                    {assignment.aiScore !== null && assignment.aiScore !== undefined && (
+                      <Badge className="bg-purple-600 text-white text-xs border-0">{t("sp_ai_score_label")}: {assignment.aiScore}%</Badge>
+                    )}
+                  </div>
+                  <div className="prose prose-invert prose-xs max-w-none text-white/80 text-xs">
+                    <Streamdown>{assignment.aiFeedback}</Streamdown>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
