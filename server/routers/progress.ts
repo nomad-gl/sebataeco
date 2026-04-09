@@ -510,6 +510,150 @@ Use a warm, professional tone suitable for sharing with parents and students. Fo
       return { ok: true };
     }),
 
+  /**
+   * Generate LOMLOE progress reports for ALL students in a group.
+   * Runs sequentially to avoid overloading the LLM API.
+   * Returns per-student results so the client can show live progress.
+   */
+  generateAllStudentReports: protectedProcedure
+    .input(
+      z.object({
+        groupId: z.number(),
+        lang: z.enum(["en", "es", "ca"]).default("en"),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+
+      // Verify the group belongs to this teacher
+      const [group] = await db
+        .select()
+        .from(classGroups)
+        .where(and(eq(classGroups.id, input.groupId), eq(classGroups.userId, ctx.user.id)));
+      if (!group) throw new Error("Group not found");
+
+      const students = await db
+        .select()
+        .from(groupStudents)
+        .where(eq(groupStudents.groupId, input.groupId));
+
+      if (students.length === 0) return { results: [], total: 0 };
+
+      const langLabel =
+        input.lang === "es" ? "Spanish" : input.lang === "ca" ? "Catalan" : "English";
+
+      const ALL_COMP_NAMES: Record<string, string> = {
+        CCL: "Communication & Linguistic Competency",
+        CP: "Plurilingual Competency",
+        STEM: "STEM Competency",
+        CD: "Digital Competency",
+        CPSAA: "Personal, Social & Learning Competency",
+        CC: "Citizenship Competency",
+        CE: "Entrepreneurial Competency",
+        CCEC: "Cultural & Artistic Competency",
+      };
+      const ALL_COMP_KEYS = Object.keys(ALL_COMP_NAMES);
+
+      const results: { studentId: number; studentName: string; ok: boolean; grade: string | null }[] = [];
+
+      for (const student of students) {
+        try {
+          const records = await db
+            .select()
+            .from(studentProgress)
+            .where(and(eq(studentProgress.groupId, input.groupId), eq(studentProgress.studentId, student.id)))
+            .orderBy(desc(studentProgress.recordedAt));
+
+          if (records.length === 0) {
+            results.push({ studentId: student.id, studentName: student.name, ok: false, grade: null });
+            continue;
+          }
+
+          // Compute competency averages
+          const totals: Record<string, { sum: number; count: number }> = {};
+          for (const r of records) {
+            if (!totals[r.competency]) totals[r.competency] = { sum: 0, count: 0 };
+            totals[r.competency].sum += r.score;
+            totals[r.competency].count += 1;
+          }
+          const compSummary = ALL_COMP_KEYS.map((code) => ({
+            code,
+            name: ALL_COMP_NAMES[code],
+            average: totals[code] ? Math.round(totals[code].sum / totals[code].count) : "No data",
+          }));
+          const withData = compSummary.filter((c) => c.average !== "No data");
+          const overall = withData.length > 0
+            ? Math.round(withData.reduce((s, c) => s + (c.average as number), 0) / withData.length)
+            : null;
+
+          const prompt = `You are an expert educational assessor specialising in Spain's LOMLOE curriculum framework.
+
+Student: ${student.name}
+Total activities recorded: ${records.length}
+Overall average score: ${overall !== null ? overall + "/100" : "Insufficient data"}
+
+Competency scores (0-100 scale, LOMLOE framework):
+${compSummary.map((c) => `- ${c.code} (${c.name}): ${c.average}`).join("\n")}
+
+Write a detailed, professional progress report in ${langLabel} for this student. The report must include:
+1. **Overall LOMLOE Grade** — assign a grade using the Spanish grading scale: Insuficiente (0-49), Suficiente (50-59), Bien (60-69), Notable (70-89), Sobresaliente (90-100). Explain the grade briefly.
+2. **Strengths** — identify 2-3 competencies where the student excels, with specific observations.
+3. **Areas for Development** — identify 2-3 competencies needing improvement, with constructive feedback.
+4. **Growth Opportunities** — suggest 3 specific, actionable strategies aligned to LOMLOE standards.
+5. **Summary** — a brief encouraging closing paragraph.
+
+Use a warm, professional tone suitable for sharing with parents and students. Format with clear headings.`;
+
+          const response = await invokeLLM({
+            messages: [
+              { role: "system", content: "You are an expert educational assessor for Spain's LOMLOE curriculum. Write professional, constructive progress reports." },
+              { role: "user", content: prompt },
+            ],
+          });
+
+          const rawReport = String(response.choices?.[0]?.message?.content ?? "Report generation failed.");
+          const biasResult = await checkBias(prompt, rawReport, undefined, undefined);
+          const report = biasResult.safeOutput;
+
+          const grade = overall === null ? null
+            : overall >= 90 ? "Sobresaliente"
+            : overall >= 70 ? "Notable"
+            : overall >= 60 ? "Bien"
+            : overall >= 50 ? "Suficiente"
+            : "Insuficiente";
+
+          // Upsert into student_reports
+          const existing = await db
+            .select({ id: studentReports.id })
+            .from(studentReports)
+            .where(and(eq(studentReports.groupId, input.groupId), eq(studentReports.studentId, student.id)))
+            .limit(1);
+          if (existing.length > 0) {
+            await db
+              .update(studentReports)
+              .set({ aiText: report, editedText: null, grade: grade ?? undefined, overall: overall ?? undefined })
+              .where(eq(studentReports.id, existing[0].id));
+          } else {
+            await db.insert(studentReports).values({
+              groupId: input.groupId,
+              studentId: student.id,
+              aiText: report,
+              editedText: null,
+              grade: grade ?? undefined,
+              overall: overall ?? undefined,
+            });
+          }
+
+          results.push({ studentId: student.id, studentName: student.name, ok: true, grade });
+        } catch {
+          results.push({ studentId: student.id, studentName: student.name, ok: false, grade: null });
+        }
+      }
+
+      return { results, total: students.length };
+    }),
+
   /** Generate an AI group summary report */
   generateGroupReport: protectedProcedure
     .input(

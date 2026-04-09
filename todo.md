@@ -1141,3 +1141,13 @@
 - [x] Client: Amber "Edited" badge shown when report has been manually edited
 - [x] Client: Saved report auto-loaded from DB on page mount (persists across sessions)
 - [x] i18n keys for all new UI strings (EN/ES/CA): sp_edit_report, sp_view_report, sp_save_edits, sp_saving, sp_reset_to_ai, sp_edited_badge, sp_edit_placeholder, sp_save_success, sp_save_failed, sp_reset_success, sp_reset_failed, sp_report_loaded
+
+## Feature: Generate All Student Reports (Group Progress page)
+- [x] Server: progress.generateAllStudentReports mutation — loops over all students in a group, generates + persists each report sequentially
+- [x] Client: GroupProgress.tsx — "Generate All Reports" button in the Students tab
+- [x] Client: Show per-student status list (done/failed) with teal progress bar
+- [x] Client: Button disabled while generation is running; shows spinner + "Generating reports..."
+- [x] Client: On completion, show summary toast (e.g. "8 reports generated")
+- [x] Client: "View Report" link per student navigates to their StudentProgress report tab
+- [x] Client: "Regenerate All" button shown after first run
+- [x] i18n keys for all new UI strings in EN/ES/CA (11 new gp_all_reports_* keys)

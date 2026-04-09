@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import {
   ArrowLeft, Users, TrendingUp, Loader2, Sparkles, Trophy, Medal, Download, ImagePlus, X as XIcon,
+  FileText, CheckCircle2, XCircle, Clock,
 } from "lucide-react";
 import NavBar from "@/components/NavBar";
 import { Streamdown } from "streamdown";
@@ -53,12 +54,37 @@ export default function GroupProgress() {
     () => localStorage.getItem("seba_school_logo")
   );
 
+  // Generate-all-reports state
+  type ReportStatus = "pending" | "done" | "failed" | "no_data";
+  const [allReportsRunning, setAllReportsRunning] = useState(false);
+  const [allReportsResults, setAllReportsResults] = useState<
+    { studentId: number; studentName: string; ok: boolean; grade: string | null } [] | null
+  >(null);
+
   const utils = trpc.useUtils();
 
   const summaryQ = trpc.progress.getGroupSummary.useQuery(
     { groupId: gId },
     { enabled: !!user && gId > 0 }
   );
+
+  const generateAllReports = trpc.progress.generateAllStudentReports.useMutation({
+    onSuccess: (data) => {
+      setAllReportsResults(data.results);
+      setAllReportsRunning(false);
+      const done = data.results.filter((r) => r.ok).length;
+      const failed = data.results.filter((r) => !r.ok).length;
+      if (failed === 0) {
+        toast.success(t("gp_all_reports_done").replace("{n}", String(done)));
+      } else {
+        toast.warning(t("gp_all_reports_partial").replace("{done}", String(done)).replace("{failed}", String(failed)));
+      }
+    },
+    onError: () => {
+      toast.error(t("gp_all_reports_failed"));
+      setAllReportsRunning(false);
+    },
+  });
 
   const generateReport = trpc.progress.generateGroupReport.useMutation({
     onSuccess: (data) => {
@@ -277,6 +303,89 @@ export default function GroupProgress() {
 
           {/* ── Students list ── */}
           <TabsContent value="students">
+            {/* Generate All Reports panel */}
+            <Card className="bg-white/10 border-white/20 text-white mb-4">
+              <CardHeader>
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div>
+                    <CardTitle className="text-white text-base flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-teal-400" />
+                      {t("gp_all_reports_title")}
+                    </CardTitle>
+                    <p className="text-white/50 text-xs mt-1">{t("gp_all_reports_subtitle")}</p>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      setAllReportsRunning(true);
+                      setAllReportsResults(null);
+                      generateAllReports.mutate({ groupId: gId, lang });
+                    }}
+                    disabled={allReportsRunning || totalActivities === 0}
+                    className="bg-teal-600 hover:bg-teal-500 text-white font-semibold gap-2"
+                  >
+                    {allReportsRunning ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" />{t("gp_generating_all")}</>
+                    ) : allReportsResults ? (
+                      <><FileText className="w-4 h-4" />{t("gp_all_reports_regenerate")}</>
+                    ) : (
+                      <><Sparkles className="w-4 h-4" />{t("gp_generate_all_reports")}</>
+                    )}
+                  </Button>
+                </div>
+              </CardHeader>
+              {(allReportsRunning || allReportsResults) && (
+                <CardContent>
+                  {allReportsRunning && (
+                    <div className="flex items-center gap-3 py-4 text-white/60">
+                      <Loader2 className="w-5 h-5 animate-spin text-teal-400" />
+                      <span className="text-sm">{t("gp_generating_all")}</span>
+                    </div>
+                  )}
+                  {allReportsResults && !allReportsRunning && (
+                    <div className="space-y-2">
+                      {/* Progress summary bar */}
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="flex-1 bg-white/10 rounded-full h-2 overflow-hidden">
+                          <div
+                            className="h-full bg-teal-500 rounded-full transition-all"
+                            style={{ width: `${Math.round((allReportsResults.filter(r => r.ok).length / allReportsResults.length) * 100)}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-white/60 flex-shrink-0">
+                          {allReportsResults.filter(r => r.ok).length} / {allReportsResults.length}
+                        </span>
+                      </div>
+                      {allReportsResults.map((r) => (
+                        <div key={r.studentId} className="flex items-center gap-3 p-2.5 bg-white/5 rounded-lg border border-white/10">
+                          {r.ok ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                          ) : (
+                            <XCircle className="w-4 h-4 text-orange-400 flex-shrink-0" />
+                          )}
+                          <span className="flex-1 text-sm text-white">{r.studentName}</span>
+                          {r.grade && (
+                            <Badge className={`${GRADE_COLORS[r.grade] ?? "bg-slate-500"} text-white text-xs`}>
+                              {r.grade}
+                            </Badge>
+                          )}
+                          {!r.ok && (
+                            <span className="text-xs text-orange-400">{t("gp_all_reports_no_data")}</span>
+                          )}
+                          {r.ok && (
+                            <a href={`/groups/${gId}/student/${r.studentId}?tab=report`}>
+                              <Button size="sm" variant="ghost" className="text-teal-400 hover:text-teal-300 hover:bg-teal-900/30 text-xs h-7 px-2">
+                                {t("gp_all_reports_view")}
+                              </Button>
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              )}
+            </Card>
+
             <Card className="bg-white/10 border-white/20 text-white">
               <CardHeader>
                 <CardTitle className="text-white text-base">{t("gp_student_rankings")}</CardTitle>
