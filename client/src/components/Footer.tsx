@@ -39,7 +39,7 @@ export default function Footer() {
               >
                 <span className="opacity-70">🔬</span>
                 <span>
-                  AI powered by{" "}
+                  {t("footer_ai_powered_by")}{" "}
                   <span className="font-semibold text-primary/80">Salamandra</span>
                   {" "}&amp;{" "}
                   <span className="font-semibold text-primary/80">Àguila</span>
@@ -66,7 +66,7 @@ export default function Footer() {
             >
               sebasnap.com →
             </a>
-            <span className="text-xs text-muted-foreground">{t("footer_powered")} SEBA</span>
+            <span className="text-xs text-muted-foreground">{t("footer_powered")} AINA</span>
             <div className="flex items-center gap-2 mt-0.5">
               <Link href="/privacy" className="text-[11px] text-muted-foreground hover:text-foreground hover:underline transition-colors">
                 {t("footer_privacy")}

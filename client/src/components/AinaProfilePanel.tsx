@@ -7,22 +7,22 @@ import { toast } from "sonner";
 import { useI18n } from "@/contexts/I18nContext";
 import { cn } from "@/lib/utils";
 
-const STYLE_LABELS: Record<string, string> = {
-  concise: "Concise",
-  detailed: "Detailed",
-  conversational: "Conversational",
-  formal: "Formal",
-};
-
-const DEPTH_LABELS: Record<string, string> = {
-  brief: "Brief",
-  moderate: "Balanced",
-  thorough: "Thorough",
-};
-
 export function AinaProfilePanel() {
   const [open, setOpen] = useState(false);
   const { t } = useI18n();
+
+  const STYLE_LABELS: Record<string, string> = {
+    concise: t("aina_style_concise"),
+    detailed: t("aina_style_detailed"),
+    conversational: t("aina_style_conversational"),
+    formal: t("aina_style_formal"),
+  };
+
+  const DEPTH_LABELS: Record<string, string> = {
+    brief: t("aina_depth_brief"),
+    moderate: t("aina_depth_moderate"),
+    thorough: t("aina_depth_thorough"),
+  };
 
   const profileQuery = trpc.lomloe.getAinaProfile.useQuery(undefined, {
     enabled: open,
@@ -37,9 +37,9 @@ export function AinaProfilePanel() {
     onSuccess: () => {
       utils.lomloe.getAinaProfile.invalidate();
       utils.lomloe.getAinaRatingSummary.invalidate();
-      toast.success("Aina's memory has been reset.");
+      toast.success(t("aina_reset_success"));
     },
-    onError: () => toast.error("Could not reset profile. Please try again."),
+    onError: () => toast.error(t("aina_reset_error")),
   });
 
   const profile = profileQuery.data;
@@ -53,7 +53,7 @@ export function AinaProfilePanel() {
         className="flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors w-full px-1 py-1"
       >
         <Brain className="size-4 shrink-0 text-violet-300" />
-        <span className="font-medium">Aina knows you</span>
+        <span className="font-medium">{t("aina_knows_you")}</span>
         {open ? (
           <ChevronUp className="size-3.5 ml-auto" />
         ) : (
@@ -65,29 +65,33 @@ export function AinaProfilePanel() {
       {open && (
         <Card className="mt-2 p-3 bg-white/10 border-white/20 text-white text-sm space-y-3">
           {profileQuery.isLoading || ratingSummaryQuery.isLoading ? (
-            <p className="text-white/50 text-xs">Loading profile…</p>
+            <p className="text-white/50 text-xs">{t("aina_loading_profile")}</p>
           ) : !profile ? (
             <p className="text-white/50 text-xs">
-              Aina hasn't learned your style yet. Start a conversation to build your profile.
+              {t("aina_no_profile")}
             </p>
           ) : (
             <>
               {/* Interaction count */}
               <div className="flex items-center gap-2 text-white/70 text-xs">
                 <Star className="size-3.5 text-yellow-300" />
-                <span>{profile.questionCount} interaction{profile.questionCount !== 1 ? "s" : ""} recorded</span>
+                <span>
+                  {profile.questionCount}{" "}
+                  {profile.questionCount !== 1 ? t("aina_interactions_plural") : t("aina_interactions")}{" "}
+                  {t("aina_interactions_recorded")}
+                </span>
               </div>
 
               {/* Style & depth */}
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-white/10 rounded-lg px-2 py-1.5">
-                  <p className="text-white/50 text-xs mb-0.5">Style</p>
+                  <p className="text-white/50 text-xs mb-0.5">{t("aina_style")}</p>
                   <p className="font-medium capitalize">
                     {STYLE_LABELS[profile.communicationStyle] ?? profile.communicationStyle}
                   </p>
                 </div>
                 <div className="bg-white/10 rounded-lg px-2 py-1.5">
-                  <p className="text-white/50 text-xs mb-0.5">Depth</p>
+                  <p className="text-white/50 text-xs mb-0.5">{t("aina_depth")}</p>
                   <p className="font-medium capitalize">
                     {DEPTH_LABELS[profile.responseDepthPreference] ?? profile.responseDepthPreference}
                   </p>
@@ -97,7 +101,7 @@ export function AinaProfilePanel() {
               {/* Top competencies */}
               {profile.topCompetencies.length > 0 && (
                 <div>
-                  <p className="text-white/50 text-xs mb-1">Top competencies</p>
+                  <p className="text-white/50 text-xs mb-1">{t("aina_top_competencies")}</p>
                   <div className="flex flex-wrap gap-1">
                     {profile.topCompetencies.map((c) => (
                       <span
@@ -114,7 +118,7 @@ export function AinaProfilePanel() {
               {/* Topic keywords */}
               {profile.topicKeywords.length > 0 && (
                 <div>
-                  <p className="text-white/50 text-xs mb-1">Recurring topics</p>
+                  <p className="text-white/50 text-xs mb-1">{t("aina_recurring_topics")}</p>
                   <div className="flex flex-wrap gap-1">
                     {profile.topicKeywords.slice(0, 6).map((kw) => (
                       <span
@@ -131,7 +135,7 @@ export function AinaProfilePanel() {
               {/* Rating summary */}
               {ratings && ratings.total > 0 && (
                 <div>
-                  <p className="text-white/50 text-xs mb-1">Response quality</p>
+                  <p className="text-white/50 text-xs mb-1">{t("aina_response_quality")}</p>
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-1 text-green-300">
                       <ThumbsUp className="size-3.5" />
@@ -148,7 +152,7 @@ export function AinaProfilePanel() {
                           ratings.pctHelpful >= 70 ? "text-green-300" : ratings.pctHelpful >= 40 ? "text-yellow-300" : "text-red-300"
                         )}
                       >
-                        {ratings.pctHelpful}% helpful
+                        {ratings.pctHelpful}% {t("aina_pct_helpful")}
                       </span>
                     )}
                   </div>
@@ -165,7 +169,7 @@ export function AinaProfilePanel() {
               {/* Teaching context summary */}
               {profile.teachingContextSummary && (
                 <div>
-                  <p className="text-white/50 text-xs mb-1">Teaching context</p>
+                  <p className="text-white/50 text-xs mb-1">{t("aina_teaching_context")}</p>
                   <p className="text-white/80 text-xs leading-relaxed line-clamp-3">
                     {profile.teachingContextSummary}
                   </p>
@@ -178,14 +182,14 @@ export function AinaProfilePanel() {
                 size="sm"
                 className="w-full text-red-300 hover:text-red-200 hover:bg-red-500/10 text-xs h-7 mt-1"
                 onClick={() => {
-                  if (confirm("Reset Aina's memory? She will start learning your style from scratch.")) {
+                  if (confirm(t("aina_reset_confirm"))) {
                     resetMutation.mutate();
                   }
                 }}
                 disabled={resetMutation.isPending}
               >
                 <RotateCcw className="size-3 mr-1.5" />
-                Reset Aina's memory
+                {t("aina_reset_memory")}
               </Button>
             </>
           )}
@@ -207,7 +211,7 @@ export function AinaProfilePanel() {
           rel="noopener noreferrer"
           className="text-[9px] text-white/20 hover:text-white/50 transition-colors underline-offset-2 hover:underline"
         >
-          View model credits
+          {t("aina_view_model_credits")}
         </a>
       </div>
     </div>

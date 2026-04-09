@@ -1102,3 +1102,10 @@
 - [x] Update PwaInstallBanner, FirstLaunchLanguagePicker, CatalanDialectDetector, Challenge gaming mode, CompetencyDetail, Footer, usePwaInstall
 - [x] Update dialectOverrides.ts Valencian/Balearic/Northern/Algherese dialect descriptions
 - [x] SEBA Snap references intentionally preserved (separate product)
+
+## Fix: Aina page + footer untranslated English text
+- [x] Audit AinaProfilePanel for hardcoded English strings (found 12+ strings)
+- [x] Audit Footer component for hardcoded English strings (found 2 strings)
+- [x] Rewrote AinaProfilePanel to use t() for all user-visible text (style/depth labels, profile states, reset button, toast messages, confirm dialog)
+- [x] Fixed Footer: footer_ai_powered_by key replaces hardcoded "AI powered by"; "SEBA" → "AINA"
+- [x] Added all new keys to EN, ES, and CA language blocks in I18nContext
