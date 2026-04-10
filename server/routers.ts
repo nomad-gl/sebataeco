@@ -20,6 +20,7 @@ import { accountabilityRouter } from "./routers/accountability";
 import { privacyRouter } from "./routers/privacy";
 import { auditRouter } from "./routers/audit";
 import { dpaRouter } from "./routers/dpa";
+import { whatsNewRouter } from "./routers/whatsNew";
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -58,6 +59,7 @@ export const appRouter = router({
   privacy: privacyRouter,
   audit: auditRouter,
   dpa: dpaRouter,
+  whatsNew: whatsNewRouter,
 });
 
 export type AppRouter = typeof appRouter;

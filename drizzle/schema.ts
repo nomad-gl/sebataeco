@@ -769,3 +769,18 @@ export const studentReports = mysqlTable("student_reports", {
 });
 export type StudentReport = typeof studentReports.$inferSelect;
 export type InsertStudentReport = typeof studentReports.$inferInsert;
+
+/**
+ * What's New dismissals — tracks which app versions a user has already seen.
+ * One row per (userId, version). Guests use localStorage; this table is for
+ * authenticated teachers so their dismissal persists across devices.
+ */
+export const whatsNewDismissals = mysqlTable("whats_new_dismissals", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  /** App version string, e.g. "2025-04-11" */
+  version: varchar("version", { length: 32 }).notNull(),
+  dismissedAt: timestamp("dismissedAt").defaultNow().notNull(),
+});
+export type WhatsNewDismissal = typeof whatsNewDismissals.$inferSelect;
+export type InsertWhatsNewDismissal = typeof whatsNewDismissals.$inferInsert;

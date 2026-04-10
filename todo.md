@@ -1316,3 +1316,11 @@
 ## Follow-up: Chat Reliability Improvements
 - [x] Add automatic single silent retry in handleSendMessage (retry once before showing error bubble)
 - [x] Add connection status indicator in chat header (online/offline dot)
+
+## Feature: What's New Banner
+- [x] Add `whats_new_dismissals` table (userId, version, dismissedAt) to drizzle schema
+- [x] Add `whatsNew.isDismissed` tRPC query and `whatsNew.dismiss` mutation
+- [x] Build WhatsNewBanner component (bottom-fixed, dismissible, shows feature list for current version)
+- [x] Wire WhatsNewBanner into App.tsx (shown to all users, persists dismissal to DB for logged-in users, localStorage for guests)
+- [x] Add i18n keys for What's New content in EN, ES, CA
+- [x] Verify banner shows on first login and does not reappear after dismissal

@@ -34,6 +34,7 @@ import FirstLaunchLanguagePicker from "./components/FirstLaunchLanguagePicker";
 import CatalanDialectDetector from "./components/CatalanDialectDetector";
 import DataNoticeBanner from "./components/DataNoticeBanner";
 import DpaAcceptanceDialog from "./components/DpaAcceptanceDialog";
+import WhatsNewBanner from "./components/WhatsNewBanner";
 import Dpa from "./pages/Dpa";
 import AiModels from "./pages/AiModels";
 
@@ -86,6 +87,7 @@ function App() {
           <PwaInstallBanner />
           <DataNoticeBanner />
           <DpaAcceptanceDialog />
+          <WhatsNewBanner />
           <Router />
         </TooltipProvider>
       </ThemeProvider>
