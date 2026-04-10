@@ -1307,3 +1307,12 @@
 - [x] Added debug error info to chat error bubble (error name + message shown inline) to identify exact failure on production
 - [ ] Fix root cause once error type is confirmed by user
 - [ ] Verify on production
+
+## Follow-up: Voice Picker Improvements
+- [x] Add "Reset to default" link in voice picker (clears seba_tts_voice_manual flag and reverts to language-derived default)
+- [x] Show no-voice warning on TTS toggle button itself (amber dot/icon when no browser voices available)
+- [x] Disable voice preview buttons when no browser voices available (grey out Play icons)
+
+## Follow-up: Chat Reliability Improvements
+- [x] Add automatic single silent retry in handleSendMessage (retry once before showing error bubble)
+- [x] Add connection status indicator in chat header (online/offline dot)

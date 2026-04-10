@@ -191,6 +191,19 @@ export function AIChatBox({
   });
   const [showVoicePicker, setShowVoicePicker] = useState(false);
 
+  // ─── Online / offline detection ────────────────────────────────────────────
+  const [isOnline, setIsOnline] = useState(() => typeof navigator !== "undefined" ? navigator.onLine : true);
+  useEffect(() => {
+    const goOnline = () => setIsOnline(true);
+    const goOffline = () => setIsOnline(false);
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => {
+      window.removeEventListener("online", goOnline);
+      window.removeEventListener("offline", goOffline);
+    };
+  }, []);
+
   // ─── Speech synthesis availability ──────────────────────────────────────────
   const hasSpeechSynthesis = typeof window !== "undefined" && "speechSynthesis" in window;
 
@@ -760,6 +773,14 @@ export function AIChatBox({
         </div>
       )}
 
+      {/* Connection status bar — shown only when offline */}
+      {!isOnline && (
+        <div className="px-4 py-1 text-xs flex items-center gap-1.5 border-t border-white/10 text-amber-300 bg-amber-500/10" role="status" aria-live="polite">
+          <span className="inline-block size-1.5 rounded-full bg-amber-400" />
+          {t("chat_connection_offline")}
+        </div>
+      )}
+
       {/* TTS speaking indicator */}
       {isSpeaking && (
         <div className="px-4 py-1 text-xs flex items-center gap-1.5 border-t border-white/10 text-blue-300 bg-blue-500/10">
@@ -814,21 +835,27 @@ export function AIChatBox({
         <div className={cn("flex gap-2 items-center", isMobile && "justify-end")}>
 
           {/* TTS toggle — shown on all devices */}
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            onClick={() => { setTtsEnabled(v => !v); if (isSpeaking) stopSpeaking(); }}
-            title={ttsEnabled ? `Voice responses: ON (${ttsVoice.charAt(0).toUpperCase() + ttsVoice.slice(1)}) — click to mute` : "Voice responses: OFF — click to enable"}
-            className={cn(
-              "shrink-0 h-[38px] w-[38px]",
-              ttsEnabled
-                ? "text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
-                : "text-white/40 hover:text-white hover:bg-white/15"
+          <div className="relative shrink-0">
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              onClick={() => { setTtsEnabled(v => !v); if (isSpeaking) stopSpeaking(); }}
+              title={ttsEnabled && !browserVoicesAvailable ? t("tts_no_voice_toggle") : ttsEnabled ? `Voice responses: ON (${ttsVoice.charAt(0).toUpperCase() + ttsVoice.slice(1)}) — click to mute` : "Voice responses: OFF — click to enable"}
+              className={cn(
+                "h-[38px] w-[38px]",
+                ttsEnabled
+                  ? "text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+                  : "text-white/40 hover:text-white hover:bg-white/15"
+              )}
+            >
+              {ttsEnabled ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
+            </Button>
+            {/* Amber dot warning when TTS is on but no voices available */}
+            {ttsEnabled && !browserVoicesAvailable && (
+              <span className="absolute top-1 right-1 size-2 rounded-full bg-amber-400 ring-1 ring-black/30" aria-hidden="true" />
             )}
-          >
-            {ttsEnabled ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
-          </Button>
+          </div>
 
           {/* Speech rate toggle — only shown when TTS is enabled */}
           {ttsEnabled && (
@@ -868,6 +895,24 @@ export function AIChatBox({
                       <span>{t("tts_no_voice_notice")}</span>
                     </div>
                   )}
+                  {/* Reset to default link */}
+                  {localStorage.getItem("seba_tts_voice_manual") === "1" && (
+                    <div className="px-3 py-1.5 border-b border-white/10">
+                      <button
+                        onClick={() => {
+                          localStorage.removeItem("seba_tts_voice_manual");
+                          const best = defaultVoiceForLang(lang);
+                          setTtsVoice(best);
+                          localStorage.setItem("seba_tts_voice", best);
+                          setShowVoicePicker(false);
+                          if (user) setTtsVoiceMutation.mutate({ voice: best });
+                        }}
+                        className="text-[11px] text-blue-300/70 hover:text-blue-200 transition-colors underline-offset-2 hover:underline"
+                      >
+                        {t("tts_reset_default")}
+                      </button>
+                    </div>
+                  )}
                   {TTS_VOICES.map(v => (
                     <div
                       key={v.id}
@@ -894,18 +939,25 @@ export function AIChatBox({
                         <span className="text-sm font-medium">{t(v.labelKey)}</span>
                         <span className="text-[11px] text-white/40 mt-0.5">{t(v.descKey)}</span>
                       </button>
-                      {/* Preview play/stop button */}
+                      {/* Preview play/stop button — disabled when no voices available */}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (!browserVoicesAvailable) return;
                           if (previewingVoice === v.id) {
                             stopVoicePreview();
                           } else {
                             playVoicePreview(v.id, t("tts_voice_preview_sample"));
                           }
                         }}
-                        title={previewingVoice === v.id ? "Stop preview" : `Preview ${t(v.labelKey)} voice`}
-                        className="shrink-0 w-7 h-7 flex items-center justify-center rounded-md text-white/50 hover:text-white hover:bg-white/15 transition-colors"
+                        disabled={!browserVoicesAvailable}
+                        title={!browserVoicesAvailable ? t("tts_no_voice_toggle") : previewingVoice === v.id ? "Stop preview" : `Preview ${t(v.labelKey)} voice`}
+                        className={cn(
+                          "shrink-0 w-7 h-7 flex items-center justify-center rounded-md transition-colors",
+                          browserVoicesAvailable
+                            ? "text-white/50 hover:text-white hover:bg-white/15"
+                            : "text-white/20 cursor-not-allowed"
+                        )}
                       >
                         {previewingVoice === v.id
                           ? <Square className="size-3 fill-current" />

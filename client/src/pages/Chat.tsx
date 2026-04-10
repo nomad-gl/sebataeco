@@ -84,45 +84,57 @@ export default function Chat() {
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
 
+    const buildPayload = () => ({
+      messages: newMessages
+        .filter((m) => m.role !== "system")
+        .map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
+      competency,
+      yearGroup,
+      uiLang: lang as "en" | "es" | "ca",
+      caDialect: lang === "ca" ? (dialect as "central" | "valencian" | "balearic" | "northern" | "alguerese" | "standard") : undefined,
+      userId: user?.id ?? undefined,
+    });
+
+    let result;
     try {
-      const result = await chatMutation.mutateAsync({
-        messages: newMessages
-          .filter((m) => m.role !== "system")
-          .map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
-        competency,
-        yearGroup,
-        uiLang: lang as "en" | "es" | "ca",
-        caDialect: lang === "ca" ? (dialect as "central" | "valencian" | "balearic" | "northern" | "alguerese" | "standard") : undefined,
-        userId: user?.id ?? undefined,
-      });
-      const aiContent =
-        typeof result.content === "string" ? result.content : String(result.content);
-      // Generate a stable client-side ID for rating purposes
-      const msgId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-      setMessages([
-        ...newMessages,
-        {
-          role: "assistant",
-          content: aiContent,
-          timestamp: Date.now(),
-          followUpQuestions: result.followUpQuestions ?? [],
-          id: msgId,
-        },
-      ]);
-    } catch (err) {
-      // Build a debug string to help diagnose production failures
-      let debugInfo = "";
-      if (err instanceof Error) {
-        debugInfo = ` [${err.name}: ${err.message.slice(0, 150)}]`;
-      } else if (typeof err === "object" && err !== null) {
-        try { debugInfo = ` [${JSON.stringify(err).slice(0, 150)}]`; } catch { /* ignore */ }
+      result = await chatMutation.mutateAsync(buildPayload());
+    } catch (firstErr) {
+      // Silent single auto-retry after a short pause
+      console.warn("[AINA chat] First attempt failed, retrying once…", firstErr);
+      await new Promise((res) => setTimeout(res, 1500));
+      try {
+        result = await chatMutation.mutateAsync(buildPayload());
+      } catch (err) {
+        // Both attempts failed — show error bubble with debug info
+        let debugInfo = "";
+        if (err instanceof Error) {
+          debugInfo = ` [${err.name}: ${err.message.slice(0, 150)}]`;
+        } else if (typeof err === "object" && err !== null) {
+          try { debugInfo = ` [${JSON.stringify(err).slice(0, 150)}]`; } catch { /* ignore */ }
+        }
+        console.error("[AINA chat error]", err);
+        setMessages([
+          ...newMessages,
+          { role: "assistant", content: t("chat_error") + debugInfo, timestamp: Date.now() },
+        ]);
+        return;
       }
-      console.error("[AINA chat error]", err);
-      setMessages([
-        ...newMessages,
-        { role: "assistant", content: t("chat_error") + debugInfo, timestamp: Date.now() },
-      ]);
     }
+
+    const aiContent =
+      typeof result.content === "string" ? result.content : String(result.content);
+    // Generate a stable client-side ID for rating purposes
+    const msgId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    setMessages([
+      ...newMessages,
+      {
+        role: "assistant",
+        content: aiContent,
+        timestamp: Date.now(),
+        followUpQuestions: result.followUpQuestions ?? [],
+        id: msgId,
+      },
+    ]);
   };
 
   /**
