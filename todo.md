@@ -1289,3 +1289,9 @@
 - [x] On login: useEffect loads ttsVoice from user object (via auth.me) and applies to state + localStorage
 - [x] On voice change in picker: setTtsVoiceMutation.mutate() saves to DB if user is logged in
 - [x] Manual override flag set in localStorage when DB preference loaded
+
+## Bug: TTS 404 - server TTS endpoint unavailable
+- [x] Investigated HuggingFace Inference API (deprecated), Manus Forge API (no TTS), OpenAI proxy (no TTS)
+- [x] Fixed by replacing all server-side TTS mutations (ttsMutation, ttsPrefetchMutation, ttsPreviewMutation) with browser Web Speech API as the primary TTS engine in AIChatBox
+- [x] voice.tts added to SILENT_MUTATION_PATHS in main.tsx to suppress any residual error logs
+- [x] TypeScript: 0 errors

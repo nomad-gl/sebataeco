@@ -25,6 +25,7 @@ const SILENT_UNAUTH_PATHS = new Set([
 const SILENT_MUTATION_PATHS = new Set([
   "lomloe.chat",
   "lomloe.translateMessages",
+  "voice.tts",
 ]);
 
 const redirectToLoginIfUnauthorized = (error: unknown, queryPath?: string) => {

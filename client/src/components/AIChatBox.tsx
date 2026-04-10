@@ -238,109 +238,43 @@ export function AIChatBox({
   // tRPC mutations for voice pipeline
   const uploadAudioMutation = trpc.voice.uploadAudio.useMutation();
   const transcribeMutation = trpc.voice.transcribe.useMutation();
-  const ttsMutation = trpc.voice.tts.useMutation();
-  const ttsPrefetchMutation = trpc.voice.tts.useMutation();
-  const ttsPreviewMutation = trpc.voice.tts.useMutation();
 
-  /** Which voice ID is currently being previewed (null = none) */
-  const [previewingVoice, setPreviewingVoice] = useState<string | null>(null);
-  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
-
-  const stopVoicePreview = useCallback(() => {
-    if (previewAudioRef.current) {
-      previewAudioRef.current.pause();
-      previewAudioRef.current.src = "";
-      previewAudioRef.current = null;
-    }
-    setPreviewingVoice(null);
-  }, []);
-
-  const playVoicePreview = useCallback(async (voiceId: string, sampleText: string) => {
-    // Stop any existing preview
-    stopVoicePreview();
-    setPreviewingVoice(voiceId);
-    try {
-      const result = await ttsPreviewMutation.mutateAsync({
-        text: sampleText,
-        voice: voiceId as "nova" | "shimmer" | "alloy" | "fable",
-      });
-      const byteChars = atob(result.audioBase64);
-      const byteArr = new Uint8Array(byteChars.length);
-      for (let i = 0; i < byteChars.length; i++) byteArr[i] = byteChars.charCodeAt(i);
-      const blob = new Blob([byteArr], { type: result.mimeType });
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      previewAudioRef.current = audio;
-      audio.onended = () => { URL.revokeObjectURL(url); previewAudioRef.current = null; setPreviewingVoice(null); };
-      audio.onerror = () => { URL.revokeObjectURL(url); previewAudioRef.current = null; setPreviewingVoice(null); };
-      await audio.play();
-    } catch {
-      setPreviewingVoice(null);
-    }
-  }, [ttsPreviewMutation, stopVoicePreview]);
-
-  /** Cache of pre-fetched TTS audio blobs keyed by prompt text */
-  const ttsCacheRef = useRef<Map<string, string>>(new Map());
-
-  /** Pre-fetch TTS audio for all suggested prompts in the background */
-  useEffect(() => {
-    if (!ttsEnabled || !suggestedPrompts || suggestedPrompts.length === 0) return;
-    const langCode = document.documentElement.lang || navigator.language || "en";
-    // Clear cache when voice or language changes
-    ttsCacheRef.current.clear();
-    let cancelled = false;
-    const prefetch = async () => {
-      for (const prompt of suggestedPrompts) {
-        if (cancelled) break;
-        try {
-          const result = await ttsPrefetchMutation.mutateAsync({
-            text: prompt.slice(0, 4096),
-            lang: langCode,
-            voice: ttsVoice,
-          });
-          if (!cancelled) {
-            const byteChars = atob(result.audioBase64);
-            const byteArr = new Uint8Array(byteChars.length);
-            for (let i = 0; i < byteChars.length; i++) byteArr[i] = byteChars.charCodeAt(i);
-            const blob = new Blob([byteArr], { type: result.mimeType });
-            const url = URL.createObjectURL(blob);
-            ttsCacheRef.current.set(prompt, url);
-          }
-        } catch {
-          // Silently skip pre-fetch failures
-        }
-      }
-    };
-    // Small delay so the main chat UI loads first
-    const timer = setTimeout(prefetch, 2000);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ttsEnabled, ttsVoice, suggestedPrompts]);
-
-  // ─── TTS playback via OpenAI neural voice (server-side) ──────────────────────
-  // We call the server-side voice.tts procedure which uses OpenAI tts-1-hd for
-  // a significantly more natural, human-like voice. The server returns base64 MP3
-  // which we play via the Web Audio API. Falls back to browser SpeechSynthesis
-  // if the server call fails (e.g. offline or API error).
+  // ─── TTS playback via browser Web Speech API ─────────────────────────────────
 
   const hasSpeechSynthesis = typeof window !== "undefined" && "speechSynthesis" in window;
 
-  // Ref to the currently playing HTMLAudioElement so we can stop it
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  /** Cache ref kept for API compatibility — browser TTS does not need pre-caching */
+  const ttsCacheRef = useRef<Map<string, string>>(new Map());
+
+  /** Which voice ID is currently being previewed (null = none) */
+  const [previewingVoice, setPreviewingVoice] = useState<string | null>(null);
+
+  const stopVoicePreview = useCallback(() => {
+    if (hasSpeechSynthesis) window.speechSynthesis.cancel();
+    setPreviewingVoice(null);
+  }, [hasSpeechSynthesis]);
+
+  const playVoicePreview = useCallback((voiceId: string, sampleText: string) => {
+    stopVoicePreview();
+    if (!hasSpeechSynthesis) return;
+    setPreviewingVoice(voiceId);
+    const langCode = document.documentElement.lang || navigator.language || "en";
+    const voices = window.speechSynthesis.getVoices();
+    const l = langCode.split("-")[0];
+    const voice = voices.find(v => v.lang.startsWith(l)) ?? voices[0] ?? null;
+    const u = new SpeechSynthesisUtterance(sampleText);
+    u.lang = langCode; u.rate = 1.0;
+    if (voice) u.voice = voice;
+    u.onend = () => setPreviewingVoice(null);
+    u.onerror = () => setPreviewingVoice(null);
+    window.speechSynthesis.speak(u);
+  }, [hasSpeechSynthesis, stopVoicePreview]);
+
   // Flag to cancel in-flight TTS requests
   const cancelledRef = useRef(false);
 
   const stopSpeaking = useCallback(() => {
     cancelledRef.current = true;
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.src = "";
-      audioRef.current = null;
-    }
-    // Also cancel any browser fallback speech
     if (hasSpeechSynthesis) window.speechSynthesis.cancel();
     setIsSpeaking(false);
   }, [hasSpeechSynthesis]);
@@ -349,13 +283,12 @@ export function AIChatBox({
   useEffect(() => {
     return () => {
       cancelledRef.current = true;
-      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
       if (hasSpeechSynthesis) window.speechSynthesis.cancel();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /** Browser SpeechSynthesis fallback — used only when server TTS fails */
+  /** Browser SpeechSynthesis — primary TTS engine */
   const playBrowserTTS = useCallback((text: string, langCode: string) => {
     if (!hasSpeechSynthesis) return;
     window.speechSynthesis.cancel();
@@ -384,74 +317,32 @@ export function AIChatBox({
     speakChunk(0);
   }, [hasSpeechSynthesis, speechRate]);
 
-  const playTTS = useCallback(async (text: string) => {
+  const playTTS = useCallback((text: string) => {
     if (!ttsEnabled || !text.trim()) return;
 
-    // Stop any currently playing audio
+    // Stop any currently playing speech
     cancelledRef.current = true;
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
     if (hasSpeechSynthesis) window.speechSynthesis.cancel();
 
     cancelledRef.current = false;
     setIsSpeaking(true);
 
+    // Strip markdown syntax before sending to TTS so it reads naturally
+    const plainText = text
+      .replace(/```[\s\S]*?```/g, "") // remove code blocks
+      .replace(/`[^`]+`/g, "")        // remove inline code
+      .replace(/\*\*([^*]+)\*\*/g, "$1") // bold
+      .replace(/\*([^*]+)\*/g, "$1")     // italic
+      .replace(/#{1,6}\s+/g, "")         // headings
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // links
+      .replace(/[-*+]\s+/g, "")          // list bullets
+      .trim();
+
+    if (!plainText) { setIsSpeaking(false); return; }
+
     const langCode = document.documentElement.lang || navigator.language || "en";
-
-    try {
-      // Strip markdown syntax before sending to TTS so it reads naturally
-      const plainText = text
-        .replace(/```[\s\S]*?```/g, "") // remove code blocks
-        .replace(/`[^`]+`/g, "")        // remove inline code
-        .replace(/\*\*([^*]+)\*\*/g, "$1") // bold
-        .replace(/\*([^*]+)\*/g, "$1")     // italic
-        .replace(/#{1,6}\s+/g, "")         // headings
-        .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // links
-        .replace(/[-*+]\s+/g, "")          // list bullets
-        .trim();
-
-      if (!plainText) { setIsSpeaking(false); return; }
-
-      const result = await ttsMutation.mutateAsync({
-        text: plainText.slice(0, 4096),
-        lang: langCode,
-        voice: ttsVoice,
-      });
-
-      if (cancelledRef.current) { setIsSpeaking(false); return; }
-
-      // Decode base64 MP3 and play via HTMLAudioElement
-      const byteChars = atob(result.audioBase64);
-      const byteArr = new Uint8Array(byteChars.length);
-      for (let i = 0; i < byteChars.length; i++) byteArr[i] = byteChars.charCodeAt(i);
-      const blob = new Blob([byteArr], { type: result.mimeType });
-      const url = URL.createObjectURL(blob);
-
-      const audio = new Audio(url);
-      // Apply speech rate to the audio element (0.5–2.0 range)
-      audio.playbackRate = speechRate;
-      audioRef.current = audio;
-
-      audio.onended = () => {
-        URL.revokeObjectURL(url);
-        audioRef.current = null;
-        setIsSpeaking(false);
-      };
-      audio.onerror = () => {
-        URL.revokeObjectURL(url);
-        audioRef.current = null;
-        setIsSpeaking(false);
-      };
-
-      await audio.play();
-    } catch {
-      // Server TTS failed — fall back to browser SpeechSynthesis
-      if (!cancelledRef.current) {
-        playBrowserTTS(text, langCode);
-      } else {
-        setIsSpeaking(false);
-      }
-    }
-  }, [ttsEnabled, hasSpeechSynthesis, speechRate, ttsMutation, playBrowserTTS, ttsVoice]);
+    playBrowserTTS(plainText, langCode);
+  }, [ttsEnabled, hasSpeechSynthesis, playBrowserTTS]);
 
   // Auto-play TTS when a new assistant message finishes streaming
   // We watch the content of the last assistant message + isLoading so we
@@ -692,14 +583,8 @@ export function AIChatBox({
                         if (ttsEnabled) {
                           const cachedUrl = ttsCacheRef.current.get(prompt);
                           if (cachedUrl) {
-                            cancelledRef.current = false;
-                            setIsSpeaking(true);
-                            const audio = new Audio(cachedUrl);
-                            audio.playbackRate = speechRate;
-                            audioRef.current = audio;
-                            audio.onended = () => { audioRef.current = null; setIsSpeaking(false); };
-                            audio.onerror = () => { audioRef.current = null; setIsSpeaking(false); };
-                            audio.play().catch(() => setIsSpeaking(false));
+                            // Cache is now unused (browser TTS); just send the message
+                            void cachedUrl; // suppress unused warning
                           }
                         }
                         onSendMessage(prompt);
@@ -1001,9 +886,7 @@ export function AIChatBox({
                         className="shrink-0 w-7 h-7 flex items-center justify-center rounded-md text-white/50 hover:text-white hover:bg-white/15 transition-colors"
                       >
                         {previewingVoice === v.id
-                          ? ttsPreviewMutation.isPending
-                            ? <Loader2 className="size-3 animate-spin" />
-                            : <Square className="size-3 fill-current" />
+                          ? <Square className="size-3 fill-current" />
                           : <Play className="size-3 fill-current" />
                         }
                       </button>
