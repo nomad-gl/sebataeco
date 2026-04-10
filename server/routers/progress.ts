@@ -39,8 +39,8 @@ export const progressRouter = router({
         groupId: z.number(),
         studentId: z.number(),
         activityType: z.enum(["challenge", "assignment", "practice"]),
-        activityTitle: z.string().optional(),
-        challengeLogId: z.number().optional(),
+        activityTitle: z.string().nullish(),
+        challengeLogId: z.number().nullish(),
         scores: z.array(
           z.object({
             competency: z.string(),
@@ -226,9 +226,9 @@ export const progressRouter = router({
       z.object({
         groupId: z.number(),
         title: z.string().min(1).max(255),
-        description: z.string().optional(),
-        competency: z.string().optional(),
-        dueDate: z.string().optional(), // ISO date string
+        description: z.string().nullish(),
+        competency: z.string().nullish(),
+        dueDate: z.string().nullish(), // ISO date string
         frequency: z.enum(["once", "daily", "weekly"]).default("once"),
       })
     )
@@ -283,8 +283,8 @@ export const progressRouter = router({
       z.object({
         assignmentId: z.number(),
         studentId: z.number(),
-        score: z.number().min(0).max(100).optional(),
-        notes: z.string().optional(),
+        score: z.number().min(0).max(100).nullish(),
+        notes: z.string().nullish(),
       })
     )
     .mutation(async ({ input }) => {
@@ -800,7 +800,7 @@ Use a professional, analytical tone. Format with clear headings.`;
         groupId: z.number(),
         challengeId: z.number(),
         challengeTitle: z.string(),
-        competency: z.string().optional(),
+        competency: z.string().nullish(),
         /** Array of { nickname, score, total } from the leaderboard */
         participants: z.array(
           z.object({
@@ -1114,16 +1114,16 @@ Use a professional, analytical tone. Format with clear headings.`;
   generateAssignment: protectedProcedure
     .input(
       z.object({
-        assignmentId: z.number().optional(), // if set, update existing; else just return content
+        assignmentId: z.number().nullish(), // if set, update existing; else just return content
         studentName: z.string(),
         title: z.string().min(1).max(255),
-        description: z.string().optional(),
-        competency: z.string().optional(),
+        description: z.string().nullish(),
+        competency: z.string().nullish(),
         assignmentType: z.enum(["worksheet", "essay", "quiz", "project", "presentation", "research", "creative", "debate", "experiment", "other"]).default("worksheet"),
-        yearGroup: z.enum(["junior", "primary", "secondary"]).optional(),
+        yearGroup: z.enum(["junior", "primary", "secondary"]).nullish(),
         difficulty: z.enum(["easy", "medium", "hard"]).default("medium"),
         uiLang: z.enum(["en", "es", "ca"]).default("en"),
-        competencyScores: z.array(z.object({ code: z.string(), average: z.number().nullable() })).optional(),
+        competencyScores: z.array(z.object({ code: z.string(), average: z.number().nullable() })).nullish(),
       })
     )
     .mutation(async ({ input }) => {
@@ -1296,7 +1296,7 @@ Use a professional, analytical tone. Format with clear headings.`;
   assessUploadedAssignment: protectedProcedure
     .input(z.object({
       assignmentId: z.number(),
-      studentName: z.string().optional(),
+      studentName: z.string().nullish(),
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();

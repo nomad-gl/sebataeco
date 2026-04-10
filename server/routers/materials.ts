@@ -282,8 +282,8 @@ export const materialsRouter = router({
 
   saveSession: protectedProcedure
     .input(z.object({
-      competency: CompetencyCodeSchema.optional(),
-      yearGroup: YearGroupSchema.optional(),
+      competency: CompetencyCodeSchema.nullish(),
+      yearGroup: YearGroupSchema.nullish(),
       score: z.number().min(0),
       total: z.number().min(1),
     }))
@@ -324,14 +324,14 @@ export const materialsRouter = router({
     .input(z.object({
       type: MaterialTypeSchema,
       topic: z.string().min(2).max(200),
-      competency: CompetencyCodeSchema.optional(),
-      yearGroup: YearGroupSchema.optional(),
+      competency: CompetencyCodeSchema.nullish(),
+      yearGroup: YearGroupSchema.nullish(),
     }))
     .mutation(async ({ input }) => {
-      const systemPrompt = buildSystemPrompt(input.type, input.competency, input.yearGroup);
+      const systemPrompt = buildSystemPrompt(input.type, input.competency ?? undefined, input.yearGroup ?? undefined);
       const contextQs = getQuestions(
-        input.competency as CompetencyCode | undefined,
-        input.yearGroup as YearGroup | undefined
+        (input.competency ?? undefined) as CompetencyCode | undefined,
+        (input.yearGroup ?? undefined) as YearGroup | undefined
       ).slice(0, 6);
       const contextText = contextQs.length > 0
         ? `\n\nLOMLOE knowledge bank alignment examples (use as style/difficulty reference only):\n${contextQs.map(q => `- ${q.question} → ${q.options[q.correctIndex]}`).join("\n")}`
@@ -367,8 +367,8 @@ export const materialsRouter = router({
     .input(z.object({
       type: MaterialTypeSchema,
       topic: z.string().min(2).max(200),
-      competency: CompetencyCodeSchema.optional(),
-      yearGroup: YearGroupSchema.optional(),
+      competency: CompetencyCodeSchema.nullish(),
+      yearGroup: YearGroupSchema.nullish(),
       title: z.string(),
       content: z.string(),
     }))
@@ -390,16 +390,16 @@ export const materialsRouter = router({
     .input(z.object({
       type: MaterialTypeSchema,
       topic: z.string().min(2).max(200),
-      competency: CompetencyCodeSchema.optional(),
-      yearGroup: YearGroupSchema.optional(),
+      competency: CompetencyCodeSchema.nullish(),
+      yearGroup: YearGroupSchema.nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const systemPrompt = buildSystemPrompt(input.type, input.competency, input.yearGroup);
+      const systemPrompt = buildSystemPrompt(input.type, input.competency ?? undefined, input.yearGroup ?? undefined);
 
       // Enrich with knowledge bank examples for alignment
       const contextQs = getQuestions(
-        input.competency as CompetencyCode | undefined,
-        input.yearGroup as YearGroup | undefined
+        (input.competency ?? undefined) as CompetencyCode | undefined,
+        (input.yearGroup ?? undefined) as YearGroup | undefined
       ).slice(0, 6);
       const contextText = contextQs.length > 0
         ? `\n\nLOMLOE knowledge bank alignment examples (use as style/difficulty reference only):\n${contextQs.map(q => `- ${q.question} → ${q.options[q.correctIndex]}`).join("\n")}`
@@ -515,7 +515,7 @@ export const materialsRouter = router({
     .input(z.object({
       base64: z.string(),
       mimeType: z.string().default("image/jpeg"),
-      filename: z.string().optional(),
+      filename: z.string().nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
       const suffix = Math.random().toString(36).slice(2, 8);
@@ -531,7 +531,7 @@ export const materialsRouter = router({
     .input(z.object({
       sebasnapId: z.string(),
       title: z.string().min(1).max(200),
-      subject: z.string().optional(),
+      subject: z.string().nullish(),
       type: MaterialTypeSchema,
       content: z.string(), // JSON-stringified content already mapped
     }))

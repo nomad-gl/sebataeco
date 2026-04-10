@@ -62,15 +62,19 @@ export const groupsRouter = router({
     .input(
       z.object({
         id: z.number(),
-        className: z.string().min(1).max(128).optional(),
-        level: z.string().min(1).max(64).optional(),
-        assessmentTitle: z.string().min(1).max(255).optional(),
+        className: z.string().min(1).max(128).nullish(),
+        level: z.string().min(1).max(64).nullish(),
+        assessmentTitle: z.string().min(1).max(255).nullish(),
       })
     )
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      const { id, ...fields } = input;
+      const { id, ...rawFields } = input;
+      // Strip null values — Drizzle set() does not accept null for non-nullable columns
+      const fields = Object.fromEntries(
+        Object.entries(rawFields).filter(([, v]) => v !== null)
+      );
       await db
         .update(classGroups)
         .set(fields)
@@ -185,8 +189,8 @@ export const groupsRouter = router({
       z.object({
         studentId: z.number(),
         groupId: z.number(),
-        name: z.string().min(1).max(128).optional(),
-        email: z.string().max(320).optional(),
+        name: z.string().min(1).max(128).nullish(),
+        email: z.string().max(320).nullish(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -428,7 +432,7 @@ export const groupsRouter = router({
     .input(
       z.object({
         groupId: z.number(),
-        challengeId: z.number().optional(),
+        challengeId: z.number().nullish(),
         challengeTitle: z.string().min(1).max(255),
         competencies: z.array(z.string()),
       })

@@ -125,6 +125,10 @@ export type AIChatBoxProps = {
   followUpLabel?: string;
   /** Called when the user rates an assistant message */
   onRateMessage?: (messageId: string, rating: "up" | "down", reportReason?: string) => void;
+  /** Called when the user clicks the retry button on an error message */
+  onRetry?: () => void;
+  /** Label for the retry button */
+  retryLabel?: string;
 };
 
 export function AIChatBox({
@@ -138,6 +142,8 @@ export function AIChatBox({
   suggestedPrompts,
   followUpLabel = "You might also ask:",
   onRateMessage,
+  onRetry,
+  retryLabel = "Try again",
 }: AIChatBoxProps) {
   const { lang, t } = useI18n();
   const [input, setInput] = useState("");
@@ -597,6 +603,16 @@ export function AIChatBox({
                       )}
                       {message.role === "assistant" && !isLoading && message.id && onRateMessage && (
                         <RatingButtons messageId={message.id} rating={message.rating} onRate={onRateMessage} />
+                      )}
+                      {/* Retry button — shown on the last assistant error message when no id (error messages have no id) */}
+                      {message.role === "assistant" && !isLoading && !message.id && onRetry && isLastMessage && (
+                        <button
+                          onClick={onRetry}
+                          className="mt-1.5 flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs text-white/80 transition-colors hover:bg-white/20 hover:text-white"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                          {retryLabel}
+                        </button>
                       )}
                       {message.role === "assistant" &&
                         isLastMessage &&

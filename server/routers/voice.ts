@@ -95,13 +95,13 @@ export const voiceRouter = router({
     .input(
       z.object({
         audioUrl: z.string().url(),
-        language: z.string().optional(),
+        language: z.string().nullish(),
       })
     )
     .mutation(async ({ input }) => {
       const result = await transcribeAudio({
         audioUrl: input.audioUrl,
-        language: input.language,
+        language: input.language ?? undefined,
       });
 
       if ("error" in result) {
@@ -123,11 +123,11 @@ export const voiceRouter = router({
     .input(
       z.object({
         text: z.string().min(1).max(4096),
-        lang: z.string().optional(),
+        lang: z.string().nullish(),
       })
     )
     .mutation(async ({ input }) => {
-      const audioBuffer = await synthesizeSpeech(input.text, input.lang);
+      const audioBuffer = await synthesizeSpeech(input.text, input.lang ?? undefined);
       return {
         audioBase64: audioBuffer.toString("base64"),
         mimeType: "audio/mpeg" as const,

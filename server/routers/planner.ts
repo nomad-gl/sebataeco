@@ -25,15 +25,15 @@ export const plannerRouter = router({
   createCalendar: protectedProcedure
     .input(z.object({
       name: z.string().min(1),
-      schoolName: z.string().optional(),
-      tutorName: z.string().optional(),
-      subject: z.string().optional(),
-      yearLevel: z.string().optional(),
+      schoolName: z.string().nullish(),
+      tutorName: z.string().nullish(),
+      subject: z.string().nullish(),
+      yearLevel: z.string().nullish(),
       academicYear: z.string(),
       calendarType: z.enum(["full_year", "topic_block"]).default("full_year"),
-      startDate: z.string().optional(), // ISO date string
-      endDate: z.string().optional(),   // ISO date string
-      topicDescription: z.string().max(2000).optional(),
+      startDate: z.string().nullish(), // ISO date string
+      endDate: z.string().nullish(),   // ISO date string
+      topicDescription: z.string().max(2000).nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -51,25 +51,26 @@ export const plannerRouter = router({
   updateCalendar: protectedProcedure
     .input(z.object({
       id: z.number(),
-      name: z.string().optional(),
-      schoolName: z.string().optional(),
-      tutorName: z.string().optional(),
-      subject: z.string().optional(),
-      yearLevel: z.string().optional(),
-      academicYear: z.string().optional(),
-      calendarType: z.enum(["full_year", "topic_block"]).optional(),
-      startDate: z.string().optional(),
-      endDate: z.string().optional(),
-      topicDescription: z.string().max(2000).optional(),
+      name: z.string().nullish(),
+      schoolName: z.string().nullish(),
+      tutorName: z.string().nullish(),
+      subject: z.string().nullish(),
+      yearLevel: z.string().nullish(),
+      academicYear: z.string().nullish(),
+      calendarType: z.enum(["full_year", "topic_block"]).nullish(),
+      startDate: z.string().nullish(),
+      endDate: z.string().nullish(),
+      topicDescription: z.string().max(2000).nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      const { id, startDate, endDate, ...rest } = input;
+      const { id, startDate, endDate, ...rawRest } = input;
+      const rest = Object.fromEntries(Object.entries(rawRest).filter(([, v]) => v !== null));
       await db.update(schoolCalendars).set({
         ...rest,
-        ...(startDate !== undefined ? { startDate: startDate ? new Date(startDate) : null } : {}),
-        ...(endDate !== undefined ? { endDate: endDate ? new Date(endDate) : null } : {}),
+        ...(startDate != null ? { startDate: new Date(startDate) } : {}),
+        ...(endDate != null ? { endDate: new Date(endDate) } : {}),
       }).where(and(eq(schoolCalendars.id, id), eq(schoolCalendars.userId, ctx.user.id)));
       return { success: true };
     }),
@@ -106,10 +107,10 @@ export const plannerRouter = router({
       eventDate: z.string(),
       eventType: eventTypeEnum,
       title: z.string().min(1),
-      description: z.string().optional(),
-      competency: z.string().optional(),
-      yearGroup: z.string().optional(),
-      subject: z.string().optional(),
+      description: z.string().nullish(),
+      competency: z.string().nullish(),
+      yearGroup: z.string().nullish(),
+      subject: z.string().nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -133,18 +134,19 @@ export const plannerRouter = router({
   updateCalendarEvent: protectedProcedure
     .input(z.object({
       id: z.number(),
-      eventDate: z.string().optional(),
-      eventType: eventTypeEnum.optional(),
-      title: z.string().optional(),
-      description: z.string().optional(),
-      competency: z.string().optional(),
-      yearGroup: z.string().optional(),
-      subject: z.string().optional(),
+      eventDate: z.string().nullish(),
+      eventType: eventTypeEnum.nullish(),
+      title: z.string().nullish(),
+      description: z.string().nullish(),
+      competency: z.string().nullish(),
+      yearGroup: z.string().nullish(),
+      subject: z.string().nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      const { id, eventDate, ...rest } = input;
+      const { id, eventDate, ...rawRest } = input;
+      const rest = Object.fromEntries(Object.entries(rawRest).filter(([, v]) => v !== null));
       await db
         .update(schoolCalendarEvents)
         .set({ ...rest, ...(eventDate ? { eventDate: new Date(eventDate) } : {}) })
@@ -172,10 +174,10 @@ export const plannerRouter = router({
       termDates: z.array(z.object({ start: z.string(), end: z.string(), label: z.string() })),
       sessionsPerWeek: z.number().default(3),
       /** Optional topic/unit description — scopes AI lesson generation to a specific topic */
-      topicDescription: z.string().optional(),
+      topicDescription: z.string().nullish(),
       /** For topic_block calendars: constrain lesson dates within this range */
-      startDate: z.string().optional(),
-      endDate: z.string().optional(),
+      startDate: z.string().nullish(),
+      endDate: z.string().nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -373,37 +375,41 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
 
   saveLessonPlan: protectedProcedure
     .input(z.object({
-      id: z.number().optional(),
-      unit: z.string().optional(),
-      lessonNumber: z.string().optional(),
-      academicYear: z.string().optional(),
-      duration: z.number().optional(),
+      id: z.number().nullish(),
+      unit: z.string().nullish(),
+      lessonNumber: z.string().nullish(),
+      academicYear: z.string().nullish(),
+      duration: z.number().nullish(),
       title: z.string(),
-      yearGroup: z.string().optional(),
-      subject: z.string().optional(),
-      skills: z.string().optional(),
-      systems: z.string().optional(),
-      specificCompetences: z.string().optional(),
-      saberesBasicos: z.string().optional(),
-      learningOutcomes: z.string().optional(),
-      evaluationCriteria: z.string().optional(),
-      previousKnowledge: z.string().optional(),
-      materials: z.string().optional(),
-      spaces: z.string().optional(),
-      procedures: z.string().optional(),
-      competencies: z.string().optional(),
-      aiGenerated: z.boolean().optional(),
-      calendarEventId: z.number().optional(),
+      yearGroup: z.string().nullish(),
+      subject: z.string().nullish(),
+      skills: z.string().nullish(),
+      systems: z.string().nullish(),
+      specificCompetences: z.string().nullish(),
+      saberesBasicos: z.string().nullish(),
+      learningOutcomes: z.string().nullish(),
+      evaluationCriteria: z.string().nullish(),
+      previousKnowledge: z.string().nullish(),
+      materials: z.string().nullish(),
+      spaces: z.string().nullish(),
+      procedures: z.string().nullish(),
+      competencies: z.string().nullish(),
+      aiGenerated: z.boolean().nullish(),
+      calendarEventId: z.number().nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      const { id, ...data } = input;
+      const { id, ...rawData } = input;
+      // Strip null values for update — Drizzle set() does not accept null for non-nullable columns
+      const updateData = Object.fromEntries(Object.entries(rawData).filter(([, v]) => v !== null));
       if (id) {
-        await db.update(lessonPlans).set(data).where(and(eq(lessonPlans.id, id), eq(lessonPlans.userId, ctx.user.id)));
+        await db.update(lessonPlans).set(updateData).where(and(eq(lessonPlans.id, id), eq(lessonPlans.userId, ctx.user.id)));
         return { id };
       } else {
-        const [result] = await db.insert(lessonPlans).values({ ...data, userId: ctx.user.id, aiGenerated: data.aiGenerated ?? false });
+        // For insert, keep nullish fields as undefined so Drizzle uses column defaults
+        const insertData = Object.fromEntries(Object.entries(rawData).map(([k, v]) => [k, v ?? undefined]));
+        const [result] = await db.insert(lessonPlans).values({ ...insertData, title: rawData.title!, userId: ctx.user.id, aiGenerated: (rawData.aiGenerated ?? false) });
         return { id: (result as any).insertId };
       }
     }),
@@ -412,7 +418,7 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
     .input(z.object({
       calendarId: z.number(),
       locale: z.enum(["en", "es", "ca"]).default("en"),
-      logoDataUrl: z.string().optional(),
+      logoDataUrl: z.string().nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -474,10 +480,10 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
       subject: z.string(),
       yearGroup: z.string(),
       duration: z.number().default(60),
-      competencies: z.array(z.string()).optional(),
-      unit: z.string().optional(),
-      lessonNumber: z.string().optional(),
-      academicYear: z.string().optional(),
+      competencies: z.array(z.string()).nullish(),
+      unit: z.string().nullish(),
+      lessonNumber: z.string().nullish(),
+      academicYear: z.string().nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();

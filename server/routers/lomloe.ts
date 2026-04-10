@@ -232,8 +232,8 @@ export const lomloeRouter = router({
   getQuestions: publicProcedure
     .input(
       z.object({
-        competency: CompetencyCodeSchema.optional(),
-        yearGroup: YearGroupSchema.optional(),
+        competency: CompetencyCodeSchema.nullish(),
+        yearGroup: YearGroupSchema.nullish(),
         limit: z.number().min(1).max(500).default(500),
         shuffle: z.boolean().default(false),
         /** UI locale — when 'es' or 'ca', translated text is returned if available */
@@ -320,8 +320,8 @@ export const lomloeRouter = router({
   getRandomQuestion: publicProcedure
     .input(
       z.object({
-        competency: CompetencyCodeSchema.optional(),
-        yearGroup: YearGroupSchema.optional(),
+        competency: CompetencyCodeSchema.nullish(),
+        yearGroup: YearGroupSchema.nullish(),
         excludeIds: z.array(z.string()).default([]),
         /** UI locale — when 'es' or 'ca', translated text is returned if available */
         locale: z.enum(["en", "es", "ca"]).default("ca"),
@@ -653,9 +653,9 @@ Guidelines:
       z.object({
         messageId: z.string().min(1).max(64),
         rating: z.enum(["up", "down"]),
-        messageSnippet: z.string().max(500).optional(),
-        userQuestion: z.string().max(500).optional(),
-        reportReason: z.enum(["wrong_info", "not_relevant", "too_long", "too_short", "other"]).optional(),
+        messageSnippet: z.string().max(500).nullish(),
+        userQuestion: z.string().max(500).nullish(),
+        reportReason: z.enum(["wrong_info", "not_relevant", "too_long", "too_short", "other"]).nullish(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -663,9 +663,9 @@ Guidelines:
         userId: ctx.user.id,
         messageId: input.messageId,
         rating: input.rating,
-        messageSnippet: input.messageSnippet,
-        userQuestion: input.userQuestion,
-        reportReason: input.reportReason,
+        messageSnippet: input.messageSnippet ?? undefined,
+        userQuestion: input.userQuestion ?? undefined,
+        reportReason: input.reportReason ?? undefined,
       });
       return { ok: true };
     }),
@@ -789,7 +789,7 @@ Guidelines:
       z.object({
         questionId: z.string(),
         status: z.enum(["approved", "rejected"]),
-        notes: z.string().optional(),
+        notes: z.string().nullish(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -907,8 +907,8 @@ Guidelines:
         questionIds: z.array(z.string()).min(1).max(100),
         locale: z.enum(["en", "es", "ca"]).default("en"),
         title: z.string().max(120).default("LOMLOE Question Worksheet"),
-        subtitle: z.string().max(200).optional(),
-        logoDataUrl: z.string().max(600_000).optional(), // base64 data URL from client localStorage
+        subtitle: z.string().max(200).nullish(),
+        logoDataUrl: z.string().max(600_000).nullish(), // base64 data URL from client localStorage
       })
     )
     .mutation(async ({ input }) => {
@@ -968,10 +968,10 @@ Guidelines:
 
       const result = await generateWorksheets({
         title: input.title,
-        subtitle: input.subtitle,
+        subtitle: input.subtitle ?? undefined,
         questions,
         locale: input.locale,
-        logoDataUrl: input.logoDataUrl,
+        logoDataUrl: input.logoDataUrl ?? undefined,
       });
 
       return result; // { withAnswers: base64, withoutAnswers: base64 }

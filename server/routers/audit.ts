@@ -90,7 +90,7 @@ export const auditRouter = router({
         eventType: z
           .enum(["all", "grade_override", "bias_flag", "learning_path", "assessment"])
           .default("all"),
-        since: z.number().optional(), // Unix timestamp ms
+        since: z.number().nullish(), // Unix timestamp ms
       })
     )
     .query(async ({ input }) => {

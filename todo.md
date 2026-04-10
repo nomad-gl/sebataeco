@@ -1233,3 +1233,15 @@
 - [x] Diagnose: tRPC client sends null for optional fields (userId, competency, yearGroup, caDialect) but server schema used z.optional() which rejects null — causes BAD_REQUEST 400
 - [x] Fix: changed all optional fields in lomloe.chat input schema to z.nullish() to accept both null and undefined
 - [x] Verify: curl with null values returns HTTP 200, 69/69 tests pass
+
+## Follow-up: Audit z.optional() vs z.nullish() across all procedures
+- [x] Bulk-replaced all z.optional() with z.nullish() across all server/routers/*.ts
+- [x] Fixed 16 TypeScript errors from null-to-undefined coalescing at point of use (accountability, groups, lomloe, materials, planner, presentations, voice)
+
+## Follow-up: Vitest test for null optional fields in lomloe.chat
+- [x] Added server/lomloe.chat.nullish.test.ts with 3 test cases (all-null, all-undefined, mixed); 72/72 tests pass
+
+## Follow-up: Retry button in chat error bubble
+- [x] Added onRetry/retryLabel props to AIChatBox; retry button renders below last error message
+- [x] handleRetry in Chat.tsx removes error bubble and re-sends last user message
+- [x] chat_retry i18n key added in EN/ES/CA

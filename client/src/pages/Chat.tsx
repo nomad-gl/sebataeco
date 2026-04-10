@@ -118,6 +118,22 @@ export default function Chat() {
     }
   };
 
+  /**
+   * Retry the last user message by removing the error bubble and re-sending.
+   * Finds the last user message in the current list and calls handleSendMessage.
+   */
+  const handleRetry = () => {
+    // Remove the trailing error assistant message
+    const withoutError = messages.filter(
+      (m, i) => !(m.role === "assistant" && !m.id && i === messages.length - 1)
+    );
+    const lastUserMsg = [...withoutError].reverse().find((m) => m.role === "user");
+    if (!lastUserMsg) return;
+    // Reset to the state before the last user message was sent
+    setMessages(withoutError.filter((m, i) => i < withoutError.lastIndexOf(lastUserMsg)));
+    handleSendMessage(lastUserMsg.content);
+  };
+
   const handleRateMessage = (messageId: string, rating: "up" | "down", reportReason?: string) => {
     // Optimistic update — highlight the selected thumb immediately
     setMessages((prev) =>
@@ -238,6 +254,8 @@ export default function Chat() {
             suggestedPrompts={suggestedQuestions}
             followUpLabel={t("chat_follow_up_label")}
             onRateMessage={user ? handleRateMessage : undefined}
+            onRetry={handleRetry}
+            retryLabel={t("chat_retry")}
             height="calc(100dvh - 220px)"
           />
         </div>

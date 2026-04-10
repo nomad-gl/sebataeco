@@ -12,9 +12,9 @@ import { generateImage } from "../_core/imageGeneration";
 const slideSchema = z.object({
   title: z.string(),
   content: z.string(),
-  speakerNotes: z.string().optional(),
-  keyVocabulary: z.array(z.string()).optional(),
-  competencyTag: z.string().optional(),
+  speakerNotes: z.string().nullish(),
+  keyVocabulary: z.array(z.string()).nullish(),
+  competencyTag: z.string().nullish(),
 });
 
 export const presentationsRouter = router({
@@ -36,14 +36,25 @@ export const presentationsRouter = router({
     .input(
       z.object({
         title: z.string(),
-        subject: z.string().optional(),
-        yearGroup: z.string().optional(),
-        competency: z.string().optional(),
+        subject: z.string().nullish(),
+        yearGroup: z.string().nullish(),
+        competency: z.string().nullish(),
         slides: z.array(slideSchema),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const pdfBuffer = await generatePresentationPdf(input);
+      const pdfBuffer = await generatePresentationPdf({
+        ...input,
+        subject: input.subject ?? undefined,
+        yearGroup: input.yearGroup ?? undefined,
+        competency: input.competency ?? undefined,
+        slides: input.slides.map(s => ({
+          ...s,
+          speakerNotes: s.speakerNotes ?? undefined,
+          keyVocabulary: s.keyVocabulary ?? undefined,
+          competencyTag: s.competencyTag ?? undefined,
+        })),
+      });
       const fileKey = `presentation-exports/${ctx.user.id}-${Date.now()}.pdf`;
       const { url } = await storagePut(fileKey, pdfBuffer, "application/pdf");
       return { url };

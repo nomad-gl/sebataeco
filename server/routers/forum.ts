@@ -43,8 +43,8 @@ export const forumRouter = router({
     .input(
       z.object({
         channelId: z.number().int(),
-        since: z.number().optional(),
-        lang: z.string().optional(),
+        since: z.number().nullish(),
+        lang: z.string().nullish(),
       })
     )
     .query(async ({ ctx, input }) => {
@@ -218,8 +218,8 @@ export const forumRouter = router({
     .input(
       z.object({
         withUserId: z.number().int(),
-        since: z.number().optional(),
-        lang: z.string().optional(),
+        since: z.number().nullish(),
+        lang: z.string().nullish(),
       })
     )
     .query(async ({ ctx, input }) => {

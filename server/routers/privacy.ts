@@ -284,7 +284,7 @@ export const privacyRouter = router({
 
   /** Generate a parent-readable PDF report of a student's stored data */
   generateParentReport: protectedProcedure
-    .input(z.object({ studentName: z.string().optional() }))
+    .input(z.object({ studentName: z.string().nullish() }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       const uid = ctx.user.id;

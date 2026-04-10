@@ -144,8 +144,8 @@ export const challengeRouter = router({
   create: protectedProcedure
     .input(z.object({
       title: z.string().min(2).max(200),
-      competency: CompetencyCodeSchema.optional(),
-      yearGroup: YearGroupSchema.optional(),
+      competency: CompetencyCodeSchema.nullish(),
+      yearGroup: YearGroupSchema.nullish(),
       questionCount: z.number().min(5).max(20).default(10),
     }))
     .mutation(async ({ ctx, input }) => {

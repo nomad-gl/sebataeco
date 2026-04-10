@@ -49,7 +49,7 @@ export const dpaRouter = router({
    * Records the user's acceptance of the current DPA version.
    */
   accept: protectedProcedure
-    .input(z.object({ ipAddress: z.string().optional() }))
+    .input(z.object({ ipAddress: z.string().nullish() }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
