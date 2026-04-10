@@ -179,23 +179,32 @@ export function AIChatBox({
   const inputAreaRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // tRPC mutations for voice pipeline (mic recording only — TTS uses browser API)
+  // tRPC mutations for voice pipeline
   const uploadAudioMutation = trpc.voice.uploadAudio.useMutation();
   const transcribeMutation = trpc.voice.transcribe.useMutation();
+  const ttsMutation = trpc.voice.tts.useMutation();
 
-  // ─── TTS playback via Web Speech API (SpeechSynthesis) ───────────────────────
-  // Chrome has a well-known bug where it silently stops speaking after ~15 s and
-  // never fires onend, leaving the UI stuck. The reliable fix is to split the
-  // text into short sentences and speak them one at a time, chaining via onend.
-  // Each chunk is short enough that Chrome never hits the timeout.
+  // ─── TTS playback via OpenAI neural voice (server-side) ──────────────────────
+  // We call the server-side voice.tts procedure which uses OpenAI tts-1-hd for
+  // a significantly more natural, human-like voice. The server returns base64 MP3
+  // which we play via the Web Audio API. Falls back to browser SpeechSynthesis
+  // if the server call fails (e.g. offline or API error).
 
   const hasSpeechSynthesis = typeof window !== "undefined" && "speechSynthesis" in window;
 
-  // Flag set to true when the user calls stopSpeaking() so chained chunks abort
+  // Ref to the currently playing HTMLAudioElement so we can stop it
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Flag to cancel in-flight TTS requests
   const cancelledRef = useRef(false);
 
   const stopSpeaking = useCallback(() => {
     cancelledRef.current = true;
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+      audioRef.current = null;
+    }
+    // Also cancel any browser fallback speech
     if (hasSpeechSynthesis) window.speechSynthesis.cancel();
     setIsSpeaking(false);
   }, [hasSpeechSynthesis]);
@@ -204,92 +213,108 @@ export function AIChatBox({
   useEffect(() => {
     return () => {
       cancelledRef.current = true;
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
       if (hasSpeechSynthesis) window.speechSynthesis.cancel();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /** Split text into sentence-sized chunks (≤ 200 chars) so Chrome never times out */
-  const splitIntoChunks = (text: string): string[] => {
-    // Split on sentence-ending punctuation, keeping the delimiter
+  /** Browser SpeechSynthesis fallback — used only when server TTS fails */
+  const playBrowserTTS = useCallback((text: string, langCode: string) => {
+    if (!hasSpeechSynthesis) return;
+    window.speechSynthesis.cancel();
     const sentences = text.match(/[^.!?\n]+[.!?\n]*/g) ?? [text];
     const chunks: string[] = [];
     let current = "";
     for (const s of sentences) {
-      if ((current + s).length > 200) {
-        if (current.trim()) chunks.push(current.trim());
-        current = s;
-      } else {
-        current += s;
-      }
+      if ((current + s).length > 200) { if (current.trim()) chunks.push(current.trim()); current = s; }
+      else current += s;
     }
     if (current.trim()) chunks.push(current.trim());
-    return chunks.filter(Boolean);
-  };
-
-  const playTTS = useCallback((text: string) => {
-    if (!ttsEnabled || !text.trim() || !hasSpeechSynthesis) return;
-
-    // Cancel any ongoing speech
-    cancelledRef.current = true;
-    window.speechSynthesis.cancel();
-
-    const chunks = splitIntoChunks(text);
     if (chunks.length === 0) return;
-
-    const lang = document.documentElement.lang || navigator.language || "en";
     const voices = window.speechSynthesis.getVoices();
-    let preferredVoice: SpeechSynthesisVoice | null = null;
-    if (voices.length > 0) {
-      const l = lang.split("-")[0];
-      preferredVoice =
-        voices.find(v => v.lang.startsWith(l) && /female|samantha|karen|moira|tessa|fiona|victoria|zira|hazel/i.test(v.name)) ??
-        voices.find(v => v.lang.startsWith(l) && v.localService) ??
-        voices.find(v => v.lang.startsWith(l)) ??
-        voices[0] ?? null;
-    }
+    const l = langCode.split("-")[0];
+    const voice = voices.find(v => v.lang.startsWith(l) && /female|samantha|karen|moira|nova|shimmer/i.test(v.name))
+      ?? voices.find(v => v.lang.startsWith(l)) ?? voices[0] ?? null;
+    const speakChunk = (i: number) => {
+      if (cancelledRef.current || i >= chunks.length) { setIsSpeaking(false); return; }
+      const u = new SpeechSynthesisUtterance(chunks[i]);
+      u.lang = langCode; u.rate = speechRate; u.pitch = 1.0;
+      if (voice) u.voice = voice;
+      u.onend = () => { if (!cancelledRef.current) speakChunk(i + 1); else setIsSpeaking(false); };
+      u.onerror = (e) => { if ((e as SpeechSynthesisErrorEvent).error !== "interrupted") setIsSpeaking(false); };
+      window.speechSynthesis.speak(u);
+    };
+    speakChunk(0);
+  }, [hasSpeechSynthesis, speechRate]);
 
-    // Small delay so Chrome finishes flushing after cancel()
-    setTimeout(() => {
-      cancelledRef.current = false;
-      setIsSpeaking(true);
+  const playTTS = useCallback(async (text: string) => {
+    if (!ttsEnabled || !text.trim()) return;
 
-      const speakChunk = (index: number) => {
-        if (cancelledRef.current || index >= chunks.length) {
-          setIsSpeaking(false);
-          return;
-        }
+    // Stop any currently playing audio
+    cancelledRef.current = true;
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+    if (hasSpeechSynthesis) window.speechSynthesis.cancel();
 
-        const utterance = new SpeechSynthesisUtterance(chunks[index]);
-        utterance.lang = lang;
-        utterance.rate = speechRate;
-        utterance.pitch = 1.0;
-        if (preferredVoice) utterance.voice = preferredVoice;
+    cancelledRef.current = false;
+    setIsSpeaking(true);
 
-        utterance.onend = () => {
-          if (cancelledRef.current) { setIsSpeaking(false); return; }
-          speakChunk(index + 1);
-        };
+    const langCode = document.documentElement.lang || navigator.language || "en";
 
-        utterance.onerror = (e) => {
-          if ((e as SpeechSynthesisErrorEvent).error === "interrupted") return;
-          setIsSpeaking(false);
-        };
+    try {
+      // Strip markdown syntax before sending to TTS so it reads naturally
+      const plainText = text
+        .replace(/```[\s\S]*?```/g, "") // remove code blocks
+        .replace(/`[^`]+`/g, "")        // remove inline code
+        .replace(/\*\*([^*]+)\*\*/g, "$1") // bold
+        .replace(/\*([^*]+)\*/g, "$1")     // italic
+        .replace(/#{1,6}\s+/g, "")         // headings
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // links
+        .replace(/[-*+]\s+/g, "")          // list bullets
+        .trim();
 
-        window.speechSynthesis.speak(utterance);
+      if (!plainText) { setIsSpeaking(false); return; }
+
+      const result = await ttsMutation.mutateAsync({
+        text: plainText.slice(0, 4096),
+        lang: langCode,
+      });
+
+      if (cancelledRef.current) { setIsSpeaking(false); return; }
+
+      // Decode base64 MP3 and play via HTMLAudioElement
+      const byteChars = atob(result.audioBase64);
+      const byteArr = new Uint8Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) byteArr[i] = byteChars.charCodeAt(i);
+      const blob = new Blob([byteArr], { type: result.mimeType });
+      const url = URL.createObjectURL(blob);
+
+      const audio = new Audio(url);
+      // Apply speech rate to the audio element (0.5–2.0 range)
+      audio.playbackRate = speechRate;
+      audioRef.current = audio;
+
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        audioRef.current = null;
+        setIsSpeaking(false);
+      };
+      audio.onerror = () => {
+        URL.revokeObjectURL(url);
+        audioRef.current = null;
+        setIsSpeaking(false);
       };
 
-      speakChunk(0);
-    }, 50);
-  }, [ttsEnabled, hasSpeechSynthesis, speechRate]);
-
-  // iOS Safari quirk: voices load asynchronously
-  useEffect(() => {
-    if (!hasSpeechSynthesis) return;
-    const handler = () => { /* voices loaded — next speak() will pick them up */ };
-    window.speechSynthesis.addEventListener("voiceschanged", handler);
-    return () => window.speechSynthesis.removeEventListener("voiceschanged", handler);
-  }, [hasSpeechSynthesis]);
+      await audio.play();
+    } catch {
+      // Server TTS failed — fall back to browser SpeechSynthesis
+      if (!cancelledRef.current) {
+        playBrowserTTS(text, langCode);
+      } else {
+        setIsSpeaking(false);
+      }
+    }
+  }, [ttsEnabled, hasSpeechSynthesis, speechRate, ttsMutation, playBrowserTTS]);
 
   // Auto-play TTS when a new assistant message finishes streaming
   // We watch the content of the last assistant message + isLoading so we

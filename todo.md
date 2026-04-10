@@ -1245,3 +1245,10 @@
 - [x] Added onRetry/retryLabel props to AIChatBox; retry button renders below last error message
 - [x] handleRetry in Chat.tsx removes error bubble and re-sends last user message
 - [x] chat_retry i18n key added in EN/ES/CA
+
+## Improvement: Human-sounding TTS via OpenAI Neural Voice
+- [x] Upgrade server voice.tts from tts-1 to tts-1-hd model
+- [x] Improve pickVoice() to select best voice per language (nova for EN, shimmer for ES/CA)
+- [x] Wire voice.tts mutation into AIChatBox to replace browser SpeechSynthesis
+- [x] Fall back to browser SpeechSynthesis if the server TTS call fails
+- [x] Keep speech rate control working with the new audio player (HTMLAudioElement.playbackRate)

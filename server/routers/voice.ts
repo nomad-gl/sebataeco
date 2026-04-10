@@ -39,7 +39,7 @@ async function synthesizeSpeech(text: string, lang?: string): Promise<Buffer> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "tts-1",
+      model: "tts-1-hd", // HD model for significantly more natural, human-like speech
       input: text.slice(0, 4096), // API limit
       voice,
       response_format: "mp3",
@@ -58,10 +58,16 @@ async function synthesizeSpeech(text: string, lang?: string): Promise<Buffer> {
   return Buffer.from(arrayBuffer);
 }
 
-/** Map language code to a suitable OpenAI TTS voice */
+/** Map language code to the most natural OpenAI TTS voice for that language.
+ *  OpenAI voices: alloy (neutral), echo (male), fable (British), onyx (deep male),
+ *  nova (warm female EN), shimmer (soft female, good for ES/CA).
+ */
 function pickVoice(lang?: string): string {
-  // OpenAI voices: alloy, echo, fable, onyx, nova, shimmer
-  // "nova" is warm and clear — good default for education
+  if (!lang) return "nova";
+  const l = lang.toLowerCase().split(/[-_]/)[0];
+  // shimmer has a softer, more natural cadence for Spanish and Catalan
+  if (l === "es" || l === "ca") return "shimmer";
+  // nova is warm and clear — best for English education contexts
   return "nova";
 }
 
