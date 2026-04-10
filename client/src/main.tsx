@@ -20,6 +20,13 @@ const SILENT_UNAUTH_PATHS = new Set([
   "lomloe.getAinaProfile",
 ]);
 
+// Mutation paths whose errors are already handled in-component and should NOT
+// be logged globally as unexpected errors (avoids noisy console spam).
+const SILENT_MUTATION_PATHS = new Set([
+  "lomloe.chat",
+  "lomloe.translateMessages",
+]);
+
 const redirectToLoginIfUnauthorized = (error: unknown, queryPath?: string) => {
   if (!(error instanceof TRPCClientError)) return;
   if (typeof window === "undefined") return;
@@ -53,7 +60,12 @@ queryClient.getMutationCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.mutation.state.error;
     redirectToLoginIfUnauthorized(error);
-    console.error("[API Mutation Error]", error);
+    // Suppress noisy logs for mutations that handle their own errors in-component
+    const mutationKey = event.mutation.options.mutationKey;
+    const mutationPath = Array.isArray(mutationKey?.[0]) ? (mutationKey[0] as string[]).join(".") : "";
+    if (!SILENT_MUTATION_PATHS.has(mutationPath)) {
+      console.error("[API Mutation Error]", error);
+    }
   }
 });
 
@@ -80,6 +92,32 @@ const trpcClient = trpc.createClient({
           ...(init ?? {}),
           credentials: "include",
           signal: controller.signal,
+        }).then(async (res) => {
+          // If the response is not JSON (e.g. HTML login page from proxy/CDN),
+          // convert it to a proper tRPC-compatible error response so the client
+          // can handle it gracefully instead of throwing a JSON parse error.
+          const contentType = res.headers.get("content-type") ?? "";
+          if (!contentType.includes("application/json") && !contentType.includes("text/plain")) {
+            const text = await res.text().catch(() => "Non-JSON response");
+            const isHtml = text.trimStart().startsWith("<");
+            if (isHtml) {
+              // Return a synthetic tRPC error batch response
+              const syntheticBody = JSON.stringify([{
+                error: {
+                  json: {
+                    message: "Service temporarily unavailable. Please try again.",
+                    code: -32603,
+                    data: { code: "INTERNAL_SERVER_ERROR", httpStatus: res.status }
+                  }
+                }
+              }]);
+              return new Response(syntheticBody, {
+                status: 200,
+                headers: { "content-type": "application/json" },
+              });
+            }
+          }
+          return res;
         }).finally(() => clearTimeout(timer));
       },
     }),

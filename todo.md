@@ -1211,15 +1211,20 @@
 - [x] Fix: saved new checkpoint and republished to deploy the latest bundle with all fixes
 
 ## Feature: AINA "Thinking" Animated Indicator
-- [ ] AIChatBox: show animated "AINA is thinking..." message after 5 seconds of waiting
-- [ ] Indicator disappears when the real response arrives
-- [ ] i18n key for the thinking message in EN/ES/CA
+- [x] AIChatBox: show animated "AINA is thinking..." message after 5 seconds of waiting
+- [x] Indicator disappears when the real response arrives
+- [x] i18n key for the thinking message in EN/ES/CA
 
 ## Feature: PDF Text Extraction for Assignment Submissions
-- [ ] Install pdf-parse npm package on the server
-- [ ] progress.assessUploadedAssignment: detect PDF mime type and extract text via pdf-parse before sending to LLM
-- [ ] Fall back to vision LLM for image files; use text extraction for PDF/docx
+- [x] Install pdf-parse npm package on the server
+- [x] progress.assessUploadedAssignment: detect PDF mime type and extract text via pdf-parse before sending to LLM
+- [x] Fall back to vision LLM for image files; use text extraction for PDF/docx
 
 ## Feature: Session Keep-Alive Ping
-- [ ] Add a lightweight background ping (trpc.auth.me.useQuery with refetchInterval: 15 minutes) to prevent JWT session expiry during idle periods
-- [ ] Only active when user is logged in
+- [x] Add a lightweight background ping (trpc.auth.me.useQuery with refetchInterval: 15 minutes) to prevent JWT session expiry during idle periods
+- [x] Only active when user is logged in
+
+## Bug: AINA chat returns HTML instead of JSON for logged-out users
+- [x] Diagnose: lomloe.chat mutation called by unauthenticated user returns HTML (login redirect) not JSON
+- [x] Fix: intercept non-JSON/HTML responses in tRPC fetch wrapper and convert to synthetic tRPC error; add SILENT_MUTATION_PATHS to suppress noisy global logs for lomloe.chat and lomloe.translateMessages
+- [x] Verify no regression for authenticated users (69/69 tests pass, TS 0 errors)
