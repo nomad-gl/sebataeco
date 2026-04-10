@@ -1265,3 +1265,15 @@
 - [x] Store pre-cached audio blob URLs in a Map keyed by prompt text
 - [x] When a suggested prompt chip is tapped, play from cache instantly (no server round-trip)
 - [x] Cache is invalidated when ttsVoice or suggestedPrompts changes
+
+## Feature: Voice Preview Button in TTS Picker
+- [x] Added Play/Stop/Loader2 icons to each voice row in the picker dropdown
+- [x] Clicking Play fetches a short sample via ttsPreviewMutation without changing selected voice
+- [x] Shows Loader2 spinner while loading, Square stop icon while playing
+- [x] tts_voice_preview_sample i18n key added in EN/ES/CA
+
+## Feature: Auto-switch Default Voice by UI Language
+- [x] useEffect on lang change auto-updates ttsVoice (shimmer for ES/CA, nova for EN)
+- [x] Only auto-switches if seba_tts_voice_manual flag is NOT set in localStorage
+- [x] Manual selection in picker sets seba_tts_voice_manual=1 to lock the choice
+- [x] defaultVoiceForLang() helper also used on initial mount to set correct default

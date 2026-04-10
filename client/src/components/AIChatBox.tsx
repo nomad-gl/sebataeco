@@ -4,7 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import {
   Loader2, Send, User, Sparkles, Mic, MicOff, Radio,
-  ThumbsUp, ThumbsDown, Volume2, VolumeX,
+  ThumbsUp, ThumbsDown, Volume2, VolumeX, Play, Square,
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Streamdown } from "streamdown";
@@ -169,14 +169,35 @@ export function AIChatBox({
   }, []);
 
   type TtsVoice = "nova" | "shimmer" | "alloy" | "fable";
+
+  /** Derive the best default voice for a given language code */
+  const defaultVoiceForLang = (langCode: string): TtsVoice => {
+    const l = langCode.toLowerCase().split(/[-_]/)[0];
+    return (l === "es" || l === "ca") ? "shimmer" : "nova";
+  };
+
   /** Selected TTS voice — persisted to localStorage */
   const [ttsVoice, setTtsVoice] = useState<TtsVoice>(() => {
     const saved = localStorage.getItem("seba_tts_voice");
-    return (["nova", "shimmer", "alloy", "fable"] as TtsVoice[]).includes(saved as TtsVoice)
-      ? (saved as TtsVoice)
-      : "nova";
+    const hasManual = localStorage.getItem("seba_tts_voice_manual") === "1";
+    if (hasManual && (["nova", "shimmer", "alloy", "fable"] as TtsVoice[]).includes(saved as TtsVoice)) {
+      return saved as TtsVoice;
+    }
+    // No manual override — derive from current browser/document language
+    const langCode = document.documentElement.lang || navigator.language || "en";
+    return defaultVoiceForLang(langCode);
   });
   const [showVoicePicker, setShowVoicePicker] = useState(false);
+
+  /** Auto-switch voice when the UI language changes (only if no manual override) */
+  useEffect(() => {
+    const hasManual = localStorage.getItem("seba_tts_voice_manual") === "1";
+    if (hasManual) return; // respect teacher's explicit choice
+    const best = defaultVoiceForLang(lang);
+    setTtsVoice(best);
+    localStorage.setItem("seba_tts_voice", best);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
 
   const TTS_VOICES: { id: TtsVoice; labelKey: "tts_voice_nova" | "tts_voice_shimmer" | "tts_voice_alloy" | "tts_voice_fable"; descKey: "tts_voice_nova_desc" | "tts_voice_shimmer_desc" | "tts_voice_alloy_desc" | "tts_voice_fable_desc" }[] = [
     { id: "nova",    labelKey: "tts_voice_nova",    descKey: "tts_voice_nova_desc" },
@@ -201,6 +222,44 @@ export function AIChatBox({
   const transcribeMutation = trpc.voice.transcribe.useMutation();
   const ttsMutation = trpc.voice.tts.useMutation();
   const ttsPrefetchMutation = trpc.voice.tts.useMutation();
+  const ttsPreviewMutation = trpc.voice.tts.useMutation();
+
+  /** Which voice ID is currently being previewed (null = none) */
+  const [previewingVoice, setPreviewingVoice] = useState<string | null>(null);
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const stopVoicePreview = useCallback(() => {
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current.src = "";
+      previewAudioRef.current = null;
+    }
+    setPreviewingVoice(null);
+  }, []);
+
+  const playVoicePreview = useCallback(async (voiceId: string, sampleText: string) => {
+    // Stop any existing preview
+    stopVoicePreview();
+    setPreviewingVoice(voiceId);
+    try {
+      const result = await ttsPreviewMutation.mutateAsync({
+        text: sampleText,
+        voice: voiceId as "nova" | "shimmer" | "alloy" | "fable",
+      });
+      const byteChars = atob(result.audioBase64);
+      const byteArr = new Uint8Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) byteArr[i] = byteChars.charCodeAt(i);
+      const blob = new Blob([byteArr], { type: result.mimeType });
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      previewAudioRef.current = audio;
+      audio.onended = () => { URL.revokeObjectURL(url); previewAudioRef.current = null; setPreviewingVoice(null); };
+      audio.onerror = () => { URL.revokeObjectURL(url); previewAudioRef.current = null; setPreviewingVoice(null); };
+      await audio.play();
+    } catch {
+      setPreviewingVoice(null);
+    }
+  }, [ttsPreviewMutation, stopVoicePreview]);
 
   /** Cache of pre-fetched TTS audio blobs keyed by prompt text */
   const ttsCacheRef = useRef<Map<string, string>>(new Map());
@@ -885,21 +944,50 @@ export function AIChatBox({
                     {t("tts_voice_label")}
                   </div>
                   {TTS_VOICES.map(v => (
-                    <button
+                    <div
                       key={v.id}
-                      onClick={() => {
-                        setTtsVoice(v.id);
-                        localStorage.setItem("seba_tts_voice", v.id);
-                        setShowVoicePicker(false);
-                      }}
                       className={cn(
-                        "w-full flex flex-col items-start px-3 py-2.5 text-left transition-colors hover:bg-white/10",
-                        ttsVoice === v.id ? "bg-blue-500/20 text-white" : "text-white/70"
+                        "flex items-center gap-1 pr-1 transition-colors hover:bg-white/10",
+                        ttsVoice === v.id ? "bg-blue-500/20" : ""
                       )}
                     >
-                      <span className="text-sm font-medium">{t(v.labelKey)}</span>
-                      <span className="text-[11px] text-white/40 mt-0.5">{t(v.descKey)}</span>
-                    </button>
+                      <button
+                        onClick={() => {
+                          setTtsVoice(v.id);
+                          localStorage.setItem("seba_tts_voice", v.id);
+                          localStorage.setItem("seba_tts_voice_manual", "1");
+                          setShowVoicePicker(false);
+                          stopVoicePreview();
+                        }}
+                        className={cn(
+                          "flex-1 flex flex-col items-start px-3 py-2.5 text-left",
+                          ttsVoice === v.id ? "text-white" : "text-white/70"
+                        )}
+                      >
+                        <span className="text-sm font-medium">{t(v.labelKey)}</span>
+                        <span className="text-[11px] text-white/40 mt-0.5">{t(v.descKey)}</span>
+                      </button>
+                      {/* Preview play/stop button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (previewingVoice === v.id) {
+                            stopVoicePreview();
+                          } else {
+                            playVoicePreview(v.id, t("tts_voice_preview_sample"));
+                          }
+                        }}
+                        title={previewingVoice === v.id ? "Stop preview" : `Preview ${t(v.labelKey)} voice`}
+                        className="shrink-0 w-7 h-7 flex items-center justify-center rounded-md text-white/50 hover:text-white hover:bg-white/15 transition-colors"
+                      >
+                        {previewingVoice === v.id
+                          ? ttsPreviewMutation.isPending
+                            ? <Loader2 className="size-3 animate-spin" />
+                            : <Square className="size-3 fill-current" />
+                          : <Play className="size-3 fill-current" />
+                        }
+                      </button>
+                    </div>
                   ))}
                 </div>
               )}
