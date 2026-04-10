@@ -191,6 +191,24 @@ export function AIChatBox({
   });
   const [showVoicePicker, setShowVoicePicker] = useState(false);
 
+  // ─── Speech synthesis availability ──────────────────────────────────────────
+  const hasSpeechSynthesis = typeof window !== "undefined" && "speechSynthesis" in window;
+
+  /** Track whether the browser has any speech synthesis voices loaded */
+  const [browserVoicesAvailable, setBrowserVoicesAvailable] = useState<boolean>(() => {
+    if (!hasSpeechSynthesis) return false;
+    return window.speechSynthesis.getVoices().length > 0;
+  });
+
+  useEffect(() => {
+    if (!hasSpeechSynthesis) return;
+    const update = () => setBrowserVoicesAvailable(window.speechSynthesis.getVoices().length > 0);
+    // Some browsers (Chrome) load voices asynchronously
+    window.speechSynthesis.addEventListener("voiceschanged", update);
+    update(); // check immediately in case already loaded
+    return () => window.speechSynthesis.removeEventListener("voiceschanged", update);
+  }, [hasSpeechSynthesis]);
+
   /** Auto-switch voice when the UI language changes (only if no manual override) */
   useEffect(() => {
     const hasManual = localStorage.getItem("seba_tts_voice_manual") === "1";
@@ -240,8 +258,6 @@ export function AIChatBox({
   const transcribeMutation = trpc.voice.transcribe.useMutation();
 
   // ─── TTS playback via browser Web Speech API ─────────────────────────────────
-
-  const hasSpeechSynthesis = typeof window !== "undefined" && "speechSynthesis" in window;
 
   /** Cache ref kept for API compatibility — browser TTS does not need pre-caching */
   const ttsCacheRef = useRef<Map<string, string>>(new Map());
@@ -846,6 +862,12 @@ export function AIChatBox({
                   <div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-widest text-white/40 border-b border-white/10">
                     {t("tts_voice_label")}
                   </div>
+                  {!browserVoicesAvailable && (
+                    <div className="px-3 py-2.5 text-[11px] text-amber-300/80 flex items-start gap-2 border-b border-white/10">
+                      <span className="mt-0.5 shrink-0">⚠</span>
+                      <span>{t("tts_no_voice_notice")}</span>
+                    </div>
+                  )}
                   {TTS_VOICES.map(v => (
                     <div
                       key={v.id}

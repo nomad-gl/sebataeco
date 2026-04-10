@@ -1295,3 +1295,9 @@
 - [x] Fixed by replacing all server-side TTS mutations (ttsMutation, ttsPrefetchMutation, ttsPreviewMutation) with browser Web Speech API as the primary TTS engine in AIChatBox
 - [x] voice.tts added to SILENT_MUTATION_PATHS in main.tsx to suppress any residual error logs
 - [x] TypeScript: 0 errors
+
+## Feature: No-voice notice in TTS picker
+- [x] Added browserVoicesAvailable state with voiceschanged listener (handles async Chrome voice loading)
+- [x] Amber ⚠ notice shown at top of voice picker when no voices are available
+- [x] tts_no_voice_notice i18n key added in EN/ES/CA
+- [x] TypeScript: 0 errors
