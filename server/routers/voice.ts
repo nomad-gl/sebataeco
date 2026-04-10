@@ -15,7 +15,7 @@ import { storagePut } from "../storage";
 
 // ─── TTS helper ───────────────────────────────────────────────────────────────
 
-async function synthesizeSpeech(text: string, lang?: string): Promise<Buffer> {
+async function synthesizeSpeech(text: string, lang?: string, voiceOverride?: string): Promise<Buffer> {
   if (!ENV.forgeApiUrl || !ENV.forgeApiKey) {
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
@@ -29,8 +29,8 @@ async function synthesizeSpeech(text: string, lang?: string): Promise<Buffer> {
 
   const url = new URL("v1/audio/speech", baseUrl).toString();
 
-  // Pick a voice that matches the language when possible
-  const voice = pickVoice(lang);
+  // Pick a voice: use explicit override if provided, otherwise pick by language
+  const voice = voiceOverride ?? pickVoice(lang);
 
   const response = await fetch(url, {
     method: "POST",
@@ -130,10 +130,16 @@ export const voiceRouter = router({
       z.object({
         text: z.string().min(1).max(4096),
         lang: z.string().nullish(),
+        /** Optional voice override. If omitted, pickVoice() selects based on lang. */
+        voice: z.enum(["alloy", "echo", "fable", "onyx", "nova", "shimmer"]).nullish(),
       })
     )
     .mutation(async ({ input }) => {
-      const audioBuffer = await synthesizeSpeech(input.text, input.lang ?? undefined);
+      const audioBuffer = await synthesizeSpeech(
+        input.text,
+        input.lang ?? undefined,
+        input.voice ?? undefined,
+      );
       return {
         audioBase64: audioBuffer.toString("base64"),
         mimeType: "audio/mpeg" as const,

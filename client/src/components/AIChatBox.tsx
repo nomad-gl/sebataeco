@@ -168,6 +168,23 @@ export function AIChatBox({
     });
   }, []);
 
+  type TtsVoice = "nova" | "shimmer" | "alloy" | "fable";
+  /** Selected TTS voice — persisted to localStorage */
+  const [ttsVoice, setTtsVoice] = useState<TtsVoice>(() => {
+    const saved = localStorage.getItem("seba_tts_voice");
+    return (["nova", "shimmer", "alloy", "fable"] as TtsVoice[]).includes(saved as TtsVoice)
+      ? (saved as TtsVoice)
+      : "nova";
+  });
+  const [showVoicePicker, setShowVoicePicker] = useState(false);
+
+  const TTS_VOICES: { id: TtsVoice; labelKey: "tts_voice_nova" | "tts_voice_shimmer" | "tts_voice_alloy" | "tts_voice_fable"; descKey: "tts_voice_nova_desc" | "tts_voice_shimmer_desc" | "tts_voice_alloy_desc" | "tts_voice_fable_desc" }[] = [
+    { id: "nova",    labelKey: "tts_voice_nova",    descKey: "tts_voice_nova_desc" },
+    { id: "shimmer", labelKey: "tts_voice_shimmer", descKey: "tts_voice_shimmer_desc" },
+    { id: "alloy",   labelKey: "tts_voice_alloy",   descKey: "tts_voice_alloy_desc" },
+    { id: "fable",   labelKey: "tts_voice_fable",   descKey: "tts_voice_fable_desc" },
+  ];
+
   /** True on any mobile/tablet device — kept for layout-only decisions (input row direction) */
   const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
@@ -183,6 +200,48 @@ export function AIChatBox({
   const uploadAudioMutation = trpc.voice.uploadAudio.useMutation();
   const transcribeMutation = trpc.voice.transcribe.useMutation();
   const ttsMutation = trpc.voice.tts.useMutation();
+  const ttsPrefetchMutation = trpc.voice.tts.useMutation();
+
+  /** Cache of pre-fetched TTS audio blobs keyed by prompt text */
+  const ttsCacheRef = useRef<Map<string, string>>(new Map());
+
+  /** Pre-fetch TTS audio for all suggested prompts in the background */
+  useEffect(() => {
+    if (!ttsEnabled || !suggestedPrompts || suggestedPrompts.length === 0) return;
+    const langCode = document.documentElement.lang || navigator.language || "en";
+    // Clear cache when voice or language changes
+    ttsCacheRef.current.clear();
+    let cancelled = false;
+    const prefetch = async () => {
+      for (const prompt of suggestedPrompts) {
+        if (cancelled) break;
+        try {
+          const result = await ttsPrefetchMutation.mutateAsync({
+            text: prompt.slice(0, 4096),
+            lang: langCode,
+            voice: ttsVoice,
+          });
+          if (!cancelled) {
+            const byteChars = atob(result.audioBase64);
+            const byteArr = new Uint8Array(byteChars.length);
+            for (let i = 0; i < byteChars.length; i++) byteArr[i] = byteChars.charCodeAt(i);
+            const blob = new Blob([byteArr], { type: result.mimeType });
+            const url = URL.createObjectURL(blob);
+            ttsCacheRef.current.set(prompt, url);
+          }
+        } catch {
+          // Silently skip pre-fetch failures
+        }
+      }
+    };
+    // Small delay so the main chat UI loads first
+    const timer = setTimeout(prefetch, 2000);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ttsEnabled, ttsVoice, suggestedPrompts]);
 
   // ─── TTS playback via OpenAI neural voice (server-side) ──────────────────────
   // We call the server-side voice.tts procedure which uses OpenAI tts-1-hd for
@@ -278,6 +337,7 @@ export function AIChatBox({
       const result = await ttsMutation.mutateAsync({
         text: plainText.slice(0, 4096),
         lang: langCode,
+        voice: ttsVoice,
       });
 
       if (cancelledRef.current) { setIsSpeaking(false); return; }
@@ -314,7 +374,7 @@ export function AIChatBox({
         setIsSpeaking(false);
       }
     }
-  }, [ttsEnabled, hasSpeechSynthesis, speechRate, ttsMutation, playBrowserTTS]);
+  }, [ttsEnabled, hasSpeechSynthesis, speechRate, ttsMutation, playBrowserTTS, ttsVoice]);
 
   // Auto-play TTS when a new assistant message finishes streaming
   // We watch the content of the last assistant message + isLoading so we
@@ -550,7 +610,23 @@ export function AIChatBox({
                   {suggestedPrompts.map((prompt, index) => (
                     <button
                       key={index}
-                      onClick={() => onSendMessage(prompt)}
+                      onClick={() => {
+                        // If TTS is enabled and we have a pre-cached audio URL, play it instantly
+                        if (ttsEnabled) {
+                          const cachedUrl = ttsCacheRef.current.get(prompt);
+                          if (cachedUrl) {
+                            cancelledRef.current = false;
+                            setIsSpeaking(true);
+                            const audio = new Audio(cachedUrl);
+                            audio.playbackRate = speechRate;
+                            audioRef.current = audio;
+                            audio.onended = () => { audioRef.current = null; setIsSpeaking(false); };
+                            audio.onerror = () => { audioRef.current = null; setIsSpeaking(false); };
+                            audio.play().catch(() => setIsSpeaking(false));
+                          }
+                        }
+                        onSendMessage(prompt);
+                      }}
                       disabled={isLoading}
                       className="rounded-lg border border-white/25 bg-white/10 text-white px-4 py-2 text-sm transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
                     >
@@ -788,6 +864,46 @@ export function AIChatBox({
             >
               {speechRate === 0.75 ? "0.75×" : speechRate === 1.25 ? "1.25×" : "1×"}
             </Button>
+          )}
+
+          {/* Voice picker — only shown when TTS is enabled */}
+          {ttsEnabled && (
+            <div className="relative">
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                onClick={() => setShowVoicePicker(v => !v)}
+                title={`TTS voice: ${ttsVoice} — click to change`}
+                className="shrink-0 h-[38px] w-[38px] text-blue-300/70 hover:text-blue-200 hover:bg-blue-500/10 text-[10px] font-semibold uppercase tracking-wide"
+              >
+                {ttsVoice.slice(0, 3)}
+              </Button>
+              {showVoicePicker && (
+                <div className="absolute bottom-full right-0 mb-2 w-52 rounded-xl border border-white/15 bg-indigo-950/95 backdrop-blur-sm shadow-xl z-50 overflow-hidden">
+                  <div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-widest text-white/40 border-b border-white/10">
+                    {t("tts_voice_label")}
+                  </div>
+                  {TTS_VOICES.map(v => (
+                    <button
+                      key={v.id}
+                      onClick={() => {
+                        setTtsVoice(v.id);
+                        localStorage.setItem("seba_tts_voice", v.id);
+                        setShowVoicePicker(false);
+                      }}
+                      className={cn(
+                        "w-full flex flex-col items-start px-3 py-2.5 text-left transition-colors hover:bg-white/10",
+                        ttsVoice === v.id ? "bg-blue-500/20 text-white" : "text-white/70"
+                      )}
+                    >
+                      <span className="text-sm font-medium">{t(v.labelKey)}</span>
+                      <span className="text-[11px] text-white/40 mt-0.5">{t(v.descKey)}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
 
           {/* Always-on toggle (Radio icon) — desktop only */}

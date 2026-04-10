@@ -1252,3 +1252,16 @@
 - [x] Wire voice.tts mutation into AIChatBox to replace browser SpeechSynthesis
 - [x] Fall back to browser SpeechSynthesis if the server TTS call fails
 - [x] Keep speech rate control working with the new audio player (HTMLAudioElement.playbackRate)
+
+## Feature: TTS Voice Selector
+- [x] Extend voice.tts server procedure to accept optional voice parameter (nova, shimmer, alloy, fable)
+- [x] Add ttsVoice state to AIChatBox persisted to localStorage (seba_tts_voice)
+- [x] Add voice picker dropdown in chat toolbar (4 voice options with descriptions, 3-letter abbreviation button)
+- [x] Pass selected voice to the ttsMutation call
+- [x] i18n keys for voice names and selector label in EN/ES/CA
+
+## Feature: Pre-cache TTS for Suggested Prompts
+- [x] On chat page load (2s delay), pre-fetch TTS audio for all 6 suggested prompts in the background
+- [x] Store pre-cached audio blob URLs in a Map keyed by prompt text
+- [x] When a suggested prompt chip is tapped, play from cache instantly (no server round-trip)
+- [x] Cache is invalidated when ttsVoice or suggestedPrompts changes
