@@ -1228,3 +1228,8 @@
 - [x] Diagnose: lomloe.chat mutation called by unauthenticated user returns HTML (login redirect) not JSON
 - [x] Fix: intercept non-JSON/HTML responses in tRPC fetch wrapper and convert to synthetic tRPC error; add SILENT_MUTATION_PATHS to suppress noisy global logs for lomloe.chat and lomloe.translateMessages
 - [x] Verify no regression for authenticated users (69/69 tests pass, TS 0 errors)
+
+## Bug: AINA chat returns error on production for logged-in users
+- [x] Diagnose: tRPC client sends null for optional fields (userId, competency, yearGroup, caDialect) but server schema used z.optional() which rejects null — causes BAD_REQUEST 400
+- [x] Fix: changed all optional fields in lomloe.chat input schema to z.nullish() to accept both null and undefined
+- [x] Verify: curl with null values returns HTTP 200, 69/69 tests pass

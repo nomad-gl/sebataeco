@@ -472,14 +472,14 @@ export const lomloeRouter = router({
             content: z.string(),
           })
         ),
-        competency: CompetencyCodeSchema.optional(),
-        yearGroup: YearGroupSchema.optional(),
+        competency: CompetencyCodeSchema.nullish(),
+        yearGroup: YearGroupSchema.nullish(),
         /** Active UI language — Aina must always respond in this language */
-        uiLang: z.enum(["en", "es", "ca"]).optional(),
+        uiLang: z.enum(["en", "es", "ca"]).nullish(),
         /** Catalan dialect variant — only relevant when uiLang is 'ca' */
-        caDialect: z.enum(["central", "valencian", "balearic", "northern", "alguerese", "standard"]).optional(),
+        caDialect: z.enum(["central", "valencian", "balearic", "northern", "alguerese", "standard"]).nullish(),
         /** Authenticated user ID — used to load/update the adaptive profile */
-        userId: z.number().optional(),
+        userId: z.number().nullish(),
       })
     )
     .mutation(async ({ input }) => {
@@ -616,8 +616,8 @@ Guidelines:
             input.userId,
             lastUserMsg.content,
             content,
-            input.competency,
-            input.yearGroup,
+            input.competency ?? undefined,
+            input.yearGroup ?? undefined,
             langName
           ).catch(() => {/* silently ignore */});
         }
