@@ -1,7 +1,9 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { z } from "zod";
+import { getDb } from "./db";
 import { lomloeRouter } from "./routers/lomloe";
 import { materialsRouter } from "./routers/materials";
 import { challengeRouter } from "./routers/challenge";
@@ -29,6 +31,16 @@ export const appRouter = router({
         success: true,
       } as const;
     }),
+    setTtsVoice: protectedProcedure
+      .input(z.object({ voice: z.enum(["nova", "shimmer", "alloy", "fable"]) }))
+      .mutation(async ({ ctx, input }) => {
+        const dbConn = await getDb();
+        if (!dbConn) return { success: false };
+        const { users } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        await dbConn.update(users).set({ ttsVoice: input.voice }).where(eq(users.id, ctx.user.id));
+        return { success: true };
+      }),
   }),
   lomloe: lomloeRouter,
   materials: materialsRouter,

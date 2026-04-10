@@ -11,6 +11,7 @@ import { Streamdown } from "streamdown";
 import { useAinaWakeWord } from "@/hooks/useAinaWakeWord";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 /**
  * Message type matching server-side LLM Message interface
@@ -146,6 +147,7 @@ export function AIChatBox({
   retryLabel = "Try again",
 }: AIChatBoxProps) {
   const { lang, t } = useI18n();
+  const { user } = useAuth();
   const [input, setInput] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
@@ -198,6 +200,22 @@ export function AIChatBox({
     localStorage.setItem("seba_tts_voice", best);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lang]);
+
+  /** Mutation to persist voice preference to the user's DB profile */
+  const setTtsVoiceMutation = trpc.auth.setTtsVoice.useMutation();
+
+  /** On login: load voice preference from DB and apply (if user has a saved value) */
+  useEffect(() => {
+    if (!user) return;
+    const dbVoice = (user as { ttsVoice?: string }).ttsVoice;
+    if (dbVoice && (["nova", "shimmer", "alloy", "fable"] as string[]).includes(dbVoice)) {
+      setTtsVoice(dbVoice as TtsVoice);
+      localStorage.setItem("seba_tts_voice", dbVoice);
+      // If they have a DB preference, treat it as a manual override
+      localStorage.setItem("seba_tts_voice_manual", "1");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const TTS_VOICES: { id: TtsVoice; labelKey: "tts_voice_nova" | "tts_voice_shimmer" | "tts_voice_alloy" | "tts_voice_fable"; descKey: "tts_voice_nova_desc" | "tts_voice_shimmer_desc" | "tts_voice_alloy_desc" | "tts_voice_fable_desc" }[] = [
     { id: "nova",    labelKey: "tts_voice_nova",    descKey: "tts_voice_nova_desc" },
@@ -900,7 +918,7 @@ export function AIChatBox({
             size="icon"
             variant="ghost"
             onClick={() => { setTtsEnabled(v => !v); if (isSpeaking) stopSpeaking(); }}
-            title={ttsEnabled ? "Voice responses: ON — click to mute" : "Voice responses: OFF — click to enable"}
+            title={ttsEnabled ? `Voice responses: ON (${ttsVoice.charAt(0).toUpperCase() + ttsVoice.slice(1)}) — click to mute` : "Voice responses: OFF — click to enable"}
             className={cn(
               "shrink-0 h-[38px] w-[38px]",
               ttsEnabled
@@ -958,6 +976,8 @@ export function AIChatBox({
                           localStorage.setItem("seba_tts_voice_manual", "1");
                           setShowVoicePicker(false);
                           stopVoicePreview();
+                          // Persist to DB if logged in
+                          if (user) setTtsVoiceMutation.mutate({ voice: v.id });
                         }}
                         className={cn(
                           "flex-1 flex flex-col items-start px-3 py-2.5 text-left",

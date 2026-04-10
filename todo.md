@@ -1277,3 +1277,15 @@
 - [x] Only auto-switches if seba_tts_voice_manual flag is NOT set in localStorage
 - [x] Manual selection in picker sets seba_tts_voice_manual=1 to lock the choice
 - [x] defaultVoiceForLang() helper also used on initial mount to set correct default
+
+## Feature: Voice Name in TTS Toggle Tooltip
+- [x] TTS toggle button title now shows active voice name e.g. "Voice responses: ON (Nova) — click to mute"
+- [x] Uses template literal with capitalised voice name (no new i18n keys needed)
+
+## Feature: Persist TTS Voice Preference to User Profile
+- [x] Added ttsVoice ENUM column to users table in drizzle/schema.ts
+- [x] Applied migration SQL directly (ALTER TABLE users ADD COLUMN ttsVoice)
+- [x] Added auth.setTtsVoice protectedProcedure mutation in server/routers.ts
+- [x] On login: useEffect loads ttsVoice from user object (via auth.me) and applies to state + localStorage
+- [x] On voice change in picker: setTtsVoiceMutation.mutate() saves to DB if user is logged in
+- [x] Manual override flag set in localStorage when DB preference loaded

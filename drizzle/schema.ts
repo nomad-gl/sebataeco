@@ -13,6 +13,7 @@ export const users = mysqlTable("users", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
+  ttsVoice: mysqlEnum("ttsVoice", ["nova", "shimmer", "alloy", "fable"]).default("nova"),
 });
 
 export type User = typeof users.$inferSelect;
