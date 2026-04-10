@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -110,10 +110,17 @@ export default function Chat() {
         },
       ]);
     } catch (err) {
+      // Build a debug string to help diagnose production failures
+      let debugInfo = "";
+      if (err instanceof Error) {
+        debugInfo = ` [${err.name}: ${err.message.slice(0, 150)}]`;
+      } else if (typeof err === "object" && err !== null) {
+        try { debugInfo = ` [${JSON.stringify(err).slice(0, 150)}]`; } catch { /* ignore */ }
+      }
       console.error("[AINA chat error]", err);
       setMessages([
         ...newMessages,
-        { role: "assistant", content: t("chat_error"), timestamp: Date.now() },
+        { role: "assistant", content: t("chat_error") + debugInfo, timestamp: Date.now() },
       ]);
     }
   };

@@ -1301,3 +1301,9 @@
 - [x] Amber ⚠ notice shown at top of voice picker when no voices are available
 - [x] tts_no_voice_notice i18n key added in EN/ES/CA
 - [x] TypeScript: 0 errors
+
+## Bug: AINA chat works in preview but not on published site
+- [x] Diagnose why lomloe.chat fails on sebataeco.com but works in dev preview
+- [x] Added debug error info to chat error bubble (error name + message shown inline) to identify exact failure on production
+- [ ] Fix root cause once error type is confirmed by user
+- [ ] Verify on production
