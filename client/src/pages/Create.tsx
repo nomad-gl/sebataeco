@@ -440,7 +440,7 @@ export default function Create() {
   const saveMutation = trpc.materials.save.useMutation({
     onSuccess: (data) => {
       toast.success(`${data.title} ${t("save")}d!`);
-      navigate(`/materials/${data.id}`);
+      navigate("/my-materials");
     },
     onError: (err) => {
       toast.error(err.message || t("error"));

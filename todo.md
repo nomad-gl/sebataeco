@@ -1399,8 +1399,8 @@
 - [x] Add navigator.vibrate([100,50,100,50,200]) pattern on win
 
 ## Feature: Move PARAULA into Create Teaching Materials page
-- [ ] Add 'paraula' activity type to Create page activity selector with Gamepad2 icon
-- [ ] Add LLM prompt in materials router to generate 5-letter Catalan/Spanish/English words from a topic
-- [ ] Add MaterialView renderer for paraula type (embeds the full playable Paraula game with topic words)
-- [ ] Remove standalone Paraula nav item from NavBar (game accessible via Create page)
-- [ ] Keep /paraula route accessible but redirect or repurpose it
+- [x] Add 'paraula' activity type to Create page activity selector with Gamepad2 icon
+- [x] Add LLM prompt in materials router to generate 5-letter Catalan/Spanish/English words from a topic
+- [x] Add MaterialView renderer for paraula type (embeds the full playable Paraula game with topic words)
+- [x] Remove standalone Paraula nav item from NavBar (game accessible via Create page)
+- [x] Keep /paraula route accessible but redirect or repurpose it
