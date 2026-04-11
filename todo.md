@@ -1419,3 +1419,14 @@
 - [x] Swipe-to-delete gesture on material cards (mobile)
 - [x] Filter pills by material type (horizontal scrollable row)
 - [x] Search input to filter materials by title
+
+## Feature: My Materials - sort, bulk delete, share
+- [ ] Sort toggle (newest/oldest/A-Z) on My Materials page
+- [ ] Bulk delete mode: select multiple cards and delete all at once
+- [ ] Share link: generate a read-only public link for any material
+
+## Feature: PARAULA challenge room
+- [ ] Server procedure to create a PARAULA room from a saved paraula material
+- [ ] Teacher lobby: show room code + QR, list students as they join
+- [ ] Student join flow: enter room code, see the PARAULA board, play live
+- [ ] Live leaderboard: show scores after each round

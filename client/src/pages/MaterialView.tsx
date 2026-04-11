@@ -705,14 +705,26 @@ function FlashcardsViewer({ content }: { content: FlashcardsContent }) {
 
 function PaRaulaViewer({ content, materialTitle, topic }: { content: { words: string[]; clues: string[]; lang: string }; materialTitle: string; topic: string }) {
   const { words = [], clues = [], lang = "ca" } = content;
+  const [, navigate] = useLocation();
+  // Build word+clue pairs for the standalone game URL
+  const gameWords = words.map((w, i) => ({ word: w, clue: clues[i] ?? "" }));
+  const gameParam = encodeURIComponent(JSON.stringify(gameWords));
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-3 p-3 rounded-xl bg-orange-500/10 border border-orange-500/20">
         <div className="text-2xl font-black tracking-widest text-orange-500">PARAULA</div>
-        <div className="flex flex-col">
+        <div className="flex-1 flex flex-col">
           <span className="text-sm font-semibold text-foreground">{materialTitle}</span>
           <span className="text-xs text-muted-foreground">{topic} · {words.length} words · {lang.toUpperCase()}</span>
         </div>
+        <Button
+          size="sm"
+          className="gap-1.5 bg-orange-500 hover:bg-orange-600 text-white flex-shrink-0"
+          onClick={() => navigate(`/paraula?words=${gameParam}`)}
+        >
+          <span className="text-base">▶</span> Play
+        </Button>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {words.map((w, i) => (

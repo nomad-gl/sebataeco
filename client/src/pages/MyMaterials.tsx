@@ -18,7 +18,8 @@ import { toast } from "sonner";
 import {
   Loader2, Plus, Trash2, ExternalLink, BookOpen, Presentation,
   Grid3X3, AlignLeft, Search, CreditCard, Lock, Zap, Download,
-  FileText, RefreshCw, ArrowLeft,
+  FileText, RefreshCw, ArrowLeft, ArrowUpDown, CheckSquare, Square,
+  Share2, Copy, Check, SortAsc, SortDesc,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
@@ -105,6 +106,14 @@ export default function MyMaterials() {
   const swipeStartY = useRef<number>(0);
   const swipeCardId = useRef<number | null>(null);
 
+  // Sort state: 'newest' | 'oldest' | 'az'
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'az'>('newest');
+  // Bulk delete state
+  const [bulkMode, setBulkMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  // Share state
+  const [copiedId, setCopiedId] = useState<number | null>(null);
+
   // Import dialog state
   const [importOpen, setImportOpen] = useState(false);
   const [selectedPres, setSelectedPres] = useState<SebasnapItem | null>(null);
@@ -171,13 +180,47 @@ export default function MyMaterials() {
 
   const presentations = sebasnapData?.presentations ?? [];
 
-  // Derived: filtered + searched materials
+  // Derived: filtered + searched + sorted materials
   const allTypes = Array.from(new Set((materials ?? []).map((m) => m.type)));
-  const filteredMaterials = (materials ?? []).filter((m) => {
-    const matchesType = activeFilter === "all" || m.type === activeFilter;
-    const matchesSearch = !searchQuery.trim() || m.title.toLowerCase().includes(searchQuery.trim().toLowerCase());
-    return matchesType && matchesSearch;
-  });
+  const filteredMaterials = (materials ?? [])
+    .filter((m) => {
+      const matchesType = activeFilter === "all" || m.type === activeFilter;
+      const matchesSearch = !searchQuery.trim() || m.title.toLowerCase().includes(searchQuery.trim().toLowerCase());
+      return matchesType && matchesSearch;
+    })
+    .sort((a, b) => {
+      if (sortOrder === 'newest') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      if (sortOrder === 'oldest') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      return a.title.localeCompare(b.title);
+    });
+
+  // Bulk delete helpers
+  function toggleSelect(id: number) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+  async function bulkDelete() {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Delete ${selectedIds.size} material${selectedIds.size > 1 ? 's' : ''}?`)) return;
+    for (const id of Array.from(selectedIds)) {
+      await deleteMutation.mutateAsync({ id });
+    }
+    setSelectedIds(new Set());
+    setBulkMode(false);
+  }
+
+  // Share helper: copy public material URL to clipboard
+  function shareLink(id: number) {
+    const url = `${window.location.origin}/materials/${id}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedId(id);
+      toast.success('Link copied to clipboard');
+      setTimeout(() => setCopiedId(null), 2000);
+    });
+  }
 
   // Swipe handlers
   function handleTouchStart(e: React.TouchEvent, id: number) {
@@ -243,7 +286,7 @@ export default function MyMaterials() {
               {materials?.length ?? 0} {t("my_materials_subtitle")}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {/* Import from SEBA Snap button */}
             <Button
               variant="outline"
@@ -258,6 +301,37 @@ export default function MyMaterials() {
               <Plus className="w-4 h-4" /> <span>{t("my_materials_create")}</span>
             </Button>
           </div>
+          {/* Sort + Bulk row */}
+          {materials && materials.length > 1 && (
+            <div className="flex gap-2">
+              {/* Sort cycle button */}
+              <button
+                onClick={() => setSortOrder(s => s === 'newest' ? 'oldest' : s === 'oldest' ? 'az' : 'newest')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white/80 text-xs hover:bg-white/20 transition-colors"
+              >
+                {sortOrder === 'az' ? <SortAsc className="w-3.5 h-3.5" /> : sortOrder === 'oldest' ? <SortAsc className="w-3.5 h-3.5 rotate-180" /> : <ArrowUpDown className="w-3.5 h-3.5" />}
+                {sortOrder === 'newest' ? 'Newest' : sortOrder === 'oldest' ? 'Oldest' : 'A–Z'}
+              </button>
+              {/* Bulk select toggle */}
+              <button
+                onClick={() => { setBulkMode(b => !b); setSelectedIds(new Set()); }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors ${
+                  bulkMode ? 'bg-red-500/80 text-white' : 'bg-white/10 text-white/80 hover:bg-white/20'
+                }`}
+              >
+                <CheckSquare className="w-3.5 h-3.5" />
+                {bulkMode ? `${selectedIds.size} selected` : 'Select'}
+              </button>
+              {bulkMode && selectedIds.size > 0 && (
+                <button
+                  onClick={bulkDelete}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs hover:bg-red-700 transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Delete {selectedIds.size}
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Search input */}
@@ -337,12 +411,14 @@ export default function MyMaterials() {
               const Icon = TYPE_ICONS[m.type] ?? BookOpen;
               const colorClass = TYPE_COLORS[m.type] ?? "from-gray-400 to-gray-500";
               const isSwiped = swipedId === m.id;
+              const isSelected = selectedIds.has(m.id);
               return (
                 <div
                   key={m.id}
                   className="relative overflow-hidden rounded-xl"
-                  onTouchStart={(e) => handleTouchStart(e, m.id)}
-                  onTouchEnd={(e) => handleTouchEnd(e, m.id)}
+                  onTouchStart={(e) => !bulkMode && handleTouchStart(e, m.id)}
+                  onTouchEnd={(e) => !bulkMode && handleTouchEnd(e, m.id)}
+                  onClick={() => bulkMode && toggleSelect(m.id)}
                 >
                   {/* Swipe-to-delete background */}
                   <div className="absolute inset-y-0 right-0 flex items-center justify-end bg-red-500 rounded-xl px-5">
@@ -350,14 +426,24 @@ export default function MyMaterials() {
                   </div>
                   {/* Card content — slides left on swipe */}
                   <Card
-                    className={`relative bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-transform duration-200 ${
+                    className={`relative backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-200 ${
                       isSwiped ? "-translate-x-20" : "translate-x-0"
+                    } ${
+                      isSelected ? 'bg-white/25 ring-2 ring-white/60' : 'bg-white/10'
                     }`}
                     onClick={() => { if (isSwiped) { setSwipedId(null); } }}
                   >
                     <CardContent className="p-3 flex flex-col gap-3">
                       {/* Top row: icon + title + delete */}
                       <div className="flex items-start gap-3">
+                        {/* Bulk checkbox */}
+                        {bulkMode && (
+                          <div className="flex-shrink-0 mt-0.5">
+                            {isSelected
+                              ? <CheckSquare className="w-5 h-5 text-white" />
+                              : <Square className="w-5 h-5 text-white/50" />}
+                          </div>
+                        )}
                         <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${colorClass} flex items-center justify-center flex-shrink-0`}>
                           <Icon className="w-5 h-5 text-white" />
                         </div>
@@ -379,18 +465,25 @@ export default function MyMaterials() {
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       </div>
-                      {/* Bottom row: action buttons */}
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline"
-                          className="flex-1 gap-1.5 border-yellow-400/50 text-yellow-300 hover:bg-yellow-500/20 bg-transparent"
-                          onClick={(e) => { e.stopPropagation(); window.location.href = `/challenge?materialId=${m.id}&materialTitle=${encodeURIComponent(m.title)}`; }}>
-                          <Zap className="w-3.5 h-3.5" /> {t("nav_challenge")}
-                        </Button>
-                        <Button size="sm" variant="outline" className="flex-1 gap-1.5 border-white/25 text-white/80 hover:bg-white/15 bg-transparent"
-                          onClick={(e) => { e.stopPropagation(); navigate(`/materials/${m.id}`); }}>
-                          <ExternalLink className="w-3.5 h-3.5" /> {t("my_materials_open")}
-                        </Button>
-                      </div>
+                      {/* Bottom row: action buttons (hidden in bulk mode) */}
+                      {!bulkMode && (
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline"
+                            className="flex-1 gap-1.5 border-yellow-400/50 text-yellow-300 hover:bg-yellow-500/20 bg-transparent"
+                            onClick={(e) => { e.stopPropagation(); window.location.href = `/challenge?materialId=${m.id}&materialTitle=${encodeURIComponent(m.title)}`; }}>
+                            <Zap className="w-3.5 h-3.5" /> {t("nav_challenge")}
+                          </Button>
+                          <Button size="sm" variant="outline" className="flex-1 gap-1.5 border-white/25 text-white/80 hover:bg-white/15 bg-transparent"
+                            onClick={(e) => { e.stopPropagation(); navigate(`/materials/${m.id}`); }}>
+                            <ExternalLink className="w-3.5 h-3.5" /> {t("my_materials_open")}
+                          </Button>
+                          <Button size="sm" variant="ghost"
+                            className="px-2 text-white/60 hover:text-white hover:bg-white/15"
+                            onClick={(e) => { e.stopPropagation(); shareLink(m.id); }}>
+                            {copiedId === m.id ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Share2 className="w-3.5 h-3.5" />}
+                          </Button>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                   {/* Swipe delete confirm button (visible when swiped) */}

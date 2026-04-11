@@ -89,6 +89,28 @@ export const challengeRouter = router({
             competency: card.competencyHint ?? "",
           };
         });
+      } else if (row.type === "paraula") {
+        // PARAULA: each word becomes a "What word matches this clue?" question
+        const words = (rawContent.words ?? []) as Array<{ word: string; clue: string }>;
+        if (words.length < 2) throw new Error("Not enough PARAULA words to create a challenge.");
+        const shuffled = [...words].sort(() => Math.random() - 0.5);
+        questions = shuffled.slice(0, Math.min(10, shuffled.length)).map((w, i) => {
+          // Build 3 distractor words from the same list
+          const distractors = words
+            .filter((x) => x.word !== w.word)
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 3)
+            .map((x) => x.word.toUpperCase());
+          const opts = [w.word.toUpperCase(), ...distractors].sort(() => Math.random() - 0.5);
+          return {
+            id: `paraula-${input.materialId}-${i}`,
+            question: `Quina paraula de 5 lletres significa: "${w.clue}"?`,
+            options: opts,
+            correctIndex: opts.indexOf(w.word.toUpperCase()),
+            explanation: `La paraula correcta és ${w.word.toUpperCase()}.`,
+            competency: "CCL",
+          };
+        });
       } else {
         // For slides, crossword, missing_words, wordsearch — derive MCQs via LLM
         const contentSummary = JSON.stringify(rawContent).slice(0, 3000);

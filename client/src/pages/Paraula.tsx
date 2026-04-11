@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { scoreGuess, buildKeyboardState, generateShareGrid, getDayNumber, WORD_LENGTH, MAX_GUESSES, type TileState } from "./paraula/gameLogic";
 import { getDailyWord, getValidSet, stripAccents, type GameLang } from "./paraula/wordLists";
 import { useParaulaT, type ParaulaLang } from "./paraula/i18n";
@@ -125,10 +125,36 @@ export default function Paraula() {
   const [showSettings, setShowSettings] = useState(false);
   const [hardMode] = useState(false);
 
+  // Check for custom word list from a PARAULA material (?words=JSON)
+  const customWords = useMemo(() => {
+    try {
+      const param = new URLSearchParams(window.location.search).get('words');
+      if (param) {
+        const parsed = JSON.parse(decodeURIComponent(param)) as Array<{ word: string; clue: string }>;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch { /* ignore */ }
+    return null;
+  }, []);
+
+  // Custom mode: cycle through the material's words by day index
   const dayNum = getDayNumber();
-  const answer = getDailyWord(gameLang);
+  const answer = customWords
+    ? customWords[dayNum % customWords.length].word.toUpperCase()
+    : getDailyWord(gameLang);
   const normAnswer = stripAccents(answer);
-  const validSet = getValidSet(gameLang);
+  const validSet = useMemo(() => {
+    if (customWords) {
+      // Accept all words in the custom list + the standard valid set
+      const base = getValidSet(gameLang);
+      const extra = new Set(customWords.map(w => stripAccents(w.word.toUpperCase())));
+      const combined = new Set<string>();
+      base.forEach(w => combined.add(w));
+      extra.forEach(w => combined.add(w));
+      return combined;
+    }
+    return getValidSet(gameLang);
+  }, [gameLang, customWords]);
 
   // Game state
   const [guesses, setGuesses] = useState<GuessResult[]>([]);
@@ -295,9 +321,20 @@ export default function Paraula() {
         </div>
       </header>
 
-      {/* ─── Day badge ─── */}
-      <div className="text-center py-1">
-        <span className={`text-xs ${darkMode ? "text-[#818384]" : "text-[#787c7e]"}`}>{t.day} #{dayNum}</span>
+      {/* ─── Day badge / custom mode banner ─── */}
+      <div className="text-center py-1 flex flex-col items-center gap-0.5">
+        {customWords ? (
+          <>
+            <span className={`text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full ${
+              darkMode ? 'bg-orange-500/20 text-orange-400' : 'bg-orange-100 text-orange-600'
+            }`}>📚 Topic Mode</span>
+            <span className={`text-xs ${darkMode ? 'text-[#818384]' : 'text-[#787c7e]'}`}>
+              Clue: <em>{customWords[dayNum % customWords.length].clue}</em>
+            </span>
+          </>
+        ) : (
+          <span className={`text-xs ${darkMode ? "text-[#818384]" : "text-[#787c7e]"}`}>{t.day} #{dayNum}</span>
+        )}
       </div>
 
       {/* ─── Board ─── */}
