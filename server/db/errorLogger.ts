@@ -36,7 +36,7 @@ export async function logError(input: ErrorLogInput): Promise<number | null> {
       context: input.context ? JSON.stringify(input.context) : null,
       requiresEscalation: input.requiresEscalation ?? false,
     });
-    return (result as unknown as { insertId: number }).insertId ?? null;
+    return (result as unknown as [{ insertId: number }])[0].insertId ?? null;
   } catch {
     // Logger must never throw — swallow silently
     return null;

@@ -235,7 +235,7 @@ export const progressRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
-      const [result] = await db.insert(assignments).values({
+      const result = await db.insert(assignments).values({
         groupId: input.groupId,
         userId: ctx.user.id,
         title: input.title,
@@ -244,7 +244,7 @@ export const progressRouter = router({
         dueDate: input.dueDate ? new Date(input.dueDate) : null,
         frequency: input.frequency,
       });
-      return { id: (result as any).insertId };
+      return { id: (result as any)[0].insertId };
     }),
 
   /** List assignments for a group */

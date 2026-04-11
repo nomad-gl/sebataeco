@@ -92,7 +92,7 @@ const gradeOverrideRouter = router({
           ? summaryResponse.choices[0].message.content
           : `Student completed ${totalSessions} practice sessions in ${competencyName} with an average score of ${avgScore}%.`;
 
-      const [result] = await db.insert(aiAssessments).values({
+      const result = await db.insert(aiAssessments).values({
         teacherId: ctx.user.id,
         studentId: input.studentId,
         competency: input.competency,
@@ -103,7 +103,7 @@ const gradeOverrideRouter = router({
         overridden: false,
       });
 
-      return { id: (result as { insertId: number }).insertId, aiScore: avgScore, aiSummary };
+      return { id: (result as unknown as [{ insertId: number }])[0].insertId, aiScore: avgScore, aiSummary };
     }),
 
   /** List all AI assessments created by this teacher. */
@@ -386,7 +386,7 @@ Generate a 4-6 step personalised learning path with a full justification.`,
       const raw = response.choices?.[0]?.message?.content ?? "{}";
       const parsed = JSON.parse(typeof raw === "string" ? raw : JSON.stringify(raw));
 
-      const [result] = await db.insert(aiLearningPaths).values({
+      const result = await db.insert(aiLearningPaths).values({
         teacherId: ctx.user.id,
         studentId: input.studentId,
         competency: input.competency,
@@ -398,7 +398,7 @@ Generate a 4-6 step personalised learning path with a full justification.`,
       });
 
       return {
-        id: (result as { insertId: number }).insertId,
+        id: (result as unknown as [{ insertId: number }])[0].insertId,
         steps: parsed.steps ?? [],
         justification: parsed.justification ?? "",
         lomloeReferences: parsed.lomloeReferences ?? [],

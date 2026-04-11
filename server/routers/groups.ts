@@ -49,13 +49,13 @@ export const groupsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
-      const [result] = await db.insert(classGroups).values({
+      const result = await db.insert(classGroups).values({
         userId: ctx.user.id,
         className: input.className,
         level: input.level,
         assessmentTitle: input.assessmentTitle,
       });
-      return { id: (result as any).insertId as number };
+      return { id: (result as any)[0].insertId as number };
     }),
 
   /** Update a group's details */
@@ -175,13 +175,13 @@ export const groupsRouter = router({
         .orderBy(desc(groupStudents.studentNumber));
       const nextNumber = existing.length > 0 ? existing[0].studentNumber + 1 : 1;
 
-      const [result] = await db.insert(groupStudents).values({
+      const result = await db.insert(groupStudents).values({
         groupId: input.groupId,
         studentNumber: nextNumber,
         name: input.name,
         email: input.email,
       });
-      return { id: (result as any).insertId as number, studentNumber: nextNumber };
+      return { id: (result as any)[0].insertId as number, studentNumber: nextNumber };
     }),
 
   /** Update a student's name and/or email */
@@ -317,13 +317,13 @@ export const groupsRouter = router({
         .where(and(eq(classGroups.id, input.groupId), eq(classGroups.userId, ctx.user.id)));
       if (!group) throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
 
-      const [result] = await db.insert(groupMessages).values({
+      const result = await db.insert(groupMessages).values({
         groupId: input.groupId,
         userId: ctx.user.id,
         subject: input.subject,
         body: input.body,
       });
-      return { id: (result as any).insertId as number };
+      return { id: (result as any)[0].insertId as number };
     }),
 
   // -- Challenge Log ---------------------------------------------------------
@@ -447,12 +447,12 @@ export const groupsRouter = router({
         .where(and(eq(classGroups.id, input.groupId), eq(classGroups.userId, ctx.user.id)));
       if (!group) throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
 
-      const [result] = await db.insert(groupChallengeLog).values({
+      const result = await db.insert(groupChallengeLog).values({
         groupId: input.groupId,
         challengeId: input.challengeId ?? null,
         challengeTitle: input.challengeTitle,
         competencies: JSON.stringify(input.competencies),
       });
-      return { id: (result as any).insertId as number };
+      return { id: (result as any)[0].insertId as number };
     }),
 });

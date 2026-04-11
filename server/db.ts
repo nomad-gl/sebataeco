@@ -116,7 +116,7 @@ export async function saveMaterial(data: InsertTeachingMaterial): Promise<number
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const result = await db.insert(teachingMaterials).values(data);
-  return (result as unknown as { insertId: number }).insertId;
+  return (result as unknown as [{ insertId: number }])[0].insertId;
 }
 
 export async function getMaterialsByUser(userId: number) {
@@ -194,7 +194,7 @@ export async function createChallenge(data: {
     status: "waiting",
     currentQuestion: 0,
   });
-  return (result as unknown as { insertId: number }).insertId;
+  return (result as unknown as [{ insertId: number }])[0].insertId;
 }
 
 export async function getChallengeByCode(roomCode: string) {
@@ -254,7 +254,7 @@ export async function joinChallenge(data: { challengeId: number; nickname: strin
     score: 0,
     answers: null,
   });
-  return (result as unknown as { insertId: number }).insertId;
+  return (result as unknown as [{ insertId: number }])[0].insertId;
 }
 
 export async function submitAnswer(participantId: number, answerIndex: number, correct: boolean) {

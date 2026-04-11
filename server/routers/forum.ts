@@ -142,12 +142,12 @@ export const forumRouter = router({
       await heartbeat(ctx.user.id);
       const db = await getDb();
       if (!db) throw new Error("Database unavailable");
-      const [result] = await db.insert(forumMessages).values({
+      const result = await db.insert(forumMessages).values({
         channelId: input.channelId,
         userId: ctx.user.id,
         body: input.body.trim(),
       });
-      return { id: (result as { insertId: number }).insertId };
+      return { id: (result as unknown as [{ insertId: number }])[0].insertId };
     }),
 
   /** Get all DM conversations for the current user */
@@ -339,13 +339,13 @@ export const forumRouter = router({
       await heartbeat(ctx.user.id);
       const db = await getDb();
       if (!db) throw new Error("Database unavailable");
-      const [result] = await db.insert(forumDirectMessages).values({
+      const result = await db.insert(forumDirectMessages).values({
         fromUserId: ctx.user.id,
         toUserId: input.toUserId,
         body: input.body.trim(),
         read: false,
       });
-      return { id: (result as { insertId: number }).insertId };
+      return { id: (result as unknown as [{ insertId: number }])[0].insertId };
     }),
 
   /** Get all users with their online status */
@@ -404,14 +404,14 @@ export const forumRouter = router({
         // transcription failed — still save the voice message with placeholder
       }
 
-      const [result] = await db.insert(forumMessages).values({
+      const result = await db.insert(forumMessages).values({
         channelId: input.channelId,
         userId: ctx.user.id,
         body: transcript,
         messageType: "voice",
         audioUrl,
       });
-      return { id: (result as { insertId: number }).insertId, transcript, audioUrl };
+      return { id: (result as unknown as [{ insertId: number }])[0].insertId, transcript, audioUrl };
     }),
 
   /** Upload audio data (base64) to S3, transcribe, and post as a voice DM */
@@ -443,7 +443,7 @@ export const forumRouter = router({
         // transcription failed
       }
 
-      const [result] = await db.insert(forumDirectMessages).values({
+      const result = await db.insert(forumDirectMessages).values({
         fromUserId: ctx.user.id,
         toUserId: input.toUserId,
         body: transcript,
@@ -451,7 +451,7 @@ export const forumRouter = router({
         messageType: "voice",
         audioUrl,
       });
-      return { id: (result as { insertId: number }).insertId, transcript, audioUrl };
+      return { id: (result as unknown as [{ insertId: number }])[0].insertId, transcript, audioUrl };
     }),
 
   /** Heartbeat — call every 30s to stay "online" */

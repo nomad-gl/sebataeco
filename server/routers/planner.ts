@@ -40,13 +40,13 @@ export const plannerRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       const { startDate, endDate, ...rest } = input;
-      const [result] = await db.insert(schoolCalendars).values({
+      const result = await db.insert(schoolCalendars).values({
         ...rest,
         userId: ctx.user.id,
         ...(startDate ? { startDate: new Date(startDate) } : {}),
         ...(endDate ? { endDate: new Date(endDate) } : {}),
       });
-      return { id: (result as any).insertId };
+      return { id: (result as any)[0].insertId };
     }),
 
   updateCalendar: protectedProcedure
@@ -116,7 +116,7 @@ export const plannerRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
-      const [result] = await db.insert(schoolCalendarEvents).values({
+      const result = await db.insert(schoolCalendarEvents).values({
         userId: ctx.user.id,
         calendarId: input.calendarId,
         academicYear: input.academicYear,
@@ -129,7 +129,7 @@ export const plannerRouter = router({
         subject: input.subject,
         aiGenerated: false,
       });
-      return { id: (result as any).insertId };
+      return { id: (result as any)[0].insertId };
     }),
 
   updateCalendarEvent: protectedProcedure
@@ -364,8 +364,8 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
         };
 
         // Insert the calendar event
-        const [evResult] = await db.insert(schoolCalendarEvents).values(eventRow);
-        const eventId = (evResult as any).insertId as number;
+        const evResult = await db.insert(schoolCalendarEvents).values(eventRow);
+        const eventId = (evResult as any)[0].insertId as number;
         generatedCount++;
 
         // Auto-create a linked lesson plan seeded with the AI-generated LOMLOE data
@@ -450,8 +450,8 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
       } else {
         // For insert, keep nullish fields as undefined so Drizzle uses column defaults
         const insertData = Object.fromEntries(Object.entries(rawData).map(([k, v]) => [k, v ?? undefined]));
-        const [result] = await db.insert(lessonPlans).values({ ...insertData, title: rawData.title!, userId: ctx.user.id, aiGenerated: (rawData.aiGenerated ?? false) });
-        return { id: (result as any).insertId };
+        const result = await db.insert(lessonPlans).values({ ...insertData, title: rawData.title!, userId: ctx.user.id, aiGenerated: (rawData.aiGenerated ?? false) });
+        return { id: (result as any)[0].insertId };
       }
     }),
 
@@ -546,7 +546,7 @@ Return JSON:
       const jsonStr = jsonMatch[1]?.trim() ?? content;
       const generated = JSON.parse(jsonStr);
 
-      const [result] = await db.insert(lessonPlans).values({
+      const result = await db.insert(lessonPlans).values({
         userId: ctx.user.id,
         title: input.title,
         subject: input.subject,
@@ -569,7 +569,7 @@ Return JSON:
         aiGenerated: true,
       });
 
-      return { id: (result as any).insertId, ...generated };
+      return { id: (result as any)[0].insertId, ...generated };
     }),
 
   /** Link a school calendar to a class group (stores groupId on the calendar) */
@@ -605,7 +605,7 @@ Return JSON:
       const [src] = await db.select().from(lessonPlans).where(and(eq(lessonPlans.id, input.planId), eq(lessonPlans.userId, ctx.user.id)));
       if (!src) throw new Error("Plan not found");
       // Insert a copy flagged as template
-      const [result] = await db.insert(lessonPlans).values({
+      const result = await db.insert(lessonPlans).values({
         userId: ctx.user.id,
         title: src.title,
         subject: src.subject,
@@ -629,7 +629,7 @@ Return JSON:
         isTemplate: true,
         templateName: input.templateName,
       });
-      return { id: (result as any).insertId };
+      return { id: (result as any)[0].insertId };
     }),
 
   /** List all lesson plan templates for the current teacher */
@@ -726,7 +726,7 @@ Return JSON:
           eq(lessonPlans.calendarEventId, input.calendarEventId),
         ));
       if (existing) return { id: existing.id, created: false };
-      const [result] = await db.insert(lessonPlans).values({
+      const result = await db.insert(lessonPlans).values({
         userId: ctx.user.id,
         title: input.title,
         subject: input.subject,
@@ -736,6 +736,6 @@ Return JSON:
         aiGenerated: false,
         duration: 60,
       });
-      return { id: (result as any).insertId, created: true };
+      return { id: (result as any)[0].insertId, created: true };
     }),
 });

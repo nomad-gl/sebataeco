@@ -1468,3 +1468,7 @@
 - [x] Write a group_challenge_log row with competencies from the linked material
 - [x] Teacher results view: show "Save to Group" dialog (same as MCQ challenge) after ending a PARAULA room
 - [x] Wire saveChallengeToGroup to also handle paraula_live room type
+
+## Bug: Server error when Start Challenge button is clicked
+- [x] Diagnose the tRPC/server error triggered by the Start Challenge button
+- [x] Fix the root cause and verify the challenge creation flow works end-to-end
