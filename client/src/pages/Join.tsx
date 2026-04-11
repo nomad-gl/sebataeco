@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Zap, Loader2, CheckCircle2, Trophy, Users, ArrowRight } from "lucide-react";
+import { Zap, Loader2, CheckCircle2, Trophy, Users, ArrowRight, Copy, Check } from "lucide-react";
 import { useI18n } from "@/contexts/I18nContext";
 
 type Phase = "enter" | "waiting" | "question" | "paraula" | "done";
@@ -21,11 +21,9 @@ function scoreGuess(guess: string, target: string): TileState[] {
   const result: TileState[] = Array(5).fill("absent");
   const targetArr = target.split("");
   const used = Array(5).fill(false);
-  // First pass: correct
   for (let i = 0; i < 5; i++) {
     if (guess[i] === targetArr[i]) { result[i] = "correct" as TileState; used[i] = true; }
   }
-  // Second pass: present
   for (let i = 0; i < 5; i++) {
     if (result[i] === "correct") continue;
     for (let j = 0; j < 5; j++) {
@@ -35,6 +33,12 @@ function scoreGuess(guess: string, target: string): TileState[] {
     }
   }
   return result;
+}
+
+function buildShareGrid(guesses: string[], states: TileState[][]): string {
+  return states.map(row =>
+    row.map(s => s === "correct" ? "🟩" : s === "present" ? "🟨" : "⬛").join("")
+  ).join("\n");
 }
 
 const TILE_COLORS: Record<TileState, string> = {
@@ -63,10 +67,11 @@ interface LiveParaulaGameProps {
   clue: string;
   participantId: number;
   challengeId: number;
-  onFinish: (guesses: number, solved: boolean) => void;
+  roundKey: number; // changes each round to force full reset
+  onFinish: (guesses: number, solved: boolean, states: TileState[][], guessList: string[]) => void;
 }
 
-function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: LiveParaulaGameProps) {
+function LiveParaulaGame({ word, clue, participantId, challengeId, roundKey, onFinish }: LiveParaulaGameProps) {
   const MAX_GUESSES = 6;
   const [guesses, setGuesses] = useState<string[]>([]);
   const [states, setStates] = useState<TileState[][]>([]);
@@ -77,9 +82,20 @@ function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: L
   const [message, setMessage] = useState("");
   const submitted = useRef(false);
 
+  // Reset all state when roundKey changes (new round)
+  useEffect(() => {
+    setGuesses([]);
+    setStates([]);
+    setCurrent("");
+    setGameOver(false);
+    setWon(false);
+    setShake(false);
+    setMessage("");
+    submitted.current = false;
+  }, [roundKey]);
+
   const submitScore = trpc.challenge.submitParaulaScore.useMutation();
 
-  // Build keyboard letter state map
   const letterState: Record<string, string> = {};
   states.forEach((row, gi) => {
     row.forEach((s, li) => {
@@ -115,7 +131,7 @@ function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: L
       if (!submitted.current) {
         submitted.current = true;
         submitScore.mutate({ participantId, challengeId, guesses: newGuesses.length, solved });
-        setTimeout(() => onFinish(newGuesses.length, solved), 1500);
+        setTimeout(() => onFinish(newGuesses.length, solved, newStatesArr, newGuesses), 1500);
       }
     }
   }, [current, guesses, states, word, gameOver, participantId, challengeId, onFinish, submitScore]);
@@ -151,9 +167,9 @@ function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: L
   });
 
   return (
-    <div className="flex flex-col items-center gap-4 w-full max-w-sm mx-auto">
+    <div className="flex flex-col items-center gap-3 w-full">
       {/* Clue */}
-      <div className="bg-orange-500/20 border border-orange-400/40 rounded-xl px-4 py-2 text-center">
+      <div className="bg-orange-500/20 border border-orange-400/40 rounded-xl px-4 py-2 text-center w-full max-w-xs">
         <p className="text-orange-200 text-xs uppercase tracking-widest font-semibold mb-0.5">Clue</p>
         <p className="text-white font-medium text-sm">{clue}</p>
       </div>
@@ -165,12 +181,12 @@ function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: L
         </div>
       )}
 
-      {/* Grid */}
-      <div className="flex flex-col gap-1.5">
+      {/* Grid — responsive tile size */}
+      <div className="flex flex-col gap-1 sm:gap-1.5">
         {rows.map((row, ri) => (
           <div
             key={ri}
-            className={`flex gap-1.5 ${shake && ri === guesses.length ? "animate-[shake_0.5s_ease-in-out]" : ""}`}
+            className={`flex gap-1 sm:gap-1.5 ${shake && ri === guesses.length ? "animate-[shake_0.5s_ease-in-out]" : ""}`}
           >
             {Array.from({ length: 5 }, (_, ci) => {
               const letter = row.guess[ci] ?? "";
@@ -178,7 +194,7 @@ function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: L
               return (
                 <div
                   key={ci}
-                  className={`w-12 h-12 border-2 rounded-lg flex items-center justify-center text-xl font-black uppercase transition-all ${TILE_COLORS[state]}`}
+                  className={`w-10 h-10 sm:w-12 sm:h-12 border-2 rounded-lg flex items-center justify-center text-lg sm:text-xl font-black uppercase transition-all ${TILE_COLORS[state]}`}
                 >
                   {letter}
                 </div>
@@ -188,10 +204,10 @@ function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: L
         ))}
       </div>
 
-      {/* Keyboard */}
-      <div className="flex flex-col gap-1.5 w-full">
+      {/* Keyboard — responsive key size */}
+      <div className="flex flex-col gap-1 sm:gap-1.5 w-full max-w-xs">
         {CATALAN_KEYS.map((row, ri) => (
-          <div key={ri} className="flex justify-center gap-1">
+          <div key={ri} className="flex justify-center gap-0.5 sm:gap-1">
             {row.map((key) => {
               const state = letterState[key];
               const isWide = key === "ENTER" || key === "⌫";
@@ -199,7 +215,7 @@ function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: L
                 <button
                   key={key}
                   onClick={() => handleKey(key)}
-                  className={`${isWide ? "px-2 text-xs min-w-[48px]" : "w-8"} h-10 rounded-md font-bold text-sm transition-colors ${
+                  className={`${isWide ? "px-1.5 sm:px-2 text-[10px] sm:text-xs min-w-[40px] sm:min-w-[48px]" : "w-7 sm:w-8"} h-9 sm:h-10 rounded-md font-bold text-xs sm:text-sm transition-colors touch-manipulation ${
                     KEY_COLORS[state ?? "default"]
                   }`}
                 >
@@ -212,7 +228,7 @@ function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: L
       </div>
 
       {gameOver && (
-        <div className={`rounded-xl px-5 py-3 text-center font-bold text-lg ${won ? "bg-green-500/30 text-green-200 border border-green-400/40" : "bg-red-500/30 text-red-200 border border-red-400/40"}`}>
+        <div className={`rounded-xl px-5 py-3 text-center font-bold text-base sm:text-lg w-full max-w-xs ${won ? "bg-green-500/30 text-green-200 border border-green-400/40" : "bg-red-500/30 text-red-200 border border-red-400/40"}`}>
           {won ? "🎉 Excellent!" : `The word was ${word}`}
         </div>
       )}
@@ -242,6 +258,12 @@ export default function Join() {
   const [paraulaClue, setParaulaClue] = useState("");
   const [paraulaGuesses, setParaulaGuesses] = useState(0);
   const [paraulaSolved, setParaulaSolved] = useState(false);
+  const [paraulaShareGrid, setParaulaShareGrid] = useState("");
+  const [paraulaRoundKey, setParaulaRoundKey] = useState(0); // increments each round to force reset
+  const [paraulaRound, setParaulaRound] = useState(1);
+  const [waitingNextRound, setWaitingNextRound] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const lastParaulaStatusRef = useRef<string>("");
 
   // Step 1: look up room by code
   const [lookupCode, setLookupCode] = useState("");
@@ -259,11 +281,11 @@ export default function Join() {
     },
   });
 
-  // Poll PARAULA room (waiting + paraula phases)
+  // Poll PARAULA room (waiting + paraula + done phases)
   const { data: paraulaRoom } = trpc.challenge.getParaulaRoom.useQuery(
     { challengeId: challengeId ?? 0 },
     {
-      enabled: !!challengeId && isParaulaRoom && (phase === "waiting" || phase === "paraula"),
+      enabled: !!challengeId && isParaulaRoom && (phase === "waiting" || phase === "paraula" || phase === "done"),
       refetchInterval: 2000,
     }
   );
@@ -306,24 +328,52 @@ export default function Join() {
     if (currentQ.status === "finished") setPhase("done");
   }, [currentQ, phase, isParaulaRoom]);
 
-  // Phase transitions from PARAULA poll
+  // Phase transitions from PARAULA poll (including multi-round detection)
   useEffect(() => {
     if (!paraulaRoom || !isParaulaRoom) return;
-    if (paraulaRoom.status === "active" && phase === "waiting") {
-      // Word is revealed only when active
-      if (paraulaRoom.word) {
-        setParaulaWord(paraulaRoom.word);
-        setParaulaClue(paraulaRoom.clue);
-        setGameStarting(true);
-        setTimeout(() => {
-          setGameStarting(false);
+
+    const prevStatus = lastParaulaStatusRef.current;
+    const newStatus = paraulaRoom.status;
+
+    if (newStatus === "active") {
+      if (prevStatus !== "active" && paraulaRoom.word) {
+        // New round started (either first time or teacher advanced)
+        const newWord = paraulaRoom.word;
+        const newClue = paraulaRoom.clue;
+        setParaulaWord(newWord);
+        setParaulaClue(newClue);
+        setWaitingNextRound(false);
+
+        if (phase === "waiting" || phase === "done") {
+          // First round or coming back from done
+          setGameStarting(true);
+          setTimeout(() => {
+            setGameStarting(false);
+            setParaulaRoundKey((k) => k + 1);
+            setPhase("paraula");
+          }, 1200);
+        } else if (phase === "paraula" && prevStatus === "waiting") {
+          // Teacher started a new round while student was on done/waiting
+          setParaulaRoundKey((k) => k + 1);
+          setParaulaRound((r) => r + 1);
+          setParaulaGuesses(0);
+          setParaulaSolved(false);
+          setParaulaShareGrid("");
           setPhase("paraula");
-        }, 1200);
+        }
       }
     }
-    if (paraulaRoom.status === "finished" && phase !== "done") {
+
+    if (newStatus === "waiting" && prevStatus === "active" && phase === "paraula") {
+      // Teacher reset to waiting between rounds
+      setWaitingNextRound(true);
+    }
+
+    if (newStatus === "finished" && phase !== "done") {
       setPhase("done");
     }
+
+    lastParaulaStatusRef.current = newStatus;
   }, [paraulaRoom, phase, isParaulaRoom]);
 
   // Reset MCQ answer when question index changes
@@ -347,24 +397,31 @@ export default function Join() {
     submitMutation.mutate({ participantId, challengeId, answerIndex: idx });
   };
 
-  const handleParaulaFinish = (guesses: number, solved: boolean) => {
+  const handleParaulaFinish = (guesses: number, solved: boolean, stateGrid: TileState[][], guessList: string[]) => {
     setParaulaGuesses(guesses);
     setParaulaSolved(solved);
+    setParaulaShareGrid(buildShareGrid(guessList, stateGrid));
     setPhase("done");
   };
 
+  const handleCopyShare = async () => {
+    const text = `PARAULA Live — Round ${paraulaRound}\n${paraulaSolved ? `Solved in ${paraulaGuesses} guesses` : "Did not solve"}\n\n${paraulaShareGrid}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback: do nothing
+    }
+  };
+
   // Detect PARAULA room type from foundRoom title hint or via getParaulaRoom probe
-  // We use a lightweight check: if the room lookup succeeds and the title contains "PARAULA Live",
-  // we set the flag. The getParaulaRoom query will confirm.
   useEffect(() => {
     if (!foundRoom) return;
-    // We'll probe via getParaulaRoom — if it returns data with type paraula_live we know
-    // For now flag based on title heuristic; the query will confirm
     const looksLikeParaula = foundRoom.title?.toLowerCase().includes("paraula");
     setIsParaulaRoom(looksLikeParaula);
   }, [foundRoom]);
 
-  // Confirm PARAULA room type once getParaulaRoom resolves
   useEffect(() => {
     if (paraulaRoom) setIsParaulaRoom(true);
   }, [paraulaRoom]);
@@ -504,7 +561,6 @@ export default function Join() {
         </div>
 
         <div className="text-center text-white space-y-6 max-w-sm w-full">
-          {/* Animated waiting icon */}
           <div className="relative mx-auto w-24 h-24">
             <div className="absolute inset-0 rounded-full bg-yellow-400/10 border-2 border-yellow-400/20 animate-ping" />
             <div className="relative w-24 h-24 rounded-full bg-yellow-400/20 border-2 border-yellow-400/40 flex items-center justify-center">
@@ -521,13 +577,11 @@ export default function Join() {
             </p>
           </div>
 
-          {/* Name badge */}
           <div className="bg-white/10 rounded-xl border border-white/20 p-4 space-y-2">
             <p className="text-white/50 text-xs uppercase tracking-widest">Your name</p>
             <p className="text-2xl font-bold text-white">{name}</p>
           </div>
 
-          {/* Room code */}
           <div className="bg-black/20 rounded-xl border border-white/10 p-4 space-y-1">
             <p className="text-white/50 text-xs uppercase tracking-widest">{t("join_room")}</p>
             <p className="text-3xl font-mono font-bold tracking-widest text-yellow-300">{code}</p>
@@ -551,29 +605,50 @@ export default function Join() {
   // ── PARAULA Live game ─────────────────────────────────────────────────────
   if (phase === "paraula" && paraulaWord && participantId && challengeId) {
     return (
-      <div className="challenge-bg min-h-screen flex flex-col p-4 gap-4">
-        {/* Header */}
-        <div className="flex items-center justify-between max-w-sm mx-auto w-full">
+      <div className="challenge-bg min-h-screen flex flex-col" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+        {/* Compact header */}
+        <div className="flex items-center justify-between px-3 py-2 bg-black/30 backdrop-blur-sm border-b border-white/10 shrink-0">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-orange-400/20 border border-orange-400/40 flex items-center justify-center">
-              <span className="text-sm font-black text-orange-300">P</span>
+            <div className="w-7 h-7 rounded-lg bg-orange-400/20 border border-orange-400/40 flex items-center justify-center">
+              <span className="text-xs font-black text-orange-300">P</span>
             </div>
             <span className="text-white font-heading font-bold text-sm tracking-widest">PARAULA</span>
           </div>
-          <Badge className="bg-orange-500/20 text-orange-300 border-orange-400/40">
-            Live Room
-          </Badge>
+          <div className="flex items-center gap-2">
+            {paraulaRound > 1 && (
+              <Badge className="bg-orange-500/20 text-orange-300 border-orange-400/40 text-xs">
+                Round {paraulaRound}
+              </Badge>
+            )}
+            <Badge className="bg-orange-500/20 text-orange-300 border-orange-400/40 text-xs">
+              Live
+            </Badge>
+          </div>
         </div>
 
-        <div className="flex-1 flex flex-col items-center justify-start gap-4 max-w-sm mx-auto w-full pt-2">
-          <LiveParaulaGame
-            word={paraulaWord}
-            clue={paraulaClue}
-            participantId={participantId}
-            challengeId={challengeId}
-            onFinish={handleParaulaFinish}
-          />
+        {/* Game area — scrollable on very small screens */}
+        <div className="flex-1 overflow-y-auto flex flex-col items-center justify-start gap-3 px-3 py-3">
+          {waitingNextRound ? (
+            <div className="flex flex-col items-center justify-center gap-4 py-12 text-center text-white">
+              <Loader2 className="w-10 h-10 animate-spin text-orange-300" />
+              <p className="text-lg font-bold text-orange-200">Waiting for next round…</p>
+              <p className="text-white/50 text-sm">The teacher is preparing the next word.</p>
+            </div>
+          ) : (
+            <LiveParaulaGame
+              key={paraulaRoundKey}
+              word={paraulaWord}
+              clue={paraulaClue}
+              participantId={participantId}
+              challengeId={challengeId}
+              roundKey={paraulaRoundKey}
+              onFinish={handleParaulaFinish}
+            />
+          )}
         </div>
+
+        {/* Powered by SEBA footer */}
+        <div className="text-center py-1.5 text-white/20 text-xs shrink-0">Powered by SEBA</div>
       </div>
     );
   }
@@ -596,7 +671,6 @@ export default function Join() {
 
     return (
       <div className="challenge-bg min-h-screen flex flex-col p-4 gap-4">
-        {/* Header */}
         <div className="flex items-center justify-between max-w-lg mx-auto w-full">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-yellow-400/20 border border-yellow-400/40 flex items-center justify-center">
@@ -616,7 +690,6 @@ export default function Join() {
           </div>
         </div>
 
-        {/* Question card */}
         <div className="flex-1 flex flex-col items-center justify-center gap-4 max-w-lg mx-auto w-full">
           <Card className="w-full bg-white/10 border-white/20 text-white">
             <CardContent className="p-5">
@@ -624,7 +697,6 @@ export default function Join() {
             </CardContent>
           </Card>
 
-          {/* Answer options — coloured blocks */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
             {(currentQ.options ?? []).map((opt: string, i: number) => {
               const isSelected = selected === i;
@@ -679,10 +751,10 @@ export default function Join() {
 
     return (
       <div className="challenge-bg min-h-screen flex items-center justify-center p-4">
-        <div className="text-center text-white space-y-6 max-w-sm w-full">
+        <div className="text-center text-white space-y-5 max-w-sm w-full">
           {/* Trophy */}
-          <div className="w-24 h-24 rounded-full bg-yellow-400/20 border-2 border-yellow-400/40 flex items-center justify-center mx-auto">
-            <Trophy className="w-12 h-12 text-yellow-300" />
+          <div className="w-20 h-20 rounded-full bg-yellow-400/20 border-2 border-yellow-400/40 flex items-center justify-center mx-auto">
+            <Trophy className="w-10 h-10 text-yellow-300" />
           </div>
 
           <div>
@@ -712,7 +784,7 @@ export default function Join() {
           </div>
 
           {/* Score / guesses */}
-          <div className="bg-white/10 rounded-2xl border border-white/20 p-5 space-y-1">
+          <div className="bg-white/10 rounded-2xl border border-white/20 p-4 space-y-1">
             {isParaulaRoom ? (
               <>
                 <p className="text-white/60 text-sm">Guesses used</p>
@@ -725,6 +797,30 @@ export default function Join() {
               </>
             )}
           </div>
+
+          {/* Emoji share grid for PARAULA */}
+          {isParaulaRoom && paraulaShareGrid && (
+            <div className="bg-black/30 rounded-xl border border-white/10 p-4 space-y-3">
+              <p className="text-white/50 text-xs uppercase tracking-widest font-semibold">Your result</p>
+              <pre className="text-xl leading-tight text-center font-mono">{paraulaShareGrid}</pre>
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full bg-white/10 border-white/20 text-white hover:bg-white/20 gap-2"
+                onClick={handleCopyShare}
+              >
+                {copied ? <><Check className="w-4 h-4 text-green-400" /> Copied!</> : <><Copy className="w-4 h-4" /> Copy result</>}
+              </Button>
+            </div>
+          )}
+
+          {/* Waiting for next round indicator */}
+          {isParaulaRoom && paraulaRoom?.status === "waiting" && (
+            <div className="bg-orange-500/10 border border-orange-400/20 rounded-xl p-3 flex items-center gap-2 justify-center">
+              <Loader2 className="w-4 h-4 animate-spin text-orange-300" />
+              <p className="text-orange-300 text-sm font-medium">Waiting for next round…</p>
+            </div>
+          )}
 
           {/* Leaderboard */}
           {sorted.length > 0 && (
@@ -770,10 +866,18 @@ export default function Join() {
               setParaulaClue("");
               setParaulaGuesses(0);
               setParaulaSolved(false);
+              setParaulaShareGrid("");
+              setParaulaRound(1);
+              setParaulaRoundKey(0);
+              setWaitingNextRound(false);
+              lastParaulaStatusRef.current = "";
             }}
           >
             {t("join_play_again")}
           </Button>
+
+          {/* Powered by SEBA */}
+          <p className="text-white/20 text-xs">Powered by SEBA</p>
         </div>
       </div>
     );

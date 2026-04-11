@@ -111,6 +111,19 @@ export default function Challenge() {
     onError: (e) => toast.error(e.message),
   });
 
+  // Multi-round: next word picker state
+  const [showNextWordDialog, setShowNextWordDialog] = useState(false);
+  const [nextWordIdx, setNextWordIdx] = useState(0);
+  const nextParaulaRoundMutation = trpc.challenge.nextParaulaRound.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Round ${data.round}: ${data.word}`);
+      setShowNextWordDialog(false);
+      roomQuery.refetch();
+      paraulaRoomQuery.refetch();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   // Save-to-group dialog state (declared after roomQuery)
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveGroupId, setSaveGroupId] = useState<string>("none");
@@ -125,6 +138,13 @@ export default function Challenge() {
   const handleSaveToGroup = useCallback(() => {
     const r = roomQuery.data;
     if (!r || !roomId || saveGroupId === "none") return;
+    // Detect PARAULA room
+    const isParaulaForSave = (() => {
+      try {
+        const q = r.questions as unknown as Array<{ type?: string }>;
+        return Array.isArray(q) && q[0]?.type === "paraula_live";
+      } catch { return false; }
+    })();
     saveMutation.mutate({
       groupId: parseInt(saveGroupId, 10),
       challengeId: roomId,
@@ -132,8 +152,10 @@ export default function Challenge() {
       competency: r.competency ?? undefined,
       participants: r.participants.map((p) => ({
         nickname: p.nickname,
-        score: p.score,
-        total: r.questions.length,
+        // For PARAULA: score = guesses used (lower = better). Invert so higher = better for % calc.
+        // score 1 guess → 5/6 = 83%, 6 guesses → 0/6 = 0%, 0 (failed) → 0
+        score: isParaulaForSave ? (p.score > 0 ? Math.max(0, 7 - p.score) : 0) : p.score,
+        total: isParaulaForSave ? 6 : r.questions.length,
       })),
     });
   }, [roomQuery.data, roomId, saveGroupId, saveMutation]);
@@ -541,14 +563,27 @@ export default function Challenge() {
 
               <div className="flex gap-3">
                 <Button
+                  className="flex-1 bg-purple-600 hover:bg-purple-500 text-white font-bold gap-2"
+                  onClick={() => setShowNextWordDialog(true)}
+                >
+                  <Play className="w-4 h-4" /> Next Word
+                </Button>
+                <Button
                   className="flex-1 bg-orange-500 hover:bg-orange-400 text-white font-bold gap-2"
                   disabled={finishParaulaRoomMutation.isPending}
                   onClick={() => finishParaulaRoomMutation.mutate({ challengeId: room.id })}
                 >
                   {finishParaulaRoomMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <StopCircle className="w-4 h-4" />}
-                  End Game & Show Results
+                  End Game
                 </Button>
               </div>
+
+              {/* Round indicator */}
+              {pr?.round && pr.round > 1 && (
+                <div className="text-center">
+                  <Badge className="bg-orange-500/20 text-orange-300 border-orange-400/40">Round {pr.round}</Badge>
+                </div>
+              )}
 
               <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
                 <p className="text-white/50 text-xs">Room code: <span className="font-mono font-bold text-orange-300">{room.roomCode}</span></p>
@@ -878,6 +913,71 @@ export default function Challenge() {
               </Button>
             </div>
           </div>
+          );
+        })()}
+
+        {/* ── Next Word Dialog (PARAULA multi-round) ── */}
+        {isParaulaRoom && roomId && (() => {
+          // Get material word list from the room's linked material
+          const materialId = (() => {
+            try {
+              const q = roomQuery.data?.questions as unknown as Array<{ materialId?: number }>;
+              return q?.[0]?.materialId ?? null;
+            } catch { return null; }
+          })();
+          // We need the material words — use the myMaterials list to find it
+          const materialWords = (() => {
+            const mat = myMaterials.data?.find((m) => m.id === materialId);
+            if (!mat) return [];
+            try {
+              const c = JSON.parse((mat as unknown as { content: string }).content) as { words?: string[]; clues?: string[] };
+              return (c.words ?? []).map((w, i) => ({ word: w.toUpperCase(), clue: c.clues?.[i] ?? "" }));
+            } catch { return []; }
+          })();
+          return (
+            <Dialog open={showNextWordDialog} onOpenChange={setShowNextWordDialog}>
+              <DialogContent className="bg-slate-900 border-white/20 text-white max-w-sm">
+                <DialogHeader>
+                  <DialogTitle className="text-white flex items-center gap-2">
+                    <span className="font-black tracking-widest text-orange-400">PARAULA</span> Next Word
+                  </DialogTitle>
+                </DialogHeader>
+                <p className="text-white/60 text-sm">Pick the next word for students to guess.</p>
+                {materialWords.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-1.5 max-h-52 overflow-y-auto pr-1">
+                    {materialWords.map((p, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setNextWordIdx(i)}
+                        className={`flex flex-col items-start p-2 rounded-lg border text-left transition-colors ${
+                          nextWordIdx === i
+                            ? "border-orange-500 bg-orange-500/10"
+                            : "border-white/20 hover:border-orange-400"
+                        }`}
+                      >
+                        <span className="font-mono font-bold text-orange-300 text-sm tracking-wider">{p.word}</span>
+                        <span className="text-xs text-white/50 truncate w-full">{p.clue}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-white/40 text-sm text-center py-4">Loading word list…</p>
+                )}
+                <DialogFooter className="gap-2">
+                  <Button variant="ghost" onClick={() => setShowNextWordDialog(false)} className="text-white/60 hover:text-white">
+                    Cancel
+                  </Button>
+                  <Button
+                    className="bg-purple-600 hover:bg-purple-500 text-white"
+                    disabled={nextParaulaRoundMutation.isPending || materialWords.length === 0}
+                    onClick={() => nextParaulaRoundMutation.mutate({ challengeId: roomId, wordIndex: nextWordIdx })}
+                  >
+                    {nextParaulaRoundMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Play className="w-4 h-4 mr-2" />}
+                    Start Round
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           );
         })()}
 

@@ -7,6 +7,8 @@ import {
   getChallengesByHost,
   createChallenge,
   updateChallengeStatus,
+  updateChallengeQuestions,
+  resetParticipantScores,
   setAnswerRevealed,
   joinChallenge,
   submitAnswer,
@@ -419,25 +421,27 @@ export const challengeRouter = router({
       return { id, roomCode, word, clue };
     }),
 
-  /** Student/Teacher: get the PARAULA live room details (word revealed only after finish) */
+  /** Student/Teacher: get the PARAULA live room details */
   getParaulaRoom: publicProcedure
     .input(z.object({ challengeId: z.number() }))
     .query(async ({ input }) => {
       const challenge = await getChallengeById(input.challengeId);
       if (!challenge) return null;
-      let payload: Array<{ type: string; word: string; clue: string }> = [];
+      let payload: Array<{ type: string; word: string; clue: string; round?: number }> = [];
       try { payload = JSON.parse(challenge.questions); } catch { return null; }
       if (!payload[0] || payload[0].type !== "paraula_live") return null;
       const { word, clue } = payload[0];
+      const round = payload[0].round ?? 1;
       return {
         id: challenge.id,
         roomCode: challenge.roomCode,
         title: challenge.title,
         status: challenge.status,
         clue,
-        // Only reveal the word when the room is finished
-        word: challenge.status === "finished" ? word : undefined,
+        // Reveal word when active (students need it to play) or finished
+        word: (challenge.status === "active" || challenge.status === "finished") ? word : undefined,
         wordLength: word.length,
+        round,
       };
     }),
 
@@ -463,5 +467,40 @@ export const challengeRouter = router({
       if (!challenge || challenge.hostId !== ctx.user.id) throw new Error("Not authorised");
       await updateChallengeStatus(input.challengeId, "finished");
       return { success: true };
+    }),
+
+  /** Teacher: advance to the next word in a PARAULA live room (multi-round) */
+  nextParaulaRound: protectedProcedure
+    .input(z.object({
+      challengeId: z.number(),
+      wordIndex: z.number().min(0),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const challenge = await getChallengeById(input.challengeId);
+      if (!challenge || challenge.hostId !== ctx.user.id) throw new Error("Not authorised");
+      // Load material to get the new word
+      let payload: Array<{ type: string; word: string; clue: string; materialId?: number; round?: number }> = [];
+      try { payload = JSON.parse(challenge.questions); } catch { throw new Error("Invalid room data"); }
+      if (!payload[0] || payload[0].type !== "paraula_live") throw new Error("Not a PARAULA room");
+      const materialId = payload[0].materialId;
+      if (!materialId) throw new Error("No material linked to this room");
+      const { getMaterialById } = await import("../db");
+      const row = await getMaterialById(materialId, ctx.user.id);
+      if (!row) throw new Error("Material not found");
+      const rawContent = JSON.parse(row.content) as { words?: string[]; clues?: string[] };
+      const words = rawContent.words ?? [];
+      const clues = rawContent.clues ?? [];
+      const idx = Math.min(input.wordIndex, words.length - 1);
+      const word = words[idx].toUpperCase().trim();
+      const clue = clues[idx] ?? "";
+      if (word.length !== 5) throw new Error(`Word "${word}" is not 5 letters`);
+      const currentRound = payload[0].round ?? 1;
+      // Update the questions payload with the new word and increment round
+      const newPayload = [{ ...payload[0], word, clue, round: currentRound + 1 }];
+      // Reset room to waiting with new word, then set active
+      await updateChallengeQuestions(input.challengeId, JSON.stringify(newPayload));
+      await resetParticipantScores(input.challengeId);
+      await updateChallengeStatus(input.challengeId, "active");
+      return { success: true, word, clue, round: currentRound + 1 };
     }),
 });

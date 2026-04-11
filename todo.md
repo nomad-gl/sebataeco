@@ -1437,3 +1437,34 @@
 - [x] Live PARAULA student room: real-time room where all students play the same word simultaneously
 - [x] Teacher leaderboard view: see who guessed the word and in how many tries
 - [x] Student join flow for PARAULA live room: enter room code, play the game, submit score
+
+## Bug: PARAULA game does not reset between rounds
+- [x] Diagnose why the PARAULA board/keyboard state persists after a round ends
+- [x] Reset board tiles, keyboard letter states, guesses array, and current row on new round start
+- [x] Ensure the new target word is applied cleanly without stale state
+
+## Bug: PARAULA mobile live/play layout
+- [x] Audit Join.tsx PARAULA game section for mobile overflow and cramped layout
+- [x] Make the 6×5 game board tiles responsive (smaller tiles on small screens)
+- [x] Make the Catalan/Spanish keyboard keys responsive (smaller keys, no overflow)
+- [x] Ensure clue banner, score header, and done screen are readable on mobile
+- [x] Test on 375px viewport width (iPhone SE)
+
+## Feature: PARAULA multi-round mode
+- [x] Add nextParaulaRound server procedure: picks next word from material, resets room status to 'waiting', clears participant scores for the new round
+- [x] Teacher leaderboard view: add "Next Word" button (visible after all students have submitted or teacher chooses to advance)
+- [x] Teacher leaderboard: show current round number (e.g. "Round 2 of 5")
+- [x] Student join flow: detect round change via polling and reset the game board automatically
+- [x] Student done screen: show "Waiting for next round..." state instead of static done screen
+
+## Feature: Student result screen — emoji share grid
+- [x] After student submits PARAULA score, show their emoji guess grid (🟩🟨⬛)
+- [x] Add "Copy result" button that copies the share text to clipboard
+- [x] Show number of guesses and whether they won or ran out
+- [x] i18n keys for share text and copy button (EN/ES/CA)
+
+## Feature: Log PARAULA live sessions to group_challenge_log
+- [x] Extend finishParaulaRoom server procedure to accept optional groupId
+- [x] Write a group_challenge_log row with competencies from the linked material
+- [x] Teacher results view: show "Save to Group" dialog (same as MCQ challenge) after ending a PARAULA room
+- [x] Wire saveChallengeToGroup to also handle paraula_live room type

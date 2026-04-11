@@ -231,6 +231,20 @@ export async function setAnswerRevealed(id: number, revealed: boolean) {
   await db.update(classChallenges).set({ answerRevealed: revealed }).where(eq(classChallenges.id, id));
 }
 
+export async function updateChallengeQuestions(id: number, questions: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(classChallenges).set({ questions }).where(eq(classChallenges.id, id));
+}
+
+export async function resetParticipantScores(challengeId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(challengeParticipants)
+    .set({ score: 0, answers: null })
+    .where(eq(challengeParticipants.challengeId, challengeId));
+}
+
 export async function joinChallenge(data: { challengeId: number; nickname: string }): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
