@@ -701,38 +701,201 @@ function FlashcardsViewer({ content }: { content: FlashcardsContent }) {
   );
 }
 
-// ─── PARAULA viewer ─────────────────────────────────────────────────────────
+// ─── P// ─── PARAULA viewer ────────────────────────────────────────────
 
-function PaRaulaViewer({ content, materialTitle, topic }: { content: { words: string[]; clues: string[]; lang: string }; materialTitle: string; topic: string }) {
-  const { words = [], clues = [], lang = "ca" } = content;
+import { useState as useStateLocal } from "react";
+
+function PaRaulaViewer({ content, materialTitle, topic, materialId }: {
+  content: { words: string[]; clues: string[]; lang: string };
+  materialTitle: string;
+  topic: string;
+  materialId: number;
+}) {
+  const { words: initWords = [], clues: initClues = [], lang = "ca" } = content;
   const [, navigate] = useLocation();
-  // Build word+clue pairs for the standalone game URL
-  const gameWords = words.map((w, i) => ({ word: w, clue: clues[i] ?? "" }));
+  const [editMode, setEditMode] = useStateLocal(false);
+  const [pairs, setPairs] = useStateLocal(() =>
+    initWords.map((w, i) => ({ word: w, clue: initClues[i] ?? "" }))
+  );
+  const [showLiveDialog, setShowLiveDialog] = useStateLocal(false);
+  const [selectedWordIdx, setSelectedWordIdx] = useStateLocal(0);
+
+  const createParaulaRoomMutation = trpc.challenge.createParaulaRoom.useMutation({
+    onSuccess: (data) => {
+      setShowLiveDialog(false);
+      navigate(`/challenge?roomId=${data.id}`);
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const updateMutation = trpc.materials.update.useMutation({
+    onSuccess: () => { toast.success("Word list saved!"); setEditMode(false); },
+    onError: () => toast.error("Failed to save changes."),
+  });
+
+  const handleSave = () => {
+    const newContent = {
+      words: pairs.map(p => p.word.toUpperCase().trim()),
+      clues: pairs.map(p => p.clue.trim()),
+      lang,
+    };
+    updateMutation.mutate({ id: materialId, content: JSON.stringify(newContent) });
+  };
+
+  const handlePrint = () => {
+    const win = window.open("", "_blank");
+    if (!win) return;
+    const rows = pairs.map((p, i) =>
+      `<tr><td style="padding:6px 12px;font-weight:bold;font-family:monospace;font-size:14px;letter-spacing:2px;color:#e65c00">${i+1}. ${p.word.toUpperCase()}</td><td style="padding:6px 12px;font-size:13px;color:#444">${p.clue}</td></tr>`
+    ).join("");
+    win.document.write(`<!DOCTYPE html><html><head><title>${materialTitle} – PARAULA Word List</title>
+      <style>body{font-family:sans-serif;padding:32px}h1{font-size:22px;margin-bottom:4px}p{color:#666;margin-bottom:20px}table{border-collapse:collapse;width:100%}tr:nth-child(even){background:#f9f9f9}@media print{button{display:none}}</style>
+      </head><body>
+      <h1>PARAULA – ${materialTitle}</h1>
+      <p>Topic: ${topic} &nbsp;&bull;&nbsp; Language: ${lang.toUpperCase()} &nbsp;&bull;&nbsp; ${pairs.length} words</p>
+      <table>${rows}</table>
+      <br/><button onclick="window.print()" style="padding:8px 20px;background:#e65c00;color:white;border:none;border-radius:6px;cursor:pointer;font-size:14px">Print</button>
+    </body></html>`);
+    win.document.close();
+  };
+
+  const gameWords = pairs.map(p => ({ word: p.word, clue: p.clue }));
   const gameParam = encodeURIComponent(JSON.stringify(gameWords));
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Header bar */}
       <div className="flex items-center gap-3 p-3 rounded-xl bg-orange-500/10 border border-orange-500/20">
         <div className="text-2xl font-black tracking-widest text-orange-500">PARAULA</div>
-        <div className="flex-1 flex flex-col">
-          <span className="text-sm font-semibold text-foreground">{materialTitle}</span>
-          <span className="text-xs text-muted-foreground">{topic} · {words.length} words · {lang.toUpperCase()}</span>
+        <div className="flex-1 flex flex-col min-w-0">
+          <span className="text-sm font-semibold text-foreground truncate">{materialTitle}</span>
+          <span className="text-xs text-muted-foreground">{topic} · {pairs.length} words · {lang.toUpperCase()}</span>
         </div>
-        <Button
-          size="sm"
-          className="gap-1.5 bg-orange-500 hover:bg-orange-600 text-white flex-shrink-0"
-          onClick={() => navigate(`/paraula?words=${gameParam}`)}
-        >
-          <span className="text-base">▶</span> Play
-        </Button>
+        <div className="flex gap-1.5 flex-shrink-0">
+          <Button size="sm" variant="outline" onClick={handlePrint} title="Print word list">
+            <Printer className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            size="sm"
+            variant={editMode ? "default" : "outline"}
+            onClick={() => editMode ? handleSave() : setEditMode(true)}
+            disabled={updateMutation.isPending}
+          >
+            {updateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : editMode ? "Save" : "Edit"}
+          </Button>
+          {editMode && (
+            <Button size="sm" variant="ghost" onClick={() => { setPairs(initWords.map((w, i) => ({ word: w, clue: initClues[i] ?? "" }))); setEditMode(false); }}>
+              Cancel
+            </Button>
+          )}
+          <Button
+            size="sm"
+            className="gap-1.5 bg-orange-500 hover:bg-orange-600 text-white"
+            onClick={() => navigate(`/paraula?words=${gameParam}`)}
+          >
+            <span className="text-base">▶</span> Play
+          </Button>
+          <Button
+            size="sm"
+            className="gap-1.5 bg-purple-600 hover:bg-purple-700 text-white"
+            onClick={() => { setSelectedWordIdx(0); setShowLiveDialog(true); }}
+          >
+            <Zap className="w-3.5 h-3.5" /> Live
+          </Button>
+        </div>
       </div>
+
+      {/* Live PARAULA room dialog */}
+      <Dialog open={showLiveDialog} onOpenChange={setShowLiveDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span className="text-lg font-black tracking-widest text-orange-500">PARAULA</span> Live Room
+            </DialogTitle>
+            <DialogDescription>Pick the word students will guess, then start the live room.</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 py-2">
+            <Label>Select word</Label>
+            <div className="grid grid-cols-2 gap-1.5 max-h-48 overflow-y-auto pr-1">
+              {pairs.map((p, i) => (
+                <button
+                  key={i}
+                  onClick={() => setSelectedWordIdx(i)}
+                  className={`flex flex-col items-start p-2 rounded-lg border text-left transition-colors ${
+                    selectedWordIdx === i
+                      ? "border-orange-500 bg-orange-500/10"
+                      : "border-border hover:border-orange-400"
+                  }`}
+                >
+                  <span className="font-mono font-bold text-primary text-sm tracking-wider">{p.word.toUpperCase()}</span>
+                  <span className="text-xs text-muted-foreground truncate w-full">{p.clue}</span>
+                </button>
+              ))}
+            </div>
+            {pairs[selectedWordIdx] && (
+              <div className="p-2 rounded-lg bg-muted text-sm">
+                <span className="font-semibold">Selected: </span>
+                <span className="font-mono font-bold text-orange-500">{pairs[selectedWordIdx].word.toUpperCase()}</span>
+                <span className="text-muted-foreground"> — {pairs[selectedWordIdx].clue}</span>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowLiveDialog(false)}>Cancel</Button>
+            <Button
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+              disabled={createParaulaRoomMutation.isPending}
+              onClick={() => createParaulaRoomMutation.mutate({
+                title: `${materialTitle} – PARAULA Live`,
+                materialId,
+                wordIndex: selectedWordIdx,
+              })}
+            >
+              {createParaulaRoomMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Zap className="w-4 h-4 mr-1" /> Start Live Room</>}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Word list — view or edit mode */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        {words.map((w, i) => (
-          <div key={i} className="flex items-center gap-3 p-2 rounded-lg border bg-card">
-            <span className="font-mono font-bold text-primary text-sm w-14 shrink-0 tracking-wider">{w}</span>
-            <span className="text-xs text-muted-foreground flex-1 truncate">{clues[i] ?? ""}</span>
+        {pairs.map((p, i) => (
+          <div key={i} className="flex items-center gap-2 p-2 rounded-lg border bg-card">
+            {editMode ? (
+              <>
+                <Input
+                  value={p.word}
+                  maxLength={5}
+                  onChange={e => setPairs(prev => prev.map((x, j) => j === i ? { ...x, word: e.target.value.toUpperCase().slice(0,5) } : x))}
+                  className="font-mono font-bold text-primary text-sm w-16 shrink-0 tracking-wider px-1 h-7"
+                />
+                <Input
+                  value={p.clue}
+                  onChange={e => setPairs(prev => prev.map((x, j) => j === i ? { ...x, clue: e.target.value } : x))}
+                  className="flex-1 text-xs h-7 px-1"
+                  placeholder="Clue..."
+                />
+                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:text-destructive flex-shrink-0"
+                  onClick={() => setPairs(prev => prev.filter((_, j) => j !== i))}>
+                  <XCircle className="w-3.5 h-3.5" />
+                </Button>
+              </>
+            ) : (
+              <>
+                <span className="font-mono font-bold text-primary text-sm w-14 shrink-0 tracking-wider">{p.word}</span>
+                <span className="text-xs text-muted-foreground flex-1 truncate">{p.clue}</span>
+              </>
+            )}
           </div>
         ))}
+        {editMode && (
+          <button
+            className="flex items-center justify-center gap-2 p-2 rounded-lg border border-dashed border-primary/40 text-primary/60 hover:text-primary hover:border-primary text-sm transition-colors"
+            onClick={() => setPairs(prev => [...prev, { word: "", clue: "" }])}
+          >
+            + Add word
+          </button>
+        )}
       </div>
     </div>
   );
@@ -928,7 +1091,7 @@ export default function MaterialView() {
       case "missing_words": return <MissingWordsViewer content={content as unknown as MissingWordsContent} showAnswers={showAnswers} />;
       case "wordsearch":    return <WordsearchViewer content={content as unknown as WordsearchContent} />;
       case "flashcards":    return <FlashcardsViewer content={content as unknown as FlashcardsContent} />;
-      case "paraula":       return <PaRaulaViewer content={content as unknown as PaRaulaContent} materialTitle={material?.title ?? ""} topic={material?.topic ?? ""} />;
+      case "paraula":       return <PaRaulaViewer content={content as unknown as PaRaulaContent} materialTitle={material?.title ?? ""} topic={material?.topic ?? ""} materialId={material?.id ?? 0} />;
       default:              return <pre className="text-xs text-muted-foreground">{JSON.stringify(content, null, 2)}</pre>;
     }
   }

@@ -379,4 +379,89 @@ export const challengeRouter = router({
     .query(async ({ input }) => {
       return getParticipants(input.challengeId);
     }),
+
+  /** Teacher: create a live PARAULA word room from a material */
+  createParaulaRoom: protectedProcedure
+    .input(z.object({
+      title: z.string().min(2).max(200),
+      materialId: z.number(),
+      wordIndex: z.number().min(0),  // which word from the material to use
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { getMaterialById } = await import("../db");
+      const row = await getMaterialById(input.materialId, ctx.user.id);
+      if (!row) throw new Error("Material not found");
+      const rawContent = JSON.parse(row.content) as { words?: string[]; clues?: string[] };
+      const words = rawContent.words ?? [];
+      const clues = rawContent.clues ?? [];
+      if (words.length === 0) throw new Error("No words in this PARAULA material");
+      const idx = Math.min(input.wordIndex, words.length - 1);
+      const word = words[idx].toUpperCase().trim();
+      const clue = clues[idx] ?? "";
+      if (word.length !== 5) throw new Error(`Word "${word}" is not 5 letters`);
+
+      let roomCode = generateRoomCode();
+      for (let i = 0; i < 5; i++) {
+        const existing = await getChallengeByCode(roomCode);
+        if (!existing) break;
+        roomCode = generateRoomCode();
+      }
+      // Store as a special paraula_live payload in the questions field
+      const payload = JSON.stringify([{ type: "paraula_live", word, clue, materialId: input.materialId }]);
+      const id = await createChallenge({
+        hostId: ctx.user.id,
+        roomCode,
+        title: input.title,
+        competency: null,
+        yearGroup: null,
+        questions: payload,
+      });
+      return { id, roomCode, word, clue };
+    }),
+
+  /** Student/Teacher: get the PARAULA live room details (word revealed only after finish) */
+  getParaulaRoom: publicProcedure
+    .input(z.object({ challengeId: z.number() }))
+    .query(async ({ input }) => {
+      const challenge = await getChallengeById(input.challengeId);
+      if (!challenge) return null;
+      let payload: Array<{ type: string; word: string; clue: string }> = [];
+      try { payload = JSON.parse(challenge.questions); } catch { return null; }
+      if (!payload[0] || payload[0].type !== "paraula_live") return null;
+      const { word, clue } = payload[0];
+      return {
+        id: challenge.id,
+        roomCode: challenge.roomCode,
+        title: challenge.title,
+        status: challenge.status,
+        clue,
+        // Only reveal the word when the room is finished
+        word: challenge.status === "finished" ? word : undefined,
+        wordLength: word.length,
+      };
+    }),
+
+  /** Student: submit PARAULA score (guesses used, 0 = failed) */
+  submitParaulaScore: publicProcedure
+    .input(z.object({
+      participantId: z.number(),
+      challengeId: z.number(),
+      guesses: z.number().min(0).max(6),  // 0 = did not solve
+      solved: z.boolean(),
+    }))
+    .mutation(async ({ input }) => {
+      // Reuse submitAnswer: store guesses in answerIndex, solved in correct
+      await submitAnswer(input.participantId, input.guesses, input.solved);
+      return { success: true };
+    }),
+
+  /** Teacher: finish the PARAULA live room */
+  finishParaulaRoom: protectedProcedure
+    .input(z.object({ challengeId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const challenge = await getChallengeById(input.challengeId);
+      if (!challenge || challenge.hostId !== ctx.user.id) throw new Error("Not authorised");
+      await updateChallengeStatus(input.challengeId, "finished");
+      return { success: true };
+    }),
 });

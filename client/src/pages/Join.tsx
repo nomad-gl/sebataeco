@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,218 @@ import { Badge } from "@/components/ui/badge";
 import { Zap, Loader2, CheckCircle2, Trophy, Users, ArrowRight } from "lucide-react";
 import { useI18n } from "@/contexts/I18nContext";
 
-type Phase = "enter" | "waiting" | "question" | "done";
+type Phase = "enter" | "waiting" | "question" | "paraula" | "done";
+
+// ─── Inline PARAULA game for Live rooms ────────────────────────────────────
+
+const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+type TileState = "empty" | "tbd" | "correct" | "present" | "absent";
+
+function scoreGuess(guess: string, target: string): TileState[] {
+  const result: TileState[] = Array(5).fill("absent");
+  const targetArr = target.split("");
+  const used = Array(5).fill(false);
+  // First pass: correct
+  for (let i = 0; i < 5; i++) {
+    if (guess[i] === targetArr[i]) { result[i] = "correct" as TileState; used[i] = true; }
+  }
+  // Second pass: present
+  for (let i = 0; i < 5; i++) {
+    if (result[i] === "correct") continue;
+    for (let j = 0; j < 5; j++) {
+      if (!used[j] && guess[i] === targetArr[j]) {
+        result[i] = "present"; used[j] = true; break;
+      }
+    }
+  }
+  return result;
+}
+
+const TILE_COLORS: Record<TileState, string> = {
+  empty: "bg-transparent border-white/20 text-white",
+  tbd: "bg-white/10 border-white/50 text-white",
+  correct: "bg-green-500 border-green-500 text-white",
+  present: "bg-yellow-500 border-yellow-500 text-white",
+  absent: "bg-white/20 border-white/20 text-white/60",
+};
+
+const KEY_COLORS: Record<string, string> = {
+  correct: "bg-green-500 text-white",
+  present: "bg-yellow-500 text-white",
+  absent: "bg-white/10 text-white/40",
+  default: "bg-white/20 text-white",
+};
+
+const CATALAN_KEYS = [
+  ["Q","W","E","R","T","Y","U","I","O","P"],
+  ["A","S","D","F","G","H","J","K","L","Ç"],
+  ["ENTER","Z","X","C","V","B","N","M","⌫"],
+];
+
+interface LiveParaulaGameProps {
+  word: string;
+  clue: string;
+  participantId: number;
+  challengeId: number;
+  onFinish: (guesses: number, solved: boolean) => void;
+}
+
+function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: LiveParaulaGameProps) {
+  const MAX_GUESSES = 6;
+  const [guesses, setGuesses] = useState<string[]>([]);
+  const [states, setStates] = useState<TileState[][]>([]);
+  const [current, setCurrent] = useState("");
+  const [gameOver, setGameOver] = useState(false);
+  const [won, setWon] = useState(false);
+  const [shake, setShake] = useState(false);
+  const [message, setMessage] = useState("");
+  const submitted = useRef(false);
+
+  const submitScore = trpc.challenge.submitParaulaScore.useMutation();
+
+  // Build keyboard letter state map
+  const letterState: Record<string, string> = {};
+  states.forEach((row, gi) => {
+    row.forEach((s, li) => {
+      const letter = guesses[gi]?.[li];
+      if (!letter) return;
+      const prev = letterState[letter];
+      if (prev === "correct") return;
+      if (s === "correct" || (s === "present" && prev !== "correct") || (s === "absent" && !prev)) {
+        letterState[letter] = s;
+      }
+    });
+  });
+
+  const showMessage = (msg: string) => {
+    setMessage(msg);
+    setTimeout(() => setMessage(""), 1800);
+  };
+
+  const submitGuess = useCallback(() => {
+    if (gameOver || current.length !== 5) return;
+    const upper = current.toUpperCase();
+    const newStates = scoreGuess(upper, word);
+    const newGuesses = [...guesses, upper];
+    const newStatesArr = [...states, newStates];
+    setGuesses(newGuesses);
+    setStates(newStatesArr);
+    setCurrent("");
+
+    const solved = upper === word;
+    if (solved || newGuesses.length >= MAX_GUESSES) {
+      setGameOver(true);
+      setWon(solved);
+      if (!submitted.current) {
+        submitted.current = true;
+        submitScore.mutate({ participantId, challengeId, guesses: newGuesses.length, solved });
+        setTimeout(() => onFinish(newGuesses.length, solved), 1500);
+      }
+    }
+  }, [current, guesses, states, word, gameOver, participantId, challengeId, onFinish, submitScore]);
+
+  const handleKey = useCallback((key: string) => {
+    if (gameOver) return;
+    if (key === "ENTER") {
+      if (current.length < 5) { setShake(true); setTimeout(() => setShake(false), 600); showMessage("5 letters needed"); return; }
+      submitGuess();
+    } else if (key === "⌫" || key === "BACKSPACE") {
+      setCurrent((c) => c.slice(0, -1));
+    } else if (ALPHABET.includes(key) || key === "Ç") {
+      if (current.length < 5) setCurrent((c) => c + key);
+    }
+  }, [current, gameOver, submitGuess]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const k = e.key.toUpperCase();
+      if (k === "ENTER") handleKey("ENTER");
+      else if (k === "BACKSPACE") handleKey("⌫");
+      else if (/^[A-ZÇÀÈÉÍÏÓÒÚÜ]$/.test(k)) handleKey(k);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [handleKey]);
+
+  const rows = Array.from({ length: MAX_GUESSES }, (_, i) => {
+    const guess = guesses[i] ?? "";
+    const rowStates = states[i] ?? Array(5).fill("empty" as TileState);
+    const isCurrent = i === guesses.length && !gameOver;
+    return { guess: isCurrent ? current : guess, rowStates: isCurrent ? Array(5).fill("tbd" as TileState) : rowStates, isCurrent };
+  });
+
+  return (
+    <div className="flex flex-col items-center gap-4 w-full max-w-sm mx-auto">
+      {/* Clue */}
+      <div className="bg-orange-500/20 border border-orange-400/40 rounded-xl px-4 py-2 text-center">
+        <p className="text-orange-200 text-xs uppercase tracking-widest font-semibold mb-0.5">Clue</p>
+        <p className="text-white font-medium text-sm">{clue}</p>
+      </div>
+
+      {/* Message toast */}
+      {message && (
+        <div className="bg-white/90 text-gray-900 rounded-xl px-4 py-2 text-sm font-semibold shadow-lg animate-bounce">
+          {message}
+        </div>
+      )}
+
+      {/* Grid */}
+      <div className="flex flex-col gap-1.5">
+        {rows.map((row, ri) => (
+          <div
+            key={ri}
+            className={`flex gap-1.5 ${shake && ri === guesses.length ? "animate-[shake_0.5s_ease-in-out]" : ""}`}
+          >
+            {Array.from({ length: 5 }, (_, ci) => {
+              const letter = row.guess[ci] ?? "";
+              const state: TileState = letter ? row.rowStates[ci] : "empty";
+              return (
+                <div
+                  key={ci}
+                  className={`w-12 h-12 border-2 rounded-lg flex items-center justify-center text-xl font-black uppercase transition-all ${TILE_COLORS[state]}`}
+                >
+                  {letter}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      {/* Keyboard */}
+      <div className="flex flex-col gap-1.5 w-full">
+        {CATALAN_KEYS.map((row, ri) => (
+          <div key={ri} className="flex justify-center gap-1">
+            {row.map((key) => {
+              const state = letterState[key];
+              const isWide = key === "ENTER" || key === "⌫";
+              return (
+                <button
+                  key={key}
+                  onClick={() => handleKey(key)}
+                  className={`${isWide ? "px-2 text-xs min-w-[48px]" : "w-8"} h-10 rounded-md font-bold text-sm transition-colors ${
+                    KEY_COLORS[state ?? "default"]
+                  }`}
+                >
+                  {key}
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      {gameOver && (
+        <div className={`rounded-xl px-5 py-3 text-center font-bold text-lg ${won ? "bg-green-500/30 text-green-200 border border-green-400/40" : "bg-red-500/30 text-red-200 border border-red-400/40"}`}>
+          {won ? "🎉 Excellent!" : `The word was ${word}`}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Main Join page ─────────────────────────────────────────────────────────
 
 export default function Join() {
   const { t } = useI18n();
@@ -26,6 +237,11 @@ export default function Join() {
   const [answered, setAnswered] = useState(false);
   const [lastScore, setLastScore] = useState(0);
   const [gameStarting, setGameStarting] = useState(false);
+  const [isParaulaRoom, setIsParaulaRoom] = useState(false);
+  const [paraulaWord, setParaulaWord] = useState("");
+  const [paraulaClue, setParaulaClue] = useState("");
+  const [paraulaGuesses, setParaulaGuesses] = useState(0);
+  const [paraulaSolved, setParaulaSolved] = useState(false);
 
   // Step 1: look up room by code
   const [lookupCode, setLookupCode] = useState("");
@@ -43,11 +259,20 @@ export default function Join() {
     },
   });
 
-  // Poll current question (waiting + question phases)
+  // Poll PARAULA room (waiting + paraula phases)
+  const { data: paraulaRoom } = trpc.challenge.getParaulaRoom.useQuery(
+    { challengeId: challengeId ?? 0 },
+    {
+      enabled: !!challengeId && isParaulaRoom && (phase === "waiting" || phase === "paraula"),
+      refetchInterval: 2000,
+    }
+  );
+
+  // Poll current question (waiting + question phases — MCQ rooms)
   const { data: currentQ } = trpc.challenge.currentQuestion.useQuery(
     { challengeId: challengeId ?? 0 },
     {
-      enabled: !!challengeId && (phase === "waiting" || phase === "question"),
+      enabled: !!challengeId && !isParaulaRoom && (phase === "waiting" || phase === "question"),
       refetchInterval: 2000,
     }
   );
@@ -55,10 +280,10 @@ export default function Join() {
   // Poll leaderboard when done
   const { data: leaderboard } = trpc.challenge.leaderboard.useQuery(
     { challengeId: challengeId ?? 0 },
-    { enabled: !!challengeId && phase === "done", refetchInterval: false }
+    { enabled: !!challengeId && phase === "done", refetchInterval: 3000 }
   );
 
-  // Submit answer
+  // Submit MCQ answer
   const submitMutation = trpc.challenge.submitAnswer.useMutation({
     onSuccess: (data) => {
       setAnswered(true);
@@ -66,11 +291,10 @@ export default function Join() {
     },
   });
 
-  // Phase transitions from poll
+  // Phase transitions from MCQ poll
   useEffect(() => {
-    if (!currentQ) return;
+    if (!currentQ || isParaulaRoom) return;
     if (currentQ.status === "active" && phase === "waiting") {
-      // Brief "game starting" animation before switching to question
       setGameStarting(true);
       setTimeout(() => {
         setGameStarting(false);
@@ -79,12 +303,30 @@ export default function Join() {
         setAnswered(false);
       }, 1200);
     }
-    if (currentQ.status === "finished") {
+    if (currentQ.status === "finished") setPhase("done");
+  }, [currentQ, phase, isParaulaRoom]);
+
+  // Phase transitions from PARAULA poll
+  useEffect(() => {
+    if (!paraulaRoom || !isParaulaRoom) return;
+    if (paraulaRoom.status === "active" && phase === "waiting") {
+      // Word is revealed only when active
+      if (paraulaRoom.word) {
+        setParaulaWord(paraulaRoom.word);
+        setParaulaClue(paraulaRoom.clue);
+        setGameStarting(true);
+        setTimeout(() => {
+          setGameStarting(false);
+          setPhase("paraula");
+        }, 1200);
+      }
+    }
+    if (paraulaRoom.status === "finished" && phase !== "done") {
       setPhase("done");
     }
-  }, [currentQ, phase]);
+  }, [paraulaRoom, phase, isParaulaRoom]);
 
-  // Reset answer when question index changes
+  // Reset MCQ answer when question index changes
   useEffect(() => {
     setSelected(null);
     setAnswered(false);
@@ -105,22 +347,56 @@ export default function Join() {
     submitMutation.mutate({ participantId, challengeId, answerIndex: idx });
   };
 
-  // ── Game Starting Splash ────────────────────────────────────────────────────
+  const handleParaulaFinish = (guesses: number, solved: boolean) => {
+    setParaulaGuesses(guesses);
+    setParaulaSolved(solved);
+    setPhase("done");
+  };
+
+  // Detect PARAULA room type from foundRoom title hint or via getParaulaRoom probe
+  // We use a lightweight check: if the room lookup succeeds and the title contains "PARAULA Live",
+  // we set the flag. The getParaulaRoom query will confirm.
+  useEffect(() => {
+    if (!foundRoom) return;
+    // We'll probe via getParaulaRoom — if it returns data with type paraula_live we know
+    // For now flag based on title heuristic; the query will confirm
+    const looksLikeParaula = foundRoom.title?.toLowerCase().includes("paraula");
+    setIsParaulaRoom(looksLikeParaula);
+  }, [foundRoom]);
+
+  // Confirm PARAULA room type once getParaulaRoom resolves
+  useEffect(() => {
+    if (paraulaRoom) setIsParaulaRoom(true);
+  }, [paraulaRoom]);
+
+  // ── Game Starting Splash ──────────────────────────────────────────────────
   if (gameStarting) {
     return (
       <div className="challenge-bg min-h-screen flex items-center justify-center p-4">
         <div className="text-center text-white space-y-6 animate-pulse">
-          <div className="w-24 h-24 rounded-full bg-yellow-400/30 border-4 border-yellow-400/60 flex items-center justify-center mx-auto">
-            <Zap className="w-12 h-12 text-yellow-300" />
-          </div>
-          <h2 className="text-4xl font-heading font-black text-yellow-300">Game Starting!</h2>
-          <p className="text-white/70">Get ready…</p>
+          {isParaulaRoom ? (
+            <>
+              <div className="w-24 h-24 rounded-full bg-orange-400/30 border-4 border-orange-400/60 flex items-center justify-center mx-auto">
+                <span className="text-4xl font-black text-orange-300">P</span>
+              </div>
+              <h2 className="text-4xl font-heading font-black text-orange-300">PARAULA!</h2>
+              <p className="text-white/70">Prepara't…</p>
+            </>
+          ) : (
+            <>
+              <div className="w-24 h-24 rounded-full bg-yellow-400/30 border-4 border-yellow-400/60 flex items-center justify-center mx-auto">
+                <Zap className="w-12 h-12 text-yellow-300" />
+              </div>
+              <h2 className="text-4xl font-heading font-black text-yellow-300">Game Starting!</h2>
+              <p className="text-white/70">Get ready…</p>
+            </>
+          )}
         </div>
       </div>
     );
   }
 
-  // ── Enter code ─────────────────────────────────────────────────────────────
+  // ── Enter code ────────────────────────────────────────────────────────────
   if (phase === "enter") {
     return (
       <div className="challenge-bg min-h-screen flex items-center justify-center p-4">
@@ -137,7 +413,6 @@ export default function Join() {
             <div className="w-16 h-16 rounded-2xl bg-yellow-400/20 border border-yellow-400/40 flex items-center justify-center mx-auto">
               <Zap className="w-8 h-8 text-yellow-300" />
             </div>
-
             <CardTitle className="text-2xl font-heading">{t("join_title")}</CardTitle>
             <p className="text-white/60 text-sm">{t("join_subtitle")}</p>
           </CardHeader>
@@ -147,7 +422,7 @@ export default function Join() {
               <Label className="text-white/80">{t("join_room_code")}</Label>
               <Input
                 value={code}
-                onChange={(e) => { setCode(e.target.value.toUpperCase()); setChallengeId(null); setLookupCode(""); }}
+                onChange={(e) => { setCode(e.target.value.toUpperCase()); setChallengeId(null); setLookupCode(""); setIsParaulaRoom(false); }}
                 placeholder="e.g. ABC123"
                 maxLength={6}
                 className="bg-white/10 border-white/20 text-white placeholder:text-white/40 text-center text-3xl font-mono tracking-widest uppercase h-14"
@@ -167,9 +442,16 @@ export default function Join() {
               </Button>
             ) : (
               <>
-                <div className="bg-green-400/20 border border-green-400/40 rounded-xl p-3 text-center text-green-300 text-sm flex items-center justify-center gap-2">
+                <div className={`border rounded-xl p-3 text-center text-sm flex items-center justify-center gap-2 ${
+                  isParaulaRoom
+                    ? "bg-orange-400/20 border-orange-400/40 text-orange-300"
+                    : "bg-green-400/20 border-green-400/40 text-green-300"
+                }`}>
                   <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <span>{t("join_room_found")}: <strong>{foundRoom?.title}</strong></span>
+                  <span>
+                    {isParaulaRoom && <span className="font-black tracking-widest mr-1">PARAULA</span>}
+                    {t("join_room_found")}: <strong>{foundRoom?.title}</strong>
+                  </span>
                 </div>
 
                 <div className="space-y-2">
@@ -209,7 +491,7 @@ export default function Join() {
     );
   }
 
-  // ── Waiting ────────────────────────────────────────────────────────────────
+  // ── Waiting ───────────────────────────────────────────────────────────────
   if (phase === "waiting") {
     return (
       <div className="challenge-bg min-h-screen flex items-center justify-center p-4">
@@ -226,13 +508,17 @@ export default function Join() {
           <div className="relative mx-auto w-24 h-24">
             <div className="absolute inset-0 rounded-full bg-yellow-400/10 border-2 border-yellow-400/20 animate-ping" />
             <div className="relative w-24 h-24 rounded-full bg-yellow-400/20 border-2 border-yellow-400/40 flex items-center justify-center">
-              <Users className="w-10 h-10 text-yellow-300" />
+              {isParaulaRoom
+                ? <span className="text-4xl font-black text-orange-300">P</span>
+                : <Users className="w-10 h-10 text-yellow-300" />}
             </div>
           </div>
 
           <div className="space-y-1">
             <h2 className="text-2xl font-heading font-bold">{t("join_youre_in")}</h2>
-            <p className="text-white/60 text-sm">{t("join_waiting")}</p>
+            <p className="text-white/60 text-sm">
+              {isParaulaRoom ? "Waiting for the teacher to reveal the word…" : t("join_waiting")}
+            </p>
           </div>
 
           {/* Name badge */}
@@ -247,6 +533,13 @@ export default function Join() {
             <p className="text-3xl font-mono font-bold tracking-widest text-yellow-300">{code}</p>
           </div>
 
+          {isParaulaRoom && (
+            <div className="bg-orange-500/10 border border-orange-400/20 rounded-xl p-3">
+              <p className="text-orange-300 font-black tracking-widest text-lg">PARAULA</p>
+              <p className="text-white/50 text-xs mt-0.5">Catalan word game</p>
+            </div>
+          )}
+
           <div className="flex items-center justify-center gap-2 text-white/40 text-sm">
             <Loader2 className="w-4 h-4 animate-spin" /> {t("join_checking")}
           </div>
@@ -255,7 +548,37 @@ export default function Join() {
     );
   }
 
-  // ── Active question ────────────────────────────────────────────────────────
+  // ── PARAULA Live game ─────────────────────────────────────────────────────
+  if (phase === "paraula" && paraulaWord && participantId && challengeId) {
+    return (
+      <div className="challenge-bg min-h-screen flex flex-col p-4 gap-4">
+        {/* Header */}
+        <div className="flex items-center justify-between max-w-sm mx-auto w-full">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-orange-400/20 border border-orange-400/40 flex items-center justify-center">
+              <span className="text-sm font-black text-orange-300">P</span>
+            </div>
+            <span className="text-white font-heading font-bold text-sm tracking-widest">PARAULA</span>
+          </div>
+          <Badge className="bg-orange-500/20 text-orange-300 border-orange-400/40">
+            Live Room
+          </Badge>
+        </div>
+
+        <div className="flex-1 flex flex-col items-center justify-start gap-4 max-w-sm mx-auto w-full pt-2">
+          <LiveParaulaGame
+            word={paraulaWord}
+            clue={paraulaClue}
+            participantId={participantId}
+            challengeId={challengeId}
+            onFinish={handleParaulaFinish}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // ── Active MCQ question ───────────────────────────────────────────────────
   if (phase === "question" && currentQ) {
     const letters = ["A", "B", "C", "D"];
     const optionColors = [
@@ -349,7 +672,7 @@ export default function Join() {
     );
   }
 
-  // ── Done ───────────────────────────────────────────────────────────────────
+  // ── Done ──────────────────────────────────────────────────────────────────
   if (phase === "done") {
     const sorted = [...(leaderboard ?? [])].sort((a, b) => b.score - a.score);
     const rank = sorted.findIndex((p) => p.id === participantId) + 1;
@@ -363,18 +686,44 @@ export default function Join() {
           </div>
 
           <div>
-            <h2 className="text-3xl font-heading font-bold">{t("join_challenge_over")}</h2>
-            {rank > 0 && (
-              <p className="text-white/60 mt-1">
-                {t("join_finished")} <span className="text-yellow-300 font-bold text-xl">#{rank}</span>
-              </p>
+            {isParaulaRoom ? (
+              <>
+                <h2 className="text-3xl font-heading font-bold">
+                  {paraulaSolved ? "🎉 Enhorabona!" : "Bona prova!"}
+                </h2>
+                {paraulaGuesses > 0 && (
+                  <p className="text-white/60 mt-1">
+                    {paraulaSolved
+                      ? `Solved in ${paraulaGuesses} ${paraulaGuesses === 1 ? "guess" : "guesses"}!`
+                      : "Better luck next time!"}
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                <h2 className="text-3xl font-heading font-bold">{t("join_challenge_over")}</h2>
+                {rank > 0 && (
+                  <p className="text-white/60 mt-1">
+                    {t("join_finished")} <span className="text-yellow-300 font-bold text-xl">#{rank}</span>
+                  </p>
+                )}
+              </>
             )}
           </div>
 
-          {/* Score */}
+          {/* Score / guesses */}
           <div className="bg-white/10 rounded-2xl border border-white/20 p-5 space-y-1">
-            <p className="text-white/60 text-sm">{t("join_your_score")}</p>
-            <p className="text-5xl font-black text-yellow-300">{lastScore}</p>
+            {isParaulaRoom ? (
+              <>
+                <p className="text-white/60 text-sm">Guesses used</p>
+                <p className="text-5xl font-black text-orange-300">{paraulaGuesses || "—"}</p>
+              </>
+            ) : (
+              <>
+                <p className="text-white/60 text-sm">{t("join_your_score")}</p>
+                <p className="text-5xl font-black text-yellow-300">{lastScore}</p>
+              </>
+            )}
           </div>
 
           {/* Leaderboard */}
@@ -394,7 +743,13 @@ export default function Join() {
                     {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}
                   </span>
                   <span className="flex-1 text-sm font-medium">{p.nickname}</span>
-                  <span className="font-bold text-yellow-300">{p.score}</span>
+                  {isParaulaRoom ? (
+                    <span className="font-bold text-orange-300 text-sm">
+                      {p.score > 0 ? `${p.score} guess${p.score !== 1 ? "es" : ""}` : "—"}
+                    </span>
+                  ) : (
+                    <span className="font-bold text-yellow-300">{p.score} pts</span>
+                  )}
                 </div>
               ))}
             </div>
@@ -410,6 +765,11 @@ export default function Join() {
               setName("");
               setLastScore(0);
               setLookupCode("");
+              setIsParaulaRoom(false);
+              setParaulaWord("");
+              setParaulaClue("");
+              setParaulaGuesses(0);
+              setParaulaSolved(false);
             }}
           >
             {t("join_play_again")}

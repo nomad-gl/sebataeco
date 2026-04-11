@@ -1421,12 +1421,19 @@
 - [x] Search input to filter materials by title
 
 ## Feature: My Materials - sort, bulk delete, share
-- [ ] Sort toggle (newest/oldest/A-Z) on My Materials page
-- [ ] Bulk delete mode: select multiple cards and delete all at once
-- [ ] Share link: generate a read-only public link for any material
+- [x] Sort toggle (newest/oldest/A-Z) on My Materials page
+- [x] Bulk delete mode: select multiple cards and delete all at once
+- [x] Share link: generate a read-only public link for any material
 
 ## Feature: PARAULA challenge room
-- [ ] Server procedure to create a PARAULA room from a saved paraula material
-- [ ] Teacher lobby: show room code + QR, list students as they join
-- [ ] Student join flow: enter room code, see the PARAULA board, play live
-- [ ] Live leaderboard: show scores after each round
+- [x] Server procedure to create a PARAULA room from a saved paraula material
+- [x] Teacher lobby: show room code + QR, list students as they join
+- [x] Student join flow: enter room code, see the PARAULA board, play live
+- [x] Live leaderboard: show scores after each round
+
+## Feature: PARAULA viewer enhancements + live student room
+- [ ] Inline word/clue editor in PARAULA material viewer (edit words and clues after generation)
+- [ ] Print word list button in PARAULA material viewer (clean printable sheet)
+- [ ] Live PARAULA student room: real-time room where all students play the same word simultaneously
+- [ ] Teacher leaderboard view: see who guessed the word and in how many tries
+- [ ] Student join flow for PARAULA live room: enter room code, play the game, submit score

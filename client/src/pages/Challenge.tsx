@@ -93,6 +93,24 @@ export default function Challenge() {
   const myRooms = trpc.challenge.myRooms.useQuery(undefined, { enabled: isAuthenticated });
   const myMaterials = trpc.materials.list.useQuery(undefined, { enabled: isAuthenticated && view === "create" });
 
+  // Detect if this is a PARAULA live room
+  const isParaulaRoom = !!(roomQuery.data && (() => {
+    try {
+      const q = roomQuery.data.questions as unknown as Array<{ type?: string }>;
+      return Array.isArray(q) && q[0]?.type === "paraula_live";
+    } catch { return false; }
+  })());
+
+  const paraulaRoomQuery = trpc.challenge.getParaulaRoom.useQuery(
+    { challengeId: roomId ?? 0 },
+    { enabled: !!roomId && isParaulaRoom && (view === "lobby" || view === "live"), refetchInterval: 3000 }
+  );
+
+  const finishParaulaRoomMutation = trpc.challenge.finishParaulaRoom.useMutation({
+    onSuccess: () => { roomQuery.refetch(); setView("results"); },
+    onError: (e) => toast.error(e.message),
+  });
+
   // Save-to-group dialog state (declared after roomQuery)
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveGroupId, setSaveGroupId] = useState<string>("none");
@@ -381,7 +399,166 @@ export default function Challenge() {
             )}
           </div>
         )}
-        {view === "lobby" && room && (
+        {view === "lobby" && room && isParaulaRoom && (
+          <div className="max-w-2xl mx-auto space-y-5">
+            {/* PARAULA Live Lobby Header */}
+            <div className="text-center space-y-1">
+              <div className="inline-flex items-center gap-2 bg-orange-400/20 text-orange-300 border border-orange-400/30 rounded-full px-4 py-1.5 text-sm font-semibold">
+                <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse inline-block" />
+                <span className="font-black tracking-widest">PARAULA</span> Live — Waiting for students
+              </div>
+              <h2 className="text-2xl font-bold text-white">{room.title}</h2>
+              {paraulaRoomQuery.data?.clue && (
+                <p className="text-white/60 text-sm">Word clue: <span className="text-orange-300 font-semibold">{paraulaRoomQuery.data.clue}</span></p>
+              )}
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-4">
+              {/* Room code + QR */}
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6 flex flex-col items-center gap-4">
+                <div className="space-y-1 text-center">
+                  <p className="text-white/60 text-xs uppercase tracking-widest font-semibold">Room Code</p>
+                  <p className="text-5xl font-mono font-black text-orange-300 tracking-widest">{room.roomCode}</p>
+                </div>
+                <div className="bg-white rounded-xl p-3">
+                  <QRCodeSVG value={joinUrl} size={140} />
+                </div>
+                <p className="text-white/50 text-xs text-center">Scan to join or visit</p>
+                <p className="text-orange-200 text-xs font-mono break-all text-center">{window.location.origin}/join</p>
+                <div className="flex gap-2 w-full">
+                  <Button variant="outline" size="sm" className="flex-1 border-white/30 text-white hover:bg-white/10 gap-1.5 text-xs"
+                    onClick={() => { navigator.clipboard.writeText(room.roomCode); toast.success(t("challenge_room_copied")); }}>
+                    <Copy className="w-3.5 h-3.5" /> Code
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1 border-white/30 text-white hover:bg-white/10 gap-1.5 text-xs"
+                    onClick={() => { navigator.clipboard.writeText(joinUrl); toast.success(t("challenge_link_copied")); }}>
+                    <Link2 className="w-3.5 h-3.5" /> Link
+                  </Button>
+                </div>
+              </div>
+
+              {/* Participants panel */}
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-5 flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-white">
+                    <Users className="w-5 h-5 text-orange-300" />
+                    <span className="font-semibold">{t("challenge_students_joined")}</span>
+                  </div>
+                  <span className="text-2xl font-bold text-orange-300">{room.participants.length}</span>
+                </div>
+                <div className="flex-1 min-h-[120px] max-h-[200px] overflow-y-auto">
+                  {room.participants.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full gap-2 text-white/40">
+                      <Users className="w-8 h-8 opacity-40" />
+                      <p className="text-sm">{t("challenge_waiting_students")}</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {room.participants.map((p) => (
+                        <span key={p.id} className={`text-sm px-3 py-1 rounded-full font-medium transition-all duration-500 ${
+                          newlyJoined.has(p.id) ? "bg-orange-400 text-black scale-110" : "bg-white/20 text-white"
+                        }`}>{p.nickname}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <Button
+                  size="lg"
+                  className={`w-full font-bold gap-2 transition-all ${
+                    room.participants.length > 0 ? "bg-orange-500 hover:bg-orange-400 text-white" : "bg-white/10 text-white/40 cursor-not-allowed"
+                  }`}
+                  disabled={room.participants.length === 0 || controlMutation.isPending}
+                  onClick={() => controlMutation.mutate({ id: room.id, action: "start" })}
+                >
+                  {controlMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5" />}
+                  {room.participants.length === 0 ? t("challenge_waiting_students") : `Start PARAULA (${room.participants.length} joined)`}
+                </Button>
+              </div>
+            </div>
+
+            <div className="bg-orange-400/10 border border-orange-400/20 rounded-xl p-4 text-sm text-orange-200 space-y-1">
+              <p className="font-semibold">How to join</p>
+              <ol className="list-decimal list-inside space-y-0.5 text-orange-200/80">
+                <li>Go to <span className="font-mono">{window.location.origin}/join</span></li>
+                <li>Enter code <span className="font-mono font-bold text-orange-300">{room.roomCode}</span></li>
+                <li>Enter your name and wait for the word to be revealed</li>
+              </ol>
+            </div>
+          </div>
+        )}
+
+        {/* ── PARAULA Live view (teacher sees live leaderboard) ── */}
+        {view === "live" && room && isParaulaRoom && (() => {
+          const pr = paraulaRoomQuery.data;
+          const sorted = [...room.participants].sort((a, b) => {
+            // Sort by guesses ascending (fewer = better), unsolved last
+            const aGuesses = a.score > 0 ? a.score : 999;
+            const bGuesses = b.score > 0 ? b.score : 999;
+            return aGuesses - bGuesses;
+          });
+          const finished = sorted.filter((p) => p.score > 0).length;
+          return (
+            <div className="max-w-2xl mx-auto space-y-5">
+              <div className="text-center space-y-1">
+                <div className="inline-flex items-center gap-2 bg-orange-400/20 text-orange-300 border border-orange-400/30 rounded-full px-4 py-1.5 text-sm font-semibold">
+                  <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse inline-block" />
+                  <span className="font-black tracking-widest">PARAULA</span> Live — Game in progress
+                </div>
+                <h2 className="text-2xl font-bold text-white">{room.title}</h2>
+                {pr?.clue && <p className="text-white/60 text-sm">Clue: <span className="text-orange-300 font-semibold">{pr.clue}</span></p>}
+              </div>
+
+              {/* Progress */}
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-white">
+                    <Trophy className="w-5 h-5 text-orange-300" />
+                    <span className="font-semibold">Live Leaderboard</span>
+                  </div>
+                  <span className="text-sm text-white/60">{finished} / {room.participants.length} finished</span>
+                </div>
+                <div className="w-full bg-white/10 rounded-full h-2">
+                  <div className="bg-orange-400 h-2 rounded-full transition-all" style={{ width: `${room.participants.length > 0 ? (finished / room.participants.length) * 100 : 0}%` }} />
+                </div>
+                <div className="space-y-2">
+                  {sorted.map((p, i) => (
+                    <div key={p.id} className={`flex items-center gap-3 rounded-xl p-3 ${
+                      i === 0 && p.score > 0 ? "bg-orange-400/20 border border-orange-400/30" : "bg-white/5"
+                    }`}>
+                      <span className="text-xl w-7 text-center">
+                        {i === 0 && p.score > 0 ? "🥇" : i === 1 && p.score > 0 ? "🥈" : i === 2 && p.score > 0 ? "🥉" : `${i + 1}.`}
+                      </span>
+                      <span className="flex-1 text-white font-medium">{p.nickname}</span>
+                      {p.score > 0 ? (
+                        <span className="text-orange-300 font-bold text-sm">{p.score} guess{p.score !== 1 ? "es" : ""}</span>
+                      ) : (
+                        <span className="text-white/30 text-sm">playing…</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  className="flex-1 bg-orange-500 hover:bg-orange-400 text-white font-bold gap-2"
+                  disabled={finishParaulaRoomMutation.isPending}
+                  onClick={() => finishParaulaRoomMutation.mutate({ challengeId: room.id })}
+                >
+                  {finishParaulaRoomMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <StopCircle className="w-4 h-4" />}
+                  End Game & Show Results
+                </Button>
+              </div>
+
+              <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
+                <p className="text-white/50 text-xs">Room code: <span className="font-mono font-bold text-orange-300">{room.roomCode}</span></p>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── Lobby view (MCQ rooms) ── */}
+        {view === "lobby" && room && !isParaulaRoom && (
           <div className="max-w-2xl mx-auto space-y-5">
             {/* Header */}
             <div className="text-center space-y-1">
@@ -491,8 +668,8 @@ export default function Challenge() {
           </div>
         )}
 
-        {/* ── Live view ── */}
-        {view === "live" && room && (() => {
+        {/* ── Live view (MCQ rooms only) ── */}
+        {view === "live" && room && !isParaulaRoom && (() => {
           const q = room.questions[room.currentQuestion];
           return (
             <div className="max-w-2xl mx-auto space-y-6">
@@ -613,10 +790,20 @@ export default function Challenge() {
             )}
           </div>
         )}
-        {view === "results" && room && (
+        {view === "results" && room && (() => {
+          const isParaulaResults = isParaulaRoom;
+          const sortedParticipants = isParaulaResults
+            ? [...room.participants].sort((a, b) => {
+                const aG = a.score > 0 ? a.score : 999;
+                const bG = b.score > 0 ? b.score : 999;
+                return aG - bG;
+              })
+            : [...room.participants].sort((a, b) => b.score - a.score);
+          return (
           <div className="max-w-lg mx-auto space-y-6">
             <div className="text-center space-y-2">
-              <Trophy className="w-16 h-16 text-yellow-300 mx-auto" />
+              <Trophy className={`w-16 h-16 mx-auto ${isParaulaResults ? "text-orange-300" : "text-yellow-300"}`} />
+              {isParaulaResults && <p className="font-black tracking-widest text-orange-300 text-xl">PARAULA</p>}
               <h2 className="text-2xl font-bold text-white">{t("practice_done_title")}</h2>
               <p className="text-white/70">{room.title}</p>
             </div>
@@ -631,14 +818,18 @@ export default function Challenge() {
                   <Printer className="w-3.5 h-3.5" /> Print Results
                 </Button>
               </div>
-              {room.participants.length === 0 && <p className="text-white/50 text-sm">{t("my_materials_empty")}</p>}
-              {room.participants.map((p, i) => (
-                <div key={p.id} className={`flex items-center justify-between p-3 rounded-xl ${i === 0 ? "bg-yellow-400/20 border border-yellow-400/30" : "bg-white/5"}`}>
+              {sortedParticipants.length === 0 && <p className="text-white/50 text-sm">{t("my_materials_empty")}</p>}
+              {sortedParticipants.map((p, i) => (
+                <div key={p.id} className={`flex items-center justify-between p-3 rounded-xl ${i === 0 ? (isParaulaResults ? "bg-orange-400/20 border border-orange-400/30" : "bg-yellow-400/20 border border-yellow-400/30") : "bg-white/5"}`}>
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}.`}</span>
                     <span className="text-white font-medium">{p.nickname}</span>
                   </div>
-                  <span className="text-yellow-300 font-bold">{p.score} / {room.questions.length}</span>
+                  {isParaulaResults ? (
+                    <span className="text-orange-300 font-bold">{p.score > 0 ? `${p.score} guess${p.score !== 1 ? "es" : ""}` : "—"}</span>
+                  ) : (
+                    <span className="text-yellow-300 font-bold">{p.score} / {room.questions.length}</span>
+                  )}
                 </div>
               ))}
             </div>
@@ -687,7 +878,8 @@ export default function Challenge() {
               </Button>
             </div>
           </div>
-        )}
+          );
+        })()}
 
         {/* ── Save to Group Dialog ── */}
         <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
