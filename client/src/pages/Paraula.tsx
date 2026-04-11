@@ -154,11 +154,17 @@ export default function Paraula() {
 
   const keyboardState = buildKeyboardState(guesses);
 
+  // Haptic helper — silently ignored on browsers that don't support it
+  const vibrate = (pattern: number | number[]) => {
+    try { navigator.vibrate?.(pattern); } catch { /* ignore */ }
+  };
+
   const handleKey = useCallback((key: string) => {
     if (gameStatus !== "playing") return;
 
     if (key === "ENTER" || key === "Enter") {
       if (currentInput.length < WORD_LENGTH) {
+        vibrate([50, 30, 50]); // error pattern
         toast.error(t.tooShort, { duration: 1500 });
         setShakingRow(guesses.length);
         setTimeout(() => setShakingRow(null), 600);
@@ -166,11 +172,13 @@ export default function Paraula() {
       }
       const normInput = stripAccents(currentInput);
       if (!validSet.has(normInput)) {
+        vibrate([50, 30, 50]); // error pattern
         toast.error(t.notInList, { duration: 1500 });
         setShakingRow(guesses.length);
         setTimeout(() => setShakingRow(null), 600);
         return;
       }
+      vibrate(80); // submit
       const states = scoreGuess(normAnswer, normInput);
       const newGuess: GuessResult = { word: currentInput, states };
       const newGuesses = [...guesses, newGuess];
@@ -191,6 +199,8 @@ export default function Paraula() {
           newStats.currentStreak += 1;
           newStats.maxStreak = Math.max(newStats.maxStreak, newStats.currentStreak);
           newStats.distribution[newGuesses.length - 1] += 1;
+          // Win celebration vibration — delayed to after tile reveal
+          setTimeout(() => vibrate([100, 50, 100, 50, 200]), WORD_LENGTH * 350 + 200);
         } else {
           newStats.currentStreak = 0;
         }
@@ -209,6 +219,7 @@ export default function Paraula() {
     }
 
     if (key === "Backspace" || key === "⌫" || key === "DELETE") {
+      vibrate(30); // soft delete tap
       setCurrentInput(prev => prev.slice(0, -1));
       return;
     }
@@ -216,6 +227,7 @@ export default function Paraula() {
     // Letter key
     const letter = key.toUpperCase();
     if (/^[A-ZÇÑ·]$/.test(letter) && currentInput.length < WORD_LENGTH) {
+      vibrate(50); // standard key tap
       setCurrentInput(prev => prev + letter);
     }
   }, [gameStatus, currentInput, guesses, normAnswer, validSet, t, stats, gameLang, dayNum]);

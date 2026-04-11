@@ -1391,3 +1391,9 @@
 - [x] Stats persistence (localStorage) per language
 - [x] Full i18n: Catalan, Spanish, English UI strings
 - [x] Route at /paraula, linked from Teacher dropdown in NavBar
+
+## Feature: PARAULA haptic feedback
+- [x] Add navigator.vibrate(50) on each letter key press
+- [x] Add navigator.vibrate(80) on ENTER/submit
+- [x] Add navigator.vibrate([50,30,50]) pattern on invalid word (error shake)
+- [x] Add navigator.vibrate([100,50,100,50,200]) pattern on win
