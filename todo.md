@@ -1305,8 +1305,8 @@
 ## Bug: AINA chat works in preview but not on published site
 - [x] Diagnose why lomloe.chat fails on sebataeco.com but works in dev preview
 - [x] Added debug error info to chat error bubble (error name + message shown inline) to identify exact failure on production
-- [ ] Fix root cause once error type is confirmed by user
-- [ ] Verify on production
+- [x] Fix root cause once error type is confirmed by user (renamed clara_* tables to aina_* in production DB)
+- [x] Verify on production (curl test returns HTTP 200 with full AINA reply)
 
 ## Follow-up: Voice Picker Improvements
 - [x] Add "Reset to default" link in voice picker (clears seba_tts_voice_manual flag and reverts to language-derived default)
@@ -1324,3 +1324,9 @@
 - [x] Wire WhatsNewBanner into App.tsx (shown to all users, persists dismissal to DB for logged-in users, localStorage for guests)
 - [x] Add i18n keys for What's New content in EN, ES, CA
 - [x] Verify banner shows on first login and does not reappear after dismissal
+
+## Bug: Missing production DB tables causing AINA chat error
+- [x] Identify all tables defined in schema.ts that are missing from the production DB
+- [x] Renamed clara_message_ratings -> aina_message_ratings and clara_user_profiles -> aina_user_profiles in production DB
+- [x] Verify AINA chat works on production after migration (curl test returns HTTP 200 with full reply)
+- [x] Fix root cause once error type is confirmed by user (root cause: missing DB migration)

@@ -105,17 +105,11 @@ export default function Chat() {
       try {
         result = await chatMutation.mutateAsync(buildPayload());
       } catch (err) {
-        // Both attempts failed — show error bubble with debug info
-        let debugInfo = "";
-        if (err instanceof Error) {
-          debugInfo = ` [${err.name}: ${err.message.slice(0, 150)}]`;
-        } else if (typeof err === "object" && err !== null) {
-          try { debugInfo = ` [${JSON.stringify(err).slice(0, 150)}]`; } catch { /* ignore */ }
-        }
+        // Both attempts failed — show clean error bubble
         console.error("[AINA chat error]", err);
         setMessages([
           ...newMessages,
-          { role: "assistant", content: t("chat_error") + debugInfo, timestamp: Date.now() },
+          { role: "assistant", content: t("chat_error"), timestamp: Date.now() },
         ]);
         return;
       }
