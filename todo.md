@@ -1472,3 +1472,9 @@
 ## Bug: Server error when Start Challenge button is clicked
 - [x] Diagnose the tRPC/server error triggered by the Start Challenge button
 - [x] Fix the root cause and verify the challenge creation flow works end-to-end
+
+## Bug: PARAULA game does not reset or indicate correct answer
+- [x] Game board does not reset when a new round starts (tiles/keyboard persist)
+- [x] No visual indication when the correct word is guessed (win state not shown)
+- [x] Winning row should animate/highlight green and show a celebration message
+- [x] After winning, show emoji share grid and "Waiting for next round" state
