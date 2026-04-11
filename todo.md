@@ -1404,3 +1404,7 @@
 - [x] Add MaterialView renderer for paraula type (embeds the full playable Paraula game with topic words)
 - [x] Remove standalone Paraula nav item from NavBar (game accessible via Create page)
 - [x] Keep /paraula route accessible but redirect or repurpose it
+
+## Bug: Challenge room not loading
+- [x] Diagnose why the challenge room page fails to load
+- [x] Fix the root cause and verify the room loads correctly

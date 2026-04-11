@@ -359,8 +359,19 @@ export default function Challenge() {
         {/* ── Lobby view ── */}
         {view === "lobby" && !room && (
           <div className="flex flex-col items-center justify-center min-h-[40vh] gap-4">
-            <Loader2 className="w-10 h-10 animate-spin text-yellow-300" />
-            <p className="text-white/70 text-sm">Loading room…</p>
+            {roomQuery.isError || (roomQuery.isFetched && roomQuery.data === null) ? (
+              <>
+                <p className="text-white/70 text-sm">{t("error")}: Could not load room.</p>
+                <Button variant="ghost" className="text-white/70 hover:text-white" onClick={() => { setRoomId(null); setView("home"); }}>
+                  <ArrowLeft className="w-4 h-4 mr-1" /> Back
+                </Button>
+              </>
+            ) : (
+              <>
+                <Loader2 className="w-10 h-10 animate-spin text-yellow-300" />
+                <p className="text-white/70 text-sm">Loading room…</p>
+              </>
+            )}
           </div>
         )}
         {view === "lobby" && room && (
@@ -578,6 +589,23 @@ export default function Challenge() {
         })()}
 
         {/* ── Results view ── */}
+        {view === "results" && !room && (
+          <div className="flex flex-col items-center justify-center min-h-[40vh] gap-4">
+            {roomQuery.isError || (roomQuery.isFetched && roomQuery.data === null) ? (
+              <>
+                <p className="text-white/70 text-sm">{t("error")}: Could not load results.</p>
+                <Button variant="ghost" className="text-white/70 hover:text-white" onClick={() => { setRoomId(null); setView("home"); }}>
+                  <ArrowLeft className="w-4 h-4 mr-1" /> Back
+                </Button>
+              </>
+            ) : (
+              <>
+                <Loader2 className="w-10 h-10 animate-spin text-yellow-300" />
+                <p className="text-white/70 text-sm">Loading results…</p>
+              </>
+            )}
+          </div>
+        )}
         {view === "results" && room && (
           <div className="max-w-lg mx-auto space-y-6">
             <div className="text-center space-y-2">
