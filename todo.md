@@ -1372,3 +1372,22 @@
 - [x] Side panel: add new event for that day, edit existing events, delete events
 - [x] Inline lesson planner editor: open linked lesson plan from calendar event with full edit form
 - [x] "View Lesson Plan" button on AI-generated events in the day panel
+
+## Feature: PARAULA – Catalan Wordle game
+- [x] Research NYT Wordle rules and exact two-pass scoring algorithm
+- [x] Create curated Catalan 5-letter word list (~300 answer words)
+- [x] Create Spanish and English word lists (~300 each)
+- [x] Implement exact Wordle scoring algorithm (two-pass: green first, then yellow)
+- [x] Daily word seeded by date (same word for all players each day)
+- [x] 6x5 game board with tile flip animations on reveal
+- [x] Shake animation on invalid/short words
+- [x] Catalan keyboard with Ç key; Spanish keyboard with Ñ; English standard
+- [x] Keyboard letter state tracking (green > yellow > grey)
+- [x] Help modal with examples (PILOT/DOTZE/MAGIC)
+- [x] Statistics modal with win %, streak, guess distribution bar chart
+- [x] Settings modal: dark/light theme toggle, game language switcher (CA/ES/EN)
+- [x] Share result as emoji grid (🟩🟨⬛) copied to clipboard
+- [x] Day state persistence (localStorage) – resume same day's game on reload
+- [x] Stats persistence (localStorage) per language
+- [x] Full i18n: Catalan, Spanish, English UI strings
+- [x] Route at /paraula, linked from Teacher dropdown in NavBar

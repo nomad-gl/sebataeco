@@ -5,7 +5,7 @@ import {
   BookOpen, MessageCircle, Dumbbell, LayoutDashboard,
   Sparkles, Library, TrendingUp, ChevronDown, Menu, X, Zap,
   Presentation as PresentationIcon, Globe, Users, MessagesSquare, Bell, Download,
-  CalendarDays, FileText, Settings as SettingsIcon, ShieldAlert, Lock,
+  CalendarDays, FileText, Settings as SettingsIcon, ShieldAlert, Lock, Gamepad2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
@@ -67,6 +67,7 @@ export default function NavBar() {
     { href: "/lesson-planner",  label: t("nav_lesson_planner"),  icon: FileText },
     { href: "/accountability",   label: t("nav_accountability"),  icon: ShieldAlert },
     { href: "/privacy",           label: t("nav_privacy"),          icon: Lock },
+    { href: "/paraula",           label: "Paraula",                 icon: Gamepad2 },
   ];
 
   const isTeacherActive = teacherItems.some(
