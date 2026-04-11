@@ -86,8 +86,8 @@ export default function Challenge() {
   // Enable polling immediately when roomId is set so the lobby never shows blank
   const isInRoomView = view === "lobby" || view === "live";
   const roomQuery = trpc.challenge.getRoom.useQuery(
-    { id: roomId! },
-    { enabled: roomId !== null, refetchInterval: isInRoomView ? 2000 : false }
+    { id: roomId ?? 0 },
+    { enabled: roomId !== null && roomId > 0, refetchInterval: isInRoomView ? 2000 : false }
   );
 
   const myRooms = trpc.challenge.myRooms.useQuery(undefined, { enabled: isAuthenticated });
@@ -243,7 +243,7 @@ export default function Challenge() {
 
         {/* ── Create view ── */}
         {view === "create" && (
-          <div className="max-w-2xl mx-auto space-y-6">
+          <div className="max-w-2xl mx-auto flex flex-col gap-4 pb-24">
             <button onClick={() => setView("home")} className="flex items-center gap-1 text-white/70 hover:text-white text-sm transition-colors">
               <ChevronLeft className="w-4 h-4" /> {t("cancel")}
             </button>
@@ -343,15 +343,22 @@ export default function Challenge() {
                 </div>
               )}
 
-              <Button
-                className="w-full bg-yellow-400 hover:bg-yellow-300 text-black font-bold"
-                disabled={!canCreate}
-                onClick={handleCreate}
-              >
-                {isPending
-                  ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />{t("create_generating")}</>
-                  : t("challenge_start")}
-              </Button>
+            </div>
+
+            {/* Sticky submit button — always visible */}
+            <div className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-6 pt-3 bg-gradient-to-t from-black/60 to-transparent">
+              <div className="max-w-2xl mx-auto">
+                <Button
+                  className="w-full bg-yellow-400 hover:bg-yellow-300 text-black font-bold text-base py-3 h-auto"
+                  disabled={!canCreate}
+                  onClick={handleCreate}
+                  type="button"
+                >
+                  {isPending
+                    ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />{t("create_generating")}</>
+                    : t("challenge_start")}
+                </Button>
+              </div>
             </div>
           </div>
         )}

@@ -1408,3 +1408,6 @@
 ## Bug: Challenge room not loading
 - [x] Diagnose why the challenge room page fails to load
 - [x] Fix the root cause and verify the room loads correctly
+
+## Bug: Start Challenge button does not load room page
+- [x] Fix: clicking Start Challenge on the create form does not navigate to the room/lobby view
