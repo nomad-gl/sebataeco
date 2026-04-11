@@ -701,9 +701,36 @@ function FlashcardsViewer({ content }: { content: FlashcardsContent }) {
   );
 }
 
+// ─── PARAULA viewer ─────────────────────────────────────────────────────────
+
+function PaRaulaViewer({ content, materialTitle, topic }: { content: { words: string[]; clues: string[]; lang: string }; materialTitle: string; topic: string }) {
+  const { words = [], clues = [], lang = "ca" } = content;
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-3 p-3 rounded-xl bg-orange-500/10 border border-orange-500/20">
+        <div className="text-2xl font-black tracking-widest text-orange-500">PARAULA</div>
+        <div className="flex flex-col">
+          <span className="text-sm font-semibold text-foreground">{materialTitle}</span>
+          <span className="text-xs text-muted-foreground">{topic} · {words.length} words · {lang.toUpperCase()}</span>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {words.map((w, i) => (
+          <div key={i} className="flex items-center gap-3 p-2 rounded-lg border bg-card">
+            <span className="font-mono font-bold text-primary text-sm w-14 shrink-0 tracking-wider">{w}</span>
+            <span className="text-xs text-muted-foreground flex-1 truncate">{clues[i] ?? ""}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Export toolbar ───────────────────────────────────────────────────────────
 
-type MaterialType = "quiz" | "slides" | "crossword" | "missing_words" | "wordsearch" | "flashcards";
+type MaterialType = "quiz" | "slides" | "crossword" | "missing_words" | "wordsearch" | "flashcards" | "paraula";
+
+type PaRaulaContent = { words: string[]; clues: string[]; lang: string; title?: string };
 const TWO_VERSION_TYPES: MaterialType[] = ["quiz", "crossword", "missing_words"];
 
 function ExportToolbar({
@@ -889,6 +916,7 @@ export default function MaterialView() {
       case "missing_words": return <MissingWordsViewer content={content as unknown as MissingWordsContent} showAnswers={showAnswers} />;
       case "wordsearch":    return <WordsearchViewer content={content as unknown as WordsearchContent} />;
       case "flashcards":    return <FlashcardsViewer content={content as unknown as FlashcardsContent} />;
+      case "paraula":       return <PaRaulaViewer content={content as unknown as PaRaulaContent} materialTitle={material?.title ?? ""} topic={material?.topic ?? ""} />;
       default:              return <pre className="text-xs text-muted-foreground">{JSON.stringify(content, null, 2)}</pre>;
     }
   }
@@ -896,6 +924,7 @@ export default function MaterialView() {
   const TYPE_LABELS: Record<string, string> = {
     quiz: "Quiz", slides: "Slide Presentation", crossword: "Crossword Puzzle",
     missing_words: "Missing Words", wordsearch: "Word Search", flashcards: "Flashcards",
+    paraula: "PARAULA Word Game",
   };
 
   return (

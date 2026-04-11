@@ -18,7 +18,7 @@ import { COMPETENCY_META, getQuestions, type CompetencyCode, type YearGroup } fr
 
 const CompetencyCodeSchema = z.enum(["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"]);
 const YearGroupSchema = z.enum(["junior", "primary", "secondary"]);
-const MaterialTypeSchema = z.enum(["quiz", "slides", "crossword", "missing_words", "wordsearch", "flashcards"]);
+const MaterialTypeSchema = z.enum(["quiz", "slides", "crossword", "missing_words", "wordsearch", "flashcards", "paraula"]);
 
 // --- Helpers ---
 
@@ -164,6 +164,25 @@ Schema:
   ]
 }
 Generate exactly 16 flashcards. Cover the most important concepts, vocabulary, and facts for the topic. Definitions must be substantive, not one-word answers.`,
+
+    paraula: `
+Schema:
+{
+  "title": string,                   // e.g. "El Cicle de l'Aigua – PARAULA"
+  "subject": string,
+  "competency": string,
+  "yearGroup": string,
+  "lang": "ca" | "es" | "en",        // primary language of the words
+  "words": [string],                 // EXACTLY 20 topic-related 5-letter words, UPPERCASE, no accents, no spaces, no hyphens
+  "clues": [string]                  // one short clue/definition per word (same order as words array)
+}
+Rules:
+- Every word must be EXACTLY 5 letters (A-Z only, no accents, no special chars).
+- Words must be real vocabulary directly related to the topic.
+- For Catalan topics use Catalan words; for Spanish topics use Spanish; for English topics use English.
+- Strip accents: ÀÁÂÃÄ→A, ÈÉÊË→E, ÌÍÎÏ→I, ÒÓÔÕÖ→O, ÙÚÛÜ→U, Ç→C (for word list only).
+- Generate exactly 20 words. No duplicates.
+- Each clue must be a brief educational definition (max 8 words).`,
   };
 
   return `${base}\n${schemas[type] ?? ""}`;
@@ -275,6 +294,38 @@ function buildWordsearchGrid(words: string[], size = 15): string[][] {
   return grid;
 }
 
+function validateAndFixParaula(parsed: Record<string, unknown>): Record<string, unknown> {
+  const rawWords = (parsed.words as string[] | undefined) ?? [];
+  const rawClues = (parsed.clues as string[] | undefined) ?? [];
+  // Keep only valid 5-letter uppercase words (strip accents, non-alpha)
+  const fixed: string[] = [];
+  const fixedClues: string[] = [];
+  for (let i = 0; i < rawWords.length; i++) {
+    const w = String(rawWords[i] ?? "")
+      .toUpperCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^A-Z]/g, "");
+    if (w.length === 5 && !fixed.includes(w)) {
+      fixed.push(w);
+      fixedClues.push(String(rawClues[i] ?? `Word ${fixed.length}`));
+    }
+  }
+  // Pad to 20 if LLM returned fewer valid words
+  const lang = String(parsed.lang ?? "ca");
+  const fallbacks = lang === "es"
+    ? ["LIBRO","CLASE","PAPEL","LAPIZ","TABLA","CAMPO","CIELO","TIERRA","FUEGO","AGUA0","PLUMA","CARTA","BOLSA","COCHE","TECHO","SUELO","PUERTA","MANOS","OJOS0","BOCA0"]
+    : lang === "en"
+    ? ["WATER","EARTH","LIGHT","PLANT","CLOUD","STONE","FLAME","RIVER","OCEAN","STORM","GRASS","FIELD","TOWER","BREAD","CHAIR","TABLE","CLOCK","PAPER","BRUSH","PAINT"]
+    : ["PLUJA","TERRA","LLUNA","SOLEI","FLORS","ARBOR","CAMPS","PRATS","RIURE","CANTS","PORTA","TAULA","PAPER","LLUMS","VENTS","MARES","PEIXS","OCELL","HERBA","PEDRA"];
+  let fi = 0;
+  while (fixed.length < 20 && fi < fallbacks.length) {
+    const fb = fallbacks[fi++]!;
+    if (!fixed.includes(fb)) { fixed.push(fb); fixedClues.push(`Paraula ${fixed.length}`); }
+  }
+  return { ...parsed, words: fixed.slice(0, 20), clues: fixedClues.slice(0, 20), lang };
+}
+
 // --- Router ---
 
 export const materialsRouter = router({
@@ -358,6 +409,7 @@ export const materialsRouter = router({
       if (input.type === "crossword")     parsed = validateAndFixCrossword(parsed);
       if (input.type === "missing_words") parsed = validateAndFixMissingWords(parsed);
       if (input.type === "wordsearch")    parsed = validateAndFixWordsearch(parsed);
+      if (input.type === "paraula")       parsed = validateAndFixParaula(parsed);
       const title = (parsed.title as string) ?? `${input.type} – ${input.topic}`;
       return { title, type: input.type, topic: input.topic, content: parsed };
     }),

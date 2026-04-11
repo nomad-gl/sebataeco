@@ -48,6 +48,7 @@ export const teachingMaterials = mysqlTable("teaching_materials", {
     "missing_words",
     "wordsearch",
     "flashcards",
+    "paraula",
   ]).notNull(),
   title: varchar("title", { length: 255 }).notNull(),
   topic: varchar("topic", { length: 255 }).notNull(),

@@ -297,6 +297,7 @@ export const translations = {
     create_activity_missing: "Missing Words",
     create_activity_wordsearch: "Wordsearch",
     create_activity_flashcards: "Flashcards",
+    create_activity_paraula: "PARAULA",
 
     // My Materials
     my_materials_title: "My Materials",
@@ -438,6 +439,7 @@ export const translations = {
     create_desc_missing: "Fill-in-the-blank passage with hints",
     create_desc_wordsearch: "10-keyword grid with topic vocabulary",
     create_desc_flashcards: "10 term/definition pairs for revision",
+    create_desc_paraula: "20 topic words for a Catalan word game",
 
     // MaterialView
     material_slide_of: "of",
@@ -1578,6 +1580,7 @@ export const translations = {
     create_activity_missing: "Palabras que faltan",
     create_activity_wordsearch: "Sopa de letras",
     create_activity_flashcards: "Tarjetas",
+    create_activity_paraula: "PARAULA",
 
     // My Materials
     my_materials_title: "Mis Materiales",
@@ -1719,6 +1722,7 @@ export const translations = {
     create_desc_missing: "Pasaje con palabras en blanco y pistas",
     create_desc_wordsearch: "Cuadrícula de 10 palabras clave del tema",
     create_desc_flashcards: "10 pares término/definición para repasar",
+    create_desc_paraula: "20 palabras del tema para el juego de palabras",
 
     // MaterialView
     material_slide_of: "de",
@@ -2859,6 +2863,7 @@ export const translations = {
     create_activity_missing: "Paraules que falten",
     create_activity_wordsearch: "Sopa de lletres",
     create_activity_flashcards: "Targetes",
+    create_activity_paraula: "PARAULA",
 
     // My Materials
     my_materials_title: "Els Meus Materials",
@@ -3000,6 +3005,7 @@ export const translations = {
     create_desc_missing: "Passatge amb paraules en blanc i pistes",
     create_desc_wordsearch: "Graella de 10 paraules clau del tema",
     create_desc_flashcards: "10 parells terme/definició per repassar",
+    create_desc_paraula: "20 paraules del tema per al joc de paraules",
 
     // MaterialView
     material_slide_of: "de",

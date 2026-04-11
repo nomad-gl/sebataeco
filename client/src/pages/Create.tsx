@@ -13,7 +13,7 @@ import { getLoginUrl } from "@/const";
 import {
   BookOpen, Presentation, Grid3X3, AlignLeft, Search, CreditCard,
   Loader2, ChevronRight, Lock, Sparkles, Save, ArrowLeft, Pencil, X,
-  ImagePlus, Upload, Wand2, Trash2,
+  ImagePlus, Upload, Wand2, Trash2, Gamepad2,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useI18n } from "@/contexts/I18nContext";
@@ -21,7 +21,7 @@ import type { TranslationKey } from "@/contexts/I18nContext";
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
 type YearGroup = "junior" | "primary" | "secondary";
-type MaterialType = "quiz" | "slides" | "crossword" | "missing_words" | "wordsearch" | "flashcards";
+type MaterialType = "quiz" | "slides" | "crossword" | "missing_words" | "wordsearch" | "flashcards" | "paraula";
 
 const ACTIVITY_TYPES: {
   type: MaterialType;
@@ -36,6 +36,7 @@ const ACTIVITY_TYPES: {
   { type: "missing_words", labelKey: "create_activity_missing",    descKey: "create_desc_missing",    icon: AlignLeft,    color: "from-amber-500 to-amber-600" },
   { type: "wordsearch",    labelKey: "create_activity_wordsearch", descKey: "create_desc_wordsearch", icon: Search,       color: "from-rose-500 to-rose-600" },
   { type: "flashcards",    labelKey: "create_activity_flashcards", descKey: "create_desc_flashcards", icon: CreditCard,   color: "from-teal-500 to-teal-600" },
+  { type: "paraula",      labelKey: "create_activity_paraula",    descKey: "create_desc_paraula",    icon: Gamepad2,     color: "from-orange-500 to-orange-600" },
 ];
 
 // ─── Inline preview components ────────────────────────────────────────────────
@@ -363,6 +364,35 @@ function WordsearchPreview({ content }: { content: Record<string, unknown> }) {
   );
 }
 
+function PaRaulaPreview({ content, onChange }: { content: Record<string, unknown>; onChange: (c: Record<string, unknown>) => void }) {
+  const words = (content.words as string[] ?? []);
+  const clues = (content.clues as string[] ?? []);
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-xs text-muted-foreground">
+        {words.length} topic words for PARAULA · Language: <span className="font-semibold">{String(content.lang ?? "ca").toUpperCase()}</span>
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-80 overflow-y-auto">
+        {words.map((w, wi) => (
+          <div key={wi} className="flex items-center gap-2">
+            <span className="font-mono font-bold text-primary text-sm w-16 shrink-0">{w}</span>
+            <Input
+              value={clues[wi] ?? ""}
+              onChange={(e) => {
+                const updated = [...clues];
+                updated[wi] = e.target.value;
+                onChange({ ...content, clues: updated });
+              }}
+              className="text-xs h-7 flex-1"
+              placeholder="Clue…"
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function MaterialPreview({ type, content, onChange }: { type: MaterialType; content: Record<string, unknown>; onChange: (c: Record<string, unknown>) => void }) {
   if (type === "quiz")          return <QuizPreview content={content} onChange={onChange} />;
   if (type === "flashcards")    return <FlashcardsPreview content={content} onChange={onChange} />;
@@ -370,6 +400,7 @@ function MaterialPreview({ type, content, onChange }: { type: MaterialType; cont
   if (type === "missing_words") return <MissingWordsPreview content={content} onChange={onChange} />;
   if (type === "crossword")     return <CrosswordPreview content={content} />;
   if (type === "wordsearch")    return <WordsearchPreview content={content} />;
+  if (type === "paraula")       return <PaRaulaPreview content={content} onChange={onChange} />;
   return null;
 }
 
