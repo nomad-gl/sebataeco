@@ -10,6 +10,7 @@ import { serveStatic, setupVite } from "./vite";
 import cron from "node-cron";
 import { runRetentionPurge } from "../routers/privacy";
 import { runAuditRetentionPurge, auditRetentionStatus } from "../routers/audit";
+import { startHealthMonitor } from "../selfHeal";
 import { getDb } from "../db";
 import { questionTranslations } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
@@ -67,6 +68,8 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
+    // Start the automated self-healing health monitor (runs every 5 minutes)
+    startHealthMonitor();
   });
 
   // Background: pre-populate Catalan question translations on startup

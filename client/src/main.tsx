@@ -29,6 +29,27 @@ const SILENT_MUTATION_PATHS = new Set([
   "voice.tts",
 ]);
 
+// Paths that should NOT be reported to the server error log to avoid loops
+const SILENT_REPORT_PATHS = new Set([
+  "selfHeal.reportClientError",
+  "selfHeal.healthCheck",
+  "selfHeal.getErrorLogs",
+  "selfHeal.getFixHistory",
+]);
+
+/** Silently report a client-side error to the server error log. */
+function reportToServer(errorCode: string, errorMessage: string, context?: Record<string, unknown>) {
+  // Fire-and-forget — never throw, never await
+  fetch("/api/trpc/selfHeal.reportClientError", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({
+      "0": { json: { errorCode, errorMessage: errorMessage.slice(0, 2000), context } }
+    }),
+  }).catch(() => {});
+}
+
 const redirectToLoginIfUnauthorized = (error: unknown, queryPath?: string) => {
   if (!(error instanceof TRPCClientError)) return;
   if (typeof window === "undefined") return;
@@ -85,6 +106,14 @@ queryClient.getQueryCache().subscribe(event => {
       console.error("[API Query Error]", queryPath, error);
       const msg = friendlyErrorMessage(error);
       if (msg) toast.error(msg, { id: `qerr-${queryPath}`, duration: 5000 });
+      // Report INTERNAL_SERVER_ERROR query failures to the server error log
+      if (
+        error instanceof TRPCClientError &&
+        (error.data as { code?: string } | undefined)?.code === "INTERNAL_SERVER_ERROR" &&
+        !SILENT_REPORT_PATHS.has(queryPath)
+      ) {
+        reportToServer("CLIENT_QUERY_ERROR", error.message, { queryPath });
+      }
     }
   }
 });
@@ -101,6 +130,14 @@ queryClient.getMutationCache().subscribe(event => {
       console.error("[API Mutation Error]", mutationPath, error);
       const msg = friendlyErrorMessage(error);
       if (msg) toast.error(msg, { id: `merr-${mutationPath}`, duration: 5000 });
+      // Report INTERNAL_SERVER_ERROR mutation failures to the server error log
+      if (
+        error instanceof TRPCClientError &&
+        (error.data as { code?: string } | undefined)?.code === "INTERNAL_SERVER_ERROR" &&
+        !SILENT_REPORT_PATHS.has(mutationPath)
+      ) {
+        reportToServer("CLIENT_MUTATION_ERROR", error.message, { mutationPath });
+      }
     }
   }
 });

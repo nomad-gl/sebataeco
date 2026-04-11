@@ -27,6 +27,24 @@ class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error("[ErrorBoundary]", error, info.componentStack);
+    // Report the crash to the server error log (fire-and-forget)
+    fetch("/api/trpc/selfHeal.reportClientError", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        "0": {
+          json: {
+            errorCode: "REACT_CRASH",
+            errorMessage: `${error.name}: ${error.message}`.slice(0, 2000),
+            context: {
+              errorId: this.state.errorId,
+              componentStack: info.componentStack?.slice(0, 1000),
+            },
+          },
+        },
+      }),
+    }).catch(() => {});
   }
 
   render() {

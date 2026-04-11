@@ -784,3 +784,48 @@ export const whatsNewDismissals = mysqlTable("whats_new_dismissals", {
 });
 export type WhatsNewDismissal = typeof whatsNewDismissals.$inferSelect;
 export type InsertWhatsNewDismissal = typeof whatsNewDismissals.$inferInsert;
+
+/**
+ * Error log — every captured server error and client crash is stored here.
+ * The self-healing system reads this table to decide what to fix automatically.
+ */
+export const errorLogs = mysqlTable("error_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Where the error originated: "server" | "client" | "health_check" */
+  source: varchar("source", { length: 32 }).notNull(),
+  /** tRPC error code or HTTP status string */
+  errorCode: varchar("errorCode", { length: 64 }),
+  /** Human-readable error message (sanitised — no stack traces) */
+  errorMessage: text("errorMessage"),
+  /** JSON blob: procedure name, userId, input shape, page URL, etc. */
+  context: text("context"),
+  /** Set when the self-healing system resolves this error automatically */
+  resolvedAt: timestamp("resolvedAt"),
+  /** Short description of the fix that was applied, if any */
+  fixApplied: text("fixApplied"),
+  /** True when the error cannot be auto-fixed and needs human review */
+  requiresEscalation: boolean("requiresEscalation").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type ErrorLog = typeof errorLogs.$inferSelect;
+export type InsertErrorLog = typeof errorLogs.$inferInsert;
+
+/**
+ * Fix history — one row per automated fix attempt made by the self-healing system.
+ */
+export const fixHistory = mysqlTable("fix_history", {
+  id: int("id").autoincrement().primaryKey(),
+  /** References error_logs.id that triggered this fix (nullable for proactive fixes) */
+  errorLogId: int("errorLogId"),
+  /** Category: "create_missing_table" | "add_missing_column" | "rebuild_index" | "restart_service" */
+  fixType: varchar("fixType", { length: 64 }).notNull(),
+  /** Human-readable description of what was done */
+  fixDescription: text("fixDescription").notNull(),
+  appliedAt: timestamp("appliedAt").defaultNow().notNull(),
+  /** Whether the fix succeeded */
+  success: boolean("success").default(true).notNull(),
+  /** Any error message if the fix itself failed */
+  failureReason: text("failureReason"),
+});
+export type FixHistory = typeof fixHistory.$inferSelect;
+export type InsertFixHistory = typeof fixHistory.$inferInsert;

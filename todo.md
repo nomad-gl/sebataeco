@@ -1344,3 +1344,17 @@
 - [x] Fix 1: unlockSpeechSynthesis() called synchronously inside handleSubmit, quick-prompt buttons, follow-up question buttons, and wake-word handler to satisfy browser user-gesture requirement
 - [x] Fix 2: playBrowserTTS now defers speaking until voiceschanged fires if voices array is empty (Chrome async loading), with 3s timeout fallback
 - [x] TypeScript: 0 errors, 72/72 tests pass
+
+## Feature: Automated Error Detection and Self-Healing System
+- [x] DB table: `error_logs` (id, source, errorCode, errorMessage, context, resolvedAt, fixApplied, requiresEscalation, createdAt) — created in production DB
+- [x] DB table: `fix_history` (id, errorLogId, fixType, fixDescription, appliedAt, success) — created in production DB
+- [x] Server: `server/db/errorLogger.ts` helper — logError, markResolved, recordFix
+- [x] Server: `server/selfHeal.ts` — runHealthCheck (verifies DB + table schema), runSelfHeal (CREATE TABLE IF NOT EXISTS for missing tables), startHealthMonitor (5-min interval on startup)
+- [x] Server: `server/routers/selfHeal.ts` tRPC router — reportClientError (public), healthCheck (admin), triggerSelfHeal (admin), getErrorLogs (admin), getFixHistory (admin)
+- [x] Server: startHealthMonitor wired into server/_core/index.ts on startup
+- [x] Server: selfHealRouter registered in appRouter
+- [x] Server: owner notifications sent for auto-fixes and escalation-required errors via notifyOwner()
+- [x] Client: ErrorBoundary reports REACT_CRASH to selfHeal.reportClientError on componentDidCatch
+- [x] Client: global query/mutation error handlers report CLIENT_QUERY_ERROR / CLIENT_MUTATION_ERROR for INTERNAL_SERVER_ERROR
+- [x] Admin UI: /admin/errors page — error log table, fix history, manual health check trigger, escalation badge
+- [x] Admin UI: /admin/errors route registered in App.tsx

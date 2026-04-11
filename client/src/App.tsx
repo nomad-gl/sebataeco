@@ -9,6 +9,7 @@ import Home from "./pages/Home";
 import Chat from "./pages/Chat";
 import Practice from "./pages/Practice";
 import Admin from "./pages/Admin";
+import AdminErrors from "./pages/AdminErrors";
 import Create from "./pages/Create";
 import MyMaterials from "./pages/MyMaterials";
 import MaterialView from "./pages/MaterialView";
@@ -46,6 +47,7 @@ function Router() {
         <Route path="/chat" component={Chat} />
         <Route path="/practice" component={Practice} />
         <Route path="/admin" component={Admin} />
+        <Route path="/admin/errors" component={AdminErrors} />
         <Route path="/create" component={Create} />
         <Route path="/my-materials" component={MyMaterials} />
         <Route path="/materials/:id" component={MaterialView} />
