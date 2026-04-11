@@ -1338,3 +1338,9 @@
 - [x] Client: upgraded global query/mutation error subscribers in main.tsx to fire sonner toast for INTERNAL_SERVER_ERROR and network failures
 - [x] Client: improved ErrorBoundary — hides stack traces in production, shows error ref ID, adds Home button alongside Reload
 - [x] Client: added componentDidCatch logging to ErrorBoundary so full stack is always in console even in production
+
+## Bug: Auto voice prompt (TTS auto-play) not responding on laptop/desktop
+- [x] Diagnose why TTS auto-play does not trigger on desktop browsers (two causes: browser autoplay policy blocks speechSynthesis outside user gesture; Chrome voices race condition)
+- [x] Fix 1: unlockSpeechSynthesis() called synchronously inside handleSubmit, quick-prompt buttons, follow-up question buttons, and wake-word handler to satisfy browser user-gesture requirement
+- [x] Fix 2: playBrowserTTS now defers speaking until voiceschanged fires if voices array is empty (Chrome async loading), with 3s timeout fallback
+- [x] TypeScript: 0 errors, 72/72 tests pass

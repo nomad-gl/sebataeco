@@ -302,6 +302,21 @@ export function AIChatBox({
   // Flag to cancel in-flight TTS requests
   const cancelledRef = useRef(false);
 
+  // Desktop browsers block speechSynthesis.speak() unless called inside a user
+  // gesture. We unlock the audio context on the first user message send so that
+  // subsequent auto-play calls (which happen outside a gesture) are permitted.
+  const speechUnlockedRef = useRef(false);
+  const unlockSpeechSynthesis = useCallback(() => {
+    if (!hasSpeechSynthesis || speechUnlockedRef.current) return;
+    // Speak a zero-length utterance to satisfy the browser's user-gesture requirement.
+    // This must be called synchronously inside a click/keydown handler.
+    const u = new SpeechSynthesisUtterance("");
+    u.volume = 0;
+    window.speechSynthesis.speak(u);
+    window.speechSynthesis.cancel();
+    speechUnlockedRef.current = true;
+  }, [hasSpeechSynthesis]);
+
   const stopSpeaking = useCallback(() => {
     cancelledRef.current = true;
     if (hasSpeechSynthesis) window.speechSynthesis.cancel();
@@ -330,20 +345,42 @@ export function AIChatBox({
     }
     if (current.trim()) chunks.push(current.trim());
     if (chunks.length === 0) return;
-    const voices = window.speechSynthesis.getVoices();
-    const l = langCode.split("-")[0];
-    const voice = voices.find(v => v.lang.startsWith(l) && /female|samantha|karen|moira|nova|shimmer/i.test(v.name))
-      ?? voices.find(v => v.lang.startsWith(l)) ?? voices[0] ?? null;
-    const speakChunk = (i: number) => {
-      if (cancelledRef.current || i >= chunks.length) { setIsSpeaking(false); return; }
-      const u = new SpeechSynthesisUtterance(chunks[i]);
-      u.lang = langCode; u.rate = speechRate; u.pitch = 1.0;
-      if (voice) u.voice = voice;
-      u.onend = () => { if (!cancelledRef.current) speakChunk(i + 1); else setIsSpeaking(false); };
-      u.onerror = (e) => { if ((e as SpeechSynthesisErrorEvent).error !== "interrupted") setIsSpeaking(false); };
-      window.speechSynthesis.speak(u);
+
+    // Chrome loads voices asynchronously. If they aren't ready yet, wait for
+    // the voiceschanged event and then retry (up to 3 seconds).
+    const doSpeak = (voices: SpeechSynthesisVoice[]) => {
+      const l = langCode.split("-")[0];
+      const voice = voices.find(v => v.lang.startsWith(l) && /female|samantha|karen|moira|nova|shimmer/i.test(v.name))
+        ?? voices.find(v => v.lang.startsWith(l)) ?? voices[0] ?? null;
+      const speakChunk = (i: number) => {
+        if (cancelledRef.current || i >= chunks.length) { setIsSpeaking(false); return; }
+        const u = new SpeechSynthesisUtterance(chunks[i]);
+        u.lang = langCode; u.rate = speechRate; u.pitch = 1.0;
+        if (voice) u.voice = voice;
+        u.onend = () => { if (!cancelledRef.current) speakChunk(i + 1); else setIsSpeaking(false); };
+        u.onerror = (e) => { if ((e as SpeechSynthesisErrorEvent).error !== "interrupted") setIsSpeaking(false); };
+        window.speechSynthesis.speak(u);
+      };
+      speakChunk(0);
     };
-    speakChunk(0);
+
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      doSpeak(voices);
+    } else {
+      // Voices not yet loaded — wait for voiceschanged (Chrome async loading)
+      const timeout = setTimeout(() => {
+        window.speechSynthesis.removeEventListener("voiceschanged", onVoicesReady);
+        setIsSpeaking(false);
+      }, 3000);
+      const onVoicesReady = () => {
+        clearTimeout(timeout);
+        window.speechSynthesis.removeEventListener("voiceschanged", onVoicesReady);
+        if (!cancelledRef.current) doSpeak(window.speechSynthesis.getVoices());
+        else setIsSpeaking(false);
+      };
+      window.speechSynthesis.addEventListener("voiceschanged", onVoicesReady);
+    }
   }, [hasSpeechSynthesis, speechRate]);
 
   const playTTS = useCallback((text: string) => {
@@ -407,8 +444,11 @@ export function AIChatBox({
   // ─── Always-on wake-word (desktop only) ─────────────────────────────────────
 
   const handleWakeTranscript = useCallback((text: string) => {
+    // Wake-word activation is triggered by microphone input, which counts as
+    // a user interaction — unlock speech synthesis here too.
+    unlockSpeechSynthesis();
     onSendMessage(text);
-  }, [onSendMessage]);
+  }, [onSendMessage, unlockSpeechSynthesis]);
 
   const { wakeState, permissionError: wakePermissionError } = useAinaWakeWord({
     onTranscript: handleWakeTranscript,
@@ -555,6 +595,9 @@ export function AIChatBox({
     e.preventDefault();
     const trimmedInput = input.trim();
     if (!trimmedInput || isLoading) return;
+    // Unlock speech synthesis on the first user gesture so desktop browsers
+    // allow subsequent auto-play calls that happen outside a gesture context.
+    unlockSpeechSynthesis();
     onSendMessage(trimmedInput);
     setInput("");
     textareaRef.current?.focus();
@@ -616,6 +659,7 @@ export function AIChatBox({
                             void cachedUrl; // suppress unused warning
                           }
                         }
+                        unlockSpeechSynthesis();
                         onSendMessage(prompt);
                       }}
                       disabled={isLoading}
@@ -717,7 +761,7 @@ export function AIChatBox({
                               {message.followUpQuestions.map((q, qi) => (
                                 <button
                                   key={qi}
-                                  onClick={() => onSendMessage(q)}
+                                  onClick={() => { unlockSpeechSynthesis(); onSendMessage(q); }}
                                   disabled={isLoading}
                                   className="rounded-full border border-white/25 bg-white/10 text-white/80 px-3 py-1 text-xs transition-colors hover:bg-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                                 >
