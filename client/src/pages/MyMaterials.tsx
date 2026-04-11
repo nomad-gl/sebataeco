@@ -202,27 +202,26 @@ export default function MyMaterials() {
         <Button variant="ghost" size="sm" onClick={() => window.history.back()} className="self-start flex items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/10 -ml-2">
           <ArrowLeft className="size-4" />{t("btn_back")}
         </Button>
-        <div className="flex items-start sm:items-center justify-between gap-2">
+        <div className="flex flex-col gap-3">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-white drop-shadow">{t("my_materials_title")}</h1>
             <p className="text-sm text-white/70 mt-1">
               {materials?.length ?? 0} {t("my_materials_subtitle")}
             </p>
           </div>
-          <div className="flex gap-2 flex-shrink-0">
+          <div className="flex gap-2">
             {/* Import from SEBA Snap button */}
             <Button
               variant="outline"
               size="sm"
-              className="gap-2 border-orange-400/60 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20"
+              className="flex-1 gap-2 border-orange-400/60 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20"
               onClick={openImportDialog}
             >
               <Download className="w-4 h-4" />
-              <span className="hidden sm:inline">{t("import_sebasnap_btn")}</span>
-              <span className="sm:hidden">{t("import_sebasnap_import_btn")}</span>
+              <span>{t("import_sebasnap_btn")}</span>
             </Button>
-            <Button onClick={() => navigate("/create")} className="gap-2" size="sm">
-              <Plus className="w-4 h-4" /> <span className="hidden sm:inline">{t("my_materials_create")}</span><span className="sm:hidden">{t("save")}</span>
+            <Button onClick={() => navigate("/create")} className="flex-1 gap-2" size="sm">
+              <Plus className="w-4 h-4" /> <span>{t("my_materials_create")}</span>
             </Button>
           </div>
         </div>
@@ -254,37 +253,40 @@ export default function MyMaterials() {
               const colorClass = TYPE_COLORS[m.type] ?? "from-gray-400 to-gray-500";
               return (
                 <Card key={m.id} className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all">
-                  <CardContent className="p-3 sm:p-4 flex items-start sm:items-center gap-3 sm:gap-4">
-                    <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${colorClass} flex items-center justify-center flex-shrink-0`}>
-                      <Icon className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-white truncate">{m.title}</p>
-                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                        <Badge variant="secondary" className="text-xs capitalize bg-white/15 text-white/80 border-white/20">
-                          {m.type.replace("_", " ")}
-                        </Badge>
-                        {m.competency && <Badge variant="outline" className="text-xs text-white/70 border-white/25">{m.competency}</Badge>}
-                        {m.yearGroup && <Badge variant="outline" className="text-xs text-white/70 border-white/25">{{ junior: t("admin_junior"), primary: t("admin_primary"), secondary: t("admin_secondary") }[m.yearGroup] ?? m.yearGroup}</Badge>}
-                        <span className="text-xs text-white/50">
-                          {new Date(m.createdAt).toLocaleDateString()}
-                        </span>
+                  <CardContent className="p-3 flex flex-col gap-3">
+                    {/* Top row: icon + title + delete */}
+                    <div className="flex items-start gap-3">
+                      <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${colorClass} flex items-center justify-center flex-shrink-0`}>
+                        <Icon className="w-5 h-5 text-white" />
                       </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-white truncate">{m.title}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                          <Badge variant="secondary" className="text-xs capitalize bg-white/15 text-white/80 border-white/20">
+                            {m.type.replace("_", " ")}
+                          </Badge>
+                          {m.yearGroup && <Badge variant="outline" className="text-xs text-white/70 border-white/25">{{ junior: t("admin_junior"), primary: t("admin_primary"), secondary: t("admin_secondary") }[m.yearGroup] ?? m.yearGroup}</Badge>}
+                          <span className="text-xs text-white/50">
+                            {new Date(m.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                      <Button size="sm" variant="ghost"
+                        className="text-red-400 hover:text-red-300 hover:bg-red-500/20 flex-shrink-0"
+                        onClick={() => { if (confirm(t("my_materials_delete") + "?")) deleteMutation.mutate({ id: m.id }); }}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
                     </div>
-                    <div className="flex flex-col sm:flex-row gap-1.5 flex-shrink-0">
+                    {/* Bottom row: action buttons */}
+                    <div className="flex gap-2">
                       <Button size="sm" variant="outline"
-                        className="gap-1.5 border-yellow-400/50 text-yellow-300 hover:bg-yellow-500/20 bg-transparent"
+                        className="flex-1 gap-1.5 border-yellow-400/50 text-yellow-300 hover:bg-yellow-500/20 bg-transparent"
                         onClick={() => { window.location.href = `/challenge?materialId=${m.id}&materialTitle=${encodeURIComponent(m.title)}`; }}>
                         <Zap className="w-3.5 h-3.5" /> {t("nav_challenge")}
                       </Button>
-                      <Button size="sm" variant="outline" className="gap-1.5 border-white/25 text-white/80 hover:bg-white/15 bg-transparent"
+                      <Button size="sm" variant="outline" className="flex-1 gap-1.5 border-white/25 text-white/80 hover:bg-white/15 bg-transparent"
                         onClick={() => navigate(`/materials/${m.id}`)}>
                         <ExternalLink className="w-3.5 h-3.5" /> {t("my_materials_open")}
-                      </Button>
-                      <Button size="sm" variant="ghost"
-                        className="text-red-400 hover:text-red-300 hover:bg-red-500/20"
-                        onClick={() => { if (confirm(t("my_materials_delete") + "?")) deleteMutation.mutate({ id: m.id }); }}>
-                        <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     </div>
                   </CardContent>
@@ -297,7 +299,7 @@ export default function MyMaterials() {
 
       {/* Import from SEBA Snap Dialog */}
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+        <DialogContent className="w-full max-w-2xl max-h-[85vh] flex flex-col mx-2 sm:mx-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Download className="w-5 h-5 text-orange-500" />

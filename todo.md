@@ -1411,3 +1411,6 @@
 
 ## Bug: Start Challenge button does not load room page
 - [x] Fix: clicking Start Challenge on the create form does not navigate to the room/lobby view
+
+## Bug: "Save to My Materials" page not formatted for mobile
+- [x] Fix mobile layout of My Materials page: responsive grid, card sizing, button spacing, overflow
