@@ -41,7 +41,7 @@ export const auditRetentionStatus: {
  */
 export async function runAuditRetentionPurge(triggeredByUserId?: number): Promise<number> {
   const db = await getDb();
-  if (!db) throw new Error("DB unavailable");
+  if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
 
   const cutoff = new Date();
   cutoff.setMonth(cutoff.getMonth() - AUDIT_RETENTION_MONTHS);

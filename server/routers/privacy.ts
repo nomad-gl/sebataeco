@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
@@ -28,7 +29,6 @@ import {
   studentProgress,
 } from "../../drizzle/schema";
 import { eq, lt, and, sql, desc } from "drizzle-orm";
-import { TRPCError } from "@trpc/server";
 import PDFDocument from "pdfkit";
 
 // ─── Retention constants ─────────────────────────────────────────────────────
@@ -50,7 +50,7 @@ export function truncatePii(s: string | null | undefined, maxLen = 200): string 
  */
 export async function runRetentionPurge(): Promise<Record<string, number>> {
   const db = await getDb();
-  if (!db) throw new Error("DB unavailable");
+  if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
 
   const now = Date.now();
   const cutoff90 = now - DAYS_90;

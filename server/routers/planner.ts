@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
@@ -37,7 +38,7 @@ export const plannerRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       const { startDate, endDate, ...rest } = input;
       const [result] = await db.insert(schoolCalendars).values({
         ...rest,
@@ -64,7 +65,7 @@ export const plannerRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       const { id, startDate, endDate, ...rawRest } = input;
       const rest = Object.fromEntries(Object.entries(rawRest).filter(([, v]) => v !== null));
       await db.update(schoolCalendars).set({
@@ -79,7 +80,7 @@ export const plannerRouter = router({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       // Delete all events belonging to this calendar first
       await db.delete(schoolCalendarEvents).where(and(eq(schoolCalendarEvents.calendarId, input.id), eq(schoolCalendarEvents.userId, ctx.user.id)));
       await db.delete(schoolCalendars).where(and(eq(schoolCalendars.id, input.id), eq(schoolCalendars.userId, ctx.user.id)));
@@ -114,7 +115,7 @@ export const plannerRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       const [result] = await db.insert(schoolCalendarEvents).values({
         userId: ctx.user.id,
         calendarId: input.calendarId,
@@ -144,7 +145,7 @@ export const plannerRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       const { id, eventDate, ...rawRest } = input;
       const rest = Object.fromEntries(Object.entries(rawRest).filter(([, v]) => v !== null));
       await db
@@ -158,7 +159,7 @@ export const plannerRouter = router({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       await db
         .delete(schoolCalendarEvents)
         .where(and(eq(schoolCalendarEvents.id, input.id), eq(schoolCalendarEvents.userId, ctx.user.id)));
@@ -181,7 +182,7 @@ export const plannerRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
 
       const existing = await db
         .select()
@@ -399,7 +400,7 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       const { id, ...rawData } = input;
       // Strip null values for update — Drizzle set() does not accept null for non-nullable columns
       const updateData = Object.fromEntries(Object.entries(rawData).filter(([, v]) => v !== null));
@@ -422,7 +423,7 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
 
       const [cal] = await db
         .select()
@@ -469,7 +470,7 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       await db.delete(lessonPlans).where(and(eq(lessonPlans.id, input.id), eq(lessonPlans.userId, ctx.user.id)));
       return { success: true };
     }),
@@ -487,7 +488,7 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
 
       const resp = await invokeLLM({
         messages: [
@@ -536,7 +537,7 @@ Return JSON:
     .input(z.object({ calendarId: z.number(), groupId: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       // Verify group ownership
       const [group] = await db.select().from(classGroups).where(and(eq(classGroups.id, input.groupId), eq(classGroups.userId, ctx.user.id)));
       if (!group) throw new Error("Group not found");
@@ -549,7 +550,7 @@ Return JSON:
     .input(z.object({ calendarId: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       await db.update(schoolCalendars).set({ linkedGroupId: null }).where(and(eq(schoolCalendars.id, input.calendarId), eq(schoolCalendars.userId, ctx.user.id)));
       return { success: true };
     }),
@@ -559,7 +560,7 @@ Return JSON:
     .input(z.object({ planId: z.number(), templateName: z.string().min(1).max(255) }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       // Fetch the source plan
       const [src] = await db.select().from(lessonPlans).where(and(eq(lessonPlans.id, input.planId), eq(lessonPlans.userId, ctx.user.id)));
       if (!src) throw new Error("Plan not found");
@@ -605,7 +606,7 @@ Return JSON:
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       await db.delete(lessonPlans).where(and(eq(lessonPlans.id, input.id), eq(lessonPlans.userId, ctx.user.id), eq(lessonPlans.isTemplate, true)));
       return { success: true };
     }),

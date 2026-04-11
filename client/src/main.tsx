@@ -1,8 +1,9 @@
 import { trpc } from "@/lib/trpc";
-import { UNAUTHED_ERR_MSG } from '@shared/const';
+import { UNAUTHED_ERR_MSG, NOT_ADMIN_ERR_MSG } from '@shared/const';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, TRPCClientError } from "@trpc/client";
 import { createRoot } from "react-dom/client";
+import { toast } from "sonner";
 import superjson from "superjson";
 import App from "./App";
 import { getLoginUrl } from "./const";
@@ -43,16 +44,47 @@ const redirectToLoginIfUnauthorized = (error: unknown, queryPath?: string) => {
   window.location.href = getLoginUrl(returnPath);
 };
 
+// Messages that should never surface as a toast — they are handled elsewhere
+// (auth redirect, in-component error states, or are expected for guests).
+const SILENT_ERROR_MESSAGES = new Set([
+  UNAUTHED_ERR_MSG,
+  NOT_ADMIN_ERR_MSG,
+]);
+
+/** Return a short, user-friendly description of a tRPC/network error. */
+function friendlyErrorMessage(error: unknown): string | null {
+  if (!(error instanceof TRPCClientError)) return null;
+  // Suppress expected auth/permission errors — handled via redirect or in-component
+  if (SILENT_ERROR_MESSAGES.has(error.message)) return null;
+  const code: string = (error.data as { code?: string } | undefined)?.code ?? "";
+  if (code === "UNAUTHORIZED" || code === "FORBIDDEN") return null;
+  if (code === "NOT_FOUND") return null; // usually expected, handled in-component
+  if (code === "BAD_REQUEST") return null; // validation errors shown inline
+  // For INTERNAL_SERVER_ERROR and network failures, show a brief toast
+  if (code === "INTERNAL_SERVER_ERROR") return "Server error — please try again.";
+  if (error.message === "Failed to fetch" || error.message.includes("NetworkError"))
+    return "Network error — check your connection.";
+  return null; // unknown errors: log only, no toast
+}
+
 queryClient.getQueryCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.query.state.error;
-    // Extract the tRPC path from the query key (first element is the path array)
     const queryKey = event.query.queryKey as unknown[];
     const pathArr = Array.isArray(queryKey?.[0]) ? (queryKey[0] as string[]) : [];
     const queryPath = pathArr.join(".");
+
     redirectToLoginIfUnauthorized(error, queryPath);
-    if (!(error instanceof TRPCClientError && error.message === UNAUTHED_ERR_MSG && SILENT_UNAUTH_PATHS.has(queryPath))) {
-      console.error("[API Query Error]", error);
+
+    const isSilentUnauth =
+      error instanceof TRPCClientError &&
+      error.message === UNAUTHED_ERR_MSG &&
+      SILENT_UNAUTH_PATHS.has(queryPath);
+
+    if (!isSilentUnauth) {
+      console.error("[API Query Error]", queryPath, error);
+      const msg = friendlyErrorMessage(error);
+      if (msg) toast.error(msg, { id: `qerr-${queryPath}`, duration: 5000 });
     }
   }
 });
@@ -61,11 +93,14 @@ queryClient.getMutationCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.mutation.state.error;
     redirectToLoginIfUnauthorized(error);
-    // Suppress noisy logs for mutations that handle their own errors in-component
+
     const mutationKey = event.mutation.options.mutationKey;
     const mutationPath = Array.isArray(mutationKey?.[0]) ? (mutationKey[0] as string[]).join(".") : "";
+
     if (!SILENT_MUTATION_PATHS.has(mutationPath)) {
-      console.error("[API Mutation Error]", error);
+      console.error("[API Mutation Error]", mutationPath, error);
+      const msg = friendlyErrorMessage(error);
+      if (msg) toast.error(msg, { id: `merr-${mutationPath}`, duration: 5000 });
     }
   }
 });

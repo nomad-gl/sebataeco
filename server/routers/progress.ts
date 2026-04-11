@@ -51,7 +51,7 @@ export const progressRouter = router({
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       const rows = input.scores.map((s) => ({
         groupId: input.groupId,
         studentId: input.studentId,
@@ -70,7 +70,7 @@ export const progressRouter = router({
     .input(z.object({ groupId: z.number(), studentId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       const records = await db
         .select()
         .from(studentProgress)
@@ -89,7 +89,7 @@ export const progressRouter = router({
     .input(z.object({ groupId: z.number(), studentId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       const records = await db
         .select()
         .from(studentProgress)
@@ -135,7 +135,7 @@ export const progressRouter = router({
     .input(z.object({ groupId: z.number() }))
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
 
       // Verify group belongs to this teacher
       const [group] = await db
@@ -234,7 +234,7 @@ export const progressRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       const [result] = await db.insert(assignments).values({
         groupId: input.groupId,
         userId: ctx.user.id,
@@ -252,7 +252,7 @@ export const progressRouter = router({
     .input(z.object({ groupId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       return db
         .select()
         .from(assignments)
@@ -265,7 +265,7 @@ export const progressRouter = router({
     .input(z.object({ assignmentId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       await db
         .delete(assignments)
         .where(
@@ -289,7 +289,7 @@ export const progressRouter = router({
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       // Remove existing completion first (idempotent)
       await db
         .delete(assignmentCompletions)
@@ -313,7 +313,7 @@ export const progressRouter = router({
     .input(z.object({ assignmentId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       return db
         .select()
         .from(assignmentCompletions)
@@ -334,7 +334,7 @@ export const progressRouter = router({
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       const records = await db
         .select()
         .from(studentProgress)
@@ -486,7 +486,7 @@ Use a warm, professional tone suitable for sharing with parents and students. Fo
     )
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       const existing = await db
         .select({ id: studentReports.id })
         .from(studentReports)
@@ -505,7 +505,7 @@ Use a warm, professional tone suitable for sharing with parents and students. Fo
     .input(z.object({ groupId: z.number(), studentId: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       await db
         .update(studentReports)
         .set({ editedText: null, lastEditedBy: null })
@@ -527,7 +527,7 @@ Use a warm, professional tone suitable for sharing with parents and students. Fo
     )
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
 
       // Verify the group belongs to this teacher
       const [group] = await db
@@ -668,7 +668,7 @@ Use a warm, professional tone suitable for sharing with parents and students. Fo
     )
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
 
       const [group] = await db
         .select()
@@ -813,7 +813,7 @@ Use a professional, analytical tone. Format with clear headings.`;
     )
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       // Verify group belongs to this teacher
       const [group] = await db
         .select()
@@ -1016,7 +1016,7 @@ Use a professional, analytical tone. Format with clear headings.`;
     .input(z.object({ groupId: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       // Verify ownership
       const [group] = await db
         .select()
@@ -1080,7 +1080,7 @@ Use a professional, analytical tone. Format with clear headings.`;
     .input(z.object({ groupId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       const now = new Date();
       const allAssignments = await db
         .select()
@@ -1189,7 +1189,7 @@ Use a professional, analytical tone. Format with clear headings.`;
     }))
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       await db.update(assignments)
         .set({ editedContent: input.editedContent })
         .where(eq(assignments.id, input.assignmentId));
@@ -1206,7 +1206,7 @@ Use a professional, analytical tone. Format with clear headings.`;
     }))
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
 
       // Load the assignment to get its content and type
       const [assignment] = await db.select().from(assignments).where(eq(assignments.id, input.assignmentId));

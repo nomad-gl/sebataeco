@@ -3,8 +3,26 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
 
+const isProd = process.env.NODE_ENV === "production";
+
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
+  errorFormatter({ shape, error }) {
+    // In production, strip stack traces and sanitise generic DB error messages
+    // so internal query text and file paths are never exposed to the client.
+    return {
+      ...shape,
+      data: {
+        ...shape.data,
+        stack: isProd ? undefined : shape.data?.stack,
+      },
+      // Replace raw DB / unhandled errors with a safe generic message in prod
+      message:
+        isProd && error.code === "INTERNAL_SERVER_ERROR" && !shape.message.startsWith("An internal")
+          ? "An internal error occurred. Please try again."
+          : shape.message,
+    };
+  },
 });
 
 export const router = t.router;

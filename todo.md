@@ -1330,3 +1330,11 @@
 - [x] Renamed clara_message_ratings -> aina_message_ratings and clara_user_profiles -> aina_user_profiles in production DB
 - [x] Verify AINA chat works on production after migration (curl test returns HTTP 200 with full reply)
 - [x] Fix root cause once error type is confirmed by user (root cause: missing DB migration)
+
+## Improvement: Error Handling
+- [x] Server: replaced all raw throw new Error("DB unavailable") with TRPCError({ code: "INTERNAL_SERVER_ERROR" }) in groups.ts, planner.ts, privacy.ts, progress.ts, audit.ts
+- [x] Server: replaced all throw new Error("Group not found") with TRPCError({ code: "NOT_FOUND" }) in groups.ts
+- [x] Server: added global tRPC errorFormatter in server/_core/trpc.ts — strips stack traces in production, sanitises INTERNAL_SERVER_ERROR messages
+- [x] Client: upgraded global query/mutation error subscribers in main.tsx to fire sonner toast for INTERNAL_SERVER_ERROR and network failures
+- [x] Client: improved ErrorBoundary — hides stack traces in production, shows error ref ID, adds Home button alongside Reload
+- [x] Client: added componentDidCatch logging to ErrorBoundary so full stack is always in console even in production

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { eq, and, desc, max, inArray } from "drizzle-orm";
 import { getDb } from "../db";
 import { protectedProcedure, router } from "../_core/trpc";
@@ -47,7 +48,7 @@ export const groupsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       const [result] = await db.insert(classGroups).values({
         userId: ctx.user.id,
         className: input.className,
@@ -69,7 +70,7 @@ export const groupsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       const { id, ...rawFields } = input;
       // Strip null values — Drizzle set() does not accept null for non-nullable columns
       const fields = Object.fromEntries(
@@ -87,13 +88,13 @@ export const groupsRouter = router({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       // Verify ownership
       const [group] = await db
         .select()
         .from(classGroups)
         .where(and(eq(classGroups.id, input.id), eq(classGroups.userId, ctx.user.id)));
-      if (!group) throw new Error("Group not found");
+      if (!group) throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
 
       // Cascade delete children
       await db.delete(groupStudents).where(eq(groupStudents.groupId, input.id));
@@ -116,7 +117,7 @@ export const groupsRouter = router({
         .select()
         .from(classGroups)
         .where(and(eq(classGroups.id, input.groupId), eq(classGroups.userId, ctx.user.id)));
-      if (!group) throw new Error("Group not found");
+      if (!group) throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
 
       const rows = await db
         .select()
@@ -158,13 +159,13 @@ export const groupsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       // Verify ownership
       const [group] = await db
         .select()
         .from(classGroups)
         .where(and(eq(classGroups.id, input.groupId), eq(classGroups.userId, ctx.user.id)));
-      if (!group) throw new Error("Group not found");
+      if (!group) throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
 
       // Get next student number
       const existing = await db
@@ -195,12 +196,12 @@ export const groupsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       const [group] = await db
         .select()
         .from(classGroups)
         .where(and(eq(classGroups.id, input.groupId), eq(classGroups.userId, ctx.user.id)));
-      if (!group) throw new Error("Group not found");
+      if (!group) throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
       const updates: Record<string, unknown> = {};
       if (input.name) updates.name = input.name.trim();
       if (input.email) updates.email = input.email.trim();
@@ -227,12 +228,12 @@ export const groupsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       const [group] = await db
         .select()
         .from(classGroups)
         .where(and(eq(classGroups.id, input.groupId), eq(classGroups.userId, ctx.user.id)));
-      if (!group) throw new Error("Group not found");
+      if (!group) throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
 
       // Get the current max studentNumber
       const existing = await db
@@ -257,13 +258,13 @@ export const groupsRouter = router({
     .input(z.object({ studentId: z.number(), groupId: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       // Verify ownership
       const [group] = await db
         .select()
         .from(classGroups)
         .where(and(eq(classGroups.id, input.groupId), eq(classGroups.userId, ctx.user.id)));
-      if (!group) throw new Error("Group not found");
+      if (!group) throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
 
       await db
         .delete(groupStudents)
@@ -288,7 +289,7 @@ export const groupsRouter = router({
         .select()
         .from(classGroups)
         .where(and(eq(classGroups.id, input.groupId), eq(classGroups.userId, ctx.user.id)));
-      if (!group) throw new Error("Group not found");
+      if (!group) throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
 
       const rows = await db
         .select()
@@ -309,12 +310,12 @@ export const groupsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       const [group] = await db
         .select()
         .from(classGroups)
         .where(and(eq(classGroups.id, input.groupId), eq(classGroups.userId, ctx.user.id)));
-      if (!group) throw new Error("Group not found");
+      if (!group) throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
 
       const [result] = await db.insert(groupMessages).values({
         groupId: input.groupId,
@@ -337,7 +338,7 @@ export const groupsRouter = router({
         .select()
         .from(classGroups)
         .where(and(eq(classGroups.id, input.groupId), eq(classGroups.userId, ctx.user.id)));
-      if (!group) throw new Error("Group not found");
+      if (!group) throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
 
       const rows = await db
         .select()
@@ -362,7 +363,7 @@ export const groupsRouter = router({
         .select()
         .from(classGroups)
         .where(and(eq(classGroups.id, input.groupId), eq(classGroups.userId, ctx.user.id)));
-      if (!group) throw new Error("Group not found");
+      if (!group) throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
 
       // Fetch all students in the group
       const students = await db
@@ -439,12 +440,12 @@ export const groupsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       const [group] = await db
         .select()
         .from(classGroups)
         .where(and(eq(classGroups.id, input.groupId), eq(classGroups.userId, ctx.user.id)));
-      if (!group) throw new Error("Group not found");
+      if (!group) throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
 
       const [result] = await db.insert(groupChallengeLog).values({
         groupId: input.groupId,
