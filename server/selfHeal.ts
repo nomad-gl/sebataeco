@@ -29,7 +29,7 @@ const EXPECTED_TABLES: Record<string, string[]> = {
   aina_message_ratings: ["id", "userId", "messageId", "rating", "createdAt"],
   question_answers: ["id", "userId", "questionId", "answer", "createdAt"],
   question_review_status: ["id", "userId", "questionId", "status"],
-  student_reports: ["id", "userId", "title", "createdAt"],
+  student_reports: ["id", "groupId", "studentId", "aiText", "createdAt"],
   admin_audit_logs: ["id", "userId", "action", "createdAt"],
   whats_new_dismissals: ["id", "userId", "version", "dismissedAt"],
   error_logs: ["id", "source", "errorCode", "errorMessage", "createdAt"],

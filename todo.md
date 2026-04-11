@@ -1432,8 +1432,8 @@
 - [x] Live leaderboard: show scores after each round
 
 ## Feature: PARAULA viewer enhancements + live student room
-- [ ] Inline word/clue editor in PARAULA material viewer (edit words and clues after generation)
-- [ ] Print word list button in PARAULA material viewer (clean printable sheet)
-- [ ] Live PARAULA student room: real-time room where all students play the same word simultaneously
-- [ ] Teacher leaderboard view: see who guessed the word and in how many tries
-- [ ] Student join flow for PARAULA live room: enter room code, play the game, submit score
+- [x] Inline word/clue editor in PARAULA material viewer (edit words and clues after generation)
+- [x] Print word list button in PARAULA material viewer (clean printable sheet)
+- [x] Live PARAULA student room: real-time room where all students play the same word simultaneously
+- [x] Teacher leaderboard view: see who guessed the word and in how many tries
+- [x] Student join flow for PARAULA live room: enter room code, play the game, submit score
