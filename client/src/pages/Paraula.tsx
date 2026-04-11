@@ -332,22 +332,25 @@ export default function Paraula() {
       </div>
 
       {/* ─── Keyboard ─── */}
-      <div className={`pb-4 px-2 flex flex-col gap-1.5 items-center shrink-0`}>
+      <div className="pb-4 px-1 w-full max-w-[500px] mx-auto flex flex-col gap-1 shrink-0">
         {keyboard.map((row, ri) => (
-          <div key={ri} className="flex gap-1.5">
+          <div key={ri} className="flex gap-1 w-full">
             {row.map(key => {
               const isSpecial = key === "ENTER" || key === "⌫";
               const normKey = stripAccents(key);
               const kState = keyboardState[normKey];
-              const colorClass = kState ? tileColorClass(kState) : darkMode ? "bg-[#818384] text-white border-transparent" : "bg-[#d3d6da] text-[#121213] border-transparent";
+              const colorClass = kState
+                ? tileColorClass(kState)
+                : darkMode
+                  ? "bg-[#818384] text-white"
+                  : "bg-[#d3d6da] text-[#121213]";
               return (
                 <button
                   key={key}
                   onClick={() => handleKey(key === "⌫" ? "Backspace" : key)}
-                  className={`${isSpecial ? "px-3 min-w-[56px]" : "w-10"} h-14 rounded font-bold text-sm border transition-colors select-none
-                    ${colorClass}
-                    active:opacity-70
-                  `}
+                  className={`flex-1 min-w-0 h-14 rounded font-bold transition-colors select-none active:opacity-70 ${
+                    isSpecial ? "text-xs" : "text-sm"
+                  } ${colorClass}`}
                 >
                   {key}
                 </button>
