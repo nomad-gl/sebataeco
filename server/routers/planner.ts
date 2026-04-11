@@ -348,8 +348,45 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
         };
       });
 
-      if (toInsert.length > 0) await db.insert(schoolCalendarEvents).values(toInsert);
-      return { generated: toInsert.length };
+      if (toInsert.length === 0) return { generated: 0 };
+
+      // Insert calendar events one-by-one so we can capture each insertId and link a lesson plan
+      let generatedCount = 0;
+      for (let i = 0; i < toInsert.length; i++) {
+        const eventRow = toInsert[i];
+        const lesson = lessons[i] ?? {
+          title: eventRow.title,
+          competency: eventRow.competency ?? "CCL",
+          specificCompetences: [] as string[],
+          saberesBasicos: [] as string[],
+          learningOutcomes: [] as string[],
+          evaluationCriteria: [] as string[],
+        };
+
+        // Insert the calendar event
+        const [evResult] = await db.insert(schoolCalendarEvents).values(eventRow);
+        const eventId = (evResult as any).insertId as number;
+        generatedCount++;
+
+        // Auto-create a linked lesson plan seeded with the AI-generated LOMLOE data
+        await db.insert(lessonPlans).values({
+          userId: ctx.user.id,
+          title: lesson.title,
+          subject: input.subject,
+          yearGroup: input.yearGroup,
+          academicYear: input.academicYear,
+          competencies: JSON.stringify([lesson.competency]),
+          specificCompetences: JSON.stringify(lesson.specificCompetences),
+          saberesBasicos: JSON.stringify(lesson.saberesBasicos),
+          learningOutcomes: JSON.stringify(lesson.learningOutcomes),
+          evaluationCriteria: JSON.stringify(lesson.evaluationCriteria),
+          calendarEventId: eventId,
+          aiGenerated: true,
+          duration: 60,
+        });
+      }
+
+      return { generated: generatedCount };
     }),
 
   // ─── Lesson Plans ─────────────────────────────────────────────────────────────
@@ -612,5 +649,93 @@ Return JSON:
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       await db.delete(lessonPlans).where(and(eq(lessonPlans.id, input.id), eq(lessonPlans.userId, ctx.user.id), eq(lessonPlans.isTemplate, true)));
       return { success: true };
+    }),
+
+  /**
+   * Get the lesson plan linked to a specific calendar event.
+   * Returns null if no plan exists for that event yet.
+   */
+  getLessonPlanByEventId: protectedProcedure
+    .input(z.object({ calendarEventId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) return null;
+      const [plan] = await db
+        .select()
+        .from(lessonPlans)
+        .where(and(
+          eq(lessonPlans.userId, ctx.user.id),
+          eq(lessonPlans.calendarEventId, input.calendarEventId),
+        ));
+      return plan ?? null;
+    }),
+
+  /**
+   * Returns a map of calendarEventId → lessonPlanId for all events in a calendar.
+   * Used by the calendar UI to know which events have linked lesson plans.
+   */
+  getEventPlanMap: protectedProcedure
+    .input(z.object({ calendarId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) return {};
+      // Get all events for this calendar
+      const events = await db
+        .select({ id: schoolCalendarEvents.id })
+        .from(schoolCalendarEvents)
+        .where(and(
+          eq(schoolCalendarEvents.userId, ctx.user.id),
+          eq(schoolCalendarEvents.calendarId, input.calendarId),
+        ));
+      if (events.length === 0) return {};
+      // Get all lesson plans linked to these events
+      const plans = await db
+        .select({ id: lessonPlans.id, calendarEventId: lessonPlans.calendarEventId })
+        .from(lessonPlans)
+        .where(and(
+          eq(lessonPlans.userId, ctx.user.id),
+        ));
+      const map: Record<number, number> = {};
+      for (const p of plans) {
+        if (p.calendarEventId != null) map[p.calendarEventId] = p.id;
+      }
+      return map;
+    }),
+
+  /**
+   * Create a lesson plan linked to a calendar event (for manually-added events).
+   * If a plan already exists for this event, returns its id instead.
+   */
+  createLinkedLessonPlan: protectedProcedure
+    .input(z.object({
+      calendarEventId: z.number(),
+      title: z.string(),
+      subject: z.string().nullish(),
+      yearGroup: z.string().nullish(),
+      academicYear: z.string().nullish(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      // Check if one already exists
+      const [existing] = await db
+        .select({ id: lessonPlans.id })
+        .from(lessonPlans)
+        .where(and(
+          eq(lessonPlans.userId, ctx.user.id),
+          eq(lessonPlans.calendarEventId, input.calendarEventId),
+        ));
+      if (existing) return { id: existing.id, created: false };
+      const [result] = await db.insert(lessonPlans).values({
+        userId: ctx.user.id,
+        title: input.title,
+        subject: input.subject,
+        yearGroup: input.yearGroup,
+        academicYear: input.academicYear,
+        calendarEventId: input.calendarEventId,
+        aiGenerated: false,
+        duration: 60,
+      });
+      return { id: (result as any).insertId, created: true };
     }),
 });

@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, Plus, Sparkles, Trash2, CalendarDays,
   ExternalLink, LayoutList, Pencil, School, BookOpen, User, GraduationCap,
-  FolderOpen, X, Check, Download, Link, Unlink, Users,
+  FolderOpen, X, Check, Download, Link, Unlink, Users, Save, ClipboardList,
 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useLocation } from "wouter";
@@ -81,6 +83,66 @@ const getDefaultTermsForYear = (academicYear: string) => {
 
 const DEFAULT_TERMS = getDefaultTermsForYear(ACADEMIC_YEARS[1]);
 
+// ─── Lesson Plan Form Types (mirrored from LessonPlanner) ────────────────────
+const LP_SKILL_KEYS = ["listening", "speaking", "reading", "writing"] as const;
+const LP_SYSTEM_KEYS = ["grammar", "phonology", "lexis", "function", "discourse"] as const;
+type LPProcedure = { timing: string; stage: string; activities: string; grouping: string };
+type LessonFormState = {
+  title: string; unit: string; lessonNumber: string; academicYear: string;
+  duration: number; yearGroup: string; subject: string;
+  skills: Record<string, boolean>; systems: Record<string, boolean>;
+  specificCompetences: string[]; saberesBasicos: string[];
+  learningOutcomes: string[]; evaluationCriteria: string[];
+  previousKnowledge: string; materials: string; spaces: string;
+  procedures: LPProcedure[]; competencies: string[];
+};
+function parseJsonField<T>(val: string | null | undefined, fallback: T): T {
+  if (!val) return fallback;
+  try { return JSON.parse(val) as T; } catch { return fallback; }
+}
+function planToLessonForm(plan: any): LessonFormState {
+  return {
+    title: plan.title ?? "", unit: plan.unit ?? "", lessonNumber: plan.lessonNumber ?? "",
+    academicYear: plan.academicYear ?? ACADEMIC_YEARS[1], duration: plan.duration ?? 60,
+    yearGroup: plan.yearGroup ?? YEAR_GROUPS[3], subject: plan.subject ?? "English",
+    skills: parseJsonField(plan.skills, { listening: false, speaking: false, reading: false, writing: false }),
+    systems: parseJsonField(plan.systems, { grammar: false, phonology: false, lexis: false, function: false, discourse: false }),
+    specificCompetences: parseJsonField(plan.specificCompetences, []),
+    saberesBasicos: parseJsonField(plan.saberesBasicos, [""]),
+    learningOutcomes: parseJsonField(plan.learningOutcomes, [""]),
+    evaluationCriteria: parseJsonField(plan.evaluationCriteria, [""]),
+    previousKnowledge: plan.previousKnowledge ?? "", materials: plan.materials ?? "",
+    spaces: plan.spaces ?? "Classroom",
+    procedures: parseJsonField(plan.procedures, [{ timing: "10 min", stage: "Warm-up", activities: "", grouping: "Whole class" }]),
+    competencies: parseJsonField(plan.competencies, []),
+  };
+}
+function lessonFormToSave(form: LessonFormState) {
+  return {
+    ...form,
+    skills: JSON.stringify(form.skills), systems: JSON.stringify(form.systems),
+    specificCompetences: JSON.stringify(form.specificCompetences),
+    saberesBasicos: JSON.stringify(form.saberesBasicos),
+    learningOutcomes: JSON.stringify(form.learningOutcomes),
+    evaluationCriteria: JSON.stringify(form.evaluationCriteria),
+    procedures: JSON.stringify(form.procedures),
+    competencies: JSON.stringify(form.competencies),
+  };
+}
+function emptyLessonForm(overrides?: Partial<LessonFormState>): LessonFormState {
+  return {
+    title: "", unit: "", lessonNumber: "", academicYear: ACADEMIC_YEARS[1],
+    duration: 60, yearGroup: YEAR_GROUPS[3], subject: "English",
+    skills: { listening: false, speaking: false, reading: false, writing: false },
+    systems: { grammar: false, phonology: false, lexis: false, function: false, discourse: false },
+    specificCompetences: [], saberesBasicos: [""], learningOutcomes: [""],
+    evaluationCriteria: [""], previousKnowledge: "", materials: "",
+    spaces: "Classroom",
+    procedures: [{ timing: "10 min", stage: "Warm-up", activities: "", grouping: "Whole class" }],
+    competencies: [], ...overrides,
+  };
+}
+
 const emptyCalForm = (academicYear = ACADEMIC_YEARS[1]) => {
   const profile = loadSchoolProfile();
   return {
@@ -123,6 +185,17 @@ export default function SchoolCalendar() {
 
   // AI infill form
   const [aiForm, setAiForm] = useState({ sessionsPerWeek: 3, terms: DEFAULT_TERMS });
+
+  // ── Day Panel (click a calendar day to see/edit its events) ───────────────
+  const [dayPanelDate, setDayPanelDate] = useState<string | null>(null);
+  const [showDayPanel, setShowDayPanel] = useState(false);
+
+  // ── Inline Lesson Plan Sheet ───────────────────────────────────────────────
+  const [showPlanSheet, setShowPlanSheet] = useState(false);
+  const [planSheetEventId, setPlanSheetEventId] = useState<number | null>(null);
+  const [planSheetPlanId, setPlanSheetPlanId] = useState<number | null>(null);
+  const [planForm, setPlanForm] = useState<LessonFormState>(emptyLessonForm());
+  const [planFormDirty, setPlanFormDirty] = useState(false);
 
   const utils = trpc.useUtils();
 
@@ -204,6 +277,87 @@ export default function SchoolCalendar() {
 
   // ── Group linking ──────────────────────────────────────────────────────────
   const { data: classGroupsList = [] } = trpc.groups.list.useQuery();
+
+  // ── Inline Lesson Plan mutations/queries ───────────────────────────────────
+  const { data: eventPlanMap = {} } = trpc.planner.getEventPlanMap.useQuery(
+    { calendarId: selectedCalendarId! },
+    { enabled: selectedCalendarId !== null },
+  );
+
+  const { data: planSheetData } = trpc.planner.getLessonPlan.useQuery(
+    { id: planSheetPlanId! },
+    { enabled: planSheetPlanId !== null },
+  );
+
+  // Sync plan data into form when it loads
+  useEffect(() => {
+    if (planSheetData) {
+      setPlanForm(planToLessonForm(planSheetData));
+      setPlanFormDirty(false);
+    }
+  }, [planSheetData]);
+
+  const savePlanMutation = trpc.planner.saveLessonPlan.useMutation({
+    onSuccess: (data) => {
+      utils.planner.getEventPlanMap.invalidate();
+      utils.planner.getLessonPlan.invalidate({ id: data.id });
+      setPlanSheetPlanId(data.id);
+      setPlanFormDirty(false);
+      toast.success(t("lp_saved_toast"));
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const createLinkedPlanMutation = trpc.planner.createLinkedLessonPlan.useMutation({
+    onSuccess: (data) => {
+      utils.planner.getEventPlanMap.invalidate();
+      setPlanSheetPlanId(data.id);
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const openPlanSheet = (ev: CalEvent) => {
+    const existingPlanId = (eventPlanMap as Record<number, number>)[ev.id];
+    setPlanSheetEventId(ev.id);
+    if (existingPlanId) {
+      setPlanSheetPlanId(existingPlanId);
+      // planSheetData will load via the query above
+    } else {
+      // No plan yet — seed form from event data
+      setPlanSheetPlanId(null);
+      setPlanForm(emptyLessonForm({
+        title: ev.title,
+        subject: ev.subject ?? selectedCalendar?.subject ?? "English",
+        yearGroup: ev.yearGroup ?? selectedCalendar?.yearLevel ?? YEAR_GROUPS[3],
+        academicYear: selectedCalendar?.academicYear ?? ACADEMIC_YEARS[1],
+        competencies: ev.competency ? [ev.competency] : [],
+      }));
+      setPlanFormDirty(false);
+      // Auto-create a linked plan record so we have an ID to save to
+      createLinkedPlanMutation.mutate({
+        calendarEventId: ev.id,
+        title: ev.title,
+        subject: ev.subject ?? selectedCalendar?.subject,
+        yearGroup: ev.yearGroup ?? selectedCalendar?.yearLevel,
+        academicYear: selectedCalendar?.academicYear,
+      });
+    }
+    setShowPlanSheet(true);
+  };
+
+  const handleSavePlan = () => {
+    if (!planForm.title.trim()) { toast.error(t("lp_title_required")); return; }
+    savePlanMutation.mutate({
+      id: planSheetPlanId ?? undefined,
+      ...lessonFormToSave(planForm),
+      calendarEventId: planSheetEventId ?? undefined,
+    });
+  };
+
+  const setPlanField = <K extends keyof LessonFormState>(key: K, value: LessonFormState[K]) => {
+    setPlanForm(f => ({ ...f, [key]: value }));
+    setPlanFormDirty(true);
+  };
 
   const linkGroupMutation = trpc.planner.linkCalendarToGroup.useMutation({
     onSuccess: (data) => {
@@ -336,29 +490,15 @@ export default function SchoolCalendar() {
     }
   };
 
-  const openLessonPlanner = (ev: CalEvent) => {
-    const date = new Date(ev.eventDate);
-    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-    // Try to parse LOMLOE details from description JSON
-    let extra: Record<string, string> = {};
-    if (ev.description) {
-      try {
-        const parsed = JSON.parse(ev.description);
-        if (parsed.learningOutcomes) extra.learningOutcomes = JSON.stringify(parsed.learningOutcomes);
-        if (parsed.saberesBasicos) extra.saberesBasicos = JSON.stringify(parsed.saberesBasicos);
-        if (parsed.evaluationCriteria) extra.evaluationCriteria = JSON.stringify(parsed.evaluationCriteria);
-        if (parsed.specificCompetences) extra.specificCompetences = JSON.stringify(parsed.specificCompetences);
-      } catch (_) {}
-    }
-    const params = new URLSearchParams({
-      title: ev.title,
-      date: dateStr,
-      ...(ev.yearGroup ? { yearGroup: ev.yearGroup } : {}),
-      ...(ev.subject ? { subject: ev.subject } : {}),
-      ...(ev.competency ? { competency: ev.competency } : {}),
-      ...extra,
-    });
-    navigate(`/lesson-planner?${params.toString()}`);
+  // Open inline lesson plan sheet (replaces navigate-away)
+  const openLessonPlanner = (ev: CalEvent) => openPlanSheet(ev);
+
+  // Open the day panel for a specific date
+  const openDayPanel = (day: Date) => {
+    if (!selectedCalendarId) { toast.error("Please select or create a calendar first"); return; }
+    const key = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
+    setDayPanelDate(key);
+    setShowDayPanel(true);
   };
 
   // Term overview
@@ -614,25 +754,36 @@ export default function SchoolCalendar() {
                       return (
                         <div
                           key={key}
-                          className={`min-h-[76px] rounded-lg border p-1 cursor-pointer hover:bg-accent/50 transition-colors ${isWeekend ? "bg-muted/30" : ""} ${isToday ? "ring-2 ring-primary" : ""}`}
-                          onClick={() => !isWeekend && openAdd(day)}
+                          className={`min-h-[76px] rounded-lg border p-1 cursor-pointer hover:bg-accent/50 transition-colors relative group ${isWeekend ? "bg-muted/30" : ""} ${isToday ? "ring-2 ring-primary" : ""} ${dayPanelDate === key && showDayPanel ? "ring-2 ring-teal-400" : ""}`}
+                          onClick={() => openDayPanel(day)}
                         >
-                          <div className={`text-xs font-medium mb-1 ${isToday ? "text-primary" : "text-muted-foreground"}`}>{day.getDate()}</div>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className={`text-xs font-medium ${isToday ? "text-primary" : "text-muted-foreground"}`}>{day.getDate()}</span>
+                            {!isWeekend && (
+                              <span className="opacity-0 group-hover:opacity-60 transition-opacity">
+                                <Plus className="w-3 h-3 text-muted-foreground" />
+                              </span>
+                            )}
+                          </div>
                           <div className="space-y-0.5">
-                            {dayEvents.slice(0, 3).map(ev => (
-                              <div
-                                key={ev.id}
-                                className={`text-[10px] px-1 py-0.5 rounded border truncate cursor-pointer ${EVENT_COLORS[ev.eventType] ?? "bg-gray-100 text-gray-800"}`}
-                                onClick={e => {
-                                  e.stopPropagation();
-                                  if (ev.eventType === "lesson" || ev.eventType === "ai_generated") openLessonPlanner(ev);
-                                  else openEdit(ev);
-                                }}
-                                title={(ev.eventType === "lesson" || ev.eventType === "ai_generated") ? `${t("cal_open_planner")}: ${ev.title}` : ev.title}
-                              >
-                                {ev.title}
-                              </div>
-                            ))}
+                            {dayEvents.slice(0, 3).map(ev => {
+                              const hasPlan = !!(eventPlanMap as Record<number, number>)[ev.id];
+                              return (
+                                <div
+                                  key={ev.id}
+                                  className={`text-[10px] px-1 py-0.5 rounded border truncate cursor-pointer flex items-center gap-0.5 ${EVENT_COLORS[ev.eventType] ?? "bg-gray-100 text-gray-800"}`}
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    if (ev.eventType === "lesson" || ev.eventType === "ai_generated") openLessonPlanner(ev);
+                                    else openEdit(ev);
+                                  }}
+                                  title={(ev.eventType === "lesson" || ev.eventType === "ai_generated") ? `${t("cal_open_planner")}: ${ev.title}` : ev.title}
+                                >
+                                  <span className="truncate flex-1">{ev.title}</span>
+                                  {hasPlan && <ClipboardList className="w-2.5 h-2.5 shrink-0 opacity-70" />}
+                                </div>
+                              );
+                            })}
                             {dayEvents.length > 3 && (
                               <div className="text-[10px] text-muted-foreground px-1">+{dayEvents.length - 3} {t("cal_more")}</div>
                             )}
@@ -1147,6 +1298,285 @@ export default function SchoolCalendar() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Day Panel Sheet ──────────────────────────────────────────────────────────────────────────── */}
+      <Sheet open={showDayPanel} onOpenChange={setShowDayPanel}>
+        <SheetContent side="right" className="w-[380px] sm:w-[440px] p-0 flex flex-col">
+          <SheetHeader className="px-5 pt-5 pb-3 border-b shrink-0">
+            <SheetTitle className="flex items-center gap-2">
+              <CalendarDays className="w-4 h-4 text-primary" />
+              {dayPanelDate ? new Date(dayPanelDate + "T12:00:00").toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" }) : ""}
+            </SheetTitle>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {/* Events for this day */}
+            {(dayPanelDate ? (eventsByDate[dayPanelDate] ?? []) : []).length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">No events for this day.</p>
+            ) : (
+              (dayPanelDate ? (eventsByDate[dayPanelDate] ?? []) : []).map(ev => {
+                const hasPlan = !!(eventPlanMap as Record<number, number>)[ev.id];
+                const isLesson = ev.eventType === "lesson" || ev.eventType === "ai_generated";
+                return (
+                  <div key={ev.id} className={`rounded-lg border p-3 space-y-2 ${EVENT_COLORS[ev.eventType] ?? "bg-gray-50"}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="font-medium text-sm truncate">{ev.title}</div>
+                        {ev.yearGroup && <div className="text-xs opacity-70">{ev.yearGroup}{ev.subject ? ` · ${ev.subject}` : ""}</div>}
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        {isLesson && (
+                          <Button size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs bg-white/60 hover:bg-white" onClick={() => openLessonPlanner(ev)}>
+                            <ClipboardList className="w-3 h-3" />
+                            {hasPlan ? "Edit Plan" : "Add Plan"}
+                          </Button>
+                        )}
+                        <Button size="sm" variant="outline" className="h-7 px-2 bg-white/60 hover:bg-white" onClick={() => { openEdit(ev); setShowDayPanel(false); }}>
+                          <Pencil className="w-3 h-3" />
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-7 px-2 bg-white/60 hover:bg-red-50 text-red-600 border-red-200" onClick={() => deleteMutation.mutate({ id: ev.id })}>
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                    {ev.description && (() => {
+                      try {
+                        const parsed = JSON.parse(ev.description as string);
+                        if (parsed.learningOutcomes?.length) {
+                          return (
+                            <div className="text-xs opacity-80">
+                              <span className="font-medium">Outcomes: </span>
+                              {parsed.learningOutcomes.slice(0, 2).join(" • ")}
+                            </div>
+                          );
+                        }
+                      } catch { /* not JSON */ }
+                      return <div className="text-xs opacity-80 line-clamp-2">{ev.description}</div>;
+                    })()}
+                  </div>
+                );
+              })
+            )}
+          </div>
+          {/* Add event button at the bottom */}
+          <div className="p-4 border-t shrink-0">
+            <Button className="w-full gap-2" onClick={() => {
+              if (dayPanelDate) {
+                const [y, m, d] = dayPanelDate.split("-").map(Number);
+                openAdd(new Date(y, m - 1, d));
+                setShowDayPanel(false);
+              }
+            }}>
+              <Plus className="w-4 h-4" /> Add Event
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* ── Inline Lesson Plan Sheet ─────────────────────────────────────────────────────────────────── */}
+      <Sheet open={showPlanSheet} onOpenChange={(open) => {
+        if (!open && planFormDirty) {
+          // Auto-save on close if dirty
+          if (planForm.title.trim()) handleSavePlan();
+        }
+        setShowPlanSheet(open);
+      }}>
+        <SheetContent side="right" className="w-full sm:w-[600px] sm:max-w-[600px] p-0 flex flex-col">
+          <SheetHeader className="px-5 pt-5 pb-3 border-b shrink-0">
+            <div className="flex items-center justify-between gap-2">
+              <SheetTitle className="flex items-center gap-2">
+                <ClipboardList className="w-4 h-4 text-primary" />
+                {planForm.title || "Lesson Plan"}
+              </SheetTitle>
+              <div className="flex gap-2">
+                {planFormDirty && <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">{t("lp_unsaved")}</Badge>}
+                <Button size="sm" onClick={handleSavePlan} disabled={savePlanMutation.isPending} className="gap-1">
+                  <Save className="w-3.5 h-3.5" />
+                  {savePlanMutation.isPending ? t("lp_saving") : t("lp_save")}
+                </Button>
+              </div>
+            </div>
+          </SheetHeader>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {/* ─ Header Info ─ */}
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs">{t("lp_lesson_title")}</Label>
+                <Input value={planForm.title} onChange={e => setPlanField("title", e.target.value)} placeholder={t("lp_ph_title")} />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">{t("lp_unit")}</Label>
+                  <Input value={planForm.unit} onChange={e => setPlanField("unit", e.target.value)} placeholder={t("lp_ph_unit")} />
+                </div>
+                <div>
+                  <Label className="text-xs">{t("lp_lesson_no")}</Label>
+                  <Input value={planForm.lessonNumber} onChange={e => setPlanField("lessonNumber", e.target.value)} placeholder={t("lp_ph_lesson_number")} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">{t("lp_year_group")}</Label>
+                  <Select value={planForm.yearGroup} onValueChange={v => setPlanField("yearGroup", v)}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent>{YEAR_GROUPS.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">{t("lp_subject")}</Label>
+                  <Select value={planForm.subject} onValueChange={v => setPlanField("subject", v)}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent>{SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">{t("lp_duration_min")}</Label>
+                  <Input type="number" value={planForm.duration} onChange={e => setPlanField("duration", Number(e.target.value))} min={15} max={180} step={5} className="h-8 text-sm" />
+                </div>
+                <div>
+                  <Label className="text-xs">{t("lp_spaces")}</Label>
+                  <Input value={planForm.spaces} onChange={e => setPlanField("spaces", e.target.value)} placeholder={t("lp_ph_spaces")} className="h-8 text-sm" />
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* ─ Skills & Systems ─ */}
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t("lp_section_skills")}</p>
+              <div>
+                <Label className="text-xs mb-1 block">{t("lp_skills")}</Label>
+                <div className="flex flex-wrap gap-3">
+                  {LP_SKILL_KEYS.map(k => (
+                    <div key={k} className="flex items-center gap-1.5">
+                      <Checkbox id={`ps-skill-${k}`} checked={!!planForm.skills[k]} onCheckedChange={v => setPlanField("skills", { ...planForm.skills, [k]: !!v })} />
+                      <label htmlFor={`ps-skill-${k}`} className="text-xs capitalize cursor-pointer">{k}</label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs mb-1 block">{t("lp_language_systems")}</Label>
+                <div className="flex flex-wrap gap-3">
+                  {LP_SYSTEM_KEYS.map(k => (
+                    <div key={k} className="flex items-center gap-1.5">
+                      <Checkbox id={`ps-sys-${k}`} checked={!!planForm.systems[k]} onCheckedChange={v => setPlanField("systems", { ...planForm.systems, [k]: !!v })} />
+                      <label htmlFor={`ps-sys-${k}`} className="text-xs capitalize cursor-pointer">{k}</label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* ─ Competencies ─ */}
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t("lp_section_competencies")}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {COMPETENCIES.map(c => (
+                  <button key={c} type="button"
+                    onClick={() => setPlanField("competencies", planForm.competencies.includes(c) ? planForm.competencies.filter(x => x !== c) : [...planForm.competencies, c])}
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${planForm.competencies.includes(c) ? "bg-teal-600 text-white border-teal-600" : "bg-background border-border hover:bg-accent"}`}>
+                    {c}
+                  </button>
+                ))}
+              </div>
+              <div>
+                <Label className="text-xs mb-1 block">{t("lp_specific_competences")}</Label>
+                {planForm.specificCompetences.map((v, i) => (
+                  <div key={i} className="flex gap-1.5 mb-1.5">
+                    <Input value={v} onChange={e => { const a = [...planForm.specificCompetences]; a[i] = e.target.value; setPlanField("specificCompetences", a); }} placeholder={t("lp_ph_competence")} className="flex-1 h-8 text-sm" />
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setPlanField("specificCompetences", planForm.specificCompetences.filter((_, j) => j !== i))}><X className="w-3.5 h-3.5 text-red-400" /></Button>
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setPlanField("specificCompetences", [...planForm.specificCompetences, ""])}><Plus className="w-3 h-3 mr-1" /> {t("lp_add")}</Button>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* ─ Curriculum ─ */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t("lp_section_curriculum")}</p>
+              {(["saberesBasicos", "learningOutcomes", "evaluationCriteria"] as const).map(field => (
+                <div key={field}>
+                  <Label className="text-xs mb-1 block">{t(field === "saberesBasicos" ? "lp_saberes_basicos" : field === "learningOutcomes" ? "lp_learning_outcomes" : "lp_evaluation_criteria")}</Label>
+                  {planForm[field].map((v, i) => (
+                    <div key={i} className="flex gap-1.5 mb-1.5">
+                      <Input value={v} onChange={e => { const a = [...planForm[field]]; a[i] = e.target.value; setPlanField(field, a); }} className="flex-1 h-8 text-sm" />
+                      <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setPlanField(field, planForm[field].filter((_, j) => j !== i))}><X className="w-3.5 h-3.5 text-red-400" /></Button>
+                    </div>
+                  ))}
+                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setPlanField(field, [...planForm[field], ""])}><Plus className="w-3 h-3 mr-1" /> {t("lp_add")}</Button>
+                </div>
+              ))}
+            </div>
+
+            <Separator />
+
+            {/* ─ Context ─ */}
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t("lp_section_context")}</p>
+              <div>
+                <Label className="text-xs">{t("lp_previous_knowledge")}</Label>
+                <Textarea value={planForm.previousKnowledge} onChange={e => setPlanField("previousKnowledge", e.target.value)} rows={2} className="text-sm" />
+              </div>
+              <div>
+                <Label className="text-xs">{t("lp_materials_resources")}</Label>
+                <Textarea value={planForm.materials} onChange={e => setPlanField("materials", e.target.value)} rows={2} className="text-sm" />
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* ─ Procedure ─ */}
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t("lp_section_procedure")}</p>
+              {planForm.procedures.map((p, i) => (
+                <div key={i} className="rounded-lg border p-3 space-y-2 bg-muted/20">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-semibold text-muted-foreground">Stage {i + 1}</span>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setPlanField("procedures", planForm.procedures.filter((_, j) => j !== i))}><X className="w-3 h-3 text-red-400" /></Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">{t("lp_timing")}</Label>
+                      <Input value={p.timing} onChange={e => { const ps = [...planForm.procedures]; ps[i] = { ...ps[i], timing: e.target.value }; setPlanField("procedures", ps); }} className="h-7 text-xs" />
+                    </div>
+                    <div>
+                      <Label className="text-xs">{t("lp_stage")}</Label>
+                      <Input value={p.stage} onChange={e => { const ps = [...planForm.procedures]; ps[i] = { ...ps[i], stage: e.target.value }; setPlanField("procedures", ps); }} className="h-7 text-xs" />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs">{t("lp_activities")}</Label>
+                    <Textarea value={p.activities} onChange={e => { const ps = [...planForm.procedures]; ps[i] = { ...ps[i], activities: e.target.value }; setPlanField("procedures", ps); }} rows={2} className="text-xs" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">{t("lp_grouping")}</Label>
+                    <Input value={p.grouping} onChange={e => { const ps = [...planForm.procedures]; ps[i] = { ...ps[i], grouping: e.target.value }; setPlanField("procedures", ps); }} className="h-7 text-xs" />
+                  </div>
+                </div>
+              ))}
+              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setPlanField("procedures", [...planForm.procedures, { timing: "", stage: "", activities: "", grouping: "Pairs" }])}>
+                <Plus className="w-3 h-3 mr-1" /> {t("lp_add_stage")}
+              </Button>
+            </div>
+
+            {/* Bottom save button */}
+            <div className="pb-2">
+              <Button className="w-full gap-2" onClick={handleSavePlan} disabled={savePlanMutation.isPending}>
+                <Save className="w-4 h-4" />
+                {savePlanMutation.isPending ? t("lp_saving") : t("lp_save")}
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </DashboardLayout>
   );
 }

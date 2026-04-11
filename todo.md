@@ -1363,3 +1363,12 @@
 - [x] Diagnose exact failure mode (LLM timeout, Zod validation, date parsing, or production schema drift)
 - [x] Fix the root cause and verify AI infill generates lessons successfully
 - [x] Add better error feedback in the AI infill dialog (show specific error, not just generic toast)
+
+## Feature: AI infill auto-creates linked lesson planners + daily calendar editing
+- [x] Add lessonPlanId FK column to school_calendar_events table
+- [x] Auto-create lesson plans when AI infills calendar (link event → lesson plan)
+- [x] Add tRPC procedure to get/update lesson plan linked to a calendar event
+- [x] Daily calendar editing: click a day cell to open a side panel with event list
+- [x] Side panel: add new event for that day, edit existing events, delete events
+- [x] Inline lesson planner editor: open linked lesson plan from calendar event with full edit form
+- [x] "View Lesson Plan" button on AI-generated events in the day panel
