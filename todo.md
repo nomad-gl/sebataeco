@@ -1358,3 +1358,8 @@
 - [x] Client: global query/mutation error handlers report CLIENT_QUERY_ERROR / CLIENT_MUTATION_ERROR for INTERNAL_SERVER_ERROR
 - [x] Admin UI: /admin/errors page — error log table, fix history, manual health check trigger, escalation badge
 - [x] Admin UI: /admin/errors route registered in App.tsx
+
+## Bug: AI cannot infill the school calendar
+- [x] Diagnose exact failure mode (LLM timeout, Zod validation, date parsing, or production schema drift)
+- [x] Fix the root cause and verify AI infill generates lessons successfully
+- [x] Add better error feedback in the AI infill dialog (show specific error, not just generic toast)

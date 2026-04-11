@@ -64,11 +64,22 @@ type SchoolCalendar = {
   linkedGroupId?: number | null;
 };
 
-const DEFAULT_TERMS = [
-  { label: "Term 1", start: "", end: "" },
-  { label: "Term 2", start: "", end: "" },
-  { label: "Term 3", start: "", end: "" },
-];
+/**
+ * Derive sensible Spanish school term defaults from an academicYear string like "2025-2026".
+ * Term 1: Sep–Dec of start year, Term 2: Jan–Mar of end year, Term 3: Apr–Jun of end year.
+ */
+const getDefaultTermsForYear = (academicYear: string) => {
+  const parts = academicYear.split("-");
+  const y1 = parseInt(parts[0], 10) || CURRENT_YEAR;
+  const y2 = parseInt(parts[1], 10) || (y1 + 1);
+  return [
+    { label: "Term 1", start: `${y1}-09-09`, end: `${y1}-12-20` },
+    { label: "Term 2", start: `${y2}-01-08`, end: `${y2}-03-28` },
+    { label: "Term 3", start: `${y2}-04-07`, end: `${y2}-06-20` },
+  ];
+};
+
+const DEFAULT_TERMS = getDefaultTermsForYear(ACADEMIC_YEARS[1]);
 
 const emptyCalForm = (academicYear = ACADEMIC_YEARS[1]) => {
   const profile = loadSchoolProfile();
@@ -179,9 +190,16 @@ export default function SchoolCalendar() {
     onSuccess: (data) => {
       utils.planner.listCalendarEvents.invalidate();
       setShowAiDialog(false);
-      toast.success(`${t("cal_ai_infill")}: ${data.generated} lessons`);
+      if (data.generated === 0) {
+        toast.info("No available school days found in the selected date range. All days may already have events.");
+      } else {
+        toast.success(`${t("cal_ai_infill")}: ${data.generated} ${data.generated === 1 ? "lesson" : "lessons"} added to calendar`);
+      }
     },
-    onError: (e) => toast.error(e.message),
+    onError: (e) => {
+      const msg = e.message || "AI infill failed";
+      toast.error(`Could not generate lessons: ${msg}`);
+    },
   });
 
   // ── Group linking ──────────────────────────────────────────────────────────
@@ -538,7 +556,12 @@ export default function SchoolCalendar() {
                       <Button variant="outline" size="sm" onClick={handleExportPdf} disabled={isPdfExporting} className="gap-1.5" title={t("cal_export_pdf")}>
                         <Download className="w-3.5 h-3.5" /> {isPdfExporting ? "…" : t("cal_export_pdf")}
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => setShowAiDialog(true)} className="gap-1.5">
+                      <Button variant="outline" size="sm" onClick={() => {
+                        // Pre-populate term dates from the calendar's academic year
+                        const cal = selectedCalendar as SchoolCalendar;
+                        setAiForm(f => ({ ...f, terms: getDefaultTermsForYear(cal.academicYear) }));
+                        setShowAiDialog(true);
+                      }} className="gap-1.5">
                         <Sparkles className="w-3.5 h-3.5" /> {t("cal_ai_infill")}
                       </Button>
                       {(selectedCalendar as SchoolCalendar).linkedGroupId ? (

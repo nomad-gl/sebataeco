@@ -240,8 +240,11 @@ export const plannerRouter = router({
       };
 
       let lessons: LessonDetail[] = [];
+      // Wrap LLM call in a 60-second timeout so the fallback always fires
+      const llmWithTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> =>
+        Promise.race([promise, new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`LLM timeout after ${ms}ms`)), ms))]);
       try {
-        const resp = await invokeLLM({
+        const resp = await llmWithTimeout(invokeLLM({
           messages: [
             {
               role: "system",
@@ -298,7 +301,7 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
               },
             },
           },
-        });
+        }), 60_000);
         const raw = resp.choices?.[0]?.message?.content;
         const content = typeof raw === "string" ? raw : JSON.stringify(raw);
         if (content) lessons = (JSON.parse(content) as { lessons: LessonDetail[] }).lessons || [];
