@@ -1414,3 +1414,8 @@
 
 ## Bug: "Save to My Materials" page not formatted for mobile
 - [x] Fix mobile layout of My Materials page: responsive grid, card sizing, button spacing, overflow
+
+## Feature: My Materials UX improvements
+- [x] Swipe-to-delete gesture on material cards (mobile)
+- [x] Filter pills by material type (horizontal scrollable row)
+- [x] Search input to filter materials by title

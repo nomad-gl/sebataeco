@@ -23,7 +23,7 @@ import {
 import { useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
 import { useI18n } from "@/contexts/I18nContext";
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 const TYPE_ICONS: Record<string, React.ElementType> = {
   quiz: BookOpen,
@@ -96,6 +96,15 @@ export default function MyMaterials() {
   const [, navigate] = useLocation();
   const utils = trpc.useUtils();
 
+  // Search & filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState<string>("all");
+  // Swipe-to-delete state: key = material id, value = translateX offset
+  const [swipedId, setSwipedId] = useState<number | null>(null);
+  const swipeStartX = useRef<number>(0);
+  const swipeStartY = useRef<number>(0);
+  const swipeCardId = useRef<number | null>(null);
+
   // Import dialog state
   const [importOpen, setImportOpen] = useState(false);
   const [selectedPres, setSelectedPres] = useState<SebasnapItem | null>(null);
@@ -162,6 +171,31 @@ export default function MyMaterials() {
 
   const presentations = sebasnapData?.presentations ?? [];
 
+  // Derived: filtered + searched materials
+  const allTypes = Array.from(new Set((materials ?? []).map((m) => m.type)));
+  const filteredMaterials = (materials ?? []).filter((m) => {
+    const matchesType = activeFilter === "all" || m.type === activeFilter;
+    const matchesSearch = !searchQuery.trim() || m.title.toLowerCase().includes(searchQuery.trim().toLowerCase());
+    return matchesType && matchesSearch;
+  });
+
+  // Swipe handlers
+  function handleTouchStart(e: React.TouchEvent, id: number) {
+    swipeStartX.current = e.touches[0].clientX;
+    swipeStartY.current = e.touches[0].clientY;
+    swipeCardId.current = id;
+  }
+  function handleTouchEnd(e: React.TouchEvent, id: number) {
+    const dx = e.changedTouches[0].clientX - swipeStartX.current;
+    const dy = Math.abs(e.changedTouches[0].clientY - swipeStartY.current);
+    if (dy > 30) return; // vertical scroll, ignore
+    if (dx < -60) {
+      setSwipedId(id); // reveal delete
+    } else if (dx > 30) {
+      setSwipedId(null); // hide delete
+    }
+  }
+
   if (loading || isLoading) {
     return (
       <div className="materials-bg flex flex-col">
@@ -226,6 +260,52 @@ export default function MyMaterials() {
           </div>
         </div>
 
+        {/* Search input */}
+        {materials && materials.length > 0 && (
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search materials..."
+              className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/10 backdrop-blur border border-white/20 text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-white/30"
+            />
+          </div>
+        )}
+
+        {/* Filter pills */}
+        {materials && materials.length > 0 && allTypes.length > 1 && (
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
+            <button
+              onClick={() => setActiveFilter("all")}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                activeFilter === "all"
+                  ? "bg-white text-gray-900"
+                  : "bg-white/15 text-white/80 hover:bg-white/25"
+              }`}
+            >
+              All ({materials.length})
+            </button>
+            {allTypes.map((type) => {
+              const count = materials.filter((m) => m.type === type).length;
+              return (
+                <button
+                  key={type}
+                  onClick={() => setActiveFilter(type)}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium capitalize transition-all ${
+                    activeFilter === type
+                      ? "bg-white text-gray-900"
+                      : "bg-white/15 text-white/80 hover:bg-white/25"
+                  }`}
+                >
+                  {type.replace("_", " ")} ({count})
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {/* Materials list */}
         {!materials || materials.length === 0 ? (
           <Card className="bg-white/10 backdrop-blur-md border-white/20">
@@ -246,51 +326,83 @@ export default function MyMaterials() {
               </div>
             </CardContent>
           </Card>
+        ) : filteredMaterials.length === 0 ? (
+          <div className="text-center py-12 text-white/60">
+            <Search className="w-8 h-8 mx-auto mb-3 opacity-50" />
+            <p className="text-sm">No materials found</p>
+          </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {materials.map((m) => {
+            {filteredMaterials.map((m) => {
               const Icon = TYPE_ICONS[m.type] ?? BookOpen;
               const colorClass = TYPE_COLORS[m.type] ?? "from-gray-400 to-gray-500";
+              const isSwiped = swipedId === m.id;
               return (
-                <Card key={m.id} className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all">
-                  <CardContent className="p-3 flex flex-col gap-3">
-                    {/* Top row: icon + title + delete */}
-                    <div className="flex items-start gap-3">
-                      <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${colorClass} flex items-center justify-center flex-shrink-0`}>
-                        <Icon className="w-5 h-5 text-white" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-white truncate">{m.title}</p>
-                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                          <Badge variant="secondary" className="text-xs capitalize bg-white/15 text-white/80 border-white/20">
-                            {m.type.replace("_", " ")}
-                          </Badge>
-                          {m.yearGroup && <Badge variant="outline" className="text-xs text-white/70 border-white/25">{{ junior: t("admin_junior"), primary: t("admin_primary"), secondary: t("admin_secondary") }[m.yearGroup] ?? m.yearGroup}</Badge>}
-                          <span className="text-xs text-white/50">
-                            {new Date(m.createdAt).toLocaleDateString()}
-                          </span>
+                <div
+                  key={m.id}
+                  className="relative overflow-hidden rounded-xl"
+                  onTouchStart={(e) => handleTouchStart(e, m.id)}
+                  onTouchEnd={(e) => handleTouchEnd(e, m.id)}
+                >
+                  {/* Swipe-to-delete background */}
+                  <div className="absolute inset-y-0 right-0 flex items-center justify-end bg-red-500 rounded-xl px-5">
+                    <Trash2 className="w-5 h-5 text-white" />
+                  </div>
+                  {/* Card content — slides left on swipe */}
+                  <Card
+                    className={`relative bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-transform duration-200 ${
+                      isSwiped ? "-translate-x-20" : "translate-x-0"
+                    }`}
+                    onClick={() => { if (isSwiped) { setSwipedId(null); } }}
+                  >
+                    <CardContent className="p-3 flex flex-col gap-3">
+                      {/* Top row: icon + title + delete */}
+                      <div className="flex items-start gap-3">
+                        <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${colorClass} flex items-center justify-center flex-shrink-0`}>
+                          <Icon className="w-5 h-5 text-white" />
                         </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-white truncate">{m.title}</p>
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                            <Badge variant="secondary" className="text-xs capitalize bg-white/15 text-white/80 border-white/20">
+                              {m.type.replace("_", " ")}
+                            </Badge>
+                            {m.yearGroup && <Badge variant="outline" className="text-xs text-white/70 border-white/25">{{ junior: t("admin_junior"), primary: t("admin_primary"), secondary: t("admin_secondary") }[m.yearGroup] ?? m.yearGroup}</Badge>}
+                            <span className="text-xs text-white/50">
+                              {new Date(m.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                        <Button size="sm" variant="ghost"
+                          className="text-red-400 hover:text-red-300 hover:bg-red-500/20 flex-shrink-0"
+                          onClick={(e) => { e.stopPropagation(); if (confirm(t("my_materials_delete") + "?")) deleteMutation.mutate({ id: m.id }); }}>
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
                       </div>
-                      <Button size="sm" variant="ghost"
-                        className="text-red-400 hover:text-red-300 hover:bg-red-500/20 flex-shrink-0"
-                        onClick={() => { if (confirm(t("my_materials_delete") + "?")) deleteMutation.mutate({ id: m.id }); }}>
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                    {/* Bottom row: action buttons */}
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline"
-                        className="flex-1 gap-1.5 border-yellow-400/50 text-yellow-300 hover:bg-yellow-500/20 bg-transparent"
-                        onClick={() => { window.location.href = `/challenge?materialId=${m.id}&materialTitle=${encodeURIComponent(m.title)}`; }}>
-                        <Zap className="w-3.5 h-3.5" /> {t("nav_challenge")}
-                      </Button>
-                      <Button size="sm" variant="outline" className="flex-1 gap-1.5 border-white/25 text-white/80 hover:bg-white/15 bg-transparent"
-                        onClick={() => navigate(`/materials/${m.id}`)}>
-                        <ExternalLink className="w-3.5 h-3.5" /> {t("my_materials_open")}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                      {/* Bottom row: action buttons */}
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline"
+                          className="flex-1 gap-1.5 border-yellow-400/50 text-yellow-300 hover:bg-yellow-500/20 bg-transparent"
+                          onClick={(e) => { e.stopPropagation(); window.location.href = `/challenge?materialId=${m.id}&materialTitle=${encodeURIComponent(m.title)}`; }}>
+                          <Zap className="w-3.5 h-3.5" /> {t("nav_challenge")}
+                        </Button>
+                        <Button size="sm" variant="outline" className="flex-1 gap-1.5 border-white/25 text-white/80 hover:bg-white/15 bg-transparent"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/materials/${m.id}`); }}>
+                          <ExternalLink className="w-3.5 h-3.5" /> {t("my_materials_open")}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  {/* Swipe delete confirm button (visible when swiped) */}
+                  {isSwiped && (
+                    <button
+                      className="absolute inset-y-0 right-0 w-20 flex items-center justify-center bg-red-500 rounded-r-xl"
+                      onClick={() => { if (confirm(t("my_materials_delete") + "?")) { deleteMutation.mutate({ id: m.id }); setSwipedId(null); } }}
+                    >
+                      <Trash2 className="w-5 h-5 text-white" />
+                    </button>
+                  )}
+                </div>
               );
             })}
           </div>
