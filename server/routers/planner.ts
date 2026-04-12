@@ -1254,4 +1254,115 @@ Return ONLY a JSON object (no markdown fences) with this exact structure:
       ));
       return { deleted: true };
     }),
+
+  seedCatalanHolidays: protectedProcedure
+    .input(z.object({ calendarId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      // Verify ownership
+      const [cal] = await db.select().from(schoolCalendars)
+        .where(and(eq(schoolCalendars.id, input.calendarId), eq(schoolCalendars.userId, ctx.user.id)))
+        .limit(1);
+      if (!cal) throw new TRPCError({ code: "NOT_FOUND", message: "Calendar not found" });
+
+      // Determine the academic year range from term dates or startDate/endDate
+      const calAny = cal as any;
+      const rangeStart: Date | null = calAny.term1Start ? new Date(calAny.term1Start)
+        : calAny.startDate ? new Date(calAny.startDate) : null;
+      const rangeEnd: Date | null = calAny.term3End ? new Date(calAny.term3End)
+        : calAny.term1End ? new Date(calAny.term1End)
+        : calAny.endDate ? new Date(calAny.endDate) : null;
+
+      if (!rangeStart || !rangeEnd) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Calendar has no term or start/end dates set" });
+      }
+
+      // Build Catalan public holidays for the years covered by the calendar
+      const startYear = rangeStart.getFullYear();
+      const endYear = rangeEnd.getFullYear();
+      const toDateStr = (d: Date) => d.toISOString().split("T")[0];
+
+      type HolidayDef = { month: number; day: number; name: string };
+      const fixedHolidays: HolidayDef[] = [
+        { month: 1, day: 1,  name: "Any Nou" },
+        { month: 1, day: 6,  name: "Reis" },
+        { month: 4, day: 23, name: "Sant Jordi" },
+        { month: 5, day: 1,  name: "Festa del Treball" },
+        { month: 6, day: 24, name: "Sant Joan" },
+        { month: 8, day: 15, name: "L'Assumpció" },
+        { month: 9, day: 11, name: "Diada Nacional de Catalunya" },
+        { month: 10, day: 12, name: "Festa Nacional d'Espanya" },
+        { month: 11, day: 1,  name: "Tots Sants" },
+        { month: 11, day: 2,  name: "Castanyada" },
+        { month: 12, day: 6,  name: "Dia de la Constitució" },
+        { month: 12, day: 8,  name: "La Immaculada" },
+        { month: 12, day: 25, name: "Nadal" },
+        { month: 12, day: 26, name: "Sant Esteve" },
+      ];
+
+      // Easter-based moveable feasts (Butlletí Oficial de la Generalitat)
+      const getEaster = (year: number): Date => {
+        const a = year % 19, b = Math.floor(year / 100), c = year % 100;
+        const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+        const g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+        const i = Math.floor(c / 4), k = c % 4;
+        const l = (32 + 2 * e + 2 * i - h - k) % 7;
+        const m = Math.floor((a + 11 * h + 22 * l) / 451);
+        const month = Math.floor((h + l - 7 * m + 114) / 31);
+        const day = ((h + l - 7 * m + 114) % 31) + 1;
+        return new Date(year, month - 1, day);
+      };
+
+      const holidayDates: { date: string; name: string }[] = [];
+      for (let yr = startYear; yr <= endYear; yr++) {
+        // Fixed holidays
+        for (const h of fixedHolidays) {
+          const d = new Date(yr, h.month - 1, h.day);
+          const ds = toDateStr(d);
+          if (d >= rangeStart && d <= rangeEnd) holidayDates.push({ date: ds, name: h.name });
+        }
+        // Moveable: Good Friday, Easter Monday, Whit Monday
+        const easter = getEaster(yr);
+        const addDays = (base: Date, n: number) => new Date(base.getTime() + n * 86400000);
+        const moveables = [
+          { d: addDays(easter, -2), name: "Divendres Sant" },
+          { d: addDays(easter, 1),  name: "Dilluns de Pasqua" },
+          { d: addDays(easter, 50), name: "Dilluns de Pentecosta" },
+        ];
+        for (const m of moveables) {
+          const ds = toDateStr(m.d);
+          if (m.d >= rangeStart && m.d <= rangeEnd) holidayDates.push({ date: ds, name: m.name });
+        }
+      }
+
+      if (holidayDates.length === 0) return { inserted: 0 };
+
+      // Fetch existing event dates to avoid duplicates
+      const existing = await db.select({ eventDate: schoolCalendarEvents.eventDate })
+        .from(schoolCalendarEvents)
+        .where(and(
+          eq(schoolCalendarEvents.calendarId, input.calendarId),
+          eq(schoolCalendarEvents.userId, ctx.user.id),
+        ));
+      const existingSet = new Set(existing.map(e => String(e.eventDate)));
+
+      const toInsert = holidayDates.filter(h => !existingSet.has(h.date));
+      if (toInsert.length === 0) return { inserted: 0 };
+
+      const academicYear = (cal as any).academicYear ?? `${rangeStart.getFullYear()}-${rangeEnd.getFullYear()}`;
+      await db.insert(schoolCalendarEvents).values(
+        toInsert.map(h => ({
+          calendarId: input.calendarId,
+          userId: ctx.user.id,
+          eventDate: new Date(h.date),
+          title: h.name,
+          eventType: "holiday" as const,
+          description: "Festiu oficial de Catalunya",
+          isAiGenerated: false,
+          academicYear,
+        }))
+      );
+      return { inserted: toInsert.length };
+    }),
 });

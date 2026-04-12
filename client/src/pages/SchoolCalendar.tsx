@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, Plus, Sparkles, Trash2, CalendarDays,
   ExternalLink, LayoutList, Pencil, School, BookOpen, User, GraduationCap,
   FolderOpen, X, Check, Download, Link, Unlink, Users, Save, ClipboardList,
-  ListChecks, RefreshCw, FileDown, Hash,
+  ListChecks, RefreshCw, FileDown, Hash, Mic, MicOff, Volume2, VolumeX, ChevronDown,
 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useLocation } from "wouter";
@@ -217,6 +217,14 @@ export default function SchoolCalendar() {
   const [showAiDialog, setShowAiDialog] = useState(false);
   const [showClashWarning, setShowClashWarning] = useState(false);
   const [clashData, setClashData] = useState<{ date: string; existingTitle: string; existingType: string }[]>([]);
+  const [pendingAiArgs, setPendingAiArgs] = useState<Record<string, unknown> | null>(null);
+  // ── Mic / Speaker controls (desktop only) ─────────────────────────────────
+  const [micDevices, setMicDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedMicId, setSelectedMicId] = useState<string>(() => localStorage.getItem("seba_mic_id") ?? "");
+  const [speakerVolume, setSpeakerVolume] = useState<number>(() => Number(localStorage.getItem("seba_speaker_vol") ?? 80));
+  const [micMuted, setMicMuted] = useState(false);
+  const [speakerMuted, setSpeakerMuted] = useState(false);
+  const [showMicPanel, setShowMicPanel] = useState(false);
   const [showCreateCalDialog, setShowCreateCalDialog] = useState(false);
   const [showEditCalDialog, setShowEditCalDialog] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>("");
@@ -297,6 +305,29 @@ export default function SchoolCalendar() {
     }
   }, [calendars, selectedCalendarId]);
 
+  // Enumerate microphone devices on mount and when devices change
+  useEffect(() => {
+    const enumerate = async () => {
+      try {
+        // Request permission first so labels are populated
+        await navigator.mediaDevices.getUserMedia({ audio: true }).then(s => s.getTracks().forEach(t => t.stop())).catch(() => {});
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const audioInputs = devices.filter(d => d.kind === "audioinput");
+        setMicDevices(audioInputs);
+        if (!selectedMicId && audioInputs.length > 0) {
+          setSelectedMicId(audioInputs[0].deviceId);
+        }
+      } catch {}
+    };
+    enumerate();
+    navigator.mediaDevices.addEventListener("devicechange", enumerate);
+    return () => navigator.mediaDevices.removeEventListener("devicechange", enumerate);
+  }, []);
+
+  // Persist mic/speaker preferences to localStorage
+  useEffect(() => { localStorage.setItem("seba_mic_id", selectedMicId); }, [selectedMicId]);
+  useEffect(() => { localStorage.setItem("seba_speaker_vol", String(speakerVolume)); }, [speakerVolume]);
+
   const createCalMutation = trpc.planner.createCalendar.useMutation({
     onSuccess: (data) => {
       utils.planner.listCalendars.invalidate();
@@ -331,6 +362,16 @@ export default function SchoolCalendar() {
     onError: (e) => toast.error(e.message),
   });
 
+  const seedCatalanHolidaysMutation = trpc.planner.seedCatalanHolidays.useMutation({
+    onSuccess: (data) => {
+      utils.planner.listCalendarEvents.invalidate();
+      toast.success(data.inserted > 0
+        ? t("cal_holidays_seeded").replace("{n}", String(data.inserted))
+        : t("cal_holidays_already_seeded"));
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   // ── Events ─────────────────────────────────────────────────────────────────
   const { data: events = [] } = trpc.planner.listCalendarEvents.useQuery(
     { calendarId: selectedCalendarId! },
@@ -358,7 +399,7 @@ export default function SchoolCalendar() {
   });
 
   const aiInfillMutation = trpc.planner.aiInfillCalendar.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       utils.planner.listCalendarEvents.invalidate();
       setShowAiDialog(false);
       if (data.generated === 0) {
@@ -369,7 +410,10 @@ export default function SchoolCalendar() {
       // Show clash warning if any generated lessons landed on existing events
       if ((data as any).clashes && (data as any).clashes.length > 0) {
         setClashData((data as any).clashes);
+        setPendingAiArgs(variables as Record<string, unknown>);
         setShowClashWarning(true);
+      } else {
+        setPendingAiArgs(null);
       }
     },
     onError: (e) => {
@@ -851,6 +895,40 @@ export default function SchoolCalendar() {
   const aiEvents = events.filter(e => e.aiGenerated).length;
   const holidays = events.filter(e => e.eventType === "holiday").length;
 
+  // Per-term lesson coverage badges (for full_year calendars with term dates)
+  const termCoverage = useMemo(() => {
+    const cal = selectedCalendar as any;
+    if (!cal || cal.calendarType !== "full_year") return null;
+    const toDate = (v: any): Date | null => v ? new Date(v) : null;
+    const terms = [
+      { label: "T1", start: toDate(cal.term1Start), end: toDate(cal.term1End) },
+      { label: "T2", start: toDate(cal.term2Start), end: toDate(cal.term2End) },
+      { label: "T3", start: toDate(cal.term3Start), end: toDate(cal.term3End) },
+    ].filter(t => t.start && t.end) as { label: string; start: Date; end: Date }[];
+    if (terms.length === 0) return null;
+    return terms.map(term => {
+      // Count available lesson days (Mon-Fri, excluding holidays)
+      const holidayDates = new Set(
+        events
+          .filter(e => e.eventType === "holiday")
+          .map(e => new Date(e.eventDate).toDateString())
+      );
+      let available = 0;
+      const cur = new Date(term.start);
+      while (cur <= term.end) {
+        const dow = cur.getDay();
+        if (dow !== 0 && dow !== 6 && !holidayDates.has(cur.toDateString())) available++;
+        cur.setDate(cur.getDate() + 1);
+      }
+      const filled = events.filter(e => {
+        const d = new Date(e.eventDate);
+        return (e.eventType === "lesson" || e.eventType === "ai_generated") &&
+          d >= term.start && d <= term.end;
+      }).length;
+      return { label: term.label, filled, available };
+    });
+  }, [selectedCalendar, events]);
+
   // Topic block progress: count school days (Mon-Fri) in the date range
   const topicProgress = useMemo(() => {
     const cal = selectedCalendar as SchoolCalendar | null;
@@ -1059,6 +1137,73 @@ export default function SchoolCalendar() {
               <LayoutList className="w-4 h-4" />
             </button>
           </div>
+          {/* ── Desktop Mic / Speaker toolbar (hidden on mobile) ───────────────── */}
+          <div className="hidden md:flex items-center gap-2 px-4 py-1.5 border-b bg-muted/30 shrink-0 relative">
+            {/* Microphone control */}
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setMicMuted(v => !v)}
+                className={`p-1.5 rounded-lg transition-colors ${
+                  micMuted ? "bg-red-100 text-red-600 hover:bg-red-200" : "hover:bg-accent text-muted-foreground"
+                }`}
+                title={micMuted ? t("cal_mic_unmute") : t("cal_mic_mute")}
+              >
+                {micMuted ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
+              </button>
+              <button
+                onClick={() => setShowMicPanel(v => !v)}
+                className="flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors max-w-[140px] truncate"
+                title={t("cal_mic_select")}
+              >
+                <span className="truncate max-w-[110px]">
+                  {micDevices.find(d => d.deviceId === selectedMicId)?.label || t("cal_mic_default")}
+                </span>
+                <ChevronDown className="w-3 h-3 shrink-0" />
+              </button>
+            </div>
+            {/* Mic device dropdown */}
+            {showMicPanel && micDevices.length > 0 && (
+              <div className="absolute top-full left-2 z-50 mt-1 bg-popover border rounded-lg shadow-lg p-1 min-w-[200px]">
+                {micDevices.map(d => (
+                  <button
+                    key={d.deviceId}
+                    onClick={() => { setSelectedMicId(d.deviceId); setShowMicPanel(false); }}
+                    className={`w-full text-left px-3 py-1.5 text-xs rounded hover:bg-accent transition-colors ${
+                      d.deviceId === selectedMicId ? "bg-accent font-medium" : ""
+                    }`}
+                  >
+                    {d.label || `Microphone ${d.deviceId.slice(0, 6)}`}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="w-px h-4 bg-border mx-1" />
+            {/* Speaker volume control */}
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setSpeakerMuted(v => !v)}
+                className={`p-1.5 rounded-lg transition-colors ${
+                  speakerMuted ? "bg-red-100 text-red-600 hover:bg-red-200" : "hover:bg-accent text-muted-foreground"
+                }`}
+                title={speakerMuted ? t("cal_speaker_unmute") : t("cal_speaker_mute")}
+              >
+                {speakerMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+              </button>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={speakerMuted ? 0 : speakerVolume}
+                onChange={e => { setSpeakerVolume(Number(e.target.value)); if (speakerMuted) setSpeakerMuted(false); }}
+                className="w-20 h-1.5 accent-primary cursor-pointer"
+                title={`${t("cal_speaker_volume")}: ${speakerMuted ? 0 : speakerVolume}%`}
+              />
+              <span className="text-xs text-muted-foreground w-7 text-right">{speakerMuted ? "0" : speakerVolume}%</span>
+            </div>
+            {/* Click-outside to close mic dropdown */}
+            {showMicPanel && <div className="fixed inset-0 z-40" onClick={() => setShowMicPanel(false)} />}
+          </div>
+
           <div className="flex-1 overflow-y-auto p-3 md:p-5 space-y-4 md:space-y-5">
           {selectedCalendar === null ? (
             <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
@@ -1215,6 +1360,36 @@ export default function SchoolCalendar() {
                 <Card><CardContent className="pt-3 pb-3 text-center"><div className="text-xl font-bold text-teal-600">{aiEvents}</div><div className="text-xs text-muted-foreground">{t("cal_ai_generated")}</div></CardContent></Card>
                 <Card><CardContent className="pt-3 pb-3 text-center"><div className="text-xl font-bold text-red-600">{holidays}</div><div className="text-xs text-muted-foreground">{t("cal_holidays")}</div></CardContent></Card>
               </div>
+
+              {/* ── Per-term coverage badges ──────────────────────────────── */}
+              {termCoverage && termCoverage.length > 0 && (
+                <Card>
+                  <CardContent className="pt-3 pb-3">
+                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">{t("cal_term_coverage_label")}</div>
+                    <div className="flex gap-3">
+                      {termCoverage.map(tc => {
+                        const pct = tc.available > 0 ? Math.min(100, Math.round((tc.filled / tc.available) * 100)) : 0;
+                        const color = pct >= 80 ? "bg-green-500" : pct >= 40 ? "bg-amber-400" : "bg-red-400";
+                        return (
+                          <div key={tc.label} className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between text-xs mb-1">
+                              <span className="font-semibold">{tc.label}</span>
+                              <span className="text-muted-foreground">{tc.filled}/{tc.available}</span>
+                            </div>
+                            <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all duration-500 ${color}`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                            <div className="text-[10px] text-muted-foreground mt-0.5 text-right">{pct}%</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* ── Month Calendar (or Agenda on mobile) ────────────────── */}
               {agendaView ? (
@@ -1899,9 +2074,23 @@ export default function SchoolCalendar() {
             </div>
           </div>
           <DialogFooter className="flex justify-between">
-            <Button variant="destructive" size="sm" onClick={() => { if (selectedCalendarId) deleteCalMutation.mutate({ id: selectedCalendarId }); setShowEditCalDialog(false); }}>
-              <Trash2 className="w-4 h-4 mr-1" /> {t("cal_delete_calendar")}
-            </Button>
+            <div className="flex items-center gap-2">
+              {calForm.calendarType === "full_year" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { if (selectedCalendarId) seedCatalanHolidaysMutation.mutate({ calendarId: selectedCalendarId }); }}
+                  disabled={seedCatalanHolidaysMutation.isPending}
+                  className="gap-1.5 text-yellow-700 border-yellow-300 hover:bg-yellow-50"
+                  title={t("cal_seed_catalan_holidays")}
+                >
+                  🇨🇦 {seedCatalanHolidaysMutation.isPending ? "..." : t("cal_seed_catalan_holidays")}
+                </Button>
+              )}
+              <Button variant="destructive" size="sm" onClick={() => { if (selectedCalendarId) deleteCalMutation.mutate({ id: selectedCalendarId }); setShowEditCalDialog(false); }}>
+                <Trash2 className="w-4 h-4 mr-1" /> {t("cal_delete_calendar")}
+              </Button>
+            </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setShowEditCalDialog(false)}>{t("cal_cancel")}</Button>
               <Button
@@ -2143,8 +2332,27 @@ export default function SchoolCalendar() {
               </div>
             ))}
           </div>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setShowClashWarning(false)}>{t("cal_clash_ok")}</AlertDialogAction>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel onClick={() => { setShowClashWarning(false); setPendingAiArgs(null); }}>
+              {t("cal_clash_ok")}
+            </AlertDialogCancel>
+            {pendingAiArgs && (
+              <AlertDialogAction
+                className="bg-amber-500 hover:bg-amber-600 text-white"
+                onClick={() => {
+                  const skipDates = clashData.map(c => c.date);
+                  aiInfillMutation.mutate({
+                    ...(pendingAiArgs as any),
+                    excludeDates: skipDates,
+                  });
+                  setShowClashWarning(false);
+                  setPendingAiArgs(null);
+                }}
+                disabled={aiInfillMutation.isPending}
+              >
+                {t("cal_clash_skip_and_retry")}
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

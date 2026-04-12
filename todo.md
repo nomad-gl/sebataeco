@@ -1908,3 +1908,25 @@
 - [x] Show clash warning dialog after AI-generated lessons are inserted
 - [x] Add i18n keys for term labels and clash warning in EN/ES/CA
 - [x] Add active navigation link from lesson plan preview (calendar event sheet/card) to the full LessonPlanner editor page
+
+## Feature: Desktop mic/speaker controls in School Calendar
+- [x] Add microphone device selector (dropdown of available audio input devices) to desktop calendar toolbar
+- [x] Add speaker volume slider to desktop calendar toolbar (hidden on mobile)
+- [x] Persist selected mic device and volume level in localStorage
+- [x] Add i18n keys for mic/speaker labels in EN/ES/CA
+
+## Feature: Catalan public holiday auto-seed
+- [x] Define list of Catalan public holidays (Diada, Castanyada, Sant Jordi, Pasqua, etc.) with annual recurrence logic
+- [x] Add seedCatalanHolidays tRPC procedure that inserts holidays within the calendar's term date ranges
+- [x] Add "Seed Catalan Holidays" button in Edit Calendar dialog (shown when term dates are set)
+- [x] Add i18n keys in EN/ES/CA
+
+## Feature: Per-term lesson coverage badge
+- [x] Compute filled vs available lesson days per term from calendar events
+- [x] Show a small progress bar/badge per term in the calendar sidebar term overview
+- [x] Add i18n keys in EN/ES/CA
+
+## Feature: Clash resolution shortcut in clash warning dialog
+- [x] Add "Skip clashing dates & re-run" button to the clash warning dialog
+- [x] Re-invoke aiInfillCalendar with excludeDates list of the clashing dates
+- [x] Add i18n keys in EN/ES/CA
