@@ -738,8 +738,8 @@ export default function LessonPlanner() {
                   <Label>{t("lp_lesson_title")}</Label>
                   <Input value={form.title} onChange={e => setField("title", e.target.value)} placeholder={t('lp_ph_title')} />
                 </div>
-                {/* Row 1: unit / lesson no / academic year / duration — 2 cols on mobile, 4 on md+ */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {/* Row 1: unit / lesson no / academic year / duration / session time — 2 cols on mobile, 5 on lg */}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                   <div>
                     <Label>{t("lp_unit")}</Label>
                     <Input value={form.unit} onChange={e => setField("unit", e.target.value)} placeholder={t('lp_ph_unit')} />
@@ -757,15 +757,11 @@ export default function LessonPlanner() {
                   </div>
                   <div>
                     <Label>{t("lp_duration_min")}</Label>
-                    <div className="flex items-center gap-2">
-                      <Input type="number" value={form.duration} onChange={e => setField("duration", Number(e.target.value))} min={15} max={180} step={5} />
-                      {form.sessionTime && (
-                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted border border-border rounded px-2 py-1 whitespace-nowrap">
-                          <span className="font-medium text-foreground/70">{t("lp_session_time_label")}:</span>
-                          {form.sessionTime}
-                        </span>
-                      )}
-                    </div>
+                    <Input type="number" value={form.duration} onChange={e => setField("duration", Number(e.target.value))} min={15} max={180} step={5} />
+                  </div>
+                  <div>
+                    <Label>{t("lp_session_time")}</Label>
+                    <Input value={form.sessionTime} onChange={e => setField("sessionTime", e.target.value)} placeholder={t("lp_ph_session_time")} />
                   </div>
                 </div>
                 {/* Row 2: year group / subject / spaces — 1 col on mobile, 3 on md+ */}

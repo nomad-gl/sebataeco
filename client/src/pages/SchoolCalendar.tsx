@@ -82,6 +82,14 @@ type CalEvent = {
   seriesId?: string | null;
 };
 
+/** Compute duration in minutes from HH:MM start/end strings. Returns null if either is missing or invalid. */
+function calcDuration(startTime?: string | null, endTime?: string | null): number | null {
+  if (!startTime || !endTime) return null;
+  const toMins = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+  const diff = toMins(endTime) - toMins(startTime);
+  return diff > 0 ? diff : null;
+}
+
 type SchoolCalendar = {
   id: number;
   name: string;
@@ -1518,6 +1526,7 @@ export default function SchoolCalendar() {
                                       title={isLesson ? (hasPlan ? `${t("cal_view_plan")}: ${ev.title}` : `${t("cal_add_plan")}: ${ev.title}`) : ev.title}
                                     >
                                       <span className="flex-1 font-medium truncate">{ev.title}</span>
+                                      {isLesson && (() => { const dur = calcDuration(ev.startTime, ev.endTime); return dur ? <span className="shrink-0 text-[10px] font-mono opacity-70">{dur}m</span> : null; })()}
                                       {isLesson && (
                                         <ClipboardList className={`w-3 h-3 shrink-0 ${
                                           hasPlan ? "text-green-600" : "text-teal-400 opacity-60"
@@ -1645,9 +1654,10 @@ export default function SchoolCalendar() {
                                         }
                                       >
                                         <span className="truncate flex-1">{ev.title}</span>
-                                        {(ev as any).startTime && (
-                                          <span className="shrink-0 text-[9px] opacity-70 font-mono">{(ev as any).startTime}</span>
-                                        )}
+                                        {isLesson
+                                          ? (() => { const dur = calcDuration(ev.startTime, ev.endTime); return dur ? <span className="shrink-0 text-[9px] font-mono opacity-70">{dur}m</span> : null; })()
+                                          : ((ev as any).startTime ? <span className="shrink-0 text-[9px] opacity-70 font-mono">{(ev as any).startTime}</span> : null)
+                                        }
                                         {isLesson && (
                                           <ClipboardList className={`w-2.5 h-2.5 shrink-0 ${
                                             hasPlan ? "text-green-600" : "text-teal-400 opacity-60"
@@ -1708,7 +1718,8 @@ export default function SchoolCalendar() {
                                       onClick={() => isLesson ? openLessonPlanner(ev) : openEdit(ev)}
                                       title={isLesson ? (hasPlan ? `${t("cal_view_plan")}: ${ev.title}` : `${t("cal_add_plan")}: ${ev.title}`) : ev.title}
                                     >
-                                      {ev.title}
+                                      <span className="flex-1 truncate">{ev.title}</span>
+                                      {isLesson && (() => { const dur = calcDuration(ev.startTime, ev.endTime); return dur ? <span className="shrink-0 text-[10px] font-mono opacity-70">{dur}m</span> : null; })()}
                                       {isLesson && (
                                         <ClipboardList className={`w-3 h-3 shrink-0 ${
                                           hasPlan ? "text-green-600" : "text-teal-400 opacity-60"
@@ -2780,15 +2791,7 @@ export default function SchoolCalendar() {
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <Label className="text-xs">{t("lp_duration_min")}</Label>
-                  <div className="flex items-center gap-2">
-                    <Input type="number" value={planForm.duration} onChange={e => setPlanField("duration", Number(e.target.value))} min={15} max={180} step={5} className="h-8 text-sm" />
-                    {planForm.sessionTime && (
-                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted border border-border rounded px-2 py-1 whitespace-nowrap">
-                        <span className="font-medium text-foreground/70">{t("lp_session_time_label")}:</span>
-                        {planForm.sessionTime}
-                      </span>
-                    )}
-                  </div>
+                  <Input type="number" value={planForm.duration} onChange={e => setPlanField("duration", Number(e.target.value))} min={15} max={180} step={5} className="h-8 text-sm" />
                 </div>
                 <div>
                   <Label className="text-xs">{t("lp_spaces")}</Label>

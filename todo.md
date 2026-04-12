@@ -1971,3 +1971,13 @@
 - [x] SchoolCalendar plan sheet: render sessionTime as a read-only badge/label next to the Duration input in the Lesson Information card
 - [x] LessonPlanner: same read-only sessionTime label next to Duration in the Lesson Information card
 - [x] Only show the label when sessionTime is non-empty
+
+## Follow-up 3: Session time editable in plan sheet
+- [x] SchoolCalendar plan sheet: replace read-only session time badge with an editable Input field (marks form dirty on change, saved with the plan)
+- [x] LessonPlanner: same editable session time Input next to Duration
+- [x] i18n keys for placeholder/label if needed
+
+## Follow-up 4: Duration sub-label on calendar lesson chips
+- [x] Compute duration in minutes from event startTime/endTime (or calendar defaultStartTime/defaultEndTime) for each lesson/ai_generated event
+- [x] Render a small duration badge (e.g. "44 min") on each lesson chip in the calendar grid
+- [x] Only show when duration can be computed (both times present)
