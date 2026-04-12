@@ -508,7 +508,30 @@ export default function SchoolCalendar() {
     const competencies = planForm.competencies.length > 0 ? planForm.competencies : (ev?.competency ? [ev.competency] : []);
     setShowRegenConfirm(false);
     setPlanSheetAiGenerating(true);
-    aiGeneratePlanMutation.mutate({ id: planSheetPlanId!, title: planForm.title || ev?.title || "Lesson", subject, yearGroup, academicYear, competencies, duration: planForm.duration || 60, unit: planForm.unit || undefined, lessonNumber: planForm.lessonNumber || undefined, sessionTime: planForm.sessionTime || undefined });
+    aiGeneratePlanMutation.mutate({
+      id: planSheetPlanId!,
+      title: planForm.title || ev?.title || "Lesson",
+      subject,
+      yearGroup,
+      academicYear,
+      competencies,
+      duration: planForm.duration || 60,
+      unit: planForm.unit || undefined,
+      lessonNumber: planForm.lessonNumber || undefined,
+      sessionTime: planForm.sessionTime || undefined,
+      existing: {
+        skills: JSON.stringify(planForm.skills),
+        systems: JSON.stringify(planForm.systems),
+        specificCompetences: JSON.stringify(planForm.specificCompetences),
+        saberesBasicos: JSON.stringify(planForm.saberesBasicos),
+        learningOutcomes: JSON.stringify(planForm.learningOutcomes),
+        evaluationCriteria: JSON.stringify(planForm.evaluationCriteria),
+        previousKnowledge: planForm.previousKnowledge,
+        materials: planForm.materials,
+        spaces: planForm.spaces,
+        procedures: JSON.stringify(planForm.procedures),
+      },
+    });
   };
 
   // Delete plan mutation

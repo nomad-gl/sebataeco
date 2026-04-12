@@ -2018,3 +2018,9 @@
 - [x] Add calendar icon button to each plan row in Lesson Planner sidebar (only shown when plan has calendarEventId)
 - [x] Clicking navigates to /calendar?eventId=N&calendarId=M, opening the correct calendar and highlighting/opening the event
 - [x] SchoolCalendar page reads the eventId query param on mount and opens the event's plan sheet or day panel
+
+## AI Selective Generation: Only fill empty sections
+- [x] Server: aiGenerateLessonPlan accepts existing field values (objectives, vocabulary, procedures, homework, assessment, materials, notes, etc.) and instructs the LLM to skip any field that already has content
+- [x] Server: merge logic applies AI output only to fields that were empty in the request; pre-filled fields are preserved as-is in the saved plan
+- [x] Client (LessonPlanner): pass all current form field values when calling aiGenerateLessonPlan so the server knows what is already filled
+- [x] Client (SchoolCalendar plan sheet): same — pass current planForm values when triggering AI generation from the calendar

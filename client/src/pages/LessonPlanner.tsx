@@ -707,7 +707,20 @@ export default function LessonPlanner() {
       selectedId={selectedId}
       onLoad={loadPlan}
       onNew={newPlan}
-      onAi={() => { setSheetOpen(false); setShowAiDialog(true); }}
+      onAi={() => {
+        setSheetOpen(false);
+        // Pre-fill dialog from current form if a plan is loaded
+        if (selectedId && form.title) {
+          setAiTitle(form.title);
+          setAiSubject(form.subject);
+          setAiYearGroup(form.yearGroup);
+          setAiDuration(form.duration || 60);
+          setAiUnit(form.unit || "");
+          setAiComps(form.competencies || []);
+          setAiSessionTime(form.sessionTime || "");
+        }
+        setShowAiDialog(true);
+      }}
       onDuplicate={handleDuplicate}
       onDelete={(id) => setShowIndividualDeleteConfirm(id)}
       onJumpToCalendar={(calendarEventId, calendarId) => navigate(`/calendar?eventId=${calendarEventId}&calendarId=${calendarId}`)}
@@ -1166,7 +1179,30 @@ export default function LessonPlanner() {
             <Button onClick={() => {
               if (!aiTitle.trim()) { toast.error(t("lp_title_required")); return; }
               if (aiDate && !aiCalendarId && (calendars as any[]).length > 0) { toast.error(t("lp_select_calendar") ?? "Please select a calendar to add to."); return; }
-              aiMutation.mutate({ title: aiTitle, subject: aiSubject, yearGroup: aiYearGroup, duration: aiDuration, competencies: aiComps, unit: aiUnit || undefined, sessionTime: aiSessionTime || undefined });
+              // Build the existing-fields snapshot from the current form (if a plan is loaded)
+              const existingSnapshot = selectedId && form.title ? {
+                skills: JSON.stringify(form.skills),
+                systems: JSON.stringify(form.systems),
+                specificCompetences: JSON.stringify(form.specificCompetences),
+                saberesBasicos: JSON.stringify(form.saberesBasicos),
+                learningOutcomes: JSON.stringify(form.learningOutcomes),
+                evaluationCriteria: JSON.stringify(form.evaluationCriteria),
+                previousKnowledge: form.previousKnowledge,
+                materials: form.materials,
+                spaces: form.spaces,
+                procedures: JSON.stringify(form.procedures),
+              } : undefined;
+              aiMutation.mutate({
+                id: selectedId ?? undefined,
+                title: aiTitle,
+                subject: aiSubject,
+                yearGroup: aiYearGroup,
+                duration: aiDuration,
+                competencies: aiComps,
+                unit: aiUnit || undefined,
+                sessionTime: aiSessionTime || undefined,
+                existing: existingSnapshot,
+              });
             }} disabled={aiMutation.isPending} className="gap-1">
               <Sparkles className="w-4 h-4" />
               {aiMutation.isPending ? t("lp_generating") : t("lp_generate")}

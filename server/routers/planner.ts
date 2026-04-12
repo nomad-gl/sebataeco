@@ -744,6 +744,19 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
       /** Calendar event this plan is linked to — used for auto-numbering */
       calendarEventId: z.number().nullish(),
       lessonDate: z.string().nullish(),
+      /** Existing field values — any non-empty field will be preserved and excluded from AI generation */
+      existing: z.object({
+        skills: z.string().nullish(),
+        systems: z.string().nullish(),
+        specificCompetences: z.string().nullish(),
+        saberesBasicos: z.string().nullish(),
+        learningOutcomes: z.string().nullish(),
+        evaluationCriteria: z.string().nullish(),
+        previousKnowledge: z.string().nullish(),
+        materials: z.string().nullish(),
+        spaces: z.string().nullish(),
+        procedures: z.string().nullish(),
+      }).nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -757,9 +770,39 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
         { timing: "5 min", stage: "Closure", activities: "Review key points and assign homework if needed", grouping: "Whole class" },
       ];
 
+      // Determine which fields are already filled so we can skip them in the AI prompt
+      const ex = input.existing ?? {};
+      const hasSkills = !!ex.skills && ex.skills !== '{"listening":false,"speaking":false,"reading":false,"writing":false}';
+      const hasSystems = !!ex.systems && ex.systems !== '{"grammar":false,"phonology":false,"lexis":false,"function":false,"discourse":false}';
+      const hasSpecificCompetences = !!ex.specificCompetences && ex.specificCompetences !== '[]';
+      const hasSaberesBasicos = !!ex.saberesBasicos && ex.saberesBasicos !== '[]' && ex.saberesBasicos !== '[""]]';
+      const hasLearningOutcomes = !!ex.learningOutcomes && ex.learningOutcomes !== '[]' && ex.learningOutcomes !== '[""]]';
+      const hasEvaluationCriteria = !!ex.evaluationCriteria && ex.evaluationCriteria !== '[]' && ex.evaluationCriteria !== '[""]]';
+      const hasPreviousKnowledge = !!(ex.previousKnowledge ?? "").trim();
+      const hasMaterials = !!(ex.materials ?? "").trim();
+      const hasSpaces = !!(ex.spaces ?? "").trim() && (ex.spaces ?? "").trim() !== "Classroom";
+      const hasProcedures = !!ex.procedures && (() => { try { const p = JSON.parse(ex.procedures!); return Array.isArray(p) && p.length > 0 && p.some((s: any) => s.activities?.trim()); } catch { return false; } })();
+
+      // Build list of fields to skip for the prompt
+      const skippedFields: string[] = [];
+      if (hasSkills) skippedFields.push("skills");
+      if (hasSystems) skippedFields.push("systems");
+      if (hasSpecificCompetences) skippedFields.push("specificCompetences");
+      if (hasSaberesBasicos) skippedFields.push("saberesBasicos");
+      if (hasLearningOutcomes) skippedFields.push("learningOutcomes");
+      if (hasEvaluationCriteria) skippedFields.push("evaluationCriteria");
+      if (hasPreviousKnowledge) skippedFields.push("previousKnowledge");
+      if (hasMaterials) skippedFields.push("materials");
+      if (hasSpaces) skippedFields.push("spaces");
+      if (hasProcedures) skippedFields.push("procedures");
+
+      const skipNote = skippedFields.length > 0
+        ? `\n\nIMPORTANT: The following fields are already filled by the teacher. You MUST still return them in the JSON but copy the existing values EXACTLY as provided below — do NOT change or regenerate them:\n${skippedFields.map(f => `- ${f}: ${(ex as any)[f]}`).join("\n")}`
+        : "";
+
       const resp = await invokeLLM({
         messages: [
-          { role: "system", content: "You are a LOMLOE curriculum expert. Generate complete, detailed lesson plans with specific activities for each stage. Every field must be filled with real, curriculum-aligned content appropriate for the subject, year group and lesson title provided." },
+          { role: "system", content: "You are a LOMLOE curriculum expert. Generate complete, detailed lesson plans with specific activities for each stage. Every field must be filled with real, curriculum-aligned content appropriate for the subject, year group and lesson title provided. When existing field values are provided, preserve them exactly and only generate content for the empty fields." },
           { role: "user", content: `Generate a complete LOMLOE lesson plan for:
 - Title: "${input.title}"
 - Subject: ${input.subject}
@@ -768,7 +811,7 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
 - Unit: ${input.unit ?? "N/A"}
 - Lesson Number: ${input.lessonNumber ?? "N/A"}
 - Academic Year: ${input.academicYear ?? "2025-2026"}
-- Key Competencies: ${(input.competencies ?? []).join(", ") || "Mixed"}
+- Key Competencies: ${(input.competencies ?? []).join(", ") || "Mixed"}${skipNote}
 
 Generate a detailed lesson plan with specific activities for each procedure stage. The procedures array MUST have at least 4 stages with real activity descriptions.` },
         ],
@@ -836,16 +879,17 @@ Generate a detailed lesson plan with specific activities for each procedure stag
         unit: input.unit,
         lessonNumber: input.lessonNumber,
         academicYear: input.academicYear ?? "2025-2026",
-        skills: JSON.stringify(generated.skills ?? {}),
-        systems: JSON.stringify(generated.systems ?? {}),
-        specificCompetences: JSON.stringify(generated.specificCompetences ?? []),
-        saberesBasicos: JSON.stringify(generated.saberesBasicos ?? []),
-        learningOutcomes: JSON.stringify(generated.learningOutcomes ?? []),
-        evaluationCriteria: JSON.stringify(generated.evaluationCriteria ?? []),
-        previousKnowledge: generated.previousKnowledge ?? "",
-        materials: generated.materials ?? "",
-        spaces: generated.spaces ?? "Classroom",
-        procedures: JSON.stringify(generated.procedures ?? []),
+        // For each content field: use the pre-filled value if it was non-empty, otherwise use the AI output
+        skills: hasSkills ? ex.skills! : JSON.stringify(generated.skills ?? {}),
+        systems: hasSystems ? ex.systems! : JSON.stringify(generated.systems ?? {}),
+        specificCompetences: hasSpecificCompetences ? ex.specificCompetences! : JSON.stringify(generated.specificCompetences ?? []),
+        saberesBasicos: hasSaberesBasicos ? ex.saberesBasicos! : JSON.stringify(generated.saberesBasicos ?? []),
+        learningOutcomes: hasLearningOutcomes ? ex.learningOutcomes! : JSON.stringify(generated.learningOutcomes ?? []),
+        evaluationCriteria: hasEvaluationCriteria ? ex.evaluationCriteria! : JSON.stringify(generated.evaluationCriteria ?? []),
+        previousKnowledge: hasPreviousKnowledge ? (ex.previousKnowledge ?? "") : (generated.previousKnowledge ?? ""),
+        materials: hasMaterials ? (ex.materials ?? "") : (generated.materials ?? ""),
+        spaces: hasSpaces ? (ex.spaces ?? "Classroom") : (generated.spaces ?? "Classroom"),
+        procedures: hasProcedures ? ex.procedures! : JSON.stringify(generated.procedures ?? []),
         competencies: JSON.stringify(generated.competencies ?? []),
         aiGenerated: true,
         ...(input.sessionTime ? { sessionTime: input.sessionTime } : {}),
