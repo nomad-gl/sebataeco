@@ -130,8 +130,9 @@ type LessonFormState = {
   previousKnowledge: string; materials: string; spaces: string;
   procedures: LPProcedure[]; competencies: string[];
 };
-function parseJsonField<T>(val: string | null | undefined, fallback: T): T {
-  if (!val) return fallback;
+function parseJsonField<T>(val: string | null | undefined | T, fallback: T): T {
+  if (val === null || val === undefined || val === "") return fallback;
+  if (typeof val !== "string") return val as T;
   try { return JSON.parse(val) as T; } catch { return fallback; }
 }
 function planToLessonForm(plan: any): LessonFormState {
@@ -571,7 +572,9 @@ export default function SchoolCalendar() {
     const existingPlanId = (eventPlanMap as Record<number, number>)[ev.id];
     setPlanSheetEventId(ev.id);
     if (existingPlanId) {
-      // Plan already exists — load it directly, no mutation needed
+      // Plan already exists — reset form first so the useEffect always fires
+      setPlanForm(emptyLessonForm());
+      setPlanFormDirty(false);
       // Invalidate cache to ensure we get fresh lessonNumber/lessonDate
       utils.planner.getLessonPlan.invalidate({ id: existingPlanId });
       setPlanSheetPlanId(existingPlanId);
@@ -1102,10 +1105,13 @@ export default function SchoolCalendar() {
               <p className="text-xs text-muted-foreground p-2">{t("cal_no_calendars")}</p>
             )}
             {(calendars as SchoolCalendar[]).map(cal => (
-              <button
+              <div
                 key={cal.id}
+                role="button"
+                tabIndex={0}
                 onClick={() => setSelectedCalendarId(cal.id)}
-                className={`w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-accent transition-colors group flex items-start justify-between gap-1 ${selectedCalendarId === cal.id ? "bg-accent font-medium" : ""}`}
+                onKeyDown={e => { if (e.key === "Enter" || e.key === " ") setSelectedCalendarId(cal.id); }}
+                className={`w-full cursor-pointer text-left px-3 py-2 rounded-lg text-sm hover:bg-accent transition-colors group flex items-start justify-between gap-1 ${selectedCalendarId === cal.id ? "bg-accent font-medium" : ""}`}
               >
                 <div className="min-w-0">
                   <div className="truncate">{cal.name}</div>
@@ -1114,12 +1120,13 @@ export default function SchoolCalendar() {
                 {selectedCalendarId === cal.id && (
                   <button
                     onClick={e => { e.stopPropagation(); const c = cal as any; const toDate = (v: any) => v ? new Date(v).toISOString().split("T")[0] : ""; setCalForm({ name: cal.name, schoolName: cal.schoolName ?? "", tutorName: cal.tutorName ?? "", subject: cal.subject ?? "English", yearLevel: cal.yearLevel ?? YEAR_GROUPS[3], academicYear: cal.academicYear, calendarType: (cal as SchoolCalendar).calendarType ?? "full_year", startDate: toDate((cal as SchoolCalendar).startDate), endDate: toDate((cal as SchoolCalendar).endDate), topicDescription: (cal as SchoolCalendar).topicDescription ?? "", lessonDays: (cal as SchoolCalendar).lessonDays ?? "", region: c.region ?? "catalonia", defaultStartTime: c.defaultStartTime ?? "", defaultEndTime: c.defaultEndTime ?? "", term1Start: toDate(c.term1Start), term1End: toDate(c.term1End), term2Start: toDate(c.term2Start), term2End: toDate(c.term2End), term3Start: toDate(c.term3Start), term3End: toDate(c.term3End) }); setShowEditCalDialog(true); }}
-                    className="opacity-0 group-hover:opacity-100 shrink-0 mt-0.5"
+                    className="opacity-0 group-hover:opacity-100 shrink-0 mt-0.5 p-0.5 rounded hover:bg-muted"
+                    aria-label={t("cal_edit_calendar")}
                   >
                     <Pencil className="w-3 h-3 text-muted-foreground" />
                   </button>
                 )}
-              </button>
+              </div>
             ))}
           </div>
         </aside>

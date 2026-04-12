@@ -81,8 +81,10 @@ const emptyForm = (): LessonFormState => {
   };
 };
 
-function parseJsonField<T>(val: string | null | undefined, fallback: T): T {
-  if (!val) return fallback;
+function parseJsonField<T>(val: string | null | undefined | T, fallback: T): T {
+  if (val === null || val === undefined || val === "") return fallback;
+  // Already parsed (e.g. from AI mutation response)
+  if (typeof val !== "string") return val as T;
   try { return JSON.parse(val) as T; } catch { return fallback; }
 }
 

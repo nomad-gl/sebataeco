@@ -1944,3 +1944,8 @@
 - [x] Format a readable text digest with progress bars and send via notifyOwner
 - [x] Add a "Send coverage digest" button in the School Calendar sidebar for manual trigger
 - [x] Add i18n keys in EN/ES/CA
+
+## Bug: Lesson Information card not populated
+- [x] Fixed nested button hydration error in calendar sidebar (outer button → div[role=button])
+- [x] Fixed parseJsonField in both LessonPlanner.tsx and SchoolCalendar.tsx to handle already-parsed objects from AI mutation responses
+- [x] Fixed plan sheet not re-populating when same plan is reopened (reset form to empty before setting planSheetPlanId so useEffect always fires)
