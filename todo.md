@@ -1602,3 +1602,9 @@
 - [x] Replace any visible "Clara" text in the panel UI with "Aina"
 - [x] Update i18n keys: removed obsolete clara_* keys from I18nContext (EN/ES/CA); aina_* keys already in place
 - [x] All t("aina_*") calls already correct in AinaProfilePanel.tsx
+
+## Bug: Lesson planners not AI-completed when calendar event is created
+- [x] Trace the calendar event creation → lesson plan AI generation flow
+- [x] Identify why the AI completion is not triggered or fails silently
+- [x] Fix the trigger so lesson plans are auto-completed by AI when a calendar event is opened (plan sheet)
+- [x] Ensure errors surface to the user rather than failing silently

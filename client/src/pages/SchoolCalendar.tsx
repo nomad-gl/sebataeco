@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -310,12 +310,58 @@ export default function SchoolCalendar() {
     onError: (e) => toast.error(e.message),
   });
 
+  // Tracks the event whose plan is currently being AI-generated so we can show a loading state
+  const [planSheetAiGenerating, setPlanSheetAiGenerating] = useState(false);
+  // Ref to hold the pending AI-generation params until createLinkedPlanMutation resolves
+  const pendingAiParamsRef = useRef<{ planId: number; title: string; subject: string; yearGroup: string; academicYear: string; competencies: string[] } | null>(null);
+
+  const aiGeneratePlanMutation = trpc.planner.aiGenerateLessonPlan.useMutation({
+    onSuccess: async (data) => {
+      // Fetch the fully-populated plan and merge it into the form
+      const plan = await utils.planner.getLessonPlan.fetch({ id: data.id });
+      if (plan) {
+        setPlanForm(planToLessonForm(plan));
+        setPlanFormDirty(false);
+      }
+      utils.planner.getEventPlanMap.invalidate();
+      utils.planner.getLessonPlan.invalidate({ id: data.id });
+      setPlanSheetPlanId(data.id);
+      setPlanSheetAiGenerating(false);
+      toast.success(t("lp_generated_toast"));
+    },
+    onError: (e) => {
+      setPlanSheetAiGenerating(false);
+      toast.error(e.message);
+    },
+  });
+
   const createLinkedPlanMutation = trpc.planner.createLinkedLessonPlan.useMutation({
     onSuccess: (data) => {
       utils.planner.getEventPlanMap.invalidate();
-      setPlanSheetPlanId(data.id);
+      if (data.created && pendingAiParamsRef.current) {
+        // New blank plan — immediately kick off AI generation
+        const p = pendingAiParamsRef.current;
+        pendingAiParamsRef.current = null;
+        setPlanSheetAiGenerating(true);
+        aiGeneratePlanMutation.mutate({
+          title: p.title,
+          subject: p.subject,
+          yearGroup: p.yearGroup,
+          academicYear: p.academicYear,
+          competencies: p.competencies,
+          duration: 60,
+        });
+      } else {
+        // Plan already existed — just show it
+        pendingAiParamsRef.current = null;
+        setPlanSheetPlanId(data.id);
+      }
     },
-    onError: (e) => toast.error(e.message),
+    onError: (e) => {
+      pendingAiParamsRef.current = null;
+      setPlanSheetAiGenerating(false);
+      toast.error(e.message);
+    },
   });
 
   const openPlanSheet = (ev: CalEvent) => {
@@ -323,25 +369,26 @@ export default function SchoolCalendar() {
     setPlanSheetEventId(ev.id);
     if (existingPlanId) {
       setPlanSheetPlanId(existingPlanId);
+      setPlanSheetAiGenerating(false);
       // planSheetData will load via the query above
     } else {
-      // No plan yet — seed form from event data
+      // No plan yet — seed form from event data and trigger AI generation
       setPlanSheetPlanId(null);
-      setPlanForm(emptyLessonForm({
-        title: ev.title,
-        subject: ev.subject ?? selectedCalendar?.subject ?? "English",
-        yearGroup: ev.yearGroup ?? selectedCalendar?.yearLevel ?? YEAR_GROUPS[3],
-        academicYear: selectedCalendar?.academicYear ?? ACADEMIC_YEARS[1],
-        competencies: ev.competency ? [ev.competency] : [],
-      }));
+      setPlanSheetAiGenerating(false);
+      const subject = ev.subject ?? selectedCalendar?.subject ?? "English";
+      const yearGroup = ev.yearGroup ?? selectedCalendar?.yearLevel ?? YEAR_GROUPS[3];
+      const academicYear = selectedCalendar?.academicYear ?? ACADEMIC_YEARS[1];
+      const competencies = ev.competency ? [ev.competency] : [];
+      setPlanForm(emptyLessonForm({ title: ev.title, subject, yearGroup, academicYear, competencies }));
       setPlanFormDirty(false);
-      // Auto-create a linked plan record so we have an ID to save to
+      // Store AI params so createLinkedPlanMutation.onSuccess can trigger generation
+      pendingAiParamsRef.current = { planId: 0, title: ev.title, subject, yearGroup, academicYear, competencies };
       createLinkedPlanMutation.mutate({
         calendarEventId: ev.id,
         title: ev.title,
-        subject: ev.subject ?? selectedCalendar?.subject,
-        yearGroup: ev.yearGroup ?? selectedCalendar?.yearLevel,
-        academicYear: selectedCalendar?.academicYear,
+        subject,
+        yearGroup,
+        academicYear,
       });
     }
     setShowPlanSheet(true);
@@ -1530,7 +1577,7 @@ export default function SchoolCalendar() {
         }
         setShowPlanSheet(open);
       }}>
-        <SheetContent side="right" className="w-full sm:w-[600px] sm:max-w-[600px] p-0 flex flex-col">
+        <SheetContent side="right" className="w-full sm:w-[600px] sm:max-w-[600px] p-0 flex flex-col relative overflow-hidden">
           <SheetHeader className="px-5 pt-5 pb-3 border-b shrink-0">
             <div className="flex items-center justify-between gap-2">
               <SheetTitle className="flex items-center gap-2">
@@ -1539,13 +1586,22 @@ export default function SchoolCalendar() {
               </SheetTitle>
               <div className="flex gap-2">
                 {planFormDirty && <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">{t("lp_unsaved")}</Badge>}
-                <Button size="sm" onClick={handleSavePlan} disabled={savePlanMutation.isPending} className="gap-1">
+                <Button size="sm" onClick={handleSavePlan} disabled={savePlanMutation.isPending || planSheetAiGenerating} className="gap-1">
                   <Save className="w-3.5 h-3.5" />
-                  {savePlanMutation.isPending ? t("lp_saving") : t("lp_save")}
+                  {savePlanMutation.isPending ? t("lp_saving") : planSheetAiGenerating ? t("lp_generating") : t("lp_save")}
                 </Button>
               </div>
             </div>
           </SheetHeader>
+
+          {/* AI generating overlay */}
+          {planSheetAiGenerating && (
+            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-background/90 backdrop-blur-sm rounded-lg">
+              <Sparkles className="w-8 h-8 text-primary animate-pulse" />
+              <p className="text-sm font-medium text-foreground">{t("lp_generating")}</p>
+              <p className="text-xs text-muted-foreground">{t("lp_generate_ai")}</p>
+            </div>
+          )}
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {/* ─ Header Info ─ */}
