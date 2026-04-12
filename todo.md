@@ -1779,3 +1779,19 @@
 - [x] Teacher can edit the content in the dialog before issuing it to students
 - [x] Save changes back to the content record
 - [x] i18n keys already present in EN/ES/CA (sp_edit_assignment, sp_view_assignment, sp_ai_assignment_preview)
+
+## Feature: LessonPlanner AI Generate dialog — Date, Session Time, Topic inputs + Calendar insertion
+- [x] Add Date picker input to "Generate with AI" dialog in LessonPlanner.tsx
+- [x] Add Session Time input (e.g. 09:00–10:00) to the dialog
+- [x] Add Topic/Unit input to the dialog
+- [x] On successful generation, create a calendar event on the selected date and link the plan to it
+- [x] If no calendar exists yet, prompt user to create one first (or auto-select the first available)
+- [x] Add i18n keys for lp_date, lp_session_time, lp_topic, lp_add_to_calendar in EN/ES/CA
+
+## Fix: SchoolCalendar plan sheet — Skills, Systems, Procedure, Unit, Lesson Number, Day/Date/Session Time
+- [x] Pass existing planSheetPlanId to aiGenerateLessonPlan so it updates the linked plan (not a new row)
+- [x] Add Day/Date row showing the lessonDate from the linked calendar event
+- [x] Add editable Session Time field to the plan sheet header info section
+- [x] Ensure Skills & Language Systems card is always visible (not hidden when empty)
+- [x] Ensure Lesson Procedure card is always visible with default stages when empty
+- [x] Ensure Unit and Lesson Number fields are pre-populated from the linked calendar event

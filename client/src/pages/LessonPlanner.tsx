@@ -347,6 +347,11 @@ export default function LessonPlanner() {
   }, []);
 
   const { data: plans = [] } = trpc.planner.listLessonPlans.useQuery();
+  const { data: calendars = [] } = trpc.planner.listCalendars.useQuery();
+
+  // Calendar event + linked plan creation (used after AI generation when a date is selected)
+  const createEventMutation = trpc.planner.createCalendarEvent.useMutation();
+  const createLinkedPlanMutation = trpc.planner.createLinkedLessonPlan.useMutation();
 
   const saveMutation = trpc.planner.saveLessonPlan.useMutation({
     onSuccess: (data) => {
@@ -436,7 +441,7 @@ export default function LessonPlanner() {
   };
 
   const aiMutation = trpc.planner.aiGenerateLessonPlan.useMutation({
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       utils.planner.listLessonPlans.invalidate();
       setSelectedId(data.id);
       utils.planner.getLessonPlan.fetch({ id: data.id }).then(plan => {
@@ -444,7 +449,50 @@ export default function LessonPlanner() {
       });
       setShowAiDialog(false);
       setIsDirty(false);
-      toast.success(t("lp_generated_toast"));
+
+      // If the user selected a date + calendar, create a calendar event and link this plan to it
+      if (aiDate && aiCalendarId) {
+        try {
+          const calId = parseInt(aiCalendarId, 10);
+          const cal = (calendars as any[]).find(c => c.id === calId);
+          const eventResult = await createEventMutation.mutateAsync({
+            calendarId: calId,
+            academicYear: cal?.academicYear ?? ACADEMIC_YEARS[1],
+            eventDate: aiDate,
+            eventType: "lesson",
+            title: aiTitle,
+            subject: aiSubject,
+            yearGroup: aiYearGroup,
+          });
+          // Link the newly generated plan to the calendar event
+          await createLinkedPlanMutation.mutateAsync({
+            calendarEventId: eventResult.id,
+            title: aiTitle,
+            subject: aiSubject,
+            yearGroup: aiYearGroup,
+            academicYear: cal?.academicYear ?? ACADEMIC_YEARS[1],
+          });
+          // Update the plan row to point to this calendar event
+          await saveMutation.mutateAsync({
+            id: data.id,
+            title: aiTitle,
+            subject: aiSubject,
+            yearGroup: aiYearGroup,
+            duration: aiDuration,
+            unit: aiUnit || undefined,
+            sessionTime: aiSessionTime || undefined,
+            calendarEventId: eventResult.id,
+            academicYear: cal?.academicYear ?? ACADEMIC_YEARS[1],
+          });
+          utils.planner.listLessonPlans.invalidate();
+          toast.success(t("lp_generated_toast") + " " + t("lp_add_to_calendar"));
+        } catch (err: any) {
+          // Non-fatal: plan was generated, calendar link failed
+          toast.warning(t("lp_generated_toast") + " (calendar link failed)");
+        }
+      } else {
+        toast.success(t("lp_generated_toast"));
+      }
     },
     onError: (e) => toast.error(e.message),
   });
@@ -514,6 +562,10 @@ export default function LessonPlanner() {
   const [aiYearGroup, setAiYearGroup] = useState(YEAR_GROUPS[3]);
   const [aiDuration, setAiDuration] = useState(60);
   const [aiComps, setAiComps] = useState<string[]>([]);
+  const [aiDate, setAiDate] = useState(""); // YYYY-MM-DD
+  const [aiSessionTime, setAiSessionTime] = useState(""); // e.g. 09:00-10:00
+  const [aiUnit, setAiUnit] = useState("");
+  const [aiCalendarId, setAiCalendarId] = useState<string>("");
 
   const toggleComp = (c: string) => setAiComps(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]);
 
@@ -867,13 +919,24 @@ export default function LessonPlanner() {
       </div>
 
       {/* AI Generate Dialog */}
-      <Dialog open={showAiDialog} onOpenChange={setShowAiDialog}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <Dialog open={showAiDialog} onOpenChange={(open) => { setShowAiDialog(open); if (!open) { setAiDate(""); setAiSessionTime(""); setAiUnit(""); setAiCalendarId(""); } }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="flex items-center gap-2"><Sparkles className="w-5 h-5 text-teal-500" /> {t("lp_ai_dialog_title")}</DialogTitle></DialogHeader>
           <div className="space-y-3">
+            {/* Core lesson info */}
             <div>
               <Label>{t("lp_lesson_title")}</Label>
               <Input value={aiTitle} onChange={e => setAiTitle(e.target.value)} placeholder={t('lp_ph_title')} />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label>{t("lp_topic")}</Label>
+                <Input value={aiUnit} onChange={e => setAiUnit(e.target.value)} placeholder={t("lp_ph_unit")} />
+              </div>
+              <div>
+                <Label>{t("lp_duration_field")}</Label>
+                <Input type="number" value={aiDuration} onChange={e => setAiDuration(Number(e.target.value))} min={15} max={180} step={5} />
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -891,10 +954,43 @@ export default function LessonPlanner() {
                 </Select>
               </div>
             </div>
-            <div>
-              <Label>{t("lp_duration_field")}</Label>
-              <Input type="number" value={aiDuration} onChange={e => setAiDuration(Number(e.target.value))} min={15} max={180} step={5} />
+
+            {/* Date & Session Time */}
+            <div className="rounded-lg border border-dashed border-border p-3 space-y-3 bg-muted/30">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("lp_add_to_calendar")} <span className="normal-case font-normal">(optional)</span></p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label>{t("lp_date")}</Label>
+                  <Input type="date" value={aiDate} onChange={e => setAiDate(e.target.value)} className="h-9" />
+                </div>
+                <div>
+                  <Label>{t("lp_session_time")}</Label>
+                  <Input value={aiSessionTime} onChange={e => setAiSessionTime(e.target.value)} placeholder={t("lp_ph_session_time")} className="h-9" />
+                </div>
+              </div>
+              {aiDate && (
+                <div>
+                  <Label>{t("lp_calendar") ?? "Calendar"}</Label>
+                  <Select value={aiCalendarId} onValueChange={setAiCalendarId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("lp_select_calendar") ?? "Select a calendar…"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(calendars as any[]).map((cal: any) => (
+                        <SelectItem key={cal.id} value={String(cal.id)}>
+                          {cal.name} {cal.yearLevel ? `· ${cal.yearLevel}` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {(calendars as any[]).length === 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">{t("lp_no_calendars") ?? "No calendars yet — create one in School Calendar first."}</p>
+                  )}
+                </div>
+              )}
             </div>
+
+            {/* Competencies */}
             <div>
               <Label className="mb-2 block">{t("lp_focus_competencies")}</Label>
               <div className="flex flex-wrap gap-2">
@@ -909,7 +1005,11 @@ export default function LessonPlanner() {
           </div>
           <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
             <Button variant="outline" onClick={() => setShowAiDialog(false)}>{t("cal_cancel")}</Button>
-            <Button onClick={() => { if (!aiTitle.trim()) { toast.error(t("lp_title_required")); return; } aiMutation.mutate({ title: aiTitle, subject: aiSubject, yearGroup: aiYearGroup, duration: aiDuration, competencies: aiComps }); }} disabled={aiMutation.isPending} className="gap-1">
+            <Button onClick={() => {
+              if (!aiTitle.trim()) { toast.error(t("lp_title_required")); return; }
+              if (aiDate && !aiCalendarId && (calendars as any[]).length > 0) { toast.error(t("lp_select_calendar") ?? "Please select a calendar to add to."); return; }
+              aiMutation.mutate({ title: aiTitle, subject: aiSubject, yearGroup: aiYearGroup, duration: aiDuration, competencies: aiComps, unit: aiUnit || undefined, sessionTime: aiSessionTime || undefined });
+            }} disabled={aiMutation.isPending} className="gap-1">
               <Sparkles className="w-4 h-4" />
               {aiMutation.isPending ? t("lp_generating") : t("lp_generate")}
             </Button>

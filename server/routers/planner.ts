@@ -494,6 +494,7 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
       competencies: z.string().nullish(),
       aiGenerated: z.boolean().nullish(),
       calendarEventId: z.number().nullish(),
+      sessionTime: z.string().nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -585,6 +586,8 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
 
   aiGenerateLessonPlan: protectedProcedure
     .input(z.object({
+      /** If provided, UPDATE this existing plan row instead of inserting a new one */
+      id: z.number().nullish(),
       title: z.string(),
       subject: z.string(),
       yearGroup: z.string(),
@@ -593,6 +596,7 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
       unit: z.string().nullish(),
       lessonNumber: z.string().nullish(),
       academicYear: z.string().nullish(),
+      sessionTime: z.string().nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -600,11 +604,19 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
 
       const resp = await invokeLLM({
         messages: [
-          { role: "system", content: "You are a LOMLOE curriculum expert. Return only valid JSON matching the requested schema exactly." },
-          { role: "user", content: `Generate a complete LOMLOE lesson plan for: Title: "${input.title}", Subject: ${input.subject}, Year Group: ${input.yearGroup}, Duration: ${input.duration} min, Unit: ${input.unit ?? "N/A"}, Lesson: ${input.lessonNumber ?? "N/A"}, Year: ${input.academicYear ?? "2025-2026"}, Competencies: ${(input.competencies ?? []).join(", ") || "Mixed"}.
+          { role: "system", content: "You are a LOMLOE curriculum expert. Return only valid JSON matching the requested schema exactly. Be specific and detailed — fill every field with real, curriculum-aligned content appropriate for the subject, year group and lesson title provided." },
+          { role: "user", content: `Generate a complete LOMLOE lesson plan for:
+- Title: "${input.title}"
+- Subject: ${input.subject}
+- Year Group: ${input.yearGroup}
+- Duration: ${input.duration} min
+- Unit: ${input.unit ?? "N/A"}
+- Lesson Number: ${input.lessonNumber ?? "N/A"}
+- Academic Year: ${input.academicYear ?? "2025-2026"}
+- Key Competencies: ${(input.competencies ?? []).join(", ") || "Mixed"}
 
-Return JSON:
-{"skills":{"listening":true,"speaking":true,"reading":false,"writing":false},"systems":{"grammar":true,"phonology":false,"lexis":true,"function":false,"discourse":false},"specificCompetences":["CCL-1"],"saberesBasicos":["Vocabulary"],"learningOutcomes":["Students will..."],"evaluationCriteria":["Students demonstrate..."],"previousKnowledge":"Prior knowledge...","materials":"Textbook, worksheets","spaces":"Classroom","procedures":[{"timing":"10 min","stage":"Warm-up","activities":"...","grouping":"Whole class"}],"competencies":["CCL","STEM"]}` },
+Return ONLY a JSON object (no markdown fences) with this exact structure:
+{"skills":{"listening":true,"speaking":true,"reading":false,"writing":false},"systems":{"grammar":true,"phonology":false,"lexis":true,"function":false,"discourse":false},"specificCompetences":["CCL-1: Comprehension of oral texts"],"saberesBasicos":["Vocabulary related to the topic","Grammar structures for the level"],"learningOutcomes":["Students will be able to...","Students will demonstrate..."],"evaluationCriteria":["Criterion 1: ...","Criterion 2: ..."],"previousKnowledge":"Students should already know...","materials":"Textbook p.XX, worksheets, flashcards","spaces":"Classroom","procedures":[{"timing":"10 min","stage":"Warm-up","activities":"Describe the warm-up activity in detail","grouping":"Whole class"},{"timing":"20 min","stage":"Presentation","activities":"Describe the main teaching activity","grouping":"Pairs"},{"timing":"15 min","stage":"Practice","activities":"Describe the practice activity","grouping":"Individual"},{"timing":"10 min","stage":"Production","activities":"Describe the production task","grouping":"Groups"},{"timing":"5 min","stage":"Closure","activities":"Wrap-up and review","grouping":"Whole class"}],"competencies":["CCL","STEM"]}` },
         ],
       });
 
@@ -614,8 +626,7 @@ Return JSON:
       const jsonStr = jsonMatch[1]?.trim() ?? content;
       const generated = JSON.parse(jsonStr);
 
-      const result = await db.insert(lessonPlans).values({
-        userId: ctx.user.id,
+      const generatedFields = {
         title: input.title,
         subject: input.subject,
         yearGroup: input.yearGroup,
@@ -635,6 +646,18 @@ Return JSON:
         procedures: JSON.stringify(generated.procedures ?? []),
         competencies: JSON.stringify(generated.competencies ?? []),
         aiGenerated: true,
+        ...(input.sessionTime ? { sessionTime: input.sessionTime } : {}),
+      };
+
+      // If an existing plan ID is supplied, UPDATE it rather than inserting a new row
+      if (input.id) {
+        await db.update(lessonPlans).set(generatedFields).where(and(eq(lessonPlans.id, input.id), eq(lessonPlans.userId, ctx.user.id)));
+        return { id: input.id, ...generated };
+      }
+
+      const result = await db.insert(lessonPlans).values({
+        userId: ctx.user.id,
+        ...generatedFields,
       });
 
       return { id: (result as any)[0].insertId, ...generated };
@@ -774,7 +797,9 @@ Return JSON:
    * Export a lesson plan as a PDF and return a temporary S3 URL.
    */
   exportLessonPlanPdf: protectedProcedure
-    .input(z.object({ id: z.number() }))
+    .input(z.object({
+      id: z.number(),
+    }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });

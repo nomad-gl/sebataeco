@@ -577,6 +577,8 @@ export const lessonPlans = mysqlTable("lesson_plans", {
   isTemplate: boolean("isTemplate").default(false).notNull(),
   /** Optional display name for the template (defaults to title if blank) */
   templateName: varchar("templateName", { length: 255 }),
+  /** Session time e.g. '09:00-10:00' */
+  sessionTime: varchar("sessionTime", { length: 32 }),
   /** Calendar event this lesson plan is linked to (optional) */
   calendarEventId: int("calendarEventId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

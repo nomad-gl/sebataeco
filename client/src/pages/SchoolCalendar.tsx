@@ -120,6 +120,7 @@ type LPProcedure = { timing: string; stage: string; activities: string; grouping
 type LessonFormState = {
   title: string; unit: string; lessonNumber: string; academicYear: string;
   duration: number; yearGroup: string; subject: string;
+  sessionTime: string;
   skills: Record<string, boolean>; systems: Record<string, boolean>;
   specificCompetences: string[]; saberesBasicos: string[];
   learningOutcomes: string[]; evaluationCriteria: string[];
@@ -135,6 +136,7 @@ function planToLessonForm(plan: any): LessonFormState {
     title: plan.title ?? "", unit: plan.unit ?? "", lessonNumber: plan.lessonNumber ?? "",
     academicYear: plan.academicYear ?? ACADEMIC_YEARS[1], duration: plan.duration ?? 60,
     yearGroup: plan.yearGroup ?? YEAR_GROUPS[3], subject: plan.subject ?? "English",
+    sessionTime: plan.sessionTime ?? "",
     skills: parseJsonField(plan.skills, { listening: false, speaking: false, reading: false, writing: false }),
     systems: parseJsonField(plan.systems, { grammar: false, phonology: false, lexis: false, function: false, discourse: false }),
     specificCompetences: parseJsonField(plan.specificCompetences, []),
@@ -163,6 +165,7 @@ function emptyLessonForm(overrides?: Partial<LessonFormState>): LessonFormState 
   return {
     title: "", unit: "", lessonNumber: "", academicYear: ACADEMIC_YEARS[1],
     duration: 60, yearGroup: YEAR_GROUPS[3], subject: "English",
+    sessionTime: "",
     skills: { listening: false, speaking: false, reading: false, writing: false },
     systems: { grammar: false, phonology: false, lexis: false, function: false, discourse: false },
     specificCompetences: [], saberesBasicos: [""], learningOutcomes: [""],
@@ -384,7 +387,7 @@ export default function SchoolCalendar() {
     const competencies = planForm.competencies.length > 0 ? planForm.competencies : (ev?.competency ? [ev.competency] : []);
     setShowRegenConfirm(false);
     setPlanSheetAiGenerating(true);
-    aiGeneratePlanMutation.mutate({ title: planForm.title || ev?.title || "Lesson", subject, yearGroup, academicYear, competencies, duration: planForm.duration || 60 });
+    aiGeneratePlanMutation.mutate({ id: planSheetPlanId!, title: planForm.title || ev?.title || "Lesson", subject, yearGroup, academicYear, competencies, duration: planForm.duration || 60, unit: planForm.unit || undefined, lessonNumber: planForm.lessonNumber || undefined, sessionTime: planForm.sessionTime || undefined });
   };
 
   // Delete plan mutation
@@ -445,14 +448,17 @@ export default function SchoolCalendar() {
         // New blank plan — immediately kick off AI generation
         const p = pendingAiParamsRef.current;
         pendingAiParamsRef.current = null;
+        setPlanSheetPlanId(data.id);
         setPlanSheetAiGenerating(true);
         aiGeneratePlanMutation.mutate({
+          id: data.id,
           title: p.title,
           subject: p.subject,
           yearGroup: p.yearGroup,
           academicYear: p.academicYear,
           competencies: p.competencies,
           duration: 60,
+          lessonNumber: data.lessonNumber ?? undefined,
         });
       } else {
         // Plan already existed — just show it
@@ -2044,6 +2050,26 @@ export default function SchoolCalendar() {
                     <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                     <SelectContent>{SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                   </Select>
+                </div>
+              </div>
+              {/* Day / Date / Session Time row */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">{t("lp_date")}</Label>
+                  <div className="h-8 flex items-center px-3 rounded-md border bg-muted/40 text-sm text-muted-foreground">
+                    {planSheetData?.lessonDate
+                      ? new Date(planSheetData.lessonDate + "T12:00:00").toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" })
+                      : <span className="italic opacity-50">{t("lp_ph_date")}</span>}
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs">{t("lp_session_time")}</Label>
+                  <Input
+                    value={planForm.sessionTime}
+                    onChange={e => setPlanField("sessionTime", e.target.value)}
+                    placeholder={t("lp_ph_session_time")}
+                    className="h-8 text-sm"
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
