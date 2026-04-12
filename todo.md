@@ -2103,3 +2103,10 @@
 - [x] Copy dialog (LessonPlanner + SchoolCalendar): when a conflicted slot is selected, show a "Replace existing plan" radio/toggle beneath the conflict warning
 - [x] Default to "Create duplicate" (safe); user must explicitly choose "Replace"
 - [x] i18n: EN/ES/CA keys (lp_copy_replace_existing, lp_copy_create_duplicate, lp_copy_replace_warning)
+
+## Feature: Undo after replace-copy
+- [x] Server: copyLessonPlan returns full snapshot of the deleted plan when replaceExisting=true
+- [x] Server: add restoreDeletedPlan procedure that re-inserts a plan snapshot (accepts the full plan object)
+- [x] LessonPlanner: on replace-copy success, show a 10-second Undo toast; clicking Undo calls restoreDeletedPlan and invalidates the list
+- [x] SchoolCalendar: same Undo toast behaviour
+- [x] i18n: EN/ES/CA keys (lp_copy_undo, lp_copy_undo_success, lp_copy_undo_desc)

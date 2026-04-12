@@ -575,19 +575,41 @@ export default function SchoolCalendar() {
   const lessonEventsForPicker = (copyTargetEvents as any[]).filter(
     (e: any) => e.eventType === "lesson" || e.eventType === "ai_generated"
   );
+  const scRestorePlanMutation = trpc.planner.restoreDeletedPlan.useMutation({
+    onSuccess: () => {
+      utils.planner.listLessonPlans.invalidate();
+      utils.planner.getEventPlanMap.invalidate();
+      toast.success(t("lp_copy_undo_success") ?? "Plan restored");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   const copyPlanMutation = trpc.planner.copyLessonPlan.useMutation({
     onSuccess: (data) => {
       utils.planner.listLessonPlans.invalidate();
       utils.planner.getEventPlanMap.invalidate();
       setShowCopyPlanDialog(false);
-      toast.success(t("lp_copy_success") ?? "Plan copied", {
-        description: data.lessonNumber ? `${t("lp_lesson_number_label")} ${data.lessonNumber}` : undefined,
-        action: {
-          label: t("cal_open_in_planner"),
-          onClick: () => navigate(`/lesson-planner?planId=${data.id}`),
-        },
-        duration: 8000,
-      });
+      if (data.replacedPlan) {
+        // Show Undo toast when a plan was replaced
+        const snapshot = data.replacedPlan;
+        toast.success(t("lp_copy_success") ?? "Plan replaced", {
+          description: t("lp_copy_undo_desc") ?? "The previous plan was deleted.",
+          duration: 10000,
+          action: {
+            label: t("lp_copy_undo") ?? "Undo",
+            onClick: () => scRestorePlanMutation.mutate({ snapshot }),
+          },
+        });
+      } else {
+        toast.success(t("lp_copy_success") ?? "Plan copied", {
+          description: data.lessonNumber ? `${t("lp_lesson_number_label")} ${data.lessonNumber}` : undefined,
+          action: {
+            label: t("cal_open_in_planner"),
+            onClick: () => navigate(`/lesson-planner?planId=${data.id}`),
+          },
+          duration: 8000,
+        });
+      }
     },
     onError: (e) => toast.error(e.message),
   });

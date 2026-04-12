@@ -1892,14 +1892,22 @@ Generate a detailed lesson plan with specific activities for each procedure stag
         .where(and(eq(lessonPlans.id, input.planId), eq(lessonPlans.userId, ctx.user.id)));
       if (!src) throw new TRPCError({ code: "NOT_FOUND", message: "Plan not found" });
 
-      // If replaceExisting: delete the plan currently linked to targetEventId (owned by this user)
+      // If replaceExisting: capture the existing plan as a snapshot, then delete it
+      let replacedPlanSnapshot: typeof src | null = null;
       if (input.replaceExisting && input.targetEventId) {
-        await db
-          .delete(lessonPlans)
+        const [existing] = await db
+          .select()
+          .from(lessonPlans)
           .where(and(
             eq(lessonPlans.userId, ctx.user.id),
             eq(lessonPlans.calendarEventId, input.targetEventId),
           ));
+        if (existing) {
+          replacedPlanSnapshot = existing;
+          await db
+            .delete(lessonPlans)
+            .where(eq(lessonPlans.id, existing.id));
+        }
       }
 
       // Determine the new calendarEventId
@@ -1960,7 +1968,12 @@ Generate a detailed lesson plan with specific activities for each procedure stag
       const result = await db.insert(lessonPlans).values(insertPayload);
       const newId = (result as any)[0].insertId as number;
 
-      return { id: newId, lessonNumber: newLessonNumber };
+      return {
+        id: newId,
+        lessonNumber: newLessonNumber,
+        /** Full snapshot of the plan that was deleted (only set when replaceExisting=true) */
+        replacedPlan: replacedPlanSnapshot ?? null,
+      };
     }),
 
   // ─── Bulk copy lesson plans ───────────────────────────────────────────────────
@@ -2043,5 +2056,77 @@ Generate a detailed lesson plan with specific activities for each procedure stag
       }
 
       return { copied: results.length, failed: errors.length, results, errors };
+    }),
+
+  // ─── Restore a deleted plan from a client-side snapshot ──────────────────────
+  /**
+   * Re-insert a plan snapshot that was deleted during a replaceExisting copy.
+   * The client passes back the full plan object returned by copyLessonPlan.replacedPlan.
+   * The plan is re-inserted with a new auto-increment id (original id is discarded).
+   */
+  restoreDeletedPlan: protectedProcedure
+    .input(z.object({
+      snapshot: z.object({
+        unit: z.string().nullish(),
+        lessonNumber: z.string().nullish(),
+        lessonDate: z.string().nullish(),
+        academicYear: z.string().nullish(),
+        duration: z.number().nullish(),
+        title: z.string(),
+        yearGroup: z.string().nullish(),
+        subject: z.string().nullish(),
+        skills: z.string().nullish(),
+        systems: z.string().nullish(),
+        specificCompetences: z.string().nullish(),
+        saberesBasicos: z.string().nullish(),
+        learningOutcomes: z.string().nullish(),
+        evaluationCriteria: z.string().nullish(),
+        previousKnowledge: z.string().nullish(),
+        materials: z.string().nullish(),
+        spaces: z.string().nullish(),
+        procedures: z.string().nullish(),
+        competencies: z.string().nullish(),
+        aiGenerated: z.boolean().optional(),
+        isTemplate: z.boolean().optional(),
+        templateName: z.string().nullish(),
+        sessionTime: z.string().nullish(),
+        calendarEventId: z.number().nullish(),
+      }),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      const { snapshot } = input;
+      const result = await db.insert(lessonPlans).values({
+        userId: ctx.user.id,
+        unit: snapshot.unit ?? null,
+        lessonNumber: snapshot.lessonNumber ?? null,
+        lessonDate: snapshot.lessonDate ?? null,
+        academicYear: snapshot.academicYear ?? null,
+        duration: snapshot.duration ?? null,
+        title: snapshot.title,
+        yearGroup: snapshot.yearGroup ?? null,
+        subject: snapshot.subject ?? null,
+        skills: snapshot.skills ?? null,
+        systems: snapshot.systems ?? null,
+        specificCompetences: snapshot.specificCompetences ?? null,
+        saberesBasicos: snapshot.saberesBasicos ?? null,
+        learningOutcomes: snapshot.learningOutcomes ?? null,
+        evaluationCriteria: snapshot.evaluationCriteria ?? null,
+        previousKnowledge: snapshot.previousKnowledge ?? null,
+        materials: snapshot.materials ?? null,
+        spaces: snapshot.spaces ?? null,
+        procedures: snapshot.procedures ?? null,
+        competencies: snapshot.competencies ?? null,
+        aiGenerated: snapshot.aiGenerated ?? false,
+        isTemplate: snapshot.isTemplate ?? false,
+        templateName: snapshot.templateName ?? null,
+        sessionTime: snapshot.sessionTime ?? null,
+        calendarEventId: snapshot.calendarEventId ?? null,
+      });
+
+      const newId = (result as any)[0].insertId as number;
+      return { id: newId };
     }),
 });

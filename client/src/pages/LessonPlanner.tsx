@@ -523,15 +523,36 @@ export default function LessonPlanner() {
     (e: any) => e.eventType === "lesson" || e.eventType === "ai_generated"
   );
 
+  const restorePlanMutation = trpc.planner.restoreDeletedPlan.useMutation({
+    onSuccess: () => {
+      utils.planner.listLessonPlans.invalidate();
+      toast.success(t("lp_copy_undo_success") ?? "Plan restored");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   const copyPlanMutation = trpc.planner.copyLessonPlan.useMutation({
     onSuccess: (data) => {
       utils.planner.listLessonPlans.invalidate();
       setSelectedId(data.id);
       setShowCopyPlanDialog(false);
-      toast.success(t("lp_copy_success") ?? "Plan copied", {
-        description: data.lessonNumber ? `${t("lp_lesson_number_label")} ${data.lessonNumber}` : undefined,
-        duration: 6000,
-      });
+      if (data.replacedPlan) {
+        // Show Undo toast when a plan was replaced
+        const snapshot = data.replacedPlan;
+        toast.success(t("lp_copy_success") ?? "Plan replaced", {
+          description: t("lp_copy_undo_desc") ?? "The previous plan was deleted.",
+          duration: 10000,
+          action: {
+            label: t("lp_copy_undo") ?? "Undo",
+            onClick: () => restorePlanMutation.mutate({ snapshot }),
+          },
+        });
+      } else {
+        toast.success(t("lp_copy_success") ?? "Plan copied", {
+          description: data.lessonNumber ? `${t("lp_lesson_number_label")} ${data.lessonNumber}` : undefined,
+          duration: 6000,
+        });
+      }
     },
     onError: (e) => toast.error(e.message),
   });
