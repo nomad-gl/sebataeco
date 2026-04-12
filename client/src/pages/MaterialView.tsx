@@ -712,6 +712,7 @@ function PaRaulaViewer({ content, materialTitle, topic, materialId }: {
   materialId: number;
 }) {
   const { words: initWords = [], clues: initClues = [], lang = "ca" } = content;
+  const { t } = useI18n();
   const [, navigate] = useLocation();
   const [editMode, setEditMode] = useStateLocal(false);
   const [pairs, setPairs] = useStateLocal(() =>
@@ -729,8 +730,8 @@ function PaRaulaViewer({ content, materialTitle, topic, materialId }: {
   });
 
   const updateMutation = trpc.materials.update.useMutation({
-    onSuccess: () => { toast.success("Word list saved!"); setEditMode(false); },
-    onError: () => toast.error("Failed to save changes."),
+    onSuccess: () => { toast.success(t("material_word_list_saved")); setEditMode(false); },
+    onError: () => toast.error(t("material_word_list_save_failed")),
   });
 
   const handleSave = () => {
@@ -820,10 +821,10 @@ function PaRaulaViewer({ content, materialTitle, topic, materialId }: {
             <DialogTitle className="flex items-center gap-2">
               <span className="text-lg font-black tracking-widest text-orange-500">PARAULA</span> Live Room
             </DialogTitle>
-            <DialogDescription>Pick the word students will guess, then start the live room.</DialogDescription>
+            <DialogDescription>{t("material_pick_word_desc")}</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3 py-2">
-            <Label>Select word</Label>
+            <Label>{t("material_select_word")}</Label>
             <div className="grid grid-cols-2 gap-1.5 max-h-48 overflow-y-auto pr-1">
               {pairs.map((p, i) => (
                 <button
@@ -958,7 +959,7 @@ function ExportToolbar({
     <div className="flex flex-wrap gap-2 items-center">
       {hasTwoVersions && (
         <Button size="sm" variant={showAnswers ? "default" : "outline"} onClick={onToggleAnswers}>
-          {showAnswers ? "Showing Answers" : "Show Answers"}
+          {showAnswers ? t("material_showing_answers") : t("material_show_answers")}
         </Button>
       )}
       <Button size="sm" variant="outline" onClick={() => setPrintDialogOpen(true)} disabled={!!exporting}>
@@ -1004,7 +1005,7 @@ function ExportToolbar({
         </DialogHeader>
         <div className="flex flex-col gap-3 py-2">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="print-school">School Name</Label>
+            <Label htmlFor="print-school">{t("material_print_school")}</Label>
             <Input
               id="print-school"
               value={schoolName}
@@ -1013,7 +1014,7 @@ function ExportToolbar({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="print-student">Student Name</Label>
+            <Label htmlFor="print-student">{t("material_print_student")}</Label>
             <Input
               id="print-student"
               value={studentName}
@@ -1022,7 +1023,7 @@ function ExportToolbar({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="print-year">Year / Class</Label>
+            <Label htmlFor="print-year">{t("material_print_year")}</Label>
             <Input
               id="print-year"
               value={yearClass}
@@ -1105,9 +1106,9 @@ export default function MaterialView() {
   }
 
   const TYPE_LABELS: Record<string, string> = {
-    quiz: "Quiz", slides: "Slide Presentation", crossword: "Crossword Puzzle",
-    missing_words: "Missing Words", wordsearch: "Word Search", flashcards: "Flashcards",
-    paraula: "PARAULA Word Game",
+    quiz: t("material_type_quiz"), slides: t("material_type_slides"), crossword: t("material_type_crossword"),
+    missing_words: t("material_type_missing_words"), wordsearch: t("material_type_wordsearch"), flashcards: t("material_type_flashcards"),
+    paraula: t("material_type_paraula"),
   };
 
   return (

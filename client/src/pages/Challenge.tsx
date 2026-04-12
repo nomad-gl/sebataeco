@@ -117,7 +117,7 @@ export default function Challenge() {
   const [nextWordSearch, setNextWordSearch] = useState("");
   const nextParaulaRoundMutation = trpc.challenge.nextParaulaRound.useMutation({
     onSuccess: (data) => {
-      toast.success(`Round ${data.round}: ${data.word}`);
+      toast.success(`${t("challenge_round")} ${data.round}: ${data.word}`);
       setShowNextWordDialog(false);
       roomQuery.refetch();
       paraulaRoomQuery.refetch();
@@ -500,11 +500,11 @@ export default function Challenge() {
             </div>
 
             <div className="bg-orange-400/10 border border-orange-400/20 rounded-xl p-4 text-sm text-orange-200 space-y-1">
-              <p className="font-semibold">How to join</p>
+              <p className="font-semibold">{t("challenge_how_to_join")}</p>
               <ol className="list-decimal list-inside space-y-0.5 text-orange-200/80">
-                <li>Go to <span className="font-mono">{window.location.origin}/join</span></li>
-                <li>Enter code <span className="font-mono font-bold text-orange-300">{room.roomCode}</span></li>
-                <li>Enter your name and wait for the word to be revealed</li>
+                <li>{t("challenge_go_to")} <span className="font-mono">{window.location.origin}/join</span></li>
+                <li>{t("challenge_enter_code")} <span className="font-mono font-bold text-orange-300">{room.roomCode}</span></li>
+                <li>{t("challenge_enter_name_wait")}</li>
               </ol>
             </div>
           </div>

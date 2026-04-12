@@ -32,13 +32,7 @@ function formatTime(ts?: number): string {
   return new Date(ts).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 }
 
-const REPORT_REASONS: { value: string; label: string }[] = [
-  { value: "wrong_info", label: "Wrong information" },
-  { value: "not_relevant", label: "Not relevant" },
-  { value: "too_long", label: "Too long" },
-  { value: "too_short", label: "Too short" },
-  { value: "other", label: "Other" },
-];
+// REPORT_REASONS is now built inside the component to use t()
 
 function RatingButtons({
   messageId,
@@ -49,7 +43,15 @@ function RatingButtons({
   rating?: "up" | "down";
   onRate: (messageId: string, rating: "up" | "down", reportReason?: string) => void;
 }) {
+  const { t } = useI18n();
   const [showReasons, setShowReasons] = useState(false);
+  const REPORT_REASONS = [
+    { value: "wrong_info", label: t("chat_report_wrong_info") },
+    { value: "not_relevant", label: t("chat_report_not_relevant") },
+    { value: "too_long", label: t("chat_report_too_long") },
+    { value: "too_short", label: t("chat_report_too_short") },
+    { value: "other", label: t("chat_report_other") },
+  ];
 
   const handleDown = () => {
     if (rating === "down") {
@@ -70,7 +72,7 @@ function RatingButtons({
       <div className="flex items-center gap-1">
         <button
           onClick={() => { onRate(messageId, "up"); setShowReasons(false); }}
-          title="Helpful"
+          title={t("chat_helpful")}
           className={cn(
             "flex items-center justify-center w-6 h-6 rounded-md transition-colors",
             rating === "up"
@@ -82,7 +84,7 @@ function RatingButtons({
         </button>
         <button
           onClick={handleDown}
-          title="Not helpful"
+          title={t("chat_not_helpful")}
           className={cn(
             "flex items-center justify-center w-6 h-6 rounded-md transition-colors",
             rating === "down"
@@ -93,7 +95,7 @@ function RatingButtons({
           <ThumbsDown className="size-3" />
         </button>
         {rating === "down" && !showReasons && (
-          <span className="text-[10px] text-white/40 ml-1">Tell us why?</span>
+          <span className="text-[10px] text-white/40 ml-1">{t("chat_report_tell_us")}</span>
         )}
       </div>
       {showReasons && rating === "down" && (
@@ -136,17 +138,24 @@ export function AIChatBox({
   messages,
   onSendMessage,
   isLoading = false,
-  placeholder = "Type your message...",
+  placeholder,
+  // placeholder default applied below via t()
   className,
   height = "600px",
-  emptyStateMessage = "Start a conversation with AI",
+  emptyStateMessage,
+  // emptyStateMessage default applied below via t()
   suggestedPrompts,
-  followUpLabel = "You might also ask:",
+  followUpLabel,
+  // followUpLabel default applied below via t()
   onRateMessage,
   onRetry,
-  retryLabel = "Try again",
+  retryLabel,
 }: AIChatBoxProps) {
   const { lang, t } = useI18n();
+  const resolvedPlaceholder = placeholder ?? t("chat_placeholder");
+  const resolvedEmptyState = emptyStateMessage ?? t("chat_empty_state");
+  const resolvedFollowUpLabel = followUpLabel ?? t("chat_follow_up_label");
+  const resolvedRetryLabel = retryLabel ?? t("chat_retry_label");
   const { user } = useAuth();
   const [input, setInput] = useState("");
   const [isRecording, setIsRecording] = useState(false);
@@ -642,9 +651,9 @@ export function AIChatBox({
 
   const mobileRecordingStatus =
     (uploadAudioMutation.isPending || transcribeMutation.isPending)
-      ? "Transcribing…"
+      ? t("chat_transcribing")
       : isRecording
-      ? "Recording… tap mic to stop"
+      ? t("chat_recording")
       : null;
 
   return (
@@ -663,7 +672,7 @@ export function AIChatBox({
             <div className="flex flex-1 flex-col items-center justify-center gap-6 text-white/60">
               <div className="flex flex-col items-center gap-3">
                 <Sparkles className="size-12 opacity-20" />
-                <p className="text-sm">{emptyStateMessage}</p>
+                <p className="text-sm">{resolvedEmptyState}</p>
               </div>
               {suggestedPrompts && suggestedPrompts.length > 0 && (
                 <div className="flex max-w-2xl flex-wrap justify-center gap-2">
@@ -751,7 +760,7 @@ export function AIChatBox({
                               .trim();
                             playTTS(plain);
                           }}
-                          title="Read aloud"
+                          title={t("chat_read_aloud")}
                           className="flex items-center justify-center w-6 h-6 rounded-md transition-colors text-white/30 hover:text-blue-400 hover:bg-blue-400/10 mt-1 ml-1"
                         >
                           <Volume2 className="size-3" />
@@ -767,8 +776,8 @@ export function AIChatBox({
                           className="mt-1.5 flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs text-white/80 transition-colors hover:bg-white/20 hover:text-white"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-                          {retryLabel}
-                        </button>
+          {resolvedRetryLabel}
+        </button>
                       )}
                       {message.role === "assistant" &&
                         isLastMessage &&
@@ -776,7 +785,7 @@ export function AIChatBox({
                         message.followUpQuestions &&
                         message.followUpQuestions.length > 0 && (
                           <div className="mt-2 flex flex-col gap-1.5">
-                            <span className="text-[10px] text-white/40 px-1 select-none">{followUpLabel}</span>
+                            <span className="text-[10px] text-white/40 px-1 select-none">{resolvedFollowUpLabel}</span>
                             <div className="flex flex-wrap gap-1.5">
                               {message.followUpQuestions.map((q, qi) => (
                                 <button
@@ -898,10 +907,10 @@ export function AIChatBox({
               mobileRecordingStatus
                 ? mobileRecordingStatus
                 : wakeState === "recording"
-                ? "Aina is listening…"
+                ? t("chat_aina_listening")
                 : isRecording
-                ? "Listening…"
-                : placeholder
+                ? t("chat_listening")
+                : resolvedPlaceholder
             }
             className={cn(
               "flex-1 max-h-32 resize-none min-h-9 bg-white/10 border-white/25 text-white placeholder:text-white/40 focus-visible:ring-white/30",
@@ -1080,7 +1089,7 @@ export function AIChatBox({
             variant="ghost"
             onClick={toggleMic}
             disabled={uploadAudioMutation.isPending || transcribeMutation.isPending}
-            title={isRecording ? "Stop recording" : "Voice input"}
+            title={isRecording ? t("chat_stop_recording") : t("chat_voice_input")}
             className={cn(
               "shrink-0 h-[38px] w-[38px] text-white/60 hover:text-white hover:bg-white/15",
               isRecording && "text-red-400 hover:text-red-300 animate-pulse"

@@ -266,14 +266,14 @@ export default function SchoolCalendar() {
       utils.planner.listCalendarEvents.invalidate();
       setShowAiDialog(false);
       if (data.generated === 0) {
-        toast.info("No available school days found in the selected date range. All days may already have events.");
+        toast.info(t("cal_no_school_days"));
       } else {
-        toast.success(`${t("cal_ai_infill")}: ${data.generated} ${data.generated === 1 ? "lesson" : "lessons"} added to calendar`);
+        toast.success(`${t("cal_ai_infill")}: ${data.generated} ${data.generated === 1 ? t("cal_lesson_one") : t("cal_lessons_many")} ${t("cal_added_to_calendar")}`);
       }
     },
     onError: (e) => {
-      const msg = e.message || "AI infill failed";
-      toast.error(`Could not generate lessons: ${msg}`);
+      const msg = e.message || t("cal_ai_infill_failed");
+      toast.error(`${t("cal_could_not_generate")}: ${msg}`);
     },
   });
 
@@ -410,7 +410,7 @@ export default function SchoolCalendar() {
   };
 
   const openAdd = (date: Date, type?: string) => {
-    if (!selectedCalendarId) { toast.error("Please select or create a calendar first"); return; }
+    if (!selectedCalendarId) { toast.error(t("cal_select_first")); return; }
     setSelectedDate(date.toISOString().split("T")[0]);
     setForm({ eventType: type ?? "lesson", title: "", description: "", competency: "", yearGroup: selectedCalendar?.yearLevel ?? "", subject: selectedCalendar?.subject ?? "" });
     setShowAddDialog(true);
@@ -499,7 +499,7 @@ export default function SchoolCalendar() {
 
   // Open the day panel for a specific date
   const openDayPanel = (day: Date) => {
-    if (!selectedCalendarId) { toast.error("Please select or create a calendar first"); return; }
+    if (!selectedCalendarId) { toast.error(t("cal_select_first")); return; }
     const key = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
     setDayPanelDate(key);
     setShowDayPanel(true);
@@ -603,7 +603,7 @@ export default function SchoolCalendar() {
                 variant="outline"
                 className="shrink-0 h-7 px-2 gap-1 text-xs"
                 onClick={() => { setCalForm(emptyCalForm()); setShowCreateCalDialog(true); }}
-                title="Create new calendar"
+                title={t("cal_create_new_title")}
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">New</span>
@@ -618,7 +618,7 @@ export default function SchoolCalendar() {
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
             {(calendars as SchoolCalendar[]).length === 0 && (
-              <p className="text-xs text-muted-foreground p-2">No calendars yet. Create one!</p>
+              <p className="text-xs text-muted-foreground p-2">{t("cal_no_calendars")}</p>
             )}
             {(calendars as SchoolCalendar[]).map(cal => (
               <button
@@ -650,7 +650,7 @@ export default function SchoolCalendar() {
             <button
               onClick={() => setShowMobileSidebar(true)}
               className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground"
-              title="Calendars"
+              title={t("cal_mobile_calendars")}
             >
               <FolderOpen className="w-4 h-4" />
             </button>
@@ -662,7 +662,7 @@ export default function SchoolCalendar() {
               className={`p-1.5 rounded-lg transition-colors ${
                 agendaView ? "bg-primary text-primary-foreground" : "hover:bg-accent text-muted-foreground"
               }`}
-              title={agendaView ? "Month view" : "Agenda view"}
+              title={agendaView ? t("cal_month_view_title") : t("cal_agenda_view_title")}
             >
               <LayoutList className="w-4 h-4" />
             </button>
@@ -673,10 +673,10 @@ export default function SchoolCalendar() {
               <CalendarDays className="w-12 h-12 text-muted-foreground/40" />
               <div>
                 <p className="font-medium">{t("cal_title")}</p>
-                <p className="text-sm text-muted-foreground mt-1">Create a calendar in the sidebar to get started.</p>
+                <p className="text-sm text-muted-foreground mt-1">{t("cal_create_hint")}</p>
               </div>
-              <Button onClick={() => { setCalForm(emptyCalForm()); setShowCreateCalDialog(true); }} className="gap-2">
-                <Plus className="w-4 h-4" /> Create Calendar
+                <Button onClick={() => { setCalForm(emptyCalForm()); setShowCreateCalDialog(true); }} className="gap-2">
+                <Plus className="w-4 h-4" /> {t("cal_create_calendar")}
               </Button>
             </div>
           ) : (
@@ -798,12 +798,11 @@ export default function SchoolCalendar() {
                       return (
                         <div key={key} className={`flex gap-3 items-start py-2 border-b last:border-0 ${isToday ? "bg-primary/5 rounded-lg px-2" : ""}`}>
                           <div className={`shrink-0 w-10 text-center pt-0.5 ${isToday ? "text-primary font-bold" : "text-muted-foreground"}` }>
-                            <div className="text-xs uppercase">{["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d.getDay()]}</div>
-                            <div className="text-lg font-black leading-none">{d.getDate()}</div>
+                            <span className="text-xs uppercase">{[t("cal_day_sun"),t("cal_day_mon"),t("cal_day_tue"),t("cal_day_wed"),t("cal_day_thu"),t("cal_day_fri"),t("cal_day_sat")][d.getDay()]}</span>                           <div className="text-lg font-black leading-none">{d.getDate()}</div>
                           </div>
                           <div className="flex-1 min-w-0">
                             {dayEvents.length === 0 ? (
-                              <p className="text-xs text-muted-foreground/50 italic py-1">No events</p>
+                              <p className="text-xs text-muted-foreground/50 italic py-1">{t("cal_no_events_day")}</p>
                             ) : (
                               <div className="space-y-1 py-0.5">
                                 {dayEvents.map(ev => (
@@ -842,7 +841,7 @@ export default function SchoolCalendar() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-7 gap-1 mb-1">
-                    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => (
+                    {[t("cal_day_mon"), t("cal_day_tue"), t("cal_day_wed"), t("cal_day_thu"), t("cal_day_fri"), t("cal_day_sat"), t("cal_day_sun")].map(d => (
                       <div key={d} className="text-center text-xs font-medium text-muted-foreground py-1">{d}</div>
                     ))}
                   </div>
@@ -942,7 +941,7 @@ export default function SchoolCalendar() {
                 <CardContent className="pt-3 pb-3">
                   <div className="flex items-center gap-2 mb-2">
                     <Plus className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Add Event</span>
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("cal_add_event")}</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {([
@@ -986,7 +985,7 @@ export default function SchoolCalendar() {
       {/* ── Create Calendar Dialog ──────────────────────────────────────────── */}
       <Dialog open={showCreateCalDialog} onOpenChange={setShowCreateCalDialog}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><CalendarDays className="w-5 h-5 text-primary" /> Create New Calendar</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><CalendarDays className="w-5 h-5 text-primary" /> {t("cal_create_new_title")}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             {/* Calendar type toggle */}
             <div>
@@ -1020,7 +1019,7 @@ export default function SchoolCalendar() {
             </div>
 
             <div>
-              <Label>Calendar Name *</Label>
+              <Label>{t("cal_label_cal_name")}</Label>
               <Input value={calForm.name} onChange={e => setCalForm(f => ({ ...f, name: e.target.value }))} placeholder={t('cal_ph_cal_name')} />
             </div>
 
@@ -1029,16 +1028,16 @@ export default function SchoolCalendar() {
               <>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>Start Date *</Label>
+                    <Label>{t("cal_label_start_date")}</Label>
                     <Input type="date" value={calForm.startDate} onChange={e => setCalForm(f => ({ ...f, startDate: e.target.value }))} />
                   </div>
                   <div>
-                    <Label>End Date *</Label>
+                    <Label>{t("cal_label_end_date")}</Label>
                     <Input type="date" value={calForm.endDate} onChange={e => setCalForm(f => ({ ...f, endDate: e.target.value }))} />
                   </div>
                 </div>
                 <div>
-                  <Label>Topic / Unit Description</Label>
+                  <Label>{t("cal_label_topic_desc")}</Label>
                   <Textarea
                     value={calForm.topicDescription}
                     onChange={e => setCalForm(f => ({ ...f, topicDescription: e.target.value }))}
@@ -1046,18 +1045,18 @@ export default function SchoolCalendar() {
                     rows={4}
                     className="resize-none"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">The AI will use this description to generate lessons specifically aligned to this topic/unit.</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t("cal_topic_ai_hint")}</p>
                 </div>
               </>
             )}
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label><School className="w-3.5 h-3.5 inline mr-1" /> School Name</Label>
+                <Label><School className="w-3.5 h-3.5 inline mr-1" /> {t("cal_label_school_name")}</Label>
                 <Input value={calForm.schoolName} onChange={e => setCalForm(f => ({ ...f, schoolName: e.target.value }))} placeholder={t('cal_ph_school_name')} />
               </div>
               <div>
-                <Label><User className="w-3.5 h-3.5 inline mr-1" /> Tutor Name</Label>
+                <Label><User className="w-3.5 h-3.5 inline mr-1" /> {t("cal_label_tutor_name")}</Label>
                 <Input value={calForm.tutorName} onChange={e => setCalForm(f => ({ ...f, tutorName: e.target.value }))} placeholder={t('cal_ph_tutor_name')} />
               </div>
             </div>
@@ -1078,7 +1077,7 @@ export default function SchoolCalendar() {
               </div>
             </div>
             <div>
-              <Label>Academic Year</Label>
+              <Label>{t("cal_academic_year")}</Label>
               <Select value={calForm.academicYear} onValueChange={v => setCalForm(f => ({ ...f, academicYear: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{ACADEMIC_YEARS.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
@@ -1097,7 +1096,7 @@ export default function SchoolCalendar() {
               disabled={createCalMutation.isPending || !calForm.name.trim() || (calForm.calendarType === "topic_block" && (!calForm.startDate || !calForm.endDate))}
               className="gap-1"
             >
-              <Check className="w-4 h-4" /> Create
+              <Check className="w-4 h-4" /> {t("cal_create_btn")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1106,7 +1105,7 @@ export default function SchoolCalendar() {
       {/* ── Edit Calendar Dialog ────────────────────────────────────────────── */}
       <Dialog open={showEditCalDialog} onOpenChange={setShowEditCalDialog}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><Pencil className="w-5 h-5" /> Edit Calendar</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Pencil className="w-5 h-5" /> {t("cal_edit_calendar")}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             {/* Calendar type toggle */}
             <div>
@@ -1140,7 +1139,7 @@ export default function SchoolCalendar() {
             </div>
 
             <div>
-              <Label>Calendar Name *</Label>
+              <Label>{t("cal_label_cal_name")}</Label>
               <Input value={calForm.name} onChange={e => setCalForm(f => ({ ...f, name: e.target.value }))} />
             </div>
 
@@ -1148,16 +1147,16 @@ export default function SchoolCalendar() {
               <>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>Start Date</Label>
+                    <Label>{t("cal_label_start_date")}</Label>
                     <Input type="date" value={calForm.startDate} onChange={e => setCalForm(f => ({ ...f, startDate: e.target.value }))} />
                   </div>
                   <div>
-                    <Label>End Date</Label>
+                    <Label>{t("cal_label_end_date")}</Label>
                     <Input type="date" value={calForm.endDate} onChange={e => setCalForm(f => ({ ...f, endDate: e.target.value }))} />
                   </div>
                 </div>
                 <div>
-                  <Label>Topic / Unit Description</Label>
+                  <Label>{t("cal_label_topic_desc")}</Label>
                   <Textarea
                     value={calForm.topicDescription}
                     onChange={e => setCalForm(f => ({ ...f, topicDescription: e.target.value }))}
@@ -1171,11 +1170,11 @@ export default function SchoolCalendar() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>School Name</Label>
+                <Label>{t("cal_label_school_name")}</Label>
                 <Input value={calForm.schoolName} onChange={e => setCalForm(f => ({ ...f, schoolName: e.target.value }))} />
               </div>
               <div>
-                <Label>Tutor Name</Label>
+                <Label>{t("cal_label_tutor_name")}</Label>
                 <Input value={calForm.tutorName} onChange={e => setCalForm(f => ({ ...f, tutorName: e.target.value }))} />
               </div>
             </div>
@@ -1196,7 +1195,7 @@ export default function SchoolCalendar() {
               </div>
             </div>
             <div>
-              <Label>Academic Year</Label>
+              <Label>{t("cal_academic_year")}</Label>
               <Select value={calForm.academicYear} onValueChange={v => setCalForm(f => ({ ...f, academicYear: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{ACADEMIC_YEARS.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
@@ -1205,7 +1204,7 @@ export default function SchoolCalendar() {
           </div>
           <DialogFooter className="flex justify-between">
             <Button variant="destructive" size="sm" onClick={() => { if (selectedCalendarId) deleteCalMutation.mutate({ id: selectedCalendarId }); setShowEditCalDialog(false); }}>
-              <Trash2 className="w-4 h-4 mr-1" /> Delete Calendar
+              <Trash2 className="w-4 h-4 mr-1" /> {t("cal_delete_calendar")}
             </Button>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setShowEditCalDialog(false)}>{t("cal_cancel")}</Button>
@@ -1234,7 +1233,7 @@ export default function SchoolCalendar() {
           <DialogHeader><DialogTitle>{t("cal_add_event")}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label>Date *</Label>
+              <Label>{t("cal_label_date")}</Label>
               <Input
                 type="date"
                 value={selectedDate}
@@ -1361,15 +1360,15 @@ export default function SchoolCalendar() {
               <Badge variant="secondary"><GraduationCap className="w-3 h-3 mr-1" />{selectedCalendar.yearLevel}</Badge>
               <Badge variant="secondary">{selectedCalendar.academicYear}</Badge>
               {(selectedCalendar as SchoolCalendar).calendarType === "topic_block" && (
-                <Badge className="bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100"><BookOpen className="w-3 h-3 mr-1" /> Topic Block</Badge>
+                <Badge className="bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100"><BookOpen className="w-3 h-3 mr-1" /> {t("cal_type_topic_block")}</Badge>
               )}
             </div>
           )}
           {selectedCalendar && (selectedCalendar as SchoolCalendar).calendarType === "topic_block" && (selectedCalendar as SchoolCalendar).topicDescription && (
             <div className="rounded-md bg-amber-50 border border-amber-200 p-3">
-              <p className="text-xs font-semibold text-amber-800 mb-1">Topic / Unit</p>
+              <p className="text-xs font-semibold text-amber-800 mb-1">{t("cal_label_topic_desc")}</p>
               <p className="text-xs text-amber-700 italic">"{(selectedCalendar as SchoolCalendar).topicDescription}"</p>
-              <p className="text-xs text-amber-600 mt-1">The AI will generate lessons specifically aligned to this topic.</p>
+              <p className="text-xs text-amber-600 mt-1">{t("cal_topic_ai_hint_short")}</p>
             </div>
           )}
           <div className="space-y-4">

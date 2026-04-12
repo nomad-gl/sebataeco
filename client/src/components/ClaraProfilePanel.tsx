@@ -7,22 +7,22 @@ import { toast } from "sonner";
 import { useI18n } from "@/contexts/I18nContext";
 import { cn } from "@/lib/utils";
 
-const STYLE_LABELS: Record<string, string> = {
-  concise: "Concise",
-  detailed: "Detailed",
-  conversational: "Conversational",
-  formal: "Formal",
-};
-
-const DEPTH_LABELS: Record<string, string> = {
-  brief: "Brief",
-  moderate: "Balanced",
-  thorough: "Thorough",
-};
-
 export function AinaProfilePanel() {
   const [open, setOpen] = useState(false);
   const { t } = useI18n();
+
+  const STYLE_LABELS: Record<string, string> = {
+    concise: t("clara_style_concise"),
+    detailed: t("clara_style_detailed"),
+    conversational: t("clara_style_conversational"),
+    formal: t("clara_style_formal"),
+  };
+
+  const DEPTH_LABELS: Record<string, string> = {
+    brief: t("clara_depth_brief"),
+    moderate: t("clara_depth_moderate"),
+    thorough: t("clara_depth_thorough"),
+  };
 
   const profileQuery = trpc.lomloe.getAinaProfile.useQuery(undefined, {
     enabled: open,
@@ -37,9 +37,9 @@ export function AinaProfilePanel() {
     onSuccess: () => {
       utils.lomloe.getAinaProfile.invalidate();
       utils.lomloe.getAinaRatingSummary.invalidate();
-      toast.success("Aina's memory has been reset.");
+      toast.success(t("clara_memory_reset"));
     },
-    onError: () => toast.error("Could not reset profile. Please try again."),
+    onError: () => toast.error(t("clara_reset_failed")),
   });
 
   const profile = profileQuery.data;
@@ -53,7 +53,7 @@ export function AinaProfilePanel() {
         className="flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors w-full px-1 py-1"
       >
         <Brain className="size-4 shrink-0 text-violet-300" />
-        <span className="font-medium">Aina knows you</span>
+        <span className="font-medium">{t("clara_knows_you")}</span>
         {open ? (
           <ChevronUp className="size-3.5 ml-auto" />
         ) : (
@@ -65,29 +65,29 @@ export function AinaProfilePanel() {
       {open && (
         <Card className="mt-2 p-3 bg-white/10 border-white/20 text-white text-sm space-y-3">
           {profileQuery.isLoading || ratingSummaryQuery.isLoading ? (
-            <p className="text-white/50 text-xs">Loading profile…</p>
+            <p className="text-white/50 text-xs">{t("clara_loading")}</p>
           ) : !profile ? (
             <p className="text-white/50 text-xs">
-              Aina hasn't learned your style yet. Start a conversation to build your profile.
+              {t("clara_no_style")}
             </p>
           ) : (
             <>
               {/* Interaction count */}
               <div className="flex items-center gap-2 text-white/70 text-xs">
                 <Star className="size-3.5 text-yellow-300" />
-                <span>{profile.questionCount} interaction{profile.questionCount !== 1 ? "s" : ""} recorded</span>
+                <span>{profile.questionCount} {t("clara_interactions")}</span>
               </div>
 
               {/* Style & depth */}
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-white/10 rounded-lg px-2 py-1.5">
-                  <p className="text-white/50 text-xs mb-0.5">Style</p>
+                  <p className="text-white/50 text-xs mb-0.5">{t("clara_style_label")}</p>
                   <p className="font-medium capitalize">
                     {STYLE_LABELS[profile.communicationStyle] ?? profile.communicationStyle}
                   </p>
                 </div>
                 <div className="bg-white/10 rounded-lg px-2 py-1.5">
-                  <p className="text-white/50 text-xs mb-0.5">Depth</p>
+                  <p className="text-white/50 text-xs mb-0.5">{t("clara_depth_label")}</p>
                   <p className="font-medium capitalize">
                     {DEPTH_LABELS[profile.responseDepthPreference] ?? profile.responseDepthPreference}
                   </p>
@@ -97,7 +97,7 @@ export function AinaProfilePanel() {
               {/* Top competencies */}
               {profile.topCompetencies.length > 0 && (
                 <div>
-                  <p className="text-white/50 text-xs mb-1">Top competencies</p>
+                  <p className="text-white/50 text-xs mb-1">{t("clara_top_competencies")}</p>
                   <div className="flex flex-wrap gap-1">
                     {profile.topCompetencies.map((c) => (
                       <span
@@ -114,7 +114,7 @@ export function AinaProfilePanel() {
               {/* Topic keywords */}
               {profile.topicKeywords.length > 0 && (
                 <div>
-                  <p className="text-white/50 text-xs mb-1">Recurring topics</p>
+                  <p className="text-white/50 text-xs mb-1">{t("clara_recurring_topics")}</p>
                   <div className="flex flex-wrap gap-1">
                     {profile.topicKeywords.slice(0, 6).map((kw) => (
                       <span
@@ -131,7 +131,7 @@ export function AinaProfilePanel() {
               {/* Rating summary */}
               {ratings && ratings.total > 0 && (
                 <div>
-                  <p className="text-white/50 text-xs mb-1">Response quality</p>
+                  <p className="text-white/50 text-xs mb-1">{t("clara_response_quality")}</p>
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-1 text-green-300">
                       <ThumbsUp className="size-3.5" />
@@ -148,7 +148,7 @@ export function AinaProfilePanel() {
                           ratings.pctHelpful >= 70 ? "text-green-300" : ratings.pctHelpful >= 40 ? "text-yellow-300" : "text-red-300"
                         )}
                       >
-                        {ratings.pctHelpful}% helpful
+                        {ratings.pctHelpful}{t("clara_pct_helpful")}
                       </span>
                     )}
                   </div>
@@ -165,7 +165,7 @@ export function AinaProfilePanel() {
               {/* Teaching context summary */}
               {profile.teachingContextSummary && (
                 <div>
-                  <p className="text-white/50 text-xs mb-1">Teaching context</p>
+                  <p className="text-white/50 text-xs mb-1">{t("clara_teaching_context")}</p>
                   <p className="text-white/80 text-xs leading-relaxed line-clamp-3">
                     {profile.teachingContextSummary}
                   </p>
@@ -178,14 +178,14 @@ export function AinaProfilePanel() {
                 size="sm"
                 className="w-full text-red-300 hover:text-red-200 hover:bg-red-500/10 text-xs h-7 mt-1"
                 onClick={() => {
-                  if (confirm("Reset Aina's memory? She will start learning your style from scratch.")) {
+                  if (confirm(t("clara_reset_confirm"))) {
                     resetMutation.mutate();
                   }
                 }}
                 disabled={resetMutation.isPending}
               >
                 <RotateCcw className="size-3 mr-1.5" />
-                Reset Aina's memory
+                {t("clara_reset_memory")}
               </Button>
             </>
           )}

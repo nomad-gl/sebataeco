@@ -121,8 +121,9 @@ function formToSave(form: LessonFormState) {
 }
 
 // ─── Print Preview ─────────────────────────────────────────────────────────────
-function buildPrintHtml(form: LessonFormState, logoDataUrl?: string): string {
-  const schoolLogo = logoDataUrl ? `<img src="${logoDataUrl}" style="float:right;max-height:56px;max-width:120px;object-fit:contain;" alt="School logo"/>` : "";
+function buildPrintHtml(form: LessonFormState, logoDataUrl?: string, labels?: Record<string,string>): string {
+  const L = labels ?? {};
+  const schoolLogo = logoDataUrl ? `<img src="${logoDataUrl}" style="float:right;max-height:56px;max-width:120px;object-fit:contain;" alt="${L.school_logo ?? 'School logo'}"/>` : "";
   const competencyBadges = form.competencies.map(c => `<span style="display:inline-block;padding:2px 8px;border-radius:4px;background:#0f766e;color:#fff;font-size:11px;margin:2px;">${c}</span>`).join("");
   const skillsList = SKILL_KEYS.filter(k => form.skills[k]).map(k => k.charAt(0).toUpperCase() + k.slice(1)).join(", ");
   const systemsList = SYSTEM_KEYS.filter(k => form.systems[k]).map(k => k.charAt(0).toUpperCase() + k.slice(1)).join(", ");
@@ -135,7 +136,7 @@ function buildPrintHtml(form: LessonFormState, logoDataUrl?: string): string {
     </tr>`).join("");
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/>
-<title>Lesson Plan — ${form.title}</title>
+<title>${L.lp_print_title ?? 'Lesson Plan'} — ${form.title}</title>
 <style>
   @page { size: A4; margin: 20mm; }
   @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
@@ -155,45 +156,45 @@ function buildPrintHtml(form: LessonFormState, logoDataUrl?: string): string {
 </style></head><body>
 <div class="header">
   ${schoolLogo}
-  <h1>${form.title || "Lesson Plan"}</h1>
-  <div style="color:#64748b;font-size:11px;">Unit ${form.unit || "—"} · Lesson ${form.lessonNumber || "—"} · ${form.academicYear}</div>
+  <h1>${form.title || (L.lp_print_title ?? 'Lesson Plan')}</h1>
+  <div style="color:#64748b;font-size:11px;">${L.lp_unit ?? 'Unit'} ${form.unit || "—"} · ${L.lp_lesson ?? 'Lesson'} ${form.lessonNumber || "—"} · ${form.academicYear}</div>
   <div style="margin-top:6px;">${competencyBadges}</div>
 </div>
 
 <div class="meta">
-  <div class="meta-item"><div class="meta-label">Year Group</div><div class="meta-value">${form.yearGroup}</div></div>
-  <div class="meta-item"><div class="meta-label">Subject</div><div class="meta-value">${form.subject}</div></div>
-  <div class="meta-item"><div class="meta-label">Duration</div><div class="meta-value">${form.duration} min</div></div>
-  <div class="meta-item"><div class="meta-label">Skills</div><div class="meta-value">${skillsList || "—"}</div></div>
-  <div class="meta-item"><div class="meta-label">Language Systems</div><div class="meta-value">${systemsList || "—"}</div></div>
-  <div class="meta-item"><div class="meta-label">Spaces</div><div class="meta-value">${form.spaces}</div></div>
+  <div class="meta-item"><div class="meta-label">${L.lp_year_group ?? 'Year Group'}</div><div class="meta-value">${form.yearGroup}</div></div>
+  <div class="meta-item"><div class="meta-label">${L.lp_subject ?? 'Subject'}</div><div class="meta-value">${form.subject}</div></div>
+  <div class="meta-item"><div class="meta-label">${L.lp_duration ?? 'Duration'}</div><div class="meta-value">${form.duration} min</div></div>
+  <div class="meta-item"><div class="meta-label">${L.lp_skills ?? 'Skills'}</div><div class="meta-value">${skillsList || "—"}</div></div>
+  <div class="meta-item"><div class="meta-label">${L.lp_language_systems ?? 'Language Systems'}</div><div class="meta-value">${systemsList || "—"}</div></div>
+  <div class="meta-item"><div class="meta-label">${L.lp_spaces ?? 'Spaces'}</div><div class="meta-value">${form.spaces}</div></div>
 </div>
 
-<h2>Specific Competences</h2>
+<h2>${L.lp_specific_competences ?? 'Specific Competences'}</h2>
 <p>${form.specificCompetences.filter(Boolean).join(", ") || "—"}</p>
 
-<h2>Saberes Básicos</h2>
+<h2>${L.lp_saberes_basicos ?? 'Saberes Básicos'}</h2>
 <ul>${form.saberesBasicos.filter(Boolean).map(s => `<li>${s}</li>`).join("") || "<li>—</li>"}</ul>
 
-<h2>Learning Outcomes</h2>
+<h2>${L.lp_learning_outcomes ?? 'Learning Outcomes'}</h2>
 <ul>${form.learningOutcomes.filter(Boolean).map(s => `<li>${s}</li>`).join("") || "<li>—</li>"}</ul>
 
-<h2>Evaluation Criteria</h2>
+<h2>${L.lp_evaluation_criteria ?? 'Evaluation Criteria'}</h2>
 <ul>${form.evaluationCriteria.filter(Boolean).map(s => `<li>${s}</li>`).join("") || "<li>—</li>"}</ul>
 
-<h2>Previous Knowledge</h2>
+<h2>${L.lp_previous_knowledge ?? 'Previous Knowledge'}</h2>
 <p>${form.previousKnowledge || "—"}</p>
 
-<h2>Materials</h2>
+<h2>${L.lp_materials ?? 'Materials'}</h2>
 <p>${form.materials || "—"}</p>
 
-<h2>Lesson Procedure</h2>
+<h2>${L.lp_lesson_procedure ?? 'Lesson Procedure'}</h2>
 <table>
-  <thead><tr><th>Timing</th><th>Stage</th><th>Activities</th><th>Grouping</th></tr></thead>
+  <thead><tr><th>${L.lp_timing ?? 'Timing'}</th><th>${L.lp_stage ?? 'Stage'}</th><th>${L.lp_activities ?? 'Activities'}</th><th>${L.lp_grouping ?? 'Grouping'}</th></tr></thead>
   <tbody>${procedureRows}</tbody>
 </table>
 
-<div class="footer">Generated by AINA | TA · ${new Date().toLocaleDateString()}</div>
+<div class="footer">${L.lp_generated_by ?? 'Generated by AINA | TA'} · ${new Date().toLocaleDateString()}</div>
 </body></html>`;
 }
 
@@ -316,7 +317,7 @@ export default function LessonPlanner() {
     const f = planToForm(plan);
     duplicateMutation.mutate({
       ...f,
-      title: f.title ? `${f.title} (copy)` : "Copy",
+      title: f.title ? `${f.title} (${t("lp_copy_suffix")})` : t("lp_copy_suffix"),
       skills: JSON.stringify(f.skills),
       systems: JSON.stringify(f.systems),
       specificCompetences: JSON.stringify(f.specificCompetences),
@@ -394,7 +395,31 @@ export default function LessonPlanner() {
 
   const handlePrint = () => {
     const logo = localStorage.getItem("seba_school_logo") ?? undefined;
-    const html = buildPrintHtml(form, logo);
+    const printLabels: Record<string,string> = {
+      lp_print_title: t("lp_print_title"),
+      lp_unit: t("lp_unit"),
+      lp_lesson: t("lp_lesson"),
+      lp_year_group: t("lp_year_group"),
+      lp_subject: t("lp_subject"),
+      lp_duration: t("lp_duration"),
+      lp_skills: t("lp_skills"),
+      lp_language_systems: t("lp_language_systems"),
+      lp_spaces: t("lp_spaces"),
+      lp_specific_competences: t("lp_specific_competences"),
+      lp_saberes_basicos: t("lp_saberes_basicos"),
+      lp_learning_outcomes: t("lp_learning_outcomes"),
+      lp_evaluation_criteria: t("lp_evaluation_criteria"),
+      lp_previous_knowledge: t("lp_previous_knowledge"),
+      lp_materials: t("lp_materials"),
+      lp_lesson_procedure: t("lp_lesson_procedure"),
+      lp_timing: t("lp_print_timing"),
+      lp_stage: t("lp_print_stage"),
+      lp_activities: t("lp_print_activities"),
+      lp_grouping: t("lp_print_grouping"),
+      lp_generated_by: t("lp_generated_by"),
+      school_logo: t("lp_school_logo"),
+    };
+    const html = buildPrintHtml(form, logo, printLabels);
     const win = window.open("", "_blank");
     if (!win) { toast.error(t("lp_popup_blocked")); return; }
     win.document.write(html);
@@ -405,7 +430,7 @@ export default function LessonPlanner() {
 
   // AI dialog state
   const [aiTitle, setAiTitle] = useState("");
-  const [aiSubject, setAiSubject] = useState("English");
+  const [aiSubject, setAiSubject] = useState(SUBJECTS[0]);
   const [aiYearGroup, setAiYearGroup] = useState(YEAR_GROUPS[3]);
   const [aiDuration, setAiDuration] = useState(60);
   const [aiComps, setAiComps] = useState<string[]>([]);
@@ -714,7 +739,7 @@ export default function LessonPlanner() {
                     {/* Mobile card */}
                     <div className="sm:hidden rounded-lg border p-3 space-y-2 bg-muted/30">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-semibold text-muted-foreground uppercase">Stage {i + 1}</span>
+                        <span className="text-xs font-semibold text-muted-foreground uppercase">{t("lp_stage")} {i + 1}</span>
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeProcedure(i)}><X className="w-3.5 h-3.5 text-red-400" /></Button>
                       </div>
                       <div className="grid grid-cols-2 gap-2">

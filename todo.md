@@ -1590,3 +1590,7 @@
 - [x] Month navigation (prev/next) must be easily tappable on mobile (min 44px touch targets)
 - [x] Add a toggle between "Grid" and "Agenda" view on mobile
 - [x] Ensure the page header and controls do not overlap the calendar grid on small screens
+
+## Bug: Hard-coded English strings throughout app
+- [x] Audit all pages/components and replace every hard-coded English string with t() calls
+- [x] Add all missing keys to I18nContext in EN, ES, and CA

@@ -58,7 +58,7 @@ export default function SampleQuestions() {
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showExportModal, setShowExportModal] = useState(false);
-  const [worksheetTitle, setWorksheetTitle] = useState("LOMLOE Question Worksheet");
+  const [worksheetTitle, setWorksheetTitle] = useState("");
   const [worksheetSubtitle, setWorksheetSubtitle] = useState("");
 
   const YG_LABELS: Record<YearGroup, string> = {
@@ -120,7 +120,7 @@ export default function SampleQuestions() {
     exportMutation.mutate({
       questionIds: ids,
       locale,
-      title: worksheetTitle || "LOMLOE Question Worksheet",
+      title: worksheetTitle || t("sample_worksheet_default_title"),
       subtitle: worksheetSubtitle || undefined,
       logoDataUrl,
     });
@@ -253,17 +253,17 @@ export default function SampleQuestions() {
           <p className="text-sm text-white/60">
             {filtered.length} {t("questions_title").toLowerCase()}
             {selectMode && selected.size > 0 && (
-              <span className="ml-2 text-white/80 font-medium">· {selected.size} selected</span>
+              <span className="ml-2 text-white/80 font-medium">· {selected.size} {t("sample_selected")}</span>
             )}
           </p>
           <div className="flex items-center gap-2">
             {selectMode ? (
               <>
                 <Button size="sm" variant="ghost" onClick={selectAll} className="text-white/70 hover:text-white hover:bg-white/10 text-xs h-7 gap-1">
-                  <CheckSquare className="w-3.5 h-3.5" />Select all ({filtered.length})
+                  <CheckSquare className="w-3.5 h-3.5" />{t("sample_select_all")} ({filtered.length})
                 </Button>
                 <Button size="sm" variant="ghost" onClick={clearSelection} className="text-white/70 hover:text-white hover:bg-white/10 text-xs h-7 gap-1">
-                  <Square className="w-3.5 h-3.5" />Clear
+                  <Square className="w-3.5 h-3.5" />{t("sample_clear")}
                 </Button>
                 <Button
                   size="sm"
@@ -271,7 +271,7 @@ export default function SampleQuestions() {
                   disabled={selected.size === 0}
                   className="bg-white text-slate-900 hover:bg-white/90 text-xs h-7 gap-1"
                 >
-                  <Printer className="w-3.5 h-3.5" />Print Worksheet ({selected.size})
+                  <Printer className="w-3.5 h-3.5" />{t("sample_print_worksheet")} ({selected.size})
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => { setSelectMode(false); clearSelection(); }} className="text-white/50 hover:text-white hover:bg-white/10 h-7 w-7 p-0">
                   <X className="w-3.5 h-3.5" />
@@ -284,7 +284,7 @@ export default function SampleQuestions() {
                 onClick={() => setSelectMode(true)}
                 className="bg-white/10 border-white/30 text-white hover:bg-white/20 text-xs h-7 gap-1.5"
               >
-                <FileDown className="w-3.5 h-3.5" />Print Worksheet
+                <FileDown className="w-3.5 h-3.5" />{t("sample_print_worksheet")}
               </Button>
             )}
           </div>
@@ -383,7 +383,7 @@ export default function SampleQuestions() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Printer className="w-5 h-5" />
-              Print Worksheet ({selected.size} questions)
+              {t("sample_print_worksheet")} ({selected.size} {t("questions_title").toLowerCase()})
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -391,41 +391,41 @@ export default function SampleQuestions() {
             <LogoUploader />
             <Separator />
             <div className="space-y-1.5">
-              <Label htmlFor="ws-title">Worksheet Title</Label>
+              <Label htmlFor="ws-title">{t("sample_worksheet_title_label")}</Label>
               <Input
                 id="ws-title"
                 value={worksheetTitle}
                 onChange={(e) => setWorksheetTitle(e.target.value)}
-                placeholder="LOMLOE Question Worksheet"
+                placeholder={t("sample_worksheet_default_title")}
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="ws-subtitle">Subtitle / Class Info (optional)</Label>
+              <Label htmlFor="ws-subtitle">{t("sample_worksheet_subtitle_label")}</Label>
               <Input
                 id="ws-subtitle"
                 value={worksheetSubtitle}
                 onChange={(e) => setWorksheetSubtitle(e.target.value)}
-                placeholder="e.g. Year 5 – Term 2 Review"
+                placeholder={t("sample_worksheet_subtitle_placeholder")}
               />
             </div>
             <div className="rounded-lg bg-muted/50 border p-3 text-sm text-muted-foreground space-y-1">
-              <p className="font-medium text-foreground">Two PDFs will be downloaded:</p>
-              <p>• <strong>Student copy</strong> — questions with A/B/C/D options, answer lines</p>
-              <p>• <strong>Answer key</strong> — correct answers highlighted with explanations</p>
-              <p className="text-xs mt-1">Language: {lang === "en" ? "English" : lang === "es" ? "Spanish" : "Catalan"}</p>
+              <p className="font-medium text-foreground">{t("sample_two_pdfs")}</p>
+              <p>• <strong>{t("sample_student_copy")}</strong> — {t("sample_student_copy_desc")}</p>
+              <p>• <strong>{t("sample_answer_key")}</strong> — {t("sample_answer_key_desc")}</p>
+              <p className="text-xs mt-1">{t("sample_language_label")}: {t(`lang_${lang}`)}</p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowExportModal(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setShowExportModal(false)}>{t("cancel")}</Button>
             <Button
               onClick={handleExport}
               disabled={exportMutation.isPending}
               className="gap-2"
             >
               {exportMutation.isPending ? (
-                <><Loader2 className="w-4 h-4 animate-spin" />Generating PDFs…</>
+                <><Loader2 className="w-4 h-4 animate-spin" />{t("sample_generating_pdfs")}</>
               ) : (
-                <><FileDown className="w-4 h-4" />Download PDFs</>
+                <><FileDown className="w-4 h-4" />{t("sample_download_pdfs")}</>
               )}
             </Button>
           </DialogFooter>
