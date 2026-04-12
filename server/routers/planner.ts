@@ -1875,6 +1875,11 @@ Generate a detailed lesson plan with specific activities for each procedure stag
       targetEventId: z.number().nullish(),
       /** Whether to recompute the lesson number for the target calendar */
       autoRenumber: z.boolean().default(false),
+      /**
+       * When true and targetEventId is set, delete the existing plan linked to that event
+       * before inserting the copy (overwrite/replace mode).
+       */
+      replaceExisting: z.boolean().default(false),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -1886,6 +1891,16 @@ Generate a detailed lesson plan with specific activities for each procedure stag
         .from(lessonPlans)
         .where(and(eq(lessonPlans.id, input.planId), eq(lessonPlans.userId, ctx.user.id)));
       if (!src) throw new TRPCError({ code: "NOT_FOUND", message: "Plan not found" });
+
+      // If replaceExisting: delete the plan currently linked to targetEventId (owned by this user)
+      if (input.replaceExisting && input.targetEventId) {
+        await db
+          .delete(lessonPlans)
+          .where(and(
+            eq(lessonPlans.userId, ctx.user.id),
+            eq(lessonPlans.calendarEventId, input.targetEventId),
+          ));
+      }
 
       // Determine the new calendarEventId
       const newEventId = input.targetEventId ?? null;

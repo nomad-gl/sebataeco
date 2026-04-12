@@ -2097,3 +2097,9 @@
 - [x] Copy dialog event picker: show a warning badge/icon on events that already have a linked plan
 - [x] Tooltip or helper text explaining the conflict when hovering/selecting a conflicted slot
 - [x] i18n: EN/ES/CA keys (lp_copy_event_conflict, lp_copy_event_conflict_hint)
+
+## Feature: Replace existing plan on conflicted slot
+- [x] Server: extend copyLessonPlan to accept replaceExisting boolean; when true and targetEventId is set, delete the existing linked plan before inserting the copy
+- [x] Copy dialog (LessonPlanner + SchoolCalendar): when a conflicted slot is selected, show a "Replace existing plan" radio/toggle beneath the conflict warning
+- [x] Default to "Create duplicate" (safe); user must explicitly choose "Replace"
+- [x] i18n: EN/ES/CA keys (lp_copy_replace_existing, lp_copy_create_duplicate, lp_copy_replace_warning)

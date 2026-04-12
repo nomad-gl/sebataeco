@@ -512,6 +512,7 @@ export default function LessonPlanner() {
   const [copyTargetCalendarId, setCopyTargetCalendarId] = useState<string>("");
   const [copyTargetEventId, setCopyTargetEventId] = useState<string>("");
   const [copyAutoRenumber, setCopyAutoRenumber] = useState(true);
+  const [copyReplaceExisting, setCopyReplaceExisting] = useState(false);
   // Fetch events for the selected target calendar (for the event picker)
   const lpCalIdForPicker = copyTargetCalendarId && copyTargetCalendarId !== "same" ? Number(copyTargetCalendarId) : null;
   const { data: lpCopyTargetEvents = [] } = trpc.planner.listCalendarEvents.useQuery(
@@ -542,6 +543,7 @@ export default function LessonPlanner() {
     setCopyTargetCalendarId(calId);
     setCopyTargetEventId("");
     setCopyAutoRenumber(true);
+    setCopyReplaceExisting(false);
     setShowCopyPlanDialog(true);
   };
 
@@ -554,6 +556,7 @@ export default function LessonPlanner() {
       targetCalendarId: targetCalId,
       targetEventId: targetEvId,
       autoRenumber: copyAutoRenumber,
+      replaceExisting: copyReplaceExisting,
     });
   };
 
@@ -1766,7 +1769,32 @@ export default function LessonPlanner() {
                     </SelectContent>
                   </Select>
                   {copyTargetEventId && copyTargetEventId !== "none" && lpLessonEventsForPicker.find((e: any) => String(e.id) === copyTargetEventId)?.hasLinkedPlan && (
-                    <p className="text-xs text-amber-600">{t("lp_copy_event_conflict_hint")}</p>
+                    <div className="rounded-md border border-amber-200 bg-amber-50 p-3 space-y-2">
+                      <p className="text-xs font-medium text-amber-700">{t("lp_copy_event_conflict")}</p>
+                      <p className="text-xs text-amber-600">{t("lp_copy_replace_warning")}</p>
+                      <div className="flex flex-col gap-1.5 pt-0.5">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="lp-copy-mode"
+                            checked={!copyReplaceExisting}
+                            onChange={() => setCopyReplaceExisting(false)}
+                            className="accent-orange-600"
+                          />
+                          <span className="text-xs text-amber-800">{t("lp_copy_create_duplicate")}</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="lp-copy-mode"
+                            checked={copyReplaceExisting}
+                            onChange={() => setCopyReplaceExisting(true)}
+                            className="accent-orange-600"
+                          />
+                          <span className="text-xs font-medium text-amber-800">{t("lp_copy_replace_existing")}</span>
+                        </label>
+                      </div>
+                    </div>
                   )}
                   <p className="text-xs text-muted-foreground">{t("lp_copy_event_hint")}</p>
                 </div>
