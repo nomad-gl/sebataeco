@@ -1651,12 +1651,39 @@
 - [x] Fix: replaced two separate open booleans with a single activePanel state machine so only one Sheet is ever open at a time
 
 ## Feature: Lesson plan deletion from School Calendar plan sheet
-- [ ] Add a "Delete Plan" button (with confirmation) inside the lesson plan sheet header
-- [ ] Server: add deleteLessonPlan procedure that removes the plan row and unlinks it from the calendar event
-- [ ] After deletion, close the plan sheet and refresh the event plan map
-- [ ] Add i18n keys for delete confirmation dialog in EN/ES/CA
+- [x] Add a "Delete Plan" button (with confirmation) inside the lesson plan sheet header
+- [x] Server: add deleteLessonPlan procedure that removes the plan row and unlinks it from the calendar event
+- [x] After deletion, close the plan sheet and refresh the event plan map
+- [x] Add i18n keys for delete confirmation dialog in EN/ES/CA
 
 ## Bug: Duplicate lesson plans created for the same calendar event
-- [ ] Server: in createLinkedLessonPlan, check if a plan already exists for the calendarEventId before inserting
-- [ ] If a plan already exists, return the existing plan id instead of creating a new one
-- [ ] Client: in openPlanSheet, skip calling createLinkedPlanMutation if eventPlanMap already has a plan for the event
+- [x] Server: in createLinkedLessonPlan, check if a plan already exists for the calendarEventId before inserting
+- [x] If a plan already exists, return the existing plan id instead of creating a new one
+- [x] Client: in openPlanSheet, skip calling createLinkedPlanMutation if eventPlanMap already has a plan for the event
+
+## Feature: Re-generate plan button in lesson plan sheet
+- [ ] Add a "Re-generate" button (Sparkles icon) in the plan sheet header next to Save
+- [ ] Clicking it triggers aiGenerateLessonPlan for the current plan and shows the loading overlay
+- [ ] Button is disabled while AI is generating or while saving
+- [ ] Add i18n keys: lp_regenerate, lp_regenerate_confirm_title, lp_regenerate_confirm_desc in EN/ES/CA
+- [ ] Show AlertDialog confirmation before re-generating (warns existing content will be overwritten)
+
+## Feature: Challenge per-question CSV breakdown export
+- [ ] In Challenge results view, add a "Per-question breakdown" section showing each question, correct answer, and per-student response
+- [ ] Export this breakdown as CSV via the existing ExportDropdown
+- [ ] CSV columns: Question, Correct Answer, then one column per student showing their answer and whether it was correct
+- [ ] Add i18n keys for the breakdown section heading and CSV filename in EN/ES/CA
+
+## Feature: PARAULA word difficulty filter (1–3 star rating)
+- [ ] Add a difficulty field (1, 2, or 3) to the PARAULA word list (DB schema or static list)
+- [ ] In the teacher word-picker dialog, show star ratings next to each word and allow filtering by difficulty
+- [ ] In solo practice mode, add a difficulty filter (1★ / 2★ / 3★ / All) to the word selection screen
+- [ ] Persist selected difficulty in localStorage
+- [ ] Add i18n keys for difficulty labels in EN/ES/CA
+
+## Feature: Direct link from calendar lesson events to lesson plans
+- [x] Each lesson/ai_generated event tile on the month grid shows a small plan-link icon when a plan exists
+- [x] Clicking the event tile (or the plan icon) opens the plan sheet directly for that event
+- [x] In the day panel event list, each event row has an "Open Plan" button that opens the plan sheet
+- [x] Events without a plan show an "Add Plan" affordance instead
+- [x] Add i18n keys for open_plan, add_plan tooltips in EN/ES/CA

@@ -346,6 +346,20 @@ export default function SchoolCalendar() {
     onError: (e) => toast.error(e.message),
   });
 
+  // Re-generate plan confirmation
+  const [showRegenConfirm, setShowRegenConfirm] = useState(false);
+  const handleRegenPlan = () => {
+    if (!planSheetPlanId) return;
+    const ev = (events as CalEvent[]).find(e => e.id === planSheetEventId);
+    const subject = planForm.subject || ev?.subject || selectedCalendar?.subject || "English";
+    const yearGroup = planForm.yearGroup || ev?.yearGroup || selectedCalendar?.yearLevel || YEAR_GROUPS[3];
+    const academicYear = planForm.academicYear || selectedCalendar?.academicYear || ACADEMIC_YEARS[1];
+    const competencies = planForm.competencies.length > 0 ? planForm.competencies : (ev?.competency ? [ev.competency] : []);
+    setShowRegenConfirm(false);
+    setPlanSheetAiGenerating(true);
+    aiGeneratePlanMutation.mutate({ title: planForm.title || ev?.title || "Lesson", subject, yearGroup, academicYear, competencies, duration: planForm.duration || 60 });
+  };
+
   // Delete plan mutation
   const [showDeletePlanConfirm, setShowDeletePlanConfirm] = useState(false);
   const deletePlanMutation = trpc.planner.deleteLessonPlan.useMutation({
@@ -1009,16 +1023,31 @@ export default function SchoolCalendar() {
                               <p className="text-xs text-muted-foreground/50 italic py-1">{t("cal_no_events_day")}</p>
                             ) : (
                               <div className="space-y-1 py-0.5">
-                                {dayEvents.map(ev => (
-                                  <div
-                                    key={ev.id}
-                                    className={`text-xs px-2 py-1 rounded-lg border cursor-pointer flex items-center gap-1.5 ${EVENT_COLORS[ev.eventType] ?? "bg-gray-100 text-gray-800"}`}
-                                    onClick={() => (ev.eventType === "lesson" || ev.eventType === "ai_generated") ? openLessonPlanner(ev) : openEdit(ev)}
-                                  >
-                                    <span className="flex-1 font-medium truncate">{ev.title}</span>
-                                    {(ev.eventType === "lesson" || ev.eventType === "ai_generated") && <ExternalLink className="w-3 h-3 opacity-60 shrink-0" />}
-                                  </div>
-                                ))}
+                                {dayEvents.map(ev => {
+                                  const hasPlan = !!(eventPlanMap as Record<number, number>)[ev.id];
+                                  const isLesson = ev.eventType === "lesson" || ev.eventType === "ai_generated";
+                                  return (
+                                    <div
+                                      key={ev.id}
+                                      className={`text-xs px-2 py-1 rounded-lg border cursor-pointer flex items-center gap-1.5 hover:opacity-80 transition-opacity ${
+                                        isLesson
+                                          ? hasPlan
+                                            ? "bg-green-100 text-green-800 border-green-300"
+                                            : "bg-teal-50 text-teal-800 border-teal-200 border-dashed"
+                                          : (EVENT_COLORS[ev.eventType] ?? "bg-gray-100 text-gray-800")
+                                      }`}
+                                      onClick={() => isLesson ? openLessonPlanner(ev) : openEdit(ev)}
+                                      title={isLesson ? (hasPlan ? `${t("cal_view_plan")}: ${ev.title}` : `${t("cal_add_plan")}: ${ev.title}`) : ev.title}
+                                    >
+                                      <span className="flex-1 font-medium truncate">{ev.title}</span>
+                                      {isLesson && (
+                                        <ClipboardList className={`w-3 h-3 shrink-0 ${
+                                          hasPlan ? "text-green-600" : "text-teal-400 opacity-60"
+                                        }`} />
+                                      )}
+                                    </div>
+                                  );
+                                })}
                               </div>
                             )}
                           </div>
@@ -1077,19 +1106,36 @@ export default function SchoolCalendar() {
                           <div className="space-y-0.5">
                             {dayEvents.slice(0, 3).map(ev => {
                               const hasPlan = !!(eventPlanMap as Record<number, number>)[ev.id];
+                              const isLesson = ev.eventType === "lesson" || ev.eventType === "ai_generated";
                               return (
                                 <div
                                   key={ev.id}
-                                  className={`text-[10px] px-1 py-0.5 rounded border truncate cursor-pointer flex items-center gap-0.5 ${EVENT_COLORS[ev.eventType] ?? "bg-gray-100 text-gray-800"}`}
+                                  className={`text-[10px] px-1 py-0.5 rounded border cursor-pointer flex items-center gap-0.5 transition-opacity hover:opacity-80 ${
+                                    isLesson
+                                      ? hasPlan
+                                        ? "bg-green-100 text-green-800 border-green-300 font-medium"
+                                        : "bg-teal-50 text-teal-800 border-teal-200 border-dashed"
+                                      : (EVENT_COLORS[ev.eventType] ?? "bg-gray-100 text-gray-800")
+                                  }`}
                                   onClick={e => {
                                     e.stopPropagation();
-                                    if (ev.eventType === "lesson" || ev.eventType === "ai_generated") openLessonPlanner(ev);
+                                    if (isLesson) openLessonPlanner(ev);
                                     else openEdit(ev);
                                   }}
-                                  title={(ev.eventType === "lesson" || ev.eventType === "ai_generated") ? `${t("cal_open_planner")}: ${ev.title}` : ev.title}
+                                  title={
+                                    isLesson
+                                      ? hasPlan
+                                        ? `${t("cal_view_plan")}: ${ev.title}`
+                                        : `${t("cal_add_plan")}: ${ev.title}`
+                                      : ev.title
+                                  }
                                 >
                                   <span className="truncate flex-1">{ev.title}</span>
-                                  {hasPlan && <ClipboardList className="w-2.5 h-2.5 shrink-0 opacity-70" />}
+                                  {isLesson && (
+                                    <ClipboardList className={`w-2.5 h-2.5 shrink-0 ${
+                                      hasPlan ? "text-green-600" : "text-teal-400 opacity-60"
+                                    }`} />
+                                  )}
                                 </div>
                               );
                             })}
@@ -1120,17 +1166,31 @@ export default function SchoolCalendar() {
                           <div key={weekLabel} className="flex gap-3 items-start">
                             <div className="w-20 shrink-0 text-xs font-mono text-muted-foreground pt-1">{weekLabel}</div>
                             <div className="flex flex-wrap gap-1 flex-1">
-                              {wEvents.map(ev => (
-                                <div
-                                  key={ev.id}
-                                  className={`text-xs px-2 py-0.5 rounded border cursor-pointer flex items-center gap-1 ${EVENT_COLORS[ev.eventType] ?? "bg-gray-100 text-gray-800"}`}
-                                  onClick={() => (ev.eventType === "lesson" || ev.eventType === "ai_generated") ? openLessonPlanner(ev) : openEdit(ev)}
-                                  title={(ev.eventType === "lesson" || ev.eventType === "ai_generated") ? `${t("cal_open_planner")}: ${ev.title}` : ev.title}
-                                >
-                                  {ev.title}
-                                  {(ev.eventType === "lesson" || ev.eventType === "ai_generated") && <ExternalLink className="w-3 h-3 opacity-60" />}
-                                </div>
-                              ))}
+                              {wEvents.map(ev => {
+                                  const hasPlan = !!(eventPlanMap as Record<number, number>)[ev.id];
+                                  const isLesson = ev.eventType === "lesson" || ev.eventType === "ai_generated";
+                                  return (
+                                    <div
+                                      key={ev.id}
+                                      className={`text-xs px-2 py-0.5 rounded border cursor-pointer flex items-center gap-1 hover:opacity-80 transition-opacity ${
+                                        isLesson
+                                          ? hasPlan
+                                            ? "bg-green-100 text-green-800 border-green-300 font-medium"
+                                            : "bg-teal-50 text-teal-800 border-teal-200 border-dashed"
+                                          : (EVENT_COLORS[ev.eventType] ?? "bg-gray-100 text-gray-800")
+                                      }`}
+                                      onClick={() => isLesson ? openLessonPlanner(ev) : openEdit(ev)}
+                                      title={isLesson ? (hasPlan ? `${t("cal_view_plan")}: ${ev.title}` : `${t("cal_add_plan")}: ${ev.title}`) : ev.title}
+                                    >
+                                      {ev.title}
+                                      {isLesson && (
+                                        <ClipboardList className={`w-3 h-3 shrink-0 ${
+                                          hasPlan ? "text-green-600" : "text-teal-400 opacity-60"
+                                        }`} />
+                                      )}
+                                    </div>
+                                  );
+                                })}
                             </div>
                           </div>
                         ))}
@@ -1669,31 +1729,58 @@ export default function SchoolCalendar() {
             ) : (
               (dayPanelDate ? (eventsByDate[dayPanelDate] ?? []) : []).map(ev => {
                 const hasPlan = !!(eventPlanMap as Record<number, number>)[ev.id];
+                const isLesson = ev.eventType === "lesson" || ev.eventType === "ai_generated";
                 return (
-                  <div key={ev.id} className={`rounded-lg border p-3 space-y-2 ${EVENT_COLORS[ev.eventType] ?? "bg-gray-50"}`}>
+                  <div key={ev.id} className={`rounded-lg border p-3 space-y-2 ${
+                    isLesson
+                      ? hasPlan
+                        ? "bg-green-50 border-green-200"
+                        : "bg-teal-50 border-teal-200 border-dashed"
+                      : (EVENT_COLORS[ev.eventType] ?? "bg-gray-50")
+                  }`}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-medium text-sm truncate">{ev.title}</span>
-                          {hasPlan && (
-                            <Badge className="h-4 px-1.5 text-[10px] bg-green-100 text-green-700 border-green-200 font-normal gap-0.5">
+                          {isLesson ? (
+                            <button
+                              className="font-medium text-sm truncate text-left hover:underline focus:outline-none"
+                              onClick={() => openPlanSheet(ev)}
+                              title={hasPlan ? t("cal_view_plan") : t("cal_add_plan")}
+                            >
+                              {ev.title}
+                            </button>
+                          ) : (
+                            <span className="font-medium text-sm truncate">{ev.title}</span>
+                          )}
+                          {isLesson && (
+                            <Badge className={`h-4 px-1.5 text-[10px] font-normal gap-0.5 ${
+                              hasPlan
+                                ? "bg-green-100 text-green-700 border-green-200"
+                                : "bg-teal-100 text-teal-700 border-teal-200"
+                            }`}>
                               <ClipboardList className="w-2.5 h-2.5" />
-                              {t("cal_plan_ready")}
+                              {hasPlan ? t("cal_plan_ready") : t("cal_add_plan")}
                             </Badge>
                           )}
                         </div>
                         {ev.yearGroup && <div className="text-xs opacity-70 mt-0.5">{ev.yearGroup}{ev.subject ? ` · ${ev.subject}` : ""}</div>}
                       </div>
                       <div className="flex gap-1 shrink-0">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 px-2 gap-1 text-xs bg-white/60 hover:bg-white"
-                          onClick={() => { openPlanSheet(ev); }}
-                        >
-                          <ClipboardList className="w-3 h-3" />
-                          {hasPlan ? t("cal_view_plan") : t("cal_add_plan")}
-                        </Button>
+                        {isLesson && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className={`h-7 px-2 gap-1 text-xs ${
+                              hasPlan
+                                ? "bg-green-100 border-green-300 text-green-800 hover:bg-green-200"
+                                : "bg-white/60 hover:bg-white"
+                            }`}
+                            onClick={() => { openPlanSheet(ev); }}
+                          >
+                            <ClipboardList className="w-3 h-3" />
+                            {hasPlan ? t("cal_view_plan") : t("cal_add_plan")}
+                          </Button>
+                        )}
                         <Button size="sm" variant="outline" className="h-7 px-2 bg-white/60 hover:bg-white" onClick={() => { openEdit(ev); setShowDayPanel(false); }}>
                           <Pencil className="w-3 h-3" />
                         </Button>
@@ -1754,10 +1841,16 @@ export default function SchoolCalendar() {
               <div className="flex gap-2 items-center">
                 {planFormDirty && <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">{t("lp_unsaved")}</Badge>}
                 {planSheetPlanId && (
-                  <Button size="sm" variant="outline" onClick={() => setShowDeletePlanConfirm(true)} disabled={deletePlanMutation.isPending || planSheetAiGenerating} className="gap-1 text-destructive border-destructive/40 hover:bg-destructive/10">
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">{t("lp_delete_plan")}</span>
-                  </Button>
+                  <>
+                    <Button size="sm" variant="outline" onClick={() => setShowRegenConfirm(true)} disabled={planSheetAiGenerating || savePlanMutation.isPending} className="gap-1 text-teal-700 border-teal-300 hover:bg-teal-50">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">{t("lp_regenerate")}</span>
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setShowDeletePlanConfirm(true)} disabled={deletePlanMutation.isPending || planSheetAiGenerating} className="gap-1 text-destructive border-destructive/40 hover:bg-destructive/10">
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">{t("lp_delete_plan")}</span>
+                    </Button>
+                  </>
                 )}
                 <Button size="sm" onClick={handleSavePlan} disabled={savePlanMutation.isPending || planSheetAiGenerating} className="gap-1">
                   <Save className="w-3.5 h-3.5" />
@@ -2063,6 +2156,26 @@ export default function SchoolCalendar() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deletePlanMutation.isPending ? t("lp_saving") : t("lp_delete_plan")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ── Re-generate Lesson Plan Confirmation Dialog ────────────────────── */}
+      <AlertDialog open={showRegenConfirm} onOpenChange={setShowRegenConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("lp_regenerate_confirm_title")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("lp_regenerate_confirm_desc")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRegenPlan}
+              className="bg-teal-600 text-white hover:bg-teal-700"
+            >
+              <Sparkles className="w-3.5 h-3.5 mr-1" />
+              {t("lp_regenerate")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

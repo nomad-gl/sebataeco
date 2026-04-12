@@ -873,6 +873,10 @@ export const translations = {
     challenge_save_group_success: "Results saved to group progress",
     challenge_save_group_error: "Failed to save results",
     challenge_save_group_no_groups: "No groups found — create one in My Classes first",
+    challenge_breakdown_title: "Per-Question Breakdown",
+    challenge_breakdown_correct: "Correct",
+    challenge_breakdown_wrong: "Wrong",
+    challenge_breakdown_csv: "Export Breakdown CSV",
     // PDF Export
     sp_download_pdf: "Download PDF",
     sp_pdf_generating: "Generating PDF...",
@@ -1115,6 +1119,9 @@ export const translations = {
     lp_delete_plan: "Delete Plan",
     lp_delete_plan_confirm_title: "Delete lesson plan?",
     lp_delete_plan_confirm_desc: "This will permanently delete this lesson plan. This action cannot be undone.",
+    lp_regenerate: "Re-generate",
+    lp_regenerate_confirm_title: "Re-generate lesson plan?",
+    lp_regenerate_confirm_desc: "This will overwrite all current content with a new AI-generated plan. Any unsaved edits will be lost.",
     lp_generated_toast: "Lesson plan generated!",
     lp_popup_blocked: "Please allow popups to print",
     // Settings
@@ -2349,6 +2356,10 @@ export const translations = {
     challenge_save_group_success: "Resultados guardados en el progreso del grupo",
     challenge_save_group_error: "Error al guardar los resultados",
     challenge_save_group_no_groups: "No hay grupos — crea uno en Mis Clases primero",
+    challenge_breakdown_title: "Desglose por Pregunta",
+    challenge_breakdown_correct: "Correcto",
+    challenge_breakdown_wrong: "Incorrecto",
+    challenge_breakdown_csv: "Exportar Desglose CSV",
     // PDF Export
     sp_download_pdf: "Descargar PDF",
     sp_pdf_generating: "Generando PDF...",
@@ -2591,6 +2602,9 @@ export const translations = {
     lp_delete_plan: "Eliminar programación",
     lp_delete_plan_confirm_title: "¿Eliminar programación?",
     lp_delete_plan_confirm_desc: "Esto eliminará permanentemente esta programación. Esta acción no se puede deshacer.",
+    lp_regenerate: "Regenerar",
+    lp_regenerate_confirm_title: "¿Regenerar la programación?",
+    lp_regenerate_confirm_desc: "Esto sobreescribirá todo el contenido actual con una nueva programación generada por IA. Se perderán los cambios no guardados.",
     lp_generated_toast: "Programación generada",
     lp_popup_blocked: "Por favor, permite las ventanas emergentes para imprimir",
     // Settings
@@ -3825,6 +3839,10 @@ export const translations = {
     challenge_save_group_success: "Resultats desats al progrés del grup",
     challenge_save_group_error: "Error en desar els resultats",
     challenge_save_group_no_groups: "No hi ha grups — crea'n un a Les Meves Classes primer",
+    challenge_breakdown_title: "Desglossament per Pregunta",
+    challenge_breakdown_correct: "Correcte",
+    challenge_breakdown_wrong: "Incorrecte",
+    challenge_breakdown_csv: "Exportar Desglossament CSV",
     // PDF Export
     sp_download_pdf: "Descarregar PDF",
     sp_pdf_generating: "Generant PDF...",
@@ -4067,6 +4085,9 @@ export const translations = {
     lp_delete_plan: "Eliminar programació",
     lp_delete_plan_confirm_title: "Eliminar programació?",
     lp_delete_plan_confirm_desc: "Això eliminarà permanentment aquesta programació. Aquesta acció no es pot desfer.",
+    lp_regenerate: "Regenerar",
+    lp_regenerate_confirm_title: "Regenerar la programació?",
+    lp_regenerate_confirm_desc: "Això sobreescriurà tot el contingut actual amb una nova programació generada per IA. Es perdran els canvis no desats.",
     lp_generated_toast: "Programació generada",
     lp_popup_blocked: "Si us plau, permet les finestres emergents per imprimir",
     // Settings

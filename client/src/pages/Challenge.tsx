@@ -13,6 +13,7 @@ import {
   Zap, Users, Trophy, ChevronRight, ChevronLeft,
   Copy, Play, SkipForward, StopCircle, Plus, Loader2,
   BookOpen, Library, CheckCircle2, QrCode, Link2, Printer, Eye, ArrowLeft,
+  BarChart2, Check, X as XIcon,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import CompetencySelector from "@/components/CompetencySelector";
