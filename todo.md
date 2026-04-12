@@ -1949,3 +1949,9 @@
 - [x] Fixed nested button hydration error in calendar sidebar (outer button → div[role=button])
 - [x] Fixed parseJsonField in both LessonPlanner.tsx and SchoolCalendar.tsx to handle already-parsed objects from AI mutation responses
 - [x] Fixed plan sheet not re-populating when same plan is reopened (reset form to empty before setting planSheetPlanId so useEffect always fires)
+
+## Bug: Lesson Procedure card not populated
+- [x] Root cause: aiGenerateLessonPlan used free-form JSON prompt without response_format enforcement, causing LLM to sometimes omit procedures
+- [x] Fixed: switched to response_format json_schema with strict procedures array schema
+- [x] Added DEFAULT_PROCEDURES fallback so procedures is always non-empty even if LLM fails
+- [x] Added try/catch around JSON.parse so a malformed LLM response no longer crashes the mutation

@@ -720,9 +720,17 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
 
+      const DEFAULT_PROCEDURES = [
+        { timing: "10 min", stage: "Warm-up", activities: "Engage students with a brief review or hook activity", grouping: "Whole class" },
+        { timing: "20 min", stage: "Presentation", activities: "Introduce and explain the main concept with examples", grouping: "Whole class" },
+        { timing: "15 min", stage: "Practice", activities: "Guided practice with teacher support", grouping: "Pairs" },
+        { timing: "10 min", stage: "Production", activities: "Students apply the concept independently or in groups", grouping: "Groups" },
+        { timing: "5 min", stage: "Closure", activities: "Review key points and assign homework if needed", grouping: "Whole class" },
+      ];
+
       const resp = await invokeLLM({
         messages: [
-          { role: "system", content: "You are a LOMLOE curriculum expert. Return only valid JSON matching the requested schema exactly. Be specific and detailed — fill every field with real, curriculum-aligned content appropriate for the subject, year group and lesson title provided." },
+          { role: "system", content: "You are a LOMLOE curriculum expert. Generate complete, detailed lesson plans with specific activities for each stage. Every field must be filled with real, curriculum-aligned content appropriate for the subject, year group and lesson title provided." },
           { role: "user", content: `Generate a complete LOMLOE lesson plan for:
 - Title: "${input.title}"
 - Subject: ${input.subject}
@@ -733,16 +741,63 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
 - Academic Year: ${input.academicYear ?? "2025-2026"}
 - Key Competencies: ${(input.competencies ?? []).join(", ") || "Mixed"}
 
-Return ONLY a JSON object (no markdown fences) with this exact structure:
-{"skills":{"listening":true,"speaking":true,"reading":false,"writing":false},"systems":{"grammar":true,"phonology":false,"lexis":true,"function":false,"discourse":false},"specificCompetences":["CCL-1: Comprehension of oral texts"],"saberesBasicos":["Vocabulary related to the topic","Grammar structures for the level"],"learningOutcomes":["Students will be able to...","Students will demonstrate..."],"evaluationCriteria":["Criterion 1: ...","Criterion 2: ..."],"previousKnowledge":"Students should already know...","materials":"Textbook p.XX, worksheets, flashcards","spaces":"Classroom","procedures":[{"timing":"10 min","stage":"Warm-up","activities":"Describe the warm-up activity in detail","grouping":"Whole class"},{"timing":"20 min","stage":"Presentation","activities":"Describe the main teaching activity","grouping":"Pairs"},{"timing":"15 min","stage":"Practice","activities":"Describe the practice activity","grouping":"Individual"},{"timing":"10 min","stage":"Production","activities":"Describe the production task","grouping":"Groups"},{"timing":"5 min","stage":"Closure","activities":"Wrap-up and review","grouping":"Whole class"}],"competencies":["CCL","STEM"]}` },
+Generate a detailed lesson plan with specific activities for each procedure stage. The procedures array MUST have at least 4 stages with real activity descriptions.` },
         ],
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "lesson_plan",
+            strict: true,
+            schema: {
+              type: "object",
+              properties: {
+                skills: { type: "object", properties: { listening: { type: "boolean" }, speaking: { type: "boolean" }, reading: { type: "boolean" }, writing: { type: "boolean" } }, required: ["listening", "speaking", "reading", "writing"], additionalProperties: false },
+                systems: { type: "object", properties: { grammar: { type: "boolean" }, phonology: { type: "boolean" }, lexis: { type: "boolean" }, function: { type: "boolean" }, discourse: { type: "boolean" } }, required: ["grammar", "phonology", "lexis", "function", "discourse"], additionalProperties: false },
+                specificCompetences: { type: "array", items: { type: "string" } },
+                saberesBasicos: { type: "array", items: { type: "string" } },
+                learningOutcomes: { type: "array", items: { type: "string" } },
+                evaluationCriteria: { type: "array", items: { type: "string" } },
+                previousKnowledge: { type: "string" },
+                materials: { type: "string" },
+                spaces: { type: "string" },
+                procedures: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      timing: { type: "string" },
+                      stage: { type: "string" },
+                      activities: { type: "string" },
+                      grouping: { type: "string" },
+                    },
+                    required: ["timing", "stage", "activities", "grouping"],
+                    additionalProperties: false,
+                  },
+                },
+                competencies: { type: "array", items: { type: "string" } },
+              },
+              required: ["skills", "systems", "specificCompetences", "saberesBasicos", "learningOutcomes", "evaluationCriteria", "previousKnowledge", "materials", "spaces", "procedures", "competencies"],
+              additionalProperties: false,
+            },
+          },
+        },
       });
 
       const raw = resp.choices?.[0]?.message?.content;
       const content = typeof raw === "string" ? raw : JSON.stringify(raw ?? "{}");
+      // Strip markdown fences if present (fallback for models that ignore response_format)
       const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, content];
       const jsonStr = jsonMatch[1]?.trim() ?? content;
-      const generated = JSON.parse(jsonStr);
+      let generated: any;
+      try {
+        generated = JSON.parse(jsonStr);
+      } catch {
+        generated = {};
+      }
+      // Ensure procedures is always a non-empty array
+      if (!Array.isArray(generated.procedures) || generated.procedures.length === 0) {
+        generated.procedures = DEFAULT_PROCEDURES;
+      }
 
       const generatedFields = {
         title: input.title,
