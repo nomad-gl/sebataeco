@@ -1930,3 +1930,17 @@
 - [x] Add "Skip clashing dates & re-run" button to the clash warning dialog
 - [x] Re-invoke aiInfillCalendar with excludeDates list of the clashing dates
 - [x] Add i18n keys in EN/ES/CA
+
+## Feature: Easter-aware Catalan holiday recurrence
+- [x] Implement anonymous Gregorian algorithm (Meeus/Jones/Butcher) to compute Easter Sunday for any year
+- [x] Replace hardcoded Easter dates in seedCatalanHolidays with computed dates
+- [x] Derive Divendres Sant, Dilluns de Pasqua, Dilluns de Pentecosta, Dijous Sant, Ascensió, Corpus Christi from computed Easter
+- [x] Extended with full Carnival week (Dijous Gras, Divendres/Dissabte/Dimarts de Carnestoltes)
+- [x] Improved duplicate detection using YYYY-MM-DD string comparison
+
+## Feature: Weekly term coverage email digest
+- [x] Add weeklyTermCoverageDigest tRPC procedure that queries all calendars with term dates and computes T1/T2/T3 coverage
+- [x] Filter to calendars with at least one term below 50% coverage
+- [x] Format a readable text digest with progress bars and send via notifyOwner
+- [x] Add a "Send coverage digest" button in the School Calendar sidebar for manual trigger
+- [x] Add i18n keys in EN/ES/CA

@@ -10,6 +10,7 @@ import { getHolidaysInRange, SpanishRegion } from "../spanishHolidays";
 import { generateLessonPlanPdf } from "../lessonPlanPdf";
 import { storagePut } from "../storage";
 import { PDFDocument } from "pdf-lib";
+import { notifyOwner } from "../_core/notification";
 
 const eventTypeEnum = z.enum(["holiday", "special", "exam", "excursion", "event", "lesson", "ai_generated"]);
 
@@ -1322,13 +1323,22 @@ Return ONLY a JSON object (no markdown fences) with this exact structure:
           const ds = toDateStr(d);
           if (d >= rangeStart && d <= rangeEnd) holidayDates.push({ date: ds, name: h.name });
         }
-        // Moveable: Good Friday, Easter Monday, Whit Monday
+        // Moveable feasts derived from Easter (Butlletí Oficial de la Generalitat de Catalunya)
         const easter = getEaster(yr);
         const addDays = (base: Date, n: number) => new Date(base.getTime() + n * 86400000);
         const moveables = [
-          { d: addDays(easter, -2), name: "Divendres Sant" },
-          { d: addDays(easter, 1),  name: "Dilluns de Pasqua" },
-          { d: addDays(easter, 50), name: "Dilluns de Pentecosta" },
+          { d: addDays(easter, -48), name: "Dijous Gras" },          // Carnival Thursday (48 days before Easter)
+          { d: addDays(easter, -47), name: "Divendres de Carnestoltes" }, // Carnival Friday
+          { d: addDays(easter, -46), name: "Dissabte de Carnestoltes" },  // Carnival Saturday
+          { d: addDays(easter, -45), name: "Dimarts de Carnestoltes" },   // Shrove Tuesday
+          { d: addDays(easter, -3),  name: "Dijous Sant" },           // Maundy Thursday
+          { d: addDays(easter, -2),  name: "Divendres Sant" },        // Good Friday
+          { d: addDays(easter, 0),   name: "Diumenge de Pasqua" },    // Easter Sunday
+          { d: addDays(easter, 1),   name: "Dilluns de Pasqua" },     // Easter Monday
+          { d: addDays(easter, 39),  name: "Ascensió del Senyor" },   // Ascension (39 days after)
+          { d: addDays(easter, 49),  name: "Diumenge de Pentecosta" },// Whit Sunday
+          { d: addDays(easter, 50),  name: "Dilluns de Pentecosta" }, // Whit Monday
+          { d: addDays(easter, 60),  name: "Corpus Christi" },        // Corpus Christi (60 days after)
         ];
         for (const m of moveables) {
           const ds = toDateStr(m.d);
@@ -1338,14 +1348,19 @@ Return ONLY a JSON object (no markdown fences) with this exact structure:
 
       if (holidayDates.length === 0) return { inserted: 0 };
 
-      // Fetch existing event dates to avoid duplicates
+      // Fetch existing event dates to avoid duplicates (compare as YYYY-MM-DD strings)
       const existing = await db.select({ eventDate: schoolCalendarEvents.eventDate })
         .from(schoolCalendarEvents)
         .where(and(
           eq(schoolCalendarEvents.calendarId, input.calendarId),
           eq(schoolCalendarEvents.userId, ctx.user.id),
         ));
-      const existingSet = new Set(existing.map(e => String(e.eventDate)));
+      const existingSet = new Set(
+        existing.map(e => {
+          const d = e.eventDate instanceof Date ? e.eventDate : new Date(e.eventDate as string);
+          return toDateStr(d);
+        })
+      );
 
       const toInsert = holidayDates.filter(h => !existingSet.has(h.date));
       if (toInsert.length === 0) return { inserted: 0 };
@@ -1364,5 +1379,143 @@ Return ONLY a JSON object (no markdown fences) with this exact structure:
         }))
       );
       return { inserted: toInsert.length };
+    }),
+
+  /**
+   * Compute term coverage for all calendars belonging to the current user and
+   * send a digest notification to the owner flagging terms below 50% coverage.
+   * Also returns the full coverage data so the frontend can render it.
+   */
+  weeklyTermCoverageDigest: protectedProcedure
+    .mutation(async ({ ctx }) => {
+      const dbConn = await getDb();
+      if (!dbConn) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      const db = dbConn;
+      const toDateStr = (d: Date) => d.toISOString().split("T")[0];
+
+      // Fetch all full_year calendars for this user that have at least term1 dates
+      const calendars = await db.select().from(schoolCalendars)
+        .where(and(
+          eq(schoolCalendars.userId, ctx.user.id),
+          eq(schoolCalendars.calendarType, "full_year"),
+        ));
+
+      // Fetch all lesson events for this user
+      const allEvents = await db.select({
+        calendarId: schoolCalendarEvents.calendarId,
+        eventDate: schoolCalendarEvents.eventDate,
+        eventType: schoolCalendarEvents.eventType,
+      }).from(schoolCalendarEvents)
+        .where(eq(schoolCalendarEvents.userId, ctx.user.id));
+
+      type TermCoverage = {
+        calendarId: number;
+        calendarName: string;
+        term: 1 | 2 | 3;
+        start: string;
+        end: string;
+        totalDays: number;
+        filledDays: number;
+        pct: number;
+      };
+
+      const LESSON_DAYS_DEFAULT = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+      const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+      const coverage: TermCoverage[] = [];
+
+      for (const cal of calendars) {
+        const calAny = cal as Record<string, unknown>;
+        const allowedDays: string[] = calAny.lessonDays
+          ? String(calAny.lessonDays).split(",").map(d => d.trim())
+          : LESSON_DAYS_DEFAULT;
+
+        const terms: Array<{ term: 1 | 2 | 3; start: Date | null; end: Date | null }> = [
+          { term: 1, start: calAny.term1Start ? new Date(calAny.term1Start as string) : null, end: calAny.term1End ? new Date(calAny.term1End as string) : null },
+          { term: 2, start: calAny.term2Start ? new Date(calAny.term2Start as string) : null, end: calAny.term2End ? new Date(calAny.term2End as string) : null },
+          { term: 3, start: calAny.term3Start ? new Date(calAny.term3Start as string) : null, end: calAny.term3End ? new Date(calAny.term3End as string) : null },
+        ];
+
+        const calEvents = allEvents.filter(e => e.calendarId === cal.id);
+        const lessonDateSet = new Set(
+          calEvents
+            .filter(e => ["lesson", "ai_generated"].includes(e.eventType))
+            .map(e => toDateStr(e.eventDate instanceof Date ? e.eventDate : new Date(e.eventDate as string)))
+        );
+        const holidayDateSet = new Set(
+          calEvents
+            .filter(e => e.eventType === "holiday")
+            .map(e => toDateStr(e.eventDate instanceof Date ? e.eventDate : new Date(e.eventDate as string)))
+        );
+
+        for (const { term, start, end } of terms) {
+          if (!start || !end) continue;
+          // Count available school days (allowed weekdays, not holidays)
+          let totalDays = 0;
+          let filledDays = 0;
+          const cur = new Date(start);
+          while (cur <= end) {
+            const dayName = DAY_NAMES[cur.getDay()];
+            const ds = toDateStr(cur);
+            if (allowedDays.includes(dayName) && !holidayDateSet.has(ds)) {
+              totalDays++;
+              if (lessonDateSet.has(ds)) filledDays++;
+            }
+            cur.setDate(cur.getDate() + 1);
+          }
+          const pct = totalDays > 0 ? Math.round((filledDays / totalDays) * 100) : 0;
+          coverage.push({
+            calendarId: cal.id,
+            calendarName: cal.name,
+            term,
+            start: toDateStr(start),
+            end: toDateStr(end),
+            totalDays,
+            filledDays,
+            pct,
+          });
+        }
+      }
+
+      // Build digest for terms below 50%
+      const lowCoverage = coverage.filter(c => c.pct < 50);
+
+      if (lowCoverage.length === 0) {
+        await notifyOwner({
+          title: "Weekly Term Coverage Digest",
+          content: "All terms are at 50% coverage or above. Great work!",
+        });
+        return { sent: true, lowCount: 0, coverage };
+      }
+
+      // Group by calendar for a readable digest
+      const byCalendar: Record<string, typeof lowCoverage> = {};
+      for (const c of lowCoverage) {
+        if (!byCalendar[c.calendarName]) byCalendar[c.calendarName] = [];
+        byCalendar[c.calendarName].push(c);
+      }
+
+      const lines: string[] = [
+        `Weekly Term Coverage Digest — ${new Date().toLocaleDateString("en-GB", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}`,
+        "",
+        `${lowCoverage.length} term(s) below 50% coverage need attention:`,
+        "",
+      ];
+      for (const [calName, terms] of Object.entries(byCalendar)) {
+        lines.push(`📅 ${calName}`);
+        for (const t of terms) {
+          const bar = "▓".repeat(Math.round(t.pct / 10)) + "░".repeat(10 - Math.round(t.pct / 10));
+          lines.push(`  T${t.term} (${t.start} → ${t.end}): ${bar} ${t.filledDays}/${t.totalDays} days (${t.pct}%)`);
+        }
+        lines.push("");
+      }
+      lines.push("Log in to SEBA to plan these terms: https://sebataeco.com/school-calendar");
+
+      await notifyOwner({
+        title: `Term Coverage Alert — ${lowCoverage.length} term(s) need planning`,
+        content: lines.join("\n"),
+      });
+
+      return { sent: true, lowCount: lowCoverage.length, coverage };
     }),
 });

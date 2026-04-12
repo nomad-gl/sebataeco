@@ -372,6 +372,17 @@ export default function SchoolCalendar() {
     onError: (e) => toast.error(e.message),
   });
 
+  const weeklyDigestMutation = trpc.planner.weeklyTermCoverageDigest.useMutation({
+    onSuccess: (data) => {
+      if (data.lowCount === 0) {
+        toast.success(t("cal_digest_all_good"));
+      } else {
+        toast.success(t("cal_digest_sent").replace("{n}", String(data.lowCount)));
+      }
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   // ── Events ─────────────────────────────────────────────────────────────────
   const { data: events = [] } = trpc.planner.listCalendarEvents.useQuery(
     { calendarId: selectedCalendarId! },
@@ -1389,6 +1400,23 @@ export default function SchoolCalendar() {
                     </div>
                   </CardContent>
                 </Card>
+              )}
+
+              {/* ── Weekly Digest Button ─────────────────────────────── */}
+              {selectedCalendarId && (
+                <div className="hidden md:flex justify-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs"
+                    onClick={() => weeklyDigestMutation.mutate()}
+                    disabled={weeklyDigestMutation.isPending}
+                  >
+                    {weeklyDigestMutation.isPending
+                      ? <><span className="animate-spin">⏳</span> {t("cal_digest_sending")}</>
+                      : <><span>📊</span> {t("cal_digest_send_now")}</>}
+                  </Button>
+                </div>
               )}
 
               {/* ── Month Calendar (or Agenda on mobile) ────────────────── */}
