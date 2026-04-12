@@ -97,6 +97,8 @@ type SchoolCalendar = {
   linkedGroupId?: number | null;
   lessonDays?: string | null;
   region?: string | null;
+  defaultStartTime?: string | null;
+  defaultEndTime?: string | null;
 };
 
 /**
@@ -543,6 +545,17 @@ export default function SchoolCalendar() {
         // New blank plan — immediately kick off AI generation
         const p = pendingAiParamsRef.current;
         pendingAiParamsRef.current = null;
+        // Derive duration from calendar default session times
+        let calDuration = 60;
+        let calSessionTime: string | undefined;
+        const cal = selectedCalendar;
+        if (cal?.defaultStartTime && cal?.defaultEndTime) {
+          calSessionTime = `${cal.defaultStartTime}\u2013${cal.defaultEndTime}`;
+          const [sh, sm] = cal.defaultStartTime.split(":").map(Number);
+          const [eh, em] = cal.defaultEndTime.split(":").map(Number);
+          const computed = (eh * 60 + em) - (sh * 60 + sm);
+          if (computed > 0) calDuration = computed;
+        }
         setPlanSheetPlanId(data.id);
         setPlanSheetAiGenerating(true);
         aiGeneratePlanMutation.mutate({
@@ -552,8 +565,9 @@ export default function SchoolCalendar() {
           yearGroup: p.yearGroup,
           academicYear: p.academicYear,
           competencies: p.competencies,
-          duration: 60,
+          duration: calDuration,
           lessonNumber: data.lessonNumber ?? undefined,
+          sessionTime: calSessionTime,
         });
       } else {
         // Plan already existed — just show it

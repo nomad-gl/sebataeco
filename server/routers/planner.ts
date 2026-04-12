@@ -303,6 +303,23 @@ export const plannerRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
 
+      // Fetch calendar defaults (default session times) to derive duration and sessionTime
+      const [calDefaults] = await db
+        .select({ defaultStartTime: schoolCalendars.defaultStartTime, defaultEndTime: schoolCalendars.defaultEndTime })
+        .from(schoolCalendars)
+        .where(and(eq(schoolCalendars.id, input.calendarId), eq(schoolCalendars.userId, ctx.user.id)));
+
+      // Compute duration in minutes from default start/end times (e.g. "08:45" → "09:29" = 44 min)
+      let defaultDuration = 60;
+      let defaultSessionTime: string | null = null;
+      if (calDefaults?.defaultStartTime && calDefaults?.defaultEndTime) {
+        defaultSessionTime = `${calDefaults.defaultStartTime}–${calDefaults.defaultEndTime}`;
+        const [sh, sm] = calDefaults.defaultStartTime.split(":").map(Number);
+        const [eh, em] = calDefaults.defaultEndTime.split(":").map(Number);
+        const computed = (eh * 60 + em) - (sh * 60 + sm);
+        if (computed > 0) defaultDuration = computed;
+      }
+
       const existing = await db
         .select()
         .from(schoolCalendarEvents)
@@ -536,6 +553,10 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
         const eventId = (evResult as any)[0].insertId as number;
         generatedCount++;
 
+        // Derive lessonDate and lessonNumber for this plan
+        const lessonDateStr = eventRow.eventDate.toISOString().slice(0, 10);
+        const lessonNum = await computeLessonNumber(db, ctx.user.id, eventId, lessonDateStr);
+
         // Auto-create a linked lesson plan seeded with the AI-generated LOMLOE data
         await db.insert(lessonPlans).values({
           userId: ctx.user.id,
@@ -550,7 +571,10 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
           evaluationCriteria: JSON.stringify(lesson.evaluationCriteria),
           calendarEventId: eventId,
           aiGenerated: true,
-          duration: 60,
+          duration: defaultDuration,
+          lessonDate: lessonDateStr,
+          lessonNumber: lessonNum,
+          ...(defaultSessionTime ? { sessionTime: defaultSessionTime } : {}),
         });
       }
 
@@ -1068,10 +1092,31 @@ Generate a detailed lesson plan with specific activities for each procedure stag
         lessonNumber = await computeLessonNumber(db, ctx.user.id, input.calendarEventId, lessonDate);
       }
 
-      // Build sessionTime from event times if available
-      const sessionTime = (calEvent?.startTime && calEvent?.endTime)
-        ? `${calEvent.startTime}–${calEvent.endTime}`
-        : null;
+      // Build sessionTime from event times if available; fall back to calendar defaults
+      let sessionTime: string | null = null;
+      let duration = 60;
+      const startT = calEvent?.startTime;
+      const endT = calEvent?.endTime;
+      if (startT && endT) {
+        sessionTime = `${startT}–${endT}`;
+        const [sh, sm] = startT.split(":").map(Number);
+        const [eh, em] = endT.split(":").map(Number);
+        const computed = (eh * 60 + em) - (sh * 60 + sm);
+        if (computed > 0) duration = computed;
+      } else if (calEvent?.calendarId) {
+        // Fall back to calendar-level defaults
+        const [calDef] = await db
+          .select({ defaultStartTime: schoolCalendars.defaultStartTime, defaultEndTime: schoolCalendars.defaultEndTime })
+          .from(schoolCalendars)
+          .where(and(eq(schoolCalendars.id, calEvent.calendarId), eq(schoolCalendars.userId, ctx.user.id)));
+        if (calDef?.defaultStartTime && calDef?.defaultEndTime) {
+          sessionTime = `${calDef.defaultStartTime}–${calDef.defaultEndTime}`;
+          const [sh, sm] = calDef.defaultStartTime.split(":").map(Number);
+          const [eh, em] = calDef.defaultEndTime.split(":").map(Number);
+          const computed = (eh * 60 + em) - (sh * 60 + sm);
+          if (computed > 0) duration = computed;
+        }
+      }
 
       const result = await db.insert(lessonPlans).values({
         userId: ctx.user.id,
@@ -1083,7 +1128,7 @@ Generate a detailed lesson plan with specific activities for each procedure stag
         lessonNumber,
         lessonDate,
         aiGenerated: false,
-        duration: 60,
+        duration,
         ...(sessionTime ? { sessionTime } : {}),
       });
       return { id: (result as any)[0].insertId, created: true, lessonNumber, lessonDate };

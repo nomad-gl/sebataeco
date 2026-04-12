@@ -1955,3 +1955,9 @@
 - [x] Fixed: switched to response_format json_schema with strict procedures array schema
 - [x] Added DEFAULT_PROCEDURES fallback so procedures is always non-empty even if LLM fails
 - [x] Added try/catch around JSON.parse so a malformed LLM response no longer crashes the mutation
+
+## Feature: Lesson title/number/duration pre-fill from calendar
+- [x] AI infill generates unique per-lesson topic titles (not generic "Lesson 1", "Lesson 2")
+- [x] Lesson number from calendar event is copied to lessonNumber field of Lesson Information card
+- [x] Session duration from calendar's defaultSessionTime is copied to duration field of Lesson Information card
+- [x] Lesson title from calendar event title is copied to title field of Lesson Information card
