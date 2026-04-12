@@ -40,6 +40,7 @@ type LessonFormState = {
   duration: number;
   yearGroup: string;
   subject: string;
+  sessionTime: string;
   skills: Record<string, boolean>;
   systems: Record<string, boolean>;
   specificCompetences: string[];
@@ -67,6 +68,7 @@ const emptyForm = (): LessonFormState => {
     duration: 60,
     yearGroup: profile.defaultYear || YEAR_GROUPS[3],
     subject: profile.defaultSubject || "English",
+    sessionTime: "",
     skills: { listening: false, speaking: false, reading: false, writing: false },
     systems: { grammar: false, phonology: false, lexis: false, function: false, discourse: false },
     specificCompetences: [],
@@ -97,6 +99,7 @@ function planToForm(plan: any): LessonFormState {
     duration: plan.duration ?? 60,
     yearGroup: plan.yearGroup ?? YEAR_GROUPS[3],
     subject: plan.subject ?? "English",
+    sessionTime: plan.sessionTime ?? "",
     skills: parseJsonField(plan.skills, { listening: false, speaking: false, reading: false, writing: false }),
     systems: parseJsonField(plan.systems, { grammar: false, phonology: false, lexis: false, function: false, discourse: false }),
     specificCompetences: parseJsonField(plan.specificCompetences, []),
@@ -754,7 +757,15 @@ export default function LessonPlanner() {
                   </div>
                   <div>
                     <Label>{t("lp_duration_min")}</Label>
-                    <Input type="number" value={form.duration} onChange={e => setField("duration", Number(e.target.value))} min={15} max={180} step={5} />
+                    <div className="flex items-center gap-2">
+                      <Input type="number" value={form.duration} onChange={e => setField("duration", Number(e.target.value))} min={15} max={180} step={5} />
+                      {form.sessionTime && (
+                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted border border-border rounded px-2 py-1 whitespace-nowrap">
+                          <span className="font-medium text-foreground/70">{t("lp_session_time_label")}:</span>
+                          {form.sessionTime}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 {/* Row 2: year group / subject / spaces — 1 col on mobile, 3 on md+ */}

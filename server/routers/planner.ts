@@ -1618,4 +1618,87 @@ Generate a detailed lesson plan with specific activities for each procedure stag
 
       return { sent: true, lowCount: lowCoverage.length, coverage };
     }),
+
+  /**
+   * Backfill duration and sessionTime on all lesson plans in a calendar.
+   * For each plan, reads the linked event's start/end times; if missing, falls back to
+   * the calendar's defaultStartTime/defaultEndTime. Computes duration in minutes.
+   * Only updates plans where duration is still the default 60 min or sessionTime is blank.
+   */
+  backfillPlanDurations: protectedProcedure
+    .input(z.object({ calendarId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      // Verify ownership and fetch calendar defaults
+      const [cal] = await db
+        .select({ id: schoolCalendars.id, defaultStartTime: schoolCalendars.defaultStartTime, defaultEndTime: schoolCalendars.defaultEndTime })
+        .from(schoolCalendars)
+        .where(and(eq(schoolCalendars.id, input.calendarId), eq(schoolCalendars.userId, ctx.user.id)));
+      if (!cal) throw new TRPCError({ code: "NOT_FOUND", message: "Calendar not found" });
+
+      // Compute calendar-level fallback duration and sessionTime
+      let calFallbackDuration: number | null = null;
+      let calFallbackSessionTime: string | null = null;
+      if (cal.defaultStartTime && cal.defaultEndTime) {
+        calFallbackSessionTime = `${cal.defaultStartTime}\u2013${cal.defaultEndTime}`;
+        const [sh, sm] = cal.defaultStartTime.split(":").map(Number);
+        const [eh, em] = cal.defaultEndTime.split(":").map(Number);
+        const computed = (eh * 60 + em) - (sh * 60 + sm);
+        if (computed > 0) calFallbackDuration = computed;
+      }
+
+      // Fetch all plans + their linked events for this calendar
+      const rows = await db
+        .select({
+          planId: lessonPlans.id,
+          planDuration: lessonPlans.duration,
+          planSessionTime: lessonPlans.sessionTime,
+          evStartTime: schoolCalendarEvents.startTime,
+          evEndTime: schoolCalendarEvents.endTime,
+        })
+        .from(lessonPlans)
+        .innerJoin(schoolCalendarEvents, eq(lessonPlans.calendarEventId, schoolCalendarEvents.id))
+        .where(and(
+          eq(schoolCalendarEvents.calendarId, input.calendarId),
+          eq(lessonPlans.userId, ctx.user.id),
+        ));
+
+      let updated = 0;
+      for (const row of rows) {
+        let newDuration: number | null = null;
+        let newSessionTime: string | null = null;
+
+        // Prefer event-level times
+        if (row.evStartTime && row.evEndTime) {
+          newSessionTime = `${row.evStartTime}\u2013${row.evEndTime}`;
+          const [sh, sm] = row.evStartTime.split(":").map(Number);
+          const [eh, em] = row.evEndTime.split(":").map(Number);
+          const computed = (eh * 60 + em) - (sh * 60 + sm);
+          if (computed > 0) newDuration = computed;
+        } else if (calFallbackDuration !== null) {
+          // Fall back to calendar defaults
+          newDuration = calFallbackDuration;
+          newSessionTime = calFallbackSessionTime;
+        }
+
+        if (newDuration === null) continue; // nothing to update
+
+        // Only update if duration is still 60 (default) or sessionTime is blank
+        const needsUpdate = (row.planDuration === 60 || !row.planSessionTime) && newDuration !== null;
+        if (!needsUpdate) continue;
+
+        await db
+          .update(lessonPlans)
+          .set({
+            duration: newDuration,
+            ...(newSessionTime ? { sessionTime: newSessionTime } : {}),
+          })
+          .where(and(eq(lessonPlans.id, row.planId), eq(lessonPlans.userId, ctx.user.id)));
+        updated++;
+      }
+
+      return { updated };
+    }),
 });

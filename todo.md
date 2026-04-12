@@ -1961,3 +1961,13 @@
 - [x] Lesson number from calendar event is copied to lessonNumber field of Lesson Information card
 - [x] Session duration from calendar's defaultSessionTime is copied to duration field of Lesson Information card
 - [x] Lesson title from calendar event title is copied to title field of Lesson Information card
+
+## Follow-up 1: Backfill existing plans with correct duration and session time
+- [x] Add backfillPlanDurations tRPC procedure: for each plan linked to a calendar, compute duration and sessionTime from the event's start/end time (or calendar defaults), update the plan row
+- [x] Wire a "Fix durations" button in the plan sheet header (or Edit Calendar dialog) that calls backfillPlanDurations for the selected calendar
+- [x] i18n keys for button label and success toast in EN/ES/CA
+
+## Follow-up 2: Show session time label next to Duration in Lesson Information card
+- [x] SchoolCalendar plan sheet: render sessionTime as a read-only badge/label next to the Duration input in the Lesson Information card
+- [x] LessonPlanner: same read-only sessionTime label next to Duration in the Lesson Information card
+- [x] Only show the label when sessionTime is non-empty

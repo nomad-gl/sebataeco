@@ -641,6 +641,24 @@ export default function SchoolCalendar() {
     renumberPlansMutation.mutate({ calendarId: selectedCalendar.id });
   };
 
+  const backfillDurationsMutation = trpc.planner.backfillPlanDurations.useMutation({
+    onSuccess: (data) => {
+      if (data.updated === 0) {
+        toast.info(t("lp_backfill_durations_none"));
+      } else {
+        toast.success(t("lp_backfill_durations_success").replace("{n}", String(data.updated)));
+      }
+      utils.planner.getLessonPlan.invalidate();
+      utils.planner.listLessonPlans.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const handleBackfillDurations = () => {
+    if (!selectedCalendar?.id) return;
+    backfillDurationsMutation.mutate({ calendarId: selectedCalendar.id });
+  };
+
   const setPlanField = <K extends keyof LessonFormState>(key: K, value: LessonFormState[K]) => {
     setPlanForm(f => ({ ...f, [key]: value }));
     setPlanFormDirty(true);
@@ -2661,6 +2679,10 @@ export default function SchoolCalendar() {
                       <Hash className="w-3.5 h-3.5" />
                       <span className="hidden sm:inline">{t("lp_renumber_plans")}</span>
                     </Button>
+                    <Button size="sm" variant="outline" onClick={handleBackfillDurations} disabled={backfillDurationsMutation.isPending || planSheetAiGenerating} title={t("lp_backfill_durations")} className="gap-1 text-amber-700 border-amber-300 hover:bg-amber-50">
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">{t("lp_backfill_durations")}</span>
+                    </Button>
                     <Button size="sm" variant="outline" onClick={() => setShowRegenConfirm(true)} disabled={planSheetAiGenerating || savePlanMutation.isPending} className="gap-1 text-teal-700 border-teal-300 hover:bg-teal-50">
                       <Sparkles className="w-3.5 h-3.5" />
                       <span className="hidden sm:inline">{t("lp_regenerate")}</span>
@@ -2758,7 +2780,15 @@ export default function SchoolCalendar() {
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <Label className="text-xs">{t("lp_duration_min")}</Label>
-                  <Input type="number" value={planForm.duration} onChange={e => setPlanField("duration", Number(e.target.value))} min={15} max={180} step={5} className="h-8 text-sm" />
+                  <div className="flex items-center gap-2">
+                    <Input type="number" value={planForm.duration} onChange={e => setPlanField("duration", Number(e.target.value))} min={15} max={180} step={5} className="h-8 text-sm" />
+                    {planForm.sessionTime && (
+                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted border border-border rounded px-2 py-1 whitespace-nowrap">
+                        <span className="font-medium text-foreground/70">{t("lp_session_time_label")}:</span>
+                        {planForm.sessionTime}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <Label className="text-xs">{t("lp_spaces")}</Label>
