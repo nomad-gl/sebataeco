@@ -1991,3 +1991,12 @@
 
 ## Follow-up 7: Duration column in lesson plans list view
 - [x] Add Duration column to the lesson plan list/table in the plan sheet sidebar showing each plan's duration (min) at a glance
+
+## Follow-up 8: Sort-by-lesson-number toggle in Lesson Planner sidebar
+- [x] Add sort toggle button in sidebar header (default: by date/creation, alt: by lesson number ascending)
+- [x] Sort logic applied to the plans list before rendering
+
+## Follow-up 9: Total weekly teaching time in calendar week header
+- [x] Compute sum of lesson durations for the displayed week from events with startTime/endTime
+- [x] Show compact stat (e.g. "3h 42m teaching") in the week header row
+- [x] Only show when at least one lesson with time data exists in the week

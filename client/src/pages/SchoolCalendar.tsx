@@ -1605,12 +1605,31 @@ export default function SchoolCalendar() {
                       // Academic week number: use the first non-null day in the row
                       const firstDay = row.find(d => d !== null) as Date | undefined;
                       const wkNum = firstDay ? getAcademicWeek(firstDay) : null;
+                      // Total teaching minutes for this week row
+                      const weekTeachingMins = row.reduce((sum, day) => {
+                        if (!day) return sum;
+                        const key = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
+                        const dayEvs = eventsByDate[key] ?? [];
+                        return sum + dayEvs.reduce((s, ev) => {
+                          if (ev.eventType !== "lesson" && ev.eventType !== "ai_generated") return s;
+                          const dur = calcDuration(ev.startTime, ev.endTime);
+                          return s + (dur ?? 0);
+                        }, 0);
+                      }, 0);
+                      const weekTimeLabel = weekTeachingMins > 0
+                        ? weekTeachingMins >= 60
+                          ? `${Math.floor(weekTeachingMins / 60)}h${weekTeachingMins % 60 > 0 ? `${weekTeachingMins % 60}m` : ""}`
+                          : `${weekTeachingMins}m`
+                        : null;
                       return (
                         <div key={ri} className="grid gap-1 mb-1" style={{gridTemplateColumns: "2rem repeat(7, 1fr)"}}>
                           {/* Week number cell */}
-                          <div className="flex items-start justify-center pt-1">
+                          <div className="flex flex-col items-center justify-start pt-1 gap-0.5">
                             {wkNum !== null && (
                               <span className="text-[10px] font-semibold text-muted-foreground/70 leading-none">{wkNum}</span>
+                            )}
+                            {weekTimeLabel && (
+                              <span className="text-[8px] font-mono text-teal-600/70 leading-none" title={`${weekTeachingMins} min teaching this week`}>{weekTimeLabel}</span>
                             )}
                           </div>
                           {/* Day cells */}

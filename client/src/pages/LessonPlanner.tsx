@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { Plus, Sparkles, Trash2, Printer, BookOpen, Save, List, X, Copy, LayoutTemplate, FolderOpen, FileDown } from "lucide-react";
+import { Plus, Sparkles, Trash2, Printer, BookOpen, Save, List, X, Copy, LayoutTemplate, FolderOpen, FileDown, ArrowUpDown, ArrowUp01 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import LogoUploader from "@/components/LogoUploader";
 import { useI18n } from "@/contexts/I18nContext";
@@ -222,6 +222,7 @@ function PlansList({ plans, selectedId, onLoad, onNew, onAi, onDuplicate, onDele
   onBatchDelete: () => void;
   t: (k: any) => string;
 }) {
+  const [sortByLesson, setSortByLesson] = useState(false);
   const toggleSelect = (id: number) => {
     const next = new Set(selectedPlanIds);
     if (next.has(id)) next.delete(id); else next.add(id);
@@ -232,11 +233,25 @@ function PlansList({ plans, selectedId, onLoad, onNew, onAi, onDuplicate, onDele
     if (allSelected) setSelectedPlanIds(new Set());
     else setSelectedPlanIds(new Set(plans.map(p => p.id)));
   };
+  const sortedPlans = sortByLesson
+    ? [...plans].sort((a, b) => {
+        const na = a.lessonNumber ? Number(a.lessonNumber) : Infinity;
+        const nb = b.lessonNumber ? Number(b.lessonNumber) : Infinity;
+        return na - nb;
+      })
+    : plans;
   return (
     <div className="flex flex-col h-full">
       <div className="p-3 border-b flex items-center justify-between shrink-0 gap-1">
         <span className="font-semibold text-sm">{t("lp_lesson_plans")}</span>
         <div className="flex items-center gap-1">
+          <button
+            onClick={() => setSortByLesson(v => !v)}
+            title={sortByLesson ? "Sorted by lesson number" : "Sort by lesson number"}
+            className={`p-1 rounded hover:bg-accent transition-colors ${sortByLesson ? "text-teal-600 bg-teal-50" : "text-muted-foreground"}`}
+          >
+            {sortByLesson ? <ArrowUp01 className="w-3.5 h-3.5" /> : <ArrowUpDown className="w-3.5 h-3.5" />}
+          </button>
           {batchSelectMode ? (
             <>
               <Button size="sm" variant="ghost" className="text-xs px-2" onClick={() => { setBatchSelectMode(false); setSelectedPlanIds(new Set()); }}
@@ -263,7 +278,7 @@ function PlansList({ plans, selectedId, onLoad, onNew, onAi, onDuplicate, onDele
       )}
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
         {plans.length === 0 && <p className="text-xs text-muted-foreground p-2">{t("lp_no_plans")}</p>}
-        {plans.map((p: any) => (
+        {sortedPlans.map((p: any) => (
           <div key={p.id} className="group relative">
             {batchSelectMode && (
               <Checkbox
