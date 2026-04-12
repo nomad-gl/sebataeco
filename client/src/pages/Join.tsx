@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Zap, Loader2, CheckCircle2, Trophy, Users, ArrowRight, Copy, Check } from "lucide-react";
+import { Zap, Loader2, CheckCircle2, Trophy, ArrowRight, Copy, Check } from "lucide-react";
 import { useI18n } from "@/contexts/I18nContext";
 
 type Phase = "enter" | "waiting" | "question" | "paraula" | "done";
@@ -21,11 +21,9 @@ function scoreGuess(guess: string, target: string): TileState[] {
   const result: TileState[] = Array(5).fill("absent");
   const targetArr = target.split("");
   const used = Array(5).fill(false);
-  // First pass: exact matches
   for (let i = 0; i < 5; i++) {
     if (guess[i] === targetArr[i]) { result[i] = "correct" as TileState; used[i] = true; }
   }
-  // Second pass: present letters
   for (let i = 0; i < 5; i++) {
     if (result[i] === "correct") continue;
     for (let j = 0; j < 5; j++) {
@@ -46,7 +44,7 @@ function buildShareGrid(guesses: string[], states: TileState[][]): string {
 const TILE_COLORS: Record<TileState, string> = {
   empty: "bg-transparent border-white/20 text-white",
   tbd: "bg-white/10 border-white/50 text-white",
-  correct: "bg-green-500 border-green-500 text-white scale-105",
+  correct: "bg-green-500 border-green-500 text-white",
   present: "bg-yellow-500 border-yellow-500 text-white",
   absent: "bg-white/20 border-white/20 text-white/60",
 };
@@ -69,12 +67,12 @@ interface LiveParaulaGameProps {
   clue: string;
   participantId: number;
   challengeId: number;
-  roundKey: number;
   onFinish: (guesses: number, solved: boolean, states: TileState[][], guessList: string[]) => void;
 }
 
 function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: LiveParaulaGameProps) {
   const MAX_GUESSES = 6;
+  // All game state lives here — remounting via key= resets everything
   const [guesses, setGuesses] = useState<string[]>([]);
   const [states, setStates] = useState<TileState[][]>([]);
   const [current, setCurrent] = useState("");
@@ -82,7 +80,8 @@ function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: L
   const [won, setWon] = useState(false);
   const [shake, setShake] = useState(false);
   const [message, setMessage] = useState("");
-  const [revealedRow, setRevealedRow] = useState<number | null>(null); // row currently being revealed
+  // Controls whether the full-screen result overlay is visible
+  const [showOverlay, setShowOverlay] = useState(false);
   const submitted = useRef(false);
 
   const submitScore = trpc.challenge.submitParaulaScore.useMutation();
@@ -112,23 +111,24 @@ function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: L
     const newRowStates = scoreGuess(upper, word);
     const newGuesses = [...guesses, upper];
     const newStatesArr = [...states, newRowStates];
-    const rowIndex = guesses.length;
 
     setGuesses(newGuesses);
     setStates(newStatesArr);
     setCurrent("");
-    setRevealedRow(rowIndex);
-    setTimeout(() => setRevealedRow(null), 600);
 
     const solved = upper === word;
     if (solved || newGuesses.length >= MAX_GUESSES) {
       setGameOver(true);
       setWon(solved);
+      // Show overlay immediately
+      setShowOverlay(true);
       if (!submitted.current) {
         submitted.current = true;
         submitScore.mutate({ participantId, challengeId, guesses: newGuesses.length, solved });
-        // Delay transition so the player sees the result
-        setTimeout(() => onFinish(newGuesses.length, solved, newStatesArr, newGuesses), solved ? 2800 : 2000);
+        // Transition to done screen after overlay has been visible
+        setTimeout(() => {
+          onFinish(newGuesses.length, solved, newStatesArr, newGuesses);
+        }, solved ? 3000 : 2500);
       }
     }
   }, [current, guesses, states, word, gameOver, participantId, challengeId, onFinish, submitScore]);
@@ -136,7 +136,12 @@ function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: L
   const handleKey = useCallback((key: string) => {
     if (gameOver) return;
     if (key === "ENTER") {
-      if (current.length < 5) { setShake(true); setTimeout(() => setShake(false), 600); showMessage("5 letters needed"); return; }
+      if (current.length < 5) {
+        setShake(true);
+        setTimeout(() => setShake(false), 600);
+        showMessage("5 letters needed");
+        return;
+      }
       submitGuess();
     } else if (key === "⌫" || key === "BACKSPACE") {
       setCurrent((c) => c.slice(0, -1));
@@ -160,8 +165,11 @@ function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: L
     const guess = guesses[i] ?? "";
     const rowStates = states[i] ?? Array(5).fill("empty" as TileState);
     const isCurrent = i === guesses.length && !gameOver;
-    const isRevealing = i === revealedRow;
-    return { guess: isCurrent ? current : guess, rowStates: isCurrent ? Array(5).fill("tbd" as TileState) : rowStates, isCurrent, isRevealing };
+    return {
+      guess: isCurrent ? current : guess,
+      rowStates: isCurrent ? Array(5).fill("tbd" as TileState) : rowStates,
+      isCurrent,
+    };
   });
 
   return (
@@ -179,39 +187,41 @@ function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: L
         </div>
       )}
 
-      {/* Win celebration overlay — shown inside the game area */}
-      {gameOver && won && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-2xl bg-black/60 backdrop-blur-sm animate-in fade-in duration-500">
-          <div className="text-6xl animate-bounce">🎉</div>
-          <h3 className="text-3xl font-black text-green-300 tracking-widest">{word}</h3>
-          <p className="text-white/80 font-semibold text-lg">
-            Solved in {guesses.length} {guesses.length === 1 ? "guess" : "guesses"}!
-          </p>
-          <div className="flex gap-1 text-2xl">
-            {states[guesses.length - 1]?.map((s, i) => (
-              <span key={i}>{s === "correct" ? "🟩" : s === "present" ? "🟨" : "⬛"}</span>
-            ))}
-          </div>
-          <p className="text-white/40 text-xs animate-pulse mt-1">Submitting score…</p>
+      {/* Full-screen result overlay — covers the entire viewport so grid is hidden */}
+      {showOverlay && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/85 backdrop-blur-md">
+          {won ? (
+            <>
+              <div className="text-7xl animate-bounce">🎉</div>
+              <h3 className="text-4xl font-black text-green-300 tracking-widest">{word}</h3>
+              <p className="text-white/80 font-semibold text-xl">
+                Solved in {guesses.length} {guesses.length === 1 ? "guess" : "guesses"}!
+              </p>
+              {/* Winning row emoji */}
+              <div className="flex gap-1 text-3xl">
+                {states[guesses.length - 1]?.map((s, i) => (
+                  <span key={i}>{s === "correct" ? "🟩" : s === "present" ? "🟨" : "⬛"}</span>
+                ))}
+              </div>
+              <p className="text-white/40 text-sm animate-pulse mt-2">Submitting score…</p>
+            </>
+          ) : (
+            <>
+              <div className="text-6xl">😔</div>
+              <p className="text-white/60 text-sm uppercase tracking-widest">The word was</p>
+              <h3 className="text-5xl font-black text-red-300 tracking-widest">{word}</h3>
+              <p className="text-white/40 text-sm animate-pulse mt-2">Submitting score…</p>
+            </>
+          )}
         </div>
       )}
 
-      {/* Loss overlay */}
-      {gameOver && !won && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-2xl bg-black/60 backdrop-blur-sm animate-in fade-in duration-500">
-          <div className="text-5xl">😔</div>
-          <p className="text-white/60 text-sm uppercase tracking-widest">The word was</p>
-          <h3 className="text-4xl font-black text-red-300 tracking-widest">{word}</h3>
-          <p className="text-white/40 text-xs animate-pulse mt-1">Submitting score…</p>
-        </div>
-      )}
-
-      {/* Grid — responsive tile size */}
-      <div className="flex flex-col gap-1 sm:gap-1.5">
+      {/* Grid — hidden behind overlay when game is over */}
+      <div className={`flex flex-col gap-1 sm:gap-1.5 transition-opacity duration-300 ${showOverlay ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
         {rows.map((row, ri) => (
           <div
             key={ri}
-            className={`flex gap-1 sm:gap-1.5 ${shake && ri === guesses.length ? "animate-[shake_0.5s_ease-in-out]" : ""} ${row.isRevealing ? "animate-[flipIn_0.4s_ease-in-out]" : ""}`}
+            className={`flex gap-1 sm:gap-1.5 ${shake && ri === guesses.length ? "animate-[shake_0.5s_ease-in-out]" : ""}`}
           >
             {Array.from({ length: 5 }, (_, ci) => {
               const letter = row.guess[ci] ?? "";
@@ -229,8 +239,8 @@ function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: L
         ))}
       </div>
 
-      {/* Keyboard — responsive key size */}
-      <div className="flex flex-col gap-1 sm:gap-1.5 w-full max-w-xs">
+      {/* Keyboard — hidden when overlay is showing */}
+      <div className={`flex flex-col gap-1 sm:gap-1.5 w-full max-w-xs transition-opacity duration-300 ${showOverlay ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
         {CATALAN_KEYS.map((row, ri) => (
           <div key={ri} className="flex justify-center gap-0.5 sm:gap-1">
             {row.map((key) => {
@@ -278,7 +288,7 @@ export default function Join() {
   const [paraulaGuesses, setParaulaGuesses] = useState(0);
   const [paraulaSolved, setParaulaSolved] = useState(false);
   const [paraulaShareGrid, setParaulaShareGrid] = useState("");
-  // roundKey is used as React key on LiveParaulaGame to force full unmount/remount
+  // roundKey is used as React key on LiveParaulaGame to force full unmount/remount on new round
   const [paraulaRoundKey, setParaulaRoundKey] = useState(0);
   const [paraulaRound, setParaulaRound] = useState(1);
   const [waitingNextRound, setWaitingNextRound] = useState(false);
@@ -373,12 +383,12 @@ export default function Join() {
           setGameStarting(true);
           setTimeout(() => {
             setGameStarting(false);
+            // Increment key to force full remount of LiveParaulaGame
             setParaulaRoundKey((k) => k + 1);
             setPhase("paraula");
           }, 1200);
         } else if (phase === "done" || phase === "paraula") {
           // New round after student finished or teacher advanced
-          setParaulaRoundKey((k) => k + 1);
           setParaulaRound((r) => r + 1);
           setParaulaGuesses(0);
           setParaulaSolved(false);
@@ -386,6 +396,8 @@ export default function Join() {
           setGameStarting(true);
           setTimeout(() => {
             setGameStarting(false);
+            // Increment key to force full remount — this is the critical reset
+            setParaulaRoundKey((k) => k + 1);
             setPhase("paraula");
           }, 1200);
         }
@@ -507,7 +519,12 @@ export default function Join() {
               <Label className="text-white/80">{t("join_room_code")}</Label>
               <Input
                 value={code}
-                onChange={(e) => { setCode(e.target.value.toUpperCase()); setChallengeId(null); setLookupCode(""); setIsParaulaRoom(false); }}
+                onChange={(e) => {
+                  setCode(e.target.value.toUpperCase());
+                  setChallengeId(null);
+                  setLookupCode("");
+                  setIsParaulaRoom(false);
+                }}
                 placeholder="e.g. ABC123"
                 maxLength={6}
                 className="bg-white/10 border-white/20 text-white placeholder:text-white/40 text-center text-3xl font-mono tracking-widest uppercase h-14"
@@ -548,54 +565,49 @@ export default function Join() {
                     className="bg-white/10 border-white/20 text-white placeholder:text-white/40 h-11"
                     onKeyDown={(e) => e.key === "Enter" && handleJoin()}
                     autoFocus
-                    maxLength={24}
                   />
-                  <p className="text-white/40 text-xs">This is the name your classmates will see on the leaderboard.</p>
                 </div>
 
                 <Button
-                  className="w-full bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold h-11"
+                  className={`w-full font-bold h-11 ${
+                    isParaulaRoom
+                      ? "bg-orange-500 hover:bg-orange-400 text-white"
+                      : "bg-yellow-400 hover:bg-yellow-300 text-gray-900"
+                  }`}
                   disabled={!name.trim() || joinMutation.isPending}
                   onClick={handleJoin}
                 >
                   {joinMutation.isPending
                     ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Joining…</>
-                    : <><Zap className="w-4 h-4 mr-2" />{t("join_join_now")}</>}
+                    : <>{t("join_join_now")} <ArrowRight className="w-4 h-4 ml-2" /></>}
                 </Button>
               </>
             )}
 
-            {(lookupError || joinMutation.isError) && (
-              <p className="text-red-300 text-sm text-center bg-red-400/10 border border-red-400/20 rounded-lg p-2">
-                {lookupError ? t("join_not_found") : t("join_error")}
-              </p>
+            {lookupError && (
+              <p className="text-red-400 text-sm text-center">{t("join_not_found")}</p>
             )}
           </CardContent>
         </Card>
+
+        <div className="absolute bottom-4 text-white/20 text-xs">Powered by SEBA</div>
       </div>
     );
   }
 
-  // ── Waiting ───────────────────────────────────────────────────────────────
+  // ── Waiting lobby ─────────────────────────────────────────────────────────
   if (phase === "waiting") {
     return (
       <div className="challenge-bg min-h-screen flex items-center justify-center p-4">
-        {/* SEBA logo */}
-        <div className="absolute top-4 left-4 flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl bg-yellow-400/20 border border-yellow-400/40 flex items-center justify-center">
-            <Zap className="w-5 h-5 text-yellow-300" />
-          </div>
-          <span className="text-white font-heading font-bold text-lg">SEBA</span>
-        </div>
-
         <div className="text-center text-white space-y-6 max-w-sm w-full">
-          <div className="relative mx-auto w-24 h-24">
-            <div className="absolute inset-0 rounded-full bg-yellow-400/10 border-2 border-yellow-400/20 animate-ping" />
-            <div className="relative w-24 h-24 rounded-full bg-yellow-400/20 border-2 border-yellow-400/40 flex items-center justify-center">
-              {isParaulaRoom
-                ? <span className="text-4xl font-black text-orange-300">P</span>
-                : <Users className="w-10 h-10 text-yellow-300" />}
-            </div>
+          <div className={`w-20 h-20 rounded-full border-4 flex items-center justify-center mx-auto ${
+            isParaulaRoom
+              ? "bg-orange-400/20 border-orange-400/60"
+              : "bg-yellow-400/20 border-yellow-400/60"
+          }`}>
+            {isParaulaRoom
+              ? <span className="text-3xl font-black text-orange-300">P</span>
+              : <Zap className="w-10 h-10 text-yellow-300" />}
           </div>
 
           <div className="space-y-1">
@@ -654,7 +666,7 @@ export default function Join() {
           </div>
         </div>
 
-        {/* Game area — scrollable on very small screens */}
+        {/* Game area */}
         <div className="flex-1 overflow-y-auto flex flex-col items-center justify-start gap-3 px-3 py-3">
           {waitingNextRound ? (
             <div className="flex flex-col items-center justify-center gap-4 py-12 text-center text-white">
@@ -669,7 +681,6 @@ export default function Join() {
               clue={paraulaClue}
               participantId={participantId}
               challengeId={challengeId}
-              roundKey={paraulaRoundKey}
               onFinish={handleParaulaFinish}
             />
           )}
@@ -853,66 +864,42 @@ export default function Join() {
           {/* Leaderboard */}
           {sorted.length > 0 && (
             <div className="space-y-2 text-left">
-              <p className="text-white/60 text-xs uppercase tracking-wide font-semibold">{t("join_leaderboard")}</p>
+              <p className="text-white/50 text-xs uppercase tracking-widest font-semibold flex items-center gap-1">
+                <Trophy className="w-3 h-3" /> Leaderboard
+              </p>
               {sorted.slice(0, 5).map((p, i) => (
                 <div
                   key={p.id}
-                  className={`flex items-center gap-3 rounded-xl p-3 ${
+                  className={`flex items-center justify-between rounded-xl px-3 py-2 ${
                     p.id === participantId
                       ? "bg-yellow-400/20 border border-yellow-400/40"
-                      : "bg-white/5"
+                      : "bg-white/5 border border-white/10"
                   }`}
                 >
-                  <span className="text-xl w-7 text-center">
-                    {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}
-                  </span>
-                  <span className="flex-1 text-sm font-medium">{p.nickname}</span>
-                  {isParaulaRoom ? (
-                    <span className="font-bold text-orange-300 text-sm">
-                      {p.score > 0 ? `${p.score} guess${p.score !== 1 ? "es" : ""}` : "—"}
+                  <div className="flex items-center gap-2">
+                    <span className="text-white/40 font-mono text-sm w-5">#{i + 1}</span>
+                    <span className={`font-semibold text-sm ${p.id === participantId ? "text-yellow-300" : "text-white"}`}>
+                      {p.nickname}
                     </span>
-                  ) : (
-                    <span className="font-bold text-yellow-300">{p.score} pts</span>
-                  )}
+                  </div>
+                  <span className="text-white/60 text-sm font-mono">
+                    {isParaulaRoom ? `${p.score} guess${p.score !== 1 ? "es" : ""}` : `${p.score} pts`}
+                  </span>
                 </div>
               ))}
             </div>
           )}
 
-          <Button
-            className="w-full bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold"
-            onClick={() => {
-              setPhase("enter");
-              setChallengeId(null);
-              setParticipantId(null);
-              setCode("");
-              setName("");
-              setLastScore(0);
-              setLookupCode("");
-              setIsParaulaRoom(false);
-              setParaulaWord("");
-              setParaulaClue("");
-              setParaulaGuesses(0);
-              setParaulaSolved(false);
-              setParaulaShareGrid("");
-              setParaulaRound(1);
-              setParaulaRoundKey(0);
-              setWaitingNextRound(false);
-              lastWordRef.current = "";
-              lastParaulaStatusRef.current = "";
-            }}
-          >
-            {t("join_play_again")}
-          </Button>
+          <p className="text-white/20 text-xs">Powered by SEBA</p>
         </div>
       </div>
     );
   }
 
-  // Fallback spinner
+  // Fallback
   return (
     <div className="challenge-bg min-h-screen flex items-center justify-center">
-      <Loader2 className="w-8 h-8 animate-spin text-white/50" />
+      <Loader2 className="w-8 h-8 animate-spin text-white/40" />
     </div>
   );
 }

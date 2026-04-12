@@ -1478,3 +1478,7 @@
 - [x] No visual indication when the correct word is guessed (win state not shown)
 - [x] Winning row should animate/highlight green and show a celebration message
 - [x] After winning, show emoji share grid and "Waiting for next round" state
+
+## Bug: PARAULA grid does not reset after correct answer is entered
+- [x] Grid tiles and keyboard persist after the correct word is guessed within the same round
+- [x] Fix so that entering the correct answer shows the win overlay then clears the board for re-play or next round
