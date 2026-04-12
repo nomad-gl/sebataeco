@@ -1482,3 +1482,28 @@
 ## Bug: PARAULA grid does not reset after correct answer is entered
 - [x] Grid tiles and keyboard persist after the correct word is guessed within the same round
 - [x] Fix so that entering the correct answer shows the win overlay then clears the board for re-play or next round
+
+## Feature: PARAULA tile flip animation
+- [x] Add CSS keyframe animation for tile reveal (rotateX flip) in index.css
+- [x] Stagger tile flip per column (col 0 = 0ms, col 1 = 100ms, col 2 = 200ms, col 3 = 300ms, col 4 = 400ms)
+- [x] Show tile colour only after flip completes (start grey, reveal green/yellow/grey on flip)
+- [x] Add pop animation when typing a letter into a tile
+
+## Feature: PARAULA word length validation in teacher word-picker
+- [x] In Challenge.tsx word-picker dialog, check each word's length
+- [x] Show a red warning badge next to any word that is not exactly 5 letters
+- [x] Disable the "Start Round" button if the selected word is not 5 letters
+- [x] Show tooltip explaining the 5-letter requirement
+
+## Feature: PARAULA Web Audio sound effects
+- [x] Play a soft chime when a guess row is submitted (correct or not)
+- [x] Play a fanfare/win sound when the correct word is guessed
+- [x] Play a low tone when all guesses are used without solving
+- [x] Use Web Audio API only (no external files or dependencies)
+- [x] Respect user preference: add a mute toggle button in the game header
+
+## Bug: PARAULA clue label and game strings do not change language
+- [x] "Clue" label in LiveParaulaGame is hardcoded English — use t() for i18n
+- [x] "5 letters needed", "Submitting score…", "The word was", "Solved in X guesses" are all hardcoded — translate all
+- [x] Mute button tooltip "Mute sounds" / "Unmute sounds" should use t()
+- [x] Add missing i18n keys for all PARAULA game strings in EN, ES, CA

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Zap, Loader2, CheckCircle2, Trophy, ArrowRight, Copy, Check } from "lucide-react";
+import { Zap, Loader2, CheckCircle2, Trophy, ArrowRight, Copy, Check, Volume2, VolumeX } from "lucide-react";
 import { useI18n } from "@/contexts/I18nContext";
 
 type Phase = "enter" | "waiting" | "question" | "paraula" | "done";
@@ -62,6 +62,53 @@ const CATALAN_KEYS = [
   ["ENTER","Z","X","C","V","B","N","M","⌫"],
 ];
 
+// ─── Web Audio sound effects ───────────────────────────────────────────────
+function useParaulaAudio(muted: boolean) {
+  const ctx = useRef<AudioContext | null>(null);
+  const getCtx = () => {
+    if (!ctx.current) ctx.current = new AudioContext();
+    return ctx.current;
+  };
+
+  const playTone = (freq: number, type: OscillatorType, duration: number, gain = 0.18, delay = 0) => {
+    if (muted) return;
+    try {
+      const ac = getCtx();
+      const osc = ac.createOscillator();
+      const gainNode = ac.createGain();
+      osc.connect(gainNode);
+      gainNode.connect(ac.destination);
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, ac.currentTime + delay);
+      gainNode.gain.setValueAtTime(0, ac.currentTime + delay);
+      gainNode.gain.linearRampToValueAtTime(gain, ac.currentTime + delay + 0.01);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + delay + duration);
+      osc.start(ac.currentTime + delay);
+      osc.stop(ac.currentTime + delay + duration + 0.05);
+    } catch { /* ignore */ }
+  };
+
+  const playGuessChime = () => {
+    // Soft two-note chime
+    playTone(440, "sine", 0.15, 0.12);
+    playTone(660, "sine", 0.12, 0.08, 0.1);
+  };
+
+  const playWinFanfare = () => {
+    // Ascending arpeggio
+    const notes = [523, 659, 784, 1047];
+    notes.forEach((f, i) => playTone(f, "triangle", 0.25, 0.2, i * 0.12));
+  };
+
+  const playLossTone = () => {
+    // Descending low tone
+    playTone(220, "sawtooth", 0.4, 0.15);
+    playTone(180, "sawtooth", 0.4, 0.12, 0.2);
+  };
+
+  return { playGuessChime, playWinFanfare, playLossTone };
+}
+
 interface LiveParaulaGameProps {
   word: string;
   clue: string;
@@ -71,6 +118,7 @@ interface LiveParaulaGameProps {
 }
 
 function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: LiveParaulaGameProps) {
+  const { t } = useI18n();
   const MAX_GUESSES = 6;
   // All game state lives here — remounting via key= resets everything
   const [guesses, setGuesses] = useState<string[]>([]);
@@ -82,9 +130,18 @@ function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: L
   const [message, setMessage] = useState("");
   // Controls whether the full-screen result overlay is visible
   const [showOverlay, setShowOverlay] = useState(false);
+  // Track which row is currently being revealed (for flip animation)
+  const [revealingRow, setRevealingRow] = useState<number | null>(null);
+  // Track which row won (for bounce animation)
+  const [bounceRow, setBounceRow] = useState<number | null>(null);
+  // Track pop animation per tile position in current row
+  const [popCol, setPopCol] = useState<number | null>(null);
+  // Mute toggle
+  const [muted, setMuted] = useState(false);
   const submitted = useRef(false);
 
   const submitScore = trpc.challenge.submitParaulaScore.useMutation();
+  const { playGuessChime, playWinFanfare, playLossTone } = useParaulaAudio(muted);
 
   // Build keyboard letter state from committed guesses
   const letterState: Record<string, string> = {};
@@ -111,25 +168,54 @@ function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: L
     const newRowStates = scoreGuess(upper, word);
     const newGuesses = [...guesses, upper];
     const newStatesArr = [...states, newRowStates];
+    const rowIndex = guesses.length;
 
     setGuesses(newGuesses);
     setStates(newStatesArr);
     setCurrent("");
+    // Trigger flip animation on the submitted row
+    setRevealingRow(rowIndex);
+    // Play guess chime after the first tile flips
+    setTimeout(() => playGuessChime(), 200);
 
     const solved = upper === word;
+    const FLIP_DURATION = 500; // ms per tile
+    const LAST_TILE_DELAY = 4 * 100; // 4th column stagger
+    const totalFlipTime = FLIP_DURATION + LAST_TILE_DELAY; // ~900ms
+
     if (solved || newGuesses.length >= MAX_GUESSES) {
-      setGameOver(true);
-      setWon(solved);
-      // Show overlay immediately
-      setShowOverlay(true);
-      if (!submitted.current) {
-        submitted.current = true;
-        submitScore.mutate({ participantId, challengeId, guesses: newGuesses.length, solved });
-        // Transition to done screen after overlay has been visible
-        setTimeout(() => {
-          onFinish(newGuesses.length, solved, newStatesArr, newGuesses);
-        }, solved ? 3000 : 2500);
-      }
+      // Wait for flip to finish, then bounce (if won) then show overlay
+      setTimeout(() => {
+        setRevealingRow(null);
+        if (solved) {
+          setBounceRow(rowIndex);
+          playWinFanfare();
+          setTimeout(() => {
+            setBounceRow(null);
+            setGameOver(true);
+            setWon(true);
+            setShowOverlay(true);
+            if (!submitted.current) {
+              submitted.current = true;
+              submitScore.mutate({ participantId, challengeId, guesses: newGuesses.length, solved: true });
+              setTimeout(() => onFinish(newGuesses.length, true, newStatesArr, newGuesses), 3000);
+            }
+          }, 650);
+        } else {
+          playLossTone();
+          setGameOver(true);
+          setWon(false);
+          setShowOverlay(true);
+          if (!submitted.current) {
+            submitted.current = true;
+            submitScore.mutate({ participantId, challengeId, guesses: newGuesses.length, solved: false });
+            setTimeout(() => onFinish(newGuesses.length, false, newStatesArr, newGuesses), 2500);
+          }
+        }
+      }, totalFlipTime + 50);
+    } else {
+      // Just clear the revealing state after flip completes
+      setTimeout(() => setRevealingRow(null), totalFlipTime + 50);
     }
   }, [current, guesses, states, word, gameOver, participantId, challengeId, onFinish, submitScore]);
 
@@ -139,14 +225,18 @@ function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: L
       if (current.length < 5) {
         setShake(true);
         setTimeout(() => setShake(false), 600);
-        showMessage("5 letters needed");
+        showMessage(t("paraula_need_5_letters"));
         return;
       }
       submitGuess();
     } else if (key === "⌫" || key === "BACKSPACE") {
       setCurrent((c) => c.slice(0, -1));
     } else if (ALPHABET.includes(key) || key === "Ç") {
-      if (current.length < 5) setCurrent((c) => c + key);
+      if (current.length < 5) {
+        setCurrent((c) => c + key);
+        setPopCol(current.length); // pop the tile being filled
+        setTimeout(() => setPopCol(null), 120);
+      }
     }
   }, [current, gameOver, submitGuess]);
 
@@ -174,10 +264,19 @@ function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: L
 
   return (
     <div className="flex flex-col items-center gap-3 w-full relative">
-      {/* Clue */}
-      <div className="bg-orange-500/20 border border-orange-400/40 rounded-xl px-4 py-2 text-center w-full max-w-xs">
-        <p className="text-orange-200 text-xs uppercase tracking-widest font-semibold mb-0.5">Clue</p>
-        <p className="text-white font-medium text-sm">{clue}</p>
+      {/* Clue + mute toggle */}
+      <div className="flex items-center gap-2 w-full max-w-xs">
+        <div className="bg-orange-500/20 border border-orange-400/40 rounded-xl px-4 py-2 text-center flex-1">
+          <p className="text-orange-200 text-xs uppercase tracking-widest font-semibold mb-0.5">{t("paraula_clue_label")}</p>
+          <p className="text-white font-medium text-sm">{clue}</p>
+        </div>
+        <button
+          onClick={() => setMuted((m) => !m)}
+          className="shrink-0 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 hover:text-white transition-colors"
+          title={muted ? t("paraula_unmute") : t("paraula_mute")}
+        >
+          {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+        </button>
       </div>
 
       {/* Message toast */}
@@ -195,7 +294,7 @@ function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: L
               <div className="text-7xl animate-bounce">🎉</div>
               <h3 className="text-4xl font-black text-green-300 tracking-widest">{word}</h3>
               <p className="text-white/80 font-semibold text-xl">
-                Solved in {guesses.length} {guesses.length === 1 ? "guess" : "guesses"}!
+                {t("paraula_solved_in")} {guesses.length} {guesses.length === 1 ? t("paraula_guess") : t("paraula_guesses")}!
               </p>
               {/* Winning row emoji */}
               <div className="flex gap-1 text-3xl">
@@ -203,14 +302,14 @@ function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: L
                   <span key={i}>{s === "correct" ? "🟩" : s === "present" ? "🟨" : "⬛"}</span>
                 ))}
               </div>
-              <p className="text-white/40 text-sm animate-pulse mt-2">Submitting score…</p>
+              <p className="text-white/40 text-sm animate-pulse mt-2">{t("paraula_submitting")}</p>
             </>
           ) : (
             <>
               <div className="text-6xl">😔</div>
-              <p className="text-white/60 text-sm uppercase tracking-widest">The word was</p>
+              <p className="text-white/60 text-sm uppercase tracking-widest">{t("paraula_the_word_was")}</p>
               <h3 className="text-5xl font-black text-red-300 tracking-widest">{word}</h3>
-              <p className="text-white/40 text-sm animate-pulse mt-2">Submitting score…</p>
+              <p className="text-white/40 text-sm animate-pulse mt-2">{t("paraula_submitting")}</p>
             </>
           )}
         </div>
@@ -218,25 +317,47 @@ function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: L
 
       {/* Grid — hidden behind overlay when game is over */}
       <div className={`flex flex-col gap-1 sm:gap-1.5 transition-opacity duration-300 ${showOverlay ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
-        {rows.map((row, ri) => (
-          <div
-            key={ri}
-            className={`flex gap-1 sm:gap-1.5 ${shake && ri === guesses.length ? "animate-[shake_0.5s_ease-in-out]" : ""}`}
-          >
-            {Array.from({ length: 5 }, (_, ci) => {
-              const letter = row.guess[ci] ?? "";
-              const state: TileState = letter ? row.rowStates[ci] : "empty";
-              return (
-                <div
-                  key={ci}
-                  className={`w-10 h-10 sm:w-12 sm:h-12 border-2 rounded-lg flex items-center justify-center text-lg sm:text-xl font-black uppercase transition-all duration-300 ${TILE_COLORS[state]}`}
-                >
-                  {letter}
-                </div>
-              );
-            })}
-          </div>
-        ))}
+        {rows.map((row, ri) => {
+          const isRevealingThisRow = revealingRow === ri;
+          const isBouncing = bounceRow === ri;
+          const isShaking = shake && ri === guesses.length;
+          return (
+            <div
+              key={ri}
+              className={`flex gap-1 sm:gap-1.5 ${isShaking ? "paraula-row-shake" : ""} ${isBouncing ? "paraula-row-bounce" : ""}`}
+            >
+              {Array.from({ length: 5 }, (_, ci) => {
+                const letter = row.guess[ci] ?? "";
+                // For a revealing row, show grey until the flip is past halfway
+                // We achieve this by keeping the tile "tbd" colour during flip,
+                // and the CSS animation handles the visual swap via delay
+                const isFlipping = isRevealingThisRow;
+                const revealDelay = ci * 100; // stagger: 0, 100, 200, 300, 400 ms
+                const state: TileState = letter ? row.rowStates[ci] : "empty";
+                // During flip, show tbd colour on front, real colour revealed after
+                const displayState = isFlipping ? "tbd" : state;
+                const isCurrentRowTile = row.isCurrent && ci === current.length - 1 && popCol === ci;
+                return (
+                  <div
+                    key={ci}
+                    style={isFlipping ? {
+                      animationDelay: `${revealDelay}ms`,
+                      // After flip completes, switch to real colour
+                      // We use a CSS custom property trick via inline style
+                    } : {}}
+                    className={[
+                      "w-10 h-10 sm:w-12 sm:h-12 border-2 rounded-lg flex items-center justify-center text-lg sm:text-xl font-black uppercase select-none",
+                      isFlipping ? `paraula-tile-flip ${TILE_COLORS[state]}` : `transition-colors duration-100 ${TILE_COLORS[displayState]}`,
+                      isCurrentRowTile ? "paraula-tile-pop" : "",
+                    ].join(" ")}
+                  >
+                    {letter}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
       </div>
 
       {/* Keyboard — hidden when overlay is showing */}
@@ -671,8 +792,8 @@ export default function Join() {
           {waitingNextRound ? (
             <div className="flex flex-col items-center justify-center gap-4 py-12 text-center text-white">
               <Loader2 className="w-10 h-10 animate-spin text-orange-300" />
-              <p className="text-lg font-bold text-orange-200">Waiting for next round…</p>
-              <p className="text-white/50 text-sm">The teacher is preparing the next word.</p>
+              <p className="text-lg font-bold text-orange-200">{t("paraula_waiting_next_round")}</p>
+              <p className="text-white/50 text-sm">{t("paraula_the_word_was")}</p>
             </div>
           ) : (
             <LiveParaulaGame
@@ -848,7 +969,7 @@ export default function Join() {
                 className="w-full bg-white/10 border-white/20 text-white hover:bg-white/20 gap-2"
                 onClick={handleCopyShare}
               >
-                {copied ? <><Check className="w-4 h-4 text-green-400" /> Copied!</> : <><Copy className="w-4 h-4" /> Copy result</>}
+                {copied ? <><Check className="w-4 h-4 text-green-400" /> {t("paraula_copied")}</> : <><Copy className="w-4 h-4" /> {t("paraula_copy_result")}</>}
               </Button>
             </div>
           )}
@@ -857,7 +978,7 @@ export default function Join() {
           {isParaulaRoom && paraulaRoom?.status === "waiting" && (
             <div className="bg-orange-500/10 border border-orange-400/20 rounded-xl p-3 flex items-center gap-2 justify-center">
               <Loader2 className="w-4 h-4 animate-spin text-orange-300" />
-              <p className="text-orange-300 text-sm font-medium">Waiting for next round…</p>
+              <p className="text-orange-300 text-sm font-medium">{t("paraula_waiting_next_round")}</p>
             </div>
           )}
 

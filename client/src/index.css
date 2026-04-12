@@ -320,3 +320,58 @@
     background: white !important;
   }
 }
+
+/* ── PARAULA game animations ─────────────────────────────────────────────── */
+
+/* Tile flip reveal: tile rotates on X-axis, colour shown after halfway */
+@keyframes paraula-flip {
+  0%   { transform: rotateX(0deg);   }
+  45%  { transform: rotateX(-90deg); }
+  55%  { transform: rotateX(-90deg); }
+  100% { transform: rotateX(0deg);   }
+}
+
+/* Letter pop when typed into a tile */
+@keyframes paraula-pop {
+  0%   { transform: scale(1);    }
+  40%  { transform: scale(1.12); }
+  100% { transform: scale(1);    }
+}
+
+/* Row shake on invalid (too short) guess */
+@keyframes paraula-shake {
+  0%, 100% { transform: translateX(0);    }
+  15%       { transform: translateX(-6px); }
+  30%       { transform: translateX(6px);  }
+  45%       { transform: translateX(-5px); }
+  60%       { transform: translateX(5px);  }
+  75%       { transform: translateX(-3px); }
+  90%       { transform: translateX(3px);  }
+}
+
+/* Win bounce for the winning row */
+@keyframes paraula-bounce {
+  0%, 100% { transform: translateY(0);    }
+  20%       { transform: translateY(-8px); }
+  40%       { transform: translateY(-4px); }
+  60%       { transform: translateY(-6px); }
+  80%       { transform: translateY(-2px); }
+}
+
+.paraula-tile-flip {
+  animation: paraula-flip 0.5s ease-in-out forwards;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+}
+
+.paraula-tile-pop {
+  animation: paraula-pop 0.1s ease-in-out;
+}
+
+.paraula-row-shake {
+  animation: paraula-shake 0.5s ease-in-out;
+}
+
+.paraula-row-bounce {
+  animation: paraula-bounce 0.6s ease-in-out;
+}

@@ -944,22 +944,41 @@ export default function Challenge() {
                 </DialogHeader>
                 <p className="text-white/60 text-sm">Pick the next word for students to guess.</p>
                 {materialWords.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-1.5 max-h-52 overflow-y-auto pr-1">
-                    {materialWords.map((p, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setNextWordIdx(i)}
-                        className={`flex flex-col items-start p-2 rounded-lg border text-left transition-colors ${
-                          nextWordIdx === i
-                            ? "border-orange-500 bg-orange-500/10"
-                            : "border-white/20 hover:border-orange-400"
-                        }`}
-                      >
-                        <span className="font-mono font-bold text-orange-300 text-sm tracking-wider">{p.word}</span>
-                        <span className="text-xs text-white/50 truncate w-full">{p.clue}</span>
-                      </button>
-                    ))}
-                  </div>
+                  <>
+                    <div className="grid grid-cols-2 gap-1.5 max-h-52 overflow-y-auto pr-1">
+                      {materialWords.map((p, i) => {
+                        const isValid = p.word.replace(/\s/g, "").length === 5;
+                        return (
+                          <button
+                            key={i}
+                            onClick={() => setNextWordIdx(i)}
+                            className={`flex flex-col items-start p-2 rounded-lg border text-left transition-colors ${
+                              nextWordIdx === i
+                                ? "border-orange-500 bg-orange-500/10"
+                                : isValid
+                                  ? "border-white/20 hover:border-orange-400"
+                                  : "border-red-500/40 hover:border-red-400 opacity-70"
+                            }`}
+                          >
+                            <div className="flex items-center gap-1.5 w-full">
+                              <span className="font-mono font-bold text-orange-300 text-sm tracking-wider">{p.word}</span>
+                              {!isValid && (
+                                <span className="ml-auto text-[10px] bg-red-500/20 text-red-400 border border-red-500/40 rounded px-1 py-0.5 font-semibold shrink-0">
+                                  {p.word.replace(/\s/g, "").length}L
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-xs text-white/50 truncate w-full">{p.clue}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {materialWords[nextWordIdx] && materialWords[nextWordIdx].word.replace(/\s/g, "").length !== 5 && (
+                      <p className="text-red-400 text-xs text-center bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
+                        ⚠️ "{materialWords[nextWordIdx].word}" is {materialWords[nextWordIdx].word.replace(/\s/g, "").length} letters. PARAULA requires exactly 5 letters.
+                      </p>
+                    )}
+                  </>
                 ) : (
                   <p className="text-white/40 text-sm text-center py-4">Loading word list…</p>
                 )}
@@ -968,8 +987,17 @@ export default function Challenge() {
                     Cancel
                   </Button>
                   <Button
-                    className="bg-purple-600 hover:bg-purple-500 text-white"
-                    disabled={nextParaulaRoundMutation.isPending || materialWords.length === 0}
+                    className="bg-purple-600 hover:bg-purple-500 text-white disabled:opacity-40"
+                    disabled={
+                      nextParaulaRoundMutation.isPending ||
+                      materialWords.length === 0 ||
+                      (materialWords[nextWordIdx]?.word.replace(/\s/g, "").length ?? 0) !== 5
+                    }
+                    title={
+                      (materialWords[nextWordIdx]?.word.replace(/\s/g, "").length ?? 0) !== 5
+                        ? "Selected word must be exactly 5 letters"
+                        : undefined
+                    }
                     onClick={() => nextParaulaRoundMutation.mutate({ challengeId: roomId, wordIndex: nextWordIdx })}
                   >
                     {nextParaulaRoundMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Play className="w-4 h-4 mr-2" />}
