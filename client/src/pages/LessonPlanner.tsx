@@ -282,9 +282,12 @@ function PlansList({ plans, selectedId, onLoad, onNew, onAi, onDuplicate, onDele
                     L{p.lessonNumber}
                   </span>
                 )}
-                <span className="truncate">{p.title || t("lp_untitled")}</span>
+                <span className="truncate flex-1">{p.title || t("lp_untitled")}</span>
+                {p.duration && p.duration !== 60 && (
+                  <span className="shrink-0 text-[10px] font-mono text-muted-foreground bg-muted px-1 py-0.5 rounded">{p.duration}m</span>
+                )}
               </div>
-              <div className="text-xs text-muted-foreground truncate">{p.subject} · {p.yearGroup}</div>
+              <div className="text-xs text-muted-foreground truncate">{p.subject} · {p.yearGroup}{p.sessionTime ? ` · ${p.sessionTime}` : ""}</div>
             </button>
             {!batchSelectMode && (
               <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -529,7 +532,19 @@ export default function LessonPlanner() {
   });
 
   const setField = <K extends keyof LessonFormState>(key: K, value: LessonFormState[K]) => {
-    setForm(f => ({ ...f, [key]: value }));
+    setForm(f => {
+      const next = { ...f, [key]: value };
+      // Auto-compute duration when sessionTime changes (format: HH:MM–HH:MM or HH:MM-HH:MM)
+      if (key === "sessionTime" && typeof value === "string") {
+        const match = value.match(/(\d{1,2}:\d{2})\s*[–\-]\s*(\d{1,2}:\d{2})/);
+        if (match) {
+          const toMins = (s: string) => { const [h, m] = s.split(":").map(Number); return h * 60 + m; };
+          const diff = toMins(match[2]) - toMins(match[1]);
+          if (diff > 0) next.duration = diff;
+        }
+      }
+      return next;
+    });
     setIsDirty(true);
   };
 

@@ -668,7 +668,19 @@ export default function SchoolCalendar() {
   };
 
   const setPlanField = <K extends keyof LessonFormState>(key: K, value: LessonFormState[K]) => {
-    setPlanForm(f => ({ ...f, [key]: value }));
+    setPlanForm(f => {
+      const next = { ...f, [key]: value };
+      // Auto-compute duration when sessionTime changes (format: HH:MM–HH:MM or HH:MM-HH:MM)
+      if (key === "sessionTime" && typeof value === "string") {
+        const match = value.match(/(\d{1,2}:\d{2})\s*[–\-]\s*(\d{1,2}:\d{2})/);
+        if (match) {
+          const toMins = (s: string) => { const [h, m] = s.split(":").map(Number); return h * 60 + m; };
+          const diff = toMins(match[2]) - toMins(match[1]);
+          if (diff > 0) next.duration = diff;
+        }
+      }
+      return next;
+    });
     setPlanFormDirty(true);
   };
 
@@ -1523,7 +1535,7 @@ export default function SchoolCalendar() {
                                           : (EVENT_COLORS[ev.eventType] ?? "bg-gray-100 text-gray-800")
                                       }`}
                                       onClick={() => isLesson ? openLessonPlanner(ev) : openEdit(ev)}
-                                      title={isLesson ? (hasPlan ? `${t("cal_view_plan")}: ${ev.title}` : `${t("cal_add_plan")}: ${ev.title}`) : ev.title}
+                                      title={isLesson ? (() => { const dur = calcDuration(ev.startTime, ev.endTime); const timeRange = ev.startTime && ev.endTime ? `${ev.startTime}–${ev.endTime}${dur ? ` · ${dur} min` : ""}` : ""; return `${hasPlan ? t("cal_view_plan") : t("cal_add_plan")}: ${ev.title}${timeRange ? ` (${timeRange})` : ""}`; })() : ev.title}
                                     >
                                       <span className="flex-1 font-medium truncate">{ev.title}</span>
                                       {isLesson && (() => { const dur = calcDuration(ev.startTime, ev.endTime); return dur ? <span className="shrink-0 text-[10px] font-mono opacity-70">{dur}m</span> : null; })()}
@@ -1647,9 +1659,7 @@ export default function SchoolCalendar() {
                                         }}
                                         title={
                                           isLesson
-                                            ? hasPlan
-                                              ? `${t("cal_view_plan")}: ${ev.title}`
-                                              : `${t("cal_add_plan")}: ${ev.title}`
+                                            ? (() => { const dur = calcDuration(ev.startTime, ev.endTime); const timeRange = ev.startTime && ev.endTime ? `${ev.startTime}–${ev.endTime}${dur ? ` · ${dur} min` : ""}` : ""; return `${hasPlan ? t("cal_view_plan") : t("cal_add_plan")}: ${ev.title}${timeRange ? ` (${timeRange})` : ""}`; })()
                                             : ev.title
                                         }
                                       >
@@ -1716,7 +1726,7 @@ export default function SchoolCalendar() {
                                           : (EVENT_COLORS[ev.eventType] ?? "bg-gray-100 text-gray-800")
                                       }`}
                                       onClick={() => isLesson ? openLessonPlanner(ev) : openEdit(ev)}
-                                      title={isLesson ? (hasPlan ? `${t("cal_view_plan")}: ${ev.title}` : `${t("cal_add_plan")}: ${ev.title}`) : ev.title}
+                                      title={isLesson ? (() => { const dur = calcDuration(ev.startTime, ev.endTime); const timeRange = ev.startTime && ev.endTime ? `${ev.startTime}–${ev.endTime}${dur ? ` · ${dur} min` : ""}` : ""; return `${hasPlan ? t("cal_view_plan") : t("cal_add_plan")}: ${ev.title}${timeRange ? ` (${timeRange})` : ""}`; })() : ev.title}
                                     >
                                       <span className="flex-1 truncate">{ev.title}</span>
                                       {isLesson && (() => { const dur = calcDuration(ev.startTime, ev.endTime); return dur ? <span className="shrink-0 text-[10px] font-mono opacity-70">{dur}m</span> : null; })()}

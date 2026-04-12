@@ -1981,3 +1981,13 @@
 - [x] Compute duration in minutes from event startTime/endTime (or calendar defaultStartTime/defaultEndTime) for each lesson/ai_generated event
 - [x] Render a small duration badge (e.g. "44 min") on each lesson chip in the calendar grid
 - [x] Only show when duration can be computed (both times present)
+
+## Follow-up 5: Auto-update Duration when Session Time is edited
+- [x] SchoolCalendar plan sheet: parse HH:MM–HH:MM from sessionTime onChange, compute duration, auto-set duration field
+- [x] LessonPlanner: same auto-compute on sessionTime change
+
+## Follow-up 6: Full time range in chip hover tooltip
+- [x] All three chip locations: include startTime–endTime and duration in the title attribute (e.g. "08:45–09:29 · 44 min · View plan: Lesson Title")
+
+## Follow-up 7: Duration column in lesson plans list view
+- [x] Add Duration column to the lesson plan list/table in the plan sheet sidebar showing each plan's duration (min) at a glance
