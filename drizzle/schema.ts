@@ -483,10 +483,22 @@ export const schoolCalendars = mysqlTable("school_calendars", {
   academicYear: varchar("academicYear", { length: 16 }).notNull(),
   /** 'full_year' = standard academic year calendar; 'topic_block' = short-term unit with defined start/end */
   calendarType: mysqlEnum("calendarType", ["full_year", "topic_block"]).default("full_year").notNull(),
-  /** For topic_block calendars: first day of the unit (stored as UTC midnight) */
+  /** First day of the academic year / topic block (stored as UTC midnight). Also anchors Week 1 numbering. */
   startDate: timestamp("startDate"),
-  /** For topic_block calendars: last day of the unit (stored as UTC midnight) */
+  /** Last day of the academic year / topic block (stored as UTC midnight) */
   endDate: timestamp("endDate"),
+  /** Term 1 start date — for full_year calendars with 3 semesters (e.g. Catalonia) */
+  term1Start: timestamp("term1Start"),
+  /** Term 1 end date */
+  term1End: timestamp("term1End"),
+  /** Term 2 start date */
+  term2Start: timestamp("term2Start"),
+  /** Term 2 end date */
+  term2End: timestamp("term2End"),
+  /** Term 3 start date */
+  term3Start: timestamp("term3Start"),
+  /** Term 3 end date */
+  term3End: timestamp("term3End"),
   /** Optional description of the topic/unit — used by AI infill to scope lesson generation */
   topicDescription: text("topicDescription"),
   /** Optional link to a class group — lesson events are auto-created as assignments for this group */

@@ -356,6 +356,20 @@ export default function LessonPlanner() {
   const { data: plans = [] } = trpc.planner.listLessonPlans.useQuery();
   const { data: calendars = [] } = trpc.planner.listCalendars.useQuery();
 
+  // Deep-link: open a specific plan when ?planId=N is in the URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const planIdParam = params.get("planId");
+    if (!planIdParam) return;
+    const targetId = parseInt(planIdParam, 10);
+    if (isNaN(targetId)) return;
+    const target = (plans as any[]).find((p: any) => p.id === targetId);
+    if (target) {
+      loadPlan(target);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, [plans]);
+
   // Calendar event + linked plan creation (used after AI generation when a date is selected)
   const createEventMutation = trpc.planner.createCalendarEvent.useMutation();
   const createLinkedPlanMutation = trpc.planner.createLinkedLessonPlan.useMutation();

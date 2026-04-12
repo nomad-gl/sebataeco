@@ -196,6 +196,12 @@ const emptyCalForm = (academicYear = ACADEMIC_YEARS[1]) => {
     region: "catalonia" as string,
     defaultStartTime: "",
     defaultEndTime: "",
+    term1Start: "",
+    term1End: "",
+    term2Start: "",
+    term2End: "",
+    term3Start: "",
+    term3End: "",
   };
 };
 
@@ -209,6 +215,8 @@ export default function SchoolCalendar() {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteEventDialog, setShowDeleteEventDialog] = useState(false);
   const [showAiDialog, setShowAiDialog] = useState(false);
+  const [showClashWarning, setShowClashWarning] = useState(false);
+  const [clashData, setClashData] = useState<{ date: string; existingTitle: string; existingType: string }[]>([]);
   const [showCreateCalDialog, setShowCreateCalDialog] = useState(false);
   const [showEditCalDialog, setShowEditCalDialog] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>("");
@@ -357,6 +365,11 @@ export default function SchoolCalendar() {
         toast.info(t("cal_no_school_days"));
       } else {
         toast.success(`${t("cal_ai_infill")}: ${data.generated} ${data.generated === 1 ? t("cal_lesson_one") : t("cal_lessons_many")} ${t("cal_added_to_calendar")}`);
+      }
+      // Show clash warning if any generated lessons landed on existing events
+      if ((data as any).clashes && (data as any).clashes.length > 0) {
+        setClashData((data as any).clashes);
+        setShowClashWarning(true);
       }
     },
     onError: (e) => {
@@ -1011,7 +1024,7 @@ export default function SchoolCalendar() {
                 </div>
                 {selectedCalendarId === cal.id && (
                   <button
-                    onClick={e => { e.stopPropagation(); setCalForm({ name: cal.name, schoolName: cal.schoolName ?? "", tutorName: cal.tutorName ?? "", subject: cal.subject ?? "English", yearLevel: cal.yearLevel ?? YEAR_GROUPS[3], academicYear: cal.academicYear, calendarType: (cal as SchoolCalendar).calendarType ?? "full_year", startDate: (cal as SchoolCalendar).startDate ? new Date((cal as SchoolCalendar).startDate as string).toISOString().split("T")[0] : "", endDate: (cal as SchoolCalendar).endDate ? new Date((cal as SchoolCalendar).endDate as string).toISOString().split("T")[0] : "", topicDescription: (cal as SchoolCalendar).topicDescription ?? "", lessonDays: (cal as SchoolCalendar).lessonDays ?? "", region: (cal as any).region ?? "catalonia", defaultStartTime: (cal as any).defaultStartTime ?? "", defaultEndTime: (cal as any).defaultEndTime ?? "" }); setShowEditCalDialog(true); }}
+                    onClick={e => { e.stopPropagation(); const c = cal as any; const toDate = (v: any) => v ? new Date(v).toISOString().split("T")[0] : ""; setCalForm({ name: cal.name, schoolName: cal.schoolName ?? "", tutorName: cal.tutorName ?? "", subject: cal.subject ?? "English", yearLevel: cal.yearLevel ?? YEAR_GROUPS[3], academicYear: cal.academicYear, calendarType: (cal as SchoolCalendar).calendarType ?? "full_year", startDate: toDate((cal as SchoolCalendar).startDate), endDate: toDate((cal as SchoolCalendar).endDate), topicDescription: (cal as SchoolCalendar).topicDescription ?? "", lessonDays: (cal as SchoolCalendar).lessonDays ?? "", region: c.region ?? "catalonia", defaultStartTime: c.defaultStartTime ?? "", defaultEndTime: c.defaultEndTime ?? "", term1Start: toDate(c.term1Start), term1End: toDate(c.term1End), term2Start: toDate(c.term2Start), term2End: toDate(c.term2End), term3Start: toDate(c.term3Start), term3End: toDate(c.term3End) }); setShowEditCalDialog(true); }}
                     className="opacity-0 group-hover:opacity-100 shrink-0 mt-0.5"
                   >
                     <Pencil className="w-3 h-3 text-muted-foreground" />
@@ -1158,8 +1171,15 @@ export default function SchoolCalendar() {
                         ]}
                       />
                       <Button variant="outline" size="sm" onClick={() => {
-                        const cal = selectedCalendar as SchoolCalendar;
-                        setAiForm(f => ({ ...f, terms: getDefaultTermsForYear(cal.academicYear) }));
+                        const cal = selectedCalendar as any;
+                        const toStr = (v: any) => v ? new Date(v).toISOString().split("T")[0] : "";
+                        const savedTerms = [
+                          { label: t("cal_term_1_label"), start: toStr(cal.term1Start), end: toStr(cal.term1End) },
+                          { label: t("cal_term_2_label"), start: toStr(cal.term2Start), end: toStr(cal.term2End) },
+                          { label: t("cal_term_3_label"), start: toStr(cal.term3Start), end: toStr(cal.term3End) },
+                        ];
+                        const hasTermDates = savedTerms.some(t => t.start && t.end);
+                        setAiForm(f => ({ ...f, terms: hasTermDates ? savedTerms : getDefaultTermsForYear(cal.academicYear) }));
                         setShowAiDialog(true);
                       }} className="gap-1.5" title={t("cal_ai_infill")}>
                         <Sparkles className="w-3.5 h-3.5" />
@@ -1486,8 +1506,17 @@ export default function SchoolCalendar() {
                         key={type}
                         onClick={() => {
                           if (type === "ai_generated") {
-                            const cal = selectedCalendar as SchoolCalendar | null;
-                            if (cal) setAiForm(f => ({ ...f, terms: getDefaultTermsForYear(cal.academicYear) }));
+                            const cal = selectedCalendar as any;
+                            if (cal) {
+                              const toStr = (v: any) => v ? new Date(v).toISOString().split("T")[0] : "";
+                              const savedTerms = [
+                                { label: t("cal_term_1_label"), start: toStr(cal.term1Start), end: toStr(cal.term1End) },
+                                { label: t("cal_term_2_label"), start: toStr(cal.term2Start), end: toStr(cal.term2End) },
+                                { label: t("cal_term_3_label"), start: toStr(cal.term3Start), end: toStr(cal.term3End) },
+                              ];
+                              const hasTermDates = savedTerms.some(term => term.start && term.end);
+                              setAiForm(f => ({ ...f, terms: hasTermDates ? savedTerms : getDefaultTermsForYear(cal.academicYear) }));
+                            }
                             setShowAiDialog(true);
                           } else {
                             openAddWithType(type);
@@ -1725,6 +1754,29 @@ export default function SchoolCalendar() {
             </div>
             <p className="text-xs text-muted-foreground -mt-2">{t("cal_date_range_hint")}</p>
 
+            {/* Term date ranges — shown for full_year calendars */}
+            {calForm.calendarType === "full_year" && (
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold block">{t("cal_term_dates_label")}</Label>
+                {([1, 2, 3] as const).map(n => (
+                  <div key={n} className="rounded-lg border border-border/60 p-3 space-y-2">
+                    <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t(`cal_term_${n}_label`)}</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-xs">{t("cal_label_start_date")}</Label>
+                        <Input type="date" value={(calForm as any)[`term${n}Start`]} onChange={e => setCalForm(f => ({ ...f, [`term${n}Start`]: e.target.value }))} />
+                      </div>
+                      <div>
+                        <Label className="text-xs">{t("cal_label_end_date")}</Label>
+                        <Input type="date" value={(calForm as any)[`term${n}End`]} onChange={e => setCalForm(f => ({ ...f, [`term${n}End`]: e.target.value }))} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <p className="text-xs text-muted-foreground">{t("cal_term_dates_hint")}</p>
+              </div>
+            )}
+
             {calForm.calendarType === "topic_block" && (
               <div>
                 <Label>{t("cal_label_topic_desc")}</Label>
@@ -1862,6 +1914,12 @@ export default function SchoolCalendar() {
                     topicDescription: calForm.topicDescription || undefined,
                     lessonDays: calForm.lessonDays || undefined,
                     region: calForm.region || "catalonia",
+                    term1Start: calForm.term1Start || undefined,
+                    term1End: calForm.term1End || undefined,
+                    term2Start: calForm.term2Start || undefined,
+                    term2End: calForm.term2End || undefined,
+                    term3Start: calForm.term3Start || undefined,
+                    term3End: calForm.term3End || undefined,
                   });
                 }}
                 disabled={updateCalMutation.isPending}
@@ -2061,6 +2119,32 @@ export default function SchoolCalendar() {
             >
               {deleteMutation.isPending ? "…" : (editingEvent?.seriesId ? t("cal_delete_event_only") : t("cal_delete_event_only"))}
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ── Clash Warning Dialog ─────────────────────────────────────────────── */}
+      <AlertDialog open={showClashWarning} onOpenChange={setShowClashWarning}>
+        <AlertDialogContent className="max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-amber-600">
+              <span>⚠️</span> {t("cal_clash_warning_title")}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm">
+              {t("cal_clash_warning_desc")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="max-h-48 overflow-y-auto rounded-md border border-amber-200 bg-amber-50 p-2 space-y-1">
+            {clashData.map((c, i) => (
+              <div key={i} className="flex items-center gap-2 text-xs">
+                <span className="font-mono text-amber-700 shrink-0">{c.date}</span>
+                <span className="text-muted-foreground truncate">{c.existingTitle}</span>
+                <span className="ml-auto shrink-0 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-medium uppercase">{c.existingType.replace("_", " ")}</span>
+              </div>
+            ))}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowClashWarning(false)}>{t("cal_clash_ok")}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -2334,10 +2418,20 @@ export default function SchoolCalendar() {
                     </Button>
                   </>
                 )}
-                <Button size="sm" onClick={handleSavePlan} disabled={savePlanMutation.isPending || planSheetAiGenerating} className="gap-1">
-                  <Save className="w-3.5 h-3.5" />
-                  {savePlanMutation.isPending ? t("lp_saving") : planSheetAiGenerating ? t("lp_generating") : t("lp_save")}
-                </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => { if (planSheetPlanId) navigate(`/lesson-planner?planId=${planSheetPlanId}`); }}
+                      title={t("cal_open_in_planner")}
+                      className="gap-1 text-indigo-700 border-indigo-300 hover:bg-indigo-50"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">{t("cal_open_in_planner")}</span>
+                    </Button>
+                    <Button size="sm" onClick={handleSavePlan} disabled={savePlanMutation.isPending || planSheetAiGenerating} className="gap-1">
+                      <Save className="w-3.5 h-3.5" />
+                      {savePlanMutation.isPending ? t("lp_saving") : planSheetAiGenerating ? t("lp_generating") : t("lp_save")}
+                    </Button>
               </div>
             </div>
           </SheetHeader>

@@ -1888,3 +1888,23 @@
 - [x] Persist startDate/endDate changes through the updateCalendar tRPC procedure
 - [x] Update AI generate (createRecurringEvents / AI infill) prompt to align with all 8 LOMLOE competencies and Catalan curriculum preferences
 - [x] Add i18n keys for new date fields in EN/ES/CA
+
+## Feature: 3 term date ranges in Edit Calendar (Catalonia 3-semester support)
+- [x] Add term1Start, term1End, term2Start, term2End, term3Start, term3End columns to school_calendars table
+- [x] Run migration SQL for new columns
+- [x] Update updateCalendar and createCalendar tRPC procedures to accept all 3 term ranges
+- [x] Add 3 term date range fields to Edit Calendar dialog (full_year type)
+- [x] Wire AI infill to pass all 3 term ranges as termDates to the server
+- [x] Add i18n keys for term labels in EN/ES/CA
+
+## Feature: 3 term date ranges in Edit Calendar + AI clash detection
+- [x] Run DB migration: add term1Start, term1End, term2Start, term2End, term3Start, term3End to school_calendars
+- [x] Update createCalendar and updateCalendar tRPC procedures to accept all 3 term date pairs
+- [x] Add term1/2/3 fields to emptyCalForm and calForm state
+- [x] Add Term 1, Term 2, Term 3 date pickers to Edit Calendar dialog (full_year only)
+- [x] Populate term fields when opening the edit pencil dialog from a saved calendar
+- [x] Pre-fill AI infill term dates from saved term1-3 fields when opening the AI Generate dialog
+- [x] Add clash detection to aiInfillCalendar: return list of clashing dates (lessons on holidays/existing events)
+- [x] Show clash warning dialog after AI-generated lessons are inserted
+- [x] Add i18n keys for term labels and clash warning in EN/ES/CA
+- [x] Add active navigation link from lesson plan preview (calendar event sheet/card) to the full LessonPlanner editor page

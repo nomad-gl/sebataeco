@@ -81,16 +81,31 @@ export const plannerRouter = router({
       lessonDays: z.string().nullish(),
       /** Spanish autonomous community for regional holiday auto-insert */
       region: z.string().nullish(),
+      /** Term 1 date range (full_year calendars) */
+      term1Start: z.string().nullish(),
+      term1End: z.string().nullish(),
+      /** Term 2 date range */
+      term2Start: z.string().nullish(),
+      term2End: z.string().nullish(),
+      /** Term 3 date range */
+      term3Start: z.string().nullish(),
+      term3End: z.string().nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
-      const { startDate, endDate, ...rest } = input;
+      const { startDate, endDate, term1Start, term1End, term2Start, term2End, term3Start, term3End, ...rest } = input;
       const result = await db.insert(schoolCalendars).values({
         ...rest,
         userId: ctx.user.id,
         ...(startDate ? { startDate: new Date(startDate) } : {}),
         ...(endDate ? { endDate: new Date(endDate) } : {}),
+        ...(term1Start ? { term1Start: new Date(term1Start) } : {}),
+        ...(term1End ? { term1End: new Date(term1End) } : {}),
+        ...(term2Start ? { term2Start: new Date(term2Start) } : {}),
+        ...(term2End ? { term2End: new Date(term2End) } : {}),
+        ...(term3Start ? { term3Start: new Date(term3Start) } : {}),
+        ...(term3End ? { term3End: new Date(term3End) } : {}),
       });
       const calendarId = (result as any)[0].insertId as number;
 
@@ -143,16 +158,28 @@ export const plannerRouter = router({
       region: z.string().nullish(),
       defaultStartTime: z.string().nullish(),
       defaultEndTime: z.string().nullish(),
+      term1Start: z.string().nullish(),
+      term1End: z.string().nullish(),
+      term2Start: z.string().nullish(),
+      term2End: z.string().nullish(),
+      term3Start: z.string().nullish(),
+      term3End: z.string().nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
-      const { id, startDate, endDate, ...rawRest } = input;
+      const { id, startDate, endDate, term1Start, term1End, term2Start, term2End, term3Start, term3End, ...rawRest } = input;
       const rest = Object.fromEntries(Object.entries(rawRest).filter(([, v]) => v !== null));
       await db.update(schoolCalendars).set({
         ...rest,
         ...(startDate != null ? { startDate: new Date(startDate) } : {}),
         ...(endDate != null ? { endDate: new Date(endDate) } : {}),
+        ...(term1Start != null ? { term1Start: new Date(term1Start) } : {}),
+        ...(term1End != null ? { term1End: new Date(term1End) } : {}),
+        ...(term2Start != null ? { term2Start: new Date(term2Start) } : {}),
+        ...(term2End != null ? { term2End: new Date(term2End) } : {}),
+        ...(term3Start != null ? { term3Start: new Date(term3Start) } : {}),
+        ...(term3End != null ? { term3End: new Date(term3End) } : {}),
       }).where(and(eq(schoolCalendars.id, id), eq(schoolCalendars.userId, ctx.user.id)));
       return { success: true };
     }),
@@ -280,7 +307,13 @@ export const plannerRouter = router({
         .from(schoolCalendarEvents)
         .where(and(eq(schoolCalendarEvents.userId, ctx.user.id), eq(schoolCalendarEvents.calendarId, input.calendarId)));
 
-      const takenDates = new Set(existing.map(e => new Date(e.eventDate).toISOString().split("T")[0]));
+      // Build a map of date → event info for clash detection
+      const existingByDate = new Map<string, { title: string; eventType: string }>();
+      for (const e of existing) {
+        const iso = new Date(e.eventDate).toISOString().split("T")[0];
+        existingByDate.set(iso, { title: e.title, eventType: e.eventType });
+      }
+      const takenDates = new Set(existingByDate.keys());
 
       // For topic_block calendars, if startDate/endDate are provided, use them directly
       // instead of iterating over term dates.
@@ -472,7 +505,17 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
         };
       });
 
-      if (toInsert.length === 0) return { generated: 0 };
+      // ── Clash detection ────────────────────────────────────────────────────────
+      // Identify selected lesson days that land on existing holiday/lesson events
+      const clashes: { date: string; existingTitle: string; existingType: string }[] = [];
+      for (const date of selectedDays) {
+        const existing = existingByDate.get(date);
+        if (existing) {
+          clashes.push({ date, existingTitle: existing.title, existingType: existing.eventType });
+        }
+      }
+
+      if (toInsert.length === 0) return { generated: 0, clashes };
 
       // Insert calendar events one-by-one so we can capture each insertId and link a lesson plan
       let generatedCount = 0;
@@ -510,7 +553,7 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
         });
       }
 
-      return { generated: generatedCount };
+      return { generated: generatedCount, clashes };
     }),
 
   // ─── Lesson Plans ─────────────────────────────────────────────────────────────
