@@ -2077,3 +2077,10 @@
 - [x] LessonPlanner: same-calendar copy still works (no event link, no renumber needed)
 - [x] SchoolCalendar plan sheet: add "Copy to calendar…" button in plan sheet header
 - [x] i18n: add EN/ES/CA keys for copy dialog (copy_to_calendar, copy_plan_title, copy_target_calendar, copy_renumber, copy_success, copy_same_calendar)
+
+## Feature: Event picker in copy-to-calendar dialog
+- [x] Server: reuse existing listCalendarEvents tRPC procedure (already returns all events ordered by date for a calendarId)
+- [x] Copy dialog (LessonPlanner + SchoolCalendar): after selecting a target calendar, show an optional event picker listing upcoming lesson slots (date + title + time)
+- [x] Selecting an event links the copied plan to that event (passes targetEventId to copyLessonPlan); leaving it blank creates an unlinked copy
+- [x] Auto-renumber respects the selected event's position when an event is chosen
+- [x] i18n: add EN/ES/CA keys for event picker (lp_copy_target_event, lp_copy_no_event, lp_copy_event_placeholder, lp_copy_event_hint)

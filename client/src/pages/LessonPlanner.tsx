@@ -474,7 +474,17 @@ export default function LessonPlanner() {
   const [showCopyPlanDialog, setShowCopyPlanDialog] = useState(false);
   const [copySourcePlan, setCopySourcePlan] = useState<any>(null);
   const [copyTargetCalendarId, setCopyTargetCalendarId] = useState<string>("");
+  const [copyTargetEventId, setCopyTargetEventId] = useState<string>("");
   const [copyAutoRenumber, setCopyAutoRenumber] = useState(true);
+  // Fetch events for the selected target calendar (for the event picker)
+  const lpCalIdForPicker = copyTargetCalendarId && copyTargetCalendarId !== "same" ? Number(copyTargetCalendarId) : null;
+  const { data: lpCopyTargetEvents = [] } = trpc.planner.listCalendarEvents.useQuery(
+    { calendarId: lpCalIdForPicker! },
+    { enabled: lpCalIdForPicker !== null && showCopyPlanDialog },
+  );
+  const lpLessonEventsForPicker = (lpCopyTargetEvents as any[]).filter(
+    (e: any) => e.eventType === "lesson" || e.eventType === "ai_generated"
+  );
 
   const copyPlanMutation = trpc.planner.copyLessonPlan.useMutation({
     onSuccess: (data) => {
@@ -494,15 +504,19 @@ export default function LessonPlanner() {
     const calId = plan.calendarId ? String(plan.calendarId) : "";
     setCopySourcePlan(plan);
     setCopyTargetCalendarId(calId);
+    setCopyTargetEventId("");
     setCopyAutoRenumber(true);
     setShowCopyPlanDialog(true);
   };
 
   const handleCopyPlan = () => {
     if (!copySourcePlan) return;
+    const targetCalId = copyTargetCalendarId && copyTargetCalendarId !== "same" ? Number(copyTargetCalendarId) : undefined;
+    const targetEvId = copyTargetEventId && copyTargetEventId !== "none" ? Number(copyTargetEventId) : undefined;
     copyPlanMutation.mutate({
       planId: copySourcePlan.id,
-      targetCalendarId: copyTargetCalendarId && copyTargetCalendarId !== "same" ? Number(copyTargetCalendarId) : undefined,
+      targetCalendarId: targetCalId,
+      targetEventId: targetEvId,
       autoRenumber: copyAutoRenumber,
     });
   };
@@ -1609,7 +1623,7 @@ export default function LessonPlanner() {
       </AlertDialog>
 
       {/* Copy plan to calendar dialog */}
-      <Dialog open={showCopyPlanDialog} onOpenChange={(open) => { setShowCopyPlanDialog(open); if (!open) setCopySourcePlan(null); }}>
+      <Dialog open={showCopyPlanDialog} onOpenChange={(open) => { setShowCopyPlanDialog(open); if (!open) { setCopySourcePlan(null); setCopyTargetEventId(""); } }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -1622,7 +1636,7 @@ export default function LessonPlanner() {
               <p className="text-sm text-muted-foreground">{t("lp_copy_plan_dialog_desc")}</p>
               <div className="space-y-1.5">
                 <Label>{t("lp_copy_target_calendar")}</Label>
-                <Select value={copyTargetCalendarId} onValueChange={setCopyTargetCalendarId}>
+                <Select value={copyTargetCalendarId} onValueChange={(v) => { setCopyTargetCalendarId(v); setCopyTargetEventId(""); }}>
                   <SelectTrigger>
                     <SelectValue placeholder={t("lp_copy_same_calendar")} />
                   </SelectTrigger>
@@ -1634,6 +1648,35 @@ export default function LessonPlanner() {
                   </SelectContent>
                 </Select>
               </div>
+              {/* Event picker — only shown when a specific calendar is selected */}
+              {lpCalIdForPicker !== null && (
+                <div className="space-y-1.5">
+                  <Label>{t("lp_copy_target_event")}</Label>
+                  <Select value={copyTargetEventId} onValueChange={setCopyTargetEventId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("lp_copy_no_event")} />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-56">
+                      <SelectItem value="none">{t("lp_copy_no_event")}</SelectItem>
+                      {lpLessonEventsForPicker.map((ev: any) => {
+                        const d = ev.eventDate ? new Date(ev.eventDate) : null;
+                        const dateStr = d ? d.toLocaleDateString(undefined, { day: "2-digit", month: "short" }) : "";
+                        const timeStr = ev.startTime ? ` · ${ev.startTime}` : "";
+                        return (
+                          <SelectItem key={ev.id} value={String(ev.id)}>
+                            <span className="font-medium">{dateStr}{timeStr}</span>
+                            {ev.title ? <span className="text-muted-foreground ml-1.5 truncate max-w-[180px]">— {ev.title}</span> : null}
+                          </SelectItem>
+                        );
+                      })}
+                      {lpLessonEventsForPicker.length === 0 && (
+                        <div className="px-3 py-2 text-sm text-muted-foreground">{t("lp_copy_event_placeholder")}</div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">{t("lp_copy_event_hint")}</p>
+                </div>
+              )}
               <div className="flex items-start gap-2">
                 <Checkbox
                   id="lp-copy-renumber"
