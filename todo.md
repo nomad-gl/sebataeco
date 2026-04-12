@@ -2056,16 +2056,16 @@
 - [x] Snapshot form before starting for undo support
 
 ## Feature: Regenerate buttons for Skills & Language Systems card
-- [ ] SchoolCalendar plan sheet: add regenerate button to the Skills card header (regenerates skills section)
-- [ ] SchoolCalendar plan sheet: add regenerate button to the Language Systems card header (regenerates systems section)
-- [ ] LessonPlanner: same regenerate buttons on Skills and Language Systems cards
+- [x] SchoolCalendar plan sheet: add regenerate button to the Skills card header (regenerates skills section)
+- [x] SchoolCalendar plan sheet: add regenerate button to the Language Systems card header (regenerates systems section)
+- [x] LessonPlanner: same regenerate buttons on Skills and Language Systems cards
 
 ## Feature: Regenerate lesson title button
-- [ ] SchoolCalendar plan sheet: add small ↺ icon button next to the Lesson Title input
-- [ ] LessonPlanner: same button next to the Lesson Title field
-- [ ] Calls aiRegenerateSection with section="title"; updates only the title field on success
+- [x] SchoolCalendar plan sheet: add small ↺ icon button next to the Lesson Title input
+- [x] LessonPlanner: same button next to the Lesson Title field
+- [x] Calls aiRegenerateSection with section="title"; updates only the title field on success (server enum updated to include "title" with LOMLOE-aligned prompt)
 
 ## Feature: Auto-save after fill-all completes
-- [ ] LessonPlanner: after handleFillAllEmpty loop finishes, call saveMutation automatically
-- [ ] SchoolCalendar plan sheet: after handleFillAllEmpty loop finishes, call savePlanMutation automatically
-- [ ] Show a "Saved" confirmation in the success toast
+- [x] LessonPlanner: after handleFillAllEmpty loop finishes, call saveMutation automatically
+- [x] SchoolCalendar plan sheet: after handleFillAllEmpty loop finishes, call savePlanMutation automatically
+- [x] Show a "Saved" confirmation in the success toast
