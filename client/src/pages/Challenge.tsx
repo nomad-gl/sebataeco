@@ -926,6 +926,95 @@ export default function Challenge() {
               </div>
             </details>
 
+            {/* Per-question breakdown — only for quiz challenges with participant answer data */}
+            {!isParaulaResults && room.participants.some(p => p.answers) && (() => {
+              // Build per-question stats: for each question, how many got it right and each student's answer
+              const breakdown = room.questions.map((q, qi) => {
+                const studentRows = sortedParticipants.map(p => {
+                  const answers: number[] = (() => { try { return JSON.parse(p.answers ?? "[]"); } catch { return []; } })();
+                  const chosen = answers[qi] ?? null;
+                  const correct = chosen !== null && chosen === q.correctIndex;
+                  return { name: p.nickname, chosen, correct };
+                });
+                const correctCount = studentRows.filter(r => r.correct).length;
+                return { question: q.question, correctAnswer: q.options[q.correctIndex] ?? "", correctIndex: q.correctIndex, options: q.options, correctCount, total: sortedParticipants.length, studentRows };
+              });
+
+              const handleBreakdownCsv = () => {
+                // Header row: Question, Correct Answer, then one column per student
+                const headers = ["Question", "Correct Answer", ...sortedParticipants.map(p => p.nickname)];
+                const rows = breakdown.map(b => ({
+                  Question: b.question,
+                  "Correct Answer": b.correctAnswer,
+                  ...Object.fromEntries(b.studentRows.map(r => [
+                    r.name,
+                    r.chosen !== null ? `${String.fromCharCode(65 + r.chosen)}. ${b.options[r.chosen] ?? ""} (${r.correct ? t("challenge_breakdown_correct") : t("challenge_breakdown_wrong")})`  : "—",
+                  ])),
+                }));
+                exportToCsv(`${room.title || "challenge"}-breakdown`, rows);
+              };
+
+              return (
+                <details className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl overflow-hidden">
+                  <summary className="p-4 cursor-pointer text-white font-semibold flex items-center justify-between gap-2 hover:bg-white/5">
+                    <span className="flex items-center gap-2">
+                      <BarChart2 className="w-4 h-4 text-teal-300" />
+                      {t("challenge_breakdown_title")}
+                    </span>
+                    <button
+                      className="flex items-center gap-1.5 text-xs text-teal-300 border border-teal-400/40 rounded-lg px-2 py-1 hover:bg-teal-400/10 transition-colors"
+                      onClick={e => { e.preventDefault(); handleBreakdownCsv(); }}
+                    >
+                      <CsvIcon /> {t("challenge_breakdown_csv")}
+                    </button>
+                  </summary>
+                  <div className="px-4 pb-4 space-y-3 overflow-x-auto">
+                    <table className="w-full text-xs text-white/80 border-collapse min-w-[480px]">
+                      <thead>
+                        <tr className="border-b border-white/10">
+                          <th className="text-left py-2 pr-3 text-white/50 font-medium w-8">#</th>
+                          <th className="text-left py-2 pr-3 text-white/50 font-medium">Question</th>
+                          <th className="text-left py-2 pr-3 text-green-300/70 font-medium">✓ Answer</th>
+                          <th className="text-center py-2 pr-3 text-yellow-300/70 font-medium">%</th>
+                          {sortedParticipants.map(p => (
+                            <th key={p.id} className="text-center py-2 px-1 text-white/50 font-medium max-w-[80px] truncate">{p.nickname}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {breakdown.map((b, i) => (
+                          <tr key={i} className="border-b border-white/5 hover:bg-white/5">
+                            <td className="py-2 pr-3 text-white/30">{i + 1}</td>
+                            <td className="py-2 pr-3 max-w-[200px]">
+                              <span className="line-clamp-2">{b.question}</span>
+                            </td>
+                            <td className="py-2 pr-3 text-green-300">{b.correctAnswer}</td>
+                            <td className="py-2 pr-3 text-center">
+                              <span className={`font-bold ${
+                                b.total > 0 && b.correctCount / b.total >= 0.7 ? "text-green-300" :
+                                b.total > 0 && b.correctCount / b.total >= 0.4 ? "text-yellow-300" : "text-red-300"
+                              }`}>
+                                {b.total > 0 ? Math.round((b.correctCount / b.total) * 100) : 0}%
+                              </span>
+                            </td>
+                            {b.studentRows.map((r, si) => (
+                              <td key={si} className="text-center py-2 px-1">
+                                {r.chosen !== null ? (
+                                  r.correct
+                                    ? <Check className="w-3.5 h-3.5 text-green-400 mx-auto" />
+                                    : <XIcon className="w-3.5 h-3.5 text-red-400 mx-auto" />
+                                ) : <span className="text-white/20">—</span>}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
+              );
+            })()}
+
             <div className="flex gap-3 flex-wrap">
               <Button
                 className="flex-1 bg-yellow-400 hover:bg-yellow-300 text-black font-bold"

@@ -367,11 +367,13 @@ function WordsearchPreview({ content }: { content: Record<string, unknown> }) {
 function PaRaulaPreview({ content, onChange }: { content: Record<string, unknown>; onChange: (c: Record<string, unknown>) => void }) {
   const words = (content.words as string[] ?? []);
   const clues = (content.clues as string[] ?? []);
+  const difficulties = (content.difficulties as number[] ?? []);
   return (
     <div className="flex flex-col gap-3">
       <p className="text-xs text-muted-foreground">
         {words.length} topic words for PARAULA · Language: <span className="font-semibold">{String(content.lang ?? "ca").toUpperCase()}</span>
       </p>
+      <p className="text-xs text-muted-foreground/60">★ = easy · ★★★ = hard — set difficulty to enable filtering in practice mode</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-80 overflow-y-auto">
         {words.map((w, wi) => (
           <div key={wi} className="flex items-center gap-2">
@@ -386,6 +388,26 @@ function PaRaulaPreview({ content, onChange }: { content: Record<string, unknown
               className="text-xs h-7 flex-1"
               placeholder="Clue…"
             />
+            {/* Star difficulty selector */}
+            <div className="flex gap-0.5 shrink-0">
+              {[1, 2, 3].map(star => (
+                <button
+                  key={star}
+                  type="button"
+                  className={`text-sm leading-none transition-colors ${
+                    (difficulties[wi] ?? 0) >= star ? "text-amber-400" : "text-muted-foreground/25 hover:text-amber-300"
+                  }`}
+                  onClick={() => {
+                    const updated = Array.from({ length: words.length }, (_, i) => difficulties[i] ?? 0);
+                    updated[wi] = updated[wi] === star ? 0 : star;
+                    onChange({ ...content, difficulties: updated });
+                  }}
+                  title={`Difficulty ${star}`}
+                >
+                  ★
+                </button>
+              ))}
+            </div>
           </div>
         ))}
       </div>

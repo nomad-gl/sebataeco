@@ -1662,24 +1662,24 @@
 - [x] Client: in openPlanSheet, skip calling createLinkedPlanMutation if eventPlanMap already has a plan for the event
 
 ## Feature: Re-generate plan button in lesson plan sheet
-- [ ] Add a "Re-generate" button (Sparkles icon) in the plan sheet header next to Save
-- [ ] Clicking it triggers aiGenerateLessonPlan for the current plan and shows the loading overlay
-- [ ] Button is disabled while AI is generating or while saving
-- [ ] Add i18n keys: lp_regenerate, lp_regenerate_confirm_title, lp_regenerate_confirm_desc in EN/ES/CA
-- [ ] Show AlertDialog confirmation before re-generating (warns existing content will be overwritten)
+- [x] Add a "Re-generate" button (Sparkles icon) in the plan sheet header next to Save
+- [x] Clicking it triggers aiGenerateLessonPlan for the current plan and shows the loading overlay
+- [x] Button is disabled while AI is generating or while saving
+- [x] Add i18n keys: lp_regenerate, lp_regenerate_confirm_title, lp_regenerate_confirm_desc in EN/ES/CA
+- [x] Show AlertDialog confirmation before re-generating (warns existing content will be overwritten)
 
 ## Feature: Challenge per-question CSV breakdown export
-- [ ] In Challenge results view, add a "Per-question breakdown" section showing each question, correct answer, and per-student response
-- [ ] Export this breakdown as CSV via the existing ExportDropdown
-- [ ] CSV columns: Question, Correct Answer, then one column per student showing their answer and whether it was correct
-- [ ] Add i18n keys for the breakdown section heading and CSV filename in EN/ES/CA
+- [x] In Challenge results view, add a "Per-question breakdown" section showing each question, correct answer, and per-student response
+- [x] Export this breakdown as CSV via the existing ExportDropdown
+- [x] CSV columns: Question, Correct Answer, then one column per student showing their answer and whether it was correct
+- [x] Add i18n keys for the breakdown section heading and CSV filename in EN/ES/CA
 
 ## Feature: PARAULA word difficulty filter (1–3 star rating)
-- [ ] Add a difficulty field (1, 2, or 3) to the PARAULA word list (DB schema or static list)
-- [ ] In the teacher word-picker dialog, show star ratings next to each word and allow filtering by difficulty
-- [ ] In solo practice mode, add a difficulty filter (1★ / 2★ / 3★ / All) to the word selection screen
-- [ ] Persist selected difficulty in localStorage
-- [ ] Add i18n keys for difficulty labels in EN/ES/CA
+- [x] Add a difficulty field (1, 2, or 3) to the PARAULA word list (stored in material content JSON)
+- [x] In the Create page PARAULA editor, show star-rating buttons next to each word/clue row
+- [x] In solo practice mode, add a difficulty filter (1★ / 2★ / 3★ / All) to the word selection screen
+- [x] Persist selected difficulty in localStorage
+- [x] Add i18n keys for difficulty labels in EN/ES/CA
 
 ## Feature: Direct link from calendar lesson events to lesson plans
 - [x] Each lesson/ai_generated event tile on the month grid shows a small plan-link icon when a plan exists

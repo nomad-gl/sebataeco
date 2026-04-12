@@ -340,14 +340,30 @@ export default function ParaulaPractice() {
   const [copied, setCopied] = useState(false);
   const [search, setSearch] = useState("");
 
-  const content = material?.content as { words?: string[]; clues?: string[]; lang?: string } | undefined;
+  const content = material?.content as { words?: string[]; clues?: string[]; lang?: string; difficulties?: number[] } | undefined;
   const words = content?.words ?? [];
   const clues = content?.clues ?? [];
-  const pairs = words.map((w, i) => ({ word: w.toUpperCase(), clue: clues[i] ?? "" }));
+  const difficulties = content?.difficulties ?? [];
+  const hasDifficulties = difficulties.some(d => d && d > 0);
+  const pairs = words.map((w, i) => ({ word: w.toUpperCase(), clue: clues[i] ?? "", difficulty: difficulties[i] ?? 0 }));
   const validPairs = pairs.filter(p => p.word.length === 5);
-  const filteredPairs = search.trim()
-    ? validPairs.filter(p => p.word.includes(search.toUpperCase()) || p.clue.toLowerCase().includes(search.toLowerCase()))
-    : validPairs;
+
+  // Difficulty filter — persisted in localStorage per material
+  const storageKey = `paraula_diff_${materialId}`;
+  const [diffFilter, setDiffFilter] = useState<0 | 1 | 2 | 3>(() => {
+    const saved = localStorage.getItem(storageKey);
+    return (saved ? Number(saved) : 0) as 0 | 1 | 2 | 3;
+  });
+  const handleDiffFilter = (d: 0 | 1 | 2 | 3) => {
+    setDiffFilter(d);
+    localStorage.setItem(storageKey, String(d));
+  };
+
+  const filteredPairs = validPairs.filter(p => {
+    if (diffFilter > 0 && p.difficulty !== diffFilter) return false;
+    if (search.trim()) return p.word.includes(search.toUpperCase()) || p.clue.toLowerCase().includes(search.toLowerCase());
+    return true;
+  });
 
   const selectedPair = selectedIdx !== null ? validPairs[selectedIdx] : null;
 
@@ -434,6 +450,25 @@ export default function ParaulaPractice() {
                 <p className="text-white/60 text-sm">{t("paraula_choose_word")}</p>
               </div>
 
+              {/* Difficulty filter — only shown when at least one word has a difficulty set */}
+              {hasDifficulties && (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {([0, 1, 2, 3] as const).map(d => (
+                    <button
+                      key={d}
+                      onClick={() => handleDiffFilter(d)}
+                      className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors border ${
+                        diffFilter === d
+                          ? "bg-amber-400 text-black border-amber-400"
+                          : "bg-white/5 text-white/60 border-white/15 hover:bg-white/10"
+                      }`}
+                    >
+                      {d === 0 ? t("paraula_diff_all") : "★".repeat(d)}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {/* Search */}
               <input
                 type="text"
@@ -446,7 +481,7 @@ export default function ParaulaPractice() {
               {validPairs.length === 0 ? (
                 <p className="text-center text-white/40 text-sm py-8">No 5-letter words in this material.</p>
               ) : filteredPairs.length === 0 ? (
-                <p className="text-center text-white/40 text-sm py-8">No matches for "{search}".</p>
+                <p className="text-center text-white/40 text-sm py-8">{diffFilter > 0 ? t("paraula_diff_no_match") : `No matches for "${search}".`}</p>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
                   {filteredPairs.map((p) => {
@@ -457,7 +492,12 @@ export default function ParaulaPractice() {
                         onClick={() => { setSelectedIdx(realIdx); setResult(null); setGameKey(k => k + 1); }}
                         className="flex flex-col items-start p-3 rounded-xl border border-white/10 hover:border-orange-400/60 bg-white/5 hover:bg-orange-500/10 transition-all text-left"
                       >
-                        <span className="font-mono font-black text-orange-300 text-base tracking-widest">{p.word}</span>
+                        <div className="flex items-center justify-between w-full gap-1">
+                          <span className="font-mono font-black text-orange-300 text-base tracking-widest">{p.word}</span>
+                          {p.difficulty > 0 && (
+                            <span className="text-amber-400 text-xs leading-none shrink-0">{"★".repeat(p.difficulty)}</span>
+                          )}
+                        </div>
                         <span className="text-xs text-white/50 mt-0.5 line-clamp-2">{p.clue}</span>
                       </button>
                     );

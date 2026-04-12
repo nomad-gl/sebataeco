@@ -528,6 +528,8 @@ export const translations = {
     paraula_back_to_words: "Back to words",
     paraula_letters: "letters",
     paraula_search_placeholder: "Search words or clues…",
+    paraula_diff_all: "All",
+    paraula_diff_no_match: "No words at this difficulty level.",
 
     // Presentation page
     pres_signin_title: "Sign in to create presentations",
@@ -2011,6 +2013,8 @@ export const translations = {
     paraula_back_to_words: "Volver a las palabras",
     paraula_letters: "letras",
     paraula_search_placeholder: "Buscar palabras o pistas…",
+    paraula_diff_all: "Todas",
+    paraula_diff_no_match: "No hay palabras en este nivel de dificultad.",
 
     // Presentation page
     pres_signin_title: "Inicia sesión para crear presentaciones",
@@ -3494,6 +3498,8 @@ export const translations = {
     paraula_back_to_words: "Tornar a les paraules",
     paraula_letters: "lletres",
     paraula_search_placeholder: "Cerca paraules o pistes…",
+    paraula_diff_all: "Totes",
+    paraula_diff_no_match: "No hi ha paraules en aquest nivell de dificultat.",
 
     // Presentation page
     pres_signin_title: "Inicia sessió per crear presentacions",
