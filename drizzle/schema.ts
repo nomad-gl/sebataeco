@@ -527,6 +527,10 @@ export const schoolCalendarEvents = mysqlTable("school_calendar_events", {
   subject: varchar("subject", { length: 128 }),
   /** Whether this was AI-generated as infill */
   aiGenerated: boolean("aiGenerated").default(false).notNull(),
+  /** Optional start time string e.g. '09:00' */
+  startTime: varchar("startTime", { length: 8 }),
+  /** Optional end time string e.g. '10:00' */
+  endTime: varchar("endTime", { length: 8 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

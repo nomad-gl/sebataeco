@@ -152,6 +152,8 @@ export const plannerRouter = router({
       competency: z.string().nullish(),
       yearGroup: z.string().nullish(),
       subject: z.string().nullish(),
+      startTime: z.string().nullish(),
+      endTime: z.string().nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -167,6 +169,8 @@ export const plannerRouter = router({
         competency: input.competency,
         yearGroup: input.yearGroup,
         subject: input.subject,
+        startTime: input.startTime ?? null,
+        endTime: input.endTime ?? null,
         aiGenerated: false,
       });
       return { id: (result as any)[0].insertId };
@@ -182,6 +186,8 @@ export const plannerRouter = router({
       competency: z.string().nullish(),
       yearGroup: z.string().nullish(),
       subject: z.string().nullish(),
+      startTime: z.string().nullish(),
+      endTime: z.string().nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();

@@ -1798,3 +1798,20 @@
 
 ## Fix: School Calendar month view — academic week numbers
 - [x] Replace ISO week numbers with academic week numbers (Week 1 = first week of September of the academic year)
+
+## Feature: Edit Calendar event — time slot field + time-clash detection
+- [ ] Add startTime and endTime columns to school_calendar_events table (migration)
+- [ ] Add startTime/endTime fields to createCalendarEvent and updateCalendarEvent procedures
+- [ ] Add time slot inputs (start time, end time) to the Add/Edit event dialog in SchoolCalendar.tsx
+- [ ] On save, detect time clashes (same date, overlapping times) and show a warning toast/alert
+- [ ] Show time slot in the event chip on the month grid and day panel
+- [ ] Add i18n keys for time_slot, start_time, end_time, time_clash_warning in EN/ES/CA
+
+## Feature: Term Overview — highlight holiday/non-teaching weeks
+- [ ] In Term Overview, visually distinguish weeks that contain only holidays (no lessons) with a muted row style
+
+## Feature: Lesson plan PDF — academic week number in header
+- [ ] Include the academic week number in the exported lesson plan PDF header alongside the date
+
+## Feature: School Calendar — jump-to-week navigation
+- [ ] Add a "Go to week…" input (type W12 or pick from dropdown) that jumps the calendar to that academic week

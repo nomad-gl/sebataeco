@@ -213,6 +213,7 @@ export default function SchoolCalendar() {
   const [linkGroupId, setLinkGroupId] = useState<string>("");
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [agendaView, setAgendaView] = useState(false);
+  const [jumpWeek, setJumpWeek] = useState("");
 
   // ── Batch Lesson Plan Generation ──────────────────────────────────────────
   const [showBatchDialog, setShowBatchDialog] = useState(false);
@@ -237,7 +238,7 @@ export default function SchoolCalendar() {
   const [calForm, setCalForm] = useState(emptyCalForm());
 
   // Event form
-  const [form, setForm] = useState({ eventType: "lesson", title: "", description: "", competency: "", yearGroup: "", subject: "" });
+  const [form, setForm] = useState({ eventType: "lesson", title: "", description: "", competency: "", yearGroup: "", subject: "", startTime: "", endTime: "" });
 
   // AI infill form
   const [aiForm, setAiForm] = useState({ sessionsPerWeek: 3, terms: DEFAULT_TERMS });
@@ -567,10 +568,29 @@ export default function SchoolCalendar() {
     else setViewMonth(m => m + 1);
   };
 
+  // Jump to the month that contains the given academic week number
+  const handleJumpToWeek = (wkStr: string) => {
+    const wk = parseInt(wkStr, 10);
+    if (!wkStr || isNaN(wk) || wk < 1) return;
+    const ayLabel = (selectedCalendar as any)?.academicYear ?? "";
+    const startYear = ayLabel.match(/^(\d{4})/)?.[1]
+      ? parseInt(ayLabel.match(/^(\d{4})/)![1], 10)
+      : new Date().getFullYear();
+    const sep1 = new Date(Date.UTC(startYear, 8, 1));
+    const sep1Dow = sep1.getUTCDay();
+    const daysBack = sep1Dow === 0 ? 6 : sep1Dow - 1;
+    const anchor = new Date(sep1.getTime() - daysBack * 86400000);
+    const targetMs = anchor.getTime() + (wk - 1) * 7 * 86400000;
+    const target = new Date(targetMs);
+    setViewMonth(target.getUTCMonth());
+    setViewYear(target.getUTCFullYear());
+    setJumpWeek("");
+  };
+
   const openAdd = (date: Date, type?: string) => {
     if (!selectedCalendarId) { toast.error(t("cal_select_first")); return; }
     setSelectedDate(date.toISOString().split("T")[0]);
-    setForm({ eventType: type ?? "lesson", title: "", description: "", competency: "", yearGroup: selectedCalendar?.yearLevel ?? "", subject: selectedCalendar?.subject ?? "" });
+    setForm({ eventType: type ?? "lesson", title: "", description: "", competency: "", yearGroup: selectedCalendar?.yearLevel ?? "", subject: selectedCalendar?.subject ?? "", startTime: "", endTime: "" });
     setShowAddDialog(true);
   };
 
@@ -585,12 +605,38 @@ export default function SchoolCalendar() {
       competency: ev.competency ?? "",
       yearGroup: ev.yearGroup ?? "",
       subject: ev.subject ?? "",
+      startTime: (ev as any).startTime ?? "",
+      endTime: (ev as any).endTime ?? "",
     });
     setShowEditDialog(true);
   };
 
+  // ── Time clash detection helper ──────────────────────────────────────────
+  const checkTimeClash = (date: string, startTime: string, endTime: string, excludeId?: number): string | null => {
+    if (!startTime || !endTime) return null;
+    const toMins = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+    const newStart = toMins(startTime);
+    const newEnd = toMins(endTime);
+    if (newEnd <= newStart) return t("cal_time_end_before_start");
+    const sameDay = events.filter(ev => {
+      const d = new Date(ev.eventDate);
+      const evDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      return evDate === date && ev.id !== excludeId && (ev as any).startTime && (ev as any).endTime;
+    });
+    for (const ev of sameDay) {
+      const evStart = toMins((ev as any).startTime);
+      const evEnd = toMins((ev as any).endTime);
+      if (newStart < evEnd && newEnd > evStart) {
+        return `${t("cal_time_clash_warning")}: "${ev.title}" (${(ev as any).startTime}–${(ev as any).endTime})`;
+      }
+    }
+    return null;
+  };
+
   const handleCreate = () => {
     if (!form.title.trim() || !selectedCalendarId || !selectedCalendar) return;
+    const clash = checkTimeClash(selectedDate, form.startTime, form.endTime);
+    if (clash) { toast.warning(clash); }
     createMutation.mutate({
       calendarId: selectedCalendarId,
       academicYear: selectedCalendar.academicYear,
@@ -601,11 +647,17 @@ export default function SchoolCalendar() {
       competency: form.competency || undefined,
       yearGroup: form.yearGroup || undefined,
       subject: form.subject || undefined,
+      startTime: form.startTime || undefined,
+      endTime: form.endTime || undefined,
     });
   };
 
   const handleUpdate = () => {
     if (!editingEvent) return;
+    const evDate = new Date(editingEvent.eventDate);
+    const evDateStr = `${evDate.getFullYear()}-${String(evDate.getMonth() + 1).padStart(2, "0")}-${String(evDate.getDate()).padStart(2, "0")}`;
+    const clash = checkTimeClash(evDateStr, form.startTime, form.endTime, editingEvent.id);
+    if (clash) { toast.warning(clash); }
     updateMutation.mutate({
       id: editingEvent.id,
       eventType: form.eventType as any,
@@ -614,6 +666,8 @@ export default function SchoolCalendar() {
       competency: form.competency || undefined,
       yearGroup: form.yearGroup || undefined,
       subject: form.subject || undefined,
+      startTime: form.startTime || undefined,
+      endTime: form.endTime || undefined,
     });
   };
 
@@ -1064,10 +1118,25 @@ export default function SchoolCalendar() {
               {agendaView ? (
               <Card onTouchStart={handleSwipeTouchStart} onTouchEnd={handleSwipeTouchEnd}>
                 <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <Button variant="ghost" size="icon" onClick={prevMonth}><ChevronLeft className="w-4 h-4" /></Button>
                     <CardTitle className="text-base">{MONTHS[viewMonth]} {viewYear}</CardTitle>
                     <Button variant="ghost" size="icon" onClick={nextMonth}><ChevronRight className="w-4 h-4" /></Button>
+                    <div className="flex items-center gap-1 ml-auto">
+                      <span className="text-[11px] text-muted-foreground hidden sm:inline">Wk</span>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={52}
+                        value={jumpWeek}
+                        onChange={e => setJumpWeek(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") handleJumpToWeek(jumpWeek); }}
+                        onBlur={() => handleJumpToWeek(jumpWeek)}
+                        placeholder="#"
+                        className="w-14 h-7 text-xs text-center px-1"
+                        title={t("cal_jump_to_week")}
+                      />
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
@@ -1131,10 +1200,25 @@ export default function SchoolCalendar() {
               ) : (
               <Card onTouchStart={handleSwipeTouchStart} onTouchEnd={handleSwipeTouchEnd}>
                 <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <Button variant="ghost" size="icon" onClick={prevMonth}><ChevronLeft className="w-4 h-4" /></Button>
                     <CardTitle className="text-base">{MONTHS[viewMonth]} {viewYear}</CardTitle>
                     <Button variant="ghost" size="icon" onClick={nextMonth}><ChevronRight className="w-4 h-4" /></Button>
+                    <div className="flex items-center gap-1 ml-auto">
+                      <span className="text-[11px] text-muted-foreground hidden sm:inline">Wk</span>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={52}
+                        value={jumpWeek}
+                        onChange={e => setJumpWeek(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") handleJumpToWeek(jumpWeek); }}
+                        onBlur={() => handleJumpToWeek(jumpWeek)}
+                        placeholder="#"
+                        className="w-14 h-7 text-xs text-center px-1"
+                        title={t("cal_jump_to_week")}
+                      />
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -1217,6 +1301,9 @@ export default function SchoolCalendar() {
                                         }
                                       >
                                         <span className="truncate flex-1">{ev.title}</span>
+                                        {(ev as any).startTime && (
+                                          <span className="shrink-0 text-[9px] opacity-70 font-mono">{(ev as any).startTime}</span>
+                                        )}
                                         {isLesson && (
                                           <ClipboardList className={`w-2.5 h-2.5 shrink-0 ${
                                             hasPlan ? "text-green-600" : "text-teal-400 opacity-60"
@@ -1251,9 +1338,15 @@ export default function SchoolCalendar() {
                       <p className="text-sm text-muted-foreground">{t("cal_no_events")}</p>
                     ) : (
                       <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
-                        {termWeeks.map(({ weekLabel, events: wEvents }) => (
-                          <div key={weekLabel} className="flex gap-3 items-start">
-                            <div className="w-20 shrink-0 text-xs font-mono text-muted-foreground pt-1">{weekLabel}</div>
+                        {termWeeks.map(({ weekLabel, events: wEvents }) => {
+                          const isHolidayOnly = wEvents.length > 0 && wEvents.every(ev => ev.eventType === "holiday");
+                          const hasNoLessons = !wEvents.some(ev => ev.eventType === "lesson" || ev.eventType === "ai_generated");
+                          return (
+                          <div key={weekLabel} className={`flex gap-3 items-start rounded-md px-2 py-1 ${isHolidayOnly ? "bg-amber-50 border border-amber-200/70" : hasNoLessons ? "opacity-60" : ""}`}>
+                            <div className="w-20 shrink-0 pt-1">
+                              <span className="text-xs font-mono text-muted-foreground">{weekLabel}</span>
+                              {isHolidayOnly && <div className="text-[9px] text-amber-600 font-semibold uppercase tracking-wide mt-0.5">Holiday</div>}
+                            </div>
                             <div className="flex flex-wrap gap-1 flex-1">
                               {wEvents.map(ev => {
                                   const hasPlan = !!(eventPlanMap as Record<number, number>)[ev.id];
@@ -1282,7 +1375,8 @@ export default function SchoolCalendar() {
                                 })}
                             </div>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </CardContent>
@@ -1689,6 +1783,16 @@ export default function SchoolCalendar() {
               <Label>{t("cal_description")}</Label>
               <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} />
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label>{t("cal_start_time")}</Label>
+                <Input type="time" value={form.startTime} onChange={e => setForm(f => ({ ...f, startTime: e.target.value }))} placeholder={t("cal_ph_time")} />
+              </div>
+              <div>
+                <Label>{t("cal_end_time")}</Label>
+                <Input type="time" value={form.endTime} onChange={e => setForm(f => ({ ...f, endTime: e.target.value }))} placeholder={t("cal_ph_time")} />
+              </div>
+            </div>
             {(form.eventType === "lesson" || form.eventType === "event") && (
               <>
                 <div className="grid grid-cols-2 gap-2">
@@ -1743,6 +1847,16 @@ export default function SchoolCalendar() {
             <div>
               <Label>{t("cal_description")}</Label>
               <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label>{t("cal_start_time")}</Label>
+                <Input type="time" value={form.startTime} onChange={e => setForm(f => ({ ...f, startTime: e.target.value }))} placeholder={t("cal_ph_time")} />
+              </div>
+              <div>
+                <Label>{t("cal_end_time")}</Label>
+                <Input type="time" value={form.endTime} onChange={e => setForm(f => ({ ...f, endTime: e.target.value }))} placeholder={t("cal_ph_time")} />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>

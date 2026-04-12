@@ -93,6 +93,18 @@ const EVENT_TYPE_LABELS: Record<string, Record<string, string>> = {
   ca: { holiday: "Festiu", special: "Dia especial", exam: "Examen", excursion: "Excursió", event: "Esdeveniment", lesson: "Lliçó", ai_generated: "Lliçó IA" },
 };
 
+/** Returns the academic week number (1-based) anchored to the Monday on/before 1 Sep of startYear */
+function academicWeekNumber(date: Date, startYear: number): number {
+  const sep1 = new Date(Date.UTC(startYear, 8, 1));
+  const sep1Dow = sep1.getUTCDay();
+  const daysBack = sep1Dow === 0 ? 6 : sep1Dow - 1;
+  const anchor = new Date(sep1.getTime() - daysBack * 86400000);
+  const dateUtc = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.floor((dateUtc - anchor.getTime()) / 86400000);
+  if (diffDays < 0) return 1;
+  return Math.floor(diffDays / 7) + 1;
+}
+
 function formatDate(d: Date, locale: string): string {
   return d.toLocaleDateString(locale === "ca" ? "ca-ES" : locale === "es" ? "es-ES" : "en-GB", {
     weekday: "short",
@@ -166,23 +178,29 @@ export async function generateCalendarPdf(opts: CalendarPdfOptions): Promise<Buf
     // ── Sort events by date ───────────────────────────────────────────────────
     const sorted = [...opts.events].sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime());
 
+    // Derive academic year start year from opts.academicYear e.g. "2025-2026" -> 2025
+    const ayStartYear = parseInt((opts.academicYear ?? "").split("-")[0], 10) || new Date().getFullYear();
+
     if (sorted.length === 0) {
       doc.fontSize(11).fillColor("#666").font("Helvetica").text(L.noEvents, 40, doc.y);
     } else {
-      // Table header
-      const colDate = 40;
-      const colType = 140;
-      const colTitle = 215;
-      const colComp = 430;
-      const colWidthDate = 95;
-      const colWidthType = 70;
-      const colWidthTitle = 210;
-      const colWidthComp = 80;
+      // Table header — Wk | Date | Type | Lesson | Competency
+      const colWk    = 40;
+      const colDate  = 68;
+      const colType  = 163;
+      const colTitle = 233;
+      const colComp  = 443;
+      const colWidthWk    = 24;
+      const colWidthDate  = 90;
+      const colWidthType  = 65;
+      const colWidthTitle = 205;
+      const colWidthComp  = 75;
 
       const drawTableHeader = () => {
         const y = doc.y;
         doc.rect(40, y, pageWidth, 16).fillColor("#1e3a5f").fill();
         doc.fontSize(8).fillColor("#fff").font("Helvetica-Bold");
+        doc.text("Wk", colWk + 2, y + 4, { width: colWidthWk });
         doc.text(L.date, colDate + 2, y + 4, { width: colWidthDate });
         doc.text(L.type, colType + 2, y + 4, { width: colWidthType });
         doc.text(L.lesson, colTitle + 2, y + 4, { width: colWidthTitle });
@@ -207,8 +225,10 @@ export async function generateCalendarPdf(opts: CalendarPdfOptions): Promise<Buf
         // Highlight holidays in a muted red
         const isHoliday = ev.eventType === "holiday";
         const textColor = isHoliday ? "#b91c1c" : "#1a1a1a";
+        const wkNum = academicWeekNumber(new Date(ev.eventDate), ayStartYear);
 
         doc.fontSize(7.5).fillColor(textColor).font(isHoliday ? "Helvetica-Bold" : "Helvetica");
+        doc.text(String(wkNum), colWk + 2, y + 6, { width: colWidthWk - 2, lineBreak: false });
         doc.text(formatDate(new Date(ev.eventDate), opts.locale), colDate + 2, y + 6, { width: colWidthDate - 4, lineBreak: false });
         doc.text(ET[ev.eventType] ?? ev.eventType, colType + 2, y + 6, { width: colWidthType - 4, lineBreak: false });
         doc.text(ev.title, colTitle + 2, y + 6, { width: colWidthTitle - 4, lineBreak: false });
