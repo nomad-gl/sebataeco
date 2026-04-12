@@ -13,7 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/contexts/I18nContext";
 import {
-  exportPDF, exportPNG, exportWord, printWithMeta,
+  exportPDF, exportPNG, exportWord, printWithMeta, exportToCsv, exportToXml, materialToRows,
   type PrintMeta,
   type QuizContent, type SlidesContent, type CrosswordContent,
   type MissingWordsContent, type WordsearchContent, type FlashcardsContent,
@@ -989,6 +989,18 @@ function ExportToolbar({
         onClick={() => run(() => exportPNG(contentId, slug), "png")} disabled={!!exporting}>
         {exporting === "png" ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Image className="w-4 h-4 mr-1.5" />}
         PNG
+      </Button>
+      <Button size="sm" variant="outline"
+        onClick={() => { const rows = materialToRows(type, content as never); exportToCsv(slug, rows); }}
+        disabled={!!exporting}>
+        <FileDown className="w-4 h-4 mr-1.5" />
+        {t("export_csv")}
+      </Button>
+      <Button size="sm" variant="outline"
+        onClick={() => { const rows = materialToRows(type, content as never); exportToXml(slug, type, rows); }}
+        disabled={!!exporting}>
+        <FileDown className="w-4 h-4 mr-1.5" />
+        {t("export_xml")}
       </Button>
     </div>
 

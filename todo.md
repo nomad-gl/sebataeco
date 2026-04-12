@@ -1608,3 +1608,21 @@
 - [x] Identify why the AI completion is not triggered or fails silently
 - [x] Fix the trigger so lesson plans are auto-completed by AI when a calendar event is opened (plan sheet)
 - [x] Ensure errors surface to the user rather than failing silently
+
+## Feature: View lesson planner from calendar date selection
+- [x] When a teacher clicks a date in the calendar, the day panel shows all events for that day
+- [x] Each event in the day panel should have a "View Plan" / "Open Lesson Plan" button
+- [x] Clicking "View Plan" opens the inline lesson plan sheet for that event
+- [x] If no plan exists yet, AI auto-generates one (existing flow)
+- [x] If a plan already exists, it loads immediately into the sheet
+- [x] Show a plan indicator icon/badge on events that already have a linked lesson plan
+
+## Feature: CSV/XML export for all print modes
+- [x] Create shared exportToCsv(filename, rows) and exportToXml(filename, rootTag, rows) utility functions in client/src/lib/exportUtils.ts
+- [x] MaterialView: add CSV and XML export buttons for quiz, flashcards, missing_words, wordsearch, crossword, slides
+- [x] SampleQuestions: add CSV and XML export buttons to the worksheet export dialog
+- [x] LessonPlanner: add CSV and XML export buttons to the print/export dialog
+- [x] SchoolCalendar: add CSV and XML export buttons for calendar events
+- [ ] Presentation: add CSV and XML export buttons for slide content (deferred)
+- [ ] Challenge: add CSV and XML export buttons for session results (deferred)
+- [x] Add i18n keys for "Export CSV" and "Export XML" in EN/ES/CA

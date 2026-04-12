@@ -20,6 +20,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { useLocation } from "wouter";
 import { useI18n } from "@/contexts/I18nContext";
 import { loadSchoolProfile } from "@/pages/Settings";
+import { exportToCsv, exportToXml } from "@/lib/exportUtils";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const ACADEMIC_YEARS = [`${CURRENT_YEAR - 1}-${CURRENT_YEAR}`, `${CURRENT_YEAR}-${CURRENT_YEAR + 1}`, `${CURRENT_YEAR + 1}-${CURRENT_YEAR + 2}`];
@@ -178,6 +179,17 @@ export default function SchoolCalendar() {
   const [linkGroupId, setLinkGroupId] = useState<string>("");
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [agendaView, setAgendaView] = useState(false);
+
+  // ── Swipe navigation ─────────────────────────────────────────────────────────
+  const swipeTouchStartX = useRef<number | null>(null);
+  const handleSwipeTouchStart = (e: React.TouchEvent) => { swipeTouchStartX.current = e.touches[0].clientX; };
+  const handleSwipeTouchEnd = (e: React.TouchEvent) => {
+    if (swipeTouchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - swipeTouchStartX.current;
+    swipeTouchStartX.current = null;
+    if (Math.abs(dx) < 50) return;
+    if (dx < 0) nextMonth(); else prevMonth();
+  };
 
   // Calendar form
   const [calForm, setCalForm] = useState(emptyCalForm());
@@ -789,6 +801,32 @@ export default function SchoolCalendar() {
                         <Download className="w-3.5 h-3.5" />
                         <span className="hidden sm:inline">{isPdfExporting ? "…" : t("cal_export_pdf")}</span>
                       </Button>
+                      <Button variant="outline" size="sm" className="gap-1.5" title={t("export_csv")}
+                        onClick={() => {
+                          const evts = Object.values(eventsByDate).flat();
+                          exportToCsv(selectedCalendar?.name ?? "calendar", evts.map(ev => ({
+                            date: String(ev.eventDate),
+                            title: ev.title,
+                            type: ev.eventType,
+                            description: ev.description ?? "",
+                          })));
+                        }}>
+                        <Download className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">{t("export_csv")}</span>
+                      </Button>
+                      <Button variant="outline" size="sm" className="gap-1.5" title={t("export_xml")}
+                        onClick={() => {
+                          const evts = Object.values(eventsByDate).flat();
+                          exportToXml(selectedCalendar?.name ?? "calendar", "calendar", evts.map(ev => ({
+                            date: String(ev.eventDate),
+                            title: ev.title,
+                            type: ev.eventType,
+                            description: ev.description ?? "",
+                          })), "event");
+                        }}>
+                        <Download className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">{t("export_xml")}</span>
+                      </Button>
                       <Button variant="outline" size="sm" onClick={() => {
                         const cal = selectedCalendar as SchoolCalendar;
                         setAiForm(f => ({ ...f, terms: getDefaultTermsForYear(cal.academicYear) }));
@@ -826,15 +864,15 @@ export default function SchoolCalendar() {
 
               {/* ── Month Calendar (or Agenda on mobile) ────────────────── */}
               {agendaView ? (
-                <Card>
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <Button variant="ghost" size="icon" onClick={prevMonth}><ChevronLeft className="w-4 h-4" /></Button>
-                      <CardTitle className="text-base">{MONTHS[viewMonth]} {viewYear}</CardTitle>
-                      <Button variant="ghost" size="icon" onClick={nextMonth}><ChevronRight className="w-4 h-4" /></Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
+              <Card onTouchStart={handleSwipeTouchStart} onTouchEnd={handleSwipeTouchEnd}>
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <Button variant="ghost" size="icon" onClick={prevMonth}><ChevronLeft className="w-4 h-4" /></Button>
+                    <CardTitle className="text-base">{MONTHS[viewMonth]} {viewYear}</CardTitle>
+                    <Button variant="ghost" size="icon" onClick={nextMonth}><ChevronRight className="w-4 h-4" /></Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
                     {calendarDays.filter(Boolean).map((day) => {
                       const d = day!;
                       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -878,7 +916,7 @@ export default function SchoolCalendar() {
                   </CardContent>
                 </Card>
               ) : (
-              <Card>
+              <Card onTouchStart={handleSwipeTouchStart} onTouchEnd={handleSwipeTouchEnd}>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <Button variant="ghost" size="icon" onClick={prevMonth}><ChevronLeft className="w-4 h-4" /></Button>
@@ -1508,25 +1546,35 @@ export default function SchoolCalendar() {
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {/* Events for this day */}
             {(dayPanelDate ? (eventsByDate[dayPanelDate] ?? []) : []).length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-6">No events for this day.</p>
+              <p className="text-sm text-muted-foreground text-center py-6">{t("cal_no_events_day")}</p>
             ) : (
               (dayPanelDate ? (eventsByDate[dayPanelDate] ?? []) : []).map(ev => {
                 const hasPlan = !!(eventPlanMap as Record<number, number>)[ev.id];
-                const isLesson = ev.eventType === "lesson" || ev.eventType === "ai_generated";
                 return (
                   <div key={ev.id} className={`rounded-lg border p-3 space-y-2 ${EVENT_COLORS[ev.eventType] ?? "bg-gray-50"}`}>
                     <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="font-medium text-sm truncate">{ev.title}</div>
-                        {ev.yearGroup && <div className="text-xs opacity-70">{ev.yearGroup}{ev.subject ? ` · ${ev.subject}` : ""}</div>}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-medium text-sm truncate">{ev.title}</span>
+                          {hasPlan && (
+                            <Badge className="h-4 px-1.5 text-[10px] bg-green-100 text-green-700 border-green-200 font-normal gap-0.5">
+                              <ClipboardList className="w-2.5 h-2.5" />
+                              {t("cal_plan_ready")}
+                            </Badge>
+                          )}
+                        </div>
+                        {ev.yearGroup && <div className="text-xs opacity-70 mt-0.5">{ev.yearGroup}{ev.subject ? ` · ${ev.subject}` : ""}</div>}
                       </div>
                       <div className="flex gap-1 shrink-0">
-                        {isLesson && (
-                          <Button size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs bg-white/60 hover:bg-white" onClick={() => openLessonPlanner(ev)}>
-                            <ClipboardList className="w-3 h-3" />
-                            {hasPlan ? "Edit Plan" : "Add Plan"}
-                          </Button>
-                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2 gap-1 text-xs bg-white/60 hover:bg-white"
+                          onClick={() => { setShowDayPanel(false); setTimeout(() => openPlanSheet(ev), 150); }}
+                        >
+                          <ClipboardList className="w-3 h-3" />
+                          {hasPlan ? t("cal_view_plan") : t("cal_add_plan")}
+                        </Button>
                         <Button size="sm" variant="outline" className="h-7 px-2 bg-white/60 hover:bg-white" onClick={() => { openEdit(ev); setShowDayPanel(false); }}>
                           <Pencil className="w-3 h-3" />
                         </Button>
@@ -1541,7 +1589,7 @@ export default function SchoolCalendar() {
                         if (parsed.learningOutcomes?.length) {
                           return (
                             <div className="text-xs opacity-80">
-                              <span className="font-medium">Outcomes: </span>
+                              <span className="font-medium">{t("cal_outcomes")}: </span>
                               {parsed.learningOutcomes.slice(0, 2).join(" • ")}
                             </div>
                           );
@@ -1563,7 +1611,7 @@ export default function SchoolCalendar() {
                 setShowDayPanel(false);
               }
             }}>
-              <Plus className="w-4 h-4" /> Add Event
+              <Plus className="w-4 h-4" /> {t("cal_add_event")}
             </Button>
           </div>
         </SheetContent>

@@ -52,12 +52,14 @@ const CATALAN_KEYS = [
   ["Q","W","E","R","T","Y","U","I","O","P"],
   ["A","S","D","F","G","H","J","K","L","Ç"],
   ["ENTER","Z","X","C","V","B","N","M","⌫"],
+  ["À","È","É","Í","Ï","Ó","Ò","Ú","Ü"],
 ];
 
 const SPANISH_KEYS = [
   ["Q","W","E","R","T","Y","U","I","O","P"],
   ["A","S","D","F","G","H","J","K","L","Ñ"],
   ["ENTER","Z","X","C","V","B","N","M","⌫"],
+  ["Á","É","Í","Ó","Ú"],
 ];
 
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
@@ -298,20 +300,23 @@ function SoloParaulaGame({ word, clue, onFinish, onNewGame }: SoloGameProps) {
 
       {/* Keyboard */}
       <div className={`flex flex-col gap-1 w-full max-w-[320px] transition-opacity duration-300 ${showOverlay ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
-        {activeKeys.map((row, ri) => (
-          <div key={ri} className="flex justify-center gap-0.5">
-            {row.map((key) => {
-              const state = letterState[key];
-              const isWide = key === "ENTER" || key === "⌫";
-              return (
-                <button key={key} onClick={() => handleKey(key)}
-                  className={`${isWide ? "px-1.5 text-[9px] min-w-[42px]" : "w-[28px]"} h-10 rounded-md font-bold text-xs transition-colors touch-manipulation ${KEY_COLORS[state ?? "default"]}`}>
-                  {key}
-                </button>
-              );
-            })}
-          </div>
-        ))}
+        {activeKeys.map((row, ri) => {
+          const isAccentRow = ri === activeKeys.length - 1 && row.every(k => k !== "ENTER" && k !== "⌫" && k.length === 1 && /[ÀÈÉÍÏÓÒÚÜÁÑ]/.test(k));
+          return (
+            <div key={ri} className={`flex justify-center gap-0.5 ${isAccentRow ? "mt-0.5 pt-0.5 border-t border-white/10" : ""}`}>
+              {row.map((key) => {
+                const state = letterState[key];
+                const isWide = key === "ENTER" || key === "⌫";
+                return (
+                  <button key={key} onClick={() => handleKey(key)}
+                    className={`${isWide ? "px-1.5 text-[9px] min-w-[42px]" : isAccentRow ? "w-[28px] h-8 text-[11px]" : "w-[28px] h-10"} ${isAccentRow ? "h-8 text-[11px]" : "h-10"} rounded-md font-bold text-xs transition-colors touch-manipulation ${KEY_COLORS[state ?? "default"]}`}>
+                    {key}
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

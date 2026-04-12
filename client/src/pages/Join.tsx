@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Zap, Loader2, CheckCircle2, Trophy, ArrowRight, Copy, Check, Volume2, VolumeX } from "lucide-react";
+import { Zap, Loader2, CheckCircle2, Trophy, ArrowRight, Copy, Check, Volume2, VolumeX, RefreshCw } from "lucide-react";
 import { useI18n } from "@/contexts/I18nContext";
 
 type Phase = "enter" | "waiting" | "question" | "paraula" | "done";
@@ -937,15 +937,14 @@ export default function Join() {
 
           <div>
             {isParaulaRoom ? (
-              <>
-                <h2 className="text-3xl font-heading font-bold">
-                  {paraulaSolved ? "🎉 Enhorabona!" : "Bona prova!"}
+              <>                <h2 className="text-3xl font-heading font-bold">
+                  {paraulaSolved ? t("paraula_win_title") : t("paraula_loss_title")}
                 </h2>
                 {paraulaGuesses > 0 && (
                   <p className="text-white/60 mt-1">
                     {paraulaSolved
-                      ? `Solved in ${paraulaGuesses} ${paraulaGuesses === 1 ? "guess" : "guesses"}!`
-                      : `The word was: ${paraulaWord}`}
+                      ? `${t("paraula_solved_in")} ${paraulaGuesses} ${paraulaGuesses === 1 ? t("paraula_guess_singular") : t("paraula_guess_plural")}!`
+                      : `${t("paraula_the_word_was")}: ${paraulaWord}`}
                   </p>
                 )}
               </>
@@ -965,7 +964,7 @@ export default function Join() {
           <div className="bg-white/10 rounded-2xl border border-white/20 p-4 space-y-1">
             {isParaulaRoom ? (
               <>
-                <p className="text-white/60 text-sm">Guesses used</p>
+                <p className="text-white/60 text-sm">{t("paraula_guesses_used")}</p>
                 <p className="text-5xl font-black text-orange-300">{paraulaGuesses || "—"}</p>
               </>
             ) : (
@@ -979,7 +978,7 @@ export default function Join() {
           {/* Emoji share grid for PARAULA */}
           {isParaulaRoom && paraulaShareGrid && (
             <div className="bg-black/30 rounded-xl border border-white/10 p-4 space-y-3">
-              <p className="text-white/50 text-xs uppercase tracking-widest font-semibold">Your result</p>
+              <p className="text-white/50 text-xs uppercase tracking-widest font-semibold">{t("paraula_your_result")}</p>
               <pre className="text-xl leading-tight text-center font-mono">{paraulaShareGrid}</pre>
               <Button
                 size="sm"
@@ -1027,6 +1026,23 @@ export default function Join() {
                 </div>
               ))}
             </div>
+          )}
+
+          {/* New Game button for PARAULA rooms */}
+          {isParaulaRoom && (
+            <Button
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold gap-2"
+              onClick={() => {
+                setPhase("paraula");
+                setParaulaGuesses(0);
+                setParaulaSolved(false);
+                setParaulaShareGrid("");
+                setParaulaRoundKey(k => k + 1);
+              }}
+            >
+              <RefreshCw className="w-4 h-4" />
+              {t("paraula_new_game")}
+            </Button>
           )}
 
           <p className="text-white/20 text-xs">Powered by SEBA</p>

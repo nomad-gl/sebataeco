@@ -17,6 +17,7 @@ import { useI18n } from "@/contexts/I18nContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
 import LogoUploader from "@/components/LogoUploader";
+import { exportToCsv, exportToXml } from "@/lib/exportUtils";
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
 type YearGroup = "junior" | "primary" | "secondary";
@@ -415,8 +416,46 @@ export default function SampleQuestions() {
               <p className="text-xs mt-1">{t("sample_language_label")}: {t(`lang_${lang}`)}</p>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-wrap gap-2">
             <Button variant="outline" onClick={() => setShowExportModal(false)}>{t("cancel")}</Button>
+            <Button variant="outline" size="sm" className="gap-1"
+              onClick={() => {
+                const qs = (questions ?? []).filter(q => selected.has(q.id));
+                exportToCsv(worksheetTitle || "questions", qs.map((q, i) => ({
+                  number: i + 1,
+                  question: q.question,
+                  option_a: q.options?.[0] ?? "",
+                  option_b: q.options?.[1] ?? "",
+                  option_c: q.options?.[2] ?? "",
+                  option_d: q.options?.[3] ?? "",
+                  correct_option: String.fromCharCode(65 + (q.correctIndex ?? 0)),
+                  explanation: q.explanation ?? "",
+                  competency: q.competency ?? "",
+                  year_group: q.yearGroup ?? "",
+                })));
+              }}>
+              <FileDown className="w-3.5 h-3.5" />{t("export_csv")}
+            </Button>
+            <Button variant="outline" size="sm" className="gap-1"
+              onClick={() => {
+                const qs = (questions ?? []).filter(q => selected.has(q.id));
+                const xmlRows = qs.map((q, i) => ({
+                  number: i + 1,
+                  question: q.question,
+                  option_a: q.options?.[0] ?? "",
+                  option_b: q.options?.[1] ?? "",
+                  option_c: q.options?.[2] ?? "",
+                  option_d: q.options?.[3] ?? "",
+                  correct_option: String.fromCharCode(65 + (q.correctIndex ?? 0)),
+                  explanation: q.explanation ?? "",
+                  competency: q.competency ?? "",
+                  year_group: q.yearGroup ?? "",
+                }));
+                exportToXml(worksheetTitle || "questions", "questions", xmlRows, "question");
+              }}
+            >
+              <FileDown className="w-3.5 h-3.5" />{t("export_xml")}
+            </Button>
             <Button
               onClick={handleExport}
               disabled={exportMutation.isPending}

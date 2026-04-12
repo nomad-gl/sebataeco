@@ -574,3 +574,150 @@ export function printWithMeta(
 export function printElement(elementId: string): void {
   printWithMeta(elementId, document.title, {});
 }
+
+// ─── CSV / XML export helpers ─────────────────────────────────────────────────
+
+/** Escape a value for CSV (wrap in quotes, escape internal quotes). */
+function csvCell(value: unknown): string {
+  const s = value == null ? "" : String(value);
+  if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}
+
+/**
+ * Download an array of objects as a CSV file.
+ * @param filename  Desired filename (without extension).
+ * @param rows      Array of flat objects; keys become column headers.
+ */
+export function exportToCsv(filename: string, rows: Record<string, unknown>[]): void {
+  if (!rows.length) return;
+  const headers = Object.keys(rows[0]);
+  const lines = [
+    headers.map(csvCell).join(","),
+    ...rows.map((r) => headers.map((h) => csvCell(r[h])).join(",")),
+  ];
+  _triggerDownload(`${filename}.csv`, lines.join("\n"), "text/csv;charset=utf-8;");
+}
+
+/** Escape a string for XML text content / attribute values. */
+function xmlEscape(value: unknown): string {
+  return String(value == null ? "" : value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+/** Convert a key to a valid XML element name (replace spaces/special chars with _). */
+function xmlTag(key: string): string {
+  return key.replace(/[^a-zA-Z0-9_\-.]/g, "_").replace(/^([^a-zA-Z_])/, "_$1");
+}
+
+/**
+ * Download an array of objects as an XML file.
+ * @param filename  Desired filename (without extension).
+ * @param rootTag   Name of the root XML element.
+ * @param rows      Array of flat objects.
+ * @param itemTag   Name of each item element (defaults to "item").
+ */
+export function exportToXml(
+  filename: string,
+  rootTag: string,
+  rows: Record<string, unknown>[],
+  itemTag = "item"
+): void {
+  if (!rows.length) return;
+  const lines: string[] = ['<?xml version="1.0" encoding="UTF-8"?>', `<${xmlTag(rootTag)}>`];
+  for (const row of rows) {
+    lines.push(`  <${xmlTag(itemTag)}>`);
+    for (const [key, val] of Object.entries(row)) {
+      const tag = xmlTag(key);
+      lines.push(`    <${tag}>${xmlEscape(val)}</${tag}>`);
+    }
+    lines.push(`  </${xmlTag(itemTag)}>`);
+  }
+  lines.push(`</${xmlTag(rootTag)}>`);
+  _triggerDownload(`${filename}.xml`, lines.join("\n"), "application/xml;charset=utf-8;");
+}
+
+/** Trigger a browser file download from a string blob. */
+function _triggerDownload(filename: string, content: string, mimeType: string): void {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ─── Per-type CSV/XML serialisers ─────────────────────────────────────────────
+
+export function materialToRows(type: string, content: MaterialContent): Record<string, unknown>[] {
+  switch (type) {
+    case "quiz": {
+      const q = content as QuizContent;
+      return q.questions.map((item, i) => ({
+        number: i + 1,
+        question: item.question,
+        option_a: item.options[0] ?? "",
+        option_b: item.options[1] ?? "",
+        option_c: item.options[2] ?? "",
+        option_d: item.options[3] ?? "",
+        correct_option: String.fromCharCode(65 + item.correctIndex),
+        explanation: item.explanation,
+      }));
+    }
+    case "flashcards": {
+      const f = content as FlashcardsContent;
+      return f.cards.map((c, i) => ({
+        number: i + 1,
+        term: c.term,
+        definition: c.definition,
+        example: c.example ?? "",
+        competency: c.competencyHint ?? "",
+      }));
+    }
+    case "crossword": {
+      const c = content as CrosswordContent;
+      return c.words.map((w) => ({
+        number: w.number,
+        direction: w.direction,
+        clue: w.clue,
+        answer: w.word,
+      }));
+    }
+    case "missing_words": {
+      const m = content as MissingWordsContent;
+      return m.blanks.map((b, i) => ({
+        number: i + 1,
+        hint: b.hint,
+        answer: b.answer,
+      }));
+    }
+    case "wordsearch": {
+      const w = content as WordsearchContent;
+      return w.words.map((item, i) => ({
+        number: i + 1,
+        word: typeof item === "string" ? item : item.word,
+        clue: typeof item === "string" ? "" : item.clue,
+      }));
+    }
+    case "slides": {
+      const s = content as SlidesContent;
+      return s.slides.map((slide) => ({
+        slide_number: slide.slideNumber,
+        heading: slide.heading,
+        bullets: slide.bullets.join(" | "),
+        speaker_note: slide.speakerNote,
+      }));
+    }
+    default:
+      return [];
+  }
+}
