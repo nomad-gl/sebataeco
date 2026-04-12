@@ -312,7 +312,11 @@ export default function SchoolCalendar() {
   // Auto-select first calendar when loaded
   useEffect(() => {
     if (selectedCalendarId === null && (calendars as SchoolCalendar[]).length > 0) {
-      setSelectedCalendarId((calendars as SchoolCalendar[])[0].id);
+      // Deep-link: if ?calendarId=N is in the URL, prefer that calendar
+      const params = new URLSearchParams(window.location.search);
+      const calIdParam = params.get("calendarId");
+      const preferred = calIdParam ? (calendars as SchoolCalendar[]).find(c => c.id === parseInt(calIdParam, 10)) : null;
+      setSelectedCalendarId(preferred ? preferred.id : (calendars as SchoolCalendar[])[0].id);
     }
   }, [calendars, selectedCalendarId]);
 
@@ -399,6 +403,22 @@ export default function SchoolCalendar() {
     { calendarId: selectedCalendarId! },
     { enabled: selectedCalendarId !== null },
   );
+
+  // Deep-link: once events are loaded, open the plan sheet for ?eventId=N
+  const deepLinkHandledRef = useRef(false);
+  useEffect(() => {
+    if (deepLinkHandledRef.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const eventIdParam = params.get("eventId");
+    if (!eventIdParam) return;
+    const targetEventId = parseInt(eventIdParam, 10);
+    const targetEvent = (events as CalEvent[]).find(e => e.id === targetEventId);
+    if (!targetEvent) return; // events not yet loaded for this calendar
+    deepLinkHandledRef.current = true;
+    window.history.replaceState({}, "", window.location.pathname);
+    openPlanSheet(targetEvent);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [events]);
 
   const createMutation = trpc.planner.createCalendarEvent.useMutation({
     onSuccess: () => { utils.planner.listCalendarEvents.invalidate(); setShowAddDialog(false); },

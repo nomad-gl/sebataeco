@@ -2013,3 +2013,8 @@
 - [x] Fetch list of user's calendars in LessonPlanner
 - [x] Add a filter Select dropdown above the plan list; "All calendars" default
 - [x] Filter plans list to only show plans linked to the selected calendar
+
+## Follow-up 13: Quick-jump from plan to linked calendar event
+- [x] Add calendar icon button to each plan row in Lesson Planner sidebar (only shown when plan has calendarEventId)
+- [x] Clicking navigates to /calendar?eventId=N&calendarId=M, opening the correct calendar and highlighting/opening the event
+- [x] SchoolCalendar page reads the eventId query param on mount and opens the event's plan sheet or day panel

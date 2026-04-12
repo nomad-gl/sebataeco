@@ -13,7 +13,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { Plus, Sparkles, Trash2, Printer, BookOpen, Save, List, X, Copy, LayoutTemplate, FolderOpen, FileDown, ArrowUpDown, ArrowUp01 } from "lucide-react";
+import { Plus, Sparkles, Trash2, Printer, BookOpen, Save, List, X, Copy, LayoutTemplate, FolderOpen, FileDown, ArrowUpDown, ArrowUp01, CalendarDays } from "lucide-react";
+import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import LogoUploader from "@/components/LogoUploader";
 import { useI18n } from "@/contexts/I18nContext";
@@ -207,7 +208,7 @@ function buildPrintHtml(form: LessonFormState, logoDataUrl?: string, labels?: Re
 }
 
 // ─── Saved Plans List (shared between sidebar and sheet) ───────────────────────
-function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplicate, onDelete, batchSelectMode, setBatchSelectMode, selectedPlanIds, setSelectedPlanIds, onBatchDelete, t }: {
+function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplicate, onDelete, onJumpToCalendar, batchSelectMode, setBatchSelectMode, selectedPlanIds, setSelectedPlanIds, onBatchDelete, t }: {
   plans: any[];
   calendars: any[];
   selectedId: number | null;
@@ -216,6 +217,7 @@ function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplic
   onAi: () => void;
   onDuplicate: (p: any) => void;
   onDelete: (id: number) => void;
+  onJumpToCalendar: (calendarEventId: number, calendarId: number) => void;
   batchSelectMode: boolean;
   setBatchSelectMode: (v: boolean) => void;
   selectedPlanIds: Set<number>;
@@ -331,6 +333,15 @@ function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplic
             </button>
             {!batchSelectMode && (
               <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                {p.calendarEventId && p.calendarId && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onJumpToCalendar(p.calendarEventId, p.calendarId); }}
+                    title="Jump to calendar event"
+                    className="p-1 rounded hover:bg-teal-50 hover:text-teal-700"
+                  >
+                    <CalendarDays className="w-3.5 h-3.5 text-teal-600" />
+                  </button>
+                )}
                 <button
                   onClick={(e) => { e.stopPropagation(); onDuplicate(p); }}
                   title={t("planner_duplicate")}
@@ -363,6 +374,7 @@ function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplic
 export default function LessonPlanner() {
   const { t } = useI18n();
   const isMobile = useIsMobile();
+  const [, navigate] = useLocation();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [form, setForm] = useState<LessonFormState>(() => {
@@ -698,6 +710,7 @@ export default function LessonPlanner() {
       onAi={() => { setSheetOpen(false); setShowAiDialog(true); }}
       onDuplicate={handleDuplicate}
       onDelete={(id) => setShowIndividualDeleteConfirm(id)}
+      onJumpToCalendar={(calendarEventId, calendarId) => navigate(`/calendar?eventId=${calendarEventId}&calendarId=${calendarId}`)}
       batchSelectMode={batchSelectMode}
       setBatchSelectMode={setBatchSelectMode}
       selectedPlanIds={selectedPlanIds}
