@@ -2024,3 +2024,22 @@
 - [x] Server: merge logic applies AI output only to fields that were empty in the request; pre-filled fields are preserved as-is in the saved plan
 - [x] Client (LessonPlanner): pass all current form field values when calling aiGenerateLessonPlan so the server knows what is already filled
 - [x] Client (SchoolCalendar plan sheet): same — pass current planForm values when triggering AI generation from the calendar
+
+## Fix: AI Calendar Infill — Unique LOMLOE-Aligned Lesson Titles
+- [x] aiInfillCalendar: generate unique, LOMLOE-aligned lesson titles per event using a dedicated LLM call that considers subject, year group, topic description, lesson number, and term position
+- [x] Titles should reflect curriculum-appropriate topics (not generic "Lesson 1", "Lesson 2")
+
+## Follow-up: Per-Section Regenerate Button
+- [x] Add a small "Regenerate" icon button next to each content section in the lesson plan form (Learning Outcomes, Evaluation Criteria, Procedures, Materials, Previous Knowledge, Specific Competences, Saberes Básicos)
+- [x] Clicking calls a new tRPC procedure aiRegenerateSection that generates only that one field using the plan context
+- [x] Show loading spinner on the button while generating; update only that field on success
+
+## Follow-up: Field-Level AI Generation Status Indicator
+- [x] During full AI generation (aiGenerateLessonPlan), show a shimmer/skeleton on each section being generated (implemented as spinner on section regenerate buttons)
+- [x] Sections that are pre-filled (existing values) show a "preserved" badge instead of a shimmer
+- [x] Clear all indicators when generation completes
+
+## Follow-up: Generation History / Undo
+- [x] Before each AI generation, snapshot the current form state to a useRef
+- [x] Show an 8-second "Undo" toast action after generation completes
+- [x] Clicking undo restores the previous form state and marks the form as dirty

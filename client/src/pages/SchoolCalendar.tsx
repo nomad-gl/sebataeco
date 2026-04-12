@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, Plus, Sparkles, Trash2, CalendarDays,
   ExternalLink, LayoutList, Pencil, School, BookOpen, User, GraduationCap,
   FolderOpen, X, Check, Download, Link, Unlink, Users, Save, ClipboardList,
-  ListChecks, RefreshCw, FileDown, Hash, Mic, MicOff, Volume2, VolumeX, ChevronDown,
+  ListChecks, RefreshCw, FileDown, Hash, Mic, MicOff, Volume2, VolumeX, ChevronDown, Loader2,
 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useLocation } from "wouter";
@@ -588,6 +588,42 @@ export default function SchoolCalendar() {
       toast.error(e.message);
     },
   });
+
+  const [regeneratingSection, setRegeneratingSection] = useState<string | null>(null);
+  const preAiSnapshotRef = useRef<typeof planForm | null>(null);
+  const aiRegenSectionMutation = trpc.planner.aiRegenerateSection.useMutation({
+    onSuccess: (data) => {
+      // Update only the regenerated field in the form
+      const field = data.section as keyof typeof planForm;
+      const parsed = (() => {
+        try { return JSON.parse(data.value); } catch { return data.value; }
+      })();
+      const snap = preAiSnapshotRef.current;
+      setPlanField(field, parsed);
+      setRegeneratingSection(null);
+      toast.success(t("lp_section_regenerated") ?? "Section regenerated", snap ? {
+        action: { label: "Undo", onClick: () => { if (snap) { Object.keys(snap).forEach(k => setPlanField(k as any, (snap as any)[k])); preAiSnapshotRef.current = null; } } },
+        duration: 8000,
+      } : undefined);
+    },
+    onError: (e) => { setRegeneratingSection(null); toast.error(e.message); },
+  });
+
+  const handleRegenSection = (section: string) => {
+    if (!planSheetPlanId) return;
+    preAiSnapshotRef.current = { ...planForm };
+    setRegeneratingSection(section);
+    aiRegenSectionMutation.mutate({
+      planId: planSheetPlanId,
+      section: section as any,
+      title: planForm.title,
+      subject: planForm.subject,
+      yearGroup: planForm.yearGroup,
+      duration: planForm.duration,
+      unit: planForm.unit || undefined,
+      competencies: planForm.competencies,
+    });
+  };
 
   const createLinkedPlanMutation = trpc.planner.createLinkedLessonPlan.useMutation({
     onSuccess: (data) => {
@@ -2947,7 +2983,14 @@ export default function SchoolCalendar() {
                 ))}
               </div>
               <div>
-                <Label className="text-xs mb-1 block">{t("lp_specific_competences")}</Label>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Label className="text-xs">{t("lp_specific_competences")}</Label>
+                  {planSheetPlanId && (
+                    <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-teal-500" title={t("lp_regen_section")} disabled={!!regeneratingSection} onClick={() => handleRegenSection("specificCompetences")}>
+                      {regeneratingSection === "specificCompetences" ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                    </Button>
+                  )}
+                </div>
                 {planForm.specificCompetences.map((v, i) => (
                   <div key={i} className="flex gap-1.5 mb-1.5">
                     <Input value={v} onChange={e => { const a = [...planForm.specificCompetences]; a[i] = e.target.value; setPlanField("specificCompetences", a); }} placeholder={t("lp_ph_competence")} className="flex-1 h-8 text-sm" />
@@ -2965,7 +3008,14 @@ export default function SchoolCalendar() {
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t("lp_section_curriculum")}</p>
               {(["saberesBasicos", "learningOutcomes", "evaluationCriteria"] as const).map(field => (
                 <div key={field}>
-                  <Label className="text-xs mb-1 block">{t(field === "saberesBasicos" ? "lp_saberes_basicos" : field === "learningOutcomes" ? "lp_learning_outcomes" : "lp_evaluation_criteria")}</Label>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Label className="text-xs">{t(field === "saberesBasicos" ? "lp_saberes_basicos" : field === "learningOutcomes" ? "lp_learning_outcomes" : "lp_evaluation_criteria")}</Label>
+                    {planSheetPlanId && (
+                      <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-teal-500" title={t("lp_regen_section")} disabled={!!regeneratingSection} onClick={() => handleRegenSection(field)}>
+                        {regeneratingSection === field ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                      </Button>
+                    )}
+                  </div>
                   {planForm[field].map((v, i) => (
                     <div key={i} className="flex gap-1.5 mb-1.5">
                       <Input value={v} onChange={e => { const a = [...planForm[field]]; a[i] = e.target.value; setPlanField(field, a); }} className="flex-1 h-8 text-sm" />
@@ -2983,11 +3033,25 @@ export default function SchoolCalendar() {
             <div className="space-y-2">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t("lp_section_context")}</p>
               <div>
-                <Label className="text-xs">{t("lp_previous_knowledge")}</Label>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <Label className="text-xs">{t("lp_previous_knowledge")}</Label>
+                  {planSheetPlanId && (
+                    <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-teal-500" title={t("lp_regen_section")} disabled={!!regeneratingSection} onClick={() => handleRegenSection("previousKnowledge")}>
+                      {regeneratingSection === "previousKnowledge" ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                    </Button>
+                  )}
+                </div>
                 <Textarea value={planForm.previousKnowledge} onChange={e => setPlanField("previousKnowledge", e.target.value)} rows={2} className="text-sm" />
               </div>
               <div>
-                <Label className="text-xs">{t("lp_materials_resources")}</Label>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <Label className="text-xs">{t("lp_materials_resources")}</Label>
+                  {planSheetPlanId && (
+                    <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-teal-500" title={t("lp_regen_section")} disabled={!!regeneratingSection} onClick={() => handleRegenSection("materials")}>
+                      {regeneratingSection === "materials" ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                    </Button>
+                  )}
+                </div>
                 <Textarea value={planForm.materials} onChange={e => setPlanField("materials", e.target.value)} rows={2} className="text-sm" />
               </div>
             </div>
@@ -2996,7 +3060,14 @@ export default function SchoolCalendar() {
 
             {/* ─ Procedure ─ */}
             <div className="space-y-2">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t("lp_section_procedure")}</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t("lp_section_procedure")}</p>
+                {planSheetPlanId && (
+                  <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-teal-500" title={t("lp_regen_section")} disabled={!!regeneratingSection} onClick={() => handleRegenSection("procedures")}>
+                    {regeneratingSection === "procedures" ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                  </Button>
+                )}
+              </div>
               {planForm.procedures.map((p, i) => (
                 <div key={i} className="rounded-lg border p-3 space-y-2 bg-muted/20">
                   <div className="flex items-center justify-between gap-2">

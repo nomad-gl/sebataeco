@@ -436,7 +436,7 @@ The 8 LOMLOE key competencies are:
 8. CCEC — Competencia en conciencia y expresión culturales
 
 Each lesson must include:
-- A clear, engaging lesson title
+- A SPECIFIC, DESCRIPTIVE lesson title that names the exact topic/skill being taught (e.g. "Introducing the Present Perfect: Life Experiences", "Reading Comprehension: Newspaper Articles", "Oral Presentation Skills: Debating Environmental Issues"). NEVER use generic titles like "Lesson 1", "Introduction", or "${input.subject} Lesson". Each title must be unique and directly reflect the lesson content.
 - The primary LOMLOE key competency (from the rotation above)
 - 1-2 specific competences (e.g. CCL-1, CCL-2, STEM-3)
 - 2-3 saberes básicos (basic knowledge items relevant to the lesson)
@@ -482,19 +482,36 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
         if (content) lessons = (JSON.parse(content) as { lessons: LessonDetail[] }).lessons || [];
       } catch (_err) {
         const comps = ["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"];
+        // Fallback: generate meaningful topic-based titles using subject + topic + lesson sequence
+        const topicBase = input.topicDescription
+          ? input.topicDescription.split(/[,;.\n]/)[0].trim().slice(0, 60)
+          : input.subject;
+        const fallbackTitles = [
+          `${topicBase}: Introduction and Key Vocabulary`,
+          `${topicBase}: Reading and Comprehension`,
+          `${topicBase}: Grammar and Language Structures`,
+          `${topicBase}: Listening and Speaking Practice`,
+          `${topicBase}: Writing Skills and Production`,
+          `${topicBase}: Cultural Context and Real-World Use`,
+          `${topicBase}: Collaborative Task and Group Work`,
+          `${topicBase}: Review, Consolidation and Self-Assessment`,
+        ];
         lessons = selectedDays.map((_, i) => ({
-          title: `${input.subject} Lesson ${i + 1}`,
+          title: fallbackTitles[i % fallbackTitles.length],
           competency: comps[i % comps.length],
           specificCompetences: [`${comps[i % comps.length]}-1`],
-          saberesBasicos: ["Core vocabulary and structures"],
+          saberesBasicos: ["Core vocabulary and structures relevant to the topic"],
           learningOutcomes: ["Students will be able to use language in context"],
           evaluationCriteria: ["Students demonstrate understanding through task completion"],
         }));
       }
 
       const toInsert = selectedDays.map((date, i) => {
+        const topicFallback = input.topicDescription
+          ? input.topicDescription.split(/[,;.\n]/)[0].trim().slice(0, 60)
+          : input.subject;
         const lesson = lessons[i] ?? {
-          title: `${input.subject} Lesson ${i + 1}`,
+          title: `${topicFallback}: Lesson ${i + 1}`,
           competency: "CCL",
           specificCompetences: [],
           saberesBasicos: [],
@@ -1749,5 +1766,76 @@ Generate a detailed lesson plan with specific activities for each procedure stag
       }
 
       return { updated };
+    }),
+
+  /**
+   * Regenerate a single section of a lesson plan using AI.
+   * Preserves all other fields; only the requested section is generated.
+   */
+  aiRegenerateSection: protectedProcedure
+    .input(z.object({
+      planId: z.number(),
+      section: z.enum(["skills", "systems", "specificCompetences", "saberesBasicos", "learningOutcomes", "evaluationCriteria", "previousKnowledge", "materials", "spaces", "procedures"]),
+      /** Plan context for the LLM */
+      title: z.string(),
+      subject: z.string(),
+      yearGroup: z.string(),
+      duration: z.number().optional(),
+      unit: z.string().nullish(),
+      competencies: z.array(z.string()).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      // Verify ownership
+      const [plan] = await db.select().from(lessonPlans).where(and(eq(lessonPlans.id, input.planId), eq(lessonPlans.userId, ctx.user.id)));
+      if (!plan) throw new TRPCError({ code: "NOT_FOUND", message: "Plan not found" });
+
+      const sectionLabels: Record<string, string> = {
+        skills: "Language skills focus (listening, speaking, reading, writing) — return JSON object with boolean values for each skill",
+        systems: "Language systems focus (grammar, phonology, lexis, function, discourse) — return JSON object with boolean values for each system",
+        specificCompetences: "Specific LOMLOE competences (e.g. CCL-1, CCL-2, STEM-3) — return JSON array of 1-3 strings",
+        saberesBasicos: "Saberes básicos / basic knowledge items relevant to this lesson — return JSON array of 2-4 strings",
+        learningOutcomes: "Learning outcomes starting with 'Students will be able to...' — return JSON array of 2-3 strings",
+        evaluationCriteria: "Evaluation criteria starting with 'Students demonstrate...' — return JSON array of 1-3 strings",
+        previousKnowledge: "Previous knowledge / prerequisites students need — return a plain string (1-2 sentences)",
+        materials: "Materials and resources needed for the lesson — return a plain string listing items",
+        spaces: "Learning spaces/environments for the lesson — return a plain string (e.g. 'Classroom, computer lab')",
+        procedures: "Lesson procedure stages — return JSON array of objects with fields: timing (string), stage (string), activities (string), grouping (string). Include 4-6 stages.",
+      };
+
+      const isJsonField = ["skills", "systems", "specificCompetences", "saberesBasicos", "learningOutcomes", "evaluationCriteria", "procedures"].includes(input.section);
+
+      const resp = await invokeLLM({
+        messages: [
+          { role: "system", content: "You are a LOMLOE curriculum planning expert. Generate content for a single lesson plan section. Return only the requested value — no extra explanation." },
+          { role: "user", content: `Generate the '${input.section}' section for this lesson plan:\n- Title: ${input.title}\n- Subject: ${input.subject}\n- Year Group: ${input.yearGroup}${input.unit ? `\n- Unit: ${input.unit}` : ""}${input.duration ? `\n- Duration: ${input.duration} min` : ""}${input.competencies?.length ? `\n- Key Competencies: ${input.competencies.join(", ")}` : ""}\n\nSection to generate: ${sectionLabels[input.section]}` },
+        ],
+      });
+
+      const raw = resp.choices?.[0]?.message?.content ?? "";
+      const content = typeof raw === "string" ? raw.trim() : JSON.stringify(raw);
+
+      // Parse JSON fields; keep plain string for text fields
+      let value: string;
+      if (isJsonField) {
+        try {
+          // Extract JSON from markdown code blocks if present
+          const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || content.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+          const jsonStr = jsonMatch ? jsonMatch[1].trim() : content;
+          JSON.parse(jsonStr); // validate
+          value = jsonStr;
+        } catch {
+          value = content;
+        }
+      } else {
+        value = content;
+      }
+
+      // Update the plan with the regenerated section
+      await db.update(lessonPlans).set({ [input.section]: value, updatedAt: new Date() }).where(and(eq(lessonPlans.id, input.planId), eq(lessonPlans.userId, ctx.user.id)));
+
+      return { section: input.section, value };
     }),
 });

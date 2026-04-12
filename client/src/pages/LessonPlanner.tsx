@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { Plus, Sparkles, Trash2, Printer, BookOpen, Save, List, X, Copy, LayoutTemplate, FolderOpen, FileDown, ArrowUpDown, ArrowUp01, CalendarDays } from "lucide-react";
+import { Plus, Sparkles, Trash2, Printer, BookOpen, Save, List, X, Copy, LayoutTemplate, FolderOpen, FileDown, ArrowUpDown, ArrowUp01, CalendarDays, Loader2, RefreshCw } from "lucide-react";
 import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import LogoUploader from "@/components/LogoUploader";
@@ -577,11 +577,65 @@ export default function LessonPlanner() {
           toast.warning(t("lp_generated_toast") + " (calendar link failed)");
         }
       } else {
-        toast.success(t("lp_generated_toast"));
+        const snap = preAiSnapshotRef.current;
+        if (snap) {
+          toast.success(t("lp_generated_toast"), {
+            action: { label: "Undo", onClick: () => { setForm(snap); setIsDirty(true); preAiSnapshotRef.current = null; } },
+            duration: 8000,
+          });
+        } else {
+          toast.success(t("lp_generated_toast"));
+        }
       }
     },
     onError: (e) => toast.error(e.message),
   });
+
+  const preAiSnapshotRef = useRef<LessonFormState | null>(null);
+
+  const [regeneratingSection, setRegeneratingSection] = useState<string | null>(null);
+  const aiRegenSectionMutation = trpc.planner.aiRegenerateSection.useMutation({
+    onSuccess: (data) => {
+      const field = data.section as keyof LessonFormState;
+      const parsed = (() => { try { return JSON.parse(data.value); } catch { return data.value; } })();
+      setForm(f => {
+        const snapshot = { ...f };
+        preAiSnapshotRef.current = snapshot;
+        return { ...f, [field]: parsed };
+      });
+      setIsDirty(true);
+      setRegeneratingSection(null);
+      toast.success(t("lp_section_regenerated"), {
+        action: {
+          label: "Undo",
+          onClick: () => {
+            if (preAiSnapshotRef.current) {
+              setForm(preAiSnapshotRef.current);
+              setIsDirty(true);
+              preAiSnapshotRef.current = null;
+            }
+          },
+        },
+        duration: 8000,
+      });
+    },
+    onError: (e) => { setRegeneratingSection(null); toast.error(e.message); },
+  });
+
+  const handleRegenSection = (section: string) => {
+    if (!selectedId) return;
+    setRegeneratingSection(section);
+    aiRegenSectionMutation.mutate({
+      planId: selectedId,
+      section: section as any,
+      title: form.title,
+      subject: form.subject,
+      yearGroup: form.yearGroup,
+      duration: form.duration,
+      unit: form.unit || undefined,
+      competencies: form.competencies,
+    });
+  };
 
   const setField = <K extends keyof LessonFormState>(key: K, value: LessonFormState[K]) => {
     setForm(f => {
@@ -919,7 +973,14 @@ export default function LessonPlanner() {
                   </div>
                 </div>
                 <div>
-                  <Label className="mb-2 block">{t("lp_specific_competences")}</Label>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Label>{t("lp_specific_competences")}</Label>
+                    {selectedId && (
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-teal-500" title={t("lp_regen_section")} disabled={!!regeneratingSection} onClick={() => handleRegenSection("specificCompetences")}>
+                        {regeneratingSection === "specificCompetences" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                      </Button>
+                    )}
+                  </div>
                   {form.specificCompetences.map((v, i) => (
                     <div key={i} className="flex gap-2 mb-2">
                       <Input value={v} onChange={e => updateListItem("specificCompetences", i, e.target.value)} placeholder={t('lp_ph_competence')} className="flex-1" />
@@ -936,7 +997,14 @@ export default function LessonPlanner() {
               <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">{t("lp_section_curriculum")}</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label className="mb-2 block">{t("lp_saberes_basicos")}</Label>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Label>{t("lp_saberes_basicos")}</Label>
+                    {selectedId && (
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-teal-500" title={t("lp_regen_section")} disabled={!!regeneratingSection} onClick={() => handleRegenSection("saberesBasicos")}>
+                        {regeneratingSection === "saberesBasicos" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                      </Button>
+                    )}
+                  </div>
                   {form.saberesBasicos.map((v, i) => (
                     <div key={i} className="flex gap-2 mb-2">
                       <Input value={v} onChange={e => updateListItem("saberesBasicos", i, e.target.value)} placeholder={t('lp_ph_saberes')} className="flex-1" />
@@ -947,7 +1015,14 @@ export default function LessonPlanner() {
                 </div>
                 <Separator />
                 <div>
-                  <Label className="mb-2 block">{t("lp_learning_outcomes")}</Label>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Label>{t("lp_learning_outcomes")}</Label>
+                    {selectedId && (
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-teal-500" title={t("lp_regen_section")} disabled={!!regeneratingSection} onClick={() => handleRegenSection("learningOutcomes")}>
+                        {regeneratingSection === "learningOutcomes" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                      </Button>
+                    )}
+                  </div>
                   {form.learningOutcomes.map((v, i) => (
                     <div key={i} className="flex gap-2 mb-2">
                       <Input value={v} onChange={e => updateListItem("learningOutcomes", i, e.target.value)} placeholder={t('lp_ph_outcomes')} className="flex-1" />
@@ -958,7 +1033,14 @@ export default function LessonPlanner() {
                 </div>
                 <Separator />
                 <div>
-                  <Label className="mb-2 block">{t("lp_evaluation_criteria")}</Label>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Label>{t("lp_evaluation_criteria")}</Label>
+                    {selectedId && (
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-teal-500" title={t("lp_regen_section")} disabled={!!regeneratingSection} onClick={() => handleRegenSection("evaluationCriteria")}>
+                        {regeneratingSection === "evaluationCriteria" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                      </Button>
+                    )}
+                  </div>
                   {form.evaluationCriteria.map((v, i) => (
                     <div key={i} className="flex gap-2 mb-2">
                       <Input value={v} onChange={e => updateListItem("evaluationCriteria", i, e.target.value)} placeholder={t('lp_ph_criteria')} className="flex-1" />
@@ -975,11 +1057,25 @@ export default function LessonPlanner() {
               <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">{t("lp_section_context")}</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label>{t("lp_previous_knowledge")}</Label>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Label>{t("lp_previous_knowledge")}</Label>
+                    {selectedId && (
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-teal-500" title={t("lp_regen_section")} disabled={!!regeneratingSection} onClick={() => handleRegenSection("previousKnowledge")}>
+                        {regeneratingSection === "previousKnowledge" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                      </Button>
+                    )}
+                  </div>
                   <Textarea value={form.previousKnowledge} onChange={e => setField("previousKnowledge", e.target.value)} rows={2} placeholder={t('lp_ph_prev_knowledge')} />
                 </div>
                 <div>
-                  <Label>{t("lp_materials_resources")}</Label>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Label>{t("lp_materials_resources")}</Label>
+                    {selectedId && (
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-teal-500" title={t("lp_regen_section")} disabled={!!regeneratingSection} onClick={() => handleRegenSection("materials")}>
+                        {regeneratingSection === "materials" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                      </Button>
+                    )}
+                  </div>
                   <Textarea value={form.materials} onChange={e => setField("materials", e.target.value)} rows={2} placeholder={t('lp_ph_materials')} />
                 </div>
               </CardContent>
@@ -987,7 +1083,16 @@ export default function LessonPlanner() {
 
             {/* Section 6: Procedure */}
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">{t("lp_section_procedure")}</CardTitle></CardHeader>
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">{t("lp_section_procedure")}</CardTitle>
+                  {selectedId && (
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-teal-500" title={t("lp_regen_section")} disabled={!!regeneratingSection} onClick={() => handleRegenSection("procedures")}>
+                      {regeneratingSection === "procedures" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
               <CardContent className="space-y-3">
                 {/* Desktop: grid header */}
                 <div className="hidden sm:grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground px-1">
@@ -1192,6 +1297,8 @@ export default function LessonPlanner() {
                 spaces: form.spaces,
                 procedures: JSON.stringify(form.procedures),
               } : undefined;
+              // Snapshot current form for undo
+              if (selectedId && form.title) preAiSnapshotRef.current = { ...form };
               aiMutation.mutate({
                 id: selectedId ?? undefined,
                 title: aiTitle,
