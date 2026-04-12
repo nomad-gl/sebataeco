@@ -271,7 +271,14 @@ function PlansList({ plans, selectedId, onLoad, onNew, onAi, onDuplicate, onDele
               onClick={() => batchSelectMode ? toggleSelect(p.id) : onLoad(p)}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-accent transition-colors ${batchSelectMode ? "pl-8" : ""} ${!batchSelectMode ? "pr-16" : "pr-8"} ${selectedId === p.id && !batchSelectMode ? "bg-accent font-medium" : ""} ${batchSelectMode && selectedPlanIds.has(p.id) ? "bg-accent/50" : ""}`}
             >
-              <div className="truncate">{p.title || t("lp_untitled")}</div>
+              <div className="flex items-center gap-1.5 min-w-0">
+                {p.lessonNumber && (
+                  <span className="shrink-0 inline-flex items-center justify-center rounded-full bg-teal-100 text-teal-700 text-[10px] font-bold px-1.5 py-0.5 leading-none">
+                    L{p.lessonNumber}
+                  </span>
+                )}
+                <span className="truncate">{p.title || t("lp_untitled")}</span>
+              </div>
               <div className="text-xs text-muted-foreground truncate">{p.subject} · {p.yearGroup}</div>
             </button>
             {!batchSelectMode && (

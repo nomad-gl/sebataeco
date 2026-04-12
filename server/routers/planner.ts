@@ -941,4 +941,54 @@ Return ONLY a JSON object (no markdown fences) with this exact structure:
       });
       return { id: (result as any)[0].insertId, created: true, lessonNumber, lessonDate };
     }),
+
+  /**
+   * Re-number all lesson plans in a calendar sequentially by lessonDate.
+   * Plans without a lessonDate are left unnumbered.
+   */
+  renumberPlans: protectedProcedure
+    .input(z.object({ calendarId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      // Verify the calendar belongs to this user
+      const [cal] = await db
+        .select({ id: schoolCalendars.id })
+        .from(schoolCalendars)
+        .where(and(eq(schoolCalendars.id, input.calendarId), eq(schoolCalendars.userId, ctx.user.id)));
+      if (!cal) throw new TRPCError({ code: "NOT_FOUND", message: "Calendar not found" });
+
+      // Get all lesson event IDs in this calendar
+      const calEventIds = await db
+        .select({ id: schoolCalendarEvents.id })
+        .from(schoolCalendarEvents)
+        .where(eq(schoolCalendarEvents.calendarId, input.calendarId));
+
+      if (!calEventIds.length) return { updated: 0 };
+
+      const ids = calEventIds.map(e => e.id);
+
+      // Fetch all plans linked to this calendar, ordered by lessonDate
+      const plans = await db
+        .select({ id: lessonPlans.id, lessonDate: lessonPlans.lessonDate })
+        .from(lessonPlans)
+        .where(and(
+          eq(lessonPlans.userId, ctx.user.id),
+          inArray(lessonPlans.calendarEventId, ids),
+        ))
+        .orderBy(asc(lessonPlans.lessonDate));
+
+      // Assign sequential numbers (plans without a date get null)
+      let seq = 1;
+      for (const plan of plans) {
+        const num = plan.lessonDate ? String(seq++) : null;
+        await db
+          .update(lessonPlans)
+          .set({ lessonNumber: num })
+          .where(and(eq(lessonPlans.id, plan.id), eq(lessonPlans.userId, ctx.user.id)));
+      }
+
+      return { updated: plans.length };
+    }),
 });

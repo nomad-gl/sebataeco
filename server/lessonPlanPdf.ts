@@ -18,6 +18,7 @@ export interface LessonPlanPdfInput {
   tutorName?: string | null;
   duration?: number | null;
   unit?: string | null;
+  sessionTime?: string | null;
   skills?: string | null;          // JSON
   systems?: string | null;         // JSON
   specificCompetences?: string | null; // JSON array
@@ -75,6 +76,7 @@ export async function generateLessonPlanPdf(plan: LessonPlanPdfInput): Promise<B
       const d = new Date(plan.lessonDate + "T12:00:00");
       meta.push(d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" }));
     }
+    if (plan.sessionTime) meta.push(plan.sessionTime);
     if (plan.subject) meta.push(plan.subject);
     if (plan.yearGroup) meta.push(plan.yearGroup);
     if (plan.academicYear) meta.push(plan.academicYear);

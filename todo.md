@@ -1820,3 +1820,17 @@
 - [x] Auto-assign lessonNumber when a lesson plan is created (sequential within the same calendar, ordered by date)
 - [x] Fix createLinkedLessonPlan to compute lessonNumber from existing plans in the calendar
 - [x] Fix aiGenerateLessonPlan to preserve/set lessonNumber when updating the linked plan
+
+## Feature: Re-number existing lesson plans
+- [x] Add renumberPlans tRPC procedure that reorders all plans in a calendar by lessonDate and assigns sequential numbers
+- [x] Add "Re-number Plans" button in the calendar plan sheet or settings area
+- [x] Add i18n keys for renumber_plans, renumber_plans_success in EN/ES/CA
+
+## Feature: Lesson number badge on plan cards
+- [x] Show lesson number as a visible badge on each plan card in the Lesson Planner list view
+- [x] Badge should display "L{number}" (e.g. L3) in a teal/accent colour
+
+## Feature: Session Time in lesson plan PDF
+- [x] Add sessionTime field to the lessonPlanPdf.ts header section
+- [x] Wire sessionTime through exportLessonPlanPdf procedure input
+- [x] Show time alongside date and academic week in the PDF header

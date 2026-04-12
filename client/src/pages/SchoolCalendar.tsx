@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, Plus, Sparkles, Trash2, CalendarDays,
   ExternalLink, LayoutList, Pencil, School, BookOpen, User, GraduationCap,
   FolderOpen, X, Check, Download, Link, Unlink, Users, Save, ClipboardList,
-  ListChecks, RefreshCw, FileDown,
+  ListChecks, RefreshCw, FileDown, Hash,
 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useLocation } from "wouter";
@@ -513,6 +513,20 @@ export default function SchoolCalendar() {
       ...lessonFormToSave(planForm),
       calendarEventId: planSheetEventId ?? undefined,
     });
+  };
+
+  const renumberPlansMutation = trpc.planner.renumberPlans.useMutation({
+    onSuccess: (data) => {
+      toast.success(`${t("lp_renumber_success")} (${data.updated})`);
+      utils.planner.getLessonPlan.invalidate();
+      utils.planner.listLessonPlans.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const handleRenumberPlans = () => {
+    if (!selectedCalendar?.id) return;
+    renumberPlansMutation.mutate({ calendarId: selectedCalendar.id });
   };
 
   const setPlanField = <K extends keyof LessonFormState>(key: K, value: LessonFormState[K]) => {
@@ -2145,6 +2159,10 @@ export default function SchoolCalendar() {
                 {planFormDirty && <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">{t("lp_unsaved")}</Badge>}
                 {planSheetPlanId && (
                   <>
+                    <Button size="sm" variant="outline" onClick={handleRenumberPlans} disabled={renumberPlansMutation.isPending || planSheetAiGenerating} title={t("lp_renumber_plans")} className="gap-1 text-violet-700 border-violet-300 hover:bg-violet-50">
+                      <Hash className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">{t("lp_renumber_plans")}</span>
+                    </Button>
                     <Button size="sm" variant="outline" onClick={() => setShowRegenConfirm(true)} disabled={planSheetAiGenerating || savePlanMutation.isPending} className="gap-1 text-teal-700 border-teal-300 hover:bg-teal-50">
                       <Sparkles className="w-3.5 h-3.5" />
                       <span className="hidden sm:inline">{t("lp_regenerate")}</span>
