@@ -152,6 +152,9 @@ export function AIChatBox({
   const [isRecording, setIsRecording] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [alwaysOnEnabled, setAlwaysOnEnabled] = useState(true);
+  /** Brief confirmation toast shown when wake word is detected */
+  const [showWakeToast, setShowWakeToast] = useState(false);
+  const wakeToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Whether TTS auto-play is enabled (default: on) */
   const [ttsEnabled, setTtsEnabled] = useState(true);
   /** True while TTS audio is being fetched or playing */
@@ -443,6 +446,20 @@ export function AIChatBox({
 
   // ─── Always-on wake-word (desktop only) ─────────────────────────────────────
 
+  const handleWakeActivated = useCallback(() => {
+    if (wakeToastTimerRef.current) clearTimeout(wakeToastTimerRef.current);
+    setShowWakeToast(true);
+    wakeToastTimerRef.current = setTimeout(() => {
+      setShowWakeToast(false);
+      wakeToastTimerRef.current = null;
+    }, 2000);
+  }, []);
+
+  // Clean up toast timer on unmount
+  useEffect(() => {
+    return () => { if (wakeToastTimerRef.current) clearTimeout(wakeToastTimerRef.current); };
+  }, []);
+
   const handleWakeTranscript = useCallback((text: string) => {
     // Wake-word activation is triggered by microphone input, which counts as
     // a user interaction — unlock speech synthesis here too.
@@ -452,6 +469,7 @@ export function AIChatBox({
 
   const { wakeState, permissionError: wakePermissionError, isListening: wakeIsListening, requestPermission: wakeRequestPermission } = useAinaWakeWord({
     onTranscript: handleWakeTranscript,
+    onActivated: handleWakeActivated,
     enabled: !isMobile && alwaysOnEnabled,
     lang: lang || "ca",
   });
@@ -613,11 +631,11 @@ export function AIChatBox({
   // ─── Wake-word status label ──────────────────────────────────────────────────
 
   const wakeLabel =
-    wakeState === "recording" ? "Aina is listening…"
-    : wakeState === "activating" ? "Aina activated!"
-    : wakePermissionError ? "Mic blocked — click to allow"
-    : alwaysOnEnabled && wakeIsListening ? "Say 'Aina' to activate"
-    : alwaysOnEnabled ? "Starting mic…"
+    wakeState === "recording" ? t("aina_wake_recording")
+    : wakeState === "activating" ? t("aina_wake_activating")
+    : wakePermissionError ? t("aina_wake_blocked")
+    : alwaysOnEnabled && wakeIsListening ? t("aina_wake_listening")
+    : alwaysOnEnabled ? t("aina_wake_starting")
     : null;
 
   // ─── Mobile recording status label ───────────────────────────────────────────
@@ -633,7 +651,7 @@ export function AIChatBox({
     <div
       ref={containerRef}
       className={cn(
-        "flex flex-col bg-white/10 backdrop-blur-md text-white rounded-xl border border-white/20 shadow-lg",
+        "relative flex flex-col bg-white/10 backdrop-blur-md text-white rounded-xl border border-white/20 shadow-lg",
         className
       )}
       style={{ height }}
@@ -844,6 +862,19 @@ export function AIChatBox({
           >
             stop
           </button>
+        </div>
+      )}
+
+      {/* Wake-word activation toast — appears near the bottom when wake word is detected */}
+      {showWakeToast && (
+        <div
+          className="absolute bottom-20 right-4 z-50 flex items-center gap-2 rounded-xl border border-green-400/30 bg-green-500/20 backdrop-blur-sm px-4 py-2.5 text-sm text-green-200 shadow-lg pointer-events-none"
+          style={{ animation: "fadeInUp 0.2s ease-out" }}
+          role="status"
+          aria-live="polite"
+        >
+          <span className="inline-block size-2 rounded-full bg-green-400 animate-ping" />
+          {t("aina_wake_activated")}
         </div>
       )}
 

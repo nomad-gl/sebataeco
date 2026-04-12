@@ -1,24 +1,18 @@
 /**
- * useAinaWakeWord
+ * useAinaWakeWord  (v3)
  *
- * A self-contained, always-on wake-word listener for Aina.
- * Completely independent of the manual mic button in AIChatBox.
+ * Always-on wake-word listener for Aina.
  *
- * State machine:
- *   idle       → wake listener running (continuous), waiting for "Aina"
- *   activating → wake detected, beep played, 300 ms pause before mic handover
- *   recording  → input session open, waiting for teacher's question
- *
- * Reliability improvements (v2):
- * - Fuzzy wake-word matching: also catches "anna", "aina", "ayna", "aina" with
- *   phonetic variants common in speech recognition transcripts.
- * - Shorter backoff on desktop (200 ms base) so the listener restarts quickly
- *   after Chrome's ~60 s silence timeout.
- * - Exposes `isListening` so the UI can show a "mic is active" indicator.
- * - Exposes `requestPermission` so the UI can show a "click to activate"
- *   button when the browser blocks autostart.
- * - Logs recognition errors to console.warn for easier debugging.
- * - Mobile notification fix: exponential backoff on restarts (min 1.5 s, max 8 s).
+ * v3 improvements:
+ * - Dual-language parallel listeners: one in ca-ES, one in es-ES.
+ *   Both listen simultaneously; whichever detects "Aina" first wins.
+ *   Prevents the need to switch the app language to trigger the wake word.
+ * - Structured DevTools logging with console.group for easy filtering.
+ *   Filter by "[Aina]" in the browser console to see all lifecycle events.
+ * - onActivated callback: fires when the wake word is detected, before the
+ *   input session starts. Used by AIChatBox to show a confirmation toast.
+ * - Shared "activating" flag prevents double-activation race condition when
+ *   both parallel listeners detect the wake word at the same time.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -29,8 +23,14 @@ export type UseAinaWakeWordOptions = {
   /** Called with the final transcript when the teacher finishes speaking */
   onTranscript: (text: string) => void;
   /**
+   * Called immediately when the wake word is detected (before input session).
+   * Use this to show a toast or visual confirmation.
+   */
+  onActivated?: () => void;
+  /**
    * App language code ("en" | "es" | "ca").
-   * Mapped internally to a full BCP-47 locale for SpeechRecognition.
+   * The input session uses this language. The wake listeners always run in
+   * both ca-ES and es-ES regardless of this setting.
    */
   lang?: string;
   /** Whether the always-on mode is enabled (default true) */
@@ -43,15 +43,10 @@ const getSR = (): (new () => any) | null =>
   (window as any).webkitSpeechRecognition ||
   null;
 
-/** Detect mobile browsers where every SpeechRecognition.start() triggers a system notification */
 function isMobileBrowser(): boolean {
   return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 }
 
-/**
- * Map app language codes to full BCP-47 locale tags that browsers accept.
- * Passing just "en" or "es" causes silent failures on Chrome/Safari.
- */
 function toBCP47(lang: string | undefined): string {
   if (!lang) return "en-US";
   const map: Record<string, string> = {
@@ -63,22 +58,14 @@ function toBCP47(lang: string | undefined): string {
   return map[lang.toLowerCase()] ?? "en-US";
 }
 
-/**
- * Wake-word detection: matches "aina", "klara", and common speech-recognition
- * phonetic variants ("anna", "ayna", "aina", "i-na", "haina", etc.)
- */
 function containsWakeWord(transcript: string): boolean {
   const t = transcript.toLowerCase().trim();
-  // Primary exact matches
   if (/\b(aina|klara)\b/.test(t)) return true;
-  // Phonetic variants that speech engines commonly produce for "Aina"
-  if (/\b(ayna|aina|anna|haina|ina|i na|ay na|ay-na)\b/.test(t)) return true;
-  // Partial match at start of utterance (e.g. "aina can you...")
-  if (/^(aina|ayna|anna|haina)/.test(t)) return true;
+  if (/\b(ayna|anna|haina|ina|i na|ay na|ay-na)\b/.test(t)) return true;
+  if (/^(aina|ayna|anna|haina|klara)/.test(t)) return true;
   return false;
 }
 
-/** Play a soft low-pitched tone to signal the recording window closed with no speech */
 function playTimeoutTone(): void {
   try {
     const ctx = new AudioContext();
@@ -93,12 +80,9 @@ function playTimeoutTone(): void {
     osc.start(ctx.currentTime);
     osc.stop(ctx.currentTime + 0.4);
     osc.onended = () => ctx.close();
-  } catch {
-    // audio not available — continue silently
-  }
+  } catch { /* audio not available */ }
 }
 
-/** Play a short confirmation beep via Web Audio API */
 function playBeep(): Promise<void> {
   return new Promise((resolve) => {
     try {
@@ -113,18 +97,17 @@ function playBeep(): Promise<void> {
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.25);
-      osc.onended = () => {
-        ctx.close();
-        resolve();
-      };
-    } catch {
-      resolve();
-    }
+      osc.onended = () => { ctx.close(); resolve(); };
+    } catch { resolve(); }
   });
 }
 
+/** Languages to run parallel wake listeners in */
+const WAKE_LANGS = ["ca-ES", "es-ES"];
+
 export function useAinaWakeWord({
   onTranscript,
+  onActivated,
   lang,
   enabled = true,
 }: UseAinaWakeWordOptions) {
@@ -132,27 +115,29 @@ export function useAinaWakeWord({
   const [permissionError, setPermissionError] = useState<string | null>(null);
   const [isListening, setIsListening] = useState(false);
 
+  // One SpeechRecognition instance per wake language
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const wakeRef = useRef<any>(null);
+  const wakeRefs = useRef<(any | null)[]>(WAKE_LANGS.map(() => null));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const inputRef = useRef<any>(null);
+
   const enabledRef = useRef(enabled);
   const onTranscriptRef = useRef(onTranscript);
+  const onActivatedRef = useRef(onActivated);
   const wakeStateRef = useRef<WakeWordState>("idle");
   const langRef = useRef(lang);
 
-  // Backoff state — shorter on desktop, longer on mobile to avoid OS notification spam
-  const backoffMsRef = useRef<number>(isMobileBrowser() ? 1500 : 200);
-  const sessionStartTimeRef = useRef<number>(0);
-  const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Shared flag: prevents double-activation when both parallel listeners fire
+  const activatingRef = useRef(false);
 
-  // scheduleWakeListener stored as a ref so all callbacks always call the
-  // current version — prevents the stale-closure "second question" bug.
+  const backoffMsRef = useRef<number>(isMobileBrowser() ? 1500 : 200);
+  const sessionStartTimesRef = useRef<number[]>(WAKE_LANGS.map(() => 0));
+  const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scheduleWakeListenerRef = useRef<() => void>(() => {});
 
-  // Keep refs in sync with latest prop values
   useEffect(() => { enabledRef.current = enabled; }, [enabled]);
   useEffect(() => { onTranscriptRef.current = onTranscript; }, [onTranscript]);
+  useEffect(() => { onActivatedRef.current = onActivated; }, [onActivated]);
   useEffect(() => { langRef.current = lang; }, [lang]);
 
   const updateState = useCallback((s: WakeWordState) => {
@@ -160,21 +145,24 @@ export function useAinaWakeWord({
     setWakeState(s);
   }, []);
 
-  // ─── Stop all recognition sessions ──────────────────────────────────────────
+  // ─── Stop all sessions ───────────────────────────────────────────────────────
 
   const stopAll = useCallback(() => {
     if (restartTimerRef.current) {
       clearTimeout(restartTimerRef.current);
       restartTimerRef.current = null;
     }
-    if (wakeRef.current) {
-      try { wakeRef.current.abort(); } catch { /* ignore */ }
-      wakeRef.current = null;
-    }
+    wakeRefs.current.forEach((rec, i) => {
+      if (rec) {
+        try { rec.abort(); } catch { /* ignore */ }
+        wakeRefs.current[i] = null;
+      }
+    });
     if (inputRef.current) {
       try { inputRef.current.abort(); } catch { /* ignore */ }
       inputRef.current = null;
     }
+    activatingRef.current = false;
     setIsListening(false);
   }, []);
 
@@ -186,6 +174,10 @@ export function useAinaWakeWord({
 
     updateState("recording");
     setIsListening(true);
+
+    console.group("[Aina] Input session started");
+    console.log("Language:", toBCP47(langRef.current));
+    console.groupEnd();
 
     const rec = new SR();
     rec.continuous = false;
@@ -201,6 +193,7 @@ export function useAinaWakeWord({
       finalTranscript = Array.from(e.results as any[])
         .map((r: any) => r[0].transcript as string)
         .join("");
+      console.log("[Aina] Input interim:", finalTranscript);
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -211,6 +204,7 @@ export function useAinaWakeWord({
       }
       inputRef.current = null;
       setIsListening(false);
+      activatingRef.current = false;
       updateState("idle");
       if (enabledRef.current) scheduleWakeListenerRef.current();
     };
@@ -218,11 +212,15 @@ export function useAinaWakeWord({
     rec.onend = () => {
       inputRef.current = null;
       setIsListening(false);
+      activatingRef.current = false;
       if (finalTranscript.trim()) {
+        console.group("[Aina] Input session complete");
+        console.log("Transcript:", finalTranscript.trim());
+        console.groupEnd();
         onTranscriptRef.current(finalTranscript.trim());
-        // Reset backoff after a successful transcript — session was productive
         backoffMsRef.current = isMobileBrowser() ? 1500 : 200;
       } else {
+        console.log("[Aina] Input session ended with no speech — playing timeout tone");
         playTimeoutTone();
       }
       updateState("idle");
@@ -235,185 +233,199 @@ export function useAinaWakeWord({
       console.warn("[Aina] Input session start failed:", err);
       inputRef.current = null;
       setIsListening(false);
+      activatingRef.current = false;
       updateState("idle");
       if (enabledRef.current) scheduleWakeListenerRef.current();
     }
   }, [updateState]);
 
-  // ─── Wake-word listener ──────────────────────────────────────────────────────
+  // ─── Wake-word listener factory ──────────────────────────────────────────────
 
-  const startWakeListener = useCallback(() => {
+  const startWakeListeners = useCallback(() => {
     const SR = getSR();
     if (!SR || !enabledRef.current) return;
     if (wakeStateRef.current !== "idle") return;
-    if (wakeRef.current) return;
-    // Don't start while the page is hidden (mobile background tab)
+    // Don't start if any listener is already running
+    if (wakeRefs.current.some(r => r !== null)) return;
     if (document.visibilityState === "hidden") return;
 
-    sessionStartTimeRef.current = Date.now();
+    activatingRef.current = false;
 
-    const rec = new SR();
-    rec.continuous = true;
-    rec.interimResults = true;
-    // Use the app language for wake detection; fall back to ca-ES (Catalan)
-    rec.lang = toBCP47(langRef.current ?? "ca");
-    wakeRef.current = rec;
+    console.group("[Aina] Starting parallel wake listeners");
+    console.log("Languages:", WAKE_LANGS.join(", "));
+    console.log("Backoff:", backoffMsRef.current, "ms");
+    console.groupEnd();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    rec.onresult = (e: any) => {
-      if (wakeStateRef.current !== "idle") return;
+    WAKE_LANGS.forEach((wakeLang, idx) => {
+      sessionStartTimesRef.current[idx] = Date.now();
+
+      const rec = new SR();
+      rec.continuous = true;
+      rec.interimResults = true;
+      rec.lang = wakeLang;
+      wakeRefs.current[idx] = rec;
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const transcript = Array.from(e.results as any[])
-        .map((r: any) => r[0].transcript as string)
-        .join(" ");
+      rec.onresult = (e: any) => {
+        if (wakeStateRef.current !== "idle") return;
+        if (activatingRef.current) return; // another listener already won
 
-      if (containsWakeWord(transcript)) {
-        console.log("[Aina] Wake word detected in:", transcript);
-        updateState("activating");
-        try { rec.abort(); } catch { /* ignore */ }
-        wakeRef.current = null;
-        setIsListening(false);
-        // Reset backoff — wake word was detected, session was productive
-        backoffMsRef.current = isMobileBrowser() ? 1500 : 200;
-        playBeep().then(() => {
-          setTimeout(() => {
-            if (enabledRef.current) startInputSession();
-          }, 300);
-        });
-      }
-    };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const transcript = Array.from(e.results as any[])
+          .map((r: any) => r[0].transcript as string)
+          .join(" ");
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    rec.onerror = (e: any) => {
-      console.warn("[Aina] Wake listener error:", e.error);
-      wakeRef.current = null;
-      setIsListening(false);
-      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
-        setPermissionError("Microphone access denied. Please allow microphone access in your browser settings.");
-        return;
-      }
-      if (enabledRef.current && wakeStateRef.current === "idle") {
-        // Increase backoff on error (network, aborted, etc.)
-        if (isMobileBrowser()) {
-          backoffMsRef.current = Math.min(backoffMsRef.current * 1.5, 8000);
+        if (containsWakeWord(transcript)) {
+          activatingRef.current = true; // claim the activation slot
+
+          console.group("[Aina] Wake word detected!");
+          console.log("Listener language:", wakeLang);
+          console.log("Raw transcript:", transcript);
+          console.groupEnd();
+
+          updateState("activating");
+
+          // Stop all parallel listeners
+          wakeRefs.current.forEach((r, i) => {
+            if (r) {
+              try { r.abort(); } catch { /* ignore */ }
+              wakeRefs.current[i] = null;
+            }
+          });
+          setIsListening(false);
+          backoffMsRef.current = isMobileBrowser() ? 1500 : 200;
+
+          // Fire the onActivated callback (for toast)
+          try { onActivatedRef.current?.(); } catch { /* ignore */ }
+
+          playBeep().then(() => {
+            setTimeout(() => {
+              if (enabledRef.current) startInputSession();
+            }, 300);
+          });
         }
-        scheduleWakeListenerRef.current();
-      }
-    };
+      };
 
-    rec.onend = () => {
-      wakeRef.current = null;
-      setIsListening(false);
-      if (enabledRef.current && wakeStateRef.current === "idle") {
-        // If the session ended very quickly (< 2 s) it was likely an OS timeout
-        // on mobile — apply backoff to avoid hammering the mic notification.
-        const sessionDuration = Date.now() - sessionStartTimeRef.current;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      rec.onerror = (e: any) => {
+        console.warn(`[Aina] Wake listener (${wakeLang}) error:`, e.error);
+        wakeRefs.current[idx] = null;
+
+        if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+          setPermissionError("Microphone access denied. Please allow microphone access in your browser settings.");
+          // Stop all other listeners too
+          wakeRefs.current.forEach((r, i) => {
+            if (r) { try { r.abort(); } catch { /* ignore */ } wakeRefs.current[i] = null; }
+          });
+          setIsListening(false);
+          return;
+        }
+
+        // If all listeners have errored, schedule a restart
+        if (wakeRefs.current.every(r => r === null) && enabledRef.current && wakeStateRef.current === "idle") {
+          if (isMobileBrowser()) {
+            backoffMsRef.current = Math.min(backoffMsRef.current * 1.5, 8000);
+          }
+          scheduleWakeListenerRef.current();
+        }
+      };
+
+      rec.onend = () => {
+        wakeRefs.current[idx] = null;
+        const sessionDuration = Date.now() - sessionStartTimesRef.current[idx];
+        console.log(`[Aina] Wake listener (${wakeLang}) ended after ${sessionDuration}ms`);
+
         if (isMobileBrowser() && sessionDuration < 2000) {
           backoffMsRef.current = Math.min(backoffMsRef.current * 1.5, 8000);
         } else if (sessionDuration > 5000) {
-          // Long session — reset backoff, things are working well
           backoffMsRef.current = isMobileBrowser() ? 1500 : 200;
         }
-        scheduleWakeListenerRef.current();
-      }
-    };
 
-    try {
-      rec.start();
-      setIsListening(true);
-      console.log("[Aina] Wake listener started, lang:", rec.lang);
-    } catch (err) {
-      console.warn("[Aina] Wake listener start failed:", err);
-      wakeRef.current = null;
-      setIsListening(false);
-      if (enabledRef.current && wakeStateRef.current === "idle") {
-        scheduleWakeListenerRef.current();
+        // If all listeners have ended and we're still idle, schedule restart
+        if (wakeRefs.current.every(r => r === null) && enabledRef.current && wakeStateRef.current === "idle" && !activatingRef.current) {
+          scheduleWakeListenerRef.current();
+        }
+      };
+
+      try {
+        rec.start();
+        console.log(`[Aina] Wake listener (${wakeLang}) started`);
+      } catch (err) {
+        console.warn(`[Aina] Wake listener (${wakeLang}) start failed:`, err);
+        wakeRefs.current[idx] = null;
+        if (wakeRefs.current.every(r => r === null) && enabledRef.current && wakeStateRef.current === "idle") {
+          scheduleWakeListenerRef.current();
+        }
       }
+    });
+
+    // Update isListening if at least one listener started
+    if (wakeRefs.current.some(r => r !== null)) {
+      setIsListening(true);
     }
   }, [startInputSession, updateState]);
 
   // Keep scheduleWakeListenerRef current
   useEffect(() => {
     scheduleWakeListenerRef.current = () => {
-      if (restartTimerRef.current) {
-        clearTimeout(restartTimerRef.current);
-      }
+      if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
       restartTimerRef.current = setTimeout(() => {
         restartTimerRef.current = null;
         if (enabledRef.current && wakeStateRef.current === "idle") {
-          startWakeListener();
+          startWakeListeners();
         }
       }, backoffMsRef.current);
     };
-  }, [startWakeListener]);
+  }, [startWakeListeners]);
 
-  // ─── Pause when page is hidden (mobile background) ───────────────────────────
+  // ─── Pause when page is hidden ───────────────────────────────────────────────
 
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
-        // Stop the wake listener when the tab goes to background
-        if (wakeRef.current) {
-          try { wakeRef.current.abort(); } catch { /* ignore */ }
-          wakeRef.current = null;
-        }
-        if (restartTimerRef.current) {
-          clearTimeout(restartTimerRef.current);
-          restartTimerRef.current = null;
-        }
+        console.log("[Aina] Page hidden — pausing wake listeners");
+        wakeRefs.current.forEach((r, i) => {
+          if (r) { try { r.abort(); } catch { /* ignore */ } wakeRefs.current[i] = null; }
+        });
+        if (restartTimerRef.current) { clearTimeout(restartTimerRef.current); restartTimerRef.current = null; }
         setIsListening(false);
       } else if (document.visibilityState === "visible" && enabledRef.current && wakeStateRef.current === "idle") {
-        // Resume when the tab comes back to foreground — with a short delay
+        console.log("[Aina] Page visible — resuming wake listeners");
         restartTimerRef.current = setTimeout(() => {
           restartTimerRef.current = null;
-          if (enabledRef.current && wakeStateRef.current === "idle") {
-            startWakeListener();
-          }
+          if (enabledRef.current && wakeStateRef.current === "idle") startWakeListeners();
         }, 500);
       }
     };
-
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [startWakeListener]);
+  }, [startWakeListeners]);
 
-  // ─── Lifecycle: start/stop based on enabled prop ─────────────────────────────
+  // ─── Lifecycle ───────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (enabled) {
       updateState("idle");
-      // Small delay to allow the component to mount before starting
-      const t = setTimeout(() => startWakeListener(), 300);
-      return () => {
-        clearTimeout(t);
-        stopAll();
-      };
+      const t = setTimeout(() => startWakeListeners(), 300);
+      return () => { clearTimeout(t); stopAll(); };
     } else {
       stopAll();
       updateState("idle");
-      return () => {
-        stopAll();
-      };
+      return () => { stopAll(); };
     }
-  }, [enabled, startWakeListener, stopAll, updateState]);
+  }, [enabled, startWakeListeners, stopAll, updateState]);
 
-  /**
-   * Call this from a user-gesture handler (e.g. button click) to explicitly
-   * request microphone permission and start the wake listener.
-   * Useful when the browser blocks autostart without a user gesture.
-   */
   const requestPermission = useCallback(async () => {
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
       setPermissionError(null);
-      // Stop any existing session and restart cleanly
       stopAll();
       updateState("idle");
-      setTimeout(() => startWakeListener(), 100);
+      setTimeout(() => startWakeListeners(), 100);
     } catch {
       setPermissionError("Microphone access denied. Please allow microphone access in your browser settings.");
     }
-  }, [startWakeListener, stopAll, updateState]);
+  }, [startWakeListeners, stopAll, updateState]);
 
   return { wakeState, permissionError, isListening, requestPermission };
 }

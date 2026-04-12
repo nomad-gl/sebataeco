@@ -1543,3 +1543,22 @@
 - [x] Diagnose the wake-word detection implementation (Web Speech API / SpeechRecognition)
 - [x] Fix the transcript matching logic so "aina" (case-insensitive) reliably triggers activation
 - [x] Ensure the microphone permission is requested and continuous listening is active
+
+## Feature: Aina wake-word DevTools logging improvements
+- [x] Add structured console.group/groupEnd for wake listener lifecycle events
+- [x] Log detected transcript and matched variant when wake word fires
+- [x] Log language, backoff value, and session duration on each restart
+- [x] Add [Aina] prefix to all log messages for easy filtering
+
+## Feature: Aina wake-word confirmation toast
+- [x] Show a brief on-screen toast ("Aina activated — speak now") when wake word is detected
+- [x] Toast should appear near the Aina chat button (bottom-right) not at the top of the screen
+- [x] Auto-dismiss after 2 seconds
+- [x] Add i18n keys for the toast message in EN/ES/CA
+
+## Feature: Aina dual-language parallel listener (CA + ES)
+- [x] Run two SpeechRecognition instances simultaneously: one in ca-ES, one in es-ES
+- [x] Both instances listen for the same wake word "Aina"
+- [x] When either instance detects the wake word, stop both and start the input session
+- [x] Input session language follows the app's current language setting
+- [x] Avoid double-activation race condition (use a shared "activating" flag)
