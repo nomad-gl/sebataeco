@@ -2084,3 +2084,16 @@
 - [x] Selecting an event links the copied plan to that event (passes targetEventId to copyLessonPlan); leaving it blank creates an unlinked copy
 - [x] Auto-renumber respects the selected event's position when an event is chosen
 - [x] i18n: add EN/ES/CA keys for event picker (lp_copy_target_event, lp_copy_no_event, lp_copy_event_placeholder, lp_copy_event_hint)
+
+## Feature: Bulk copy of lesson plans
+- [x] Server: add bulkCopyLessonPlans procedure (accepts planIds[], targetCalendarId?, autoRenumber) — calls copyLessonPlan logic for each plan in sequence
+- [x] LessonPlanner batch-select mode: add "Copy to calendar…" button alongside existing "Delete" button in batch toolbar
+- [x] Bulk copy dialog: calendar picker + renumber toggle (no event picker for bulk — too complex)
+- [x] Show per-plan success/failure summary in toast after bulk copy completes
+- [x] i18n: EN/ES/CA keys for bulk copy (lp_bulk_copy, lp_bulk_copy_dialog_title, lp_bulk_copy_success, lp_bulk_copy_desc)
+
+## Feature: Conflict detection in event picker
+- [x] Server: enrich listCalendarEvents response to include hasLinkedPlan boolean for each event
+- [x] Copy dialog event picker: show a warning badge/icon on events that already have a linked plan
+- [x] Tooltip or helper text explaining the conflict when hovering/selecting a conflicted slot
+- [x] i18n: EN/ES/CA keys (lp_copy_event_conflict, lp_copy_event_conflict_hint)

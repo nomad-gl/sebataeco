@@ -208,7 +208,7 @@ function buildPrintHtml(form: LessonFormState, logoDataUrl?: string, labels?: Re
 }
 
 // ─── Saved Plans List (shared between sidebar and sheet) ───────────────────────
-function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplicate, onDelete, onJumpToCalendar, batchSelectMode, setBatchSelectMode, selectedPlanIds, setSelectedPlanIds, onBatchDelete, t }: {
+function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplicate, onDelete, onJumpToCalendar, batchSelectMode, setBatchSelectMode, selectedPlanIds, setSelectedPlanIds, onBatchDelete, onBatchCopy, t }: {
   plans: any[];
   calendars: any[];
   selectedId: number | null;
@@ -223,6 +223,7 @@ function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplic
   selectedPlanIds: Set<number>;
   setSelectedPlanIds: (s: Set<number>) => void;
   onBatchDelete: () => void;
+  onBatchCopy: () => void;
   t: (k: any) => string;
 }) {
   const [sortByLesson, setSortByLesson] = useState(() => {
@@ -268,9 +269,14 @@ function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplic
               <Button size="sm" variant="ghost" className="text-xs px-2" onClick={() => { setBatchSelectMode(false); setSelectedPlanIds(new Set()); }}
               ><X className="w-3 h-3" /></Button>
               {selectedPlanIds.size > 0 && (
-                <Button size="sm" variant="destructive" className="text-xs px-2 gap-1" onClick={onBatchDelete}>
-                  <Trash2 className="w-3 h-3" />{selectedPlanIds.size}
-                </Button>
+                <>
+                  <Button size="sm" variant="outline" className="text-xs px-2 gap-1 bg-orange-50 border-orange-300 text-orange-700 hover:bg-orange-100" onClick={onBatchCopy} title={t("lp_bulk_copy")}>
+                    <Copy className="w-3 h-3" />{selectedPlanIds.size}
+                  </Button>
+                  <Button size="sm" variant="destructive" className="text-xs px-2 gap-1" onClick={onBatchDelete}>
+                    <Trash2 className="w-3 h-3" />{selectedPlanIds.size}
+                  </Button>
+                </>
               )}
             </>
           ) : (
@@ -469,6 +475,36 @@ export default function LessonPlanner() {
     },
     onError: (e) => toast.error(e.message),
   });
+
+  // ── Bulk copy plans ─────────────────────────────────────────────────────
+  const [showBulkCopyDialog, setShowBulkCopyDialog] = useState(false);
+  const [bulkCopyTargetCalendarId, setBulkCopyTargetCalendarId] = useState<string>("");
+  const [bulkCopyAutoRenumber, setBulkCopyAutoRenumber] = useState(true);
+
+  const bulkCopyMutation = trpc.planner.bulkCopyLessonPlans.useMutation({
+    onSuccess: (data) => {
+      utils.planner.listLessonPlans.invalidate();
+      setShowBulkCopyDialog(false);
+      setBatchSelectMode(false);
+      setSelectedPlanIds(new Set());
+      if (data.failed > 0) {
+        toast.warning(`${data.copied} ${t("lp_bulk_copy_success")}, ${data.failed} failed`);
+      } else {
+        toast.success(`${data.copied} ${t("lp_bulk_copy_success")}`);
+      }
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const handleBulkCopy = () => {
+    const ids = Array.from(selectedPlanIds);
+    if (ids.length === 0) return;
+    bulkCopyMutation.mutate({
+      planIds: ids,
+      targetCalendarId: bulkCopyTargetCalendarId && bulkCopyTargetCalendarId !== "same" ? Number(bulkCopyTargetCalendarId) : undefined,
+      autoRenumber: bulkCopyAutoRenumber,
+    });
+  };
 
   // ── Copy plan to another calendar ────────────────────────────────────────
   const [showCopyPlanDialog, setShowCopyPlanDialog] = useState(false);
@@ -881,6 +917,7 @@ export default function LessonPlanner() {
       selectedPlanIds={selectedPlanIds}
       setSelectedPlanIds={setSelectedPlanIds}
       onBatchDelete={() => setShowBatchDeleteConfirm(true)}
+      onBatchCopy={() => setShowBulkCopyDialog(true)}
       t={t}
     />
   );
@@ -1622,6 +1659,57 @@ export default function LessonPlanner() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Bulk Copy Dialog */}
+      <Dialog open={showBulkCopyDialog} onOpenChange={(open) => { setShowBulkCopyDialog(open); if (!open) setBulkCopyTargetCalendarId(""); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Copy className="w-4 h-4 text-orange-600" />
+              {t("lp_bulk_copy_dialog_title")} ({selectedPlanIds.size})
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">{t("lp_bulk_copy_desc")}</p>
+            <div className="space-y-1.5">
+              <Label>{t("lp_copy_target_calendar")}</Label>
+              <Select value={bulkCopyTargetCalendarId} onValueChange={setBulkCopyTargetCalendarId}>
+                <SelectTrigger>
+                  <SelectValue placeholder={t("lp_copy_same_calendar")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="same">{t("lp_copy_same_calendar")}</SelectItem>
+                  {(calendars as any[]).map((cal: any) => (
+                    <SelectItem key={cal.id} value={String(cal.id)}>{cal.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="bulk-copy-renumber"
+                checked={bulkCopyAutoRenumber}
+                onCheckedChange={(v) => setBulkCopyAutoRenumber(!!v)}
+                className="mt-0.5"
+              />
+              <Label htmlFor="bulk-copy-renumber" className="text-sm font-normal leading-snug cursor-pointer">
+                {t("lp_copy_renumber")}
+              </Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkCopyDialog(false)}>{t("cal_cancel")}</Button>
+            <Button
+              onClick={handleBulkCopy}
+              disabled={bulkCopyMutation.isPending}
+              className="gap-1 bg-orange-600 hover:bg-orange-700 text-white"
+            >
+              {bulkCopyMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Copy className="w-3.5 h-3.5" />}
+              {t("lp_bulk_copy")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Copy plan to calendar dialog */}
       <Dialog open={showCopyPlanDialog} onOpenChange={(open) => { setShowCopyPlanDialog(open); if (!open) { setCopySourcePlan(null); setCopyTargetEventId(""); } }}>
         <DialogContent className="sm:max-w-md">
@@ -1666,6 +1754,9 @@ export default function LessonPlanner() {
                           <SelectItem key={ev.id} value={String(ev.id)}>
                             <span className="font-medium">{dateStr}{timeStr}</span>
                             {ev.title ? <span className="text-muted-foreground ml-1.5 truncate max-w-[180px]">— {ev.title}</span> : null}
+                            {ev.hasLinkedPlan && (
+                              <span className="ml-1.5 text-xs text-amber-600 font-medium" title={t("lp_copy_event_conflict_hint")}>⚠️ {t("lp_copy_event_conflict")}</span>
+                            )}
                           </SelectItem>
                         );
                       })}
@@ -1674,6 +1765,9 @@ export default function LessonPlanner() {
                       )}
                     </SelectContent>
                   </Select>
+                  {copyTargetEventId && copyTargetEventId !== "none" && lpLessonEventsForPicker.find((e: any) => String(e.id) === copyTargetEventId)?.hasLinkedPlan && (
+                    <p className="text-xs text-amber-600">{t("lp_copy_event_conflict_hint")}</p>
+                  )}
                   <p className="text-xs text-muted-foreground">{t("lp_copy_event_hint")}</p>
                 </div>
               )}

@@ -3421,6 +3421,9 @@ export default function SchoolCalendar() {
                         <SelectItem key={ev.id} value={String(ev.id)}>
                           <span className="font-medium">{dateStr}{timeStr}</span>
                           {ev.title ? <span className="text-muted-foreground ml-1.5 truncate max-w-[180px]">— {ev.title}</span> : null}
+                          {ev.hasLinkedPlan && (
+                            <span className="ml-1.5 text-xs text-amber-600 font-medium" title={t("lp_copy_event_conflict_hint")}>⚠️ {t("lp_copy_event_conflict")}</span>
+                          )}
                         </SelectItem>
                       );
                     })}
@@ -3429,6 +3432,9 @@ export default function SchoolCalendar() {
                     )}
                   </SelectContent>
                 </Select>
+                {copyTargetEventId && copyTargetEventId !== "none" && lessonEventsForPicker.find((e: any) => String(e.id) === copyTargetEventId)?.hasLinkedPlan && (
+                  <p className="text-xs text-amber-600">{t("lp_copy_event_conflict_hint")}</p>
+                )}
                 <p className="text-xs text-muted-foreground">{t("lp_copy_event_hint")}</p>
               </div>
             )}

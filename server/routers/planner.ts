@@ -203,11 +203,25 @@ export const plannerRouter = router({
     .query(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) return [];
-      return db
+      const events = await db
         .select()
         .from(schoolCalendarEvents)
         .where(and(eq(schoolCalendarEvents.userId, ctx.user.id), eq(schoolCalendarEvents.calendarId, input.calendarId)))
         .orderBy(schoolCalendarEvents.eventDate);
+      // Enrich with hasLinkedPlan flag for conflict detection in copy dialogs
+      const eventIds = events.map(e => e.id);
+      let linkedEventIds = new Set<number>();
+      if (eventIds.length > 0) {
+        const linkedRows = await db
+          .selectDistinct({ calendarEventId: lessonPlans.calendarEventId })
+          .from(lessonPlans)
+          .where(and(
+            eq(lessonPlans.userId, ctx.user.id),
+            inArray(lessonPlans.calendarEventId, eventIds),
+          ));
+        linkedEventIds = new Set(linkedRows.map(r => r.calendarEventId!).filter(Boolean));
+      }
+      return events.map(e => ({ ...e, hasLinkedPlan: linkedEventIds.has(e.id) }));
     }),
 
   createCalendarEvent: protectedProcedure
@@ -1932,5 +1946,87 @@ Generate a detailed lesson plan with specific activities for each procedure stag
       const newId = (result as any)[0].insertId as number;
 
       return { id: newId, lessonNumber: newLessonNumber };
+    }),
+
+  // ─── Bulk copy lesson plans ───────────────────────────────────────────────────
+  bulkCopyLessonPlans: protectedProcedure
+    .input(z.object({
+      planIds: z.array(z.number()).min(1),
+      targetCalendarId: z.number().nullish(),
+      autoRenumber: z.boolean().default(false),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      const results: { id: number; lessonNumber: string | null; sourceId: number }[] = [];
+      const errors: { sourceId: number; message: string }[] = [];
+
+      // Compute base count for renumbering once (before inserting)
+      let baseCount = 0;
+      if (input.autoRenumber && input.targetCalendarId) {
+        const linkedEventIds = db
+          .select({ id: schoolCalendarEvents.id })
+          .from(schoolCalendarEvents)
+          .where(eq(schoolCalendarEvents.calendarId, input.targetCalendarId));
+        const countRows = await db
+          .select({ cnt: sql<number>`COUNT(*)` })
+          .from(lessonPlans)
+          .where(and(
+            eq(lessonPlans.userId, ctx.user.id),
+            inArray(lessonPlans.calendarEventId, linkedEventIds),
+          ));
+        baseCount = Number(countRows[0]?.cnt ?? 0);
+      }
+
+      for (let i = 0; i < input.planIds.length; i++) {
+        const planId = input.planIds[i];
+        try {
+          const [src] = await db
+            .select()
+            .from(lessonPlans)
+            .where(and(eq(lessonPlans.id, planId), eq(lessonPlans.userId, ctx.user.id)));
+          if (!src) { errors.push({ sourceId: planId, message: "Not found" }); continue; }
+
+          let newLessonNumber = src.lessonNumber;
+          if (input.autoRenumber) {
+            newLessonNumber = String(baseCount + i + 1);
+          }
+
+          const insertPayload: any = {
+            userId: ctx.user.id,
+            unit: src.unit,
+            lessonNumber: newLessonNumber,
+            lessonDate: src.lessonDate,
+            academicYear: src.academicYear,
+            duration: src.duration,
+            title: src.title,
+            yearGroup: src.yearGroup,
+            subject: src.subject,
+            skills: src.skills,
+            systems: src.systems,
+            specificCompetences: src.specificCompetences,
+            saberesBasicos: src.saberesBasicos,
+            learningOutcomes: src.learningOutcomes,
+            evaluationCriteria: src.evaluationCriteria,
+            previousKnowledge: src.previousKnowledge,
+            materials: src.materials,
+            spaces: src.spaces,
+            procedures: src.procedures,
+            competencies: src.competencies,
+            aiGenerated: src.aiGenerated,
+            sessionTime: src.sessionTime,
+            isTemplate: false,
+          };
+
+          const res = await db.insert(lessonPlans).values(insertPayload);
+          const newId = (res as any)[0].insertId as number;
+          results.push({ id: newId, lessonNumber: newLessonNumber, sourceId: planId });
+        } catch (e: any) {
+          errors.push({ sourceId: planId, message: e?.message ?? "Unknown error" });
+        }
+      }
+
+      return { copied: results.length, failed: errors.length, results, errors };
     }),
 });
