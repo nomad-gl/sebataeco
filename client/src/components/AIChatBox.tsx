@@ -450,7 +450,7 @@ export function AIChatBox({
     onSendMessage(text);
   }, [onSendMessage, unlockSpeechSynthesis]);
 
-  const { wakeState, permissionError: wakePermissionError } = useAinaWakeWord({
+  const { wakeState, permissionError: wakePermissionError, isListening: wakeIsListening, requestPermission: wakeRequestPermission } = useAinaWakeWord({
     onTranscript: handleWakeTranscript,
     enabled: !isMobile && alwaysOnEnabled,
     lang: lang || "ca",
@@ -615,7 +615,9 @@ export function AIChatBox({
   const wakeLabel =
     wakeState === "recording" ? "Aina is listening…"
     : wakeState === "activating" ? "Aina activated!"
-    : alwaysOnEnabled ? "Say 'Aina' to activate"
+    : wakePermissionError ? "Mic blocked — click to allow"
+    : alwaysOnEnabled && wakeIsListening ? "Say 'Aina' to activate"
+    : alwaysOnEnabled ? "Starting mic…"
     : null;
 
   // ─── Mobile recording status label ───────────────────────────────────────────
@@ -794,15 +796,21 @@ export function AIChatBox({
             "px-4 py-1 text-xs flex items-center gap-1.5 border-t border-white/10",
             wakeState === "recording" ? "text-green-300 bg-green-500/10"
             : wakeState === "activating" ? "text-yellow-300 bg-yellow-500/10"
-            : "text-white/40 bg-transparent"
+            : wakePermissionError ? "text-orange-300 bg-orange-500/10 cursor-pointer hover:bg-orange-500/20"
+            : wakeIsListening ? "text-white/50 bg-transparent"
+            : "text-white/30 bg-transparent"
           )}
+          onClick={wakePermissionError ? wakeRequestPermission : undefined}
+          title={wakePermissionError ? "Click to grant microphone access" : undefined}
         >
           <span
             className={cn(
               "inline-block size-1.5 rounded-full",
               wakeState === "recording" ? "bg-green-400 animate-pulse"
               : wakeState === "activating" ? "bg-yellow-400 animate-ping"
-              : "bg-white/30"
+              : wakePermissionError ? "bg-orange-400 animate-pulse"
+              : wakeIsListening ? "bg-white/50 animate-pulse"
+              : "bg-white/20"
             )}
           />
           {wakeLabel}

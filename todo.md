@@ -1537,3 +1537,9 @@
 - [x] Render events on calendar grid with colour-coded dots/badges per event type
 - [x] Click a day to see all events for that day in a popover/panel
 - [x] Delete event from day detail view
+
+## Bug: Aina wake-word voice activation not working
+- [x] Saying "Aina" does not trigger the voice assistant
+- [x] Diagnose the wake-word detection implementation (Web Speech API / SpeechRecognition)
+- [x] Fix the transcript matching logic so "aina" (case-insensitive) reliably triggers activation
+- [x] Ensure the microphone permission is requested and continuous listening is active
