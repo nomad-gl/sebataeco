@@ -9,6 +9,7 @@ import { generateCalendarPdf } from "../calendarPdf";
 import { getHolidaysInRange, SpanishRegion } from "../spanishHolidays";
 import { generateLessonPlanPdf } from "../lessonPlanPdf";
 import { storagePut } from "../storage";
+import { PDFDocument } from "pdf-lib";
 
 const eventTypeEnum = z.enum(["holiday", "special", "exam", "excursion", "event", "lesson", "ai_generated"]);
 
@@ -1094,6 +1095,8 @@ Return ONLY a JSON object (no markdown fences) with this exact structure:
         .where(and(eq(schoolCalendars.id, input.calendarId), eq(schoolCalendars.userId, ctx.user.id)));
       if (!cal) throw new Error("Calendar not found");
 
+      // Generate a shared UUID for this recurring series
+      const seriesId = crypto.randomUUID();
       const stepDays = input.repeat === "weekly" ? 7 : 14;
       const events: typeof schoolCalendarEvents.$inferInsert[] = [];
       let current = new Date(input.startDate + "T12:00:00Z");
@@ -1113,12 +1116,79 @@ Return ONLY a JSON object (no markdown fences) with this exact structure:
           startTime: input.startTime ?? null,
           endTime: input.endTime ?? null,
           academicYear: cal.academicYear ?? "",
+          seriesId,
         });
         current = new Date(current.getTime() + stepDays * 24 * 60 * 60 * 1000);
       }
 
-      if (events.length === 0) return { created: 0 };
+      if (events.length === 0) return { created: 0, seriesId: null };
       await db.insert(schoolCalendarEvents).values(events);
-      return { created: events.length };
+      return { created: events.length, seriesId };
+    }),
+
+  /** Export all lesson plans for a calendar as a single merged PDF ordered by lesson number */
+  exportAllPlansPdf: protectedProcedure
+    .input(z.object({ calendarId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      // Verify calendar ownership
+      const [cal] = await db
+        .select({ id: schoolCalendars.id, schoolName: schoolCalendars.schoolName, tutorName: schoolCalendars.tutorName })
+        .from(schoolCalendars)
+        .where(and(eq(schoolCalendars.id, input.calendarId), eq(schoolCalendars.userId, ctx.user.id)));
+      if (!cal) throw new TRPCError({ code: "NOT_FOUND", message: "Calendar not found" });
+
+      // Fetch all plans linked to this calendar via calendarEventId → schoolCalendarEvents.calendarId
+      const plans = await db
+        .select({ p: lessonPlans })
+        .from(lessonPlans)
+        .innerJoin(schoolCalendarEvents, eq(lessonPlans.calendarEventId, schoolCalendarEvents.id))
+        .where(and(
+          eq(schoolCalendarEvents.calendarId, input.calendarId),
+          eq(lessonPlans.userId, ctx.user.id),
+        ))
+        .orderBy(asc(lessonPlans.lessonNumber), asc(lessonPlans.lessonDate));
+
+      if (plans.length === 0) throw new TRPCError({ code: "NOT_FOUND", message: "No lesson plans found for this calendar" });
+
+      // Generate individual PDFs and merge them
+      const mergedPdf = await PDFDocument.create();
+      for (const { p: plan } of plans) {
+        const singleBuf = await generateLessonPlanPdf({ ...plan, schoolName: cal.schoolName ?? null, tutorName: cal.tutorName ?? null });
+        const singleDoc = await PDFDocument.load(singleBuf);
+        const copiedPages = await mergedPdf.copyPages(singleDoc, singleDoc.getPageIndices());
+        copiedPages.forEach(page => mergedPdf.addPage(page));
+      }
+
+      const mergedBuf = Buffer.from(await mergedPdf.save());
+      const fileKey = `lesson-plan-exports/all-${ctx.user.id}-${input.calendarId}-${Date.now()}.pdf`;
+      const { url } = await storagePut(fileKey, mergedBuf, "application/pdf");
+      return { url, count: plans.length };
+    }),
+
+  /** Delete all events in a recurring series by seriesId */
+  deleteEventSeries: protectedProcedure
+    .input(z.object({ seriesId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      // Verify ownership: check at least one event in the series belongs to this user
+      const [sample] = await db
+        .select({ id: schoolCalendarEvents.id })
+        .from(schoolCalendarEvents)
+        .where(and(
+          eq(schoolCalendarEvents.seriesId, input.seriesId),
+          eq(schoolCalendarEvents.userId, ctx.user.id),
+        ))
+        .limit(1);
+      if (!sample) throw new TRPCError({ code: "NOT_FOUND", message: "Series not found" });
+      // Delete all events in the series
+      await db.delete(schoolCalendarEvents).where(and(
+        eq(schoolCalendarEvents.seriesId, input.seriesId),
+        eq(schoolCalendarEvents.userId, ctx.user.id),
+      ));
+      return { deleted: true };
     }),
 });

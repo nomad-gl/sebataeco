@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { Plus, Sparkles, Trash2, Printer, BookOpen, Save, List, X, Copy, LayoutTemplate, FolderOpen } from "lucide-react";
+import { Plus, Sparkles, Trash2, Printer, BookOpen, Save, List, X, Copy, LayoutTemplate, FolderOpen, FileDown } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import LogoUploader from "@/components/LogoUploader";
 import { useI18n } from "@/contexts/I18nContext";
@@ -578,6 +578,19 @@ export default function LessonPlanner() {
   const [aiSessionTime, setAiSessionTime] = useState(""); // e.g. 09:00-10:00
   const [aiUnit, setAiUnit] = useState("");
   const [aiCalendarId, setAiCalendarId] = useState<string>("");
+  const [showExportAllDialog, setShowExportAllDialog] = useState(false);
+  const [exportAllCalendarId, setExportAllCalendarId] = useState<string>("");
+  const [isExportingAll, setIsExportingAll] = useState(false);
+
+  const exportAllPlansMutation = trpc.planner.exportAllPlansPdf.useMutation({
+    onSuccess: (data) => {
+      setIsExportingAll(false);
+      setShowExportAllDialog(false);
+      window.open(data.url, "_blank");
+      toast.success(`${t("lp_export_all_success")} (${data.count})`);
+    },
+    onError: (e) => { setIsExportingAll(false); toast.error(e.message); },
+  });
 
   const toggleComp = (c: string) => setAiComps(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]);
 
@@ -685,6 +698,10 @@ export default function LessonPlanner() {
                 <Button variant="outline" size="sm" onClick={() => setShowPrintDialog(true)} className="gap-1">
                   <Printer className="w-4 h-4" />
                   <span className="hidden sm:inline">{t("lp_print_pdf")}</span>
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => { setExportAllCalendarId(""); setShowExportAllDialog(true); }} className="gap-1" title={t("lp_export_all_plans")}>
+                  <FileDown className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t("lp_export_all_plans")}</span>
                 </Button>
                 <Button size="sm" onClick={handleSave} disabled={saveMutation.isPending} className="gap-1">
                   <Save className="w-4 h-4" />
@@ -929,6 +946,43 @@ export default function LessonPlanner() {
           </div>
         </div>
       </div>
+
+      {/* Export All Plans Dialog */}
+      <Dialog open={showExportAllDialog} onOpenChange={setShowExportAllDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileDown className="w-5 h-5 text-teal-500" /> {t("lp_export_all_dialog_title")}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">{t("lp_export_all_dialog_desc")}</p>
+          <div className="space-y-2">
+            <Label>{t("lp_select_calendar")}</Label>
+            <Select value={exportAllCalendarId} onValueChange={setExportAllCalendarId}>
+              <SelectTrigger><SelectValue placeholder={t("lp_select_calendar")} /></SelectTrigger>
+              <SelectContent>
+                {(calendars as any[]).map((c: any) => (
+                  <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowExportAllDialog(false)}>{t("cal_cancel")}</Button>
+            <Button
+              disabled={!exportAllCalendarId || isExportingAll || exportAllPlansMutation.isPending}
+              onClick={() => {
+                if (!exportAllCalendarId) return;
+                setIsExportingAll(true);
+                exportAllPlansMutation.mutate({ calendarId: Number(exportAllCalendarId) });
+              }}
+            >
+              <FileDown className="w-4 h-4 mr-1" />
+              {isExportingAll ? t("lp_export_all_exporting") : t("lp_export_all_btn")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* AI Generate Dialog */}
       <Dialog open={showAiDialog} onOpenChange={(open) => { setShowAiDialog(open); if (!open) { setAiDate(""); setAiSessionTime(""); setAiUnit(""); setAiCalendarId(""); } }}>

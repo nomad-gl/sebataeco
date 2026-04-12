@@ -77,6 +77,9 @@ type CalEvent = {
   yearGroup?: string | null;
   subject?: string | null;
   aiGenerated: boolean;
+  startTime?: string | null;
+  endTime?: string | null;
+  seriesId?: string | null;
 };
 
 type SchoolCalendar = {
@@ -204,6 +207,7 @@ export default function SchoolCalendar() {
   const [viewYear, setViewYear] = useState(CURRENT_YEAR);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteEventDialog, setShowDeleteEventDialog] = useState(false);
   const [showAiDialog, setShowAiDialog] = useState(false);
   const [showCreateCalDialog, setShowCreateCalDialog] = useState(false);
   const [showEditCalDialog, setShowEditCalDialog] = useState(false);
@@ -336,7 +340,12 @@ export default function SchoolCalendar() {
   });
 
   const deleteMutation = trpc.planner.deleteCalendarEvent.useMutation({
-    onSuccess: () => { utils.planner.listCalendarEvents.invalidate(); },
+    onSuccess: () => { utils.planner.listCalendarEvents.invalidate(); setShowDeleteEventDialog(false); setShowEditDialog(false); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const deleteSeriesMutation = trpc.planner.deleteEventSeries.useMutation({
+    onSuccess: () => { utils.planner.listCalendarEvents.invalidate(); setShowDeleteEventDialog(false); setShowEditDialog(false); toast.success(t("cal_series_deleted")); },
     onError: (e) => toast.error(e.message),
   });
 
@@ -774,21 +783,33 @@ export default function SchoolCalendar() {
 
   // ── Academic week helper ───────────────────────────────────────────────────
   // Returns the academic week number (1-based) for a given date.
-  // Week 1 starts on the Monday on or before 1 September of the academic year's
-  // start year (e.g. "2025-2026" → anchor = Mon on/before 1 Sep 2025).
+  // Week 1 = the week containing the calendar's own start date (or the Monday
+  // on or before it).  Falls back to the Monday on/before 1 Sep of the
+  // academic year's start year when no startDate is set on the calendar.
   const getAcademicWeek = useCallback((date: Date): number => {
-    const ayLabel = (selectedCalendar as any)?.academicYear ?? "";
-    const startYear = ayLabel.match(/^(\d{4})/)?.[1]
-      ? parseInt(ayLabel.match(/^(\d{4})/)![1], 10)
-      : date.getFullYear() - (date.getMonth() < 8 ? 1 : 0);
-    // Find the Monday on or before 1 Sep of startYear
-    const sep1 = new Date(Date.UTC(startYear, 8, 1)); // 1 Sep UTC
-    const sep1Dow = sep1.getUTCDay(); // 0=Sun, 1=Mon … 6=Sat
-    const daysBack = sep1Dow === 0 ? 6 : sep1Dow - 1; // days to subtract to reach preceding Monday
-    const anchor = new Date(sep1.getTime() - daysBack * 86400000);
+    const cal = selectedCalendar as SchoolCalendar | null;
+    let anchorDate: Date;
+    if (cal?.startDate) {
+      // Use the calendar's own start date as the anchor
+      const sd = new Date(cal.startDate as string);
+      const sdUtc = Date.UTC(sd.getFullYear(), sd.getMonth(), sd.getDate());
+      const sdDow = new Date(sdUtc).getUTCDay(); // 0=Sun
+      const daysBack = sdDow === 0 ? 6 : sdDow - 1;
+      anchorDate = new Date(sdUtc - daysBack * 86400000);
+    } else {
+      // Fallback: Monday on/before 1 Sep of the academic year's start year
+      const ayLabel = (cal as any)?.academicYear ?? "";
+      const startYear = ayLabel.match(/^(\d{4})/)?.[1]
+        ? parseInt(ayLabel.match(/^(\d{4})/)![1], 10)
+        : date.getFullYear() - (date.getMonth() < 8 ? 1 : 0);
+      const sep1 = new Date(Date.UTC(startYear, 8, 1));
+      const sep1Dow = sep1.getUTCDay();
+      const daysBack = sep1Dow === 0 ? 6 : sep1Dow - 1;
+      anchorDate = new Date(sep1.getTime() - daysBack * 86400000);
+    }
     const dateUtc = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
-    const diffDays = Math.floor((dateUtc - anchor.getTime()) / 86400000);
-    if (diffDays < 0) return 1; // before academic year start → treat as week 1
+    const diffDays = Math.floor((dateUtc - anchorDate.getTime()) / 86400000);
+    if (diffDays < 0) return 1; // before planner start → treat as week 1
     return Math.floor(diffDays / 7) + 1;
   }, [selectedCalendar]);
 
@@ -1989,7 +2010,7 @@ export default function SchoolCalendar() {
             </div>
           </div>
           <DialogFooter className="flex justify-between">
-            <Button variant="destructive" size="sm" onClick={() => { if (editingEvent) deleteMutation.mutate({ id: editingEvent.id }); setShowEditDialog(false); }}>
+            <Button variant="destructive" size="sm" onClick={() => setShowDeleteEventDialog(true)}>
               <Trash2 className="w-4 h-4 mr-1" /> {t("cal_delete")}
             </Button>
             <div className="flex gap-2">
@@ -1999,6 +2020,41 @@ export default function SchoolCalendar() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Delete Event / Series AlertDialog ──────────────────────────────── */}
+      <AlertDialog open={showDeleteEventDialog} onOpenChange={setShowDeleteEventDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {editingEvent?.seriesId ? t("cal_delete_series_confirm_title") : t("cal_delete_event_title")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {editingEvent?.seriesId ? t("cal_delete_series_confirm_desc") : t("cal_delete_event_desc")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className={editingEvent?.seriesId ? "flex-col sm:flex-row gap-2" : undefined}>
+            <AlertDialogCancel disabled={deleteMutation.isPending || deleteSeriesMutation.isPending}>
+              {t("cal_cancel")}
+            </AlertDialogCancel>
+            {editingEvent?.seriesId && (
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                disabled={deleteSeriesMutation.isPending}
+                onClick={() => { if (editingEvent?.seriesId) deleteSeriesMutation.mutate({ seriesId: editingEvent.seriesId! }); }}
+              >
+                {deleteSeriesMutation.isPending ? "…" : t("cal_delete_all_in_series")}
+              </AlertDialogAction>
+            )}
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteMutation.isPending}
+              onClick={() => { if (editingEvent) deleteMutation.mutate({ id: editingEvent.id }); }}
+            >
+              {deleteMutation.isPending ? "…" : (editingEvent?.seriesId ? t("cal_delete_event_only") : t("cal_delete_event_only"))}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* ── AI Infill Dialog ────────────────────────────────────────────────── */}
       <Dialog open={showAiDialog} onOpenChange={setShowAiDialog}>

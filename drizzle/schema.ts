@@ -535,6 +535,8 @@ export const schoolCalendarEvents = mysqlTable("school_calendar_events", {
   startTime: varchar("startTime", { length: 8 }),
   /** Optional end time string e.g. '10:00' */
   endTime: varchar("endTime", { length: 8 }),
+  /** UUID shared by all events in a recurring series — null for one-off events */
+  seriesId: varchar("seriesId", { length: 36 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

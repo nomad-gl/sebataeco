@@ -93,12 +93,25 @@ const EVENT_TYPE_LABELS: Record<string, Record<string, string>> = {
   ca: { holiday: "Festiu", special: "Dia especial", exam: "Examen", excursion: "Excursió", event: "Esdeveniment", lesson: "Lliçó", ai_generated: "Lliçó IA" },
 };
 
-/** Returns the academic week number (1-based) anchored to the Monday on/before 1 Sep of startYear */
-function academicWeekNumber(date: Date, startYear: number): number {
-  const sep1 = new Date(Date.UTC(startYear, 8, 1));
-  const sep1Dow = sep1.getUTCDay();
-  const daysBack = sep1Dow === 0 ? 6 : sep1Dow - 1;
-  const anchor = new Date(sep1.getTime() - daysBack * 86400000);
+/**
+ * Returns the academic week number (1-based).
+ * If calendarStartDate is provided, Week 1 = the week containing that date
+ * (anchored to the Monday on/before it).
+ * Otherwise falls back to the Monday on/before 1 Sep of startYear.
+ */
+function academicWeekNumber(date: Date, startYear: number, calendarStartDate?: Date | null): number {
+  let anchor: Date;
+  if (calendarStartDate) {
+    const sdUtc = Date.UTC(calendarStartDate.getFullYear(), calendarStartDate.getMonth(), calendarStartDate.getDate());
+    const sdDow = new Date(sdUtc).getUTCDay(); // 0=Sun
+    const daysBack = sdDow === 0 ? 6 : sdDow - 1;
+    anchor = new Date(sdUtc - daysBack * 86400000);
+  } else {
+    const sep1 = new Date(Date.UTC(startYear, 8, 1));
+    const sep1Dow = sep1.getUTCDay();
+    const daysBack = sep1Dow === 0 ? 6 : sep1Dow - 1;
+    anchor = new Date(sep1.getTime() - daysBack * 86400000);
+  }
   const dateUtc = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
   const diffDays = Math.floor((dateUtc - anchor.getTime()) / 86400000);
   if (diffDays < 0) return 1;
@@ -225,7 +238,7 @@ export async function generateCalendarPdf(opts: CalendarPdfOptions): Promise<Buf
         // Highlight holidays in a muted red
         const isHoliday = ev.eventType === "holiday";
         const textColor = isHoliday ? "#b91c1c" : "#1a1a1a";
-        const wkNum = academicWeekNumber(new Date(ev.eventDate), ayStartYear);
+        const wkNum = academicWeekNumber(new Date(ev.eventDate), ayStartYear, opts.startDate ?? null);
 
         doc.fontSize(7.5).fillColor(textColor).font(isHoliday ? "Helvetica-Bold" : "Helvetica");
         doc.text(String(wkNum), colWk + 2, y + 6, { width: colWidthWk - 2, lineBreak: false });

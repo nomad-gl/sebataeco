@@ -1865,3 +1865,16 @@
 ## Feature: Auto-populate sessionTime on linked lesson plan from calendar event
 - [x] When createLinkedLessonPlan runs, if the event has startTime/endTime, set sessionTime on the plan as "HH:MM–HH:MM"
 - [x] When createCalendarEvent runs with startTime/endTime and a linked plan exists, update the plan's sessionTime
+
+## Feature: Delete recurring event series
+- [ ] Add seriesId column to school_calendar_events table (migration)
+- [ ] Update createRecurringEvents to stamp all created events with the same seriesId (UUID)
+- [ ] Add deleteEventSeries tRPC procedure that deletes all events with the same seriesId
+- [ ] In Edit Event dialog, show "Delete this event" vs "Delete entire series" options when seriesId is present
+- [ ] Add i18n keys for cal_delete_series, cal_delete_series_confirm in EN/ES/CA
+
+## Feature: Bulk PDF export of all lesson plans
+- [ ] Add exportAllLessonPlansPdf tRPC procedure that fetches all plans for a calendar ordered by lessonNumber and generates a combined PDF
+- [ ] Add "Export All Plans" button in LessonPlanner page header
+- [ ] Show loading spinner while PDF is being generated
+- [ ] Add i18n keys for lp_export_all, lp_export_all_generating in EN/ES/CA
