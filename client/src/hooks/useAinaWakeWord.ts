@@ -427,5 +427,19 @@ export function useAinaWakeWord({
     }
   }, [startWakeListeners, stopAll, updateState]);
 
-  return { wakeState, permissionError, isListening, requestPermission };
+  /** Call this after TTS finishes to ensure wake listeners restart promptly */
+  const forceRestart = useCallback(() => {
+    if (!enabledRef.current) return;
+    // Only restart if we're idle and no listeners are running
+    if (wakeStateRef.current !== "idle") return;
+    if (wakeRefs.current.some(r => r !== null)) return;
+    // Clear any pending restart timer and schedule a fresh one with minimal delay
+    if (restartTimerRef.current) { clearTimeout(restartTimerRef.current); restartTimerRef.current = null; }
+    restartTimerRef.current = setTimeout(() => {
+      restartTimerRef.current = null;
+      if (enabledRef.current && wakeStateRef.current === "idle") startWakeListeners();
+    }, 300);
+  }, [startWakeListeners]);
+
+  return { wakeState, permissionError, isListening, requestPermission, forceRestart };
 }

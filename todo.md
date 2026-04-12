@@ -1748,3 +1748,18 @@
 - [x] Added "AI Rate" button (Sparkles icon) in ParaulaPractice word picker
 - [x] After auto-assign, material query invalidated to refresh star ratings
 - [x] Added paraula_auto_rate i18n key in EN/ES/CA
+
+## Feature: Lesson plan individual and batch delete buttons
+- [x] Added Trash2 delete icon button on each lesson plan row in the plans list sidebar
+- [x] Clicking individual delete opens AlertDialog confirmation before deleting
+- [x] Added batch-select mode with checkboxes and Select All toggle
+- [x] Batch delete shows AlertDialog with count of plans to be deleted
+- [x] Server: added batchDeleteLessonPlans procedure in planner.ts using inArray
+- [x] Added lp_batch_delete, lp_batch_delete_confirm_title, lp_batch_delete_confirm_desc i18n keys in EN/ES/CA
+
+## Bug: Aina auto voice prompt does not reset on desktop after answer or stop
+- [x] Root cause: Chrome SpeechSynthesis and SpeechRecognition share the audio device; wake listener restart timer fires while TTS is still playing and fails silently
+- [x] Fix: added forceRestart export to useAinaWakeWord that schedules a fresh restart with 300ms delay
+- [x] Fix: AIChatBox calls forceRestart 400ms after TTS last chunk ends (natural completion)
+- [x] Fix: AIChatBox calls forceRestart 400ms after stopSpeaking (user presses Stop)
+- [x] Fix: forceRestart also fires on TTS onerror so error paths also recover

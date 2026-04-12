@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -201,39 +202,96 @@ function buildPrintHtml(form: LessonFormState, logoDataUrl?: string, labels?: Re
 }
 
 // ─── Saved Plans List (shared between sidebar and sheet) ───────────────────────
-function PlansList({ plans, selectedId, onLoad, onNew, onAi, onDuplicate, t }: {
+function PlansList({ plans, selectedId, onLoad, onNew, onAi, onDuplicate, onDelete, batchSelectMode, setBatchSelectMode, selectedPlanIds, setSelectedPlanIds, onBatchDelete, t }: {
   plans: any[];
   selectedId: number | null;
   onLoad: (p: any) => void;
   onNew: () => void;
   onAi: () => void;
   onDuplicate: (p: any) => void;
+  onDelete: (id: number) => void;
+  batchSelectMode: boolean;
+  setBatchSelectMode: (v: boolean) => void;
+  selectedPlanIds: Set<number>;
+  setSelectedPlanIds: (s: Set<number>) => void;
+  onBatchDelete: () => void;
   t: (k: any) => string;
 }) {
+  const toggleSelect = (id: number) => {
+    const next = new Set(selectedPlanIds);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    setSelectedPlanIds(next);
+  };
+  const allSelected = plans.length > 0 && plans.every(p => selectedPlanIds.has(p.id));
+  const toggleAll = () => {
+    if (allSelected) setSelectedPlanIds(new Set());
+    else setSelectedPlanIds(new Set(plans.map(p => p.id)));
+  };
   return (
     <div className="flex flex-col h-full">
-      <div className="p-3 border-b flex items-center justify-between shrink-0">
+      <div className="p-3 border-b flex items-center justify-between shrink-0 gap-1">
         <span className="font-semibold text-sm">{t("lp_lesson_plans")}</span>
-        <Button size="sm" variant="ghost" onClick={onNew}><Plus className="w-4 h-4" /></Button>
+        <div className="flex items-center gap-1">
+          {batchSelectMode ? (
+            <>
+              <Button size="sm" variant="ghost" className="text-xs px-2" onClick={() => { setBatchSelectMode(false); setSelectedPlanIds(new Set()); }}
+              ><X className="w-3 h-3" /></Button>
+              {selectedPlanIds.size > 0 && (
+                <Button size="sm" variant="destructive" className="text-xs px-2 gap-1" onClick={onBatchDelete}>
+                  <Trash2 className="w-3 h-3" />{selectedPlanIds.size}
+                </Button>
+              )}
+            </>
+          ) : (
+            <>
+              <Button size="sm" variant="ghost" title="Select multiple" onClick={() => setBatchSelectMode(true)}><Checkbox className="w-3.5 h-3.5 pointer-events-none" /></Button>
+              <Button size="sm" variant="ghost" onClick={onNew}><Plus className="w-4 h-4" /></Button>
+            </>
+          )}
+        </div>
       </div>
+      {batchSelectMode && plans.length > 0 && (
+        <div className="px-3 py-1.5 border-b flex items-center gap-2 text-xs text-muted-foreground">
+          <Checkbox checked={allSelected} onCheckedChange={toggleAll} id="select-all-plans" />
+          <label htmlFor="select-all-plans" className="cursor-pointer">Select all</label>
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
         {plans.length === 0 && <p className="text-xs text-muted-foreground p-2">{t("lp_no_plans")}</p>}
         {plans.map((p: any) => (
           <div key={p.id} className="group relative">
+            {batchSelectMode && (
+              <Checkbox
+                checked={selectedPlanIds.has(p.id)}
+                onCheckedChange={() => toggleSelect(p.id)}
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-10"
+              />
+            )}
             <button
-              onClick={() => onLoad(p)}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-accent transition-colors pr-8 ${selectedId === p.id ? "bg-accent font-medium" : ""}`}
+              onClick={() => batchSelectMode ? toggleSelect(p.id) : onLoad(p)}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-accent transition-colors ${batchSelectMode ? "pl-8" : ""} ${!batchSelectMode ? "pr-16" : "pr-8"} ${selectedId === p.id && !batchSelectMode ? "bg-accent font-medium" : ""} ${batchSelectMode && selectedPlanIds.has(p.id) ? "bg-accent/50" : ""}`}
             >
               <div className="truncate">{p.title || t("lp_untitled")}</div>
               <div className="text-xs text-muted-foreground truncate">{p.subject} · {p.yearGroup}</div>
             </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); onDuplicate(p); }}
-              title={t("planner_duplicate")}
-              className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-muted"
-            >
-              <Copy className="w-3.5 h-3.5 text-muted-foreground" />
-            </button>
+            {!batchSelectMode && (
+              <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDuplicate(p); }}
+                  title={t("planner_duplicate")}
+                  className="p-1 rounded hover:bg-muted"
+                >
+                  <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDelete(p.id); }}
+                  title={t("lp_delete_plan")}
+                  className="p-1 rounded hover:bg-destructive/10"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -273,6 +331,10 @@ export default function LessonPlanner() {
   const [templateNameInput, setTemplateNameInput] = useState("");
   const [printFormat, setPrintFormat] = useState<"a4" | "a5" | "letter">("a4");
   const [isDirty, setIsDirty] = useState(false);
+  const [selectedPlanIds, setSelectedPlanIds] = useState<Set<number>>(new Set());
+  const [batchSelectMode, setBatchSelectMode] = useState(false);
+  const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false);
+  const [showIndividualDeleteConfirm, setShowIndividualDeleteConfirm] = useState<number | null>(null);
   const utils = trpc.useUtils();
 
   // Show a toast when arriving from the calendar
@@ -301,7 +363,23 @@ export default function LessonPlanner() {
       utils.planner.listLessonPlans.invalidate();
       setSelectedId(null);
       setForm(emptyForm());
+      setShowIndividualDeleteConfirm(null);
       toast.success(t("lp_deleted_toast"));
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const batchDeleteMutation = trpc.planner.batchDeleteLessonPlans.useMutation({
+    onSuccess: (data) => {
+      utils.planner.listLessonPlans.invalidate();
+      if (selectedPlanIds.has(selectedId ?? -1)) {
+        setSelectedId(null);
+        setForm(emptyForm());
+      }
+      setSelectedPlanIds(new Set());
+      setBatchSelectMode(false);
+      setShowBatchDeleteConfirm(false);
+      toast.success(`${data.deleted} ${t("lp_deleted_toast")}`);
     },
     onError: (e) => toast.error(e.message),
   });
@@ -467,6 +545,12 @@ export default function LessonPlanner() {
       onNew={newPlan}
       onAi={() => { setSheetOpen(false); setShowAiDialog(true); }}
       onDuplicate={handleDuplicate}
+      onDelete={(id) => setShowIndividualDeleteConfirm(id)}
+      batchSelectMode={batchSelectMode}
+      setBatchSelectMode={setBatchSelectMode}
+      selectedPlanIds={selectedPlanIds}
+      setSelectedPlanIds={setSelectedPlanIds}
+      onBatchDelete={() => setShowBatchDeleteConfirm(true)}
       t={t}
     />
   );
@@ -969,6 +1053,45 @@ export default function LessonPlanner() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Individual Delete Confirmation */}
+      <AlertDialog open={showIndividualDeleteConfirm !== null} onOpenChange={(o) => { if (!o) setShowIndividualDeleteConfirm(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("lp_delete_plan_confirm_title")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("lp_delete_plan_confirm_desc")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("cal_cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => showIndividualDeleteConfirm !== null && deleteMutation.mutate({ id: showIndividualDeleteConfirm })}
+            >
+              <Trash2 className="w-4 h-4 mr-1" />{t("lp_delete_plan")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Batch Delete Confirmation */}
+      <AlertDialog open={showBatchDeleteConfirm} onOpenChange={setShowBatchDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("lp_batch_delete_confirm_title")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("lp_batch_delete_confirm_desc").replace("{{count}}", String(selectedPlanIds.size))}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("cal_cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => batchDeleteMutation.mutate({ ids: Array.from(selectedPlanIds) })}
+            >
+              <Trash2 className="w-4 h-4 mr-1" />{t("lp_batch_delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }

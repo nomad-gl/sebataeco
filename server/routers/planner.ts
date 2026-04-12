@@ -3,7 +3,7 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { schoolCalendarEvents, schoolCalendars, lessonPlans, classGroups } from "../../drizzle/schema";
-import { eq, and, desc, asc, lte, gte, isNull, or, sql } from "drizzle-orm";
+import { eq, and, desc, asc, lte, gte, isNull, or, sql, inArray } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
 import { generateCalendarPdf } from "../calendarPdf";
 import { getHolidaysInRange } from "../spanishHolidays";
@@ -566,6 +566,17 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       await db.delete(lessonPlans).where(and(eq(lessonPlans.id, input.id), eq(lessonPlans.userId, ctx.user.id)));
       return { success: true };
+    }),
+
+  batchDeleteLessonPlans: protectedProcedure
+    .input(z.object({ ids: z.array(z.number()).min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      await db.delete(lessonPlans).where(
+        and(inArray(lessonPlans.id, input.ids), eq(lessonPlans.userId, ctx.user.id))
+      );
+      return { deleted: input.ids.length };
     }),
 
   aiGenerateLessonPlan: protectedProcedure

@@ -329,10 +329,15 @@ export function AIChatBox({
     speechUnlockedRef.current = true;
   }, [hasSpeechSynthesis]);
 
+  // forceRestartRef lets stopSpeaking call wakeForceRestart without a circular dep
+  const forceRestartRef = useRef<(() => void) | null>(null);
+
   const stopSpeaking = useCallback(() => {
     cancelledRef.current = true;
     if (hasSpeechSynthesis) window.speechSynthesis.cancel();
     setIsSpeaking(false);
+    // Give the browser ~400ms to release the audio device before restarting wake listeners
+    setTimeout(() => { forceRestartRef.current?.(); }, 400);
   }, [hasSpeechSynthesis]);
 
   // Cancel speech on component unmount
@@ -365,12 +370,17 @@ export function AIChatBox({
       const voice = voices.find(v => v.lang.startsWith(l) && /female|samantha|karen|moira|nova|shimmer/i.test(v.name))
         ?? voices.find(v => v.lang.startsWith(l)) ?? voices[0] ?? null;
       const speakChunk = (i: number) => {
-        if (cancelledRef.current || i >= chunks.length) { setIsSpeaking(false); return; }
+        if (cancelledRef.current || i >= chunks.length) {
+          setIsSpeaking(false);
+          // TTS fully finished — give browser 400ms to release audio device then restart wake
+          setTimeout(() => { forceRestartRef.current?.(); }, 400);
+          return;
+        }
         const u = new SpeechSynthesisUtterance(chunks[i]);
         u.lang = langCode; u.rate = speechRate; u.pitch = 1.0;
         if (voice) u.voice = voice;
-        u.onend = () => { if (!cancelledRef.current) speakChunk(i + 1); else setIsSpeaking(false); };
-        u.onerror = (e) => { if ((e as SpeechSynthesisErrorEvent).error !== "interrupted") setIsSpeaking(false); };
+        u.onend = () => { if (!cancelledRef.current) speakChunk(i + 1); else { setIsSpeaking(false); setTimeout(() => { forceRestartRef.current?.(); }, 400); } };
+        u.onerror = (e) => { if ((e as SpeechSynthesisErrorEvent).error !== "interrupted") { setIsSpeaking(false); setTimeout(() => { forceRestartRef.current?.(); }, 400); } };
         window.speechSynthesis.speak(u);
       };
       speakChunk(0);
@@ -476,7 +486,9 @@ export function AIChatBox({
     onSendMessage(text);
   }, [onSendMessage, unlockSpeechSynthesis]);
 
-  const { wakeState, permissionError: wakePermissionError, isListening: wakeIsListening, requestPermission: wakeRequestPermission } = useAinaWakeWord({
+  // Keep forceRestartRef in sync with the latest wakeForceRestart
+  // (declared after useAinaWakeWord so the ref is always current)
+  const { wakeState, permissionError: wakePermissionError, isListening: wakeIsListening, requestPermission: wakeRequestPermission, forceRestart: wakeForceRestart } = useAinaWakeWord({
     onTranscript: handleWakeTranscript,
     onActivated: handleWakeActivated,
     enabled: !isMobile && alwaysOnEnabled,
@@ -486,6 +498,9 @@ export function AIChatBox({
   useEffect(() => {
     if (wakePermissionError) setVoiceError(wakePermissionError);
   }, [wakePermissionError]);
+
+  // Keep forceRestartRef in sync so stopSpeaking can call it without circular deps
+  useEffect(() => { forceRestartRef.current = wakeForceRestart; }, [wakeForceRestart]);
 
   // ─── Unified mic: MediaRecorder → S3 → Whisper (all devices) ────────────────
 
