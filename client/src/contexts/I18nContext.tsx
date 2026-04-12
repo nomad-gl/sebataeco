@@ -530,6 +530,7 @@ export const translations = {
     paraula_search_placeholder: "Search words or clues…",
     paraula_diff_all: "All",
     paraula_diff_no_match: "No words at this difficulty level.",
+    paraula_auto_rate: "AI Rate",
 
     // Presentation page
     pres_signin_title: "Sign in to create presentations",
@@ -826,6 +827,7 @@ export const translations = {
     gp_history_avg: "Avg",
     gp_history_per_question: "Per-question accuracy",
     gp_history_leaderboard: "Leaderboard",
+    gp_history_export_csv: "Export CSV",
     gp_class_avg: "Class Average",
     gp_students: "Students",
     gp_activities: "Total Activities",
@@ -1404,6 +1406,8 @@ export const translations = {
     cal_label_school_name: "School Name",
     cal_label_tutor_name: "Tutor Name",
     cal_label_date: "Date *",
+    cal_label_lesson_days: "Lesson Days",
+    cal_lesson_days_hint: "Select the days of the week when lessons take place. AI infill will place lessons only on these days.",
     cal_day_mon: "Mon",
     cal_day_tue: "Tue",
     cal_day_wed: "Wed",
@@ -2023,6 +2027,7 @@ export const translations = {
     paraula_search_placeholder: "Buscar palabras o pistas…",
     paraula_diff_all: "Todas",
     paraula_diff_no_match: "No hay palabras en este nivel de dificultad.",
+    paraula_auto_rate: "Valorar con IA",
 
     // Presentation page
     pres_signin_title: "Inicia sesión para crear presentaciones",
@@ -2317,8 +2322,9 @@ export const translations = {
     gp_history_empty: "Todavía no hay sesiones de reto guardadas en este grupo.",
     gp_history_participants: "participantes",
     gp_history_avg: "Media",
-    gp_history_per_question: "Precisión por pregunta",
+    gp_history_per_question: "Acierto por pregunta",
     gp_history_leaderboard: "Clasificación",
+    gp_history_export_csv: "Exportar CSV",
     gp_class_avg: "Media de Clase",
     gp_students: "Alumnos",
     gp_activities: "Actividades Totales",
@@ -2897,6 +2903,8 @@ export const translations = {
     cal_label_school_name: "Nombre del centro",
     cal_label_tutor_name: "Nombre del tutor",
     cal_label_date: "Fecha *",
+    cal_label_lesson_days: "Días de clase",
+    cal_lesson_days_hint: "Selecciona los días de la semana en que se imparten clases. El relleno automático colocará las sesiones solo en esos días.",
     cal_day_mon: "Lun",
     cal_day_tue: "Mar",
     cal_day_wed: "Mié",
@@ -3516,6 +3524,7 @@ export const translations = {
     paraula_search_placeholder: "Cerca paraules o pistes…",
     paraula_diff_all: "Totes",
     paraula_diff_no_match: "No hi ha paraules en aquest nivell de dificultat.",
+    paraula_auto_rate: "Valorar amb IA",
 
     // Presentation page
     pres_signin_title: "Inicia sessió per crear presentacions",
@@ -3812,6 +3821,7 @@ export const translations = {
     gp_history_avg: "Mitjana",
     gp_history_per_question: "Precisió per pregunta",
     gp_history_leaderboard: "Classificació",
+    gp_history_export_csv: "Exportar CSV",
     gp_class_avg: "Mitjana de Classe",
     gp_students: "Alumnes",
     gp_activities: "Activitats Totals",
@@ -4390,6 +4400,8 @@ export const translations = {
     cal_label_school_name: "Nom del centre",
     cal_label_tutor_name: "Nom del tutor",
     cal_label_date: "Data *",
+    cal_label_lesson_days: "Dies de classe",
+    cal_lesson_days_hint: "Selecciona els dies de la setmana en què es fan classes. El farciment automàtic col·locarà les sessions només en aquests dies.",
     cal_day_mon: "Dl",
     cal_day_tue: "Dm",
     cal_day_wed: "Dc",

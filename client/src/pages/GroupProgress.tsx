@@ -678,7 +678,38 @@ function ChallengeHistoryTab({ groupId }: { groupId: number }) {
                     {" · "}{t("gp_history_avg")} {avgScore}%
                   </p>
                 </div>
-                {isExpanded ? <ChevronDown className="w-4 h-4 text-white/60" /> : <ChevronRight className="w-4 h-4 text-white/60" />}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Build CSV
+                      const headers = ["#", "Question", "Correct Answer", ...participants.map(p => p.nickname)];
+                      const rows = questions.map((q, qi) => [
+                        qi + 1,
+                        `"${q.question.replace(/"/g, '""')}"`,
+                        `"${(q.options?.[q.correctIndex] ?? "").replace(/"/g, '""')}"`,
+                        ...participants.map(p => {
+                          const ans = p.answers[qi];
+                          const correct = ans === q.correctIndex;
+                          return `"${correct ? "✓" : "✗"} ${(q.options?.[ans] ?? "No answer").replace(/"/g, '""')}"`;
+                        }),
+                      ]);
+                      const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+                      const blob = new Blob([csv], { type: "text/csv" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `${log.challengeTitle.replace(/[^a-z0-9]/gi, "_")}_${new Date(log.runAt).toISOString().split("T")[0]}.csv`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="p-1.5 rounded hover:bg-white/10 text-white/50 hover:text-white/80 transition-colors"
+                    title={t("gp_history_export_csv")}
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                  </button>
+                  {isExpanded ? <ChevronDown className="w-4 h-4 text-white/60" /> : <ChevronRight className="w-4 h-4 text-white/60" />}
+                </div>
               </div>
             </CardHeader>
             {isExpanded && (

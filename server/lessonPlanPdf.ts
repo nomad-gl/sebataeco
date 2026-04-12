@@ -14,6 +14,8 @@ export interface LessonPlanPdfInput {
   subject?: string | null;
   yearGroup?: string | null;
   academicYear?: string | null;
+  schoolName?: string | null;
+  tutorName?: string | null;
   duration?: number | null;
   unit?: string | null;
   skills?: string | null;          // JSON
@@ -53,10 +55,20 @@ export async function generateLessonPlanPdf(plan: LessonPlanPdfInput): Promise<B
     const DARK = "#111827";
 
     // ── Header band ──────────────────────────────────────────────────────────
-    doc.rect(48, 48, W, 72).fill(BLUE);
-    doc.fillColor("white").fontSize(18).font("Helvetica-Bold")
-      .text(plan.title, 60, 58, { width: W - 20 });
+    const headerH = 88;
+    doc.rect(48, 48, W, headerH).fill(BLUE);
 
+    // School name top-right (small)
+    if (plan.schoolName) {
+      doc.fillColor("rgba(255,255,255,0.75)").fontSize(8).font("Helvetica")
+        .text(plan.schoolName, 60, 52, { width: W - 20, align: "right" });
+    }
+
+    // Lesson title
+    doc.fillColor("white").fontSize(17).font("Helvetica-Bold")
+      .text(plan.title, 60, plan.schoolName ? 62 : 58, { width: W - 20 });
+
+    // Meta row
     const meta: string[] = [];
     if (plan.lessonNumber) meta.push(`Lesson ${plan.lessonNumber}`);
     if (plan.lessonDate) {
@@ -67,13 +79,18 @@ export async function generateLessonPlanPdf(plan: LessonPlanPdfInput): Promise<B
     if (plan.yearGroup) meta.push(plan.yearGroup);
     if (plan.academicYear) meta.push(plan.academicYear);
     if (plan.duration) meta.push(`${plan.duration} min`);
+    if (plan.tutorName) meta.push(plan.tutorName);
     if (meta.length) {
       doc.fontSize(9).font("Helvetica").fillColor("rgba(255,255,255,0.85)")
-        .text(meta.join("  ·  "), 60, 82, { width: W - 20 });
+        .text(meta.join("  ·  "), 60, 96, { width: W - 20 });
     }
 
+    // Powered by SEBA badge (top-right of header)
+    doc.fillColor("rgba(255,255,255,0.55)").fontSize(7).font("Helvetica")
+      .text("Powered by SEBA AI Studio", 48, 48 + headerH - 14, { width: W, align: "right" });
+
     doc.fillColor(DARK);
-    let y = 132;
+    let y = 48 + headerH + 12;
 
     // ── Helper: section heading ───────────────────────────────────────────────
     const sectionHeading = (label: string) => {

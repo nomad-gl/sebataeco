@@ -491,6 +491,8 @@ export const schoolCalendars = mysqlTable("school_calendars", {
   topicDescription: text("topicDescription"),
   /** Optional link to a class group — lesson events are auto-created as assignments for this group */
   linkedGroupId: int("linkedGroupId"),
+  /** JSON array of weekday numbers (1=Mon … 5=Fri) for lesson infill, e.g. '[1,3,5]' */
+  lessonDays: varchar("lessonDays", { length: 32 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

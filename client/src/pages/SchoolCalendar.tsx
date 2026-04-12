@@ -69,6 +69,7 @@ type SchoolCalendar = {
   endDate?: Date | string | null;
   topicDescription?: string | null;
   linkedGroupId?: number | null;
+  lessonDays?: string | null;
 };
 
 /**
@@ -161,6 +162,7 @@ const emptyCalForm = (academicYear = ACADEMIC_YEARS[1]) => {
     startDate: "",
     endDate: "",
     topicDescription: "",
+    lessonDays: "" as string, // JSON-encoded array e.g. '[1,3,5]'
   };
 };
 
@@ -604,6 +606,7 @@ export default function SchoolCalendar() {
         topicDescription: cal.topicDescription ?? undefined,
         startDate,
         endDate,
+        lessonDays: cal.lessonDays ?? undefined,
       });
     } else {
       const validTerms = aiForm.terms.filter(t => t.start && t.end);
@@ -615,6 +618,7 @@ export default function SchoolCalendar() {
         subject: cal.subject ?? "English",
         sessionsPerWeek: aiForm.sessionsPerWeek,
         termDates: validTerms,
+        lessonDays: cal.lessonDays ?? undefined,
       });
     }
   };
@@ -821,7 +825,7 @@ export default function SchoolCalendar() {
                 </div>
                 {selectedCalendarId === cal.id && (
                   <button
-                    onClick={e => { e.stopPropagation(); setCalForm({ name: cal.name, schoolName: cal.schoolName ?? "", tutorName: cal.tutorName ?? "", subject: cal.subject ?? "English", yearLevel: cal.yearLevel ?? YEAR_GROUPS[3], academicYear: cal.academicYear, calendarType: (cal as SchoolCalendar).calendarType ?? "full_year", startDate: (cal as SchoolCalendar).startDate ? new Date((cal as SchoolCalendar).startDate as string).toISOString().split("T")[0] : "", endDate: (cal as SchoolCalendar).endDate ? new Date((cal as SchoolCalendar).endDate as string).toISOString().split("T")[0] : "", topicDescription: (cal as SchoolCalendar).topicDescription ?? "" }); setShowEditCalDialog(true); }}
+                    onClick={e => { e.stopPropagation(); setCalForm({ name: cal.name, schoolName: cal.schoolName ?? "", tutorName: cal.tutorName ?? "", subject: cal.subject ?? "English", yearLevel: cal.yearLevel ?? YEAR_GROUPS[3], academicYear: cal.academicYear, calendarType: (cal as SchoolCalendar).calendarType ?? "full_year", startDate: (cal as SchoolCalendar).startDate ? new Date((cal as SchoolCalendar).startDate as string).toISOString().split("T")[0] : "", endDate: (cal as SchoolCalendar).endDate ? new Date((cal as SchoolCalendar).endDate as string).toISOString().split("T")[0] : "", topicDescription: (cal as SchoolCalendar).topicDescription ?? "", lessonDays: (cal as SchoolCalendar).lessonDays ?? "" }); setShowEditCalDialog(true); }}
                     className="opacity-0 group-hover:opacity-100 shrink-0 mt-0.5"
                   >
                     <Pencil className="w-3 h-3 text-muted-foreground" />
@@ -1358,6 +1362,29 @@ export default function SchoolCalendar() {
                 <SelectContent>{ACADEMIC_YEARS.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+            {/* Lesson days of week */}
+            <div>
+              <Label className="text-sm font-medium mb-2 block">{t("cal_label_lesson_days")}</Label>
+              <div className="flex flex-wrap gap-2">
+                {([{d:1,label:t("cal_day_mon")},{d:2,label:t("cal_day_tue")},{d:3,label:t("cal_day_wed")},{d:4,label:t("cal_day_thu")},{d:5,label:t("cal_day_fri")}]).map(({d,label}) => {
+                  const days: number[] = calForm.lessonDays ? (() => { try { return JSON.parse(calForm.lessonDays); } catch { return []; } })() : [];
+                  const active = days.includes(d);
+                  return (
+                    <button key={d} type="button"
+                      onClick={() => {
+                        const cur: number[] = calForm.lessonDays ? (() => { try { return JSON.parse(calForm.lessonDays); } catch { return []; } })() : [];
+                        const next = active ? cur.filter(x => x !== d) : [...cur, d].sort();
+                        setCalForm(f => ({ ...f, lessonDays: JSON.stringify(next) }));
+                      }}
+                      className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-all ${
+                        active ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:border-primary/50'
+                      }`}
+                    >{label}</button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">{t("cal_lesson_days_hint")}</p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateCalDialog(false)}>{t("cal_cancel")}</Button>
@@ -1367,6 +1394,7 @@ export default function SchoolCalendar() {
                 startDate: calForm.startDate || undefined,
                 endDate: calForm.endDate || undefined,
                 topicDescription: calForm.topicDescription || undefined,
+                lessonDays: calForm.lessonDays || undefined,
               })}
               disabled={createCalMutation.isPending || !calForm.name.trim() || (calForm.calendarType === "topic_block" && (!calForm.startDate || !calForm.endDate))}
               className="gap-1"
@@ -1476,6 +1504,29 @@ export default function SchoolCalendar() {
                 <SelectContent>{ACADEMIC_YEARS.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+            {/* Lesson days of week */}
+            <div>
+              <Label className="text-sm font-medium mb-2 block">{t("cal_label_lesson_days")}</Label>
+              <div className="flex flex-wrap gap-2">
+                {([{d:1,label:t("cal_day_mon")},{d:2,label:t("cal_day_tue")},{d:3,label:t("cal_day_wed")},{d:4,label:t("cal_day_thu")},{d:5,label:t("cal_day_fri")}]).map(({d,label}) => {
+                  const days: number[] = calForm.lessonDays ? (() => { try { return JSON.parse(calForm.lessonDays); } catch { return []; } })() : [];
+                  const active = days.includes(d);
+                  return (
+                    <button key={d} type="button"
+                      onClick={() => {
+                        const cur: number[] = calForm.lessonDays ? (() => { try { return JSON.parse(calForm.lessonDays); } catch { return []; } })() : [];
+                        const next = active ? cur.filter(x => x !== d) : [...cur, d].sort();
+                        setCalForm(f => ({ ...f, lessonDays: JSON.stringify(next) }));
+                      }}
+                      className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-all ${
+                        active ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:border-primary/50'
+                      }`}
+                    >{label}</button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">{t("cal_lesson_days_hint")}</p>
+            </div>
           </div>
           <DialogFooter className="flex justify-between">
             <Button variant="destructive" size="sm" onClick={() => { if (selectedCalendarId) deleteCalMutation.mutate({ id: selectedCalendarId }); setShowEditCalDialog(false); }}>
@@ -1491,6 +1542,7 @@ export default function SchoolCalendar() {
                     startDate: calForm.startDate || undefined,
                     endDate: calForm.endDate || undefined,
                     topicDescription: calForm.topicDescription || undefined,
+                    lessonDays: calForm.lessonDays || undefined,
                   });
                 }}
                 disabled={updateCalMutation.isPending}

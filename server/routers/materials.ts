@@ -599,6 +599,55 @@ export const materialsRouter = router({
       });
       return { id, title: input.title };
     }),
+
+  /** AI auto-assign difficulty (1-3 stars) to unrated PARAULA words */
+  autoAssignParaulaDifficulty: protectedProcedure
+    .input(z.object({ materialId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const mat = await getMaterialById(input.materialId, ctx.user.id);
+      if (!mat || mat.type !== "paraula") throw new Error("Material not found or not a PARAULA type");
+
+      let content: { words?: string[]; clues?: string[]; difficulties?: (number | null)[] } = {};
+      try { content = JSON.parse(mat.content ?? "{}"); } catch { content = {}; }
+
+      const words: string[] = content.words ?? [];
+      const clues: string[] = content.clues ?? [];
+      const existing: (number | null)[] = content.difficulties ?? words.map(() => null);
+
+      // Find indices of unrated words
+      const unrated = words.map((w, i) => ({ w, c: clues[i] ?? "", i })).filter((_, i) => !existing[i]);
+      if (unrated.length === 0) return { updated: 0, difficulties: existing };
+
+      // Ask LLM to rate each unrated word 1-3
+      const prompt = `Rate each of the following Catalan words by difficulty for a language learner (1 = easy, 2 = medium, 3 = hard). Consider word frequency, length, and phonetic complexity. Return a JSON array of integers in the same order as the input.
+
+Words (with clues):
+${unrated.map((u, i) => `${i + 1}. word: "${u.w}", clue: "${u.c}"`).join("\n")}
+
+Return only a JSON array like: [1, 3, 2, ...]`;
+
+      const resp = await invokeLLM({
+        messages: [
+          { role: "system", content: "You are a Catalan language expert. Return only valid JSON." },
+          { role: "user", content: prompt },
+        ],
+      });
+
+      const raw = resp.choices?.[0]?.message?.content ?? "[]";
+      const content2 = typeof raw === "string" ? raw : JSON.stringify(raw);
+      const match = content2.match(/\[([\d,\s]+)\]/);
+      const ratings: number[] = match ? JSON.parse(`[${match[1]}]`) : [];
+
+      const updated = [...existing];
+      unrated.forEach((u, i) => {
+        const r = ratings[i];
+        if (r === 1 || r === 2 || r === 3) updated[u.i] = r;
+      });
+
+      const newContent = JSON.stringify({ ...content, difficulties: updated });
+      await updateMaterial(input.materialId, ctx.user.id, newContent);
+      return { updated: unrated.length, difficulties: updated };
+    }),
 });
 
 // Type for sebasnap presentation items

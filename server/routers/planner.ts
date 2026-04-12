@@ -6,6 +6,7 @@ import { schoolCalendarEvents, schoolCalendars, lessonPlans, classGroups } from 
 import { eq, and, desc, asc, lte, gte, isNull, or, sql } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
 import { generateCalendarPdf } from "../calendarPdf";
+import { getHolidaysInRange } from "../spanishHolidays";
 import { generateLessonPlanPdf } from "../lessonPlanPdf";
 import { storagePut } from "../storage";
 
@@ -37,6 +38,8 @@ export const plannerRouter = router({
       startDate: z.string().nullish(), // ISO date string
       endDate: z.string().nullish(),   // ISO date string
       topicDescription: z.string().max(2000).nullish(),
+      /** JSON-encoded array of weekday numbers, e.g. '[1,3,5]' */
+      lessonDays: z.string().nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -48,7 +51,37 @@ export const plannerRouter = router({
         ...(startDate ? { startDate: new Date(startDate) } : {}),
         ...(endDate ? { endDate: new Date(endDate) } : {}),
       });
-      return { id: (result as any)[0].insertId };
+      const calendarId = (result as any)[0].insertId as number;
+
+      // ── Auto-insert Spanish/Catalan public holidays ──────────────────────────
+      // Determine the date range to scan for holidays.
+      // For full_year calendars we use the academic year (Sep 1 → Jun 30).
+      // For topic_block calendars we use the provided startDate/endDate.
+      try {
+        const yearMatch = input.academicYear.match(/^(\d{4})/);
+        const startYear = yearMatch ? parseInt(yearMatch[1]) : new Date().getFullYear();
+        const rangeStart = input.startDate ?? `${startYear}-09-01`;
+        const rangeEnd   = input.endDate   ?? `${startYear + 1}-06-30`;
+
+        const holidays = getHolidaysInRange(rangeStart, rangeEnd, "catalonia");
+        if (holidays.length > 0) {
+          await db.insert(schoolCalendarEvents).values(
+            holidays.map(h => ({
+              userId: ctx.user.id,
+              calendarId,
+              academicYear: input.academicYear,
+              eventDate: new Date(h.date),
+              eventType: "holiday" as const,
+              title: h.nameEN,
+              description: `${h.nameES} / ${h.nameCA}`,
+            }))
+          );
+        }
+      } catch (_) {
+        // Holiday insertion is best-effort; never block calendar creation
+      }
+
+      return { id: calendarId };
     }),
 
   updateCalendar: protectedProcedure
@@ -64,6 +97,7 @@ export const plannerRouter = router({
       startDate: z.string().nullish(),
       endDate: z.string().nullish(),
       topicDescription: z.string().max(2000).nullish(),
+      lessonDays: z.string().nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -181,6 +215,8 @@ export const plannerRouter = router({
       /** For topic_block calendars: constrain lesson dates within this range */
       startDate: z.string().nullish(),
       endDate: z.string().nullish(),
+      /** JSON-encoded array of weekday numbers (1=Mon…5=Fri). When provided, only these days are used. */
+      lessonDays: z.string().nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -229,8 +265,23 @@ export const plannerRouter = router({
 
       if (teachingDays.length === 0) return { generated: 0 };
 
-      const step = Math.max(1, Math.floor(5 / input.sessionsPerWeek));
-      const selectedDays = teachingDays.filter((_, i) => i % step === 0).slice(0, 60);
+      // If specific lesson days are provided, use them directly (ignore sessionsPerWeek step)
+      let selectedDays: string[];
+      if (input.lessonDays) {
+        try {
+          const allowedDays: number[] = JSON.parse(input.lessonDays); // e.g. [1,3,5]
+          selectedDays = teachingDays.filter(iso => {
+            const d = new Date(iso);
+            return allowedDays.includes(d.getDay());
+          }).slice(0, 60);
+        } catch {
+          const step = Math.max(1, Math.floor(5 / input.sessionsPerWeek));
+          selectedDays = teachingDays.filter((_, i) => i % step === 0).slice(0, 60);
+        }
+      } else {
+        const step = Math.max(1, Math.floor(5 / input.sessionsPerWeek));
+        selectedDays = teachingDays.filter((_, i) => i % step === 0).slice(0, 60);
+      }
 
       type LessonDetail = {
         title: string;
@@ -717,7 +768,26 @@ Return JSON:
         .from(lessonPlans)
         .where(and(eq(lessonPlans.id, input.id), eq(lessonPlans.userId, ctx.user.id)));
       if (!plan) throw new TRPCError({ code: "NOT_FOUND", message: "Plan not found" });
-      const pdfBuf = await generateLessonPlanPdf(plan);
+
+      // Fetch linked calendar for school/tutor name
+      let schoolName: string | null = null;
+      let tutorName: string | null = null;
+      if (plan.calendarEventId) {
+        const [calEvent] = await db
+          .select({ calendarId: schoolCalendarEvents.calendarId })
+          .from(schoolCalendarEvents)
+          .where(eq(schoolCalendarEvents.id, plan.calendarEventId));
+        if (calEvent?.calendarId) {
+          const [cal] = await db
+            .select({ schoolName: schoolCalendars.schoolName, tutorName: schoolCalendars.tutorName })
+            .from(schoolCalendars)
+            .where(eq(schoolCalendars.id, calEvent.calendarId));
+          schoolName = cal?.schoolName ?? null;
+          tutorName = cal?.tutorName ?? null;
+        }
+      }
+
+      const pdfBuf = await generateLessonPlanPdf({ ...plan, schoolName, tutorName });
       const fileKey = `lesson-plan-exports/${ctx.user.id}-${input.id}-${Date.now()}.pdf`;
       const { url } = await storagePut(fileKey, pdfBuf, "application/pdf");
       return { url };

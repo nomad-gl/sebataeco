@@ -3,8 +3,9 @@ import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, RotateCcw, Volume2, VolumeX, Check, Copy, RefreshCw } from "lucide-react";
+import { ArrowLeft, RotateCcw, Volume2, VolumeX, Check, Copy, RefreshCw, Sparkles, Loader2 } from "lucide-react";
 import { useI18n } from "@/contexts/I18nContext";
+import { toast } from "sonner";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type TileState = "empty" | "tbd" | "correct" | "present" | "absent";
@@ -359,6 +360,15 @@ export default function ParaulaPractice() {
     localStorage.setItem(storageKey, String(d));
   };
 
+  const utils = trpc.useUtils();
+  const autoAssignMutation = trpc.materials.autoAssignParaulaDifficulty.useMutation({
+    onSuccess: (data) => {
+      utils.materials.get.invalidate({ id: materialId });
+      toast.success(`${data.updated} word${data.updated === 1 ? "" : "s"} rated by AI`);
+    },
+    onError: (err) => { toast.error(err.message || "Failed to auto-assign difficulty"); },
+  });
+
   const filteredPairs = validPairs.filter(p => {
     if (diffFilter > 0 && p.difficulty !== diffFilter) return false;
     if (search.trim()) return p.word.includes(search.toUpperCase()) || p.clue.toLowerCase().includes(search.toLowerCase());
@@ -450,7 +460,18 @@ export default function ParaulaPractice() {
                 <p className="text-white/60 text-sm">{t("paraula_choose_word")}</p>
               </div>
 
-              {/* Difficulty filter — only shown when at least one word has a difficulty set */}
+              {/* Difficulty filter + AI auto-assign */}
+              <div className="flex items-center justify-between gap-2">
+                <button
+                  onClick={() => autoAssignMutation.mutate({ materialId })}
+                  disabled={autoAssignMutation.isPending}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-white/5 border border-white/15 text-white/60 hover:bg-white/10 hover:text-white/80 transition-colors disabled:opacity-50"
+                  title={t("paraula_auto_rate")}
+                >
+                  {autoAssignMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                  {t("paraula_auto_rate")}
+                </button>
+              </div>
               {hasDifficulties && (
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {([0, 1, 2, 3] as const).map(d => (

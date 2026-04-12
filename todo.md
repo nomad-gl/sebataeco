@@ -1720,3 +1720,31 @@
 - [x] Add History tab to GroupProgress.tsx with collapsible session cards
 - [x] Each session card shows date, participant count, avg score, per-question accuracy bar, and leaderboard
 - [x] Add gp_tab_history and gp_history_* i18n keys in EN/ES/CA
+
+## Feature: Auto-insert Spanish/Catalan holidays on calendar creation
+- [x] Built Spanish national + Catalan regional holiday dataset in server/spanishHolidays.ts (2024-25 and 2025-26)
+- [x] createCalendar auto-inserts holiday events for all dates within the calendar's term dates
+- [x] Holiday events use eventType "holiday" with the holiday name as the title
+
+## Feature: Multi-day-of-week lesson selection in Edit Calendar
+- [x] Added lessonDays varchar column to schoolCalendars schema
+- [x] DB migration applied via migrate-lesson-days.mjs
+- [x] Create and Edit Calendar dialogs now show Mon-Fri day-toggle buttons for multi-day selection
+- [x] aiInfillCalendar distributes lessons across all selected lesson days
+- [x] lessonDays passed to both aiInfillMutation.mutate calls in SchoolCalendar.tsx
+- [x] Added cal_label_lesson_days and cal_lesson_days_hint i18n keys in EN/ES/CA
+
+## Feature: Lesson plan print layout
+- [x] Enhanced PDF with school name header, lesson number, date, teacher name, and two-column layout
+- [x] exportLessonPlanPdf fetches the linked calendar to include schoolName and tutorName
+
+## Feature: Challenge history CSV export
+- [x] Added CSV download button (Download icon) to each session card in the Challenge History tab
+- [x] CSV includes question, correct answer, and per-student response columns
+- [x] Added gp_history_export_csv i18n key in EN/ES/CA
+
+## Feature: PARAULA AI difficulty auto-assign
+- [x] Added autoAssignParaulaDifficulty procedure to materials router using LLM
+- [x] Added "AI Rate" button (Sparkles icon) in ParaulaPractice word picker
+- [x] After auto-assign, material query invalidated to refresh star ratings
+- [x] Added paraula_auto_rate i18n key in EN/ES/CA
