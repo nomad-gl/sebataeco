@@ -3,7 +3,7 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { schoolCalendarEvents, schoolCalendars, lessonPlans, classGroups } from "../../drizzle/schema";
-import { eq, and, desc, isNull, or } from "drizzle-orm";
+import { eq, and, desc, asc, lte, isNull, or, sql } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
 import { generateCalendarPdf } from "../calendarPdf";
 
@@ -726,6 +726,38 @@ Return JSON:
           eq(lessonPlans.calendarEventId, input.calendarEventId),
         ));
       if (existing) return { id: existing.id, created: false };
+
+      // Fetch the calendar event to get its date and compute lesson number
+      const [calEvent] = await db
+        .select({ eventDate: schoolCalendarEvents.eventDate, calendarId: schoolCalendarEvents.calendarId, eventType: schoolCalendarEvents.eventType })
+        .from(schoolCalendarEvents)
+        .where(eq(schoolCalendarEvents.id, input.calendarEventId));
+
+      let lessonNumber: string | null = null;
+      let lessonDate: string | null = null;
+
+      if (calEvent) {
+        // Format date as YYYY-MM-DD
+        const d = new Date(calEvent.eventDate);
+        lessonDate = d.toISOString().slice(0, 10);
+
+        // Count lesson/ai_generated events in the same calendar up to and including this event's date
+        const countRows = await db
+          .select({ cnt: sql<number>`COUNT(*)` })
+          .from(schoolCalendarEvents)
+          .where(and(
+            eq(schoolCalendarEvents.userId, ctx.user.id),
+            calEvent.calendarId ? eq(schoolCalendarEvents.calendarId, calEvent.calendarId) : isNull(schoolCalendarEvents.calendarId),
+            or(
+              eq(schoolCalendarEvents.eventType, "lesson"),
+              eq(schoolCalendarEvents.eventType, "ai_generated"),
+            ),
+            lte(schoolCalendarEvents.eventDate, calEvent.eventDate),
+          ));
+        const count = Number(countRows[0]?.cnt ?? 1);
+        lessonNumber = String(count);
+      }
+
       const result = await db.insert(lessonPlans).values({
         userId: ctx.user.id,
         title: input.title,
@@ -733,9 +765,11 @@ Return JSON:
         yearGroup: input.yearGroup,
         academicYear: input.academicYear,
         calendarEventId: input.calendarEventId,
+        lessonNumber,
+        lessonDate,
         aiGenerated: false,
         duration: 60,
       });
-      return { id: (result as any)[0].insertId, created: true };
+      return { id: (result as any)[0].insertId, created: true, lessonNumber, lessonDate };
     }),
 });

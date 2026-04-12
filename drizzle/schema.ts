@@ -539,6 +539,8 @@ export const lessonPlans = mysqlTable("lesson_plans", {
   /** Unit name/number */
   unit: varchar("unit", { length: 128 }),
   lessonNumber: varchar("lessonNumber", { length: 16 }),
+  /** Date of the actual lesson (ISO date string YYYY-MM-DD from the calendar event) */
+  lessonDate: varchar("lessonDate", { length: 16 }),
   academicYear: varchar("academicYear", { length: 16 }),
   /** Duration in minutes */
   duration: int("duration"),

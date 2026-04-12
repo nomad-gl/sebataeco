@@ -1687,3 +1687,15 @@
 - [x] In the day panel event list, each event row has an "Open Plan" button that opens the plan sheet
 - [x] Events without a plan show an "Add Plan" affordance instead
 - [x] Add i18n keys for open_plan, add_plan tooltips in EN/ES/CA
+
+## Feature: Include lesson number and date in lesson plan
+- [x] DB: add lessonDate (varchar) column to lessonPlans table via migration
+- [x] Server: in createLinkedLessonPlan, compute lessonNumber by counting lesson/ai_generated events up to this event's date in the same calendar
+- [x] Server: store lessonDate from the calendar event's eventDate
+- [x] Client: display lesson number and date as subtitle in the plan sheet header
+- [x] Add lp_lesson_number_label i18n key in EN/ES/CA
+
+## Bug: Plan sheet not opening as small side-panel window when selected from calendar
+- [x] Root cause: SheetOverlay was full-screen black/50 on all screen sizes, making it feel like a modal takeover
+- [x] Fix: Created PlanSheetContent variant with transparent overlay on sm+ screens so calendar remains visible behind the 520px side panel
+- [x] Plan sheet now opens as a true right-side drawer on desktop (520px wide, no overlay dimming)

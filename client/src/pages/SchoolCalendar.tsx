@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, PlanSheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -1831,13 +1831,27 @@ export default function SchoolCalendar() {
         }
         setShowPlanSheet(open);
       }}>
-        <SheetContent side="right" className="w-full sm:w-[600px] sm:max-w-[600px] p-0 flex flex-col relative overflow-hidden">
+        <PlanSheetContent className="w-full sm:w-[520px] sm:max-w-[520px] p-0 flex flex-col relative overflow-hidden">
           <SheetHeader className="px-5 pt-5 pb-3 border-b shrink-0">
             <div className="flex items-center justify-between gap-2">
-              <SheetTitle className="flex items-center gap-2">
-                <ClipboardList className="w-4 h-4 text-primary" />
-                {planForm.title || "Lesson Plan"}
-              </SheetTitle>
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <SheetTitle className="flex items-center gap-2">
+                  <ClipboardList className="w-4 h-4 text-primary" />
+                  {planForm.title || "Lesson Plan"}
+                </SheetTitle>
+                {/* Lesson number and date from calendar event */}
+                {(planSheetData?.lessonNumber || planSheetData?.lessonDate) && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground pl-6">
+                    {planSheetData.lessonNumber && (
+                      <span className="font-medium text-primary/80">{t("lp_lesson_number_label")} {planSheetData.lessonNumber}</span>
+                    )}
+                    {planSheetData.lessonNumber && planSheetData.lessonDate && <span className="text-muted-foreground/40">·</span>}
+                    {planSheetData.lessonDate && (
+                      <span>{new Date(planSheetData.lessonDate + "T12:00:00").toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" })}</span>
+                    )}
+                  </div>
+                )}
+              </div>
               <div className="flex gap-2 items-center">
                 {planFormDirty && <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">{t("lp_unsaved")}</Badge>}
                 {planSheetPlanId && (
@@ -2047,7 +2061,7 @@ export default function SchoolCalendar() {
               </Button>
             </div>
           </div>
-        </SheetContent>
+        </PlanSheetContent>
       </Sheet>
 
       {/* ── Batch Lesson Plan Generation Dialog ─────────────────────────────── */}
