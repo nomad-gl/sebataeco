@@ -24,6 +24,7 @@ import { loadSchoolProfile } from "@/pages/Settings";
 import { exportToCsv, exportToXml } from "@/lib/exportUtils";
 import ExportDropdown, { PdfIcon, CsvIcon, XmlIcon } from "@/components/ExportDropdown";
 import { Progress } from "@/components/ui/progress";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const ACADEMIC_YEARS = [`${CURRENT_YEAR - 1}-${CURRENT_YEAR}`, `${CURRENT_YEAR}-${CURRENT_YEAR + 1}`, `${CURRENT_YEAR + 1}-${CURRENT_YEAR + 2}`];
@@ -345,6 +346,21 @@ export default function SchoolCalendar() {
     onError: (e) => toast.error(e.message),
   });
 
+  // Delete plan mutation
+  const [showDeletePlanConfirm, setShowDeletePlanConfirm] = useState(false);
+  const deletePlanMutation = trpc.planner.deleteLessonPlan.useMutation({
+    onSuccess: () => {
+      utils.planner.getEventPlanMap.invalidate();
+      setPlanSheetPlanId(null);
+      setPlanForm(emptyLessonForm());
+      setPlanFormDirty(false);
+      setShowDeletePlanConfirm(false);
+      setShowPlanSheet(false);
+      toast.success(t("lp_deleted_toast"));
+    },
+    onError: (e) => { setShowDeletePlanConfirm(false); toast.error(e.message); },
+  });
+
   // Tracks the event whose plan is currently being AI-generated so we can show a loading state
   const [planSheetAiGenerating, setPlanSheetAiGenerating] = useState(false);
   // Ref to hold the pending AI-generation params until createLinkedPlanMutation resolves
@@ -403,9 +419,10 @@ export default function SchoolCalendar() {
     const existingPlanId = (eventPlanMap as Record<number, number>)[ev.id];
     setPlanSheetEventId(ev.id);
     if (existingPlanId) {
+      // Plan already exists — load it directly, no mutation needed
       setPlanSheetPlanId(existingPlanId);
       setPlanSheetAiGenerating(false);
-      // planSheetData will load via the query above
+      pendingAiParamsRef.current = null;
     } else {
       // No plan yet — seed form from event data and trigger AI generation
       setPlanSheetPlanId(null);
@@ -418,6 +435,7 @@ export default function SchoolCalendar() {
       setPlanFormDirty(false);
       // Store AI params so createLinkedPlanMutation.onSuccess can trigger generation
       pendingAiParamsRef.current = { planId: 0, title: ev.title, subject, yearGroup, academicYear, competencies };
+      // createLinkedLessonPlan already deduplicates server-side, but we guard client-side too
       createLinkedPlanMutation.mutate({
         calendarEventId: ev.id,
         title: ev.title,
@@ -1733,8 +1751,14 @@ export default function SchoolCalendar() {
                 <ClipboardList className="w-4 h-4 text-primary" />
                 {planForm.title || "Lesson Plan"}
               </SheetTitle>
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-center">
                 {planFormDirty && <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">{t("lp_unsaved")}</Badge>}
+                {planSheetPlanId && (
+                  <Button size="sm" variant="outline" onClick={() => setShowDeletePlanConfirm(true)} disabled={deletePlanMutation.isPending || planSheetAiGenerating} className="gap-1 text-destructive border-destructive/40 hover:bg-destructive/10">
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">{t("lp_delete_plan")}</span>
+                  </Button>
+                )}
                 <Button size="sm" onClick={handleSavePlan} disabled={savePlanMutation.isPending || planSheetAiGenerating} className="gap-1">
                   <Save className="w-3.5 h-3.5" />
                   {savePlanMutation.isPending ? t("lp_saving") : planSheetAiGenerating ? t("lp_generating") : t("lp_save")}
@@ -2024,6 +2048,25 @@ export default function SchoolCalendar() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* ── Delete Lesson Plan Confirmation Dialog ─────────────────────────────── */}
+      <AlertDialog open={showDeletePlanConfirm} onOpenChange={setShowDeletePlanConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("lp_delete_plan_confirm_title")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("lp_delete_plan_confirm_desc")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletePlanMutation.isPending}>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { if (planSheetPlanId) deletePlanMutation.mutate({ id: planSheetPlanId }); }}
+              disabled={deletePlanMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletePlanMutation.isPending ? t("lp_saving") : t("lp_delete_plan")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }

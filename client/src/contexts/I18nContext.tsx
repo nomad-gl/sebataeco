@@ -1112,6 +1112,9 @@ export const translations = {
     lp_title_required: "Title is required",
     lp_saved_toast: "Lesson plan saved",
     lp_deleted_toast: "Lesson plan deleted",
+    lp_delete_plan: "Delete Plan",
+    lp_delete_plan_confirm_title: "Delete lesson plan?",
+    lp_delete_plan_confirm_desc: "This will permanently delete this lesson plan. This action cannot be undone.",
     lp_generated_toast: "Lesson plan generated!",
     lp_popup_blocked: "Please allow popups to print",
     // Settings
@@ -2585,6 +2588,9 @@ export const translations = {
     lp_title_required: "El título es obligatorio",
     lp_saved_toast: "Programación guardada",
     lp_deleted_toast: "Programación eliminada",
+    lp_delete_plan: "Eliminar programación",
+    lp_delete_plan_confirm_title: "¿Eliminar programación?",
+    lp_delete_plan_confirm_desc: "Esto eliminará permanentemente esta programación. Esta acción no se puede deshacer.",
     lp_generated_toast: "Programación generada",
     lp_popup_blocked: "Por favor, permite las ventanas emergentes para imprimir",
     // Settings
@@ -4058,6 +4064,9 @@ export const translations = {
     lp_title_required: "El títol és obligatori",
     lp_saved_toast: "Programació desada",
     lp_deleted_toast: "Programació eliminada",
+    lp_delete_plan: "Eliminar programació",
+    lp_delete_plan_confirm_title: "Eliminar programació?",
+    lp_delete_plan_confirm_desc: "Això eliminarà permanentment aquesta programació. Aquesta acció no es pot desfer.",
     lp_generated_toast: "Programació generada",
     lp_popup_blocked: "Si us plau, permet les finestres emergents per imprimir",
     // Settings
