@@ -754,10 +754,14 @@ export default function SchoolCalendar() {
         startDate,
         endDate,
         lessonDays: cal.lessonDays ?? undefined,
+        region: (cal as any).region ?? "catalonia",
       });
     } else {
       const validTerms = aiForm.terms.filter(t => t.start && t.end);
-      if (validTerms.length === 0) { toast.error(t("cal_term_dates")); return; }
+      const calStart = cal.startDate ? new Date(cal.startDate as string).toISOString().split("T")[0] : "";
+      const calEnd = cal.endDate ? new Date(cal.endDate as string).toISOString().split("T")[0] : "";
+      // If term dates are provided use them; otherwise fall back to the calendar's own start/end dates
+      if (validTerms.length === 0 && !calStart) { toast.error(t("cal_term_dates")); return; }
       aiInfillMutation.mutate({
         calendarId: selectedCalendarId,
         academicYear: cal.academicYear,
@@ -765,7 +769,11 @@ export default function SchoolCalendar() {
         subject: cal.subject ?? "English",
         sessionsPerWeek: aiForm.sessionsPerWeek,
         termDates: validTerms,
+        // Pass calendar dates as fallback range when no term dates are set
+        startDate: validTerms.length === 0 ? calStart : undefined,
+        endDate: validTerms.length === 0 ? calEnd : undefined,
         lessonDays: cal.lessonDays ?? undefined,
+        region: (cal as any).region ?? "catalonia",
       });
     }
   };
@@ -1704,29 +1712,30 @@ export default function SchoolCalendar() {
               <Input value={calForm.name} onChange={e => setCalForm(f => ({ ...f, name: e.target.value }))} />
             </div>
 
+            {/* Start / end dates — shown for both calendar types */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>{t("cal_label_start_date")}</Label>
+                <Input type="date" value={calForm.startDate} onChange={e => setCalForm(f => ({ ...f, startDate: e.target.value }))} />
+              </div>
+              <div>
+                <Label>{t("cal_label_end_date")}</Label>
+                <Input type="date" value={calForm.endDate} onChange={e => setCalForm(f => ({ ...f, endDate: e.target.value }))} />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground -mt-2">{t("cal_date_range_hint")}</p>
+
             {calForm.calendarType === "topic_block" && (
-              <>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label>{t("cal_label_start_date")}</Label>
-                    <Input type="date" value={calForm.startDate} onChange={e => setCalForm(f => ({ ...f, startDate: e.target.value }))} />
-                  </div>
-                  <div>
-                    <Label>{t("cal_label_end_date")}</Label>
-                    <Input type="date" value={calForm.endDate} onChange={e => setCalForm(f => ({ ...f, endDate: e.target.value }))} />
-                  </div>
-                </div>
-                <div>
-                  <Label>{t("cal_label_topic_desc")}</Label>
-                  <Textarea
-                    value={calForm.topicDescription}
-                    onChange={e => setCalForm(f => ({ ...f, topicDescription: e.target.value }))}
-                    placeholder={t('cal_ph_topic_desc_short')}
-                    rows={4}
-                    className="resize-none"
-                  />
-                </div>
-              </>
+              <div>
+                <Label>{t("cal_label_topic_desc")}</Label>
+                <Textarea
+                  value={calForm.topicDescription}
+                  onChange={e => setCalForm(f => ({ ...f, topicDescription: e.target.value }))}
+                  placeholder={t('cal_ph_topic_desc_short')}
+                  rows={4}
+                  className="resize-none"
+                />
+              </div>
             )}
 
             <div className="grid grid-cols-2 gap-3">

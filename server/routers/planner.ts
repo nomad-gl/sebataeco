@@ -268,6 +268,8 @@ export const plannerRouter = router({
       endDate: z.string().nullish(),
       /** JSON-encoded array of weekday numbers (1=Mon…5=Fri). When provided, only these days are used. */
       lessonDays: z.string().nullish(),
+      /** Spanish autonomous community — used to tailor Catalan/regional curriculum preferences */
+      region: z.string().nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -347,12 +349,17 @@ export const plannerRouter = router({
       // Wrap LLM call in a 60-second timeout so the fallback always fires
       const llmWithTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> =>
         Promise.race([promise, new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`LLM timeout after ${ms}ms`)), ms))]);
+      const isCatalan = (input.region ?? "").toLowerCase().includes("catalo");
+      const regionalNote = isCatalan
+        ? `\n\nREGIONAL CONTEXT — CATALONIA:\n- This calendar is for a school in Catalonia. Integrate Catalan cultural references, local geography, Catalan history, and Catalan language awareness where appropriate.\n- Prioritise the Competència en comunicació lingüística (CCL) with a focus on Catalan language contexts.\n- Reference the Curriculum Català (Decret 175/2022) alongside LOMLOE where relevant.\n- Include references to Catalan festivals, traditions, and local contexts in lesson titles and saberes básicos where pedagogically appropriate.`
+        : "";
+
       try {
         const resp = await llmWithTimeout(invokeLLM({
           messages: [
             {
               role: "system",
-              content: "You are a LOMLOE curriculum planning expert. Generate detailed, pedagogically sound lesson sequences fully aligned with the Spanish LOMLOE law. Return only valid JSON.",
+              content: `You are a LOMLOE curriculum planning expert specialising in Spanish primary and secondary education. Generate detailed, pedagogically sound lesson sequences fully aligned with the Spanish LOMLOE law (Ley Orgánica 3/2020). You MUST rotate through ALL 8 key competencies (CCL, CP, STEM, CD, CPSAA, CC, CE, CCEC) across the lesson sequence so that every competency appears at least once. Return only valid JSON.`,
             },
             {
               role: "user",
@@ -363,10 +370,23 @@ export const plannerRouter = router({
 - Topic / Unit: ${input.topicDescription}
 
 IMPORTANT: All lessons MUST be scoped to the topic/unit described above. Each lesson title, saberes básicos, learning outcomes, and evaluation criteria must directly relate to this specific topic.` : ""}
+${regionalNote}
+
+COMPETENCY ROTATION RULE: You MUST cycle through all 8 LOMLOE key competencies in order — CCL, CP, STEM, CD, CPSAA, CC, CE, CCEC — repeating the cycle if there are more than 8 lessons. Do NOT assign the same competency to consecutive lessons.
+
+The 8 LOMLOE key competencies are:
+1. CCL — Competencia en comunicación lingüística
+2. CP — Competencia plurilingüe
+3. STEM — Competencia matemática y en ciencia, tecnología e ingeniería
+4. CD — Competencia digital
+5. CPSAA — Competencia personal, social y de aprender a aprender
+6. CC — Competencia ciudadana
+7. CE — Competencia emprendedora
+8. CCEC — Competencia en conciencia y expresión culturales
 
 Each lesson must include:
 - A clear, engaging lesson title
-- The primary LOMLOE key competency (CCL, CP, STEM, CD, CPSAA, CC, CE, CCEC) — rotate through all 8
+- The primary LOMLOE key competency (from the rotation above)
 - 1-2 specific competences (e.g. CCL-1, CCL-2, STEM-3)
 - 2-3 saberes básicos (basic knowledge items relevant to the lesson)
 - 2 learning outcomes starting with "Students will be able to..."

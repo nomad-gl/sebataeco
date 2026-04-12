@@ -1867,14 +1867,24 @@
 - [x] When createCalendarEvent runs with startTime/endTime and a linked plan exists, update the plan's sessionTime
 
 ## Feature: Delete recurring event series
-- [ ] Add seriesId column to school_calendar_events table (migration)
-- [ ] Update createRecurringEvents to stamp all created events with the same seriesId (UUID)
-- [ ] Add deleteEventSeries tRPC procedure that deletes all events with the same seriesId
-- [ ] In Edit Event dialog, show "Delete this event" vs "Delete entire series" options when seriesId is present
-- [ ] Add i18n keys for cal_delete_series, cal_delete_series_confirm in EN/ES/CA
+- [x] Add seriesId column to school_calendar_events table (migration)
+- [x] Update createRecurringEvents to stamp all created events with the same seriesId (UUID)
+- [x] Add deleteEventSeries tRPC procedure that deletes all events with the same seriesId
+- [x] In Edit Event dialog, show "Delete this event" vs "Delete entire series" options when seriesId is present
+- [x] Add i18n keys for cal_delete_series, cal_delete_series_confirm in EN/ES/CA
 
 ## Feature: Bulk PDF export of all lesson plans
-- [ ] Add exportAllLessonPlansPdf tRPC procedure that fetches all plans for a calendar ordered by lessonNumber and generates a combined PDF
-- [ ] Add "Export All Plans" button in LessonPlanner page header
-- [ ] Show loading spinner while PDF is being generated
-- [ ] Add i18n keys for lp_export_all, lp_export_all_generating in EN/ES/CA
+- [x] Add exportAllLessonPlansPdf tRPC procedure that fetches all plans for a calendar ordered by lessonNumber and generates a combined PDF
+- [x] Add "Export All Plans" button in LessonPlanner page header
+- [x] Show loading spinner while PDF is being generated
+- [x] Add i18n keys for lp_export_all, lp_export_all_generating in EN/ES/CA
+
+## Feature: Academic week numbering from calendar start date
+- [x] getAcademicWeek in SchoolCalendar.tsx anchors Week 1 to Monday on/before calendar startDate
+- [x] academicWeekNumber in server/calendarPdf.ts updated to accept calendarStartDate and use it when present
+
+## Feature: Start/end date in Edit Calendar + LOMLOE AI alignment
+- [x] Add startDate and endDate fields to Edit Calendar dialog for full_year and topic_block calendar types
+- [x] Persist startDate/endDate changes through the updateCalendar tRPC procedure
+- [x] Update AI generate (createRecurringEvents / AI infill) prompt to align with all 8 LOMLOE competencies and Catalan curriculum preferences
+- [x] Add i18n keys for new date fields in EN/ES/CA
