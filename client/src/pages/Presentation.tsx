@@ -14,7 +14,7 @@ import {
   Download, Printer, BookOpen, Lightbulb, Pencil, Check, X, FileQuestion, AlignLeft, ImagePlus, ArrowLeft,
 } from "lucide-react";
 import { getLoginUrl } from "@/const";
-import { exportPDF, exportWord, exportPNG } from "@/lib/exportUtils";
+import { exportPDF, exportWord, exportPNG, exportToCsv, exportToXml } from "@/lib/exportUtils";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { useI18n } from "@/contexts/I18nContext";
@@ -334,6 +334,18 @@ export default function Presentation() {
                   exportWord("slides", wordContent as unknown as import("@/lib/exportUtils").MaterialContent, generated.title || "presentation");
                 }}>
                   <Download className="w-3 h-3 mr-1" /> Word
+                </Button>
+                <Button size="sm" variant="outline" className="border-white/30 text-white hover:bg-white/10 text-xs" onClick={() => {
+                  const rows = slides.map((s, i) => ({ slide: i + 1, title: s.title, content: s.content, speaker_notes: s.speakerNotes ?? "", key_vocabulary: (s.keyVocabulary ?? []).join("; "), competency: s.competencyTag ?? "" }));
+                  exportToCsv(generated.title || "presentation", rows);
+                }}>
+                  <Download className="w-3 h-3 mr-1" /> {t("export_csv")}
+                </Button>
+                <Button size="sm" variant="outline" className="border-white/30 text-white hover:bg-white/10 text-xs" onClick={() => {
+                  const rows = slides.map((s, i) => ({ slide: i + 1, title: s.title, content: s.content, speaker_notes: s.speakerNotes ?? "", key_vocabulary: (s.keyVocabulary ?? []).join("; "), competency: s.competencyTag ?? "" }));
+                  exportToXml(generated.title || "presentation", "presentation", rows, "slide");
+                }}>
+                  <Download className="w-3 h-3 mr-1" /> {t("export_xml")}
                 </Button>
               </div>
             </div>

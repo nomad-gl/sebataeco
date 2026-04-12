@@ -1623,6 +1623,6 @@
 - [x] SampleQuestions: add CSV and XML export buttons to the worksheet export dialog
 - [x] LessonPlanner: add CSV and XML export buttons to the print/export dialog
 - [x] SchoolCalendar: add CSV and XML export buttons for calendar events
-- [ ] Presentation: add CSV and XML export buttons for slide content (deferred)
-- [ ] Challenge: add CSV and XML export buttons for session results (deferred)
+- [x] Presentation: add CSV and XML export buttons for slide content
+- [x] Challenge: add CSV and XML export buttons for session results
 - [x] Add i18n keys for "Export CSV" and "Export XML" in EN/ES/CA

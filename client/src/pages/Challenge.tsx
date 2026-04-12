@@ -17,6 +17,7 @@ import {
 import { QRCodeSVG } from "qrcode.react";
 import CompetencySelector from "@/components/CompetencySelector";
 import { useI18n } from "@/contexts/I18nContext";
+import { exportToCsv, exportToXml } from "@/lib/exportUtils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -846,13 +847,43 @@ export default function Challenge() {
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6 space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-white">{t("challenge_leaderboard")}</h3>
-                <Button
-                  variant="outline" size="sm"
-                  className="border-white/30 text-white hover:bg-white/10 gap-1.5 text-xs"
-                  onClick={() => window.print()}
-                >
-                  <Printer className="w-3.5 h-3.5" /> Print Results
-                </Button>
+                <div className="flex gap-1.5 flex-wrap">
+                  <Button
+                    variant="outline" size="sm"
+                    className="border-white/30 text-white hover:bg-white/10 gap-1.5 text-xs"
+                    onClick={() => window.print()}
+                  >
+                    <Printer className="w-3.5 h-3.5" /> {t("material_print")}
+                  </Button>
+                  <Button
+                    variant="outline" size="sm"
+                    className="border-white/30 text-white hover:bg-white/10 gap-1.5 text-xs"
+                    onClick={() => {
+                      const rows = sortedParticipants.map((p, i) => ({
+                        rank: i + 1,
+                        name: p.nickname,
+                        score: p.score,
+                      }));
+                      exportToCsv(room.title || "results", rows);
+                    }}
+                  >
+                    {t("export_csv")}
+                  </Button>
+                  <Button
+                    variant="outline" size="sm"
+                    className="border-white/30 text-white hover:bg-white/10 gap-1.5 text-xs"
+                    onClick={() => {
+                      const rows = sortedParticipants.map((p, i) => ({
+                        rank: i + 1,
+                        name: p.nickname,
+                        score: p.score,
+                      }));
+                      exportToXml(room.title || "results", "results", rows, "participant");
+                    }}
+                  >
+                    {t("export_xml")}
+                  </Button>
+                </div>
               </div>
               {sortedParticipants.length === 0 && <p className="text-white/50 text-sm">{t("my_materials_empty")}</p>}
               {sortedParticipants.map((p, i) => (
