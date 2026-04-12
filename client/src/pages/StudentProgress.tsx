@@ -1284,17 +1284,25 @@ function AssignmentRow({
               className="bg-white/10 border-white/20 text-white placeholder:text-white/30 w-20 h-7 text-xs"
             />
           )}
-          {displayContent && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setExpanded(!expanded)}
-              className="border-white/20 text-white/70 hover:text-white bg-transparent text-xs h-7"
-            >
-              <FileText className="w-3 h-3 mr-1" />
-              {expanded ? t("sp_view_assignment") : t("sp_edit_assignment")}
-            </Button>
-          )}
+          {/* View / Edit button — always shown; disabled when no AI content yet */}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => { if (displayContent) setExpanded(!expanded); }}
+            disabled={!displayContent}
+            title={displayContent ? (expanded ? "Close preview" : "View or edit before issuing to students") : "Generate AI content first"}
+            className={`text-xs h-7 bg-transparent ${
+              expanded
+                ? "border-teal-500/50 text-teal-300 hover:text-teal-200 hover:bg-teal-500/10"
+                : displayContent
+                  ? "border-white/20 text-white/70 hover:text-white"
+                  : "border-white/10 text-white/30 cursor-not-allowed"
+            }`}
+          >
+            {expanded
+              ? <><Eye className="w-3 h-3 mr-1" />{t("sp_view_assignment")}</>
+              : <><FileText className="w-3 h-3 mr-1" />{t("sp_edit_assignment")}</>}
+          </Button>
           <button
             onClick={onDelete}
             className="text-white/20 hover:text-red-400 text-xs flex-shrink-0"
@@ -1306,9 +1314,16 @@ function AssignmentRow({
 
       {/* Expandable AI content panel */}
       {expanded && displayContent && (
-        <div className="border-t border-white/10 p-4 space-y-3">
+        <div className="border-t border-teal-500/20 p-4 space-y-3 bg-teal-950/20 rounded-b-lg">
           <div className="flex items-center justify-between gap-2 flex-wrap">
-            <span className="text-white/70 text-xs font-medium">{t("sp_ai_assignment_preview")}</span>
+            <div className="flex items-center gap-2">
+              <Eye className="w-3.5 h-3.5 text-teal-400" />
+              <span className="text-teal-300 text-xs font-semibold">{t("sp_ai_assignment_preview")}</span>
+              {assignment.editedContent
+                ? <Badge className="bg-amber-500/30 text-amber-200 border-amber-500/30 text-xs border">Edited</Badge>
+                : <Badge className="bg-teal-600/30 text-teal-200 border-teal-500/30 text-xs border">AI Draft</Badge>
+              }
+            </div>
             <div className="flex gap-2">
               <Button
                 size="sm"

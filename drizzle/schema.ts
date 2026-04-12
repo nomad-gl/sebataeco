@@ -493,6 +493,8 @@ export const schoolCalendars = mysqlTable("school_calendars", {
   linkedGroupId: int("linkedGroupId"),
   /** JSON array of weekday numbers (1=Mon … 5=Fri) for lesson infill, e.g. '[1,3,5]' */
   lessonDays: varchar("lessonDays", { length: 32 }),
+  /** Spanish autonomous community for regional holiday auto-insert, e.g. 'catalonia' */
+  region: varchar("region", { length: 32 }).default("catalonia"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

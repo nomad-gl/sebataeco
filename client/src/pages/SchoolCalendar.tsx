@@ -25,6 +25,29 @@ import { exportToCsv, exportToXml } from "@/lib/exportUtils";
 import ExportDropdown, { PdfIcon, CsvIcon, XmlIcon } from "@/components/ExportDropdown";
 import { Progress } from "@/components/ui/progress";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+// SPANISH_REGIONS is a shared constant — we inline it here to avoid a server import in client code
+const SPANISH_REGIONS: { value: string; labelEN: string }[] = [
+  { value: "national",           labelEN: "National only" },
+  { value: "andalucia",          labelEN: "Andalucía" },
+  { value: "aragon",             labelEN: "Aragón" },
+  { value: "asturias",           labelEN: "Asturias" },
+  { value: "balearic_islands",   labelEN: "Balearic Islands" },
+  { value: "canary_islands",     labelEN: "Canary Islands" },
+  { value: "cantabria",          labelEN: "Cantabria" },
+  { value: "castilla_la_mancha", labelEN: "Castilla-La Mancha" },
+  { value: "castilla_leon",      labelEN: "Castilla y León" },
+  { value: "catalonia",          labelEN: "Catalonia" },
+  { value: "ceuta",              labelEN: "Ceuta" },
+  { value: "extremadura",        labelEN: "Extremadura" },
+  { value: "galicia",            labelEN: "Galicia" },
+  { value: "la_rioja",           labelEN: "La Rioja" },
+  { value: "madrid",             labelEN: "Community of Madrid" },
+  { value: "melilla",            labelEN: "Melilla" },
+  { value: "murcia",             labelEN: "Region of Murcia" },
+  { value: "navarra",            labelEN: "Navarra" },
+  { value: "basque_country",     labelEN: "Basque Country" },
+  { value: "valencia",           labelEN: "Valencian Community" },
+];
 
 const CURRENT_YEAR = new Date().getFullYear();
 const ACADEMIC_YEARS = [`${CURRENT_YEAR - 1}-${CURRENT_YEAR}`, `${CURRENT_YEAR}-${CURRENT_YEAR + 1}`, `${CURRENT_YEAR + 1}-${CURRENT_YEAR + 2}`];
@@ -70,6 +93,7 @@ type SchoolCalendar = {
   topicDescription?: string | null;
   linkedGroupId?: number | null;
   lessonDays?: string | null;
+  region?: string | null;
 };
 
 /**
@@ -163,6 +187,7 @@ const emptyCalForm = (academicYear = ACADEMIC_YEARS[1]) => {
     endDate: "",
     topicDescription: "",
     lessonDays: "" as string, // JSON-encoded array e.g. '[1,3,5]'
+    region: "catalonia" as string,
   };
 };
 
@@ -825,7 +850,7 @@ export default function SchoolCalendar() {
                 </div>
                 {selectedCalendarId === cal.id && (
                   <button
-                    onClick={e => { e.stopPropagation(); setCalForm({ name: cal.name, schoolName: cal.schoolName ?? "", tutorName: cal.tutorName ?? "", subject: cal.subject ?? "English", yearLevel: cal.yearLevel ?? YEAR_GROUPS[3], academicYear: cal.academicYear, calendarType: (cal as SchoolCalendar).calendarType ?? "full_year", startDate: (cal as SchoolCalendar).startDate ? new Date((cal as SchoolCalendar).startDate as string).toISOString().split("T")[0] : "", endDate: (cal as SchoolCalendar).endDate ? new Date((cal as SchoolCalendar).endDate as string).toISOString().split("T")[0] : "", topicDescription: (cal as SchoolCalendar).topicDescription ?? "", lessonDays: (cal as SchoolCalendar).lessonDays ?? "" }); setShowEditCalDialog(true); }}
+                    onClick={e => { e.stopPropagation(); setCalForm({ name: cal.name, schoolName: cal.schoolName ?? "", tutorName: cal.tutorName ?? "", subject: cal.subject ?? "English", yearLevel: cal.yearLevel ?? YEAR_GROUPS[3], academicYear: cal.academicYear, calendarType: (cal as SchoolCalendar).calendarType ?? "full_year", startDate: (cal as SchoolCalendar).startDate ? new Date((cal as SchoolCalendar).startDate as string).toISOString().split("T")[0] : "", endDate: (cal as SchoolCalendar).endDate ? new Date((cal as SchoolCalendar).endDate as string).toISOString().split("T")[0] : "", topicDescription: (cal as SchoolCalendar).topicDescription ?? "", lessonDays: (cal as SchoolCalendar).lessonDays ?? "", region: (cal as any).region ?? "catalonia" }); setShowEditCalDialog(true); }}
                     className="opacity-0 group-hover:opacity-100 shrink-0 mt-0.5"
                   >
                     <Pencil className="w-3 h-3 text-muted-foreground" />
@@ -1385,6 +1410,21 @@ export default function SchoolCalendar() {
               </div>
               <p className="text-xs text-muted-foreground mt-1">{t("cal_lesson_days_hint")}</p>
             </div>
+            {/* Region selector */}
+            <div>
+              <Label className="text-sm font-medium mb-2 block">{t("cal_label_region")}</Label>
+              <Select value={calForm.region ?? "catalonia"} onValueChange={v => setCalForm(f => ({ ...f, region: v }))}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={t("cal_label_region")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {SPANISH_REGIONS.map(r => (
+                    <SelectItem key={r.value} value={r.value}>{r.labelEN}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">{t("cal_region_hint")}</p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateCalDialog(false)}>{t("cal_cancel")}</Button>
@@ -1395,6 +1435,7 @@ export default function SchoolCalendar() {
                 endDate: calForm.endDate || undefined,
                 topicDescription: calForm.topicDescription || undefined,
                 lessonDays: calForm.lessonDays || undefined,
+                region: calForm.region || "catalonia",
               })}
               disabled={createCalMutation.isPending || !calForm.name.trim() || (calForm.calendarType === "topic_block" && (!calForm.startDate || !calForm.endDate))}
               className="gap-1"
@@ -1527,6 +1568,21 @@ export default function SchoolCalendar() {
               </div>
               <p className="text-xs text-muted-foreground mt-1">{t("cal_lesson_days_hint")}</p>
             </div>
+            {/* Region selector */}
+            <div>
+              <Label className="text-sm font-medium mb-2 block">{t("cal_label_region")}</Label>
+              <Select value={calForm.region ?? "catalonia"} onValueChange={v => setCalForm(f => ({ ...f, region: v }))}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={t("cal_label_region")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {SPANISH_REGIONS.map(r => (
+                    <SelectItem key={r.value} value={r.value}>{r.labelEN}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">{t("cal_region_hint")}</p>
+            </div>
           </div>
           <DialogFooter className="flex justify-between">
             <Button variant="destructive" size="sm" onClick={() => { if (selectedCalendarId) deleteCalMutation.mutate({ id: selectedCalendarId }); setShowEditCalDialog(false); }}>
@@ -1543,6 +1599,7 @@ export default function SchoolCalendar() {
                     endDate: calForm.endDate || undefined,
                     topicDescription: calForm.topicDescription || undefined,
                     lessonDays: calForm.lessonDays || undefined,
+                    region: calForm.region || "catalonia",
                   });
                 }}
                 disabled={updateCalMutation.isPending}

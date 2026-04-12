@@ -6,7 +6,7 @@ import { schoolCalendarEvents, schoolCalendars, lessonPlans, classGroups } from 
 import { eq, and, desc, asc, lte, gte, isNull, or, sql, inArray } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
 import { generateCalendarPdf } from "../calendarPdf";
-import { getHolidaysInRange } from "../spanishHolidays";
+import { getHolidaysInRange, SpanishRegion } from "../spanishHolidays";
 import { generateLessonPlanPdf } from "../lessonPlanPdf";
 import { storagePut } from "../storage";
 
@@ -40,6 +40,8 @@ export const plannerRouter = router({
       topicDescription: z.string().max(2000).nullish(),
       /** JSON-encoded array of weekday numbers, e.g. '[1,3,5]' */
       lessonDays: z.string().nullish(),
+      /** Spanish autonomous community for regional holiday auto-insert */
+      region: z.string().nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -63,7 +65,8 @@ export const plannerRouter = router({
         const rangeStart = input.startDate ?? `${startYear}-09-01`;
         const rangeEnd   = input.endDate   ?? `${startYear + 1}-06-30`;
 
-        const holidays = getHolidaysInRange(rangeStart, rangeEnd, "catalonia");
+        const region = (input.region as SpanishRegion | null) ?? "catalonia";
+        const holidays = getHolidaysInRange(rangeStart, rangeEnd, region);
         if (holidays.length > 0) {
           await db.insert(schoolCalendarEvents).values(
             holidays.map(h => ({
@@ -98,6 +101,7 @@ export const plannerRouter = router({
       endDate: z.string().nullish(),
       topicDescription: z.string().max(2000).nullish(),
       lessonDays: z.string().nullish(),
+      region: z.string().nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();

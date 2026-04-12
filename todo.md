@@ -1763,3 +1763,19 @@
 - [x] Fix: AIChatBox calls forceRestart 400ms after TTS last chunk ends (natural completion)
 - [x] Fix: AIChatBox calls forceRestart 400ms after stopSpeaking (user presses Stop)
 - [x] Fix: forceRestart also fires on TTS onerror so error paths also recover
+
+## Feature: Calendar region selector for auto-inserting regional holidays
+- [x] Expanded spanishHolidays.ts to cover all 17 autonomous communities (2024-25 and 2025-26)
+- [x] Added region varchar column to school_calendars table via migrate-region.mjs
+- [x] Updated createCalendar and updateCalendar input schemas to accept region
+- [x] Updated holiday auto-insert logic to use the selected region
+- [x] Added region selector (Select dropdown with all 17 communities + National only) to Create Calendar dialog
+- [x] Added region selector to Edit Calendar dialog
+- [x] Added cal_label_region and cal_region_hint i18n keys in EN/ES/CA
+
+## Feature: View/Edit button on student group page (/groups/:id/student)
+- [x] Add a "View / Edit" button on each content card in the student group page
+- [x] Clicking the button opens a preview/edit dialog showing the full content
+- [x] Teacher can edit the content in the dialog before issuing it to students
+- [x] Save changes back to the content record
+- [x] i18n keys already present in EN/ES/CA (sp_edit_assignment, sp_view_assignment, sp_ai_assignment_preview)
