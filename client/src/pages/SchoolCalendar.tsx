@@ -479,6 +479,8 @@ export default function SchoolCalendar() {
     setPlanSheetEventId(ev.id);
     if (existingPlanId) {
       // Plan already exists — load it directly, no mutation needed
+      // Invalidate cache to ensure we get fresh lessonNumber/lessonDate
+      utils.planner.getLessonPlan.invalidate({ id: existingPlanId });
       setPlanSheetPlanId(existingPlanId);
       setPlanSheetAiGenerating(false);
       pendingAiParamsRef.current = null;
@@ -2137,7 +2139,7 @@ export default function SchoolCalendar() {
                   {planForm.title || "Lesson Plan"}
                 </SheetTitle>
                 {/* Lesson number (inline-editable) and date from calendar event */}
-                {(planForm.lessonNumber || planSheetData?.lessonDate) && (
+                {planSheetPlanId && (
                   <div className="flex items-center gap-2 text-xs text-muted-foreground pl-6">
                     <span className="font-medium text-primary/80">{t("lp_lesson_number_label")}</span>
                     <input

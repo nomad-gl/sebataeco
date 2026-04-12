@@ -1834,3 +1834,8 @@
 - [x] Add sessionTime field to the lessonPlanPdf.ts header section
 - [x] Wire sessionTime through exportLessonPlanPdf procedure input
 - [x] Show time alongside date and academic week in the PDF header
+
+## Bug: Lesson plan numbers not showing on plan cards or info card
+- [x] Trace lessonNumber from DB → getLessonPlan → planToLessonForm → plan sheet Lesson No. field
+- [x] Trace lessonNumber from DB → listLessonPlans → plan list card badge
+- [x] Fix the root cause: backfilled lessonDate+lessonNumber for all 60 existing plans; fixed createLinkedLessonPlan to backfill on re-open; removed falsy guard on inline number display; invalidate cache on plan open

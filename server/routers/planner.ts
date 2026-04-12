@@ -904,13 +904,28 @@ Return ONLY a JSON object (no markdown fences) with this exact structure:
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       // Check if one already exists
       const [existing] = await db
-        .select({ id: lessonPlans.id })
+        .select({ id: lessonPlans.id, lessonNumber: lessonPlans.lessonNumber, lessonDate: lessonPlans.lessonDate })
         .from(lessonPlans)
         .where(and(
           eq(lessonPlans.userId, ctx.user.id),
           eq(lessonPlans.calendarEventId, input.calendarEventId),
         ));
-      if (existing) return { id: existing.id, created: false };
+      if (existing) {
+        // Backfill lessonDate/lessonNumber if missing (plans created before the auto-numbering fix)
+        if (!existing.lessonDate || !existing.lessonNumber) {
+          const [calEv] = await db
+            .select({ eventDate: schoolCalendarEvents.eventDate })
+            .from(schoolCalendarEvents)
+            .where(eq(schoolCalendarEvents.id, input.calendarEventId));
+          if (calEv?.eventDate) {
+            const ld = new Date(calEv.eventDate).toISOString().slice(0, 10);
+            const ln = await computeLessonNumber(db, ctx.user.id, input.calendarEventId, ld);
+            await db.update(lessonPlans).set({ lessonDate: ld, lessonNumber: ln }).where(eq(lessonPlans.id, existing.id));
+            return { id: existing.id, created: false, lessonNumber: ln, lessonDate: ld };
+          }
+        }
+        return { id: existing.id, created: false, lessonNumber: existing.lessonNumber, lessonDate: existing.lessonDate };
+      }
 
       // Fetch the calendar event to get its date
       const [calEvent] = await db
