@@ -207,8 +207,9 @@ function buildPrintHtml(form: LessonFormState, logoDataUrl?: string, labels?: Re
 }
 
 // ─── Saved Plans List (shared between sidebar and sheet) ───────────────────────
-function PlansList({ plans, selectedId, onLoad, onNew, onAi, onDuplicate, onDelete, batchSelectMode, setBatchSelectMode, selectedPlanIds, setSelectedPlanIds, onBatchDelete, t }: {
+function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplicate, onDelete, batchSelectMode, setBatchSelectMode, selectedPlanIds, setSelectedPlanIds, onBatchDelete, t }: {
   plans: any[];
+  calendars: any[];
   selectedId: number | null;
   onLoad: (p: any) => void;
   onNew: () => void;
@@ -222,7 +223,10 @@ function PlansList({ plans, selectedId, onLoad, onNew, onAi, onDuplicate, onDele
   onBatchDelete: () => void;
   t: (k: any) => string;
 }) {
-  const [sortByLesson, setSortByLesson] = useState(false);
+  const [sortByLesson, setSortByLesson] = useState(() => {
+    try { return localStorage.getItem("seba_planner_sort_by_lesson") === "1"; } catch { return false; }
+  });
+  const [calendarFilter, setCalendarFilter] = useState<string>("all");
   const toggleSelect = (id: number) => {
     const next = new Set(selectedPlanIds);
     if (next.has(id)) next.delete(id); else next.add(id);
@@ -233,20 +237,25 @@ function PlansList({ plans, selectedId, onLoad, onNew, onAi, onDuplicate, onDele
     if (allSelected) setSelectedPlanIds(new Set());
     else setSelectedPlanIds(new Set(plans.map(p => p.id)));
   };
+  const filteredPlans = calendarFilter === "all"
+    ? plans
+    : calendarFilter === "unlinked"
+      ? plans.filter((p: any) => !p.calendarId)
+      : plans.filter((p: any) => String(p.calendarId) === calendarFilter);
   const sortedPlans = sortByLesson
-    ? [...plans].sort((a, b) => {
+    ? [...filteredPlans].sort((a, b) => {
         const na = a.lessonNumber ? Number(a.lessonNumber) : Infinity;
         const nb = b.lessonNumber ? Number(b.lessonNumber) : Infinity;
         return na - nb;
       })
-    : plans;
+    : filteredPlans;
   return (
     <div className="flex flex-col h-full">
       <div className="p-3 border-b flex items-center justify-between shrink-0 gap-1">
         <span className="font-semibold text-sm">{t("lp_lesson_plans")}</span>
         <div className="flex items-center gap-1">
           <button
-            onClick={() => setSortByLesson(v => !v)}
+            onClick={() => setSortByLesson(v => { const next = !v; try { localStorage.setItem("seba_planner_sort_by_lesson", next ? "1" : "0"); } catch {} return next; })}
             title={sortByLesson ? "Sorted by lesson number" : "Sort by lesson number"}
             className={`p-1 rounded hover:bg-accent transition-colors ${sortByLesson ? "text-teal-600 bg-teal-50" : "text-muted-foreground"}`}
           >
@@ -276,8 +285,24 @@ function PlansList({ plans, selectedId, onLoad, onNew, onAi, onDuplicate, onDele
           <label htmlFor="select-all-plans" className="cursor-pointer">Select all</label>
         </div>
       )}
+      {calendars.length > 0 && (
+        <div className="px-2 py-1.5 border-b shrink-0">
+          <select
+            value={calendarFilter}
+            onChange={e => setCalendarFilter(e.target.value)}
+            className="w-full text-xs rounded border border-input bg-background px-2 py-1 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            title="Filter by calendar"
+          >
+            <option value="all">All calendars</option>
+            {calendars.map((c: any) => (
+              <option key={c.id} value={String(c.id)}>{c.name}</option>
+            ))}
+            <option value="unlinked">Unlinked plans</option>
+          </select>
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
-        {plans.length === 0 && <p className="text-xs text-muted-foreground p-2">{t("lp_no_plans")}</p>}
+        {sortedPlans.length === 0 && <p className="text-xs text-muted-foreground p-2">{t("lp_no_plans")}</p>}
         {sortedPlans.map((p: any) => (
           <div key={p.id} className="group relative">
             {batchSelectMode && (
@@ -666,6 +691,7 @@ export default function LessonPlanner() {
   const plansList = (
     <PlansList
       plans={plans as any[]}
+      calendars={calendars as any[]}
       selectedId={selectedId}
       onLoad={loadPlan}
       onNew={newPlan}

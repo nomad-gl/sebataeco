@@ -587,11 +587,16 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
     .query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return [];
-      return db
-        .select()
+      const rows = await db
+        .select({
+          plan: lessonPlans,
+          calendarId: schoolCalendarEvents.calendarId,
+        })
         .from(lessonPlans)
+        .leftJoin(schoolCalendarEvents, eq(lessonPlans.calendarEventId, schoolCalendarEvents.id))
         .where(eq(lessonPlans.userId, ctx.user.id))
         .orderBy(desc(lessonPlans.updatedAt));
+      return rows.map(r => ({ ...r.plan, calendarId: r.calendarId ?? null }));
     }),
 
   getLessonPlan: protectedProcedure

@@ -2000,3 +2000,16 @@
 - [x] Compute sum of lesson durations for the displayed week from events with startTime/endTime
 - [x] Show compact stat (e.g. "3h 42m teaching") in the week header row
 - [x] Only show when at least one lesson with time data exists in the week
+
+## Follow-up 10: Monthly teaching time summary in calendar header
+- [x] Compute total lesson duration for the viewed month from eventsByDate
+- [x] Show compact stat (e.g. "Sep · 18h 20m") next to the month/year title in the calendar card header
+
+## Follow-up 11: Persist sort preference to localStorage
+- [x] Read initial sortByLesson state from localStorage key "seba_planner_sort_by_lesson"
+- [x] Write to localStorage on toggle
+
+## Follow-up 12: Calendar filter dropdown in Lesson Planner sidebar
+- [x] Fetch list of user's calendars in LessonPlanner
+- [x] Add a filter Select dropdown above the plan list; "All calendars" default
+- [x] Filter plans list to only show plans linked to the selected calendar

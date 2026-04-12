@@ -723,6 +723,27 @@ export default function SchoolCalendar() {
     return map;
   }, [events]);
 
+  const monthlyTeachingMins = useMemo(() => {
+    let total = 0;
+    for (const day of calendarDays) {
+      if (!day) continue;
+      const key = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
+      const dayEvs = eventsByDate[key] ?? [];
+      for (const ev of dayEvs) {
+        if (ev.eventType !== "lesson" && ev.eventType !== "ai_generated") continue;
+        const dur = calcDuration(ev.startTime, ev.endTime);
+        if (dur) total += dur;
+      }
+    }
+    return total;
+  }, [calendarDays, eventsByDate]);
+
+  const monthlyTimeLabel = monthlyTeachingMins > 0
+    ? monthlyTeachingMins >= 60
+      ? `${Math.floor(monthlyTeachingMins / 60)}h${monthlyTeachingMins % 60 > 0 ? `${monthlyTeachingMins % 60}m` : ""}`
+      : `${monthlyTeachingMins}m`
+    : null;
+
   const prevMonth = () => {
     if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
     else setViewMonth(m => m - 1);
@@ -1484,7 +1505,12 @@ export default function SchoolCalendar() {
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between gap-2">
                     <Button variant="ghost" size="icon" onClick={prevMonth}><ChevronLeft className="w-4 h-4" /></Button>
-                    <CardTitle className="text-base">{MONTHS[viewMonth]} {viewYear}</CardTitle>
+                    <div className="flex flex-col items-center">
+                      <CardTitle className="text-base">{MONTHS[viewMonth]} {viewYear}</CardTitle>
+                      {monthlyTimeLabel && (
+                        <span className="text-[10px] font-mono text-teal-600/80 leading-none" title={`${monthlyTeachingMins} min teaching this month`}>{monthlyTimeLabel} teaching</span>
+                      )}
+                    </div>
                     <Button variant="ghost" size="icon" onClick={nextMonth}><ChevronRight className="w-4 h-4" /></Button>
                     <div className="flex items-center gap-1 ml-auto">
                       <span className="text-[11px] text-muted-foreground hidden sm:inline">Wk</span>
@@ -1567,7 +1593,12 @@ export default function SchoolCalendar() {
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between gap-2">
                     <Button variant="ghost" size="icon" onClick={prevMonth}><ChevronLeft className="w-4 h-4" /></Button>
-                    <CardTitle className="text-base">{MONTHS[viewMonth]} {viewYear}</CardTitle>
+                    <div className="flex flex-col items-center">
+                      <CardTitle className="text-base">{MONTHS[viewMonth]} {viewYear}</CardTitle>
+                      {monthlyTimeLabel && (
+                        <span className="text-[10px] font-mono text-teal-600/80 leading-none" title={`${monthlyTeachingMins} min teaching this month`}>{monthlyTimeLabel} teaching</span>
+                      )}
+                    </div>
                     <Button variant="ghost" size="icon" onClick={nextMonth}><ChevronRight className="w-4 h-4" /></Button>
                     <div className="flex items-center gap-1 ml-auto">
                       <span className="text-[11px] text-muted-foreground hidden sm:inline">Wk</span>
