@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, RotateCcw, Volume2, VolumeX, Check, Copy } from "lucide-react";
+import { ArrowLeft, RotateCcw, Volume2, VolumeX, Check, Copy, RefreshCw } from "lucide-react";
 import { useI18n } from "@/contexts/I18nContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -92,9 +92,10 @@ interface SoloGameProps {
   word: string;
   clue: string;
   onFinish: (won: boolean, guessCount: number, shareGrid: string) => void;
+  onNewGame: () => void;
 }
 
-function SoloParaulaGame({ word, clue, onFinish }: SoloGameProps) {
+function SoloParaulaGame({ word, clue, onFinish, onNewGame }: SoloGameProps) {
   const { t } = useI18n();
   const MAX_GUESSES = 6;
   const [guesses, setGuesses] = useState<string[]>([]);
@@ -104,6 +105,7 @@ function SoloParaulaGame({ word, clue, onFinish }: SoloGameProps) {
   const [won, setWon] = useState(false);
   const [shake, setShake] = useState(false);
   const [message, setMessage] = useState("");
+  const [winBanner, setWinBanner] = useState(false);
   const [showOverlay, setShowOverlay] = useState(false);
   const [revealingRow, setRevealingRow] = useState<number | null>(null);
   const [bounceRow, setBounceRow] = useState<number | null>(null);
@@ -153,11 +155,18 @@ function SoloParaulaGame({ word, clue, onFinish }: SoloGameProps) {
     if (isWon) {
       playWinFanfare();
       setBounceRow(rowIndex);
+      // Show immediate win banner
       setTimeout(() => {
-        setWon(true); setGameOver(true); setShowOverlay(true);
+        setWinBanner(true);
+        setWon(true);
+        setGameOver(true);
+      }, flipDuration);
+      setTimeout(() => {
+        setWinBanner(false);
+        setShowOverlay(true);
         const grid = buildShareGrid(newGuesses, newStatesArr);
         setTimeout(() => onFinish(true, newGuesses.length, grid), 3000);
-      }, flipDuration);
+      }, flipDuration + 1800);
     } else if (isLost) {
       playLossTone();
       setTimeout(() => {
@@ -201,12 +210,12 @@ function SoloParaulaGame({ word, clue, onFinish }: SoloGameProps) {
   });
 
   return (
-    <div className="flex flex-col items-center gap-3 w-full relative">
+    <div className="flex flex-col items-center gap-2 w-full relative">
       {/* Clue + controls */}
-      <div className="flex items-center gap-2 w-full max-w-xs">
-        <div className="bg-orange-500/20 border border-orange-400/40 rounded-xl px-4 py-2 text-center flex-1">
-          <p className="text-orange-200 text-xs uppercase tracking-widest font-semibold mb-0.5">{t("paraula_clue_label")}</p>
-          <p className="text-white font-medium text-sm">{clue}</p>
+      <div className="flex items-center gap-2 w-full max-w-[320px]">
+        <div className="bg-orange-500/20 border border-orange-400/40 rounded-xl px-3 py-2 text-center flex-1 min-w-0">
+          <p className="text-orange-200 text-[10px] uppercase tracking-widest font-semibold mb-0.5">{t("paraula_clue_label")}</p>
+          <p className="text-white font-medium text-xs leading-snug">{clue}</p>
         </div>
         <button onClick={() => setMuted(m => !m)} className="shrink-0 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 hover:text-white transition-colors" title={muted ? t("paraula_unmute") : t("paraula_mute")}>
           {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
@@ -214,18 +223,36 @@ function SoloParaulaGame({ word, clue, onFinish }: SoloGameProps) {
         <button onClick={toggleKbLang} className="shrink-0 h-9 px-2 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-colors text-xs font-bold tracking-wide" title={t("paraula_kb_toggle")}>
           {kbLang === "ca" ? "CA" : "ES"}
         </button>
+        {/* New Game button — always visible mid-game */}
+        <button
+          onClick={onNewGame}
+          className="shrink-0 w-9 h-9 rounded-full bg-white/10 hover:bg-orange-500/30 flex items-center justify-center text-white/60 hover:text-orange-300 transition-colors"
+          title={t("paraula_new_game")}
+        >
+          <RefreshCw className="w-4 h-4" />
+        </button>
       </div>
 
+      {/* Validation toast */}
       {message && <div className="bg-white/90 text-gray-900 rounded-xl px-4 py-2 text-sm font-semibold shadow-lg animate-bounce">{message}</div>}
+
+      {/* Win banner — shown immediately after flip completes */}
+      {winBanner && (
+        <div className="flex items-center gap-2 bg-green-500 text-white rounded-2xl px-5 py-3 shadow-2xl font-black text-lg tracking-wide animate-bounce">
+          <span>🎉</span>
+          <span>{t("paraula_correct_word")}!</span>
+          <span>🎉</span>
+        </div>
+      )}
 
       {/* Full-screen result overlay */}
       {showOverlay && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/85 backdrop-blur-md">
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/85 backdrop-blur-md px-4">
           {won ? (
             <>
               <div className="text-7xl animate-bounce">🎉</div>
               <h3 className="text-4xl font-black text-green-300 tracking-widest">{word}</h3>
-              <p className="text-white/80 font-semibold text-xl">{t("paraula_solved_in")} {guesses.length} {guesses.length === 1 ? t("paraula_guess") : t("paraula_guesses")}!</p>
+              <p className="text-white/80 font-semibold text-xl text-center">{t("paraula_solved_in")} {guesses.length} {guesses.length === 1 ? t("paraula_guess") : t("paraula_guesses")}!</p>
               <div className="flex gap-1 text-3xl">
                 {states[guesses.length - 1]?.map((s, i) => <span key={i}>{s === "correct" ? "🟩" : s === "present" ? "🟨" : "⬛"}</span>)}
               </div>
@@ -241,13 +268,13 @@ function SoloParaulaGame({ word, clue, onFinish }: SoloGameProps) {
       )}
 
       {/* Grid */}
-      <div className={`flex flex-col gap-1 sm:gap-1.5 transition-opacity duration-300 ${showOverlay ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
+      <div className={`flex flex-col gap-1 transition-opacity duration-300 ${showOverlay ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
         {rows.map((row, ri) => {
           const isRevealingThisRow = revealingRow === ri;
           const isBouncing = bounceRow === ri;
           const isShaking = shake && ri === guesses.length;
           return (
-            <div key={ri} className={`flex gap-1 sm:gap-1.5 ${isShaking ? "paraula-row-shake" : ""} ${isBouncing ? "paraula-row-bounce" : ""}`}>
+            <div key={ri} className={`flex gap-1 ${isShaking ? "paraula-row-shake" : ""} ${isBouncing ? "paraula-row-bounce" : ""}`}>
               {Array.from({ length: 5 }, (_, ci) => {
                 const letter = row.guess[ci] ?? "";
                 const isFlipping = isRevealingThisRow;
@@ -257,7 +284,7 @@ function SoloParaulaGame({ word, clue, onFinish }: SoloGameProps) {
                 const isCurrentRowTile = row.isCurrent && ci === current.length - 1 && popCol === ci;
                 return (
                   <div key={ci} style={isFlipping ? { animationDelay: `${revealDelay}ms` } : {}}
-                    className={["w-10 h-10 sm:w-12 sm:h-12 border-2 rounded-lg flex items-center justify-center text-lg sm:text-xl font-black uppercase select-none",
+                    className={["w-11 h-11 sm:w-13 sm:h-13 border-2 rounded-lg flex items-center justify-center text-lg sm:text-xl font-black uppercase select-none",
                       isFlipping ? `paraula-tile-flip ${TILE_COLORS[state]}` : `transition-colors duration-100 ${TILE_COLORS[displayState]}`,
                       isCurrentRowTile ? "paraula-tile-pop" : ""].join(" ")}>
                     {letter}
@@ -270,15 +297,15 @@ function SoloParaulaGame({ word, clue, onFinish }: SoloGameProps) {
       </div>
 
       {/* Keyboard */}
-      <div className={`flex flex-col gap-1 sm:gap-1.5 w-full max-w-xs transition-opacity duration-300 ${showOverlay ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
+      <div className={`flex flex-col gap-1 w-full max-w-[320px] transition-opacity duration-300 ${showOverlay ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
         {activeKeys.map((row, ri) => (
-          <div key={ri} className="flex justify-center gap-0.5 sm:gap-1">
+          <div key={ri} className="flex justify-center gap-0.5">
             {row.map((key) => {
               const state = letterState[key];
               const isWide = key === "ENTER" || key === "⌫";
               return (
                 <button key={key} onClick={() => handleKey(key)}
-                  className={`${isWide ? "px-1.5 sm:px-2 text-[10px] sm:text-xs min-w-[40px] sm:min-w-[48px]" : "w-7 sm:w-8"} h-9 sm:h-10 rounded-md font-bold text-xs sm:text-sm transition-colors touch-manipulation ${KEY_COLORS[state ?? "default"]}`}>
+                  className={`${isWide ? "px-1.5 text-[9px] min-w-[42px]" : "w-[28px]"} h-10 rounded-md font-bold text-xs transition-colors touch-manipulation ${KEY_COLORS[state ?? "default"]}`}>
                   {key}
                 </button>
               );
@@ -323,13 +350,30 @@ export default function ParaulaPractice() {
     setResult({ won, guessCount, shareGrid });
   };
 
+  // "Try another word" — go back to word picker
   const handleTryAnother = () => {
     setSelectedIdx(null);
     setResult(null);
     setGameKey(k => k + 1);
   };
 
+  // "Play again" — replay the same word
   const handlePlayAgain = () => {
+    setResult(null);
+    setGameKey(k => k + 1);
+  };
+
+  // "New Game" — pick a random different word from the list
+  const handleNewGame = () => {
+    if (validPairs.length <= 1) {
+      handleTryAnother();
+      return;
+    }
+    let nextIdx: number;
+    do {
+      nextIdx = Math.floor(Math.random() * validPairs.length);
+    } while (nextIdx === selectedIdx && validPairs.length > 1);
+    setSelectedIdx(nextIdx);
     setResult(null);
     setGameKey(k => k + 1);
   };
@@ -354,9 +398,9 @@ export default function ParaulaPractice() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white flex flex-col">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-slate-900/80 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center gap-3">
+      <div className="sticky top-0 z-10 bg-slate-900/80 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center gap-3 shrink-0">
         <button onClick={() => navigate(-1 as unknown as string)} className="text-white/60 hover:text-white transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </button>
@@ -365,99 +409,115 @@ export default function ParaulaPractice() {
           <p className="text-sm font-bold text-white truncate">{material?.title ?? "Practice"}</p>
         </div>
         {selectedPair && !result && (
-          <Badge variant="outline" className="border-white/20 text-white/60 text-xs">
+          <Badge variant="outline" className="border-white/20 text-white/60 text-xs shrink-0">
             {selectedIdx !== null ? `${selectedIdx + 1} / ${validPairs.length}` : ""}
           </Badge>
         )}
       </div>
 
-      <div className="max-w-sm mx-auto px-4 py-6">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="w-8 h-8 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : !selectedPair ? (
-          /* Word selection screen */
-          <div className="space-y-4">
-            <div className="text-center space-y-1">
-              <h1 className="text-2xl font-black tracking-widest text-orange-400">PARAULA</h1>
-              <p className="text-white/60 text-sm">Choose a word to practise</p>
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-sm mx-auto px-3 py-4">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="w-8 h-8 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
             </div>
-
-            {/* Search */}
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search words or clues…"
-              className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/40 focus:outline-none focus:border-orange-400/60"
-            />
-
-            {validPairs.length === 0 ? (
-              <p className="text-center text-white/40 text-sm py-8">No 5-letter words in this material.</p>
-            ) : filteredPairs.length === 0 ? (
-              <p className="text-center text-white/40 text-sm py-8">No matches for "{search}".</p>
-            ) : (
-              <div className="grid grid-cols-2 gap-2">
-                {filteredPairs.map((p) => {
-                  const realIdx = validPairs.findIndex(vp => vp.word === p.word && vp.clue === p.clue);
-                  return (
-                    <button
-                      key={realIdx}
-                      onClick={() => { setSelectedIdx(realIdx); setResult(null); setGameKey(k => k + 1); }}
-                      className="flex flex-col items-start p-3 rounded-xl border border-white/10 hover:border-orange-400/60 bg-white/5 hover:bg-orange-500/10 transition-all text-left"
-                    >
-                      <span className="font-mono font-black text-orange-300 text-base tracking-widest">{p.word}</span>
-                      <span className="text-xs text-white/50 mt-0.5 line-clamp-2">{p.clue}</span>
-                    </button>
-                  );
-                })}
+          ) : !selectedPair ? (
+            /* Word selection screen */
+            <div className="space-y-4">
+              <div className="text-center space-y-1">
+                <h1 className="text-2xl font-black tracking-widest text-orange-400">PARAULA</h1>
+                <p className="text-white/60 text-sm">{t("paraula_choose_word")}</p>
               </div>
-            )}
-          </div>
-        ) : result ? (
-          /* Result screen */
-          <div className="flex flex-col items-center gap-5 py-6 text-center">
-            <div className="text-6xl">{result.won ? "🎉" : "😔"}</div>
-            <div>
-              <h2 className={`text-4xl font-black tracking-widest ${result.won ? "text-green-300" : "text-red-300"}`}>{selectedPair.word}</h2>
-              <p className="text-white/60 text-sm mt-1">{selectedPair.clue}</p>
+
+              {/* Search */}
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder={t("paraula_search_placeholder")}
+                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/40 focus:outline-none focus:border-orange-400/60"
+              />
+
+              {validPairs.length === 0 ? (
+                <p className="text-center text-white/40 text-sm py-8">No 5-letter words in this material.</p>
+              ) : filteredPairs.length === 0 ? (
+                <p className="text-center text-white/40 text-sm py-8">No matches for "{search}".</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {filteredPairs.map((p) => {
+                    const realIdx = validPairs.findIndex(vp => vp.word === p.word && vp.clue === p.clue);
+                    return (
+                      <button
+                        key={realIdx}
+                        onClick={() => { setSelectedIdx(realIdx); setResult(null); setGameKey(k => k + 1); }}
+                        className="flex flex-col items-start p-3 rounded-xl border border-white/10 hover:border-orange-400/60 bg-white/5 hover:bg-orange-500/10 transition-all text-left"
+                      >
+                        <span className="font-mono font-black text-orange-300 text-base tracking-widest">{p.word}</span>
+                        <span className="text-xs text-white/50 mt-0.5 line-clamp-2">{p.clue}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-            {result.won && (
-              <p className="text-white/80 font-semibold">{t("paraula_solved_in")} {result.guessCount} {result.guessCount === 1 ? t("paraula_guess") : t("paraula_guesses")}!</p>
-            )}
-            <pre className="text-2xl leading-tight font-mono bg-black/30 rounded-xl p-4 border border-white/10">{result.shareGrid}</pre>
-            <div className="flex gap-2 w-full">
-              <Button variant="outline" className="flex-1 bg-white/10 border-white/20 text-white hover:bg-white/20 gap-2" onClick={handleCopy}>
-                {copied ? <><Check className="w-4 h-4 text-green-400" /> {t("paraula_copied")}</> : <><Copy className="w-4 h-4" /> {t("paraula_copy_result")}</>}
+          ) : result ? (
+            /* Result screen */
+            <div className="flex flex-col items-center gap-4 py-4 text-center">
+              <div className="text-5xl">{result.won ? "🎉" : "😔"}</div>
+              <div>
+                <h2 className={`text-4xl font-black tracking-widest ${result.won ? "text-green-300" : "text-red-300"}`}>{selectedPair.word}</h2>
+                <p className="text-white/60 text-sm mt-1">{selectedPair.clue}</p>
+              </div>
+              {result.won && (
+                <p className="text-white/80 font-semibold">{t("paraula_solved_in")} {result.guessCount} {result.guessCount === 1 ? t("paraula_guess") : t("paraula_guesses")}!</p>
+              )}
+              <pre className="text-2xl leading-tight font-mono bg-black/30 rounded-xl p-4 border border-white/10">{result.shareGrid}</pre>
+              <div className="flex gap-2 w-full">
+                <Button variant="outline" className="flex-1 bg-white/10 border-white/20 text-white hover:bg-white/20 gap-1.5 text-sm" onClick={handleCopy}>
+                  {copied ? <><Check className="w-4 h-4 text-green-400" /> {t("paraula_copied")}</> : <><Copy className="w-4 h-4" /> {t("paraula_copy_result")}</>}
+                </Button>
+                <Button variant="outline" className="flex-1 bg-white/10 border-white/20 text-white hover:bg-white/20 gap-1.5 text-sm" onClick={handlePlayAgain}>
+                  <RotateCcw className="w-4 h-4" /> {t("paraula_try_again")}
+                </Button>
+              </div>
+              <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white gap-2" onClick={handleNewGame}>
+                <RefreshCw className="w-4 h-4" /> {t("paraula_new_game")}
               </Button>
-              <Button variant="outline" className="flex-1 bg-white/10 border-white/20 text-white hover:bg-white/20 gap-2" onClick={handlePlayAgain}>
-                <RotateCcw className="w-4 h-4" /> Try again
-              </Button>
-            </div>
-            <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white" onClick={handleTryAnother}>
-              Choose another word
-            </Button>
-          </div>
-        ) : (
-          /* Game screen */
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <button onClick={handleTryAnother} className="text-white/50 hover:text-white text-xs flex items-center gap-1 transition-colors">
-                <ArrowLeft className="w-3 h-3" /> Back to words
+              <button onClick={handleTryAnother} className="text-white/40 hover:text-white/70 text-sm underline underline-offset-2 transition-colors">
+                {t("paraula_choose_word")}
               </button>
-              <Badge variant="outline" className="border-orange-400/40 text-orange-300 font-mono text-xs">
-                {selectedPair.word.length} letters
-              </Badge>
             </div>
-            <SoloParaulaGame
-              key={gameKey}
-              word={selectedPair.word}
-              clue={selectedPair.clue}
-              onFinish={handleFinish}
-            />
-          </div>
-        )}
+          ) : (
+            /* Game screen */
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <button onClick={handleTryAnother} className="text-white/50 hover:text-white text-xs flex items-center gap-1 transition-colors">
+                  <ArrowLeft className="w-3 h-3" /> {t("paraula_back_to_words")}
+                </button>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="border-orange-400/40 text-orange-300 font-mono text-xs">
+                    {selectedPair.word.length} {t("paraula_letters")}
+                  </Badge>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 px-2 gap-1 text-xs bg-white/5 border-white/20 text-white/70 hover:bg-orange-500/20 hover:text-orange-300 hover:border-orange-400/40"
+                    onClick={handleNewGame}
+                  >
+                    <RefreshCw className="w-3 h-3" /> {t("paraula_new_game")}
+                  </Button>
+                </div>
+              </div>
+              <SoloParaulaGame
+                key={gameKey}
+                word={selectedPair.word}
+                clue={selectedPair.clue}
+                onFinish={handleFinish}
+                onNewGame={handleNewGame}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

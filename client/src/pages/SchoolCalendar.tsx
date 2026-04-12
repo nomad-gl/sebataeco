@@ -176,6 +176,8 @@ export default function SchoolCalendar() {
   const [isPdfExporting, setIsPdfExporting] = useState(false);
   const [showLinkGroupDialog, setShowLinkGroupDialog] = useState(false);
   const [linkGroupId, setLinkGroupId] = useState<string>("");
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  const [agendaView, setAgendaView] = useState(false);
 
   // Calendar form
   const [calForm, setCalForm] = useState(emptyCalForm());
@@ -579,23 +581,40 @@ export default function SchoolCalendar() {
 
   return (
     <DashboardLayout>
-      <div className="flex h-[calc(100vh-64px)] overflow-hidden">
+      <div className="flex h-[calc(100vh-64px)] overflow-hidden relative">
+        {/* ── Mobile overlay backdrop ─────────────────────────────────────── */}
+        {showMobileSidebar && (
+          <div className="fixed inset-0 z-30 bg-black/40 md:hidden" onClick={() => setShowMobileSidebar(false)} />
+        )}
+
         {/* ── Calendar Picker Sidebar ─────────────────────────────────────── */}
-        <aside className="w-60 border-r flex flex-col shrink-0 bg-muted/20">
+        <aside className={`${
+          showMobileSidebar
+            ? "fixed inset-y-0 left-0 z-40 w-72 shadow-2xl"
+            : "hidden md:flex"
+        } w-60 border-r flex-col shrink-0 bg-background md:bg-muted/20 flex`}>
           <div className="p-3 border-b flex items-center justify-between gap-2 min-h-[48px]">
             <span className="font-semibold text-sm flex items-center gap-1.5 truncate">
               <FolderOpen className="w-4 h-4 text-primary shrink-0" /> {t("cal_title").split(" ")[0]}
             </span>
-            <Button
-              size="sm"
-              variant="outline"
-              className="shrink-0 h-7 px-2 gap-1 text-xs"
-              onClick={() => { setCalForm(emptyCalForm()); setShowCreateCalDialog(true); }}
-              title="Create new calendar"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">New</span>
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                size="sm"
+                variant="outline"
+                className="shrink-0 h-7 px-2 gap-1 text-xs"
+                onClick={() => { setCalForm(emptyCalForm()); setShowCreateCalDialog(true); }}
+                title="Create new calendar"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">New</span>
+              </Button>
+              <button
+                className="md:hidden p-1 rounded hover:bg-accent text-muted-foreground"
+                onClick={() => setShowMobileSidebar(false)}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
             {(calendars as SchoolCalendar[]).length === 0 && (
@@ -625,7 +644,30 @@ export default function SchoolCalendar() {
         </aside>
 
         {/* ── Main Content ────────────────────────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+        <div className="flex-1 overflow-y-auto flex flex-col">
+          {/* Mobile top bar */}
+          <div className="md:hidden flex items-center gap-2 px-3 py-2 border-b bg-background shrink-0">
+            <button
+              onClick={() => setShowMobileSidebar(true)}
+              className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground"
+              title="Calendars"
+            >
+              <FolderOpen className="w-4 h-4" />
+            </button>
+            <span className="flex-1 text-sm font-semibold truncate">
+              {selectedCalendar ? selectedCalendar.name : t("cal_title")}
+            </span>
+            <button
+              onClick={() => setAgendaView(v => !v)}
+              className={`p-1.5 rounded-lg transition-colors ${
+                agendaView ? "bg-primary text-primary-foreground" : "hover:bg-accent text-muted-foreground"
+              }`}
+              title={agendaView ? "Month view" : "Agenda view"}
+            >
+              <LayoutList className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-3 md:p-5 space-y-4 md:space-y-5">
           {selectedCalendar === null ? (
             <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
               <CalendarDays className="w-12 h-12 text-muted-foreground/40" />
@@ -691,33 +733,37 @@ export default function SchoolCalendar() {
                         </div>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Button variant="outline" size="sm" onClick={() => setShowTermView(v => !v)} className="gap-1.5">
-                        <LayoutList className="w-3.5 h-3.5" /> {showTermView ? t("cal_month_view") : t("cal_term_overview")}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <Button variant="outline" size="sm" onClick={() => setShowTermView(v => !v)} className="gap-1.5" title={showTermView ? t("cal_month_view") : t("cal_term_overview")}>
+                        <LayoutList className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">{showTermView ? t("cal_month_view") : t("cal_term_overview")}</span>
                       </Button>
                       <Button variant="outline" size="sm" onClick={handleExportPdf} disabled={isPdfExporting} className="gap-1.5" title={t("cal_export_pdf")}>
-                        <Download className="w-3.5 h-3.5" /> {isPdfExporting ? "…" : t("cal_export_pdf")}
+                        <Download className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">{isPdfExporting ? "…" : t("cal_export_pdf")}</span>
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => {
-                        // Pre-populate term dates from the calendar's academic year
                         const cal = selectedCalendar as SchoolCalendar;
                         setAiForm(f => ({ ...f, terms: getDefaultTermsForYear(cal.academicYear) }));
                         setShowAiDialog(true);
-                      }} className="gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5" /> {t("cal_ai_infill")}
+                      }} className="gap-1.5" title={t("cal_ai_infill")}>
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">{t("cal_ai_infill")}</span>
                       </Button>
                       {(selectedCalendar as SchoolCalendar).linkedGroupId ? (
-                        <Button variant="outline" size="sm" onClick={() => unlinkGroupMutation.mutate({ calendarId: selectedCalendarId! })} disabled={unlinkGroupMutation.isPending} className="gap-1.5 text-amber-700 border-amber-300 hover:bg-amber-50">
+                        <Button variant="outline" size="sm" onClick={() => unlinkGroupMutation.mutate({ calendarId: selectedCalendarId! })} disabled={unlinkGroupMutation.isPending} className="gap-1.5 text-amber-700 border-amber-300 hover:bg-amber-50" title={(classGroupsList as any[]).find(g => g.id === (selectedCalendar as SchoolCalendar).linkedGroupId)?.className ?? t("cal_link_group")}>
                           <Unlink className="w-3.5 h-3.5" />
-                          {(classGroupsList as any[]).find(g => g.id === (selectedCalendar as SchoolCalendar).linkedGroupId)?.className ?? t("cal_link_group")}
+                          <span className="hidden sm:inline">{(classGroupsList as any[]).find(g => g.id === (selectedCalendar as SchoolCalendar).linkedGroupId)?.className ?? t("cal_link_group")}</span>
                         </Button>
                       ) : (
-                        <Button variant="outline" size="sm" onClick={() => { setLinkGroupId(""); setShowLinkGroupDialog(true); }} className="gap-1.5">
-                          <Link className="w-3.5 h-3.5" /> {t("cal_link_group")}
+                        <Button variant="outline" size="sm" onClick={() => { setLinkGroupId(""); setShowLinkGroupDialog(true); }} className="gap-1.5" title={t("cal_link_group")}>
+                          <Link className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">{t("cal_link_group")}</span>
                         </Button>
                       )}
                       <Button size="sm" onClick={() => openAdd(new Date())} className="gap-1.5">
-                        <Plus className="w-3.5 h-3.5" /> {t("cal_add_event")}
+                        <Plus className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">{t("cal_add_event")}</span>
                       </Button>
                     </div>
                   </div>
@@ -731,7 +777,61 @@ export default function SchoolCalendar() {
                 <Card><CardContent className="pt-3 pb-3 text-center"><div className="text-xl font-bold text-red-600">{holidays}</div><div className="text-xs text-muted-foreground">{t("cal_holidays")}</div></CardContent></Card>
               </div>
 
-              {/* ── Month Calendar ───────────────────────────────────────── */}
+              {/* ── Month Calendar (or Agenda on mobile) ────────────────── */}
+              {agendaView ? (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <Button variant="ghost" size="icon" onClick={prevMonth}><ChevronLeft className="w-4 h-4" /></Button>
+                      <CardTitle className="text-base">{MONTHS[viewMonth]} {viewYear}</CardTitle>
+                      <Button variant="ghost" size="icon" onClick={nextMonth}><ChevronRight className="w-4 h-4" /></Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    {calendarDays.filter(Boolean).map((day) => {
+                      const d = day!;
+                      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+                      const dayEvents = eventsByDate[key] ?? [];
+                      const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                      const isToday = key === new Date().toISOString().split("T")[0];
+                      if (isWeekend && dayEvents.length === 0) return null;
+                      return (
+                        <div key={key} className={`flex gap-3 items-start py-2 border-b last:border-0 ${isToday ? "bg-primary/5 rounded-lg px-2" : ""}`}>
+                          <div className={`shrink-0 w-10 text-center pt-0.5 ${isToday ? "text-primary font-bold" : "text-muted-foreground"}` }>
+                            <div className="text-xs uppercase">{["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d.getDay()]}</div>
+                            <div className="text-lg font-black leading-none">{d.getDate()}</div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            {dayEvents.length === 0 ? (
+                              <p className="text-xs text-muted-foreground/50 italic py-1">No events</p>
+                            ) : (
+                              <div className="space-y-1 py-0.5">
+                                {dayEvents.map(ev => (
+                                  <div
+                                    key={ev.id}
+                                    className={`text-xs px-2 py-1 rounded-lg border cursor-pointer flex items-center gap-1.5 ${EVENT_COLORS[ev.eventType] ?? "bg-gray-100 text-gray-800"}`}
+                                    onClick={() => (ev.eventType === "lesson" || ev.eventType === "ai_generated") ? openLessonPlanner(ev) : openEdit(ev)}
+                                  >
+                                    <span className="flex-1 font-medium truncate">{ev.title}</span>
+                                    {(ev.eventType === "lesson" || ev.eventType === "ai_generated") && <ExternalLink className="w-3 h-3 opacity-60 shrink-0" />}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            className="shrink-0 p-1 rounded hover:bg-accent text-muted-foreground opacity-60 hover:opacity-100"
+                            onClick={() => openAdd(d)}
+                            title="Add event"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+              ) : (
               <Card>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
@@ -800,6 +900,7 @@ export default function SchoolCalendar() {
                   </div>
                 </CardContent>
               </Card>
+              )}{/* end agendaView ternary */}
 
               {/* ── Term Overview ────────────────────────────────────────── */}
               {showTermView && (
@@ -878,7 +979,8 @@ export default function SchoolCalendar() {
               </Card>
             </>
           )}
-        </div>
+          </div>{/* end inner scroll div */}
+        </div>{/* end main content flex-col */}
       </div>
 
       {/* ── Create Calendar Dialog ──────────────────────────────────────────── */}

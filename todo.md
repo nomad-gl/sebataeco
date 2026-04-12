@@ -1562,3 +1562,31 @@
 - [x] When either instance detects the wake word, stop both and start the input session
 - [x] Input session language follows the app's current language setting
 - [x] Avoid double-activation race condition (use a shared "activating" flag)
+
+## Feature: PARAULA "New Game" button
+- [x] Add "New Game" button to solo practice game view (ParaulaPractice.tsx) that resets the grid and picks a new word
+- [x] Add "New Game" button to live game done/result screen (Join.tsx) that resets the grid for another attempt on the same word
+- [x] Ensure full reset: guesses array, current row, current col, game status, tile colours, keyboard colours
+- [x] Button visible on the result/done screen and also accessible mid-game (with a confirmation or as a secondary action)
+- [x] Add i18n keys for "New Game" in EN/ES/CA
+
+## Bug: PARAULA does not show win message when correct word is entered
+- [x] Show immediate in-game toast/banner "Correct! 🎉" when the correct word is guessed (before overlay appears)
+- [x] Win overlay must appear promptly and clearly after the flip animation completes
+- [x] Loss overlay must show the correct word clearly
+
+## Bug: PARAULA not optimised for mobile
+- [x] Tile size should scale down gracefully on small screens (320px–375px viewports)
+- [x] Keyboard keys must be large enough to tap on mobile (min 36px height)
+- [x] Game container must not overflow horizontally on mobile
+- [x] Result screen buttons must be full-width and easily tappable on mobile
+- [x] Header and clue bar must not overlap game grid on small screens
+
+## Bug: School Calendar not optimised for mobile/tablet
+- [x] On mobile: replace 7-column grid with a vertical list/agenda view of events grouped by day
+- [x] On tablet (md): show a compact 7-column grid with smaller cells and abbreviated day names
+- [x] Quick-add event type buttons should wrap/scroll horizontally on small screens
+- [x] Event chips in grid cells must truncate with ellipsis and not overflow on small screens
+- [x] Month navigation (prev/next) must be easily tappable on mobile (min 44px touch targets)
+- [x] Add a toggle between "Grid" and "Agenda" view on mobile
+- [x] Ensure the page header and controls do not overlap the calendar grid on small screens

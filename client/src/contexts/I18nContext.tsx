@@ -521,6 +521,13 @@ export const translations = {
     paraula_round: "Round",
     paraula_of: "of",
     paraula_kb_toggle: "Switch keyboard language",
+    paraula_new_game: "New Game",
+    paraula_correct_word: "Correct",
+    paraula_try_again: "Try again",
+    paraula_choose_word: "Choose a word to practise",
+    paraula_back_to_words: "Back to words",
+    paraula_letters: "letters",
+    paraula_search_placeholder: "Search words or clues…",
 
     // Presentation page
     pres_signin_title: "Sign in to create presentations",
@@ -1825,6 +1832,13 @@ export const translations = {
     paraula_round: "Ronda",
     paraula_of: "de",
     paraula_kb_toggle: "Cambiar idioma del teclado",
+    paraula_new_game: "Nueva partida",
+    paraula_correct_word: "¡Correcto",
+    paraula_try_again: "Intentar de nuevo",
+    paraula_choose_word: "Elige una palabra para practicar",
+    paraula_back_to_words: "Volver a las palabras",
+    paraula_letters: "letras",
+    paraula_search_placeholder: "Buscar palabras o pistas…",
 
     // Presentation page
     pres_signin_title: "Inicia sesión para crear presentaciones",
@@ -3129,6 +3143,13 @@ export const translations = {
     paraula_round: "Ronda",
     paraula_of: "de",
     paraula_kb_toggle: "Canviar idioma del teclat",
+    paraula_new_game: "Nova partida",
+    paraula_correct_word: "Correcte",
+    paraula_try_again: "Torna-ho a intentar",
+    paraula_choose_word: "Tria una paraula per practicar",
+    paraula_back_to_words: "Tornar a les paraules",
+    paraula_letters: "lletres",
+    paraula_search_placeholder: "Cerca paraules o pistes…",
 
     // Presentation page
     pres_signin_title: "Inicia sessió per crear presentacions",
