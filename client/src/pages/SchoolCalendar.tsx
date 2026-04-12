@@ -407,12 +407,14 @@ export default function SchoolCalendar() {
     else setViewMonth(m => m + 1);
   };
 
-  const openAdd = (date: Date) => {
+  const openAdd = (date: Date, type?: string) => {
     if (!selectedCalendarId) { toast.error("Please select or create a calendar first"); return; }
     setSelectedDate(date.toISOString().split("T")[0]);
-    setForm({ eventType: "lesson", title: "", description: "", competency: selectedCalendar?.subject ? "" : "", yearGroup: selectedCalendar?.yearLevel ?? "", subject: selectedCalendar?.subject ?? "" });
+    setForm({ eventType: type ?? "lesson", title: "", description: "", competency: "", yearGroup: selectedCalendar?.yearLevel ?? "", subject: selectedCalendar?.subject ?? "" });
     setShowAddDialog(true);
   };
+
+  const openAddWithType = (type: string) => openAdd(new Date(), type);
 
   const openEdit = (ev: CalEvent) => {
     setEditingEvent(ev);
@@ -760,8 +762,12 @@ export default function SchoolCalendar() {
                           <div className="flex items-center justify-between mb-1">
                             <span className={`text-xs font-medium ${isToday ? "text-primary" : "text-muted-foreground"}`}>{day.getDate()}</span>
                             {!isWeekend && (
-                              <span className="opacity-0 group-hover:opacity-60 transition-opacity">
-                                <Plus className="w-3 h-3 text-muted-foreground" />
+                              <span
+                                className="opacity-0 group-hover:opacity-80 transition-opacity cursor-pointer hover:text-primary"
+                                onClick={e => { e.stopPropagation(); openAdd(day); }}
+                                title="Add event"
+                              >
+                                <Plus className="w-3 h-3" />
                               </span>
                             )}
                           </div>
@@ -830,12 +836,46 @@ export default function SchoolCalendar() {
                 </Card>
               )}
 
-              {/* ── Legend ───────────────────────────────────────────────── */}
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(eventLabels).map(([type, label]) => (
-                  <Badge key={type} variant="outline" className={`text-xs ${EVENT_COLORS[type]}`}>{label}</Badge>
-                ))}
-              </div>
+              {/* ── Quick-Add Event Buttons ──────────────────────────────── */}
+              <Card>
+                <CardContent className="pt-3 pb-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Plus className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Add Event</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {([
+                      { type: "holiday",     icon: "🏖️",  label: eventLabels.holiday },
+                      { type: "special",     icon: "⭐",  label: eventLabels.special },
+                      { type: "exam",        icon: "📝",  label: eventLabels.exam },
+                      { type: "excursion",   icon: "🚌",  label: eventLabels.excursion },
+                      { type: "event",       icon: "🎉",  label: eventLabels.event },
+                      { type: "lesson",      icon: "📖",  label: eventLabels.lesson },
+                      { type: "ai_generated",icon: "✨",  label: eventLabels.ai_generated },
+                    ] as { type: string; icon: string; label: string }[]).map(({ type, icon, label }) => (
+                      <button
+                        key={type}
+                        onClick={() => {
+                          if (type === "ai_generated") {
+                            const cal = selectedCalendar as SchoolCalendar | null;
+                            if (cal) setAiForm(f => ({ ...f, terms: getDefaultTermsForYear(cal.academicYear) }));
+                            setShowAiDialog(true);
+                          } else {
+                            openAddWithType(type);
+                          }
+                        }}
+                        disabled={!selectedCalendarId}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all hover:opacity-80 hover:shadow-sm active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${EVENT_COLORS[type]}`}
+                        title={type === "ai_generated" ? "AI-generate lesson schedule" : `Add ${label}`}
+                      >
+                        <span>{icon}</span>
+                        <span>{label}</span>
+                        {type === "ai_generated" ? <Sparkles className="w-3 h-3 opacity-60" /> : <Plus className="w-3 h-3 opacity-60" />}
+                      </button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             </>
           )}
         </div>
@@ -1086,11 +1126,20 @@ export default function SchoolCalendar() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Add Event Dialog ────────────────────────────────────────────────── */}
+      {/* ── Add Event Dialog ────────────────────────────────────────── */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>{t("cal_add_event")} — {selectedDate}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("cal_add_event")}</DialogTitle></DialogHeader>
           <div className="space-y-3">
+            <div>
+              <Label>Date *</Label>
+              <Input
+                type="date"
+                value={selectedDate}
+                onChange={e => setSelectedDate(e.target.value)}
+                className="w-full"
+              />
+            </div>
             <div>
               <Label>{t("cal_event_type")}</Label>
               <Select value={form.eventType} onValueChange={v => setForm(f => ({ ...f, eventType: v }))}>

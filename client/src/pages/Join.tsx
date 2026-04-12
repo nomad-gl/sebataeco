@@ -284,7 +284,7 @@ function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: L
   return (
     <div className="flex flex-col items-center gap-3 w-full relative">
       {/* Clue + mute toggle */}
-      <div className="flex items-center gap-2 w-full max-w-xs">
+      <div className="flex items-center gap-2 w-full max-w-xs md:max-w-sm lg:max-w-md">
         <div className="bg-orange-500/20 border border-orange-400/40 rounded-xl px-4 py-2 text-center flex-1">
           <p className="text-orange-200 text-xs uppercase tracking-widest font-semibold mb-0.5">{t("paraula_clue_label")}</p>
           <p className="text-white font-medium text-sm">{clue}</p>
@@ -342,7 +342,7 @@ function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: L
       )}
 
       {/* Grid — hidden behind overlay when game is over */}
-      <div className={`flex flex-col gap-1 sm:gap-1.5 transition-opacity duration-300 ${showOverlay ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
+      <div className={`flex flex-col gap-1.5 md:gap-2 transition-opacity duration-300 ${showOverlay ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
         {rows.map((row, ri) => {
           const isRevealingThisRow = revealingRow === ri;
           const isBouncing = bounceRow === ri;
@@ -350,29 +350,21 @@ function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: L
           return (
             <div
               key={ri}
-              className={`flex gap-1 sm:gap-1.5 ${isShaking ? "paraula-row-shake" : ""} ${isBouncing ? "paraula-row-bounce" : ""}`}
+              className={`flex gap-1.5 md:gap-2 ${isShaking ? "paraula-row-shake" : ""} ${isBouncing ? "paraula-row-bounce" : ""}`}
             >
               {Array.from({ length: 5 }, (_, ci) => {
                 const letter = row.guess[ci] ?? "";
-                // For a revealing row, show grey until the flip is past halfway
-                // We achieve this by keeping the tile "tbd" colour during flip,
-                // and the CSS animation handles the visual swap via delay
                 const isFlipping = isRevealingThisRow;
-                const revealDelay = ci * 100; // stagger: 0, 100, 200, 300, 400 ms
+                const revealDelay = ci * 100;
                 const state: TileState = letter ? row.rowStates[ci] : "empty";
-                // During flip, show tbd colour on front, real colour revealed after
                 const displayState = isFlipping ? "tbd" : state;
                 const isCurrentRowTile = row.isCurrent && ci === current.length - 1 && popCol === ci;
                 return (
                   <div
                     key={ci}
-                    style={isFlipping ? {
-                      animationDelay: `${revealDelay}ms`,
-                      // After flip completes, switch to real colour
-                      // We use a CSS custom property trick via inline style
-                    } : {}}
+                    style={isFlipping ? { animationDelay: `${revealDelay}ms` } : {}}
                     className={[
-                      "w-10 h-10 sm:w-12 sm:h-12 border-2 rounded-lg flex items-center justify-center text-lg sm:text-xl font-black uppercase select-none",
+                      "w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 border-2 rounded-lg flex items-center justify-center text-xl sm:text-2xl md:text-3xl font-black uppercase select-none",
                       isFlipping ? `paraula-tile-flip ${TILE_COLORS[state]}` : `transition-colors duration-100 ${TILE_COLORS[displayState]}`,
                       isCurrentRowTile ? "paraula-tile-pop" : "",
                     ].join(" ")}
@@ -387,9 +379,9 @@ function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: L
       </div>
 
       {/* Keyboard — hidden when overlay is showing */}
-      <div className={`flex flex-col gap-1 sm:gap-1.5 w-full max-w-xs transition-opacity duration-300 ${showOverlay ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
+      <div className={`flex flex-col gap-1.5 md:gap-2 w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg transition-opacity duration-300 ${showOverlay ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
         {activeKeys.map((row, ri) => (
-          <div key={ri} className="flex justify-center gap-0.5 sm:gap-1">
+          <div key={ri} className="flex justify-center gap-1 md:gap-1.5">
             {row.map((key) => {
               const state = letterState[key];
               const isWide = key === "ENTER" || key === "⌫";
@@ -397,7 +389,7 @@ function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: L
                 <button
                   key={key}
                   onClick={() => handleKey(key)}
-                  className={`${isWide ? "px-1.5 sm:px-2 text-[10px] sm:text-xs min-w-[40px] sm:min-w-[48px]" : "w-7 sm:w-8"} h-9 sm:h-10 rounded-md font-bold text-xs sm:text-sm transition-colors touch-manipulation ${
+                  className={`${isWide ? "px-2 md:px-3 text-[10px] md:text-xs min-w-[44px] md:min-w-[56px]" : "w-8 md:w-10 lg:w-11"} h-10 md:h-12 lg:h-14 rounded-md font-bold text-xs md:text-sm transition-colors touch-manipulation ${
                     KEY_COLORS[state ?? "default"]
                   }`}
                 >
@@ -814,7 +806,7 @@ export default function Join() {
         </div>
 
         {/* Game area */}
-        <div className="flex-1 overflow-y-auto flex flex-col items-center justify-start gap-3 px-3 py-3">
+        <div className="flex-1 overflow-y-auto flex flex-col items-center justify-start gap-3 px-3 py-4 md:py-6 w-full">
           {waitingNextRound ? (
             <div className="flex flex-col items-center justify-center gap-4 py-12 text-center text-white">
               <Loader2 className="w-10 h-10 animate-spin text-orange-300" />

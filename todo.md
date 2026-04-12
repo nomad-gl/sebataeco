@@ -1527,3 +1527,13 @@
 - [x] Add a text input at the top of the word-picker dialog in Challenge.tsx
 - [x] Filter the word list in real-time as the teacher types (word + clue search)
 - [x] Preserve original word index mapping so correct wordIndex is sent to nextParaulaRound
+
+## Feature: School Calendar event buttons
+- [ ] Activate Holiday, Special Day, Exam, Excursion, Event, Lesson, AI Lesson buttons
+- [ ] Add/update calendar_events DB table with type, title, date, notes, color fields
+- [ ] Server procedures: createCalendarEvent, listCalendarEvents, deleteCalendarEvent
+- [ ] Event creation dialog: date picker, title input, notes, triggered by each button type
+- [ ] AI Lesson button: pre-fills dialog with AI-generated lesson plan suggestion
+- [ ] Render events on calendar grid with colour-coded dots/badges per event type
+- [ ] Click a day to see all events for that day in a popover/panel
+- [ ] Delete event from day detail view
