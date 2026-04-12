@@ -240,7 +240,7 @@ export default function SchoolCalendar() {
   const [calForm, setCalForm] = useState(emptyCalForm());
 
   // Event form
-  const [form, setForm] = useState({ eventType: "lesson", title: "", description: "", competency: "", yearGroup: "", subject: "", startTime: "", endTime: "" });
+  const [form, setForm] = useState({ eventType: "lesson", title: "", description: "", competency: "", yearGroup: "", subject: "", startTime: "", endTime: "", repeat: "none" as "none" | "weekly" | "fortnightly" });
 
   // AI infill form
   const [aiForm, setAiForm] = useState({ sessionsPerWeek: 3, terms: DEFAULT_TERMS });
@@ -297,6 +297,16 @@ export default function SchoolCalendar() {
 
   const updateCalMutation = trpc.planner.updateCalendar.useMutation({
     onSuccess: () => { utils.planner.listCalendars.invalidate(); setShowEditCalDialog(false); toast.success(t("cal_save")); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const applyDefaultTimeMutation = trpc.planner.applyDefaultTimeToEvents.useMutation({
+    onSuccess: (data) => { utils.planner.listCalendarEvents.invalidate(); toast.success(`${t("cal_apply_to_all_success")} (${data.updated})`); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const createRecurringMutation = trpc.planner.createRecurringEvents.useMutation({
+    onSuccess: (data) => { utils.planner.listCalendarEvents.invalidate(); setShowAddDialog(false); toast.success(`${t("cal_recurring_created")} (${data.created})`); },
     onError: (e) => toast.error(e.message),
   });
 
@@ -612,7 +622,7 @@ export default function SchoolCalendar() {
   const openAdd = (date: Date, type?: string) => {
     if (!selectedCalendarId) { toast.error(t("cal_select_first")); return; }
     setSelectedDate(date.toISOString().split("T")[0]);
-    setForm({ eventType: type ?? "lesson", title: "", description: "", competency: "", yearGroup: selectedCalendar?.yearLevel ?? "", subject: selectedCalendar?.subject ?? "", startTime: (selectedCalendar as any)?.defaultStartTime ?? "", endTime: (selectedCalendar as any)?.defaultEndTime ?? "" });
+    setForm({ eventType: type ?? "lesson", title: "", description: "", competency: "", yearGroup: selectedCalendar?.yearLevel ?? "", subject: selectedCalendar?.subject ?? "", startTime: (selectedCalendar as any)?.defaultStartTime ?? "", endTime: (selectedCalendar as any)?.defaultEndTime ?? "", repeat: "none" });
     setShowAddDialog(true);
   };
 
@@ -629,6 +639,7 @@ export default function SchoolCalendar() {
       subject: ev.subject ?? "",
       startTime: (ev as any).startTime ?? "",
       endTime: (ev as any).endTime ?? "",
+      repeat: "none",
     });
     setShowEditDialog(true);
   };
@@ -659,19 +670,39 @@ export default function SchoolCalendar() {
     if (!form.title.trim() || !selectedCalendarId || !selectedCalendar) return;
     const clash = checkTimeClash(selectedDate, form.startTime, form.endTime);
     if (clash) { toast.warning(clash); }
-    createMutation.mutate({
-      calendarId: selectedCalendarId,
-      academicYear: selectedCalendar.academicYear,
-      eventDate: selectedDate + "T09:00:00Z",
-      eventType: form.eventType as any,
-      title: form.title.trim(),
-      description: form.description || undefined,
-      competency: form.competency || undefined,
-      yearGroup: form.yearGroup || undefined,
-      subject: form.subject || undefined,
-      startTime: form.startTime || undefined,
-      endTime: form.endTime || undefined,
-    });
+    if (form.repeat !== "none") {
+      // Recurring: use createRecurringEvents procedure
+      const cal = selectedCalendar as any;
+      const endDate = cal.endDate ? new Date(cal.endDate as string).toISOString().split("T")[0] : undefined;
+      createRecurringMutation.mutate({
+        calendarId: selectedCalendarId,
+        startDate: selectedDate,
+        endDate: endDate ?? selectedDate,
+        repeat: form.repeat as "weekly" | "fortnightly",
+        eventType: form.eventType as any,
+        title: form.title.trim(),
+        description: form.description || undefined,
+        competency: form.competency || undefined,
+        yearGroup: form.yearGroup || undefined,
+        subject: form.subject || undefined,
+        startTime: form.startTime || undefined,
+        endTime: form.endTime || undefined,
+      });
+    } else {
+      createMutation.mutate({
+        calendarId: selectedCalendarId,
+        academicYear: selectedCalendar.academicYear,
+        eventDate: selectedDate + "T09:00:00Z",
+        eventType: form.eventType as any,
+        title: form.title.trim(),
+        description: form.description || undefined,
+        competency: form.competency || undefined,
+        yearGroup: form.yearGroup || undefined,
+        subject: form.subject || undefined,
+        startTime: form.startTime || undefined,
+        endTime: form.endTime || undefined,
+      });
+    }
   };
 
   const handleUpdate = () => {
@@ -1772,6 +1803,17 @@ export default function SchoolCalendar() {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground mt-1">{t("cal_default_session_time_hint")}</p>
+              {(calForm.defaultStartTime || calForm.defaultEndTime) && selectedCalendarId && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 w-full text-xs"
+                  disabled={applyDefaultTimeMutation.isPending}
+                  onClick={() => applyDefaultTimeMutation.mutate({ calendarId: selectedCalendarId })}
+                >
+                  {applyDefaultTimeMutation.isPending ? t("optional") : t("cal_apply_to_all_lessons")}
+                </Button>
+              )}
             </div>
           </div>
           <DialogFooter className="flex justify-between">
@@ -1868,9 +1910,26 @@ export default function SchoolCalendar() {
               </>
             )}
           </div>
+          {/* Repeat selector */}
+          <div>
+            <Label>{t("cal_repeat")}</Label>
+            <Select value={form.repeat} onValueChange={v => setForm(f => ({ ...f, repeat: v as any }))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">{t("cal_repeat_none")}</SelectItem>
+                <SelectItem value="weekly">{t("cal_repeat_weekly")}</SelectItem>
+                <SelectItem value="fortnightly">{t("cal_repeat_fortnightly")}</SelectItem>
+              </SelectContent>
+            </Select>
+            {form.repeat !== "none" && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {form.repeat === "weekly" ? "Creates one event per week" : "Creates one event every two weeks"} until the end of the calendar.
+              </p>
+            )}
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddDialog(false)}>{t("cal_cancel")}</Button>
-            <Button onClick={handleCreate} disabled={createMutation.isPending || !form.title.trim()}>{t("cal_add_btn")}</Button>
+            <Button onClick={handleCreate} disabled={(createMutation.isPending || createRecurringMutation.isPending) || !form.title.trim()}>{t("cal_add_btn")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

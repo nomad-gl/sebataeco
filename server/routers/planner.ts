@@ -933,9 +933,9 @@ Return ONLY a JSON object (no markdown fences) with this exact structure:
         return { id: existing.id, created: false, lessonNumber: existing.lessonNumber, lessonDate: existing.lessonDate };
       }
 
-      // Fetch the calendar event to get its date
+      // Fetch the calendar event to get its date and times
       const [calEvent] = await db
-        .select({ eventDate: schoolCalendarEvents.eventDate, calendarId: schoolCalendarEvents.calendarId })
+        .select({ eventDate: schoolCalendarEvents.eventDate, calendarId: schoolCalendarEvents.calendarId, startTime: schoolCalendarEvents.startTime, endTime: schoolCalendarEvents.endTime })
         .from(schoolCalendarEvents)
         .where(eq(schoolCalendarEvents.id, input.calendarEventId));
 
@@ -948,6 +948,11 @@ Return ONLY a JSON object (no markdown fences) with this exact structure:
         lessonNumber = await computeLessonNumber(db, ctx.user.id, input.calendarEventId, lessonDate);
       }
 
+      // Build sessionTime from event times if available
+      const sessionTime = (calEvent?.startTime && calEvent?.endTime)
+        ? `${calEvent.startTime}–${calEvent.endTime}`
+        : null;
+
       const result = await db.insert(lessonPlans).values({
         userId: ctx.user.id,
         title: input.title,
@@ -959,6 +964,7 @@ Return ONLY a JSON object (no markdown fences) with this exact structure:
         lessonDate,
         aiGenerated: false,
         duration: 60,
+        ...(sessionTime ? { sessionTime } : {}),
       });
       return { id: (result as any)[0].insertId, created: true, lessonNumber, lessonDate };
     }),
@@ -1011,5 +1017,108 @@ Return ONLY a JSON object (no markdown fences) with this exact structure:
       }
 
       return { updated: plans.length };
+    }),
+
+  // ── Apply default session time to all lesson events in a calendar ──────
+  applyDefaultTimeToEvents: protectedProcedure
+    .input(z.object({ calendarId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      // Get the calendar's default times
+      const [cal] = await db
+        .select({ defaultStartTime: schoolCalendars.defaultStartTime, defaultEndTime: schoolCalendars.defaultEndTime })
+        .from(schoolCalendars)
+        .where(and(eq(schoolCalendars.id, input.calendarId), eq(schoolCalendars.userId, ctx.user.id)));
+      if (!cal) throw new Error("Calendar not found");
+      if (!cal.defaultStartTime && !cal.defaultEndTime) return { updated: 0 };
+      // Update all lesson events in this calendar
+      const result = await db
+        .update(schoolCalendarEvents)
+        .set({
+          ...(cal.defaultStartTime ? { startTime: cal.defaultStartTime } : {}),
+          ...(cal.defaultEndTime ? { endTime: cal.defaultEndTime } : {}),
+        })
+        .where(and(
+          eq(schoolCalendarEvents.calendarId, input.calendarId),
+          eq(schoolCalendarEvents.userId, ctx.user.id),
+          eq(schoolCalendarEvents.eventType, "lesson"),
+        ));
+      // Also update linked lesson plans' sessionTime
+      if (cal.defaultStartTime && cal.defaultEndTime) {
+        const sessionTime = `${cal.defaultStartTime}–${cal.defaultEndTime}`;
+        const evIds = await db
+          .select({ id: schoolCalendarEvents.id })
+          .from(schoolCalendarEvents)
+          .where(and(
+            eq(schoolCalendarEvents.calendarId, input.calendarId),
+            eq(schoolCalendarEvents.userId, ctx.user.id),
+            eq(schoolCalendarEvents.eventType, "lesson"),
+          ));
+        if (evIds.length > 0) {
+          await db
+            .update(lessonPlans)
+            .set({ sessionTime })
+            .where(and(
+              eq(lessonPlans.userId, ctx.user.id),
+              inArray(lessonPlans.calendarEventId, evIds.map(e => e.id)),
+            ));
+        }
+      }
+      return { updated: (result as any).affectedRows ?? 0 };
+    }),
+
+  // ── Create recurring lesson events (weekly or fortnightly) ─────────────
+  createRecurringEvents: protectedProcedure
+    .input(z.object({
+      calendarId: z.number(),
+      startDate: z.string(),   // YYYY-MM-DD — first occurrence
+      endDate: z.string(),     // YYYY-MM-DD — last possible date (use calendar end date)
+      repeat: z.enum(["weekly", "fortnightly"]),
+      title: z.string(),
+      description: z.string().optional(),
+      eventType: eventTypeEnum.default("lesson"),
+      yearGroup: z.string().optional(),
+      subject: z.string().optional(),
+      competency: z.string().optional(),
+      startTime: z.string().optional(),
+      endTime: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      // Verify calendar ownership
+      const [cal] = await db
+        .select({ id: schoolCalendars.id, academicYear: schoolCalendars.academicYear })
+        .from(schoolCalendars)
+        .where(and(eq(schoolCalendars.id, input.calendarId), eq(schoolCalendars.userId, ctx.user.id)));
+      if (!cal) throw new Error("Calendar not found");
+
+      const stepDays = input.repeat === "weekly" ? 7 : 14;
+      const events: typeof schoolCalendarEvents.$inferInsert[] = [];
+      let current = new Date(input.startDate + "T12:00:00Z");
+      const end = new Date(input.endDate + "T23:59:59Z");
+
+      while (current <= end) {
+        events.push({
+          calendarId: input.calendarId,
+          userId: ctx.user.id,
+          eventDate: new Date(current),
+          eventType: input.eventType,
+          title: input.title,
+          description: input.description ?? null,
+          yearGroup: input.yearGroup ?? null,
+          subject: input.subject ?? null,
+          competency: input.competency ?? null,
+          startTime: input.startTime ?? null,
+          endTime: input.endTime ?? null,
+          academicYear: cal.academicYear ?? "",
+        });
+        current = new Date(current.getTime() + stepDays * 24 * 60 * 60 * 1000);
+      }
+
+      if (events.length === 0) return { created: 0 };
+      await db.insert(schoolCalendarEvents).values(events);
+      return { created: events.length };
     }),
 });

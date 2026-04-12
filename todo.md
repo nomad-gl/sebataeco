@@ -1850,3 +1850,18 @@
 - [x] Fix rendering issue: time fields were in Add/Edit event dialogs but NOT in the Edit Calendar settings dialog
 - [x] Added Default Session Time fields to Edit Calendar dialog (saved to DB)
 - [x] Pre-fill Add Event form with calendar default times when opening the dialog
+
+## Feature: Bulk-apply default session time to existing events
+- [x] Add applyDefaultTimeToEvents tRPC procedure that updates all lesson events in a calendar with the calendar's defaultStartTime/defaultEndTime
+- [x] Add "Apply to all lessons" button in the Edit Calendar dialog's Default Session Time section
+- [x] Add i18n keys for cal_apply_to_all_lessons, cal_apply_to_all_lessons_success in EN/ES/CA
+
+## Feature: Recurring weekly lesson events
+- [x] Add repeat field (none/weekly/fortnightly) to the Add Event dialog
+- [x] Add createRecurringEvents tRPC procedure that creates multiple events on the same weekday until the calendar end date
+- [x] Each recurring event inherits the same title, type, subject, year group, and times
+- [x] Add i18n keys for cal_repeat, cal_repeat_none, cal_repeat_weekly, cal_repeat_fortnightly in EN/ES/CA
+
+## Feature: Auto-populate sessionTime on linked lesson plan from calendar event
+- [x] When createLinkedLessonPlan runs, if the event has startTime/endTime, set sessionTime on the plan as "HH:MM–HH:MM"
+- [x] When createCalendarEvent runs with startTime/endTime and a linked plan exists, update the plan's sessionTime
