@@ -62,6 +62,14 @@ const CATALAN_KEYS = [
   ["ENTER","Z","X","C","V","B","N","M","⌫"],
 ];
 
+const SPANISH_KEYS = [
+  ["Q","W","E","R","T","Y","U","I","O","P"],
+  ["A","S","D","F","G","H","J","K","L","Ñ"],
+  ["ENTER","Z","X","C","V","B","N","M","⌫"],
+];
+
+type KeyboardLang = "ca" | "es";
+
 // ─── Web Audio sound effects ───────────────────────────────────────────────
 function useParaulaAudio(muted: boolean) {
   const ctx = useRef<AudioContext | null>(null);
@@ -138,6 +146,17 @@ function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: L
   const [popCol, setPopCol] = useState<number | null>(null);
   // Mute toggle
   const [muted, setMuted] = useState(false);
+  // Keyboard language toggle — persisted in localStorage
+  const [kbLang, setKbLang] = useState<KeyboardLang>(() => {
+    try { return (localStorage.getItem("paraula_kb_lang") as KeyboardLang) ?? "ca"; }
+    catch { return "ca"; }
+  });
+  const toggleKbLang = () => setKbLang(prev => {
+    const next: KeyboardLang = prev === "ca" ? "es" : "ca";
+    try { localStorage.setItem("paraula_kb_lang", next); } catch { /* ignore */ }
+    return next;
+  });
+  const activeKeys = kbLang === "ca" ? CATALAN_KEYS : SPANISH_KEYS;
   const submitted = useRef(false);
 
   const submitScore = trpc.challenge.submitParaulaScore.useMutation();
@@ -277,6 +296,13 @@ function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: L
         >
           {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
         </button>
+        <button
+          onClick={toggleKbLang}
+          className="shrink-0 h-9 px-2 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-colors text-xs font-bold tracking-wide"
+          title={t("paraula_kb_toggle")}
+        >
+          {kbLang === "ca" ? "CA" : "ES"}
+        </button>
       </div>
 
       {/* Message toast */}
@@ -362,7 +388,7 @@ function LiveParaulaGame({ word, clue, participantId, challengeId, onFinish }: L
 
       {/* Keyboard — hidden when overlay is showing */}
       <div className={`flex flex-col gap-1 sm:gap-1.5 w-full max-w-xs transition-opacity duration-300 ${showOverlay ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
-        {CATALAN_KEYS.map((row, ri) => (
+        {activeKeys.map((row, ri) => (
           <div key={ri} className="flex justify-center gap-0.5 sm:gap-1">
             {row.map((key) => {
               const state = letterState[key];

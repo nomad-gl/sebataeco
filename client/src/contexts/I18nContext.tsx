@@ -514,6 +514,7 @@ export const translations = {
     paraula_copied: "Copied!",
     paraula_round: "Round",
     paraula_of: "of",
+    paraula_kb_toggle: "Switch keyboard language",
 
     // Presentation page
     pres_signin_title: "Sign in to create presentations",
@@ -1811,6 +1812,7 @@ export const translations = {
     paraula_copied: "¡Copiado!",
     paraula_round: "Ronda",
     paraula_of: "de",
+    paraula_kb_toggle: "Cambiar idioma del teclado",
 
     // Presentation page
     pres_signin_title: "Inicia sesión para crear presentaciones",
@@ -3108,6 +3110,7 @@ export const translations = {
     paraula_copied: "Copiat!",
     paraula_round: "Ronda",
     paraula_of: "de",
+    paraula_kb_toggle: "Canviar idioma del teclat",
 
     // Presentation page
     pres_signin_title: "Inicia sessió per crear presentacions",

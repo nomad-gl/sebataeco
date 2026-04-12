@@ -1507,3 +1507,23 @@
 - [x] "5 letters needed", "Submitting score…", "The word was", "Solved in X guesses" are all hardcoded — translate all
 - [x] Mute button tooltip "Mute sounds" / "Unmute sounds" should use t()
 - [x] Add missing i18n keys for all PARAULA game strings in EN, ES, CA
+
+## Feature: PARAULA keyboard language toggle
+- [x] Add CA/ES keyboard toggle button in LiveParaulaGame (Catalan: Ç, Catalan accents; Spanish: Ñ)
+- [x] CA keyboard: standard QWERTY + Ç key
+- [x] ES keyboard: standard QWERTY + Ñ key
+- [x] Persist keyboard choice in localStorage so it survives page refresh
+- [x] Add i18n key paraula_kb_toggle in EN/ES/CA
+
+## Feature: PARAULA solo practice mode
+- [x] Add "Practice" entry point in the PARAULA material viewer (MaterialView.tsx)
+- [x] Create ParaulaPractice page where student picks a word from the material and plays solo
+- [x] Show all 5-letter words as selectable cards with search filter
+- [x] Solo game uses embedded SoloParaulaGame component (no room/participant IDs)
+- [x] After finishing, show result with emoji grid, copy button, Try Again, Choose Another Word
+- [x] Register route /paraula-practice in App.tsx
+
+## Feature: Teacher word-picker search filter
+- [x] Add a text input at the top of the word-picker dialog in Challenge.tsx
+- [x] Filter the word list in real-time as the teacher types (word + clue search)
+- [x] Preserve original word index mapping so correct wordIndex is sent to nextParaulaRound

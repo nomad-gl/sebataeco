@@ -114,6 +114,7 @@ export default function Challenge() {
   // Multi-round: next word picker state
   const [showNextWordDialog, setShowNextWordDialog] = useState(false);
   const [nextWordIdx, setNextWordIdx] = useState(0);
+  const [nextWordSearch, setNextWordSearch] = useState("");
   const nextParaulaRoundMutation = trpc.challenge.nextParaulaRound.useMutation({
     onSuccess: (data) => {
       toast.success(`Round ${data.round}: ${data.word}`);
@@ -945,8 +946,20 @@ export default function Challenge() {
                 <p className="text-white/60 text-sm">Pick the next word for students to guess.</p>
                 {materialWords.length > 0 ? (
                   <>
-                    <div className="grid grid-cols-2 gap-1.5 max-h-52 overflow-y-auto pr-1">
-                      {materialWords.map((p, i) => {
+                    <input
+                      type="text"
+                      value={nextWordSearch}
+                      onChange={e => setNextWordSearch(e.target.value)}
+                      placeholder="Search words or clues…"
+                      className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:border-orange-400/60"
+                    />
+                    <div className="grid grid-cols-2 gap-1.5 max-h-48 overflow-y-auto pr-1">
+                      {materialWords.filter(p =>
+                        !nextWordSearch.trim() ||
+                        p.word.toUpperCase().includes(nextWordSearch.toUpperCase()) ||
+                        p.clue.toLowerCase().includes(nextWordSearch.toLowerCase())
+                      ).map((p, _filteredIdx) => {
+                        const i = materialWords.indexOf(p);
                         const isValid = p.word.replace(/\s/g, "").length === 5;
                         return (
                           <button

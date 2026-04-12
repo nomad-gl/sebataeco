@@ -797,6 +797,14 @@ function PaRaulaViewer({ content, materialTitle, topic, materialId }: {
           </Button>
           <Button
             size="sm"
+            variant="outline"
+            className="gap-1.5 border-orange-400/40 text-orange-300 hover:bg-orange-500/10"
+            onClick={() => navigate(`/paraula-practice?materialId=${materialId}`)}
+          >
+            <span className="text-base">📚</span> Practice
+          </Button>
+          <Button
+            size="sm"
             className="gap-1.5 bg-purple-600 hover:bg-purple-700 text-white"
             onClick={() => { setSelectedWordIdx(0); setShowLiveDialog(true); }}
           >

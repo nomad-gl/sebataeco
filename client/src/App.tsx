@@ -39,6 +39,7 @@ import WhatsNewBanner from "./components/WhatsNewBanner";
 import Dpa from "./pages/Dpa";
 import AiModels from "./pages/AiModels";
 import Paraula from "./pages/Paraula";
+import ParaulaPractice from "./pages/ParaulaPractice";
 
 function Router() {
   return (
@@ -71,6 +72,7 @@ function Router() {
         <Route path="/dpa" component={Dpa} />
         <Route path="/ai-models" component={AiModels} />
         <Route path="/paraula" component={Paraula} />
+        <Route path="/paraula-practice" component={ParaulaPractice} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>
