@@ -18,6 +18,7 @@ import LogoUploader from "@/components/LogoUploader";
 import { useI18n } from "@/contexts/I18nContext";
 import { useIsMobile } from "@/hooks/useMobile";
 import { exportToCsv, exportToXml } from "@/lib/exportUtils";
+import ExportDropdown, { PrintIcon, CsvIcon, XmlIcon } from "@/components/ExportDropdown";
 
 const COMPETENCIES = ["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"];
 const YEAR_GROUPS = ["1st Primary", "2nd Primary", "3rd Primary", "4th Primary", "5th Primary", "6th Primary", "1st Secondary", "2nd Secondary", "3rd Secondary", "4th Secondary"];
@@ -856,47 +857,61 @@ export default function LessonPlanner() {
           </div>
           <DialogFooter className="flex-col-reverse sm:flex-row flex-wrap gap-2">
             <Button variant="outline" onClick={() => setShowPrintDialog(false)}>{t("cal_cancel")}</Button>
-            <Button variant="outline" size="sm" className="gap-1"
-              onClick={() => {
-                const rows = [
-                  { field: "title", value: form.title },
-                  { field: "unit", value: form.unit },
-                  { field: "lesson_number", value: form.lessonNumber },
-                  { field: "year_group", value: form.yearGroup },
-                  { field: "subject", value: form.subject },
-                  { field: "duration_min", value: form.duration },
-                  { field: "competencies", value: form.competencies.join("; ") },
-                  { field: "learning_outcomes", value: form.learningOutcomes.join("; ") },
-                  { field: "evaluation_criteria", value: form.evaluationCriteria.join("; ") },
-                  { field: "previous_knowledge", value: form.previousKnowledge },
-                  { field: "materials", value: form.materials },
-                  ...form.procedures.map((p, i) => ({ field: `procedure_${i + 1}`, value: `${p.stage} | ${p.timing}min | ${p.activities} | ${p.grouping}` })),
-                ];
-                exportToCsv(form.title || "lesson-plan", rows);
-              }}>
-              <span className="text-xs">{t("export_csv")}</span>
-            </Button>
-            <Button variant="outline" size="sm" className="gap-1"
-              onClick={() => {
-                const rows = [
-                  { field: "title", value: form.title },
-                  { field: "unit", value: form.unit },
-                  { field: "lesson_number", value: form.lessonNumber },
-                  { field: "year_group", value: form.yearGroup },
-                  { field: "subject", value: form.subject },
-                  { field: "duration_min", value: form.duration },
-                  { field: "competencies", value: form.competencies.join("; ") },
-                  { field: "learning_outcomes", value: form.learningOutcomes.join("; ") },
-                  { field: "evaluation_criteria", value: form.evaluationCriteria.join("; ") },
-                  { field: "previous_knowledge", value: form.previousKnowledge },
-                  { field: "materials", value: form.materials },
-                  ...form.procedures.map((p, i) => ({ field: `procedure_${i + 1}`, value: `${p.stage} | ${p.timing}min | ${p.activities} | ${p.grouping}` })),
-                ];
-                exportToXml(form.title || "lesson-plan", "lesson_plan", rows, "field");
-              }}>
-              <span className="text-xs">{t("export_xml")}</span>
-            </Button>
-            <Button onClick={handlePrint} className="gap-1"><Printer className="w-4 h-4" /> {t("lp_open_preview")}</Button>
+            <ExportDropdown
+              options={[
+                {
+                  key: "print",
+                  icon: <PrintIcon />,
+                  label: t("lp_open_preview"),
+                  onClick: handlePrint,
+                },
+                {
+                  key: "csv",
+                  icon: <CsvIcon />,
+                  label: t("export_csv"),
+                  separator: true,
+                  onClick: () => {
+                    const rows = [
+                      { field: "title", value: form.title },
+                      { field: "unit", value: form.unit },
+                      { field: "lesson_number", value: form.lessonNumber },
+                      { field: "year_group", value: form.yearGroup },
+                      { field: "subject", value: form.subject },
+                      { field: "duration_min", value: form.duration },
+                      { field: "competencies", value: form.competencies.join("; ") },
+                      { field: "learning_outcomes", value: form.learningOutcomes.join("; ") },
+                      { field: "evaluation_criteria", value: form.evaluationCriteria.join("; ") },
+                      { field: "previous_knowledge", value: form.previousKnowledge },
+                      { field: "materials", value: form.materials },
+                      ...form.procedures.map((p, i) => ({ field: `procedure_${i + 1}`, value: `${p.stage} | ${p.timing}min | ${p.activities} | ${p.grouping}` })),
+                    ];
+                    exportToCsv(form.title || "lesson-plan", rows);
+                  },
+                },
+                {
+                  key: "xml",
+                  icon: <XmlIcon />,
+                  label: t("export_xml"),
+                  onClick: () => {
+                    const rows = [
+                      { field: "title", value: form.title },
+                      { field: "unit", value: form.unit },
+                      { field: "lesson_number", value: form.lessonNumber },
+                      { field: "year_group", value: form.yearGroup },
+                      { field: "subject", value: form.subject },
+                      { field: "duration_min", value: form.duration },
+                      { field: "competencies", value: form.competencies.join("; ") },
+                      { field: "learning_outcomes", value: form.learningOutcomes.join("; ") },
+                      { field: "evaluation_criteria", value: form.evaluationCriteria.join("; ") },
+                      { field: "previous_knowledge", value: form.previousKnowledge },
+                      { field: "materials", value: form.materials },
+                      ...form.procedures.map((p, i) => ({ field: `procedure_${i + 1}`, value: `${p.stage} | ${p.timing}min | ${p.activities} | ${p.grouping}` })),
+                    ];
+                    exportToXml(form.title || "lesson-plan", "lesson_plan", rows, "field");
+                  },
+                },
+              ]}
+            />
           </DialogFooter>
         </DialogContent>
       </Dialog>

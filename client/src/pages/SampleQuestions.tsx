@@ -18,6 +18,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
 import LogoUploader from "@/components/LogoUploader";
 import { exportToCsv, exportToXml } from "@/lib/exportUtils";
+import ExportDropdown, { PdfIcon, CsvIcon, XmlIcon } from "@/components/ExportDropdown";
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
 type YearGroup = "junior" | "primary" | "secondary";
@@ -418,55 +419,57 @@ export default function SampleQuestions() {
           </div>
           <DialogFooter className="flex-wrap gap-2">
             <Button variant="outline" onClick={() => setShowExportModal(false)}>{t("cancel")}</Button>
-            <Button variant="outline" size="sm" className="gap-1"
-              onClick={() => {
-                const qs = (questions ?? []).filter(q => selected.has(q.id));
-                exportToCsv(worksheetTitle || "questions", qs.map((q, i) => ({
-                  number: i + 1,
-                  question: q.question,
-                  option_a: q.options?.[0] ?? "",
-                  option_b: q.options?.[1] ?? "",
-                  option_c: q.options?.[2] ?? "",
-                  option_d: q.options?.[3] ?? "",
-                  correct_option: String.fromCharCode(65 + (q.correctIndex ?? 0)),
-                  explanation: q.explanation ?? "",
-                  competency: q.competency ?? "",
-                  year_group: q.yearGroup ?? "",
-                })));
-              }}>
-              <FileDown className="w-3.5 h-3.5" />{t("export_csv")}
-            </Button>
-            <Button variant="outline" size="sm" className="gap-1"
-              onClick={() => {
-                const qs = (questions ?? []).filter(q => selected.has(q.id));
-                const xmlRows = qs.map((q, i) => ({
-                  number: i + 1,
-                  question: q.question,
-                  option_a: q.options?.[0] ?? "",
-                  option_b: q.options?.[1] ?? "",
-                  option_c: q.options?.[2] ?? "",
-                  option_d: q.options?.[3] ?? "",
-                  correct_option: String.fromCharCode(65 + (q.correctIndex ?? 0)),
-                  explanation: q.explanation ?? "",
-                  competency: q.competency ?? "",
-                  year_group: q.yearGroup ?? "",
-                }));
-                exportToXml(worksheetTitle || "questions", "questions", xmlRows, "question");
-              }}
-            >
-              <FileDown className="w-3.5 h-3.5" />{t("export_xml")}
-            </Button>
-            <Button
-              onClick={handleExport}
-              disabled={exportMutation.isPending}
-              className="gap-2"
-            >
-              {exportMutation.isPending ? (
-                <><Loader2 className="w-4 h-4 animate-spin" />{t("sample_generating_pdfs")}</>
-              ) : (
-                <><FileDown className="w-4 h-4" />{t("sample_download_pdfs")}</>
-              )}
-            </Button>
+            <ExportDropdown
+              options={[
+                {
+                  key: "pdf",
+                  icon: <PdfIcon />,
+                  label: t("sample_download_pdfs"),
+                  onClick: handleExport,
+                },
+                {
+                  key: "csv",
+                  icon: <CsvIcon />,
+                  label: t("export_csv"),
+                  separator: true,
+                  onClick: () => {
+                    const qs = (questions ?? []).filter(q => selected.has(q.id));
+                    exportToCsv(worksheetTitle || "questions", qs.map((q, i) => ({
+                      number: i + 1,
+                      question: q.question,
+                      option_a: q.options?.[0] ?? "",
+                      option_b: q.options?.[1] ?? "",
+                      option_c: q.options?.[2] ?? "",
+                      option_d: q.options?.[3] ?? "",
+                      correct_option: String.fromCharCode(65 + (q.correctIndex ?? 0)),
+                      explanation: q.explanation ?? "",
+                      competency: q.competency ?? "",
+                      year_group: q.yearGroup ?? "",
+                    })));
+                  },
+                },
+                {
+                  key: "xml",
+                  icon: <XmlIcon />,
+                  label: t("export_xml"),
+                  onClick: () => {
+                    const qs = (questions ?? []).filter(q => selected.has(q.id));
+                    exportToXml(worksheetTitle || "questions", "questions", qs.map((q, i) => ({
+                      number: i + 1,
+                      question: q.question,
+                      option_a: q.options?.[0] ?? "",
+                      option_b: q.options?.[1] ?? "",
+                      option_c: q.options?.[2] ?? "",
+                      option_d: q.options?.[3] ?? "",
+                      correct_option: String.fromCharCode(65 + (q.correctIndex ?? 0)),
+                      explanation: q.explanation ?? "",
+                      competency: q.competency ?? "",
+                      year_group: q.yearGroup ?? "",
+                    })), "question");
+                  },
+                },
+              ]}
+            />
           </DialogFooter>
         </DialogContent>
       </Dialog>

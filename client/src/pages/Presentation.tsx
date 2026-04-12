@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { getLoginUrl } from "@/const";
 import { exportPDF, exportWord, exportPNG, exportToCsv, exportToXml } from "@/lib/exportUtils";
+import ExportDropdown, { PrintIcon, PdfIcon, WordIcon, PngIcon, CsvIcon, XmlIcon } from "@/components/ExportDropdown";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { useI18n } from "@/contexts/I18nContext";
@@ -319,34 +320,28 @@ export default function Presentation() {
                   {deriveMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <AlignLeft className="w-3 h-3 mr-1" />}
                   {t("pres_fill_blank")}
                 </Button>
-                {/* Export buttons */}
-                <Button size="sm" variant="outline" className="border-white/30 text-white hover:bg-white/10 text-xs" onClick={() => window.print()}>
-                  <Printer className="w-3 h-3 mr-1" /> {t("material_print")}
-                </Button>
-                <Button size="sm" variant="outline" className="border-white/30 text-white hover:bg-white/10 text-xs" onClick={handleExportPdf} disabled={exportPdfMut.isPending}>
-                  {exportPdfMut.isPending ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Download className="w-3 h-3 mr-1" />} PDF
-                </Button>
-                <Button size="sm" variant="outline" className="border-white/30 text-white hover:bg-white/10 text-xs" onClick={() => exportPNG(exportId, generated.title || "presentation")}>
-                  <Download className="w-3 h-3 mr-1" /> PNG
-                </Button>
-                <Button size="sm" variant="outline" className="border-white/30 text-white hover:bg-white/10 text-xs" onClick={() => {
-                  const wordContent = { title: generated.title, slides: slides.map((s, i) => ({ slideNumber: i + 1, title: s.title, content: s.content, speakerNotes: s.speakerNotes, keyVocabulary: s.keyVocabulary })) };
-                  exportWord("slides", wordContent as unknown as import("@/lib/exportUtils").MaterialContent, generated.title || "presentation");
-                }}>
-                  <Download className="w-3 h-3 mr-1" /> Word
-                </Button>
-                <Button size="sm" variant="outline" className="border-white/30 text-white hover:bg-white/10 text-xs" onClick={() => {
-                  const rows = slides.map((s, i) => ({ slide: i + 1, title: s.title, content: s.content, speaker_notes: s.speakerNotes ?? "", key_vocabulary: (s.keyVocabulary ?? []).join("; "), competency: s.competencyTag ?? "" }));
-                  exportToCsv(generated.title || "presentation", rows);
-                }}>
-                  <Download className="w-3 h-3 mr-1" /> {t("export_csv")}
-                </Button>
-                <Button size="sm" variant="outline" className="border-white/30 text-white hover:bg-white/10 text-xs" onClick={() => {
-                  const rows = slides.map((s, i) => ({ slide: i + 1, title: s.title, content: s.content, speaker_notes: s.speakerNotes ?? "", key_vocabulary: (s.keyVocabulary ?? []).join("; "), competency: s.competencyTag ?? "" }));
-                  exportToXml(generated.title || "presentation", "presentation", rows, "slide");
-                }}>
-                  <Download className="w-3 h-3 mr-1" /> {t("export_xml")}
-                </Button>
+                {/* Export dropdown */}
+                <ExportDropdown
+                  size="sm"
+                  className="border-white/30 text-white hover:bg-white/10 bg-transparent"
+                  options={[
+                    { key: "print", icon: <PrintIcon />, label: t("material_print"), onClick: () => window.print() },
+                    { key: "pdf", icon: <PdfIcon />, label: "PDF", onClick: handleExportPdf },
+                    { key: "png", icon: <PngIcon />, label: "PNG", onClick: () => exportPNG(exportId, generated.title || "presentation") },
+                    { key: "word", icon: <WordIcon />, label: "Word", onClick: () => {
+                      const wordContent = { title: generated.title, slides: slides.map((s, i) => ({ slideNumber: i + 1, title: s.title, content: s.content, speakerNotes: s.speakerNotes, keyVocabulary: s.keyVocabulary })) };
+                      exportWord("slides", wordContent as unknown as import("@/lib/exportUtils").MaterialContent, generated.title || "presentation");
+                    }},
+                    { key: "csv", icon: <CsvIcon />, label: t("export_csv"), separator: true, onClick: () => {
+                      const rows = slides.map((s, i) => ({ slide: i + 1, title: s.title, content: s.content, speaker_notes: s.speakerNotes ?? "", key_vocabulary: (s.keyVocabulary ?? []).join("; "), competency: s.competencyTag ?? "" }));
+                      exportToCsv(generated.title || "presentation", rows);
+                    }},
+                    { key: "xml", icon: <XmlIcon />, label: t("export_xml"), onClick: () => {
+                      const rows = slides.map((s, i) => ({ slide: i + 1, title: s.title, content: s.content, speaker_notes: s.speakerNotes ?? "", key_vocabulary: (s.keyVocabulary ?? []).join("; "), competency: s.competencyTag ?? "" }));
+                      exportToXml(generated.title || "presentation", "presentation", rows, "slide");
+                    }},
+                  ]}
+                />
               </div>
             </div>
 

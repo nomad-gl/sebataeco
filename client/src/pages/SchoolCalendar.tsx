@@ -15,12 +15,15 @@ import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, Plus, Sparkles, Trash2, CalendarDays,
   ExternalLink, LayoutList, Pencil, School, BookOpen, User, GraduationCap,
   FolderOpen, X, Check, Download, Link, Unlink, Users, Save, ClipboardList,
+  ListChecks, RefreshCw,
 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useLocation } from "wouter";
 import { useI18n } from "@/contexts/I18nContext";
 import { loadSchoolProfile } from "@/pages/Settings";
 import { exportToCsv, exportToXml } from "@/lib/exportUtils";
+import ExportDropdown, { PdfIcon, CsvIcon, XmlIcon } from "@/components/ExportDropdown";
+import { Progress } from "@/components/ui/progress";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const ACADEMIC_YEARS = [`${CURRENT_YEAR - 1}-${CURRENT_YEAR}`, `${CURRENT_YEAR}-${CURRENT_YEAR + 1}`, `${CURRENT_YEAR + 1}-${CURRENT_YEAR + 2}`];
@@ -179,6 +182,14 @@ export default function SchoolCalendar() {
   const [linkGroupId, setLinkGroupId] = useState<string>("");
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [agendaView, setAgendaView] = useState(false);
+
+  // ── Batch Lesson Plan Generation ──────────────────────────────────────────
+  const [showBatchDialog, setShowBatchDialog] = useState(false);
+  const [batchSelected, setBatchSelected] = useState<Set<number>>(new Set());
+  const [batchProgress, setBatchProgress] = useState(0);
+  const [batchTotal, setBatchTotal] = useState(0);
+  const [batchRunning, setBatchRunning] = useState(false);
+  const [batchDone, setBatchDone] = useState(false);
 
   // ── Swipe navigation ─────────────────────────────────────────────────────────
   const swipeTouchStartX = useRef<number | null>(null);
@@ -628,6 +639,70 @@ export default function SchoolCalendar() {
     });
   };
 
+  // Events in the current month that don't yet have a linked lesson plan
+  const eventsWithoutPlan = useMemo(() => {
+    const planMap = eventPlanMap as Record<number, number>;
+    return events.filter(ev =>
+      (ev.eventType === "lesson" || ev.eventType === "ai_generated") &&
+      !planMap[ev.id]
+    );
+  }, [events, eventPlanMap]);
+
+  const openBatchDialog = () => {
+    setBatchSelected(new Set(eventsWithoutPlan.map(ev => ev.id)));
+    setBatchProgress(0);
+    setBatchTotal(0);
+    setBatchRunning(false);
+    setBatchDone(false);
+    setShowBatchDialog(true);
+  };
+
+  const runBatchGeneration = async () => {
+    const ids = Array.from(batchSelected);
+    if (ids.length === 0) return;
+    setBatchTotal(ids.length);
+    setBatchProgress(0);
+    setBatchRunning(true);
+    setBatchDone(false);
+    let done = 0;
+    for (const evId of ids) {
+      const ev = events.find(e => e.id === evId);
+      if (!ev) { done++; setBatchProgress(done); continue; }
+      try {
+        const subject = ev.subject ?? selectedCalendar?.subject ?? "English";
+        const yearGroup = ev.yearGroup ?? selectedCalendar?.yearLevel ?? YEAR_GROUPS[3];
+        const academicYear = selectedCalendar?.academicYear ?? ACADEMIC_YEARS[1];
+        const competencies = ev.competency ? [ev.competency] : [];
+        // Create blank linked plan first
+        const linked = await utils.client.planner.createLinkedLessonPlan.mutate({
+          calendarEventId: evId,
+          title: ev.title,
+          subject,
+          yearGroup,
+          academicYear,
+        });
+        // Then AI-generate content
+        await utils.client.planner.aiGenerateLessonPlan.mutate({
+          title: ev.title,
+          subject,
+          yearGroup,
+          academicYear,
+          competencies,
+          duration: 60,
+        });
+        void linked;
+      } catch (_) {
+        // Continue on error
+      }
+      done++;
+      setBatchProgress(done);
+    }
+    utils.planner.getEventPlanMap.invalidate();
+    setBatchRunning(false);
+    setBatchDone(true);
+    toast.success(t("cal_batch_done"));
+  };
+
   const eventLabels: Record<string, string> = {
     holiday: t("cal_event_holiday"),
     special: t("cal_event_special"),
@@ -797,36 +872,46 @@ export default function SchoolCalendar() {
                         <LayoutList className="w-3.5 h-3.5" />
                         <span className="hidden sm:inline">{showTermView ? t("cal_month_view") : t("cal_term_overview")}</span>
                       </Button>
-                      <Button variant="outline" size="sm" onClick={handleExportPdf} disabled={isPdfExporting} className="gap-1.5" title={t("cal_export_pdf")}>
-                        <Download className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">{isPdfExporting ? "…" : t("cal_export_pdf")}</span>
-                      </Button>
-                      <Button variant="outline" size="sm" className="gap-1.5" title={t("export_csv")}
-                        onClick={() => {
-                          const evts = Object.values(eventsByDate).flat();
-                          exportToCsv(selectedCalendar?.name ?? "calendar", evts.map(ev => ({
-                            date: String(ev.eventDate),
-                            title: ev.title,
-                            type: ev.eventType,
-                            description: ev.description ?? "",
-                          })));
-                        }}>
-                        <Download className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">{t("export_csv")}</span>
-                      </Button>
-                      <Button variant="outline" size="sm" className="gap-1.5" title={t("export_xml")}
-                        onClick={() => {
-                          const evts = Object.values(eventsByDate).flat();
-                          exportToXml(selectedCalendar?.name ?? "calendar", "calendar", evts.map(ev => ({
-                            date: String(ev.eventDate),
-                            title: ev.title,
-                            type: ev.eventType,
-                            description: ev.description ?? "",
-                          })), "event");
-                        }}>
-                        <Download className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">{t("export_xml")}</span>
-                      </Button>
+                      <ExportDropdown
+                        size="sm"
+                        options={[
+                          {
+                            key: "pdf",
+                            icon: <PdfIcon />,
+                            label: t("cal_export_pdf"),
+                            onClick: handleExportPdf,
+                          },
+                          {
+                            key: "csv",
+                            icon: <CsvIcon />,
+                            label: t("export_csv"),
+                            separator: true,
+                            onClick: () => {
+                              const evts = Object.values(eventsByDate).flat();
+                              exportToCsv(selectedCalendar?.name ?? "calendar", evts.map(ev => ({
+                                date: String(ev.eventDate),
+                                title: ev.title,
+                                type: ev.eventType,
+                                description: ev.description ?? "",
+                              })));
+                            },
+                          },
+                          {
+                            key: "xml",
+                            icon: <XmlIcon />,
+                            label: t("export_xml"),
+                            onClick: () => {
+                              const evts = Object.values(eventsByDate).flat();
+                              exportToXml(selectedCalendar?.name ?? "calendar", "calendar", evts.map(ev => ({
+                                date: String(ev.eventDate),
+                                title: ev.title,
+                                type: ev.eventType,
+                                description: ev.description ?? "",
+                              })), "event");
+                            },
+                          },
+                        ]}
+                      />
                       <Button variant="outline" size="sm" onClick={() => {
                         const cal = selectedCalendar as SchoolCalendar;
                         setAiForm(f => ({ ...f, terms: getDefaultTermsForYear(cal.academicYear) }));
@@ -834,6 +919,10 @@ export default function SchoolCalendar() {
                       }} className="gap-1.5" title={t("cal_ai_infill")}>
                         <Sparkles className="w-3.5 h-3.5" />
                         <span className="hidden sm:inline">{t("cal_ai_infill")}</span>
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={openBatchDialog} className="gap-1.5 text-teal-700 border-teal-300 hover:bg-teal-50" title={t("cal_batch_generate")}>
+                        <ListChecks className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">{t("cal_batch_generate")}</span>
                       </Button>
                       {(selectedCalendar as SchoolCalendar).linkedGroupId ? (
                         <Button variant="outline" size="sm" onClick={() => unlinkGroupMutation.mutate({ calendarId: selectedCalendarId! })} disabled={unlinkGroupMutation.isPending} className="gap-1.5 text-amber-700 border-amber-300 hover:bg-amber-50" title={(classGroupsList as any[]).find(g => g.id === (selectedCalendar as SchoolCalendar).linkedGroupId)?.className ?? t("cal_link_group")}>
@@ -1831,6 +1920,98 @@ export default function SchoolCalendar() {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* ── Batch Lesson Plan Generation Dialog ─────────────────────────────── */}
+      <Dialog open={showBatchDialog} onOpenChange={v => { if (!batchRunning) setShowBatchDialog(v); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ListChecks className="w-5 h-5 text-teal-600" />
+              {t("cal_batch_dialog_title")}
+            </DialogTitle>
+          </DialogHeader>
+
+          {eventsWithoutPlan.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">{t("cal_batch_no_events")}</p>
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground">{t("cal_batch_dialog_desc")}</p>
+
+              {/* Select all / deselect all */}
+              {!batchRunning && !batchDone && (
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setBatchSelected(new Set(eventsWithoutPlan.map(e => e.id)))}>
+                    {t("cal_batch_select_all")}
+                  </Button>
+                  <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setBatchSelected(new Set())}>
+                    {t("cal_batch_deselect_all")}
+                  </Button>
+                </div>
+              )}
+
+              {/* Event checklist */}
+              {!batchRunning && !batchDone && (
+                <div className="max-h-60 overflow-y-auto space-y-1.5 border rounded-md p-2">
+                  {eventsWithoutPlan.map(ev => (
+                    <div key={ev.id} className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        id={`batch-ev-${ev.id}`}
+                        checked={batchSelected.has(ev.id)}
+                        onCheckedChange={v => setBatchSelected(prev => {
+                          const next = new Set(prev);
+                          if (v) next.add(ev.id); else next.delete(ev.id);
+                          return next;
+                        })}
+                      />
+                      <label htmlFor={`batch-ev-${ev.id}`} className="cursor-pointer flex-1 truncate">
+                        <span className="font-medium">{ev.title}</span>
+                        <span className="text-muted-foreground ml-1.5 text-xs">{String(ev.eventDate)}</span>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Progress */}
+              {batchRunning && (
+                <div className="space-y-2 py-2">
+                  <p className="text-sm text-center text-muted-foreground">
+                    {t("cal_batch_progress").replace("{{done}}", String(batchProgress)).replace("{{total}}", String(batchTotal))}
+                  </p>
+                  <Progress value={batchTotal > 0 ? Math.round((batchProgress / batchTotal) * 100) : 0} className="h-2" />
+                </div>
+              )}
+
+              {/* Done state */}
+              {batchDone && (
+                <div className="flex items-center gap-2 text-sm text-teal-700 bg-teal-50 rounded-md p-3">
+                  <Check className="w-4 h-4 shrink-0" />
+                  <span>{t("cal_batch_done")}</span>
+                </div>
+              )}
+            </>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBatchDialog(false)} disabled={batchRunning}>
+              {t("cancel")}
+            </Button>
+            {!batchDone && eventsWithoutPlan.length > 0 && (
+              <Button
+                onClick={runBatchGeneration}
+                disabled={batchRunning || batchSelected.size === 0}
+                className="gap-2 bg-teal-600 hover:bg-teal-700"
+              >
+                {batchRunning ? (
+                  <><RefreshCw className="w-4 h-4 animate-spin" /> {t("cal_batch_generating")}</>
+                ) : (
+                  <><ListChecks className="w-4 h-4" /> {t("cal_batch_confirm")} ({batchSelected.size})</>
+                )}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

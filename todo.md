@@ -1626,3 +1626,21 @@
 - [x] Presentation: add CSV and XML export buttons for slide content
 - [x] Challenge: add CSV and XML export buttons for session results
 - [x] Add i18n keys for "Export CSV" and "Export XML" in EN/ES/CA
+
+## Feature: Unified Export dropdown menu
+- [x] Create shared ExportDropdown component with Print, PDF, PNG, Word, CSV, XML options
+- [x] Replace individual export buttons in MaterialView with ExportDropdown
+- [x] Replace individual export buttons in SampleQuestions with ExportDropdown
+- [x] Replace individual export buttons in LessonPlanner with ExportDropdown
+- [x] Replace individual export buttons in SchoolCalendar with ExportDropdown
+- [x] Replace individual export buttons in Presentation with ExportDropdown
+- [x] Replace individual export buttons in Challenge results with ExportDropdown
+
+## Feature: Batch lesson plan creation from calendar
+- [x] Add "Generate All Plans" button to SchoolCalendar toolbar
+- [x] Dialog shows all events in current month that don't yet have a linked lesson plan
+- [x] Teacher can select/deselect individual events before generating
+- [x] On confirm, call aiGenerateLessonPlan for each selected event in sequence
+- [x] Show progress bar/counter (e.g. "Generating 3 of 7...")
+- [x] Show success/failure summary when batch is complete
+- [x] Add i18n keys for batch generation UI in EN/ES/CA

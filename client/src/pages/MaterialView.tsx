@@ -21,6 +21,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
+import ExportDropdown, { PrintIcon, PdfIcon, WordIcon, PngIcon, CsvIcon, XmlIcon } from "@/components/ExportDropdown";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -954,6 +955,16 @@ function ExportToolbar({
     setTimeout(() => printWithMeta(contentId, title, meta, type, content), 150);
   }
 
+  const exportOptions = [
+    { key: "print", icon: <PrintIcon />, label: t("material_print"), onClick: () => setPrintDialogOpen(true) },
+    { key: "pdf", icon: <PdfIcon />, label: "PDF", onClick: () => run(() => exportPDF(contentId, slug), "pdf") },
+    { key: "word", icon: <WordIcon />, label: "Word", onClick: () => run(() => exportWord(type, content as never, slug, showAnswers), "word") },
+    ...(hasTwoVersions ? [{ key: "word-blank", icon: <WordIcon />, label: "Word (no answers)", onClick: () => run(() => exportWord(type, content as never, `${slug}-no-answers`, false), "word-blank") }] : []),
+    { key: "png", icon: <PngIcon />, label: "PNG", onClick: () => run(() => exportPNG(contentId, slug), "png") },
+    { key: "csv", icon: <CsvIcon />, label: t("export_csv"), separator: true, onClick: () => { const rows = materialToRows(type, content as never); exportToCsv(slug, rows); } },
+    { key: "xml", icon: <XmlIcon />, label: t("export_xml"), onClick: () => { const rows = materialToRows(type, content as never); exportToXml(slug, type, rows); } },
+  ];
+
   return (
     <>
     <div className="flex flex-wrap gap-2 items-center">
@@ -962,46 +973,7 @@ function ExportToolbar({
           {showAnswers ? t("material_showing_answers") : t("material_show_answers")}
         </Button>
       )}
-      <Button size="sm" variant="outline" onClick={() => setPrintDialogOpen(true)} disabled={!!exporting}>
-        <Printer className="w-4 h-4 mr-1.5" />
-        Print
-      </Button>
-      <Button size="sm" variant="outline"
-        onClick={() => run(() => exportPDF(contentId, slug), "pdf")} disabled={!!exporting}>
-        {exporting === "pdf" ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <FileText className="w-4 h-4 mr-1.5" />}
-        PDF
-      </Button>
-      <Button size="sm" variant="outline"
-        onClick={() => run(() => exportWord(type, content as never, slug, showAnswers), "word")}
-        disabled={!!exporting}>
-        {exporting === "word" ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <FileDown className="w-4 h-4 mr-1.5" />}
-        Word
-      </Button>
-      {hasTwoVersions && (
-        <Button size="sm" variant="outline"
-          onClick={() => run(() => exportWord(type, content as never, `${slug}-no-answers`, false), "word-blank")}
-          disabled={!!exporting}>
-          {exporting === "word-blank" ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <FileDown className="w-4 h-4 mr-1.5" />}
-          Word (no answers)
-        </Button>
-      )}
-      <Button size="sm" variant="outline"
-        onClick={() => run(() => exportPNG(contentId, slug), "png")} disabled={!!exporting}>
-        {exporting === "png" ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Image className="w-4 h-4 mr-1.5" />}
-        PNG
-      </Button>
-      <Button size="sm" variant="outline"
-        onClick={() => { const rows = materialToRows(type, content as never); exportToCsv(slug, rows); }}
-        disabled={!!exporting}>
-        <FileDown className="w-4 h-4 mr-1.5" />
-        {t("export_csv")}
-      </Button>
-      <Button size="sm" variant="outline"
-        onClick={() => { const rows = materialToRows(type, content as never); exportToXml(slug, type, rows); }}
-        disabled={!!exporting}>
-        <FileDown className="w-4 h-4 mr-1.5" />
-        {t("export_xml")}
-      </Button>
+      <ExportDropdown options={exportOptions} />
     </div>
 
     {/* Print metadata dialog */}
