@@ -684,6 +684,16 @@ export default function LessonPlanner() {
     }
     setRegeneratingSection(null);
     setFillAllProgress(null);
+    // Auto-save the plan with the filled content
+    if (selectedId) {
+      try {
+        await utils.client.planner.saveLessonPlan.mutate({ id: selectedId, ...formToSave(currentForm) });
+        utils.planner.listLessonPlans.invalidate();
+        setIsDirty(false);
+      } catch (e: any) {
+        toast.error(`Auto-save failed: ${e.message}`);
+      }
+    }
     toast.success(t("lp_all_sections_filled"), {
       action: {
         label: "Undo",
@@ -942,7 +952,14 @@ export default function LessonPlanner() {
               <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">{t("lp_section_info")}</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label>{t("lp_lesson_title")}</Label>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Label>{t("lp_lesson_title")}</Label>
+                    {selectedId && (
+                      <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-teal-500" title={t("lp_regen_section")} disabled={!!regeneratingSection} onClick={() => handleRegenSection("title")}>
+                        {regeneratingSection === "title" ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                      </Button>
+                    )}
+                  </div>
                   <Input value={form.title} onChange={e => setField("title", e.target.value)} placeholder={t('lp_ph_title')} />
                 </div>
                 {/* Row 1: unit / lesson no / academic year / duration / session time — 2 cols on mobile, 5 on lg */}
@@ -1000,7 +1017,14 @@ export default function LessonPlanner() {
               <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">{t("lp_section_skills")}</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label className="mb-2 block">{t("lp_skills")}</Label>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Label>{t("lp_skills")}</Label>
+                    {selectedId && (
+                      <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-teal-500" title={t("lp_regen_section")} disabled={!!regeneratingSection} onClick={() => handleRegenSection("skills")}>
+                        {regeneratingSection === "skills" ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                      </Button>
+                    )}
+                  </div>
                   <div className="flex flex-wrap gap-4">
                     {SKILL_KEYS.map(k => (
                       <div key={k} className="flex items-center gap-2">
@@ -1011,7 +1035,14 @@ export default function LessonPlanner() {
                   </div>
                 </div>
                 <div>
-                  <Label className="mb-2 block">{t("lp_language_systems")}</Label>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Label>{t("lp_language_systems")}</Label>
+                    {selectedId && (
+                      <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-teal-500" title={t("lp_regen_section")} disabled={!!regeneratingSection} onClick={() => handleRegenSection("systems")}>
+                        {regeneratingSection === "systems" ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                      </Button>
+                    )}
+                  </div>
                   <div className="flex flex-wrap gap-4">
                     {SYSTEM_KEYS.map(k => (
                       <div key={k} className="flex items-center gap-2">

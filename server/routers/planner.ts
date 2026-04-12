@@ -1779,7 +1779,7 @@ Generate a detailed lesson plan with specific activities for each procedure stag
   aiRegenerateSection: protectedProcedure
     .input(z.object({
       planId: z.number(),
-      section: z.enum(["skills", "systems", "specificCompetences", "saberesBasicos", "learningOutcomes", "evaluationCriteria", "previousKnowledge", "materials", "spaces", "procedures"]),
+      section: z.enum(["title", "skills", "systems", "specificCompetences", "saberesBasicos", "learningOutcomes", "evaluationCriteria", "previousKnowledge", "materials", "spaces", "procedures"]),
       /** Plan context for the LLM */
       title: z.string(),
       subject: z.string(),
@@ -1797,6 +1797,7 @@ Generate a detailed lesson plan with specific activities for each procedure stag
       if (!plan) throw new TRPCError({ code: "NOT_FOUND", message: "Plan not found" });
 
       const sectionLabels: Record<string, string> = {
+        title: "A specific, descriptive lesson title naming the exact topic/skill being taught (e.g. 'Introducing the Present Perfect: Life Experiences'). Return a plain string — no JSON, no quotes, just the title.",
         skills: "Language skills focus (listening, speaking, reading, writing) — return JSON object with boolean values for each skill",
         systems: "Language systems focus (grammar, phonology, lexis, function, discourse) — return JSON object with boolean values for each system",
         specificCompetences: "Specific LOMLOE competences (e.g. CCL-1, CCL-2, STEM-3) — return JSON array of 1-3 strings",
@@ -1810,6 +1811,7 @@ Generate a detailed lesson plan with specific activities for each procedure stag
       };
 
       const isJsonField = ["skills", "systems", "specificCompetences", "saberesBasicos", "learningOutcomes", "evaluationCriteria", "procedures"].includes(input.section);
+      const isPlainTextField = ["title", "previousKnowledge", "materials", "spaces"].includes(input.section);
 
       const resp = await invokeLLM({
         messages: [

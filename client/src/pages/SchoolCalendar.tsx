@@ -667,6 +667,15 @@ export default function SchoolCalendar() {
     }
     setRegeneratingSection(null);
     setFillAllProgress(null);
+    // Auto-save the plan with the filled content
+    if (planSheetPlanId) {
+      try {
+        await utils.client.planner.saveLessonPlan.mutate({ id: planSheetPlanId, ...lessonFormToSave(currentForm), calendarEventId: planSheetEventId ?? undefined });
+        setPlanFormDirty(false);
+      } catch (e: any) {
+        toast.error(`Auto-save failed: ${e.message}`);
+      }
+    }
     const snap = preAiSnapshotRef.current;
     toast.success(t("lp_all_sections_filled") ?? "All empty sections filled", {
       action: {
@@ -2939,7 +2948,14 @@ export default function SchoolCalendar() {
             {/* ─ Header Info ─ */}
             <div className="space-y-3">
               <div>
-                <Label className="text-xs">{t("lp_lesson_title")}</Label>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Label className="text-xs">{t("lp_lesson_title")}</Label>
+                  {planSheetPlanId && (
+                    <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-teal-500" title={t("lp_regen_section")} disabled={!!regeneratingSection} onClick={() => handleRegenSection("title")}>
+                      {regeneratingSection === "title" ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                    </Button>
+                  )}
+                </div>
                 <Input value={planForm.title} onChange={e => setPlanField("title", e.target.value)} placeholder={t("lp_ph_title")} />
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -3006,7 +3022,14 @@ export default function SchoolCalendar() {
             <div className="space-y-2">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t("lp_section_skills")}</p>
               <div>
-                <Label className="text-xs mb-1 block">{t("lp_skills")}</Label>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Label className="text-xs">{t("lp_skills")}</Label>
+                  {planSheetPlanId && (
+                    <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-teal-500" title={t("lp_regen_section")} disabled={!!regeneratingSection} onClick={() => handleRegenSection("skills")}>
+                      {regeneratingSection === "skills" ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                    </Button>
+                  )}
+                </div>
                 <div className="flex flex-wrap gap-3">
                   {LP_SKILL_KEYS.map(k => (
                     <div key={k} className="flex items-center gap-1.5">
@@ -3017,7 +3040,14 @@ export default function SchoolCalendar() {
                 </div>
               </div>
               <div>
-                <Label className="text-xs mb-1 block">{t("lp_language_systems")}</Label>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Label className="text-xs">{t("lp_language_systems")}</Label>
+                  {planSheetPlanId && (
+                    <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-teal-500" title={t("lp_regen_section")} disabled={!!regeneratingSection} onClick={() => handleRegenSection("systems")}>
+                      {regeneratingSection === "systems" ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                    </Button>
+                  )}
+                </div>
                 <div className="flex flex-wrap gap-3">
                   {LP_SYSTEM_KEYS.map(k => (
                     <div key={k} className="flex items-center gap-1.5">
