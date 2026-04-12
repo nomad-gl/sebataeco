@@ -140,6 +140,8 @@ export const plannerRouter = router({
       topicDescription: z.string().max(2000).nullish(),
       lessonDays: z.string().nullish(),
       region: z.string().nullish(),
+      defaultStartTime: z.string().nullish(),
+      defaultEndTime: z.string().nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();

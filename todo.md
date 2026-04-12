@@ -1844,3 +1844,9 @@
 - [x] Find Context & Resources fields in LessonFormState and planToLessonForm
 - [x] Check AI prompt returns these fields and they are mapped correctly
 - [x] Fix root cause: server now returns JSON-stringified fields; frontend immediately populates form from mutation response before cache re-fetch; getLessonPlan cache invalidated before fetch in both LessonPlanner and SchoolCalendar
+
+## Bug: Session time inputs not showing in Edit Calendar event dialog
+- [x] Find start/end time fields in the Add/Edit event dialog JSX
+- [x] Fix rendering issue: time fields were in Add/Edit event dialogs but NOT in the Edit Calendar settings dialog
+- [x] Added Default Session Time fields to Edit Calendar dialog (saved to DB)
+- [x] Pre-fill Add Event form with calendar default times when opening the dialog

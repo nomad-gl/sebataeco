@@ -191,6 +191,8 @@ const emptyCalForm = (academicYear = ACADEMIC_YEARS[1]) => {
     topicDescription: "",
     lessonDays: "" as string, // JSON-encoded array e.g. '[1,3,5]'
     region: "catalonia" as string,
+    defaultStartTime: "",
+    defaultEndTime: "",
   };
 };
 
@@ -610,7 +612,7 @@ export default function SchoolCalendar() {
   const openAdd = (date: Date, type?: string) => {
     if (!selectedCalendarId) { toast.error(t("cal_select_first")); return; }
     setSelectedDate(date.toISOString().split("T")[0]);
-    setForm({ eventType: type ?? "lesson", title: "", description: "", competency: "", yearGroup: selectedCalendar?.yearLevel ?? "", subject: selectedCalendar?.subject ?? "", startTime: "", endTime: "" });
+    setForm({ eventType: type ?? "lesson", title: "", description: "", competency: "", yearGroup: selectedCalendar?.yearLevel ?? "", subject: selectedCalendar?.subject ?? "", startTime: (selectedCalendar as any)?.defaultStartTime ?? "", endTime: (selectedCalendar as any)?.defaultEndTime ?? "" });
     setShowAddDialog(true);
   };
 
@@ -949,7 +951,7 @@ export default function SchoolCalendar() {
                 </div>
                 {selectedCalendarId === cal.id && (
                   <button
-                    onClick={e => { e.stopPropagation(); setCalForm({ name: cal.name, schoolName: cal.schoolName ?? "", tutorName: cal.tutorName ?? "", subject: cal.subject ?? "English", yearLevel: cal.yearLevel ?? YEAR_GROUPS[3], academicYear: cal.academicYear, calendarType: (cal as SchoolCalendar).calendarType ?? "full_year", startDate: (cal as SchoolCalendar).startDate ? new Date((cal as SchoolCalendar).startDate as string).toISOString().split("T")[0] : "", endDate: (cal as SchoolCalendar).endDate ? new Date((cal as SchoolCalendar).endDate as string).toISOString().split("T")[0] : "", topicDescription: (cal as SchoolCalendar).topicDescription ?? "", lessonDays: (cal as SchoolCalendar).lessonDays ?? "", region: (cal as any).region ?? "catalonia" }); setShowEditCalDialog(true); }}
+                    onClick={e => { e.stopPropagation(); setCalForm({ name: cal.name, schoolName: cal.schoolName ?? "", tutorName: cal.tutorName ?? "", subject: cal.subject ?? "English", yearLevel: cal.yearLevel ?? YEAR_GROUPS[3], academicYear: cal.academicYear, calendarType: (cal as SchoolCalendar).calendarType ?? "full_year", startDate: (cal as SchoolCalendar).startDate ? new Date((cal as SchoolCalendar).startDate as string).toISOString().split("T")[0] : "", endDate: (cal as SchoolCalendar).endDate ? new Date((cal as SchoolCalendar).endDate as string).toISOString().split("T")[0] : "", topicDescription: (cal as SchoolCalendar).topicDescription ?? "", lessonDays: (cal as SchoolCalendar).lessonDays ?? "", region: (cal as any).region ?? "catalonia", defaultStartTime: (cal as any).defaultStartTime ?? "", defaultEndTime: (cal as any).defaultEndTime ?? "" }); setShowEditCalDialog(true); }}
                     className="opacity-0 group-hover:opacity-100 shrink-0 mt-0.5"
                   >
                     <Pencil className="w-3 h-3 text-muted-foreground" />
@@ -1745,6 +1747,31 @@ export default function SchoolCalendar() {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">{t("cal_region_hint")}</p>
+            </div>
+            {/* Default session time */}
+            <div>
+              <Label className="text-sm font-medium mb-2 block">{t("cal_default_session_time")}</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs text-muted-foreground">{t("cal_start_time")}</Label>
+                  <input
+                    type="time"
+                    value={calForm.defaultStartTime}
+                    onChange={e => setCalForm(f => ({ ...f, defaultStartTime: e.target.value }))}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">{t("cal_end_time")}</Label>
+                  <input
+                    type="time"
+                    value={calForm.defaultEndTime}
+                    onChange={e => setCalForm(f => ({ ...f, defaultEndTime: e.target.value }))}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">{t("cal_default_session_time_hint")}</p>
             </div>
           </div>
           <DialogFooter className="flex justify-between">

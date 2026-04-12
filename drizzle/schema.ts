@@ -495,6 +495,10 @@ export const schoolCalendars = mysqlTable("school_calendars", {
   lessonDays: varchar("lessonDays", { length: 32 }),
   /** Spanish autonomous community for regional holiday auto-insert, e.g. 'catalonia' */
   region: varchar("region", { length: 32 }).default("catalonia"),
+  /** Default lesson start time for this calendar, e.g. '09:00' — pre-fills new lesson events */
+  defaultStartTime: varchar("defaultStartTime", { length: 8 }),
+  /** Default lesson end time for this calendar, e.g. '10:00' — pre-fills new lesson events */
+  defaultEndTime: varchar("defaultEndTime", { length: 8 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
