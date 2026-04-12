@@ -620,6 +620,65 @@ export default function SchoolCalendar() {
     });
   };
 
+  const [fillAllProgress, setFillAllProgress] = useState<{ current: number; total: number } | null>(null);
+
+  const handleFillAllEmpty = async () => {
+    if (!planSheetPlanId) return;
+    const isBlankArray = (v: string[]) => !v || v.every(s => !s.trim());
+    const isBlankStr = (v: string) => !v || !v.trim();
+    const isBlankProcs = (v: any[]) => !v || v.every(p => !p.activities?.trim());
+    const isAllFalse = (v: Record<string, boolean>) => !v || !Object.values(v).some(Boolean);
+    const sectionsToFill: string[] = [];
+    if (isAllFalse(planForm.skills)) sectionsToFill.push("skills");
+    if (isAllFalse(planForm.systems)) sectionsToFill.push("systems");
+    if (isBlankArray(planForm.specificCompetences)) sectionsToFill.push("specificCompetences");
+    if (isBlankArray(planForm.saberesBasicos)) sectionsToFill.push("saberesBasicos");
+    if (isBlankArray(planForm.learningOutcomes)) sectionsToFill.push("learningOutcomes");
+    if (isBlankArray(planForm.evaluationCriteria)) sectionsToFill.push("evaluationCriteria");
+    if (isBlankStr(planForm.previousKnowledge)) sectionsToFill.push("previousKnowledge");
+    if (isBlankStr(planForm.materials)) sectionsToFill.push("materials");
+    if (isBlankProcs(planForm.procedures)) sectionsToFill.push("procedures");
+    if (sectionsToFill.length === 0) { toast.info(t("lp_all_sections_filled") ?? "All sections already filled"); return; }
+    preAiSnapshotRef.current = { ...planForm };
+    const total = sectionsToFill.length;
+    let currentForm = { ...planForm };
+    for (let i = 0; i < sectionsToFill.length; i++) {
+      const section = sectionsToFill[i];
+      setFillAllProgress({ current: i + 1, total });
+      setRegeneratingSection(section);
+      try {
+        const data = await utils.client.planner.aiRegenerateSection.mutate({
+          planId: planSheetPlanId,
+          section: section as any,
+          title: currentForm.title,
+          subject: currentForm.subject,
+          yearGroup: currentForm.yearGroup,
+          duration: currentForm.duration,
+          unit: currentForm.unit || undefined,
+          competencies: currentForm.competencies,
+        });
+        const parsed = (() => { try { return JSON.parse(data.value); } catch { return data.value; } })();
+        currentForm = { ...currentForm, [data.section]: parsed };
+        setPlanField(data.section as any, parsed);
+        setPlanFormDirty(true);
+      } catch (e: any) {
+        toast.error(`Failed to fill ${section}: ${e.message}`);
+      }
+    }
+    setRegeneratingSection(null);
+    setFillAllProgress(null);
+    const snap = preAiSnapshotRef.current;
+    toast.success(t("lp_all_sections_filled") ?? "All empty sections filled", {
+      action: {
+        label: "Undo",
+        onClick: () => {
+          if (snap) { Object.keys(snap).forEach(k => setPlanField(k as any, (snap as any)[k])); preAiSnapshotRef.current = null; }
+        },
+      },
+      duration: 10000,
+    });
+  };
+
   const createLinkedPlanMutation = trpc.planner.createLinkedLessonPlan.useMutation({
     onSuccess: (data) => {
       utils.planner.getEventPlanMap.invalidate();
@@ -2827,6 +2886,13 @@ export default function SchoolCalendar() {
                     <Button size="sm" variant="outline" onClick={handleBackfillDurations} disabled={backfillDurationsMutation.isPending || planSheetAiGenerating} title={t("lp_backfill_durations")} className="gap-1 text-amber-700 border-amber-300 hover:bg-amber-50">
                       <RefreshCw className="w-3.5 h-3.5" />
                       <span className="hidden sm:inline">{t("lp_backfill_durations")}</span>
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={handleFillAllEmpty} disabled={!!regeneratingSection || planSheetAiGenerating} title={t("lp_fill_all_empty")} className="gap-1 text-emerald-700 border-emerald-300 hover:bg-emerald-50">
+                      {fillAllProgress ? (
+                        <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span className="hidden sm:inline text-xs">{(t("lp_filling_sections") ?? "Filling {{current}} of {{total}}").replace("{{current}}", String(fillAllProgress.current)).replace("{{total}}", String(fillAllProgress.total))}</span></>
+                      ) : (
+                        <><Sparkles className="w-3.5 h-3.5" /><span className="hidden sm:inline">{t("lp_fill_all_empty")}</span></>
+                      )}
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => setShowRegenConfirm(true)} disabled={planSheetAiGenerating || savePlanMutation.isPending} className="gap-1 text-teal-700 border-teal-300 hover:bg-teal-50">
                       <Sparkles className="w-3.5 h-3.5" />

@@ -2047,3 +2047,10 @@
 ## Bug: Lesson plan AI generation not populating form fields
 - [x] Diagnose why aiGenerateLessonPlan does not populate the lesson plan form after generation
 - [x] Fix the root cause: (1) race condition — getLessonPlan.fetch was overwriting the form with a stale/null DB row before the insert committed; removed the re-fetch for new plans. (2) typo in server empty-check strings '[""]]' → replaced with robust anyNonEmpty() helper. (3) skills/systems default check replaced with anyTrue() helper that parses JSON and checks for any true value.
+
+## Feature: Fill All Empty Sections button
+- [x] LessonPlanner: add "Fill all empty sections" button in the plan header area; clicking it sequentially calls aiRegenerateSection for each blank section (specificCompetences, saberesBasicos, learningOutcomes, evaluationCriteria, previousKnowledge, materials, spaces, procedures) and updates the form after each
+- [x] SchoolCalendar plan sheet: same button in the plan sheet header
+- [x] Show a progress indicator (e.g. "Filling 3/6 sections...") while running
+- [x] Disable all other AI buttons while fill-all is running
+- [x] Snapshot form before starting for undo support

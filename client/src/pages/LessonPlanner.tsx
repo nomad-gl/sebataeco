@@ -593,6 +593,7 @@ export default function LessonPlanner() {
   const preAiSnapshotRef = useRef<LessonFormState | null>(null);
 
   const [regeneratingSection, setRegeneratingSection] = useState<string | null>(null);
+  const [fillAllProgress, setFillAllProgress] = useState<{ current: number; total: number } | null>(null);
   const aiRegenSectionMutation = trpc.planner.aiRegenerateSection.useMutation({
     onSuccess: (data) => {
       const field = data.section as keyof LessonFormState;
@@ -633,6 +634,68 @@ export default function LessonPlanner() {
       duration: form.duration,
       unit: form.unit || undefined,
       competencies: form.competencies,
+    });
+  };
+
+  const handleFillAllEmpty = async () => {
+    if (!selectedId) return;
+    // Determine which sections are blank
+    const isBlankArray = (v: string[]) => !v || v.every(s => !s.trim());
+    const isBlankStr = (v: string) => !v || !v.trim();
+    const isBlankProcs = (v: any[]) => !v || v.every(p => !p.activities?.trim());
+    const isAllFalse = (v: Record<string, boolean>) => !v || !Object.values(v).some(Boolean);
+    const sectionsToFill: string[] = [];
+    if (isAllFalse(form.skills)) sectionsToFill.push("skills");
+    if (isAllFalse(form.systems)) sectionsToFill.push("systems");
+    if (isBlankArray(form.specificCompetences)) sectionsToFill.push("specificCompetences");
+    if (isBlankArray(form.saberesBasicos)) sectionsToFill.push("saberesBasicos");
+    if (isBlankArray(form.learningOutcomes)) sectionsToFill.push("learningOutcomes");
+    if (isBlankArray(form.evaluationCriteria)) sectionsToFill.push("evaluationCriteria");
+    if (isBlankStr(form.previousKnowledge)) sectionsToFill.push("previousKnowledge");
+    if (isBlankStr(form.materials)) sectionsToFill.push("materials");
+    if (isBlankProcs(form.procedures)) sectionsToFill.push("procedures");
+    if (sectionsToFill.length === 0) { toast.info(t("lp_all_sections_filled")); return; }
+    // Snapshot for undo
+    preAiSnapshotRef.current = { ...form };
+    const total = sectionsToFill.length;
+    let currentForm = { ...form };
+    for (let i = 0; i < sectionsToFill.length; i++) {
+      const section = sectionsToFill[i];
+      setFillAllProgress({ current: i + 1, total });
+      setRegeneratingSection(section);
+      try {
+        const data = await utils.client.planner.aiRegenerateSection.mutate({
+          planId: selectedId,
+          section: section as any,
+          title: currentForm.title,
+          subject: currentForm.subject,
+          yearGroup: currentForm.yearGroup,
+          duration: currentForm.duration,
+          unit: currentForm.unit || undefined,
+          competencies: currentForm.competencies,
+        });
+        const parsed = (() => { try { return JSON.parse(data.value); } catch { return data.value; } })();
+        currentForm = { ...currentForm, [data.section]: parsed };
+        setForm({ ...currentForm });
+        setIsDirty(true);
+      } catch (e: any) {
+        toast.error(`Failed to fill ${section}: ${e.message}`);
+      }
+    }
+    setRegeneratingSection(null);
+    setFillAllProgress(null);
+    toast.success(t("lp_all_sections_filled"), {
+      action: {
+        label: "Undo",
+        onClick: () => {
+          if (preAiSnapshotRef.current) {
+            setForm(preAiSnapshotRef.current);
+            setIsDirty(true);
+            preAiSnapshotRef.current = null;
+          }
+        },
+      },
+      duration: 10000,
     });
   };
 
@@ -837,6 +900,15 @@ export default function LessonPlanner() {
                 {selectedId && (
                   <Button variant="outline" size="sm" onClick={() => deleteMutation.mutate({ id: selectedId })} className="text-red-600 hover:text-red-700">
                     <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
+                {selectedId && (
+                  <Button variant="outline" size="sm" onClick={handleFillAllEmpty} disabled={!!regeneratingSection} className="gap-1 text-teal-600 border-teal-300 hover:bg-teal-50" title={t("lp_fill_all_empty")}>
+                    {fillAllProgress ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /><span className="hidden sm:inline text-xs">{t("lp_filling_sections").replace("{{current}}", String(fillAllProgress.current)).replace("{{total}}", String(fillAllProgress.total))}</span></>
+                    ) : (
+                      <><Sparkles className="w-4 h-4" /><span className="hidden sm:inline">{t("lp_fill_all_empty")}</span></>
+                    )}
                   </Button>
                 )}
                 <Button variant="outline" size="sm" onClick={() => setShowLoadTemplateDialog(true)} className="gap-1" title={t("lp_load_template")}>
