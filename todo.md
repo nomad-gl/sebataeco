@@ -1594,3 +1594,11 @@
 ## Bug: Hard-coded English strings throughout app
 - [x] Audit all pages/components and replace every hard-coded English string with t() calls
 - [x] Add all missing keys to I18nContext in EN, ES, and CA
+
+## Feature: Rename ClaraProfilePanel to AinaProfilePanel
+- [x] Rename component file ClaraProfilePanel.tsx → AinaProfilePanel.tsx
+- [x] Update all imports across the codebase
+- [x] Rename exported component function/const from ClaraProfilePanel to AinaProfilePanel
+- [x] Replace any visible "Clara" text in the panel UI with "Aina"
+- [x] Update i18n keys: removed obsolete clara_* keys from I18nContext (EN/ES/CA); aina_* keys already in place
+- [x] All t("aina_*") calls already correct in AinaProfilePanel.tsx
