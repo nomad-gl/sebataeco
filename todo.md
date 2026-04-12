@@ -1644,3 +1644,19 @@
 - [x] Show progress bar/counter (e.g. "Generating 3 of 7...")
 - [x] Show success/failure summary when batch is complete
 - [x] Add i18n keys for batch generation UI in EN/ES/CA
+
+## Bug: Lesson plan sheet does not open when selected from calendar day panel
+- [x] Clicking "View Plan" / "Add Plan" on a calendar event in the day panel does not open the plan sheet
+- [x] Root cause: two sibling Radix Sheet components racing during open/close cycle
+- [x] Fix: replaced two separate open booleans with a single activePanel state machine so only one Sheet is ever open at a time
+
+## Feature: Lesson plan deletion from School Calendar plan sheet
+- [ ] Add a "Delete Plan" button (with confirmation) inside the lesson plan sheet header
+- [ ] Server: add deleteLessonPlan procedure that removes the plan row and unlinks it from the calendar event
+- [ ] After deletion, close the plan sheet and refresh the event plan map
+- [ ] Add i18n keys for delete confirmation dialog in EN/ES/CA
+
+## Bug: Duplicate lesson plans created for the same calendar event
+- [ ] Server: in createLinkedLessonPlan, check if a plan already exists for the calendarEventId before inserting
+- [ ] If a plan already exists, return the existing plan id instead of creating a new one
+- [ ] Client: in openPlanSheet, skip calling createLinkedPlanMutation if eventPlanMap already has a plan for the event

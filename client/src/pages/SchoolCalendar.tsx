@@ -213,10 +213,22 @@ export default function SchoolCalendar() {
 
   // ── Day Panel (click a calendar day to see/edit its events) ───────────────
   const [dayPanelDate, setDayPanelDate] = useState<string | null>(null);
-  const [showDayPanel, setShowDayPanel] = useState(false);
+  // ── Panel state: only one sheet open at a time to avoid Radix focus conflicts ──
+  type ActivePanel = "day" | "plan" | null;
+  const [activePanel, setActivePanel] = useState<ActivePanel>(null);
+  const showDayPanel = activePanel === "day";
+  const setShowDayPanel = (v: boolean | ((prev: boolean) => boolean)) => {
+    const next = typeof v === "function" ? v(activePanel === "day") : v;
+    setActivePanel(next ? "day" : null);
+  };
+  const showPlanSheet = activePanel === "plan";
+  const setShowPlanSheet = (v: boolean | ((prev: boolean) => boolean)) => {
+    const next = typeof v === "function" ? v(activePanel === "plan") : v;
+    setActivePanel(next ? "plan" : null);
+  };
 
   // ── Inline Lesson Plan Sheet ───────────────────────────────────────────────
-  const [showPlanSheet, setShowPlanSheet] = useState(false);
+  // (showPlanSheet / setShowPlanSheet derived above)
   const [planSheetEventId, setPlanSheetEventId] = useState<number | null>(null);
   const [planSheetPlanId, setPlanSheetPlanId] = useState<number | null>(null);
   const [planForm, setPlanForm] = useState<LessonFormState>(emptyLessonForm());
@@ -1659,7 +1671,7 @@ export default function SchoolCalendar() {
                           size="sm"
                           variant="outline"
                           className="h-7 px-2 gap-1 text-xs bg-white/60 hover:bg-white"
-                          onClick={() => { setShowDayPanel(false); setTimeout(() => openPlanSheet(ev), 150); }}
+                          onClick={() => { openPlanSheet(ev); }}
                         >
                           <ClipboardList className="w-3 h-3" />
                           {hasPlan ? t("cal_view_plan") : t("cal_add_plan")}
