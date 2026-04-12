@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, Plus, Sparkles, Trash2, CalendarDays,
   ExternalLink, LayoutList, Pencil, School, BookOpen, User, GraduationCap,
   FolderOpen, X, Check, Download, Link, Unlink, Users, Save, ClipboardList,
-  ListChecks, RefreshCw, FileDown, Hash, Mic, MicOff, Volume2, VolumeX, ChevronDown, Loader2,
+  ListChecks, RefreshCw, FileDown, Hash, Mic, MicOff, Volume2, VolumeX, ChevronDown, Loader2, Copy,
 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useLocation } from "wouter";
@@ -559,6 +559,35 @@ export default function SchoolCalendar() {
     },
     onError: (e) => toast.error(e.message),
   });
+
+  // ── Copy plan to another calendar ────────────────────────────────────────
+  const [showCopyPlanDialog, setShowCopyPlanDialog] = useState(false);
+  const [copyTargetCalendarId, setCopyTargetCalendarId] = useState<string>("");
+  const [copyAutoRenumber, setCopyAutoRenumber] = useState(true);
+  const copyPlanMutation = trpc.planner.copyLessonPlan.useMutation({
+    onSuccess: (data) => {
+      utils.planner.listLessonPlans.invalidate();
+      utils.planner.getEventPlanMap.invalidate();
+      setShowCopyPlanDialog(false);
+      toast.success(t("lp_copy_success") ?? "Plan copied", {
+        description: data.lessonNumber ? `${t("lp_lesson_number_label")} ${data.lessonNumber}` : undefined,
+        action: {
+          label: t("cal_open_in_planner"),
+          onClick: () => navigate(`/lesson-planner?planId=${data.id}`),
+        },
+        duration: 8000,
+      });
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const handleCopyPlan = () => {
+    if (!planSheetPlanId) return;
+    copyPlanMutation.mutate({
+      planId: planSheetPlanId,
+      targetCalendarId: copyTargetCalendarId ? Number(copyTargetCalendarId) : undefined,
+      autoRenumber: copyAutoRenumber,
+    });
+  };
 
   // Tracks the event whose plan is currently being AI-generated so we can show a loading state
   const [planSheetAiGenerating, setPlanSheetAiGenerating] = useState(false);
@@ -2911,6 +2940,10 @@ export default function SchoolCalendar() {
                       <FileDown className="w-3.5 h-3.5" />
                       <span className="hidden sm:inline">{t("lp_export_pdf")}</span>
                     </Button>
+                    <Button size="sm" variant="outline" onClick={() => { setCopyTargetCalendarId(selectedCalendarId ? String(selectedCalendarId) : ""); setCopyAutoRenumber(true); setShowCopyPlanDialog(true); }} disabled={copyPlanMutation.isPending || planSheetAiGenerating} title={t("lp_copy_to_calendar")} className="gap-1 text-orange-700 border-orange-300 hover:bg-orange-50">
+                      <Copy className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">{t("lp_copy_to_calendar")}</span>
+                    </Button>
                     <Button size="sm" variant="outline" onClick={() => setShowDeletePlanConfirm(true)} disabled={deletePlanMutation.isPending || planSheetAiGenerating} className="gap-1 text-destructive border-destructive/40 hover:bg-destructive/10">
                       <Trash2 className="w-3.5 h-3.5" />
                       <span className="hidden sm:inline">{t("lp_delete_plan")}</span>
@@ -3331,6 +3364,57 @@ export default function SchoolCalendar() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Copy plan to calendar dialog */}
+      <Dialog open={showCopyPlanDialog} onOpenChange={(open) => { setShowCopyPlanDialog(open); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Copy className="w-4 h-4 text-orange-600" />
+              {t("lp_copy_plan_dialog_title")}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">{t("lp_copy_plan_dialog_desc")}</p>
+            <div className="space-y-1.5">
+              <Label>{t("lp_copy_target_calendar")}</Label>
+              <Select value={copyTargetCalendarId} onValueChange={setCopyTargetCalendarId}>
+                <SelectTrigger>
+                  <SelectValue placeholder={t("lp_copy_same_calendar")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="same">{t("lp_copy_same_calendar")}</SelectItem>
+                  {calendars.map((cal: any) => (
+                    <SelectItem key={cal.id} value={String(cal.id)}>{cal.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="copy-renumber"
+                checked={copyAutoRenumber}
+                onCheckedChange={(v) => setCopyAutoRenumber(!!v)}
+                className="mt-0.5"
+              />
+              <Label htmlFor="copy-renumber" className="text-sm font-normal leading-snug cursor-pointer">
+                {t("lp_copy_renumber")}
+              </Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCopyPlanDialog(false)}>{t("cal_cancel")}</Button>
+            <Button
+              onClick={handleCopyPlan}
+              disabled={copyPlanMutation.isPending}
+              className="gap-1 bg-orange-600 hover:bg-orange-700 text-white"
+            >
+              {copyPlanMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Copy className="w-3.5 h-3.5" />}
+              {t("lp_copy_btn")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

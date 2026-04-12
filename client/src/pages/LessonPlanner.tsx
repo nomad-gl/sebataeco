@@ -470,28 +470,40 @@ export default function LessonPlanner() {
     onError: (e) => toast.error(e.message),
   });
 
-  const duplicateMutation = trpc.planner.saveLessonPlan.useMutation({
+  // ── Copy plan to another calendar ────────────────────────────────────────
+  const [showCopyPlanDialog, setShowCopyPlanDialog] = useState(false);
+  const [copySourcePlan, setCopySourcePlan] = useState<any>(null);
+  const [copyTargetCalendarId, setCopyTargetCalendarId] = useState<string>("");
+  const [copyAutoRenumber, setCopyAutoRenumber] = useState(true);
+
+  const copyPlanMutation = trpc.planner.copyLessonPlan.useMutation({
     onSuccess: (data) => {
       utils.planner.listLessonPlans.invalidate();
       setSelectedId(data.id);
-      toast.success(t("planner_duplicated"));
+      setShowCopyPlanDialog(false);
+      toast.success(t("lp_copy_success") ?? "Plan copied", {
+        description: data.lessonNumber ? `${t("lp_lesson_number_label")} ${data.lessonNumber}` : undefined,
+        duration: 6000,
+      });
     },
     onError: (e) => toast.error(e.message),
   });
 
   const handleDuplicate = (plan: any) => {
-    const f = planToForm(plan);
-    duplicateMutation.mutate({
-      ...f,
-      title: f.title ? `${f.title} (${t("lp_copy_suffix")})` : t("lp_copy_suffix"),
-      skills: JSON.stringify(f.skills),
-      systems: JSON.stringify(f.systems),
-      specificCompetences: JSON.stringify(f.specificCompetences),
-      saberesBasicos: JSON.stringify(f.saberesBasicos),
-      learningOutcomes: JSON.stringify(f.learningOutcomes),
-      evaluationCriteria: JSON.stringify(f.evaluationCriteria),
-      procedures: JSON.stringify(f.procedures),
-      competencies: JSON.stringify(f.competencies),
+    // Open the copy dialog pre-filled with the source plan
+    const calId = plan.calendarId ? String(plan.calendarId) : "";
+    setCopySourcePlan(plan);
+    setCopyTargetCalendarId(calId);
+    setCopyAutoRenumber(true);
+    setShowCopyPlanDialog(true);
+  };
+
+  const handleCopyPlan = () => {
+    if (!copySourcePlan) return;
+    copyPlanMutation.mutate({
+      planId: copySourcePlan.id,
+      targetCalendarId: copyTargetCalendarId && copyTargetCalendarId !== "same" ? Number(copyTargetCalendarId) : undefined,
+      autoRenumber: copyAutoRenumber,
     });
   };
 
@@ -1595,6 +1607,59 @@ export default function LessonPlanner() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Copy plan to calendar dialog */}
+      <Dialog open={showCopyPlanDialog} onOpenChange={(open) => { setShowCopyPlanDialog(open); if (!open) setCopySourcePlan(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Copy className="w-4 h-4 text-orange-600" />
+              {t("lp_copy_plan_dialog_title")}
+            </DialogTitle>
+          </DialogHeader>
+          {copySourcePlan && (
+            <div className="space-y-4 py-2">
+              <p className="text-sm text-muted-foreground">{t("lp_copy_plan_dialog_desc")}</p>
+              <div className="space-y-1.5">
+                <Label>{t("lp_copy_target_calendar")}</Label>
+                <Select value={copyTargetCalendarId} onValueChange={setCopyTargetCalendarId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("lp_copy_same_calendar")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="same">{t("lp_copy_same_calendar")}</SelectItem>
+                    {(calendars as any[]).map((cal: any) => (
+                      <SelectItem key={cal.id} value={String(cal.id)}>{cal.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="lp-copy-renumber"
+                  checked={copyAutoRenumber}
+                  onCheckedChange={(v) => setCopyAutoRenumber(!!v)}
+                  className="mt-0.5"
+                />
+                <Label htmlFor="lp-copy-renumber" className="text-sm font-normal leading-snug cursor-pointer">
+                  {t("lp_copy_renumber")}
+                </Label>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCopyPlanDialog(false)}>{t("cal_cancel")}</Button>
+            <Button
+              onClick={handleCopyPlan}
+              disabled={copyPlanMutation.isPending}
+              className="gap-1 bg-orange-600 hover:bg-orange-700 text-white"
+            >
+              {copyPlanMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Copy className="w-3.5 h-3.5" />}
+              {t("lp_copy_btn")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

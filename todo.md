@@ -2069,3 +2069,11 @@
 - [x] LessonPlanner: after handleFillAllEmpty loop finishes, call saveMutation automatically
 - [x] SchoolCalendar plan sheet: after handleFillAllEmpty loop finishes, call savePlanMutation automatically
 - [x] Show a "Saved" confirmation in the success toast
+
+## Feature: Cross-calendar lesson plan duplication
+- [x] Server: add copyLessonPlan tRPC procedure — copies all fields from source plan, accepts targetCalendarId and optional targetEventId, and auto-renumber option
+- [x] Server: when autoRenumber=true, compute new lessonNumber based on target calendar event count
+- [x] LessonPlanner: replace simple duplicate button with "Copy to…" dialog showing calendar picker + renumber toggle
+- [x] LessonPlanner: same-calendar copy still works (no event link, no renumber needed)
+- [x] SchoolCalendar plan sheet: add "Copy to calendar…" button in plan sheet header
+- [x] i18n: add EN/ES/CA keys for copy dialog (copy_to_calendar, copy_plan_title, copy_target_calendar, copy_renumber, copy_success, copy_same_calendar)

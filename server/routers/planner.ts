@@ -1844,4 +1844,93 @@ Generate a detailed lesson plan with specific activities for each procedure stag
 
       return { section: input.section, value };
     }),
+
+  /**
+   * Copy a lesson plan to the same or a different calendar.
+   * - If targetCalendarId is provided, the copy is linked to the target calendar
+   *   (but NOT to a specific event — it becomes an unlinked plan in that calendar's context).
+   * - If targetEventId is provided, the copy is linked to that specific event.
+   * - If autoRenumber is true, the new plan's lessonNumber is recomputed for the target calendar.
+   */
+  copyLessonPlan: protectedProcedure
+    .input(z.object({
+      planId: z.number(),
+      /** Target calendar ID (required for cross-calendar copy) */
+      targetCalendarId: z.number().nullish(),
+      /** Optional: link the copy to a specific event in the target calendar */
+      targetEventId: z.number().nullish(),
+      /** Whether to recompute the lesson number for the target calendar */
+      autoRenumber: z.boolean().default(false),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      // Fetch the source plan
+      const [src] = await db
+        .select()
+        .from(lessonPlans)
+        .where(and(eq(lessonPlans.id, input.planId), eq(lessonPlans.userId, ctx.user.id)));
+      if (!src) throw new TRPCError({ code: "NOT_FOUND", message: "Plan not found" });
+
+      // Determine the new calendarEventId
+      const newEventId = input.targetEventId ?? null;
+
+      // Determine new lesson number
+      let newLessonNumber = src.lessonNumber;
+      if (input.autoRenumber) {
+        if (newEventId) {
+          // Compute based on the target event's position in the target calendar
+          newLessonNumber = await computeLessonNumber(db, ctx.user.id, newEventId, undefined);
+        } else if (input.targetCalendarId) {
+          // No specific event — count existing plans in target calendar and add 1
+          const linkedEventIds = db
+            .select({ id: schoolCalendarEvents.id })
+            .from(schoolCalendarEvents)
+            .where(eq(schoolCalendarEvents.calendarId, input.targetCalendarId));
+          const countRows = await db
+            .select({ cnt: sql<number>`COUNT(*)` })
+            .from(lessonPlans)
+            .where(and(
+              eq(lessonPlans.userId, ctx.user.id),
+              inArray(lessonPlans.calendarEventId, linkedEventIds),
+            ));
+          const count = Number(countRows[0]?.cnt ?? 0);
+          newLessonNumber = String(count + 1);
+        }
+      }
+
+      // Build the insert payload — copy all content fields, strip id/timestamps
+      const insertPayload: any = {
+        userId: ctx.user.id,
+        unit: src.unit,
+        lessonNumber: newLessonNumber,
+        lessonDate: src.lessonDate,
+        academicYear: src.academicYear,
+        duration: src.duration,
+        title: src.title,
+        yearGroup: src.yearGroup,
+        subject: src.subject,
+        skills: src.skills,
+        systems: src.systems,
+        specificCompetences: src.specificCompetences,
+        saberesBasicos: src.saberesBasicos,
+        learningOutcomes: src.learningOutcomes,
+        evaluationCriteria: src.evaluationCriteria,
+        previousKnowledge: src.previousKnowledge,
+        materials: src.materials,
+        spaces: src.spaces,
+        procedures: src.procedures,
+        competencies: src.competencies,
+        aiGenerated: src.aiGenerated,
+        sessionTime: src.sessionTime,
+        isTemplate: false,
+        ...(newEventId ? { calendarEventId: newEventId } : {}),
+      };
+
+      const result = await db.insert(lessonPlans).values(insertPayload);
+      const newId = (result as any)[0].insertId as number;
+
+      return { id: newId, lessonNumber: newLessonNumber };
+    }),
 });
