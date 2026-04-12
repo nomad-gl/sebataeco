@@ -1839,3 +1839,8 @@
 - [x] Trace lessonNumber from DB → getLessonPlan → planToLessonForm → plan sheet Lesson No. field
 - [x] Trace lessonNumber from DB → listLessonPlans → plan list card badge
 - [x] Fix the root cause: backfilled lessonDate+lessonNumber for all 60 existing plans; fixed createLinkedLessonPlan to backfill on re-open; removed falsy guard on inline number display; invalidate cache on plan open
+
+## Bug: Context & Resources card not populating in lesson plan sheet
+- [x] Find Context & Resources fields in LessonFormState and planToLessonForm
+- [x] Check AI prompt returns these fields and they are mapped correctly
+- [x] Fix root cause: server now returns JSON-stringified fields; frontend immediately populates form from mutation response before cache re-fetch; getLessonPlan cache invalidated before fetch in both LessonPlanner and SchoolCalendar

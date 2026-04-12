@@ -424,14 +424,18 @@ export default function SchoolCalendar() {
 
   const aiGeneratePlanMutation = trpc.planner.aiGenerateLessonPlan.useMutation({
     onSuccess: async (data) => {
-      // Fetch the fully-populated plan and merge it into the form
-      const plan = await utils.planner.getLessonPlan.fetch({ id: data.id });
-      if (plan) {
-        setPlanForm(planToLessonForm(plan));
-        setPlanFormDirty(false);
-      }
+      // Immediately populate the form from the mutation response (avoids stale cache)
+      setPlanForm(planToLessonForm(data));
+      setPlanFormDirty(false);
+      // Invalidate cache then re-fetch to get the fully-saved DB row
+      await utils.planner.getLessonPlan.invalidate({ id: data.id });
+      utils.planner.getLessonPlan.fetch({ id: data.id }).then(plan => {
+        if (plan) {
+          setPlanForm(planToLessonForm(plan));
+          setPlanFormDirty(false);
+        }
+      });
       utils.planner.getEventPlanMap.invalidate();
-      utils.planner.getLessonPlan.invalidate({ id: data.id });
       setPlanSheetPlanId(data.id);
       setPlanSheetAiGenerating(false);
       toast.success(t("lp_generated_toast"));

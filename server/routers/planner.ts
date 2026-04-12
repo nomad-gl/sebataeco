@@ -703,7 +703,9 @@ Return ONLY a JSON object (no markdown fences) with this exact structure:
       // If an existing plan ID is supplied, UPDATE it rather than inserting a new row
       if (input.id) {
         await db.update(lessonPlans).set(generatedFields).where(and(eq(lessonPlans.id, input.id), eq(lessonPlans.userId, ctx.user.id)));
-        return { id: input.id, ...generated };
+        // Return generatedFields (JSON-stringified) so the frontend planToForm/planToLessonForm
+        // parseJsonField calls work correctly when using the response directly (cache bypass)
+        return { id: input.id, ...generatedFields };
       }
 
       // Auto-assign lessonNumber if not provided
@@ -718,7 +720,9 @@ Return ONLY a JSON object (no markdown fences) with this exact structure:
         ...(input.lessonDate ? { lessonDate: input.lessonDate } : {}),
       });
 
-      return { id: (result as any)[0].insertId, ...generated };
+      // Return generatedFields (JSON-stringified) so the frontend planToForm/planToLessonForm
+      // parseJsonField calls work correctly when using the response directly (cache bypass)
+      return { id: (result as any)[0].insertId, ...generatedFields };
     }),
 
   /** Link a school calendar to a class group (stores groupId on the calendar) */

@@ -451,11 +451,16 @@ export default function LessonPlanner() {
     onSuccess: async (data) => {
       utils.planner.listLessonPlans.invalidate();
       setSelectedId(data.id);
+      // Immediately populate the form from the mutation response (avoids stale cache)
+      // The raw AI data has the same shape as a plan row for these fields
+      setForm(planToForm(data));
+      setIsDirty(false);
+      // Also invalidate the cache and re-fetch to get the fully-saved DB row
+      await utils.planner.getLessonPlan.invalidate({ id: data.id });
       utils.planner.getLessonPlan.fetch({ id: data.id }).then(plan => {
         if (plan) setForm(planToForm(plan));
       });
       setShowAiDialog(false);
-      setIsDirty(false);
 
       // If the user selected a date + calendar, create a calendar event and link this plan to it
       if (aiDate && aiCalendarId) {
