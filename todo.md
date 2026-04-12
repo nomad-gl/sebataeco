@@ -1795,3 +1795,6 @@
 - [x] Ensure Skills & Language Systems card is always visible (not hidden when empty)
 - [x] Ensure Lesson Procedure card is always visible with default stages when empty
 - [x] Ensure Unit and Lesson Number fields are pre-populated from the linked calendar event
+
+## Fix: School Calendar month view — academic week numbers
+- [x] Replace ISO week numbers with academic week numbers (Week 1 = first week of September of the academic year)

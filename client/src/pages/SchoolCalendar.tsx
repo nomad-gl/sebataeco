@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -665,19 +665,38 @@ export default function SchoolCalendar() {
     setShowDayPanel(true);
   };
 
+  // ── Academic week helper ───────────────────────────────────────────────────
+  // Returns the academic week number (1-based) for a given date.
+  // Week 1 starts on the Monday on or before 1 September of the academic year's
+  // start year (e.g. "2025-2026" → anchor = Mon on/before 1 Sep 2025).
+  const getAcademicWeek = useCallback((date: Date): number => {
+    const ayLabel = (selectedCalendar as any)?.academicYear ?? "";
+    const startYear = ayLabel.match(/^(\d{4})/)?.[1]
+      ? parseInt(ayLabel.match(/^(\d{4})/)![1], 10)
+      : date.getFullYear() - (date.getMonth() < 8 ? 1 : 0);
+    // Find the Monday on or before 1 Sep of startYear
+    const sep1 = new Date(Date.UTC(startYear, 8, 1)); // 1 Sep UTC
+    const sep1Dow = sep1.getUTCDay(); // 0=Sun, 1=Mon … 6=Sat
+    const daysBack = sep1Dow === 0 ? 6 : sep1Dow - 1; // days to subtract to reach preceding Monday
+    const anchor = new Date(sep1.getTime() - daysBack * 86400000);
+    const dateUtc = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+    const diffDays = Math.floor((dateUtc - anchor.getTime()) / 86400000);
+    if (diffDays < 0) return 1; // before academic year start → treat as week 1
+    return Math.floor(diffDays / 7) + 1;
+  }, [selectedCalendar]);
+
   // Term overview
   const termWeeks = useMemo(() => {
-    const weeks: Record<string, { weekLabel: string; events: CalEvent[] }> = {};
+    const weeks: Record<string, { weekLabel: string; sortKey: number; events: CalEvent[] }> = {};
     for (const ev of events) {
       const d = new Date(ev.eventDate);
-      const jan4 = new Date(d.getFullYear(), 0, 4);
-      const weekNum = Math.ceil(((d.getTime() - jan4.getTime()) / 86400000 + jan4.getDay() + 1) / 7);
-      const key = `${d.getFullYear()}-W${String(weekNum).padStart(2, "0")}`;
-      if (!weeks[key]) weeks[key] = { weekLabel: key, events: [] };
+      const wk = getAcademicWeek(d);
+      const key = `W${String(wk).padStart(2, "0")}`;
+      if (!weeks[key]) weeks[key] = { weekLabel: key, sortKey: wk, events: [] };
       weeks[key].events.push(ev);
     }
-    return Object.values(weeks).sort((a, b) => a.weekLabel.localeCompare(b.weekLabel));
-  }, [events]);
+    return Object.values(weeks).sort((a, b) => a.sortKey - b.sortKey);
+  }, [events, getAcademicWeek]);
 
   const totalEvents = events.length;
   const aiEvents = events.filter(e => e.aiGenerated).length;
@@ -1119,80 +1138,104 @@ export default function SchoolCalendar() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-7 gap-1 mb-1">
+                  {/* Header row: Wk + 7 day names */}
+                  <div className="grid gap-1 mb-1" style={{gridTemplateColumns: "2rem repeat(7, 1fr)"}}>
+                    <div className="text-center text-[10px] font-medium text-muted-foreground/60 py-1">Wk</div>
                     {[t("cal_day_mon"), t("cal_day_tue"), t("cal_day_wed"), t("cal_day_thu"), t("cal_day_fri"), t("cal_day_sat"), t("cal_day_sun")].map(d => (
                       <div key={d} className="text-center text-xs font-medium text-muted-foreground py-1">{d}</div>
                     ))}
                   </div>
-                  <div className="grid grid-cols-7 gap-1">
-                    {calendarDays.map((day, i) => {
-                      if (!day) return <div key={`empty-${i}`} />;
-                      const key = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
-                      const dayEvents = eventsByDate[key] ?? [];
-                      const isWeekend = day.getDay() === 0 || day.getDay() === 6;
-                      const isToday = key === new Date().toISOString().split("T")[0];
+                  {/* Calendar rows: each row = 1 week (Wk cell + 7 day cells) */}
+                  {(() => {
+                    // Group calendarDays into rows of 7, padding the last row with nulls
+                    const rows: (Date | null)[][] = [];
+                    const padded = [...calendarDays];
+                    while (padded.length % 7 !== 0) padded.push(null);
+                    for (let r = 0; r < padded.length / 7; r++) rows.push(padded.slice(r * 7, r * 7 + 7));
+                    return rows.map((row, ri) => {
+                      // Academic week number: use the first non-null day in the row
+                      const firstDay = row.find(d => d !== null) as Date | undefined;
+                      const wkNum = firstDay ? getAcademicWeek(firstDay) : null;
                       return (
-                        <div
-                          key={key}
-                          className={`min-h-[76px] rounded-lg border p-1 cursor-pointer hover:bg-accent/50 transition-colors relative group ${isWeekend ? "bg-muted/30" : ""} ${isToday ? "ring-2 ring-primary" : ""} ${dayPanelDate === key && showDayPanel ? "ring-2 ring-teal-400" : ""}`}
-                          onClick={() => openDayPanel(day)}
-                        >
-                          <div className="flex items-center justify-between mb-1">
-                            <span className={`text-xs font-medium ${isToday ? "text-primary" : "text-muted-foreground"}`}>{day.getDate()}</span>
-                            {!isWeekend && (
-                              <span
-                                className="opacity-0 group-hover:opacity-80 transition-opacity cursor-pointer hover:text-primary"
-                                onClick={e => { e.stopPropagation(); openAdd(day); }}
-                                title="Add event"
-                              >
-                                <Plus className="w-3 h-3" />
-                              </span>
+                        <div key={ri} className="grid gap-1 mb-1" style={{gridTemplateColumns: "2rem repeat(7, 1fr)"}}>
+                          {/* Week number cell */}
+                          <div className="flex items-start justify-center pt-1">
+                            {wkNum !== null && (
+                              <span className="text-[10px] font-semibold text-muted-foreground/70 leading-none">{wkNum}</span>
                             )}
                           </div>
-                          <div className="space-y-0.5">
-                            {dayEvents.slice(0, 3).map(ev => {
-                              const hasPlan = !!(eventPlanMap as Record<number, number>)[ev.id];
-                              const isLesson = ev.eventType === "lesson" || ev.eventType === "ai_generated";
-                              return (
-                                <div
-                                  key={ev.id}
-                                  className={`text-[10px] px-1 py-0.5 rounded border cursor-pointer flex items-center gap-0.5 transition-opacity hover:opacity-80 ${
-                                    isLesson
-                                      ? hasPlan
-                                        ? "bg-green-100 text-green-800 border-green-300 font-medium"
-                                        : "bg-teal-50 text-teal-800 border-teal-200 border-dashed"
-                                      : (EVENT_COLORS[ev.eventType] ?? "bg-gray-100 text-gray-800")
-                                  }`}
-                                  onClick={e => {
-                                    e.stopPropagation();
-                                    if (isLesson) openLessonPlanner(ev);
-                                    else openEdit(ev);
-                                  }}
-                                  title={
-                                    isLesson
-                                      ? hasPlan
-                                        ? `${t("cal_view_plan")}: ${ev.title}`
-                                        : `${t("cal_add_plan")}: ${ev.title}`
-                                      : ev.title
-                                  }
-                                >
-                                  <span className="truncate flex-1">{ev.title}</span>
-                                  {isLesson && (
-                                    <ClipboardList className={`w-2.5 h-2.5 shrink-0 ${
-                                      hasPlan ? "text-green-600" : "text-teal-400 opacity-60"
-                                    }`} />
+                          {/* Day cells */}
+                          {row.map((day, ci) => {
+                            if (!day) return <div key={`empty-${ri}-${ci}`} />;
+                            const key = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
+                            const dayEvents = eventsByDate[key] ?? [];
+                            const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                            const isToday = key === new Date().toISOString().split("T")[0];
+                            return (
+                              <div
+                                key={key}
+                                className={`min-h-[76px] rounded-lg border p-1 cursor-pointer hover:bg-accent/50 transition-colors relative group ${isWeekend ? "bg-muted/30" : ""} ${isToday ? "ring-2 ring-primary" : ""} ${dayPanelDate === key && showDayPanel ? "ring-2 ring-teal-400" : ""}`}
+                                onClick={() => openDayPanel(day)}
+                              >
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className={`text-xs font-medium ${isToday ? "text-primary" : "text-muted-foreground"}`}>{day.getDate()}</span>
+                                  {!isWeekend && (
+                                    <span
+                                      className="opacity-0 group-hover:opacity-80 transition-opacity cursor-pointer hover:text-primary"
+                                      onClick={e => { e.stopPropagation(); openAdd(day); }}
+                                      title="Add event"
+                                    >
+                                      <Plus className="w-3 h-3" />
+                                    </span>
                                   )}
                                 </div>
-                              );
-                            })}
-                            {dayEvents.length > 3 && (
-                              <div className="text-[10px] text-muted-foreground px-1">+{dayEvents.length - 3} {t("cal_more")}</div>
-                            )}
-                          </div>
+                                <div className="space-y-0.5">
+                                  {dayEvents.slice(0, 3).map(ev => {
+                                    const hasPlan = !!(eventPlanMap as Record<number, number>)[ev.id];
+                                    const isLesson = ev.eventType === "lesson" || ev.eventType === "ai_generated";
+                                    return (
+                                      <div
+                                        key={ev.id}
+                                        className={`text-[10px] px-1 py-0.5 rounded border cursor-pointer flex items-center gap-0.5 transition-opacity hover:opacity-80 ${
+                                          isLesson
+                                            ? hasPlan
+                                              ? "bg-green-100 text-green-800 border-green-300 font-medium"
+                                              : "bg-teal-50 text-teal-800 border-teal-200 border-dashed"
+                                            : (EVENT_COLORS[ev.eventType] ?? "bg-gray-100 text-gray-800")
+                                        }`}
+                                        onClick={e => {
+                                          e.stopPropagation();
+                                          if (isLesson) openLessonPlanner(ev);
+                                          else openEdit(ev);
+                                        }}
+                                        title={
+                                          isLesson
+                                            ? hasPlan
+                                              ? `${t("cal_view_plan")}: ${ev.title}`
+                                              : `${t("cal_add_plan")}: ${ev.title}`
+                                            : ev.title
+                                        }
+                                      >
+                                        <span className="truncate flex-1">{ev.title}</span>
+                                        {isLesson && (
+                                          <ClipboardList className={`w-2.5 h-2.5 shrink-0 ${
+                                            hasPlan ? "text-green-600" : "text-teal-400 opacity-60"
+                                          }`} />
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                  {dayEvents.length > 3 && (
+                                    <div className="text-[10px] text-muted-foreground px-1">+{dayEvents.length - 3} {t("cal_more")}</div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       );
-                    })}
-                  </div>
+                    });
+                  })()}
                 </CardContent>
               </Card>
               )}{/* end agendaView ternary */}
