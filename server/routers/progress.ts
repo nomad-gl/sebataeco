@@ -13,6 +13,9 @@ import {
   groupStudents,
   classGroups,
   studentReports,
+  groupChallengeLog,
+  classChallenges,
+  challengeParticipants,
 } from "../../drizzle/schema";
 import { eq, and, desc, inArray, sql } from "drizzle-orm";
 
@@ -859,6 +862,57 @@ Use a professional, analytical tone. Format with clear headings.`;
         matched++;
       }
       return { matched, total: input.participants.length };
+    }),
+
+  /**
+   * Get challenge history for a class group, with per-question breakdown.
+   * Returns the last 20 challenge sessions saved to this group.
+   */
+  getChallengeHistory: protectedProcedure
+    .input(z.object({ groupId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) return [];
+      // Verify group ownership
+      const [group] = await db
+        .select()
+        .from(classGroups)
+        .where(and(eq(classGroups.id, input.groupId), eq(classGroups.userId, ctx.user.id)));
+      if (!group) throw new TRPCError({ code: "FORBIDDEN", message: "Group not found" });
+
+      // Fetch last 20 challenge log entries
+      const logs = await db
+        .select()
+        .from(groupChallengeLog)
+        .where(eq(groupChallengeLog.groupId, input.groupId))
+        .orderBy(desc(groupChallengeLog.runAt))
+        .limit(20);
+
+      // For each log entry, fetch the challenge room data (questions + participants)
+      const results = await Promise.all(
+        logs.map(async (log) => {
+          if (!log.challengeId) return { log, questions: [], participants: [] };
+          const [room] = await db
+            .select()
+            .from(classChallenges)
+            .where(eq(classChallenges.id, log.challengeId));
+          const participants = await db
+            .select()
+            .from(challengeParticipants)
+            .where(eq(challengeParticipants.challengeId, log.challengeId))
+            .orderBy(desc(challengeParticipants.score));
+          return {
+            log,
+            questions: room ? (room.questions as unknown as Array<{ question: string; options: string[]; correctIndex: number }>) : [],
+            participants: participants.map(p => ({
+              nickname: p.nickname,
+              score: p.score,
+              answers: p.answers ? JSON.parse(p.answers) as number[] : [],
+            })),
+          };
+        })
+      );
+      return results;
     }),
 
   /** Export a student progress report as a PDF (base64 encoded) */

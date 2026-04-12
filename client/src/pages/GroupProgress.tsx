@@ -12,9 +12,10 @@ import { toast } from "sonner";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
+import { useState as _useState } from "react";
 import {
   ArrowLeft, Users, TrendingUp, Loader2, Sparkles, Trophy, Medal, Download, ImagePlus, X as XIcon,
-  FileText, CheckCircle2, XCircle, Clock,
+  FileText, CheckCircle2, XCircle, Clock, History, ChevronDown, ChevronRight,
 } from "lucide-react";
 import NavBar from "@/components/NavBar";
 import { Streamdown } from "streamdown";
@@ -213,6 +214,9 @@ export default function GroupProgress() {
             </TabsTrigger>
             <TabsTrigger value="report" className="data-[state=active]:bg-teal-600 data-[state=active]:text-white text-white/70">
               {t("gp_tab_report")}
+            </TabsTrigger>
+            <TabsTrigger value="history" className="data-[state=active]:bg-teal-600 data-[state=active]:text-white text-white/70">
+              <History className="w-3.5 h-3.5 mr-1" />{t("gp_tab_history")}
             </TabsTrigger>
           </TabsList>
 
@@ -621,8 +625,107 @@ ${bars}
               </CardContent>
             </Card>
           </TabsContent>
+          {/* ── Challenge History ── */}
+          <ChallengeHistoryTab groupId={gId} />
         </Tabs>
       </div>
     </div>
+  );
+}
+
+// ─── Challenge History Tab ────────────────────────────────────────────────────
+function ChallengeHistoryTab({ groupId }: { groupId: number }) {
+  const { t } = useI18n();
+  const historyQ = trpc.progress.getChallengeHistory.useQuery({ groupId }, { enabled: groupId > 0 });
+  const [expandedIdx, setExpandedIdx] = _useState<number | null>(null);
+
+  if (historyQ.isLoading) return (
+    <TabsContent value="history">
+      <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-white/60" /></div>
+    </TabsContent>
+  );
+
+  const sessions = historyQ.data ?? [];
+
+  return (
+    <TabsContent value="history" className="space-y-4">
+      {sessions.length === 0 ? (
+        <Card className="bg-white/10 border-white/20 text-white">
+          <CardContent className="py-12 text-center text-white/60">
+            <History className="w-8 h-8 mx-auto mb-3 opacity-40" />
+            <p>{t("gp_history_empty")}</p>
+          </CardContent>
+        </Card>
+      ) : sessions.map((session, idx) => {
+        const { log, questions, participants } = session;
+        const isExpanded = expandedIdx === idx;
+        const totalQ = questions.length;
+        const avgScore = participants.length > 0
+          ? Math.round(participants.reduce((s, p) => s + (totalQ > 0 ? (p.score / totalQ) * 100 : 0), 0) / participants.length)
+          : 0;
+        return (
+          <Card key={log.id} className="bg-white/10 border-white/20 text-white">
+            <CardHeader
+              className="cursor-pointer select-none"
+              onClick={() => setExpandedIdx(isExpanded ? null : idx)}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-white text-sm">{log.challengeTitle}</CardTitle>
+                  <p className="text-white/60 text-xs mt-0.5">
+                    {new Date(log.runAt).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
+                    {" · "}{participants.length} {t("gp_history_participants")}
+                    {" · "}{t("gp_history_avg")} {avgScore}%
+                  </p>
+                </div>
+                {isExpanded ? <ChevronDown className="w-4 h-4 text-white/60" /> : <ChevronRight className="w-4 h-4 text-white/60" />}
+              </div>
+            </CardHeader>
+            {isExpanded && (
+              <CardContent className="pt-0 space-y-4">
+                {/* Per-question accuracy */}
+                {totalQ > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-white/70 mb-2 uppercase tracking-wide">{t("gp_history_per_question")}</p>
+                    <div className="space-y-2">
+                      {questions.map((q, qi) => {
+                        const correct = participants.filter(p => p.answers[qi] === q.correctIndex).length;
+                        const pct = participants.length > 0 ? Math.round((correct / participants.length) * 100) : 0;
+                        return (
+                          <div key={qi} className="flex items-center gap-3">
+                            <span className="text-xs text-white/50 w-5 text-right">{qi + 1}.</span>
+                            <span className="flex-1 text-xs text-white/80 truncate">{q.question}</span>
+                            <div className="w-24 bg-white/10 rounded-full h-1.5">
+                              <div className="h-1.5 rounded-full" style={{ width: `${pct}%`, backgroundColor: pct >= 70 ? "#10b981" : pct >= 40 ? "#f59e0b" : "#ef4444" }} />
+                            </div>
+                            <span className="text-xs text-white/60 w-8 text-right">{pct}%</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {/* Leaderboard */}
+                {participants.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-white/70 mb-2 uppercase tracking-wide">{t("gp_history_leaderboard")}</p>
+                    <div className="space-y-1">
+                      {participants.slice(0, 10).map((p, pi) => (
+                        <div key={pi} className="flex items-center gap-2 text-xs">
+                          <span className="text-white/40 w-4">{pi + 1}</span>
+                          <span className="flex-1 text-white/80">{p.nickname}</span>
+                          <span className="text-white/60">{p.score}/{totalQ}</span>
+                          <span className="text-white/50">{totalQ > 0 ? Math.round((p.score / totalQ) * 100) : 0}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            )}
+          </Card>
+        );
+      })}
+    </TabsContent>
   );
 }

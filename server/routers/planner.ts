@@ -3,9 +3,11 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { schoolCalendarEvents, schoolCalendars, lessonPlans, classGroups } from "../../drizzle/schema";
-import { eq, and, desc, asc, lte, isNull, or, sql } from "drizzle-orm";
+import { eq, and, desc, asc, lte, gte, isNull, or, sql } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
 import { generateCalendarPdf } from "../calendarPdf";
+import { generateLessonPlanPdf } from "../lessonPlanPdf";
+import { storagePut } from "../storage";
 
 const eventTypeEnum = z.enum(["holiday", "special", "exam", "excursion", "event", "lesson", "ai_generated"]);
 
@@ -703,9 +705,24 @@ Return JSON:
     }),
 
   /**
-   * Create a lesson plan linked to a calendar event (for manually-added events).
-   * If a plan already exists for this event, returns its id instead.
+   * Export a lesson plan as a PDF and return a temporary S3 URL.
    */
+  exportLessonPlanPdf: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      const [plan] = await db
+        .select()
+        .from(lessonPlans)
+        .where(and(eq(lessonPlans.id, input.id), eq(lessonPlans.userId, ctx.user.id)));
+      if (!plan) throw new TRPCError({ code: "NOT_FOUND", message: "Plan not found" });
+      const pdfBuf = await generateLessonPlanPdf(plan);
+      const fileKey = `lesson-plan-exports/${ctx.user.id}-${input.id}-${Date.now()}.pdf`;
+      const { url } = await storagePut(fileKey, pdfBuf, "application/pdf");
+      return { url };
+    }),
+
   createLinkedLessonPlan: protectedProcedure
     .input(z.object({
       calendarEventId: z.number(),
@@ -741,17 +758,30 @@ Return JSON:
         const d = new Date(calEvent.eventDate);
         lessonDate = d.toISOString().slice(0, 10);
 
-        // Count lesson/ai_generated events in the same calendar up to and including this event's date
+        // Determine the academic year's September anchor:
+        // e.g. academicYear "2025-2026" → anchor = 1 Sep 2025
+        // Fall back to the calendar year of the event if no academicYear provided.
+        const ayLabel = input.academicYear ?? "";
+        const startYear = ayLabel.match(/^(\d{4})/)?.[1]
+          ? parseInt(ayLabel.match(/^(\d{4})/)![1], 10)
+          : d.getFullYear() - (d.getMonth() < 8 ? 1 : 0); // month 0-7 = Jan-Aug → previous year
+        const septemberAnchor = new Date(Date.UTC(startYear, 8, 1)); // 1 Sep of start year
+
+        // Count lesson/ai_generated events from 1 Sep anchor up to and including this event's date
+        const calendarFilter = calEvent.calendarId
+          ? eq(schoolCalendarEvents.calendarId, calEvent.calendarId)
+          : isNull(schoolCalendarEvents.calendarId);
         const countRows = await db
           .select({ cnt: sql<number>`COUNT(*)` })
           .from(schoolCalendarEvents)
           .where(and(
             eq(schoolCalendarEvents.userId, ctx.user.id),
-            calEvent.calendarId ? eq(schoolCalendarEvents.calendarId, calEvent.calendarId) : isNull(schoolCalendarEvents.calendarId),
+            calendarFilter,
             or(
               eq(schoolCalendarEvents.eventType, "lesson"),
               eq(schoolCalendarEvents.eventType, "ai_generated"),
             ),
+            gte(schoolCalendarEvents.eventDate, septemberAnchor),
             lte(schoolCalendarEvents.eventDate, calEvent.eventDate),
           ));
         const count = Number(countRows[0]?.cnt ?? 1);

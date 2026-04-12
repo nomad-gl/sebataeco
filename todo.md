@@ -1699,3 +1699,24 @@
 - [x] Root cause: SheetOverlay was full-screen black/50 on all screen sizes, making it feel like a modal takeover
 - [x] Fix: Created PlanSheetContent variant with transparent overlay on sm+ screens so calendar remains visible behind the 520px side panel
 - [x] Plan sheet now opens as a true right-side drawer on desktop (520px wide, no overlay dimming)
+
+## Fix: Lesson number always counts from first September lesson event
+- [x] In createLinkedLessonPlan, derive September anchor from academicYear label (e.g. "2025-2026" → 1 Sep 2025)
+- [x] Count all lesson/ai_generated events from that September anchor up to and including the current event's date
+- [x] This ensures Lesson 1 = first school day in September regardless of when the plan was created
+
+## Feature: Lesson plan PDF export
+- [x] Add Export PDF button (FileDown icon, blue) to plan sheet header
+- [x] Server: generateLessonPlanPdf helper using PDFKit; exportLessonPlanPdf tRPC procedure uploads to S3 and returns URL
+- [x] Client: download triggered via anchor click on returned S3 URL
+- [x] Add lp_export_pdf i18n key in EN/ES/CA
+
+## Feature: Lesson number editable override
+- [x] Replace static lesson number display in plan sheet header with an inline input field
+- [x] Editing the lesson number marks the form as dirty so it is saved with the plan
+
+## Feature: Challenge history per class group
+- [x] Add getChallengeHistory procedure in progress.ts (last 20 sessions with per-question participant data)
+- [x] Add History tab to GroupProgress.tsx with collapsible session cards
+- [x] Each session card shows date, participant count, avg score, per-question accuracy bar, and leaderboard
+- [x] Add gp_tab_history and gp_history_* i18n keys in EN/ES/CA

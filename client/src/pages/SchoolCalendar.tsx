@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, Plus, Sparkles, Trash2, CalendarDays,
   ExternalLink, LayoutList, Pencil, School, BookOpen, User, GraduationCap,
   FolderOpen, X, Check, Download, Link, Unlink, Users, Save, ClipboardList,
-  ListChecks, RefreshCw,
+  ListChecks, RefreshCw, FileDown,
 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useLocation } from "wouter";
@@ -373,6 +373,17 @@ export default function SchoolCalendar() {
       toast.success(t("lp_deleted_toast"));
     },
     onError: (e) => { setShowDeletePlanConfirm(false); toast.error(e.message); },
+  });
+
+  const exportLessonPlanPdfMutation = trpc.planner.exportLessonPlanPdf.useMutation({
+    onSuccess: ({ url }) => {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `lesson-plan-${planSheetPlanId ?? "export"}.pdf`;
+      a.target = "_blank";
+      a.click();
+    },
+    onError: (e) => toast.error(e.message),
   });
 
   // Tracks the event whose plan is currently being AI-generated so we can show a loading state
@@ -1839,15 +1850,21 @@ export default function SchoolCalendar() {
                   <ClipboardList className="w-4 h-4 text-primary" />
                   {planForm.title || "Lesson Plan"}
                 </SheetTitle>
-                {/* Lesson number and date from calendar event */}
-                {(planSheetData?.lessonNumber || planSheetData?.lessonDate) && (
+                {/* Lesson number (inline-editable) and date from calendar event */}
+                {(planForm.lessonNumber || planSheetData?.lessonDate) && (
                   <div className="flex items-center gap-2 text-xs text-muted-foreground pl-6">
-                    {planSheetData.lessonNumber && (
-                      <span className="font-medium text-primary/80">{t("lp_lesson_number_label")} {planSheetData.lessonNumber}</span>
-                    )}
-                    {planSheetData.lessonNumber && planSheetData.lessonDate && <span className="text-muted-foreground/40">·</span>}
-                    {planSheetData.lessonDate && (
-                      <span>{new Date(planSheetData.lessonDate + "T12:00:00").toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" })}</span>
+                    <span className="font-medium text-primary/80">{t("lp_lesson_number_label")}</span>
+                    <input
+                      value={planForm.lessonNumber}
+                      onChange={e => { setPlanField("lessonNumber", e.target.value); setPlanFormDirty(true); }}
+                      className="w-10 text-xs font-medium text-primary/80 bg-transparent border-b border-dashed border-primary/30 focus:outline-none focus:border-primary text-center"
+                      title={t("lp_lesson_number_label")}
+                    />
+                    {planSheetData?.lessonDate && (
+                      <>
+                        <span className="text-muted-foreground/40">·</span>
+                        <span>{new Date(planSheetData.lessonDate + "T12:00:00").toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" })}</span>
+                      </>
                     )}
                   </div>
                 )}
@@ -1859,6 +1876,10 @@ export default function SchoolCalendar() {
                     <Button size="sm" variant="outline" onClick={() => setShowRegenConfirm(true)} disabled={planSheetAiGenerating || savePlanMutation.isPending} className="gap-1 text-teal-700 border-teal-300 hover:bg-teal-50">
                       <Sparkles className="w-3.5 h-3.5" />
                       <span className="hidden sm:inline">{t("lp_regenerate")}</span>
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => { if (planSheetPlanId) exportLessonPlanPdfMutation.mutate({ id: planSheetPlanId }); }} disabled={exportLessonPlanPdfMutation.isPending || planSheetAiGenerating} className="gap-1 text-blue-700 border-blue-300 hover:bg-blue-50">
+                      <FileDown className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">{t("lp_export_pdf")}</span>
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => setShowDeletePlanConfirm(true)} disabled={deletePlanMutation.isPending || planSheetAiGenerating} className="gap-1 text-destructive border-destructive/40 hover:bg-destructive/10">
                       <Trash2 className="w-3.5 h-3.5" />
