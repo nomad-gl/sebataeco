@@ -2043,3 +2043,7 @@
 - [x] Before each AI generation, snapshot the current form state to a useRef
 - [x] Show an 8-second "Undo" toast action after generation completes
 - [x] Clicking undo restores the previous form state and marks the form as dirty
+
+## Bug: Lesson plan AI generation not populating form fields
+- [x] Diagnose why aiGenerateLessonPlan does not populate the lesson plan form after generation
+- [x] Fix the root cause: (1) race condition — getLessonPlan.fetch was overwriting the form with a stale/null DB row before the insert committed; removed the re-fetch for new plans. (2) typo in server empty-check strings '[""]]' → replaced with robust anyNonEmpty() helper. (3) skills/systems default check replaced with anyTrue() helper that parses JSON and checks for any true value.

@@ -789,12 +789,16 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
 
       // Determine which fields are already filled so we can skip them in the AI prompt
       const ex = input.existing ?? {};
-      const hasSkills = !!ex.skills && ex.skills !== '{"listening":false,"speaking":false,"reading":false,"writing":false}';
-      const hasSystems = !!ex.systems && ex.systems !== '{"grammar":false,"phonology":false,"lexis":false,"function":false,"discourse":false}';
-      const hasSpecificCompetences = !!ex.specificCompetences && ex.specificCompetences !== '[]';
-      const hasSaberesBasicos = !!ex.saberesBasicos && ex.saberesBasicos !== '[]' && ex.saberesBasicos !== '[""]]';
-      const hasLearningOutcomes = !!ex.learningOutcomes && ex.learningOutcomes !== '[]' && ex.learningOutcomes !== '[""]]';
-      const hasEvaluationCriteria = !!ex.evaluationCriteria && ex.evaluationCriteria !== '[]' && ex.evaluationCriteria !== '[""]]';
+      // Helper: check if a JSON-stringified boolean-value object has any true value
+      const anyTrue = (s: string | null | undefined) => { try { return s ? Object.values(JSON.parse(s)).some(Boolean) : false; } catch { return false; } };
+      // Helper: check if a JSON-stringified string array has at least one non-empty entry
+      const anyNonEmpty = (s: string | null | undefined) => { try { return s ? (JSON.parse(s) as string[]).some((v: string) => v.trim() !== '') : false; } catch { return false; } };
+      const hasSkills = anyTrue(ex.skills);
+      const hasSystems = anyTrue(ex.systems);
+      const hasSpecificCompetences = anyNonEmpty(ex.specificCompetences);
+      const hasSaberesBasicos = anyNonEmpty(ex.saberesBasicos);
+      const hasLearningOutcomes = anyNonEmpty(ex.learningOutcomes);
+      const hasEvaluationCriteria = anyNonEmpty(ex.evaluationCriteria);
       const hasPreviousKnowledge = !!(ex.previousKnowledge ?? "").trim();
       const hasMaterials = !!(ex.materials ?? "").trim();
       const hasSpaces = !!(ex.spaces ?? "").trim() && (ex.spaces ?? "").trim() !== "Classroom";

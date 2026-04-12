@@ -529,11 +529,10 @@ export default function LessonPlanner() {
       // The raw AI data has the same shape as a plan row for these fields
       setForm(planToForm(data));
       setIsDirty(false);
-      // Also invalidate the cache and re-fetch to get the fully-saved DB row
+      // Only re-fetch from DB for existing plans (where input.id was provided).
+      // For new plans the mutation response already contains all generated fields;
+      // re-fetching races with the DB insert and can reset the form to defaults.
       await utils.planner.getLessonPlan.invalidate({ id: data.id });
-      utils.planner.getLessonPlan.fetch({ id: data.id }).then(plan => {
-        if (plan) setForm(planToForm(plan));
-      });
       setShowAiDialog(false);
 
       // If the user selected a date + calendar, create a calendar event and link this plan to it

@@ -570,14 +570,9 @@ export default function SchoolCalendar() {
       // Immediately populate the form from the mutation response (avoids stale cache)
       setPlanForm(planToLessonForm(data));
       setPlanFormDirty(false);
-      // Invalidate cache then re-fetch to get the fully-saved DB row
+      // Only invalidate — do NOT re-fetch immediately as it races with the DB insert
+      // and can reset the form to defaults before the row is fully committed.
       await utils.planner.getLessonPlan.invalidate({ id: data.id });
-      utils.planner.getLessonPlan.fetch({ id: data.id }).then(plan => {
-        if (plan) {
-          setPlanForm(planToLessonForm(plan));
-          setPlanFormDirty(false);
-        }
-      });
       utils.planner.getEventPlanMap.invalidate();
       setPlanSheetPlanId(data.id);
       setPlanSheetAiGenerating(false);
