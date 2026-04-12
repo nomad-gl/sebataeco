@@ -1815,3 +1815,8 @@
 
 ## Feature: School Calendar — jump-to-week navigation
 - [x] Add a "Go to week…" input (type W12 or pick from dropdown) that jumps the calendar to that academic week
+
+## Fix: Lesson plan auto-numbering
+- [x] Auto-assign lessonNumber when a lesson plan is created (sequential within the same calendar, ordered by date)
+- [x] Fix createLinkedLessonPlan to compute lessonNumber from existing plans in the calendar
+- [x] Fix aiGenerateLessonPlan to preserve/set lessonNumber when updating the linked plan

@@ -12,6 +12,44 @@ import { storagePut } from "../storage";
 
 const eventTypeEnum = z.enum(["holiday", "special", "exam", "excursion", "event", "lesson", "ai_generated"]);
 
+/**
+ * Auto-compute the next sequential lesson number for a plan.
+ * Counts existing lesson plans linked to the same calendar (via calendarEventId → calendarId)
+ * with a lessonDate on or before the given date, then adds 1.
+ * Falls back to 1 if no calendar link is available.
+ */
+async function computeLessonNumber(
+  db: Awaited<ReturnType<typeof getDb>>,
+  userId: number,
+  calendarEventId: number | null | undefined,
+  lessonDate: string | null | undefined,
+): Promise<string> {
+  if (!db || !calendarEventId) return "1";
+  // Get the calendarId for this event
+  const [ev] = await db
+    .select({ calendarId: schoolCalendarEvents.calendarId, eventDate: schoolCalendarEvents.eventDate })
+    .from(schoolCalendarEvents)
+    .where(eq(schoolCalendarEvents.id, calendarEventId));
+  if (!ev?.calendarId) return "1";
+  const dateStr = lessonDate ?? (ev.eventDate ? new Date(ev.eventDate).toISOString().slice(0, 10) : null);
+  if (!dateStr) return "1";
+  // Count plans in the same calendar with lessonDate <= this date (excluding templates)
+  const linkedEventIds = db
+    .select({ id: schoolCalendarEvents.id })
+    .from(schoolCalendarEvents)
+    .where(eq(schoolCalendarEvents.calendarId, ev.calendarId));
+  const countRows = await db
+    .select({ cnt: sql<number>`COUNT(*)` })
+    .from(lessonPlans)
+    .where(and(
+      eq(lessonPlans.userId, userId),
+      inArray(lessonPlans.calendarEventId, linkedEventIds),
+      sql`${lessonPlans.lessonDate} <= ${dateStr}`,
+    ));
+  const count = Number(countRows[0]?.cnt ?? 0);
+  return String(count + 1);
+}
+
 export const plannerRouter = router({
   // ─── School Calendars (multi-calendar) ────────────────────────────────────────
 
@@ -514,6 +552,10 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
       } else {
         // For insert, keep nullish fields as undefined so Drizzle uses column defaults
         const insertData = Object.fromEntries(Object.entries(rawData).map(([k, v]) => [k, v ?? undefined]));
+        // Auto-assign lessonNumber if not provided
+        if (!insertData.lessonNumber && insertData.calendarEventId) {
+          insertData.lessonNumber = await computeLessonNumber(db, ctx.user.id, insertData.calendarEventId as number, insertData.lessonDate as string | undefined);
+        }
         const result = await db.insert(lessonPlans).values({ ...insertData, title: rawData.title!, userId: ctx.user.id, aiGenerated: (rawData.aiGenerated ?? false) });
         return { id: (result as any)[0].insertId };
       }
@@ -603,6 +645,9 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
       lessonNumber: z.string().nullish(),
       academicYear: z.string().nullish(),
       sessionTime: z.string().nullish(),
+      /** Calendar event this plan is linked to — used for auto-numbering */
+      calendarEventId: z.number().nullish(),
+      lessonDate: z.string().nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -661,9 +706,16 @@ Return ONLY a JSON object (no markdown fences) with this exact structure:
         return { id: input.id, ...generated };
       }
 
+      // Auto-assign lessonNumber if not provided
+      if (!generatedFields.lessonNumber && input.calendarEventId) {
+        generatedFields.lessonNumber = await computeLessonNumber(db, ctx.user.id, input.calendarEventId, input.lessonDate);
+      }
+
       const result = await db.insert(lessonPlans).values({
         userId: ctx.user.id,
         ...generatedFields,
+        ...(input.calendarEventId ? { calendarEventId: input.calendarEventId } : {}),
+        ...(input.lessonDate ? { lessonDate: input.lessonDate } : {}),
       });
 
       return { id: (result as any)[0].insertId, ...generated };
@@ -860,48 +912,19 @@ Return ONLY a JSON object (no markdown fences) with this exact structure:
         ));
       if (existing) return { id: existing.id, created: false };
 
-      // Fetch the calendar event to get its date and compute lesson number
+      // Fetch the calendar event to get its date
       const [calEvent] = await db
-        .select({ eventDate: schoolCalendarEvents.eventDate, calendarId: schoolCalendarEvents.calendarId, eventType: schoolCalendarEvents.eventType })
+        .select({ eventDate: schoolCalendarEvents.eventDate, calendarId: schoolCalendarEvents.calendarId })
         .from(schoolCalendarEvents)
         .where(eq(schoolCalendarEvents.id, input.calendarEventId));
 
-      let lessonNumber: string | null = null;
       let lessonDate: string | null = null;
+      let lessonNumber: string | null = null;
 
       if (calEvent) {
-        // Format date as YYYY-MM-DD
-        const d = new Date(calEvent.eventDate);
-        lessonDate = d.toISOString().slice(0, 10);
-
-        // Determine the academic year's September anchor:
-        // e.g. academicYear "2025-2026" → anchor = 1 Sep 2025
-        // Fall back to the calendar year of the event if no academicYear provided.
-        const ayLabel = input.academicYear ?? "";
-        const startYear = ayLabel.match(/^(\d{4})/)?.[1]
-          ? parseInt(ayLabel.match(/^(\d{4})/)![1], 10)
-          : d.getFullYear() - (d.getMonth() < 8 ? 1 : 0); // month 0-7 = Jan-Aug → previous year
-        const septemberAnchor = new Date(Date.UTC(startYear, 8, 1)); // 1 Sep of start year
-
-        // Count lesson/ai_generated events from 1 Sep anchor up to and including this event's date
-        const calendarFilter = calEvent.calendarId
-          ? eq(schoolCalendarEvents.calendarId, calEvent.calendarId)
-          : isNull(schoolCalendarEvents.calendarId);
-        const countRows = await db
-          .select({ cnt: sql<number>`COUNT(*)` })
-          .from(schoolCalendarEvents)
-          .where(and(
-            eq(schoolCalendarEvents.userId, ctx.user.id),
-            calendarFilter,
-            or(
-              eq(schoolCalendarEvents.eventType, "lesson"),
-              eq(schoolCalendarEvents.eventType, "ai_generated"),
-            ),
-            gte(schoolCalendarEvents.eventDate, septemberAnchor),
-            lte(schoolCalendarEvents.eventDate, calEvent.eventDate),
-          ));
-        const count = Number(countRows[0]?.cnt ?? 1);
-        lessonNumber = String(count);
+        lessonDate = new Date(calEvent.eventDate).toISOString().slice(0, 10);
+        // Use the plan-count-based helper for accurate sequential numbering
+        lessonNumber = await computeLessonNumber(db, ctx.user.id, input.calendarEventId, lessonDate);
       }
 
       const result = await db.insert(lessonPlans).values({
