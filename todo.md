@@ -2110,3 +2110,10 @@
 - [x] LessonPlanner: on replace-copy success, show a 10-second Undo toast; clicking Undo calls restoreDeletedPlan and invalidates the list
 - [x] SchoolCalendar: same Undo toast behaviour
 - [x] i18n: EN/ES/CA keys (lp_copy_undo, lp_copy_undo_success, lp_copy_undo_desc)
+
+## Feature: Bulk PDF export of lesson plans
+- [x] Server: add bulkExportLessonPlansPdf procedure that accepts planIds[], generates individual plan PDFs and merges them into one combined PDF, returns an S3 URL
+- [x] LessonPlanner batch-select toolbar: add "Download PDF" button next to the copy and delete buttons
+- [x] Client: on success, trigger browser download of the combined PDF file
+- [x] Show loading state on the button while PDF is generating
+- [x] i18n: EN/ES/CA keys (lp_bulk_export_pdf, lp_bulk_export_pdf_generating, lp_bulk_export_pdf_success)

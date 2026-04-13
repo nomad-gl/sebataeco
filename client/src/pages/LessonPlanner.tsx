@@ -208,7 +208,7 @@ function buildPrintHtml(form: LessonFormState, logoDataUrl?: string, labels?: Re
 }
 
 // ─── Saved Plans List (shared between sidebar and sheet) ───────────────────────
-function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplicate, onDelete, onJumpToCalendar, batchSelectMode, setBatchSelectMode, selectedPlanIds, setSelectedPlanIds, onBatchDelete, onBatchCopy, t }: {
+function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplicate, onDelete, onJumpToCalendar, batchSelectMode, setBatchSelectMode, selectedPlanIds, setSelectedPlanIds, onBatchDelete, onBatchCopy, onBatchExportPdf, batchExportPdfLoading, t }: {
   plans: any[];
   calendars: any[];
   selectedId: number | null;
@@ -224,6 +224,8 @@ function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplic
   setSelectedPlanIds: (s: Set<number>) => void;
   onBatchDelete: () => void;
   onBatchCopy: () => void;
+  onBatchExportPdf: () => void;
+  batchExportPdfLoading?: boolean;
   t: (k: any) => string;
 }) {
   const [sortByLesson, setSortByLesson] = useState(() => {
@@ -272,6 +274,9 @@ function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplic
                 <>
                   <Button size="sm" variant="outline" className="text-xs px-2 gap-1 bg-orange-50 border-orange-300 text-orange-700 hover:bg-orange-100" onClick={onBatchCopy} title={t("lp_bulk_copy")}>
                     <Copy className="w-3 h-3" />{selectedPlanIds.size}
+                  </Button>
+                  <Button size="sm" variant="outline" className="text-xs px-2 gap-1 bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100" onClick={onBatchExportPdf} disabled={batchExportPdfLoading} title={t("lp_bulk_export_pdf")}>
+                    {batchExportPdfLoading ? <span className="w-3 h-3 border border-blue-500 border-t-transparent rounded-full animate-spin" /> : <FileDown className="w-3 h-3" />}{selectedPlanIds.size}
                   </Button>
                   <Button size="sm" variant="destructive" className="text-xs px-2 gap-1" onClick={onBatchDelete}>
                     <Trash2 className="w-3 h-3" />{selectedPlanIds.size}
@@ -504,6 +509,27 @@ export default function LessonPlanner() {
       targetCalendarId: bulkCopyTargetCalendarId && bulkCopyTargetCalendarId !== "same" ? Number(bulkCopyTargetCalendarId) : undefined,
       autoRenumber: bulkCopyAutoRenumber,
     });
+  };
+
+  // ── Bulk export plans as PDF ────────────────────────────────────────────
+  const bulkExportPdfMutation = trpc.planner.bulkExportLessonPlansPdf.useMutation({
+    onSuccess: (data) => {
+      // Trigger browser download via a temporary anchor
+      const a = document.createElement("a");
+      a.href = data.url;
+      a.download = `lesson-plans-export-${Date.now()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      toast.success(`${t("lp_bulk_export_pdf_success")} (${data.count})`);
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const handleBulkExportPdf = () => {
+    const ids = Array.from(selectedPlanIds);
+    if (ids.length === 0) return;
+    bulkExportPdfMutation.mutate({ planIds: ids });
   };
 
   // ── Copy plan to another calendar ────────────────────────────────────────
@@ -942,6 +968,8 @@ export default function LessonPlanner() {
       setSelectedPlanIds={setSelectedPlanIds}
       onBatchDelete={() => setShowBatchDeleteConfirm(true)}
       onBatchCopy={() => setShowBulkCopyDialog(true)}
+      onBatchExportPdf={handleBulkExportPdf}
+      batchExportPdfLoading={bulkExportPdfMutation.isPending}
       t={t}
     />
   );

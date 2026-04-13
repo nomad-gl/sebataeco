@@ -2129,4 +2129,66 @@ Generate a detailed lesson plan with specific activities for each procedure stag
       const newId = (result as any)[0].insertId as number;
       return { id: newId };
     }),
+
+  // ─── Bulk export selected lesson plans as a single merged PDF ──────────────────────
+  /**
+   * Generate a single combined PDF for a list of plan IDs.
+   * Plans are ordered by lessonNumber then lessonDate.
+   * Returns an S3 URL to the merged PDF.
+   */
+  bulkExportLessonPlansPdf: protectedProcedure
+    .input(z.object({
+      planIds: z.array(z.number()).min(1).max(50),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      // Fetch all requested plans owned by this user, ordered by lessonNumber then lessonDate
+      const plans = await db
+        .select()
+        .from(lessonPlans)
+        .where(and(
+          inArray(lessonPlans.id, input.planIds),
+          eq(lessonPlans.userId, ctx.user.id),
+        ))
+        .orderBy(asc(lessonPlans.lessonNumber), asc(lessonPlans.lessonDate));
+
+      if (plans.length === 0)
+        throw new TRPCError({ code: "NOT_FOUND", message: "No plans found" });
+
+      // Build a lookup of calendarId → { schoolName, tutorName } to avoid repeated queries
+      const calInfoCache = new Map<number, { schoolName: string | null; tutorName: string | null }>();
+      const getCalInfo = async (calendarEventId: number | null) => {
+        if (!calendarEventId) return { schoolName: null, tutorName: null };
+        const [calEvent] = await db
+          .select({ calendarId: schoolCalendarEvents.calendarId })
+          .from(schoolCalendarEvents)
+          .where(eq(schoolCalendarEvents.id, calendarEventId));
+        if (!calEvent?.calendarId) return { schoolName: null, tutorName: null };
+        if (calInfoCache.has(calEvent.calendarId)) return calInfoCache.get(calEvent.calendarId)!;
+        const [cal] = await db
+          .select({ schoolName: schoolCalendars.schoolName, tutorName: schoolCalendars.tutorName })
+          .from(schoolCalendars)
+          .where(eq(schoolCalendars.id, calEvent.calendarId));
+        const info = { schoolName: cal?.schoolName ?? null, tutorName: cal?.tutorName ?? null };
+        calInfoCache.set(calEvent.calendarId, info);
+        return info;
+      };
+
+      // Generate individual PDFs and merge
+      const mergedPdf = await PDFDocument.create();
+      for (const plan of plans) {
+        const { schoolName, tutorName } = await getCalInfo(plan.calendarEventId);
+        const singleBuf = await generateLessonPlanPdf({ ...plan, schoolName, tutorName });
+        const singleDoc = await PDFDocument.load(singleBuf);
+        const copiedPages = await mergedPdf.copyPages(singleDoc, singleDoc.getPageIndices());
+        copiedPages.forEach(page => mergedPdf.addPage(page));
+      }
+
+      const mergedBuf = Buffer.from(await mergedPdf.save());
+      const fileKey = `lesson-plan-exports/bulk-${ctx.user.id}-${Date.now()}.pdf`;
+      const { url } = await storagePut(fileKey, mergedBuf, "application/pdf");
+      return { url, count: plans.length };
+    }),
 });
