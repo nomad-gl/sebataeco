@@ -137,13 +137,14 @@ export default function NavBar() {
 
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-1">
-            {/* Items before Teacher dropdown: Home, Chat, Practice */}
+            {/* Items before Teacher dropdown: Chat, Practice */}
             {mainNavItemsBefore.map(({ href, label, icon: Icon }) => {
               const active = location === href || (href !== "/" && location.startsWith(href));
               return (
                 <Link
                   key={href}
                   href={href}
+                  title={label}
                   className={cn(
                     "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
                     active
@@ -154,7 +155,7 @@ export default function NavBar() {
                   )}
                 >
                   <Icon className="w-4 h-4" />
-                  {label}
+                  <span className="hidden lg:inline">{label}</span>
                 </Link>
               );
             })}
@@ -173,8 +174,8 @@ export default function NavBar() {
                 )}
               >
                 <SebaSymbol className="w-4 h-4" />
-                {t("nav_teacher")}
-                <ChevronDown className={cn("w-3 h-3 transition-transform", dropOpen && "rotate-180")} />
+                <span className="hidden lg:inline">{t("nav_teacher")}</span>
+                <ChevronDown className={cn("w-3 h-3 transition-transform hidden lg:inline", dropOpen && "rotate-180")} />
               </button>
 
               {dropOpen && (
@@ -200,13 +201,14 @@ export default function NavBar() {
               )}
             </div>
 
-            {/* Items after Teacher dropdown: TA Forum, Progress */}
+            {/* Items after Teacher dropdown: TA Forum, Director */}
             {mainNavItemsAfter.map(({ href, label, icon: Icon }) => {
               const active = location === href || (href !== "/" && location.startsWith(href));
               return (
                 <Link
                   key={href}
                   href={href}
+                  title={label}
                   className={cn(
                     "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
                     active
@@ -217,7 +219,7 @@ export default function NavBar() {
                   )}
                 >
                   <Icon className="w-4 h-4" />
-                  {label}
+                  <span className="hidden lg:inline">{label}</span>
                 </Link>
               );
             })}

@@ -2268,3 +2268,10 @@
 - [x] Show "All year groups" as the default option
 - [x] i18n: EN/ES/CA keys for challenge_history_all_groups (EN: All year groups / ES: Todos los grupos / CA: Tots els grups)
 - [x] TypeScript 0 errors verified (clean build confirmed)
+
+## Nav: Rename Progress → Director + icon-only md breakpoint + back-to-top
+- [x] Rename "Progress" nav button to "Director" (i18n keys nav_progress in EN/ES/CA)
+- [x] Icon-only nav at md breakpoint, full labels at lg (NavBar.tsx desktop nav)
+- [x] Sticky back-to-top button component (BackToTop.tsx) shown after 300px scroll
+- [x] Wire BackToTop into App.tsx layout so it appears on all pages
+- [x] TypeScript 0 errors verified

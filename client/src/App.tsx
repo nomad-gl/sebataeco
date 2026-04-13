@@ -31,6 +31,7 @@ import Accountability from "./pages/Accountability";
 import AuditDashboard from "./pages/AuditDashboard";
 import Privacy from "./pages/Privacy";
 import PwaInstallBanner from "./components/PwaInstallBanner";
+import { BackToTop } from "./components/BackToTop";
 import UpdateBanner from "./components/UpdateBanner";
 import FirstLaunchLanguagePicker from "./components/FirstLaunchLanguagePicker";
 import CatalanDialectDetector from "./components/CatalanDialectDetector";
@@ -96,6 +97,7 @@ function App() {
           <DataNoticeBanner />
           <DpaAcceptanceDialog />
           <WhatsNewBanner />
+          <BackToTop />
           <Router />
         </TooltipProvider>
       </ThemeProvider>
