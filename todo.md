@@ -2142,3 +2142,11 @@
 ## Feature: Fix clash button in conflict popover
 - [x] Each clash card in the popover gets a "Fix clash" button that closes the popover and opens the Edit Calendar dialog pre-loaded with the other (conflicting) calendar's settings
 - [x] i18n: EN/ES/CA key (cal_clash_fix) — EN: "Fix clash in", ES: "Corregir conflicto en", CA: "Corregir conflicte a"
+
+## Feature: Session entry templates
+- [x] DB: add sessionTemplates table (id, userId, name, sessions JSON array, createdAt)
+- [x] DB: run migration SQL
+- [x] Server: add listSessionTemplates, saveSessionTemplate, deleteSessionTemplate procedures
+- [x] Edit Calendar session entries section: "Save as template" button opens name-input dialog; saves current persisted + draft sessions as a reusable template
+- [x] Edit Calendar session entries section: "Apply template" dropdown lists saved templates; selecting one replaces current drafts; each row has a delete button
+- [x] i18n: EN/ES/CA keys added for all template strings (cal_session_save_template, cal_session_apply_template, cal_session_template_name_ph, cal_session_template_saved, cal_session_template_applied, cal_session_template_delete, cal_session_no_templates, cal_session_save_template_title, cal_session_save_template_desc)

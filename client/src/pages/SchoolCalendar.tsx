@@ -17,6 +17,7 @@ import { ChevronLeft, ChevronRight, Plus, Sparkles, Trash2, CalendarDays,
   ExternalLink, LayoutList, Pencil, School, BookOpen, User, GraduationCap,
   FolderOpen, X, Check, Download, Link, Unlink, Users, Save, ClipboardList,
   ListChecks, RefreshCw, FileDown, Hash, Mic, MicOff, Volume2, VolumeX, ChevronDown, Loader2, Copy,
+  BookTemplate, LayoutTemplate,
 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useLocation } from "wouter";
@@ -26,6 +27,7 @@ import { exportToCsv, exportToXml } from "@/lib/exportUtils";
 import ExportDropdown, { PdfIcon, CsvIcon, XmlIcon } from "@/components/ExportDropdown";
 import { Progress } from "@/components/ui/progress";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 // SPANISH_REGIONS is a shared constant — we inline it here to avoid a server import in client code
 const SPANISH_REGIONS: { value: string; labelEN: string }[] = [
   { value: "national",           labelEN: "National only" },
@@ -349,6 +351,25 @@ export default function SchoolCalendar() {
   });
   const deleteSessionMutation = trpc.planner.deleteCalendarSession.useMutation({
     onSuccess: () => { utils.planner.listCalendarSessions.invalidate(); refetchClashes(); },
+  });
+
+  // ── Session Templates ────────────────────────────────────────────────────
+  const [showSaveTemplateDialog, setShowSaveTemplateDialog] = useState(false);
+  const [templateNameInput, setTemplateNameInput] = useState("");
+  const { data: sessionTemplatesList = [], refetch: refetchTemplates } = trpc.planner.listSessionTemplates.useQuery(
+    undefined,
+    { enabled: showEditCalDialog },
+  );
+  const saveTemplateMutation = trpc.planner.saveSessionTemplate.useMutation({
+    onSuccess: () => {
+      refetchTemplates();
+      setShowSaveTemplateDialog(false);
+      setTemplateNameInput("");
+      toast.success(t("cal_session_template_saved"));
+    },
+  });
+  const deleteTemplateMutation = trpc.planner.deleteSessionTemplate.useMutation({
+    onSuccess: () => refetchTemplates(),
   });
 
   const selectedCalendar = useMemo(
@@ -2552,14 +2573,51 @@ export default function SchoolCalendar() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <Label className="text-sm font-semibold">{t("cal_session_entries")}</Label>
-                <Button
-                  type="button" variant="outline" size="sm"
-                  className="gap-1 text-xs h-7"
-                  onClick={() => {
-                    // Pre-fill from calendar defaults so teacher only needs to set the name
-                    setSessionDrafts(d => [...d, defaultSessionDraft()]);
-                  }}
-                ><Plus className="w-3.5 h-3.5" /> {t("cal_add_session")}</Button>
+                <div className="flex items-center gap-1">
+                  {/* Apply template dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button type="button" variant="outline" size="sm" className="gap-1 text-xs h-7">
+                        <LayoutTemplate className="w-3.5 h-3.5" /> {t("cal_session_apply_template")}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      {sessionTemplatesList.length === 0 ? (
+                        <div className="px-3 py-2 text-xs text-muted-foreground">{t("cal_session_no_templates")}</div>
+                      ) : (
+                        sessionTemplatesList.map(tmpl => (
+                          <DropdownMenuItem key={tmpl.id} className="flex items-center justify-between gap-2"
+                            onClick={() => {
+                              // Replace drafts with template entries
+                              setSessionDrafts(tmpl.sessions.map(s => ({
+                                name: s.name,
+                                lessonDays: JSON.stringify(s.lessonDays),
+                                startTime: s.startTime,
+                                endTime: s.endTime,
+                              })));
+                              toast.success(t("cal_session_template_applied"));
+                            }}
+                          >
+                            <span className="truncate">{tmpl.name}</span>
+                            <Button type="button" variant="ghost" size="icon" className="h-5 w-5 shrink-0 text-destructive hover:text-destructive"
+                              onClick={e => { e.stopPropagation(); deleteTemplateMutation.mutate({ id: tmpl.id }); }}
+                            ><Trash2 className="w-3 h-3" /></Button>
+                          </DropdownMenuItem>
+                        ))
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  {/* Save as template */}
+                  <Button type="button" variant="outline" size="sm" className="gap-1 text-xs h-7"
+                    onClick={() => setShowSaveTemplateDialog(true)}
+                  ><BookTemplate className="w-3.5 h-3.5" /> {t("cal_session_save_template")}</Button>
+                  {/* Add entry */}
+                  <Button
+                    type="button" variant="outline" size="sm"
+                    className="gap-1 text-xs h-7"
+                    onClick={() => setSessionDrafts(d => [...d, defaultSessionDraft()])}
+                  ><Plus className="w-3.5 h-3.5" /> {t("cal_add_session")}</Button>
+                </div>
               </div>
               <p className="text-xs text-muted-foreground mb-2">{t("cal_session_entries_hint")}</p>
               {/* Existing persisted sessions */}
@@ -3765,6 +3823,49 @@ export default function SchoolCalendar() {
             >
               {copyPlanMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Copy className="w-3.5 h-3.5" />}
               {t("lp_copy_btn")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Save Session Template Dialog ── */}
+      <Dialog open={showSaveTemplateDialog} onOpenChange={open => { setShowSaveTemplateDialog(open); if (!open) setTemplateNameInput(""); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t("cal_session_save_template_title")}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">{t("cal_session_save_template_desc")}</p>
+          <Input
+            className="mt-2"
+            value={templateNameInput}
+            onChange={e => setTemplateNameInput(e.target.value)}
+            placeholder={t("cal_session_template_name_ph")}
+            onKeyDown={e => {
+              if (e.key === "Enter" && templateNameInput.trim()) {
+                saveTemplateMutation.mutate({
+                  name: templateNameInput.trim(),
+                  sessions: [
+                    ...existingSessions.map(s => ({ name: s.name, lessonDays: JSON.parse(s.lessonDays || "[]"), startTime: s.startTime, endTime: s.endTime })),
+                    ...sessionDrafts.map(d => ({ name: d.name, lessonDays: JSON.parse(d.lessonDays || "[]"), startTime: d.startTime, endTime: d.endTime })),
+                  ],
+                });
+              }
+            }}
+          />
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setShowSaveTemplateDialog(false)}>{t("optional")}</Button>
+            <Button
+              disabled={!templateNameInput.trim() || saveTemplateMutation.isPending}
+              onClick={() => saveTemplateMutation.mutate({
+                name: templateNameInput.trim(),
+                sessions: [
+                  ...existingSessions.map(s => ({ name: s.name, lessonDays: JSON.parse(s.lessonDays || "[]"), startTime: s.startTime, endTime: s.endTime })),
+                  ...sessionDrafts.map(d => ({ name: d.name, lessonDays: JSON.parse(d.lessonDays || "[]"), startTime: d.startTime, endTime: d.endTime })),
+                ],
+              })}
+            >
+              {saveTemplateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BookTemplate className="w-3.5 h-3.5" />}
+              {t("cal_session_save_template")}
             </Button>
           </DialogFooter>
         </DialogContent>

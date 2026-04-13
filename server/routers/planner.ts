@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
-import { schoolCalendarEvents, schoolCalendars, lessonPlans, classGroups, calendarSessions } from "../../drizzle/schema";
+import { schoolCalendarEvents, schoolCalendars, lessonPlans, classGroups, calendarSessions, sessionTemplates } from "../../drizzle/schema";
 import { eq, and, desc, asc, lte, gte, isNull, or, sql, inArray } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
 import { generateCalendarPdf } from "../calendarPdf";
@@ -2332,5 +2332,58 @@ Generate a detailed lesson plan with specific activities for each procedure stag
       const fileKey = `lesson-plan-exports/bulk-${ctx.user.id}-${Date.now()}.pdf`;
       const { url } = await storagePut(fileKey, mergedBuf, "application/pdf");
       return { url, count: plans.length };
+    }),
+
+  // ── Session Entry Templates ─────────────────────────────────────────────
+
+  listSessionTemplates: protectedProcedure.query(async ({ ctx }) => {
+    const db = await getDb();
+    if (!db) return [];
+    const rows = await db
+      .select()
+      .from(sessionTemplates)
+      .where(eq(sessionTemplates.userId, ctx.user.id))
+      .orderBy(asc(sessionTemplates.createdAt));
+    return rows.map(r => ({
+      ...r,
+      sessions: JSON.parse(r.sessions || "[]") as Array<{
+        name: string;
+        lessonDays: number[];
+        startTime: string;
+        endTime: string;
+      }>,
+    }));
+  }),
+
+  saveSessionTemplate: protectedProcedure
+    .input(z.object({
+      name: z.string().min(1).max(128),
+      sessions: z.array(z.object({
+        name: z.string(),
+        lessonDays: z.array(z.number()),
+        startTime: z.string(),
+        endTime: z.string(),
+      })),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      const [result] = await db.insert(sessionTemplates).values({
+        userId: ctx.user.id,
+        name: input.name,
+        sessions: JSON.stringify(input.sessions),
+      });
+      return { id: (result as any).insertId as number, name: input.name };
+    }),
+
+  deleteSessionTemplate: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      await db
+        .delete(sessionTemplates)
+        .where(and(eq(sessionTemplates.id, input.id), eq(sessionTemplates.userId, ctx.user.id)));
+      return { ok: true };
     }),
 });

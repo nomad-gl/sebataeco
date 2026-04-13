@@ -885,3 +885,17 @@ export const calendarSessions = mysqlTable("calendar_sessions", {
 
 export type CalendarSession = typeof calendarSessions.$inferSelect;
 export type InsertCalendarSession = typeof calendarSessions.$inferInsert;
+
+// ── Session Entry Templates ────────────────────────────────────────────────
+export const sessionTemplates = mysqlTable("session_templates", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  /** Human-readable name for this template, e.g. "Standard Week" */
+  name: varchar("name", { length: 128 }).notNull(),
+  /** JSON array of session entry objects: {name, lessonDays, startTime, endTime} */
+  sessions: text("sessions").notNull().default("[]"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type SessionTemplate = typeof sessionTemplates.$inferSelect;
+export type InsertSessionTemplate = typeof sessionTemplates.$inferInsert;
