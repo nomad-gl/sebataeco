@@ -246,6 +246,16 @@ export default function SchoolCalendar() {
   const [editingEvent, setEditingEvent] = useState<CalEvent | null>(null);
   const [showTermView, setShowTermView] = useState(false);
   const [isPdfExporting, setIsPdfExporting] = useState(false);
+  // ── Event Detail Popover ───────────────────────────────────────────────────
+  const [detailEvent, setDetailEvent] = useState<CalEvent | null>(null);
+  const [detailAnchor, setDetailAnchor] = useState<{ x: number; y: number } | null>(null);
+  const openDetail = (ev: CalEvent, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDetailEvent(ev);
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setDetailAnchor({ x: rect.left, y: rect.bottom + 4 });
+  };
+  const closeDetail = () => { setDetailEvent(null); setDetailAnchor(null); };
   const [showLinkGroupDialog, setShowLinkGroupDialog] = useState(false);
   const [linkGroupId, setLinkGroupId] = useState<string>("");
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
@@ -1919,8 +1929,8 @@ export default function SchoolCalendar() {
                                             : "bg-teal-50 text-teal-800 border-teal-200 border-dashed"
                                           : (EVENT_COLORS[ev.eventType] ?? "bg-gray-100 text-gray-800")
                                       }`}
-                                      onClick={() => isLesson ? openLessonPlanner(ev) : openEdit(ev)}
-                                      title={isLesson ? (() => { const dur = calcDuration(ev.startTime, ev.endTime); const timeRange = ev.startTime && ev.endTime ? `${ev.startTime}–${ev.endTime}${dur ? ` · ${dur} min` : ""}` : ""; return `${hasPlan ? t("cal_view_plan") : t("cal_add_plan")}: ${ev.title}${timeRange ? ` (${timeRange})` : ""}`; })() : ev.title}
+                                      onClick={(e) => openDetail(ev, e)}
+                                      title={ev.title}
                                     >
                                       <span className="flex-1 font-medium truncate">{ev.title}</span>
                                       {isLesson && (() => { const dur = calcDuration(ev.startTime, ev.endTime); return dur ? <span className="shrink-0 text-[10px] font-mono opacity-70">{dur}m</span> : null; })()}
@@ -2061,16 +2071,8 @@ export default function SchoolCalendar() {
                                               : "bg-teal-50 text-teal-800 border-teal-200 border-dashed"
                                             : (EVENT_COLORS[ev.eventType] ?? "bg-gray-100 text-gray-800")
                                         }`}
-                                        onClick={e => {
-                                          e.stopPropagation();
-                                          if (isLesson) openLessonPlanner(ev);
-                                          else openEdit(ev);
-                                        }}
-                                        title={
-                                          isLesson
-                                            ? (() => { const dur = calcDuration(ev.startTime, ev.endTime); const timeRange = ev.startTime && ev.endTime ? `${ev.startTime}–${ev.endTime}${dur ? ` · ${dur} min` : ""}` : ""; return `${hasPlan ? t("cal_view_plan") : t("cal_add_plan")}: ${ev.title}${timeRange ? ` (${timeRange})` : ""}`; })()
-                                            : ev.title
-                                        }
+                                        onClick={e => openDetail(ev, e)}
+                                        title={ev.title}
                                       >
                                         <span className="truncate flex-1">{ev.title}</span>
                                         {isLesson
@@ -2134,8 +2136,8 @@ export default function SchoolCalendar() {
                                             : "bg-teal-50 text-teal-800 border-teal-200 border-dashed"
                                           : (EVENT_COLORS[ev.eventType] ?? "bg-gray-100 text-gray-800")
                                       }`}
-                                      onClick={() => isLesson ? openLessonPlanner(ev) : openEdit(ev)}
-                                      title={isLesson ? (() => { const dur = calcDuration(ev.startTime, ev.endTime); const timeRange = ev.startTime && ev.endTime ? `${ev.startTime}–${ev.endTime}${dur ? ` · ${dur} min` : ""}` : ""; return `${hasPlan ? t("cal_view_plan") : t("cal_add_plan")}: ${ev.title}${timeRange ? ` (${timeRange})` : ""}`; })() : ev.title}
+                                      onClick={(e) => openDetail(ev, e)}
+                                      title={ev.title}
                                     >
                                       <span className="flex-1 truncate">{ev.title}</span>
                                       {isLesson && (() => { const dur = calcDuration(ev.startTime, ev.endTime); return dur ? <span className="shrink-0 text-[10px] font-mono opacity-70">{dur}m</span> : null; })()}
@@ -3871,6 +3873,114 @@ export default function SchoolCalendar() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* ── Event Detail Popover ─────────────────────────────────────────── */}
+      {detailEvent && detailAnchor && (
+        <>
+          {/* Backdrop to close on outside click */}
+          <div className="fixed inset-0 z-40" onClick={closeDetail} />
+          <div
+            className="fixed z-50 w-72 rounded-xl border bg-popover text-popover-foreground shadow-xl p-4 space-y-3"
+            style={{ top: Math.min(detailAnchor.y, window.innerHeight - 320), left: Math.min(detailAnchor.x, window.innerWidth - 300) }}
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${EVENT_COLORS[detailEvent.eventType] ?? "bg-gray-100 text-gray-800"}`}>
+                    {eventLabels[detailEvent.eventType] ?? detailEvent.eventType}
+                  </Badge>
+                  {(detailEvent.eventType === "lesson" || detailEvent.eventType === "ai_generated") && (
+                    <Badge variant="outline" className={`text-[10px] px-1.5 py-0 gap-0.5 ${
+                      (eventPlanMap as Record<number, number>)[detailEvent.id]
+                        ? "bg-green-100 text-green-700 border-green-300"
+                        : "bg-teal-50 text-teal-700 border-teal-200"
+                    }`}>
+                      <ClipboardList className="w-2.5 h-2.5" />
+                      {(eventPlanMap as Record<number, number>)[detailEvent.id] ? t("cal_plan_ready") : t("cal_add_plan")}
+                    </Badge>
+                  )}
+                </div>
+                <p className="font-semibold text-sm leading-snug">{detailEvent.title}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {new Date(detailEvent.eventDate).toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+                  {detailEvent.startTime && detailEvent.endTime && (
+                    <> &middot; {detailEvent.startTime}–{detailEvent.endTime}
+                      {(() => { const dur = calcDuration(detailEvent.startTime, detailEvent.endTime); return dur ? ` (${dur} min)` : ""; })()}
+                    </>
+                  )}
+                </p>
+              </div>
+              <button className="text-muted-foreground hover:text-foreground" onClick={closeDetail}>
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Meta row */}
+            {(detailEvent.yearGroup || detailEvent.subject || detailEvent.competency) && (
+              <div className="flex flex-wrap gap-1.5 text-xs text-muted-foreground">
+                {detailEvent.yearGroup && <span className="flex items-center gap-0.5"><GraduationCap className="w-3 h-3" />{detailEvent.yearGroup}</span>}
+                {detailEvent.subject && <span className="flex items-center gap-0.5"><BookOpen className="w-3 h-3" />{detailEvent.subject}</span>}
+                {detailEvent.competency && <span className="flex items-center gap-0.5"><Hash className="w-3 h-3" />{detailEvent.competency}</span>}
+              </div>
+            )}
+
+            {/* Description */}
+            {detailEvent.description && (() => {
+              try {
+                const parsed = JSON.parse(detailEvent.description as string);
+                if (parsed.learningOutcomes?.length) {
+                  return (
+                    <div className="text-xs text-muted-foreground bg-muted/50 rounded-md p-2">
+                      <p className="font-medium text-foreground mb-1">{t("cal_outcomes")}</p>
+                      <ul className="space-y-0.5 list-disc list-inside">
+                        {(parsed.learningOutcomes as string[]).slice(0, 3).map((lo: string, i: number) => <li key={i}>{lo}</li>)}
+                      </ul>
+                    </div>
+                  );
+                }
+              } catch (_) {}
+              return (
+                <p className="text-xs text-muted-foreground bg-muted/50 rounded-md p-2 line-clamp-3">{detailEvent.description as string}</p>
+              );
+            })()}
+
+            {/* Actions */}
+            <div className="flex gap-2 pt-1">
+              {(detailEvent.eventType === "lesson" || detailEvent.eventType === "ai_generated") && (
+                <Button
+                  size="sm"
+                  className={`flex-1 gap-1.5 ${
+                    (eventPlanMap as Record<number, number>)[detailEvent.id]
+                      ? "bg-green-600 hover:bg-green-700 text-white"
+                      : ""
+                  }`}
+                  onClick={() => { closeDetail(); openPlanSheet(detailEvent); }}
+                >
+                  <ClipboardList className="w-3.5 h-3.5" />
+                  {(eventPlanMap as Record<number, number>)[detailEvent.id] ? t("cal_view_plan") : t("cal_add_plan")}
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 gap-1.5"
+                onClick={() => { closeDetail(); openEdit(detailEvent); }}
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                {t("cal_edit_event") || "Edit"}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-destructive border-destructive/40 hover:bg-destructive/10"
+                onClick={() => { closeDetail(); deleteMutation.mutate({ id: detailEvent.id }); }}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
     </DashboardLayout>
   );
 }

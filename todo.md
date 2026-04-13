@@ -2299,3 +2299,8 @@
 - [x] Update BiasIncidentsTab: Export button (CSV download) on scan history
 - [x] Add ScanSchedulePanel component in Accountability page (time picker, save button)
 - [x] TypeScript 0 errors, tests pass
+
+## Calendar: Event detail view from selection
+- [x] Add event detail popover/panel so clicking an event shows full details with "View Plan" and "Edit Event" actions
+- [x] Non-lesson events: show detail popover with description, time, type, and Edit/Delete actions
+- [x] Lesson events: show detail popover with plan status, description, time, and "Open Plan" / "Edit Event" actions
