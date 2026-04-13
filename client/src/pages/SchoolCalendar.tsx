@@ -1450,6 +1450,29 @@ export default function SchoolCalendar() {
                         ({ sessionA, sessionB }) => sessionA.calendarId === cal.id || sessionB.calendarId === cal.id
                       );
                       const dayNames = [t("cal_day_sun"), t("cal_day_mon"), t("cal_day_tue"), t("cal_day_wed"), t("cal_day_thu"), t("cal_day_fri"), t("cal_day_sat")];
+                      // Helper: open Edit Calendar dialog for a given calendar id
+                      const openEditForCalendar = (targetCalId: number, closePopover: () => void) => {
+                        const targetCal = (calendars as SchoolCalendar[]).find(c => c.id === targetCalId);
+                        if (!targetCal) return;
+                        const c = targetCal as any;
+                        const toDate = (v: any) => v ? new Date(v).toISOString().split("T")[0] : "";
+                        setCalForm({
+                          name: targetCal.name, schoolName: targetCal.schoolName ?? "", tutorName: targetCal.tutorName ?? "",
+                          subject: targetCal.subject ?? "English", yearLevel: targetCal.yearLevel ?? YEAR_GROUPS[3],
+                          academicYear: targetCal.academicYear, calendarType: (targetCal as SchoolCalendar).calendarType ?? "full_year",
+                          startDate: toDate((targetCal as SchoolCalendar).startDate), endDate: toDate((targetCal as SchoolCalendar).endDate),
+                          topicDescription: (targetCal as SchoolCalendar).topicDescription ?? "",
+                          lessonDays: (targetCal as SchoolCalendar).lessonDays ?? "",
+                          region: c.region ?? "catalonia", defaultStartTime: c.defaultStartTime ?? "", defaultEndTime: c.defaultEndTime ?? "",
+                          term1Start: toDate(c.term1Start), term1End: toDate(c.term1End),
+                          term2Start: toDate(c.term2Start), term2End: toDate(c.term2End),
+                          term3Start: toDate(c.term3Start), term3End: toDate(c.term3End),
+                        });
+                        setSelectedCalendarId(targetCalId);
+                        closePopover();
+                        // Small delay so popover closes before dialog opens
+                        setTimeout(() => setShowEditCalDialog(true), 50);
+                      };
                       return (
                         <Popover>
                           <PopoverTrigger asChild onClick={e => e.stopPropagation()}>
@@ -1458,7 +1481,7 @@ export default function SchoolCalendar() {
                               aria-label={t("cal_clash_warning")}
                             >⚠</span>
                           </PopoverTrigger>
-                          <PopoverContent className="w-72 p-3 text-sm" side="right" align="start">
+                          <PopoverContent className="w-80 p-3 text-sm" side="right" align="start">
                             <p className="font-semibold text-amber-600 mb-2">{t("cal_clash_warning")}</p>
                             <p className="text-xs text-muted-foreground mb-3">{t("cal_clash_desc")}</p>
                             <div className="space-y-2">
@@ -1468,11 +1491,31 @@ export default function SchoolCalendar() {
                                 const otherCal = (calendars as SchoolCalendar[]).find(c => c.id === other.calendarId);
                                 const dayLabels = sharedDays.map((d: number) => dayNames[d]).join(", ");
                                 return (
-                                  <div key={i} className="border border-amber-200 bg-amber-50 rounded p-2 text-xs space-y-0.5">
+                                  <div key={i} className="border border-amber-200 bg-amber-50 rounded p-2 text-xs space-y-1.5">
                                     <div className="font-medium text-amber-800">"{mine.name}" {t("cal_clash_between")} "{other.name}"</div>
                                     {otherCal && <div className="text-muted-foreground">{otherCal.name}</div>}
                                     <div><span className="font-medium">{t("cal_clash_days")}:</span> {dayLabels}</div>
                                     <div><span className="font-medium">{t("cal_clash_time")}:</span> {overlapStart}–{overlapEnd}</div>
+                                    {/* Fix clash button — opens Edit Calendar for the OTHER calendar */}
+                                    <Popover>
+                                      {/* We use a nested Popover trick: close the outer one via a hidden trigger */}
+                                    </Popover>
+                                    <button
+                                      type="button"
+                                      onClick={e => {
+                                        e.stopPropagation();
+                                        // Find the outer Popover close button and click it
+                                        const popoverContent = (e.currentTarget as HTMLElement).closest('[data-slot="popover-content"]');
+                                        if (popoverContent) {
+                                          // Dispatch Escape to close the Radix popover
+                                          popoverContent.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                                        }
+                                        openEditForCalendar(other.calendarId, () => {});
+                                      }}
+                                      className="mt-0.5 w-full flex items-center justify-center gap-1 rounded bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-medium py-1 px-2 transition-colors"
+                                    >
+                                      <Pencil className="w-3 h-3" /> {t("cal_clash_fix")} → {otherCal?.name ?? other.calendarId}
+                                    </button>
                                   </div>
                                 );
                               })}

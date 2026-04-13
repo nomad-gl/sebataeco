@@ -2138,3 +2138,7 @@
 
 ## Feature: Auto-fill new session entry from calendar defaults
 - [x] When teacher clicks "Add Entry", pre-fill day toggles from the calendar's lessonDays field and start/end times from defaultStartTime/defaultEndTime
+
+## Feature: Fix clash button in conflict popover
+- [x] Each clash card in the popover gets a "Fix clash" button that closes the popover and opens the Edit Calendar dialog pre-loaded with the other (conflicting) calendar's settings
+- [x] i18n: EN/ES/CA key (cal_clash_fix) — EN: "Fix clash in", ES: "Corregir conflicto en", CA: "Corregir conflicte a"
