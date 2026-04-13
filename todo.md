@@ -2152,9 +2152,27 @@
 - [x] i18n: EN/ES/CA keys added for all template strings (cal_session_save_template, cal_session_apply_template, cal_session_template_name_ph, cal_session_template_saved, cal_session_template_applied, cal_session_template_delete, cal_session_no_templates, cal_session_save_template_title, cal_session_save_template_desc)
 
 ## Task: Full i18n audit — replace all hard-coded English strings
-- [ ] Audit LessonPlanner.tsx for hard-coded strings
-- [ ] Audit SchoolCalendar.tsx for hard-coded strings
-- [ ] Audit remaining pages (Home, Settings, Dashboard, etc.) for hard-coded strings
-- [ ] Audit shared components (DashboardLayout, AIChatBox, etc.) for hard-coded strings
-- [ ] Add all missing keys to EN, ES, and CA sections of I18nContext.tsx
-- [ ] Verify 0 TypeScript errors after all changes
+- [x] Audit LessonPlanner.tsx for hard-coded strings
+- [x] Audit SchoolCalendar.tsx for hard-coded strings
+- [x] Audit remaining pages (Home, Settings, Dashboard, etc.) for hard-coded strings
+- [x] Audit shared components (DashboardLayout, AIChatBox, etc.) for hard-coded strings
+- [x] Add all missing keys to EN, ES, and CA sections of I18nContext.tsx
+- [x] Verify 0 TypeScript errors after all changes
+
+## Bug Fix: Missing Re-number Plans button in Lesson Planner
+- [x] Add Hash icon import to LessonPlanner.tsx
+- [x] Add renumberPlansMutation (trpc.planner.renumberPlans) to LessonPlanner.tsx
+- [x] Add Re-number Plans button to Lesson Planner toolbar (visible when a plan is selected)
+- [x] Add lp_renumber_no_calendar key to EN/ES/CA in I18nContext.tsx
+
+## Bug Fix: Re-number Plans overwrites lesson titles
+- [ ] Inspect renumberPlans server procedure to see if it overwrites plan titles
+- [ ] Fix renumber logic so only lessonNumber is updated, not the plan title
+- [ ] Verify fix in browser
+
+## Feature: Batch "Fill all empty sections" button in Lesson Plans sidebar
+- [x] Add onBatchFillAll prop to PlansList component
+- [x] Add "Fill all empty" button in the PlansList footer (next to Generate with AI)
+- [x] In LessonPlanner main component, implement handleBatchFillAll: iterate over all visible plans, call aiRegenerateSection for each blank section, auto-save each plan
+- [x] Show progress toast during batch fill (e.g. "Filling plan 3 of 12...")
+- [x] i18n: EN/ES/CA keys for lp_batch_fill_all, lp_batch_fill_progress, lp_batch_fill_done

@@ -1703,6 +1703,9 @@ export const translations = {
     pwa_installed_title: "AINA installed successfully!",
     pwa_installed_desc: "Open it anytime from your home screen.",
     lp_renumber_no_calendar: "This plan is not linked to a calendar. Link it first to re-number.",
+    lp_batch_fill_all: "Fill all empty sections",
+    lp_batch_fill_progress: "Filling plan {{current}} of {{total}}…",
+    lp_batch_fill_done: "{{count}} plans filled with AI content",
   },
 
   es: {
@@ -3393,6 +3396,9 @@ export const translations = {
     pwa_installed_title: "¡AINA instalada correctamente!",
     pwa_installed_desc: "Abréla cuando quieras desde tu pantalla de inicio.",
     lp_renumber_no_calendar: "Este plan no está vinculado a un calendario. Vincúlalo primero para renumerar.",
+    lp_batch_fill_all: "Rellenar secciones vacías",
+    lp_batch_fill_progress: "Rellenando plan {{current}} de {{total}}…",
+    lp_batch_fill_done: "{{count}} planes rellenados con IA",
   },
 
   ca: {
@@ -5083,6 +5089,9 @@ export const translations = {
     pwa_installed_title: "AINA instal·lada correctament!",
     pwa_installed_desc: "Obre-la quan vulguis des de la teva pantalla d'inici.",
     lp_renumber_no_calendar: "Aquest pla no està vinculat a un calendari. Vincula'l primer per renumerar.",
+    lp_batch_fill_all: "Omplir seccions buides",
+    lp_batch_fill_progress: "Omplint pla {{current}} de {{total}}…",
+    lp_batch_fill_done: "{{count}} plans omplerts amb IA",
   },
 } as const;
 

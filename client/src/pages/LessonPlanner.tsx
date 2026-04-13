@@ -208,7 +208,7 @@ function buildPrintHtml(form: LessonFormState, logoDataUrl?: string, labels?: Re
 }
 
 // ─── Saved Plans List (shared between sidebar and sheet) ───────────────────────
-function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplicate, onDelete, onJumpToCalendar, batchSelectMode, setBatchSelectMode, selectedPlanIds, setSelectedPlanIds, onBatchDelete, onBatchCopy, onBatchExportPdf, batchExportPdfLoading, t }: {
+function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplicate, onDelete, onJumpToCalendar, batchSelectMode, setBatchSelectMode, selectedPlanIds, setSelectedPlanIds, onBatchDelete, onBatchCopy, onBatchExportPdf, batchExportPdfLoading, onBatchFillAll, batchFillAllLoading, batchFillAllProgress, t }: {
   plans: any[];
   calendars: any[];
   selectedId: number | null;
@@ -226,6 +226,9 @@ function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplic
   onBatchCopy: () => void;
   onBatchExportPdf: () => void;
   batchExportPdfLoading?: boolean;
+  onBatchFillAll: () => void;
+  batchFillAllLoading?: boolean;
+  batchFillAllProgress?: { current: number; total: number; planTitle?: string } | null;
   t: (k: any) => string;
 }) {
   const [sortByLesson, setSortByLesson] = useState(() => {
@@ -372,7 +375,30 @@ function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplic
           </div>
         ))}
       </div>
-      <div className="p-2 border-t shrink-0">
+      <div className="p-2 border-t shrink-0 space-y-1.5">
+        <Button
+          size="sm"
+          variant="outline"
+          className="w-full gap-1 text-teal-700 border-teal-300 hover:bg-teal-50"
+          onClick={onBatchFillAll}
+          disabled={batchFillAllLoading || plans.length === 0}
+          title={t("lp_batch_fill_all")}
+        >
+          {batchFillAllLoading ? (
+            <>
+              <Loader2 className="w-3 h-3 animate-spin" />
+              <span className="text-xs truncate max-w-[160px]">
+                {batchFillAllProgress
+                  ? t("lp_batch_fill_progress")
+                      .replace("{{current}}", String(batchFillAllProgress.current))
+                      .replace("{{total}}", String(batchFillAllProgress.total))
+                  : t("lp_batch_fill_all")}
+              </span>
+            </>
+          ) : (
+            <><Sparkles className="w-3 h-3" /> {t("lp_batch_fill_all")}</>
+          )}
+        </Button>
         <Button size="sm" className="w-full gap-1" onClick={onAi}>
           <Sparkles className="w-3 h-3" /> {t("lp_generate_ai")}
         </Button>
@@ -413,6 +439,8 @@ export default function LessonPlanner() {
   const [batchSelectMode, setBatchSelectMode] = useState(false);
   const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false);
   const [showIndividualDeleteConfirm, setShowIndividualDeleteConfirm] = useState<number | null>(null);
+  const [batchFillAllRunning, setBatchFillAllRunning] = useState(false);
+  const [batchFillAllProgress, setBatchFillAllProgress] = useState<{ current: number; total: number; planTitle?: string } | null>(null);
   const utils = trpc.useUtils();
 
   // Show a toast when arriving from the calendar
@@ -549,7 +577,70 @@ export default function LessonPlanner() {
     bulkExportPdfMutation.mutate({ planIds: ids });
   };
 
-  // ── Copy plan to another calendar ────────────────────────────────────────
+  // ── Batch fill all empty sections across all visible plans ─────────────────────
+  const handleBatchFillAll = async () => {
+    if (batchFillAllRunning) return;
+    const allPlans = plans as any[];
+    if (allPlans.length === 0) return;
+    setBatchFillAllRunning(true);
+    const isBlankArray = (v: string[]) => !v || v.every((s: string) => !s.trim());
+    const isBlankStr = (v: string) => !v || !v.trim();
+    const isBlankProcs = (v: any[]) => !v || v.every((p: any) => !p.activities?.trim());
+    const isAllFalse = (v: Record<string, boolean>) => !v || !Object.values(v).some(Boolean);
+    let filledCount = 0;
+    for (let pi = 0; pi < allPlans.length; pi++) {
+      const plan = allPlans[pi];
+      const pf = planToForm(plan);
+      const sectionsToFill: string[] = [];
+      if (isAllFalse(pf.skills)) sectionsToFill.push("skills");
+      if (isAllFalse(pf.systems)) sectionsToFill.push("systems");
+      if (isBlankArray(pf.specificCompetences)) sectionsToFill.push("specificCompetences");
+      if (isBlankArray(pf.saberesBasicos)) sectionsToFill.push("saberesBasicos");
+      if (isBlankArray(pf.learningOutcomes)) sectionsToFill.push("learningOutcomes");
+      if (isBlankArray(pf.evaluationCriteria)) sectionsToFill.push("evaluationCriteria");
+      if (isBlankStr(pf.previousKnowledge)) sectionsToFill.push("previousKnowledge");
+      if (isBlankStr(pf.materials)) sectionsToFill.push("materials");
+      if (isBlankProcs(pf.procedures)) sectionsToFill.push("procedures");
+      if (sectionsToFill.length === 0) continue;
+      setBatchFillAllProgress({ current: pi + 1, total: allPlans.length, planTitle: plan.title });
+      let currentForm = { ...pf };
+      for (const section of sectionsToFill) {
+        try {
+          const data = await utils.client.planner.aiRegenerateSection.mutate({
+            planId: plan.id,
+            section: section as any,
+            title: currentForm.title,
+            subject: currentForm.subject,
+            yearGroup: currentForm.yearGroup,
+            duration: currentForm.duration,
+            unit: currentForm.unit || undefined,
+            competencies: currentForm.competencies,
+          });
+          const parsed = (() => { try { return JSON.parse(data.value); } catch { return data.value; } })();
+          currentForm = { ...currentForm, [data.section]: parsed };
+        } catch (e: any) {
+          toast.error(`${plan.title ?? t("lp_untitled")}: ${e.message}`);
+        }
+      }
+      try {
+        await utils.client.planner.saveLessonPlan.mutate({ id: plan.id, ...formToSave(currentForm) });
+        filledCount++;
+        // If this is the currently open plan, refresh the form
+        if (plan.id === selectedId) {
+          setForm({ ...currentForm });
+          setIsDirty(false);
+        }
+      } catch (e: any) {
+        toast.error(`${t("lp_autosave_failed")}: ${e.message}`);
+      }
+    }
+    await utils.planner.listLessonPlans.invalidate();
+    setBatchFillAllRunning(false);
+    setBatchFillAllProgress(null);
+    toast.success(t("lp_batch_fill_done").replace("{{count}}", String(filledCount)));
+  };
+
+  // ── Copy plan to another calendar ──────────────────────────────────────────────
   const [showCopyPlanDialog, setShowCopyPlanDialog] = useState(false);
   const [copySourcePlan, setCopySourcePlan] = useState<any>(null);
   const [copyTargetCalendarId, setCopyTargetCalendarId] = useState<string>("");
@@ -987,6 +1078,9 @@ export default function LessonPlanner() {
       onBatchCopy={() => setShowBulkCopyDialog(true)}
       onBatchExportPdf={handleBulkExportPdf}
       batchExportPdfLoading={bulkExportPdfMutation.isPending}
+      onBatchFillAll={handleBatchFillAll}
+      batchFillAllLoading={batchFillAllRunning}
+      batchFillAllProgress={batchFillAllProgress}
       t={t}
     />
   );
