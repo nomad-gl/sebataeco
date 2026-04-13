@@ -3963,7 +3963,7 @@ export default function SchoolCalendar() {
                       ? "bg-green-600 hover:bg-green-700 text-white"
                       : ""
                   }`}
-                  onClick={() => { closeDetail(); openPlanSheet(detailEvent); }}
+                  onClick={() => { const ev = detailEvent; closeDetail(); setTimeout(() => openPlanSheet(ev), 50); }}
                 >
                   <ClipboardList className="w-3.5 h-3.5" />
                   {(eventPlanMap as Record<number, number>)[detailEvent.id] ? t("cal_view_plan") : t("cal_add_plan")}
@@ -3973,7 +3973,7 @@ export default function SchoolCalendar() {
                 size="sm"
                 variant="outline"
                 className="flex-1 gap-1.5"
-                onClick={() => { closeDetail(); openEdit(detailEvent); }}
+                onClick={() => { const ev = detailEvent; closeDetail(); setTimeout(() => openEdit(ev), 50); }}
               >
                 <Pencil className="w-3.5 h-3.5" />
                 {t("cal_edit_event") || "Edit"}
