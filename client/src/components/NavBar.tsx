@@ -47,9 +47,8 @@ export default function NavBar() {
   });
   const utils = trpc.useUtils();
 
-  // Items before Teacher dropdown
+  // Items before Teacher dropdown (Home removed — logo already links to /)
   const mainNavItemsBefore = [
-    { href: "/",          label: t("nav_home"),     icon: BookOpen },
     { href: "/chat",      label: t("nav_chat"),     icon: MessageCircle },
     { href: "/practice",  label: t("nav_practice"), icon: Dumbbell },
   ];
