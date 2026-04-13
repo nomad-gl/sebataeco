@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { useI18n } from "@/contexts/I18nContext";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -29,6 +30,7 @@ export function usePwaInstall() {
   const [state, setState] = useState<PwaInstallState>("unavailable");
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showIosModal, setShowIosModal] = useState(false);
+  const { t } = useI18n();
 
   useEffect(() => {
     // Already running as installed PWA
@@ -56,8 +58,8 @@ export function usePwaInstall() {
     // Track successful installation
     const installedHandler = () => {
       trackInstallEvent("app_installed");
-      toast.success("AINA installed successfully!", {
-        description: "Open it anytime from your home screen.",
+      toast.success(t("pwa_installed_title"), {
+        description: t("pwa_installed_desc"),
         duration: 5000,
       });
       setState("unavailable");
@@ -68,7 +70,7 @@ export function usePwaInstall() {
       window.removeEventListener("beforeinstallprompt", handler);
       window.removeEventListener("appinstalled", installedHandler);
     };
-  }, []);
+  }, [t]);
 
   const install = async () => {
     trackInstallEvent("install_button_clicked", { platform: state });

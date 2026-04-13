@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { Plus, Sparkles, Trash2, Printer, BookOpen, Save, List, X, Copy, LayoutTemplate, FolderOpen, FileDown, ArrowUpDown, ArrowUp01, CalendarDays, Loader2, RefreshCw } from "lucide-react";
+import { Plus, Sparkles, Trash2, Printer, BookOpen, Save, List, X, Copy, LayoutTemplate, FolderOpen, FileDown, ArrowUpDown, ArrowUp01, CalendarDays, Loader2, RefreshCw, Hash } from "lucide-react";
 import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import LogoUploader from "@/components/LogoUploader";
@@ -261,7 +261,7 @@ function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplic
         <div className="flex items-center gap-1">
           <button
             onClick={() => setSortByLesson(v => { const next = !v; try { localStorage.setItem("seba_planner_sort_by_lesson", next ? "1" : "0"); } catch {} return next; })}
-            title={sortByLesson ? "Sorted by lesson number" : "Sort by lesson number"}
+            title={sortByLesson ? t("lp_sorted_by_lesson") : t("lp_sort_by_lesson")}
             className={`p-1 rounded hover:bg-accent transition-colors ${sortByLesson ? "text-teal-600 bg-teal-50" : "text-muted-foreground"}`}
           >
             {sortByLesson ? <ArrowUp01 className="w-3.5 h-3.5" /> : <ArrowUpDown className="w-3.5 h-3.5" />}
@@ -286,7 +286,7 @@ function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplic
             </>
           ) : (
             <>
-              <Button size="sm" variant="ghost" title="Select multiple" onClick={() => setBatchSelectMode(true)}><Checkbox className="w-3.5 h-3.5 pointer-events-none" /></Button>
+              <Button size="sm" variant="ghost" title={t("lp_select_multiple")} onClick={() => setBatchSelectMode(true)}><Checkbox className="w-3.5 h-3.5 pointer-events-none" /></Button>
               <Button size="sm" variant="ghost" onClick={onNew}><Plus className="w-4 h-4" /></Button>
             </>
           )}
@@ -295,7 +295,7 @@ function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplic
       {batchSelectMode && plans.length > 0 && (
         <div className="px-3 py-1.5 border-b flex items-center gap-2 text-xs text-muted-foreground">
           <Checkbox checked={allSelected} onCheckedChange={toggleAll} id="select-all-plans" />
-          <label htmlFor="select-all-plans" className="cursor-pointer">Select all</label>
+          <label htmlFor="select-all-plans" className="cursor-pointer">{t("lp_select_all")}</label>
         </div>
       )}
       {calendars.length > 0 && (
@@ -304,13 +304,13 @@ function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplic
             value={calendarFilter}
             onChange={e => setCalendarFilter(e.target.value)}
             className="w-full text-xs rounded border border-input bg-background px-2 py-1 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-            title="Filter by calendar"
+            title={t("lp_filter_by_calendar")}
           >
-            <option value="all">All calendars</option>
+            <option value="all">{t("lp_all_calendars")}</option>
             {calendars.map((c: any) => (
               <option key={c.id} value={String(c.id)}>{c.name}</option>
             ))}
-            <option value="unlinked">Unlinked plans</option>
+            <option value="unlinked">{t("lp_unlinked_plans")}</option>
           </select>
         </div>
       )}
@@ -347,7 +347,7 @@ function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplic
                 {p.calendarEventId && p.calendarId && (
                   <button
                     onClick={(e) => { e.stopPropagation(); onJumpToCalendar(p.calendarEventId, p.calendarId); }}
-                    title="Jump to calendar event"
+                    title={t("lp_jump_to_event")}
                     className="p-1 rounded hover:bg-teal-50 hover:text-teal-700"
                   >
                     <CalendarDays className="w-3.5 h-3.5 text-teal-600" />
@@ -481,6 +481,23 @@ export default function LessonPlanner() {
     onError: (e) => toast.error(e.message),
   });
 
+  // ── Renumber plans ─────────────────────────────────────────────────────
+  const renumberPlansMutation = trpc.planner.renumberPlans.useMutation({
+    onSuccess: (data) => {
+      utils.planner.listLessonPlans.invalidate();
+      toast.success(`${t("lp_renumber_success")} (${data.updated})`);
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const handleRenumberPlans = () => {
+    // Find the calendarId for the currently selected plan
+    const currentPlan = (plans as any[]).find((p: any) => p.id === selectedId);
+    const calId = currentPlan?.calendarId;
+    if (!calId) { toast.error(t("lp_renumber_no_calendar")); return; }
+    renumberPlansMutation.mutate({ calendarId: calId });
+  };
+
   // ── Bulk copy plans ─────────────────────────────────────────────────────
   const [showBulkCopyDialog, setShowBulkCopyDialog] = useState(false);
   const [bulkCopyTargetCalendarId, setBulkCopyTargetCalendarId] = useState<string>("");
@@ -493,7 +510,7 @@ export default function LessonPlanner() {
       setBatchSelectMode(false);
       setSelectedPlanIds(new Set());
       if (data.failed > 0) {
-        toast.warning(`${data.copied} ${t("lp_bulk_copy_success")}, ${data.failed} failed`);
+        toast.warning(`${data.copied} ${t("lp_bulk_copy_success")}, ${data.failed} ${t("lp_failed_count")}`);
       } else {
         toast.success(`${data.copied} ${t("lp_bulk_copy_success")}`);
       }
@@ -552,7 +569,7 @@ export default function LessonPlanner() {
   const restorePlanMutation = trpc.planner.restoreDeletedPlan.useMutation({
     onSuccess: () => {
       utils.planner.listLessonPlans.invalidate();
-      toast.success(t("lp_copy_undo_success") ?? "Plan restored");
+      toast.success(t("lp_copy_undo_success"));
     },
     onError: (e) => toast.error(e.message),
   });
@@ -565,7 +582,7 @@ export default function LessonPlanner() {
       if (data.replacedPlan) {
         // Show Undo toast when a plan was replaced
         const snapshot = data.replacedPlan;
-        toast.success(t("lp_copy_success") ?? "Plan replaced", {
+        toast.success(t("lp_copy_success"), {
           description: t("lp_copy_undo_desc") ?? "The previous plan was deleted.",
           duration: 10000,
           action: {
@@ -574,7 +591,7 @@ export default function LessonPlanner() {
           },
         });
       } else {
-        toast.success(t("lp_copy_success") ?? "Plan copied", {
+        toast.success(t("lp_copy_success"), {
           description: data.lessonNumber ? `${t("lp_lesson_number_label")} ${data.lessonNumber}` : undefined,
           duration: 6000,
         });
@@ -685,13 +702,13 @@ export default function LessonPlanner() {
           toast.success(t("lp_generated_toast") + " " + t("lp_add_to_calendar"));
         } catch (err: any) {
           // Non-fatal: plan was generated, calendar link failed
-          toast.warning(t("lp_generated_toast") + " (calendar link failed)");
+              toast.warning(t("lp_generated_toast") + " (" + t("lp_calendar_link_failed") + ")");
         }
       } else {
         const snap = preAiSnapshotRef.current;
         if (snap) {
           toast.success(t("lp_generated_toast"), {
-            action: { label: "Undo", onClick: () => { setForm(snap); setIsDirty(true); preAiSnapshotRef.current = null; } },
+            action: { label: t("cal_undo"), onClick: () => { setForm(snap); setIsDirty(true); preAiSnapshotRef.current = null; } },
             duration: 8000,
           });
         } else {
@@ -719,14 +736,14 @@ export default function LessonPlanner() {
       setRegeneratingSection(null);
       toast.success(t("lp_section_regenerated"), {
         action: {
-          label: "Undo",
-          onClick: () => {
-            if (preAiSnapshotRef.current) {
-              setForm(preAiSnapshotRef.current);
-              setIsDirty(true);
-              preAiSnapshotRef.current = null;
-            }
-          },
+          label: t("cal_undo"),
+            onClick: () => {
+              if (preAiSnapshotRef.current) {
+                setForm(preAiSnapshotRef.current);
+                setIsDirty(true);
+                preAiSnapshotRef.current = null;
+              }
+            },
         },
         duration: 8000,
       });
@@ -791,7 +808,7 @@ export default function LessonPlanner() {
         setForm({ ...currentForm });
         setIsDirty(true);
       } catch (e: any) {
-        toast.error(`Failed to fill ${section}: ${e.message}`);
+        toast.error(`${t("lp_fill_failed").replace("{{section}}", section)}: ${e.message}`);
       }
     }
     setRegeneratingSection(null);
@@ -803,12 +820,12 @@ export default function LessonPlanner() {
         utils.planner.listLessonPlans.invalidate();
         setIsDirty(false);
       } catch (e: any) {
-        toast.error(`Auto-save failed: ${e.message}`);
+        toast.error(`${t("lp_autosave_failed")}: ${e.message}`);
       }
     }
     toast.success(t("lp_all_sections_filled"), {
       action: {
-        label: "Undo",
+          label: t("cal_undo"),
         onClick: () => {
           if (preAiSnapshotRef.current) {
             setForm(preAiSnapshotRef.current);
@@ -1025,6 +1042,12 @@ export default function LessonPlanner() {
                 {selectedId && (
                   <Button variant="outline" size="sm" onClick={() => deleteMutation.mutate({ id: selectedId })} className="text-red-600 hover:text-red-700">
                     <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
+                {selectedId && (
+                  <Button variant="outline" size="sm" onClick={handleRenumberPlans} disabled={renumberPlansMutation.isPending} className="gap-1 text-violet-700 border-violet-300 hover:bg-violet-50" title={t("lp_renumber_plans")}>
+                    <Hash className="w-4 h-4" />
+                    <span className="hidden sm:inline">{t("lp_renumber_plans")}</span>
                   </Button>
                 )}
                 {selectedId && (
@@ -1463,10 +1486,10 @@ export default function LessonPlanner() {
               </div>
               {aiDate && (
                 <div>
-                  <Label>{t("lp_calendar") ?? "Calendar"}</Label>
+                  <Label>{t("lp_calendar")}</Label>
                   <Select value={aiCalendarId} onValueChange={setAiCalendarId}>
                     <SelectTrigger>
-                      <SelectValue placeholder={t("lp_select_calendar") ?? "Select a calendar…"} />
+                      <SelectValue placeholder={t("lp_select_calendar")} />
                     </SelectTrigger>
                     <SelectContent>
                       {(calendars as any[]).map((cal: any) => (
@@ -1477,7 +1500,7 @@ export default function LessonPlanner() {
                     </SelectContent>
                   </Select>
                   {(calendars as any[]).length === 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">{t("lp_no_calendars") ?? "No calendars yet — create one in School Calendar first."}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{t("lp_no_calendars")}</p>
                   )}
                 </div>
               )}
@@ -1500,7 +1523,7 @@ export default function LessonPlanner() {
             <Button variant="outline" onClick={() => setShowAiDialog(false)}>{t("cal_cancel")}</Button>
             <Button onClick={() => {
               if (!aiTitle.trim()) { toast.error(t("lp_title_required")); return; }
-              if (aiDate && !aiCalendarId && (calendars as any[]).length > 0) { toast.error(t("lp_select_calendar") ?? "Please select a calendar to add to."); return; }
+              if (aiDate && !aiCalendarId && (calendars as any[]).length > 0) { toast.error(t("lp_select_calendar")); return; }
               // Build the existing-fields snapshot from the current form (if a plan is loaded)
               const existingSnapshot = selectedId && form.title ? {
                 skills: JSON.stringify(form.skills),
@@ -1551,7 +1574,7 @@ export default function LessonPlanner() {
                 <SelectContent>
                   <SelectItem value="a4">A4 (210 × 297 mm)</SelectItem>
                   <SelectItem value="a5">A5 (148 × 210 mm)</SelectItem>
-                  <SelectItem value="letter">US Letter (8.5 × 11 in)</SelectItem>
+                  <SelectItem value="letter">{t("lp_us_letter")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

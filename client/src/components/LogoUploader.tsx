@@ -18,6 +18,7 @@ import { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Upload, X, ImageIcon } from "lucide-react";
+import { useI18n } from "@/contexts/I18nContext";
 
 const STORAGE_KEY = "seba_school_logo";
 const MAX_SIZE_BYTES = 500 * 1024; // 500 KB — keeps localStorage lean
@@ -26,6 +27,7 @@ export default function LogoUploader() {
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { t } = useI18n();
 
   // Load existing logo on mount
   useEffect(() => {
@@ -36,11 +38,11 @@ export default function LogoUploader() {
   const handleFile = (file: File) => {
     setError(null);
     if (!file.type.startsWith("image/")) {
-      setError("Please upload a PNG, JPG, or SVG image.");
+      setError(t("logo_invalid_type"));
       return;
     }
     if (file.size > MAX_SIZE_BYTES) {
-      setError("Image must be under 500 KB. Try a smaller or compressed file.");
+      setError(t("logo_too_large"));
       return;
     }
     const reader = new FileReader();
@@ -68,10 +70,9 @@ export default function LogoUploader() {
 
   return (
     <div className="space-y-2">
-      <Label className="text-sm font-medium">School Logo</Label>
+      <Label className="text-sm font-medium">{t("logo_label")}</Label>
       <p className="text-xs text-muted-foreground">
-        Upload once — the logo will appear on all printed lesson plans and PDF worksheets.
-        Accepted: PNG, JPG, SVG · Max 500 KB.
+        {t("logo_help")}
       </p>
 
       {logoDataUrl ? (
@@ -79,11 +80,11 @@ export default function LogoUploader() {
         <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-3">
           <img
             src={logoDataUrl}
-            alt="School logo preview"
+            alt={t("logo_preview_alt")}
             className="h-12 max-w-[120px] object-contain rounded"
           />
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground truncate">Logo saved</p>
+            <p className="text-xs text-muted-foreground truncate">{t("logo_saved")}</p>
           </div>
           <div className="flex gap-2 shrink-0">
             <Button
@@ -93,7 +94,7 @@ export default function LogoUploader() {
               className="gap-1 text-xs"
               onClick={() => inputRef.current?.click()}
             >
-              <Upload className="w-3 h-3" /> Replace
+              <Upload className="w-3 h-3" /> {t("logo_replace")}
             </Button>
             <Button
               type="button"
@@ -101,7 +102,7 @@ export default function LogoUploader() {
               size="icon"
               className="text-red-500 hover:text-red-600 h-8 w-8"
               onClick={handleRemove}
-              title="Remove logo"
+              title={t("logo_remove")}
             >
               <X className="w-4 h-4" />
             </Button>
@@ -120,10 +121,10 @@ export default function LogoUploader() {
         >
           <ImageIcon className="w-8 h-8 text-muted-foreground" />
           <p className="text-sm text-muted-foreground text-center">
-            Click or drag & drop your school logo here
+            {t("logo_drop_hint")}
           </p>
           <Button type="button" variant="outline" size="sm" className="gap-1.5 pointer-events-none">
-            <Upload className="w-3.5 h-3.5" /> Browse
+            <Upload className="w-3.5 h-3.5" /> {t("logo_browse")}
           </Button>
         </div>
       )}

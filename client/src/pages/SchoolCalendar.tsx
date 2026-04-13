@@ -647,7 +647,7 @@ export default function SchoolCalendar() {
     onSuccess: () => {
       utils.planner.listLessonPlans.invalidate();
       utils.planner.getEventPlanMap.invalidate();
-      toast.success(t("lp_copy_undo_success") ?? "Plan restored");
+      toast.success(t("lp_copy_undo_success"));
     },
     onError: (e) => toast.error(e.message),
   });
@@ -660,16 +660,16 @@ export default function SchoolCalendar() {
       if (data.replacedPlan) {
         // Show Undo toast when a plan was replaced
         const snapshot = data.replacedPlan;
-        toast.success(t("lp_copy_success") ?? "Plan replaced", {
-          description: t("lp_copy_undo_desc") ?? "The previous plan was deleted.",
+        toast.success(t("lp_copy_success"), {
+          description: t("lp_copy_undo_desc"),
           duration: 10000,
           action: {
-            label: t("lp_copy_undo") ?? "Undo",
+            label: t("lp_copy_undo"),
             onClick: () => scRestorePlanMutation.mutate({ snapshot }),
           },
         });
       } else {
-        toast.success(t("lp_copy_success") ?? "Plan copied", {
+        toast.success(t("lp_copy_success"), {
           description: data.lessonNumber ? `${t("lp_lesson_number_label")} ${data.lessonNumber}` : undefined,
           action: {
             label: t("cal_open_in_planner"),
@@ -730,8 +730,8 @@ export default function SchoolCalendar() {
       const snap = preAiSnapshotRef.current;
       setPlanField(field, parsed);
       setRegeneratingSection(null);
-      toast.success(t("lp_section_regenerated") ?? "Section regenerated", snap ? {
-        action: { label: "Undo", onClick: () => { if (snap) { Object.keys(snap).forEach(k => setPlanField(k as any, (snap as any)[k])); preAiSnapshotRef.current = null; } } },
+      toast.success(t("lp_section_regenerated"), snap ? {
+        action: { label: t("cal_undo"), onClick: () => { if (snap) { Object.keys(snap).forEach(k => setPlanField(k as any, (snap as any)[k])); preAiSnapshotRef.current = null; } } },
         duration: 8000,
       } : undefined);
     },
@@ -807,13 +807,13 @@ export default function SchoolCalendar() {
         await utils.client.planner.saveLessonPlan.mutate({ id: planSheetPlanId, ...lessonFormToSave(currentForm), calendarEventId: planSheetEventId ?? undefined });
         setPlanFormDirty(false);
       } catch (e: any) {
-        toast.error(`Auto-save failed: ${e.message}`);
+        toast.error(`${t("lp_autosave_failed")}: ${e.message}`);
       }
     }
     const snap = preAiSnapshotRef.current;
-    toast.success(t("lp_all_sections_filled") ?? "All empty sections filled", {
+    toast.success(t("lp_all_sections_filled"), {
       action: {
-        label: "Undo",
+        label: t("cal_undo"),
         onClick: () => {
           if (snap) { Object.keys(snap).forEach(k => setPlanField(k as any, (snap as any)[k])); preAiSnapshotRef.current = null; }
         },
@@ -1162,7 +1162,7 @@ export default function SchoolCalendar() {
       // For topic blocks, use the calendar's own start/end dates directly
       const startDate = cal.startDate ? new Date(cal.startDate as string).toISOString().split("T")[0] : "";
       const endDate = cal.endDate ? new Date(cal.endDate as string).toISOString().split("T")[0] : "";
-      if (!startDate || !endDate) { toast.error("Topic block calendar must have start and end dates set"); return; }
+      if (!startDate || !endDate) { toast.error(t("cal_topic_no_dates")); return; }
       aiInfillMutation.mutate({
         calendarId: selectedCalendarId,
         academicYear: cal.academicYear,
@@ -1439,7 +1439,7 @@ export default function SchoolCalendar() {
                 title={t("cal_create_new_title")}
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">New</span>
+                <span className="hidden sm:inline">{t("cal_new_btn")}</span>
               </Button>
               <button
                 className="md:hidden p-1 rounded hover:bg-accent text-muted-foreground"
@@ -1691,7 +1691,7 @@ export default function SchoolCalendar() {
                         )}
                         <Badge variant="outline" className="text-xs">{selectedCalendar.academicYear}</Badge>
                         {(selectedCalendar as SchoolCalendar).calendarType === "topic_block" && (
-                          <Badge className="text-xs bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100"><BookOpen className="w-3 h-3 mr-1" /> Topic Block</Badge>
+                          <Badge className="text-xs bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100"><BookOpen className="w-3 h-3 mr-1" /> {t("cal_topic_block_badge")}</Badge>
                         )}
                         {(selectedCalendar as SchoolCalendar).calendarType === "topic_block" && (selectedCalendar as SchoolCalendar).startDate && (selectedCalendar as SchoolCalendar).endDate && (
                           <span className="flex items-center gap-1 text-xs">
@@ -1866,12 +1866,12 @@ export default function SchoolCalendar() {
                     <div className="flex flex-col items-center">
                       <CardTitle className="text-base">{MONTHS[viewMonth]} {viewYear}</CardTitle>
                       {monthlyTimeLabel && (
-                        <span className="text-[10px] font-mono text-teal-600/80 leading-none" title={`${monthlyTeachingMins} min teaching this month`}>{monthlyTimeLabel} teaching</span>
+                        <span className="text-[10px] font-mono text-teal-600/80 leading-none" title={`${monthlyTeachingMins} ${t("cal_min_teaching_month")}`}>{monthlyTimeLabel} {t("cal_teaching_label")}</span>
                       )}
                     </div>
                     <Button variant="ghost" size="icon" onClick={nextMonth}><ChevronRight className="w-4 h-4" /></Button>
                     <div className="flex items-center gap-1 ml-auto">
-                      <span className="text-[11px] text-muted-foreground hidden sm:inline">Wk</span>
+                      <span className="text-[11px] text-muted-foreground hidden sm:inline">{t("cal_wk_abbr")}</span>
                       <Input
                         type="number"
                         min={1}
@@ -1937,9 +1937,9 @@ export default function SchoolCalendar() {
                           <button
                             className="shrink-0 p-1 rounded hover:bg-accent text-muted-foreground opacity-60 hover:opacity-100"
                             onClick={() => openAdd(d)}
-                            title="Add event"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
+            title={t("cal_add_event_btn")}
+          >
+            <Plus className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       );
@@ -1954,12 +1954,12 @@ export default function SchoolCalendar() {
                     <div className="flex flex-col items-center">
                       <CardTitle className="text-base">{MONTHS[viewMonth]} {viewYear}</CardTitle>
                       {monthlyTimeLabel && (
-                        <span className="text-[10px] font-mono text-teal-600/80 leading-none" title={`${monthlyTeachingMins} min teaching this month`}>{monthlyTimeLabel} teaching</span>
+                        <span className="text-[10px] font-mono text-teal-600/80 leading-none" title={`${monthlyTeachingMins} ${t("cal_min_teaching_month")}`}>{monthlyTimeLabel} {t("cal_teaching_label")}</span>
                       )}
                     </div>
                     <Button variant="ghost" size="icon" onClick={nextMonth}><ChevronRight className="w-4 h-4" /></Button>
                     <div className="flex items-center gap-1 ml-auto">
-                      <span className="text-[11px] text-muted-foreground hidden sm:inline">Wk</span>
+                      <span className="text-[11px] text-muted-foreground hidden sm:inline">{t("cal_wk_abbr")}</span>
                       <Input
                         type="number"
                         min={1}
@@ -1978,7 +1978,7 @@ export default function SchoolCalendar() {
                 <CardContent>
                   {/* Header row: Wk + 7 day names */}
                   <div className="grid gap-1 mb-1" style={{gridTemplateColumns: "2rem repeat(7, 1fr)"}}>
-                    <div className="text-center text-[10px] font-medium text-muted-foreground/60 py-1">Wk</div>
+                    <div className="text-center text-[10px] font-medium text-muted-foreground/60 py-1">{t("cal_wk_abbr")}</div>
                     {[t("cal_day_mon"), t("cal_day_tue"), t("cal_day_wed"), t("cal_day_thu"), t("cal_day_fri"), t("cal_day_sat"), t("cal_day_sun")].map(d => (
                       <div key={d} className="text-center text-xs font-medium text-muted-foreground py-1">{d}</div>
                     ))}
@@ -2018,7 +2018,7 @@ export default function SchoolCalendar() {
                               <span className="text-[10px] font-semibold text-muted-foreground/70 leading-none">{wkNum}</span>
                             )}
                             {weekTimeLabel && (
-                              <span className="text-[8px] font-mono text-teal-600/70 leading-none" title={`${weekTeachingMins} min teaching this week`}>{weekTimeLabel}</span>
+                              <span className="text-[8px] font-mono text-teal-600/70 leading-none" title={`${weekTeachingMins} ${t("cal_min_teaching_week")}`}>{weekTimeLabel}</span>
                             )}
                           </div>
                           {/* Day cells */}
@@ -2040,9 +2040,9 @@ export default function SchoolCalendar() {
                                     <span
                                       className="opacity-0 group-hover:opacity-80 transition-opacity cursor-pointer hover:text-primary"
                                       onClick={e => { e.stopPropagation(); openAdd(day); }}
-                                      title="Add event"
-                                    >
-                                      <Plus className="w-3 h-3" />
+                      title={t("cal_add_event_btn")}
+                    >
+                      <Plus className="w-3 h-3" />
                                     </span>
                                   )}
                                 </div>
