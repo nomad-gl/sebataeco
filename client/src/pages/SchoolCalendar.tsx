@@ -1933,7 +1933,11 @@ export default function SchoolCalendar() {
                                       title={ev.title}
                                     >
                                       <span className="flex-1 font-medium truncate">{ev.title}</span>
-                                      {isLesson && (() => { const dur = calcDuration(ev.startTime, ev.endTime); return dur ? <span className="shrink-0 text-[10px] font-mono opacity-70">{dur}m</span> : null; })()}
+                                      {ev.startTime && (
+                                        <span className="shrink-0 text-[10px] font-mono opacity-70">
+                                          {ev.startTime}{ev.endTime ? `–${ev.endTime}` : ""}
+                                        </span>
+                                      )}
                                       {isLesson && (
                                         <ClipboardList className={`w-3 h-3 shrink-0 ${
                                           hasPlan ? "text-green-600" : "text-teal-400 opacity-60"
@@ -2075,10 +2079,11 @@ export default function SchoolCalendar() {
                                         title={ev.title}
                                       >
                                         <span className="truncate flex-1">{ev.title}</span>
-                                        {isLesson
-                                          ? (() => { const dur = calcDuration(ev.startTime, ev.endTime); return dur ? <span className="shrink-0 text-[9px] font-mono opacity-70">{dur}m</span> : null; })()
-                                          : ((ev as any).startTime ? <span className="shrink-0 text-[9px] opacity-70 font-mono">{(ev as any).startTime}</span> : null)
-                                        }
+                                        {ev.startTime && (
+                                          <span className="shrink-0 text-[9px] font-mono opacity-70">
+                                            {ev.startTime}{ev.endTime ? `–${ev.endTime}` : ""}
+                                          </span>
+                                        )}
                                         {isLesson && (
                                           <ClipboardList className={`w-2.5 h-2.5 shrink-0 ${
                                             hasPlan ? "text-green-600" : "text-teal-400 opacity-60"
@@ -2140,7 +2145,11 @@ export default function SchoolCalendar() {
                                       title={ev.title}
                                     >
                                       <span className="flex-1 truncate">{ev.title}</span>
-                                      {isLesson && (() => { const dur = calcDuration(ev.startTime, ev.endTime); return dur ? <span className="shrink-0 text-[10px] font-mono opacity-70">{dur}m</span> : null; })()}
+                                      {ev.startTime && (
+                                        <span className="shrink-0 text-[10px] font-mono opacity-70">
+                                          {ev.startTime}{ev.endTime ? `–${ev.endTime}` : ""}
+                                        </span>
+                                      )}
                                       {isLesson && (
                                         <ClipboardList className={`w-3 h-3 shrink-0 ${
                                           hasPlan ? "text-green-600" : "text-teal-400 opacity-60"
