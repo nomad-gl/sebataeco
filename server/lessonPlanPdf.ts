@@ -43,7 +43,7 @@ function boolKeys(obj: Record<string, boolean>): string[] {
 
 export async function generateLessonPlanPdf(plan: LessonPlanPdfInput): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ size: "A4", margin: 48, info: { Title: plan.title } });
+    const doc = new PDFDocument({ size: "A4", margin: 48, bufferPages: true, info: { Title: plan.title } });
     const chunks: Buffer[] = [];
     doc.on("data", (c: Buffer) => chunks.push(c));
     doc.on("end", () => resolve(Buffer.concat(chunks)));
@@ -223,6 +223,7 @@ export async function generateLessonPlanPdf(plan: LessonPlanPdfInput): Promise<B
         .text(`Page ${i + 1}`, 48, doc.page.height - 36, { width: W, align: "right" });
     }
 
+    doc.flushPages();
     doc.end();
   });
 }

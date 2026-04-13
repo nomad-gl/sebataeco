@@ -2176,3 +2176,9 @@
 - [x] In LessonPlanner main component, implement handleBatchFillAll: iterate over all visible plans, call aiRegenerateSection for each blank section, auto-save each plan
 - [x] Show progress toast during batch fill (e.g. "Filling plan 3 of 12...")
 - [x] i18n: EN/ES/CA keys for lp_batch_fill_all, lp_batch_fill_progress, lp_batch_fill_done
+
+## Bug Fix: "Export all plans" button not working
+- [x] Inspect exportAllPlansMutation handler, dialog, and server procedure
+- [x] Identify root cause: PDFKit switchToPage(0) out of bounds — PDFDocument was created without bufferPages:true, so page switching for footer rendering failed
+- [x] Fix: added bufferPages:true to PDFDocument constructor and doc.flushPages() before doc.end() in server/lessonPlanPdf.ts
+- [x] Verify PDF download works in browser (282-page PDF generated and opened successfully)
