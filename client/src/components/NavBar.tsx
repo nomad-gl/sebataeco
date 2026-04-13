@@ -5,7 +5,7 @@ import {
   BookOpen, MessageCircle, Dumbbell, LayoutDashboard,
   Library, TrendingUp, ChevronDown, Menu, X, Zap,
   Presentation as PresentationIcon, Globe, Users, MessagesSquare, Bell, Download,
-  CalendarDays, FileText, Settings as SettingsIcon, ShieldAlert, Lock,
+  CalendarDays, FileText, Settings as SettingsIcon, ShieldAlert, Lock, HelpCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
@@ -66,6 +66,7 @@ export default function NavBar() {
     { href: "/admin",         label: t("nav_admin"),         icon: LayoutDashboard },
     { href: "/school-calendar", label: t("nav_school_calendar"), icon: CalendarDays },
     { href: "/lesson-planner",  label: t("nav_lesson_planner"),  icon: FileText },
+    { href: "/help",             label: t("nav_help"),            icon: HelpCircle },
     { href: "/accountability",   label: t("nav_accountability"),  icon: ShieldAlert },
     { href: "/privacy",           label: t("nav_privacy"),          icon: Lock },
   ];

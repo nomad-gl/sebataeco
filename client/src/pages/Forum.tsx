@@ -198,7 +198,7 @@ export default function Forum() {
       setRecordingSeconds(0);
       recordingTimerRef.current = setInterval(() => setRecordingSeconds(s => s + 1), 1000);
     } catch {
-      alert("Microphone access denied. Please allow microphone access to send voice messages.");
+      alert(t("forum_mic_denied"));
     }
   }, []);
 
@@ -339,7 +339,7 @@ export default function Forum() {
           <div className="px-4 pt-4 pb-3 border-b border-white/15">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <h1 className="font-heading font-bold text-lg text-white drop-shadow">TA Fòrum</h1>
+                <h1 className="font-heading font-bold text-lg text-white drop-shadow">{t("forum_title")}</h1>
                 <p className="text-xs text-white/50">{t("forum_powered")}</p>
               </div>
               <div className="flex items-center gap-1">
@@ -567,12 +567,12 @@ export default function Forum() {
           {/* Sidebar footer — current user */}
           {user && (
             <div className="border-t border-white/15 px-4 py-3 flex items-center gap-3 bg-white/10">
-              <Avatar name={user.name ?? "Me"} size="sm" online={true} />
+              <Avatar name={user.name ?? t("forum_me")} size="sm" online={true} />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-white truncate">{user.name}</p>
                 <p className="text-[10px] text-emerald-300 font-medium">{t("forum_you_online")}</p>
               </div>
-              <span className="text-[10px] text-white/40 font-medium">Aina</span>
+              <span className="text-[10px] text-white/40 font-medium">{t("forum_ai_label")}</span>
             </div>
           )}
         </aside>
@@ -710,9 +710,9 @@ export default function Forum() {
               <div className="flex items-center gap-2 mb-2 px-3 py-1.5 bg-red-500/20 backdrop-blur-sm border border-red-400/40 rounded-xl">
                 <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                 <span className="text-xs text-red-600 font-medium">
-                  Recording… {recordingSeconds}s
+                  {t("forum_recording")} {recordingSeconds}s
                 </span>
-                <span className="ml-auto text-xs text-red-400">Release mic button to send</span>
+                <span className="ml-auto text-xs text-red-400">{t("forum_release_to_send")}</span>
               </div>
             )}
             <div className="flex items-end gap-2 bg-white/10 backdrop-blur-sm border border-white/25 rounded-2xl px-3 py-2 focus-within:border-white/50 focus-within:ring-2 focus-within:ring-white/20 transition-all">
@@ -756,7 +756,7 @@ export default function Forum() {
                 onTouchStart={(e) => { e.preventDefault(); startRecording(); }}
                 onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }}
                 disabled={sending}
-                title="Hold to record voice message"
+                title={t("forum_hold_to_record")}
                 className={cn(
                   "flex items-center justify-center w-8 h-8 rounded-xl transition-all flex-shrink-0",
                   recording
@@ -783,7 +783,7 @@ export default function Forum() {
               )}
             </div>
             <p className="text-[10px] text-white/40 mt-1.5 text-center">
-              {t("forum_enter_to_send")} · {t("forum_shift_enter")} · Hold 🎤 for voice
+              {t("forum_enter_to_send")} · {t("forum_shift_enter")} · {t("forum_hold_to_record")}
             </p>
           </div>
         </main>
@@ -791,7 +791,7 @@ export default function Forum() {
 
       {/* Powered by SEBA footer strip */}
       <div className="hidden md:flex items-center justify-center py-1 bg-black/30 border-t border-white/15 text-[10px] text-white/40 relative z-10">
-        Powered by AINA | TA · TA Fòrum
+        {t("forum_footer")}
       </div>
     </div>
   );

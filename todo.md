@@ -2214,3 +2214,32 @@
 - [x] Expandable row / detail panel: full leaderboard with score bars per session
 - [x] i18n: EN/ES/CA keys for all History tab labels (7 new keys × 3 languages = 21 entries)
 - [x] TypeScript keys verified present in I18nContext.tsx (21 occurrences confirmed)
+
+## Feature: Search and date-range filter in History tab (Seba Classroom)
+- [x] Add search input to filter sessions by title or competency
+- [x] Add date-from and date-to pickers to filter sessions by date range
+- [x] Client-side filtering using useMemo (no server round-trip needed)
+- [x] Show result count / empty state when no sessions match
+- [x] Add clear-filters button when any filter is active
+- [x] i18n: EN/ES/CA keys for all new filter labels
+- [x] TypeScript 0 errors verified
+
+## Feature: Help & Instructions page (Teacher dropdown, below Lesson Planner)
+- [x] Create client/src/pages/Help.tsx — comprehensive instructions page with sections for every feature
+- [x] Each section: feature name, step-by-step written instructions, embedded video placeholder (YouTube embed or placeholder card)
+- [x] Features to cover: Aina Chat, Practice Questions, Progress Tracking, Group Progress, Create Material, Presentations, My Materials, Lesson Planner (full), School Calendar, Seba Classroom, Question Library, AI Accountability, Audit Dashboard, Privacy Dashboard
+- [x] Add route /help to App.tsx
+- [x] Add "Help & Instructions" nav item to Teacher dropdown in NavBar.tsx (below Lesson Planner)
+- [x] i18n: EN/ES/CA keys for all Help page labels
+- [x] TypeScript 0 errors verified
+
+## Bug Fix: Seba Classroom page not translating
+- [x] Identify which strings on the Seba Classroom (Challenge.tsx) page are not being translated
+- [x] Fixed: 'Start PARAULA (N joined)' — added challenge_joined_count key (EN: joined / ES: conectados / CA: connectats)
+- [x] Verify TypeScript 0 errors
+
+## Bug Fix: TA Forum page not translating (including hard-coded strings)
+- [x] Audit Forum.tsx for hard-coded English strings
+- [x] Replace 8 hard-coded strings with t() calls (mic denied alert, TA Fòrum title, Me fallback, Aina label, hold-to-record tooltip, recording indicator, release-to-send hint, footer)
+- [x] Add 7 missing keys to EN, ES, CA sections of I18nContext.tsx
+- [x] Verify TypeScript 0 errors

@@ -13,7 +13,7 @@ import {
   Zap, Users, Trophy, ChevronRight, ChevronLeft,
   Copy, Play, SkipForward, StopCircle, Plus, Loader2,
   BookOpen, Library, CheckCircle2, QrCode, Link2, Printer, Eye, ArrowLeft,
-  BarChart2, Check, X as XIcon, History, ChevronDown, ChevronUp, Medal,
+  BarChart2, Check, X as XIcon, History, ChevronDown, ChevronUp, Medal, Search, CalendarRange, FilterX,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import CompetencySelector from "@/components/CompetencySelector";
@@ -50,6 +50,9 @@ export default function Challenge() {
   const [view, setView] = useState<"home" | "create" | "lobby" | "live" | "results">(urlMaterialId ? "create" : "home");
   const [homeTab, setHomeTab] = useState<"sessions" | "history">("sessions");
   const [expandedSession, setExpandedSession] = useState<number | null>(null);
+  const [historySearch, setHistorySearch] = useState("");
+  const [historyDateFrom, setHistoryDateFrom] = useState("");
+  const [historyDateTo, setHistoryDateTo] = useState("");
   const [roomId, setRoomId] = useState<number | null>(null);
   const [title, setTitle] = useState(urlMaterialTitle);
   const [competency, setCompetency] = useState<CompetencyCode | undefined>();
@@ -98,6 +101,23 @@ export default function Challenge() {
   const myRooms = trpc.challenge.myRooms.useQuery(undefined, { enabled: isAuthenticated });
   const sessionHistory = trpc.challenge.getSessionHistory.useQuery(undefined, { enabled: isAuthenticated && homeTab === "history" });
   const myMaterials = trpc.materials.list.useQuery(undefined, { enabled: isAuthenticated && view === "create" });
+
+  // Client-side filtering for the History tab
+  const filteredHistory = useMemo(() => {
+    if (!sessionHistory.data) return [];
+    const q = historySearch.trim().toLowerCase();
+    const from = historyDateFrom ? new Date(historyDateFrom).getTime() : null;
+    const to = historyDateTo ? new Date(historyDateTo + "T23:59:59").getTime() : null;
+    return sessionHistory.data.filter((s) => {
+      if (q && !s.title.toLowerCase().includes(q) && !(s.competency ?? "").toLowerCase().includes(q)) return false;
+      const ts = new Date(s.createdAt).getTime();
+      if (from && ts < from) return false;
+      if (to && ts > to) return false;
+      return true;
+    });
+  }, [sessionHistory.data, historySearch, historyDateFrom, historyDateTo]);
+
+  const hasHistoryFilter = historySearch !== "" || historyDateFrom !== "" || historyDateTo !== "";
 
   // Detect if this is a PARAULA live room
   const isParaulaRoom = !!(roomQuery.data && (() => {
@@ -317,6 +337,46 @@ export default function Challenge() {
             {homeTab === "history" && (
               <div className="space-y-3">
                 <h2 className="text-lg font-semibold text-white/90">{t("challenge_tab_history")}</h2>
+
+                {/* Search + date-range filter bar */}
+                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-3 space-y-2">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
+                    <Input
+                      value={historySearch}
+                      onChange={(e) => setHistorySearch(e.target.value)}
+                      placeholder={t("challenge_history_search_ph")}
+                      className="pl-9 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-yellow-400/60"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <CalendarRange className="w-4 h-4 text-white/40 flex-shrink-0" />
+                    <input
+                      type="date"
+                      value={historyDateFrom}
+                      onChange={(e) => setHistoryDateFrom(e.target.value)}
+                      className="flex-1 min-w-[130px] bg-white/10 border border-white/20 rounded-md px-3 py-1.5 text-sm text-white/80 focus:outline-none focus:border-yellow-400/60"
+                    />
+                    <span className="text-white/40 text-sm">{t("challenge_history_date_to")}</span>
+                    <input
+                      type="date"
+                      value={historyDateTo}
+                      onChange={(e) => setHistoryDateTo(e.target.value)}
+                      className="flex-1 min-w-[130px] bg-white/10 border border-white/20 rounded-md px-3 py-1.5 text-sm text-white/80 focus:outline-none focus:border-yellow-400/60"
+                    />
+                    {hasHistoryFilter && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => { setHistorySearch(""); setHistoryDateFrom(""); setHistoryDateTo(""); }}
+                        className="text-white/60 hover:text-white hover:bg-white/10 gap-1.5 flex-shrink-0"
+                      >
+                        <FilterX className="w-3.5 h-3.5" /> {t("challenge_history_clear")}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
                 {sessionHistory.isLoading && (
                   <div className="flex justify-center py-10">
                     <Loader2 className="w-6 h-6 animate-spin text-yellow-300" />
@@ -328,9 +388,17 @@ export default function Challenge() {
                     <p>{t("challenge_history_empty")}</p>
                   </div>
                 )}
-                {sessionHistory.data && sessionHistory.data.length > 0 && (
-                  <div className="grid gap-3">
-                    {sessionHistory.data.map((session) => {
+                {!sessionHistory.isLoading && sessionHistory.data && sessionHistory.data.length > 0 && filteredHistory.length === 0 && (
+                  <div className="text-center py-10 text-white/50">
+                    <Search className="w-10 h-10 mx-auto mb-3 opacity-40" />
+                    <p>{t("challenge_history_no_results")}</p>
+                  </div>
+                )}
+                {filteredHistory.length > 0 && (
+                  <>
+                    <p className="text-xs text-white/40">{filteredHistory.length} {t("challenge_history_result_count")}</p>
+                    <div className="grid gap-3">
+                    {filteredHistory.map((session) => {
                       const isExpanded = expandedSession === session.id;
                       const top3 = session.participants.slice(0, 3);
                       const medalColors = ["text-yellow-300", "text-gray-300", "text-amber-600"];
@@ -396,7 +464,8 @@ export default function Challenge() {
                         </div>
                       );
                     })}
-                  </div>
+                    </div>
+                  </>
                 )}
               </div>
             )}
@@ -615,7 +684,7 @@ export default function Challenge() {
                   onClick={() => controlMutation.mutate({ id: room.id, action: "start" })}
                 >
                   {controlMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5" />}
-                  {room.participants.length === 0 ? t("challenge_waiting_students") : `Start PARAULA (${room.participants.length} joined)`}
+                  {room.participants.length === 0 ? t("challenge_waiting_students") : `${t("challenge_start_game")} (${room.participants.length} ${t("challenge_joined_count")})`}
                 </Button>
               </div>
             </div>
@@ -808,7 +877,7 @@ export default function Challenge() {
                   {controlMutation.isPending
                     ? <Loader2 className="w-5 h-5 animate-spin" />
                     : <Play className="w-5 h-5" />}
-                  {room.participants.length === 0 ? t("challenge_waiting_students") : `${t("challenge_start_game")} (${room.participants.length} joined)`}
+                  {room.participants.length === 0 ? t("challenge_waiting_students") : `${t("challenge_start_game")} (${room.participants.length} ${t("challenge_joined_count")})`}
                 </Button>
               </div>
             </div>

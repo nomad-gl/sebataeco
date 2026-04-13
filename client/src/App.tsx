@@ -25,6 +25,7 @@ import CompetencyDetail from "./pages/CompetencyDetail";
 import Forum from "./pages/Forum";
 import SchoolCalendar from "./pages/SchoolCalendar";
 import LessonPlanner from "./pages/LessonPlanner";
+import Help from "./pages/Help";
 import Settings from "./pages/Settings";
 import Accountability from "./pages/Accountability";
 import AuditDashboard from "./pages/AuditDashboard";
@@ -65,6 +66,7 @@ function Router() {
         <Route path="/forum" component={Forum} />
         <Route path="/school-calendar" component={SchoolCalendar} />
         <Route path="/lesson-planner" component={LessonPlanner} />
+        <Route path="/help" component={Help} />
         <Route path="/settings" component={Settings} />
         <Route path="/accountability" component={Accountability} />
         <Route path="/audit" component={AuditDashboard} />
