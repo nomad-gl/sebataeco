@@ -2289,3 +2289,13 @@
 - [x] Schedule runBiasScan() every 24h via server-side cron (node-cron)
 - [x] Update BiasIncidentsTab UI: show last scan time, scan status badge, per-incident LLM fix suggestion, "Apply Fix" button
 - [x] TypeScript 0 errors verified
+
+## Bias scan export + schedule settings
+- [x] Add tRPC procedure: accountability.bias.exportScanReport (returns CSV string, admin only)
+- [x] Add tRPC procedure: accountability.bias.getScanSchedule / setScanSchedule (admin only)
+- [x] Add appSettings table to schema for key-value config (bias_scan_hour, etc.)
+- [x] Apply migration SQL for appSettings table
+- [x] Hot-reload cron job when scan schedule changes
+- [x] Update BiasIncidentsTab: Export button (CSV download) on scan history
+- [x] Add ScanSchedulePanel component in Accountability page (time picker, save button)
+- [x] TypeScript 0 errors, tests pass

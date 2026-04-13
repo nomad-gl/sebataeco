@@ -219,3 +219,53 @@ export const biasScanStatus = {
   lastResult: null as Awaited<ReturnType<typeof runBiasScan>> | null,
   lastError: null as string | null,
 };
+
+// ── Dynamic cron reschedule ───────────────────────────────────────────────────
+
+/**
+ * Holds a reference to the active node-cron task so it can be stopped and
+ * replaced when the admin changes the scan schedule hour.
+ */
+let _activeCronTask: { stop: () => void } | null = null;
+
+/**
+ * Register (or replace) the daily bias-scan cron job.
+ * Called once at startup from server/_core/index.ts and again whenever the
+ * admin changes the schedule via the setScanSchedule procedure.
+ *
+ * @param hour UTC hour (0-23) at which the scan should run.
+ * @param cronLib The node-cron module (passed in to avoid circular imports).
+ */
+export function rescheduleBiasScan(
+  hour: number,
+  cronLib?: { schedule: (expr: string, fn: () => void) => { stop: () => void } }
+): void {
+  // Stop the previous task if one exists
+  if (_activeCronTask) {
+    _activeCronTask.stop();
+    _activeCronTask = null;
+  }
+
+  if (!cronLib) {
+    // If no cron lib provided, just record the new hour — the next server
+    // restart will pick it up from the DB via getInitialScanHour().
+    console.log(`[BiasScan] Schedule updated to ${hour}:00 UTC (takes effect on next restart if cron not provided)`);
+    return;
+  }
+
+  const expr = `0 ${hour} * * *`;
+  _activeCronTask = cronLib.schedule(expr, async () => {
+    console.log(`[BiasScan] Starting scheduled bias scan at ${hour}:00 UTC...`);
+    try {
+      const result = await runBiasScan();
+      biasScanStatus.lastRunAt = new Date();
+      biasScanStatus.lastResult = result;
+      console.log(`[BiasScan] Scan complete: ${result.summary}`);
+    } catch (err) {
+      biasScanStatus.lastError = err instanceof Error ? err.message : String(err);
+      console.error("[BiasScan] Scan failed:", err);
+    }
+  });
+
+  console.log(`[BiasScan] Cron rescheduled to ${expr} (UTC)`);
+}

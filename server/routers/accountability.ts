@@ -21,8 +21,9 @@ import {
   practiceSessions,
   biasScanRuns,
   biasScanFixSuggestions,
+  appSettings,
 } from "../../drizzle/schema";
-import { runBiasScan, biasScanStatus } from "../biasScan";
+import { runBiasScan, biasScanStatus, rescheduleBiasScan } from "../biasScan";
 import { eq, desc, and } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
 import { COMPETENCY_META } from "../knowledge/lomloeKnowledgeBank";
@@ -318,6 +319,125 @@ const biasFlagRouter = router({
         .orderBy(desc(biasScanRuns.runAt))
         .limit(1);
       return latest ?? null;
+    }),
+
+  /**
+   * Export a full scan report as CSV.
+   * Returns a CSV string covering all runs and their fix suggestions.
+   */
+  exportScanReport: protectedProcedure
+    .input(z.object({ scanRunId: z.number().nullish() }))
+    .query(async ({ input, ctx }) => {
+      if (ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      // Fetch runs
+      const runs = input.scanRunId
+        ? await db.select().from(biasScanRuns).where(eq(biasScanRuns.id, input.scanRunId))
+        : await db.select().from(biasScanRuns).orderBy(desc(biasScanRuns.runAt)).limit(50);
+
+      // Build CSV rows
+      const csvRows: string[] = [
+        "Scan Run ID,Run At,Status,Incidents Found,Fixes Applied,Summary,Flag ID,Bias Explanation,Suggested Fix,Applied",
+      ];
+
+      for (const run of runs) {
+        const fixes = await db
+          .select()
+          .from(biasScanFixSuggestions)
+          .where(eq(biasScanFixSuggestions.scanRunId, run.id));
+
+        if (fixes.length === 0) {
+          const escape = (v: string | null | undefined) =>
+            `"${(v ?? "").replace(/"/g, '""')}"`;
+          csvRows.push(
+            [
+              run.id,
+              new Date(run.runAt).toISOString(),
+              run.status,
+              run.incidentCount,
+              run.fixesApplied,
+              escape(run.summary),
+              "", "", "", "",
+            ].join(",")
+          );
+        } else {
+          for (const fix of fixes) {
+            const escape = (v: string | null | undefined) =>
+              `"${(v ?? "").replace(/"/g, '""')}"`;
+            csvRows.push(
+              [
+                run.id,
+                new Date(run.runAt).toISOString(),
+                run.status,
+                run.incidentCount,
+                run.fixesApplied,
+                escape(run.summary),
+                fix.biasFlagId,
+                escape(fix.biasExplanation),
+                escape(fix.suggestedFix),
+                fix.applied ? "Yes" : "No",
+              ].join(",")
+            );
+          }
+        }
+      }
+
+      return { csv: csvRows.join("\n"), filename: `bias-scan-report-${new Date().toISOString().slice(0, 10)}.csv` };
+    }),
+
+  /** Get the current scan schedule hour (UTC, 0-23). */
+  getScanSchedule: protectedProcedure
+    .query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+      const db = await getDb();
+      if (!db) return { hour: 4 };
+      const [row] = await db
+        .select()
+        .from(appSettings)
+        .where(eq(appSettings.key, "bias_scan_hour"))
+        .limit(1);
+      return { hour: row ? parseInt(row.value, 10) : 4 };
+    }),
+
+  /** Set the scan schedule hour (UTC, 0-23). Reschedules the cron job immediately. */
+  setScanSchedule: protectedProcedure
+    .input(z.object({ hour: z.number().int().min(0).max(23) }))
+    .mutation(async ({ input, ctx }) => {
+      if (ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      // Upsert the setting
+      const existing = await db
+        .select()
+        .from(appSettings)
+        .where(eq(appSettings.key, "bias_scan_hour"))
+        .limit(1);
+
+      if (existing.length > 0) {
+        await db
+          .update(appSettings)
+          .set({ value: String(input.hour), updatedAt: new Date() })
+          .where(eq(appSettings.key, "bias_scan_hour"));
+      } else {
+        await db.insert(appSettings).values({
+          key: "bias_scan_hour",
+          value: String(input.hour),
+        });
+      }
+
+      // Notify the scan scheduler to reload
+      rescheduleBiasScan(input.hour);
+
+      return { success: true, hour: input.hour };
     }),
 });
 

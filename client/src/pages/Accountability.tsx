@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertTriangle, CheckCircle, ChevronDown, ChevronUp, ClipboardList, FileText, RefreshCw, Scan, ShieldCheck, Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle, ChevronDown, ChevronUp, ClipboardList, Clock, Download, FileText, RefreshCw, Scan, ShieldCheck, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 const COMPETENCY_CODES = ["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"];
@@ -301,6 +301,8 @@ function BiasIncidentsTab() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [showResolved, setShowResolved] = useState(false);
   const [selectedScanId, setSelectedScanId] = useState<number | null>(null);
+  const [scheduleHour, setScheduleHour] = useState<number>(4);
+  const [showSchedule, setShowSchedule] = useState(false);
 
   const { data: flags = [], isLoading } = trpc.accountability.bias.listFlags.useQuery({
     resolved: showResolved,
@@ -312,6 +314,14 @@ function BiasIncidentsTab() {
     { scanRunId: selectedScanId! },
     { enabled: selectedScanId !== null }
   );
+  trpc.accountability.bias.getScanSchedule.useQuery(undefined, {
+    onSuccess: (d: { hour: number }) => setScheduleHour(d.hour),
+  } as any);
+  const { refetch: fetchExport, isFetching: isExporting } =
+    trpc.accountability.bias.exportScanReport.useQuery(
+      { scanRunId: selectedScanId ?? undefined },
+      { enabled: false }
+    );
 
   const resolveMutation = trpc.accountability.bias.resolveFlag.useMutation({
     onSuccess: () => {
@@ -330,6 +340,25 @@ function BiasIncidentsTab() {
     },
     onError: (e) => toast.error(`Scan failed: ${e.message}`),
   });
+
+  const setScheduleMutation = trpc.accountability.bias.setScanSchedule.useMutation({
+    onSuccess: (res) => toast.success(`Scan schedule updated to ${res.hour}:00 UTC`),
+    onError: (e) => toast.error(`Failed to update schedule: ${e.message}`),
+  });
+
+  const handleExport = async () => {
+    const result = await fetchExport();
+    if (result.data) {
+      const blob = new Blob([result.data.csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = result.data.filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Report downloaded");
+    }
+  };
 
   const severityVariant = (s: string): "destructive" | "outline" | "secondary" => {
     if (s === "high") return "destructive";
@@ -359,9 +388,30 @@ function BiasIncidentsTab() {
             The bias-guard middleware scans every AI response. A 24-hour automated scan detects and auto-resolves incidents.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => setShowResolved((v) => !v)}>
             {showResolved ? t("acc_bias_unresolved") : t("acc_bias_resolved")}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowSchedule((v) => !v)}
+          >
+            <Clock className="h-4 w-4 mr-1.5" />
+            Schedule
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleExport}
+            disabled={isExporting}
+          >
+            {isExporting ? (
+              <RefreshCw className="h-4 w-4 mr-1.5 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-1.5" />
+            )}
+            Export CSV
           </Button>
           <Button
             size="sm"
@@ -378,6 +428,50 @@ function BiasIncidentsTab() {
           </Button>
         </div>
       </div>
+
+      {/* Schedule settings panel */}
+      {showSchedule && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="py-4 px-4">
+            <h3 className="text-sm font-semibold mb-3 flex items-center gap-1.5">
+              <Clock className="h-4 w-4" /> Scan Schedule (UTC)
+            </h3>
+            <p className="text-xs text-muted-foreground mb-3">
+              Set the UTC hour at which the automated daily scan runs. Changes take effect immediately.
+            </p>
+            <div className="flex items-center gap-3">
+              <Select
+                value={String(scheduleHour)}
+                onValueChange={(v) => setScheduleHour(parseInt(v, 10))}
+              >
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 24 }, (_, i) => (
+                    <SelectItem key={i} value={String(i)}>
+                      {String(i).padStart(2, "0")}:00 UTC
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                size="sm"
+                onClick={() => setScheduleMutation.mutate({ hour: scheduleHour })}
+                disabled={setScheduleMutation.isPending}
+              >
+                {setScheduleMutation.isPending ? (
+                  <RefreshCw className="h-4 w-4 mr-1.5 animate-spin" />
+                ) : null}
+                Save Schedule
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setShowSchedule(false)}>
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Last scan status banner */}
       {lastScan && (

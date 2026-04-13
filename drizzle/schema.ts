@@ -966,3 +966,18 @@ export const biasScanFixSuggestions = mysqlTable("bias_scan_fix_suggestions", {
 });
 export type BiasScanFixSuggestion = typeof biasScanFixSuggestions.$inferSelect;
 export type InsertBiasScanFixSuggestion = typeof biasScanFixSuggestions.$inferInsert;
+
+/**
+ * App settings — generic key-value store for admin-configurable settings.
+ * Used to persist the bias scan schedule hour and other runtime config.
+ */
+export const appSettings = mysqlTable("app_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Setting key, e.g. "bias_scan_hour" */
+  key: varchar("key", { length: 128 }).notNull().unique(),
+  /** Setting value (stored as string) */
+  value: text("value").notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type AppSetting = typeof appSettings.$inferSelect;
+export type InsertAppSetting = typeof appSettings.$inferInsert;
