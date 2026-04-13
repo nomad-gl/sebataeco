@@ -2117,3 +2117,13 @@
 - [x] Client: on success, trigger browser download of the combined PDF file
 - [x] Show loading state on the button while PDF is generating
 - [x] i18n: EN/ES/CA keys (lp_bulk_export_pdf, lp_bulk_export_pdf_generating, lp_bulk_export_pdf_success)
+
+## Feature: Multiple calendar entries with clash detection
+- [x] DB: add calendarSessions table (id, calendarId, name, lessonDays JSON, startTime, endTime, createdAt)
+- [x] DB: run migration SQL
+- [x] Server: add CRUD procedures for calendarSessions (create, update, delete, list)
+- [x] Server: add clash-detection query — find sessions across all user's calendars that share a day and overlapping time window
+- [x] SchoolCalendar: update calendar edit dialog to show a "Session Entries" section where teachers can add/remove multiple entries
+- [x] Each entry row: name input, day-of-week toggle buttons (Mon–Fri), time pickers for start and end time
+- [x] Clash indicator: amber ⚠ badge on any calendar in the sidebar whose sessions clash with another calendar's sessions
+- [x] i18n: EN/ES/CA keys for session entries UI and clash warnings

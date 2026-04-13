@@ -301,8 +301,47 @@ export default function SchoolCalendar() {
 
   const utils = trpc.useUtils();
 
-  // ── Calendars ──────────────────────────────────────────────────────────────
+  // ── Calendars ──────────────────────────────────────────────────────────────────
   const { data: calendars = [] } = trpc.planner.listCalendars.useQuery();
+
+  // ── Calendar Session Entries ───────────────────────────────────────────────
+  // Local draft entries used in the create/edit calendar dialog
+  type SessionDraft = { id?: number; name: string; lessonDays: string; startTime: string; endTime: string };
+  const [sessionDrafts, setSessionDrafts] = useState<SessionDraft[]>([]);
+  const emptySessionDraft = (): SessionDraft => ({ name: "", lessonDays: "[]", startTime: "09:00", endTime: "10:00" });
+
+  // Fetch sessions for the currently-selected calendar (for the edit dialog)
+  const { data: existingSessions = [] } = trpc.planner.listCalendarSessions.useQuery(
+    { calendarId: selectedCalendarId! },
+    { enabled: showEditCalDialog && selectedCalendarId !== null },
+  );
+
+  // Clash detection across all calendars
+  const { data: clashPairs = [], refetch: refetchClashes } = trpc.planner.detectCalendarClashes.useQuery(
+    undefined,
+    { enabled: calendars.length > 0 },
+  );
+
+  // IDs of calendars that have at least one clash
+  const clashedCalendarIds = useMemo(() => {
+    const ids = new Set<number>();
+    for (const { sessionA, sessionB } of clashPairs) {
+      ids.add(sessionA.calendarId);
+      ids.add(sessionB.calendarId);
+    }
+    return ids;
+  }, [clashPairs]);
+
+  // Session CRUD mutations
+  const createSessionMutation = trpc.planner.createCalendarSession.useMutation({
+    onSuccess: () => { utils.planner.listCalendarSessions.invalidate(); refetchClashes(); },
+  });
+  const updateSessionMutation = trpc.planner.updateCalendarSession.useMutation({
+    onSuccess: () => { utils.planner.listCalendarSessions.invalidate(); refetchClashes(); },
+  });
+  const deleteSessionMutation = trpc.planner.deleteCalendarSession.useMutation({
+    onSuccess: () => { utils.planner.listCalendarSessions.invalidate(); refetchClashes(); },
+  });
 
   const selectedCalendar = useMemo(
     () => (calendars as SchoolCalendar[]).find(c => c.id === selectedCalendarId) ?? null,
@@ -1394,8 +1433,13 @@ export default function SchoolCalendar() {
                 onKeyDown={e => { if (e.key === "Enter" || e.key === " ") setSelectedCalendarId(cal.id); }}
                 className={`w-full cursor-pointer text-left px-3 py-2 rounded-lg text-sm hover:bg-accent transition-colors group flex items-start justify-between gap-1 ${selectedCalendarId === cal.id ? "bg-accent font-medium" : ""}`}
               >
-                <div className="min-w-0">
-                  <div className="truncate">{cal.name}</div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate flex items-center gap-1">
+                    {cal.name}
+                    {clashedCalendarIds.has(cal.id) && (
+                      <span title={t("cal_clash_warning")} className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-amber-500 text-white text-[9px] font-bold shrink-0">⚠</span>
+                    )}
+                  </div>
                   <div className="text-xs text-muted-foreground truncate">{cal.subject} · {cal.yearLevel}</div>
                 </div>
                 {selectedCalendarId === cal.id && (
@@ -2417,6 +2461,132 @@ export default function SchoolCalendar() {
                   {applyDefaultTimeMutation.isPending ? t("optional") : t("cal_apply_to_all_lessons")}
                 </Button>
               )}
+            </div>
+
+            {/* ── Session Entries ── */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-semibold">{t("cal_session_entries")}</Label>
+                <Button
+                  type="button" variant="outline" size="sm"
+                  className="gap-1 text-xs h-7"
+                  onClick={() => {
+                    // Save all existing sessions first (update), then add new ones
+                    // For the edit dialog, we manage sessions directly via mutations
+                    setSessionDrafts(d => [...d, emptySessionDraft()]);
+                  }}
+                ><Plus className="w-3.5 h-3.5" /> {t("cal_add_session")}</Button>
+              </div>
+              <p className="text-xs text-muted-foreground mb-2">{t("cal_session_entries_hint")}</p>
+              {/* Existing persisted sessions */}
+              {existingSessions.map(s => (
+                <div key={s.id} className="border border-border rounded-lg p-3 mb-2 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      className="h-7 text-xs flex-1"
+                      value={s.name}
+                      onChange={e => updateSessionMutation.mutate({ id: s.id, name: e.target.value })}
+                      placeholder={t("cal_session_name_ph")}
+                    />
+                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"
+                      onClick={() => deleteSessionMutation.mutate({ id: s.id })}>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {[{d:1,label:t("cal_day_mon")},{d:2,label:t("cal_day_tue")},{d:3,label:t("cal_day_wed")},{d:4,label:t("cal_day_thu")},{d:5,label:t("cal_day_fri")}].map(({d,label}) => {
+                      const days: number[] = (() => { try { return JSON.parse(s.lessonDays); } catch { return []; } })();
+                      const active = days.includes(d);
+                      return (
+                        <button key={d} type="button"
+                          onClick={() => {
+                            const next = active ? days.filter(x => x !== d) : [...days, d].sort();
+                            updateSessionMutation.mutate({ id: s.id, lessonDays: JSON.stringify(next) });
+                          }}
+                          className={`px-2 py-0.5 rounded text-xs font-medium border transition-all ${
+                            active ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:border-primary/50'
+                          }`}
+                        >{label}</button>
+                      );
+                    })}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">{t("cal_start_time")}</Label>
+                      <input type="time" value={s.startTime}
+                        onChange={e => updateSessionMutation.mutate({ id: s.id, startTime: e.target.value })}
+                        className="flex h-7 w-full rounded-md border border-input bg-background px-2 py-1 text-xs" />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">{t("cal_end_time")}</Label>
+                      <input type="time" value={s.endTime}
+                        onChange={e => updateSessionMutation.mutate({ id: s.id, endTime: e.target.value })}
+                        className="flex h-7 w-full rounded-md border border-input bg-background px-2 py-1 text-xs" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {/* New unsaved draft sessions */}
+              {sessionDrafts.map((draft, idx) => (
+                <div key={idx} className="border border-dashed border-primary/40 rounded-lg p-3 mb-2 space-y-2 bg-primary/5">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      className="h-7 text-xs flex-1"
+                      value={draft.name}
+                      onChange={e => setSessionDrafts(d => d.map((x, i) => i === idx ? { ...x, name: e.target.value } : x))}
+                      placeholder={t("cal_session_name_ph")}
+                    />
+                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"
+                      onClick={() => setSessionDrafts(d => d.filter((_, i) => i !== idx))}>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {[{d:1,label:t("cal_day_mon")},{d:2,label:t("cal_day_tue")},{d:3,label:t("cal_day_wed")},{d:4,label:t("cal_day_thu")},{d:5,label:t("cal_day_fri")}].map(({d,label}) => {
+                      const days: number[] = (() => { try { return JSON.parse(draft.lessonDays); } catch { return []; } })();
+                      const active = days.includes(d);
+                      return (
+                        <button key={d} type="button"
+                          onClick={() => {
+                            const next = active ? days.filter(x => x !== d) : [...days, d].sort();
+                            setSessionDrafts(dd => dd.map((x, i) => i === idx ? { ...x, lessonDays: JSON.stringify(next) } : x));
+                          }}
+                          className={`px-2 py-0.5 rounded text-xs font-medium border transition-all ${
+                            active ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:border-primary/50'
+                          }`}
+                        >{label}</button>
+                      );
+                    })}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">{t("cal_start_time")}</Label>
+                      <input type="time" value={draft.startTime}
+                        onChange={e => setSessionDrafts(d => d.map((x, i) => i === idx ? { ...x, startTime: e.target.value } : x))}
+                        className="flex h-7 w-full rounded-md border border-input bg-background px-2 py-1 text-xs" />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">{t("cal_end_time")}</Label>
+                      <input type="time" value={draft.endTime}
+                        onChange={e => setSessionDrafts(d => d.map((x, i) => i === idx ? { ...x, endTime: e.target.value } : x))}
+                        className="flex h-7 w-full rounded-md border border-input bg-background px-2 py-1 text-xs" />
+                    </div>
+                  </div>
+                  <Button type="button" size="sm" className="w-full h-7 text-xs gap-1"
+                    disabled={!draft.name.trim() || createSessionMutation.isPending}
+                    onClick={() => {
+                      if (!selectedCalendarId || !draft.name.trim()) return;
+                      createSessionMutation.mutate({
+                        calendarId: selectedCalendarId,
+                        name: draft.name,
+                        lessonDays: draft.lessonDays,
+                        startTime: draft.startTime,
+                        endTime: draft.endTime,
+                      }, { onSuccess: () => setSessionDrafts(d => d.filter((_, i) => i !== idx)) });
+                    }}
+                  ><Check className="w-3 h-3" /> {t("cal_save_session")}</Button>
+                </div>
+              ))}
             </div>
           </div>
           <DialogFooter className="flex justify-between">

@@ -860,3 +860,28 @@ export const fixHistory = mysqlTable("fix_history", {
 });
 export type FixHistory = typeof fixHistory.$inferSelect;
 export type InsertFixHistory = typeof fixHistory.$inferInsert;
+
+/**
+ * Calendar session entries — multiple named lesson slots per calendar.
+ * Each entry defines a name (e.g. "Monday English"), lesson days (JSON array of
+ * weekday numbers 1=Mon…5=Fri), a start time and end time for the session.
+ * Used for clash detection across calendars.
+ */
+export const calendarSessions = mysqlTable("calendar_sessions", {
+  id: int("id").autoincrement().primaryKey(),
+  calendarId: int("calendarId").notNull(),
+  userId: int("userId").notNull(),
+  /** Human-readable label for this session slot, e.g. "Monday English" */
+  name: varchar("name", { length: 128 }).notNull(),
+  /** JSON array of weekday numbers (1=Mon … 5=Fri), e.g. '[1,3]' */
+  lessonDays: varchar("lessonDays", { length: 32 }).notNull().default("[]"),
+  /** Session start time in HH:MM format, e.g. '09:00' */
+  startTime: varchar("startTime", { length: 8 }).notNull(),
+  /** Session end time in HH:MM format, e.g. '10:00' */
+  endTime: varchar("endTime", { length: 8 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CalendarSession = typeof calendarSessions.$inferSelect;
+export type InsertCalendarSession = typeof calendarSessions.$inferInsert;

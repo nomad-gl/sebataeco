@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
-import { schoolCalendarEvents, schoolCalendars, lessonPlans, classGroups } from "../../drizzle/schema";
+import { schoolCalendarEvents, schoolCalendars, lessonPlans, classGroups, calendarSessions } from "../../drizzle/schema";
 import { eq, and, desc, asc, lte, gte, isNull, or, sql, inArray } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
 import { generateCalendarPdf } from "../calendarPdf";
@@ -2128,6 +2128,136 @@ Generate a detailed lesson plan with specific activities for each procedure stag
 
       const newId = (result as any)[0].insertId as number;
       return { id: newId };
+    }),
+
+  // ─── Calendar Session Entries (multiple named slots per calendar) ─────────────
+
+  /** List all session entries for a calendar */
+  listCalendarSessions: protectedProcedure
+    .input(z.object({ calendarId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      // Verify calendar ownership
+      const [cal] = await db.select({ id: schoolCalendars.id }).from(schoolCalendars)
+        .where(and(eq(schoolCalendars.id, input.calendarId), eq(schoolCalendars.userId, ctx.user.id)));
+      if (!cal) throw new TRPCError({ code: "NOT_FOUND", message: "Calendar not found" });
+      return db.select().from(calendarSessions)
+        .where(and(eq(calendarSessions.calendarId, input.calendarId), eq(calendarSessions.userId, ctx.user.id)))
+        .orderBy(asc(calendarSessions.startTime));
+    }),
+
+  /** Create a new session entry for a calendar */
+  createCalendarSession: protectedProcedure
+    .input(z.object({
+      calendarId: z.number(),
+      name: z.string().min(1).max(128),
+      lessonDays: z.string().default("[]"),
+      startTime: z.string().regex(/^\d{2}:\d{2}$/),
+      endTime: z.string().regex(/^\d{2}:\d{2}$/),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      const [cal] = await db.select({ id: schoolCalendars.id }).from(schoolCalendars)
+        .where(and(eq(schoolCalendars.id, input.calendarId), eq(schoolCalendars.userId, ctx.user.id)));
+      if (!cal) throw new TRPCError({ code: "NOT_FOUND", message: "Calendar not found" });
+      const result = await db.insert(calendarSessions).values({
+        calendarId: input.calendarId,
+        userId: ctx.user.id,
+        name: input.name,
+        lessonDays: input.lessonDays,
+        startTime: input.startTime,
+        endTime: input.endTime,
+      });
+      return { id: (result as any)[0].insertId as number };
+    }),
+
+  /** Update an existing session entry */
+  updateCalendarSession: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      name: z.string().min(1).max(128).optional(),
+      lessonDays: z.string().optional(),
+      startTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+      endTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      const { id, ...updates } = input;
+      await db.update(calendarSessions).set(updates)
+        .where(and(eq(calendarSessions.id, id), eq(calendarSessions.userId, ctx.user.id)));
+      return { ok: true };
+    }),
+
+  /** Delete a session entry */
+  deleteCalendarSession: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      await db.delete(calendarSessions)
+        .where(and(eq(calendarSessions.id, input.id), eq(calendarSessions.userId, ctx.user.id)));
+      return { ok: true };
+    }),
+
+  /**
+   * Detect scheduling clashes across all calendars owned by the user.
+   * Two sessions clash if they share at least one lesson day AND their time windows overlap.
+   * Returns an array of clash pairs: { sessionA, calendarA, sessionB, calendarB }.
+   */
+  detectCalendarClashes: protectedProcedure
+    .query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      // Fetch all sessions for this user with their calendar name
+      const sessions = await db
+        .select({
+          id: calendarSessions.id,
+          calendarId: calendarSessions.calendarId,
+          calendarName: schoolCalendars.name,
+          name: calendarSessions.name,
+          lessonDays: calendarSessions.lessonDays,
+          startTime: calendarSessions.startTime,
+          endTime: calendarSessions.endTime,
+        })
+        .from(calendarSessions)
+        .innerJoin(schoolCalendars, eq(calendarSessions.calendarId, schoolCalendars.id))
+        .where(eq(calendarSessions.userId, ctx.user.id))
+        .orderBy(asc(calendarSessions.startTime));
+
+      // Helper: convert HH:MM to minutes since midnight
+      const toMin = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+      // Helper: parse lessonDays JSON safely
+      const parseDays = (s: string): number[] => { try { return JSON.parse(s); } catch { return []; } };
+
+      const clashes: Array<{
+        sessionA: typeof sessions[0];
+        sessionB: typeof sessions[0];
+      }> = [];
+
+      for (let i = 0; i < sessions.length; i++) {
+        for (let j = i + 1; j < sessions.length; j++) {
+          const a = sessions[i];
+          const b = sessions[j];
+          // Only flag clashes between different calendars
+          if (a.calendarId === b.calendarId) continue;
+          const daysA = parseDays(a.lessonDays);
+          const daysB = parseDays(b.lessonDays);
+          const sharedDay = daysA.some(d => daysB.includes(d));
+          if (!sharedDay) continue;
+          // Time overlap: A starts before B ends AND B starts before A ends
+          const aStart = toMin(a.startTime); const aEnd = toMin(a.endTime);
+          const bStart = toMin(b.startTime); const bEnd = toMin(b.endTime);
+          if (aStart < bEnd && bStart < aEnd) {
+            clashes.push({ sessionA: a, sessionB: b });
+          }
+        }
+      }
+
+      return clashes;
     }),
 
   // ─── Bulk export selected lesson plans as a single merged PDF ──────────────────────
