@@ -13,13 +13,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Plus, Sparkles, Trash2, CalendarDays,
+import { ChevronLeft, ChevronRight, Plus, Trash2, CalendarDays,
   ExternalLink, LayoutList, Pencil, School, BookOpen, User, GraduationCap,
   FolderOpen, X, Check, Download, Link, Unlink, Users, Save, ClipboardList,
   ListChecks, RefreshCw, FileDown, Hash, Mic, MicOff, Volume2, VolumeX, ChevronDown, Loader2, Copy,
   BookTemplate, LayoutTemplate,
 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
+import { SebaSymbol } from "@/components/SebaSymbol";
 import { useLocation } from "wouter";
 import { useI18n } from "@/contexts/I18nContext";
 import { loadSchoolProfile } from "@/pages/Settings";
@@ -1776,7 +1777,7 @@ export default function SchoolCalendar() {
                         setAiForm(f => ({ ...f, terms: hasTermDates ? savedTerms : getDefaultTermsForYear(cal.academicYear) }));
                         setShowAiDialog(true);
                       }} className="gap-1.5" title={t("cal_ai_infill")}>
-                        <Sparkles className="w-3.5 h-3.5" />
+                        <SebaSymbol className="w-3.5 h-3.5" />
                         <span className="hidden sm:inline">{t("cal_ai_infill")}</span>
                       </Button>
                       <Button variant="outline" size="sm" onClick={openBatchDialog} className="gap-1.5 text-teal-700 border-teal-300 hover:bg-teal-50" title={t("cal_batch_generate")}>
@@ -2199,7 +2200,7 @@ export default function SchoolCalendar() {
                       >
                         <span>{icon}</span>
                         <span>{label}</span>
-                        {type === "ai_generated" ? <Sparkles className="w-3 h-3 opacity-60" /> : <Plus className="w-3 h-3 opacity-60" />}
+                        {type === "ai_generated" ? <SebaSymbol className="w-3 h-3 opacity-60" /> : <Plus className="w-3 h-3 opacity-60" />}
                       </button>
                     ))}
                   </div>
@@ -3022,7 +3023,7 @@ export default function SchoolCalendar() {
       <Dialog open={showAiDialog} onOpenChange={setShowAiDialog}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><Sparkles className="w-5 h-5 text-teal-500" /> {t("cal_ai_dialog_title")}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><SebaSymbol className="w-5 h-5 text-teal-500" /> {t("cal_ai_dialog_title")}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">{t("cal_ai_dialog_desc")}</p>
           {selectedCalendar && (
@@ -3079,7 +3080,7 @@ export default function SchoolCalendar() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAiDialog(false)}>{t("cal_cancel")}</Button>
             <Button onClick={handleAiInfill} disabled={aiInfillMutation.isPending} className="gap-2">
-              <Sparkles className="w-4 h-4" />
+              <SebaSymbol className="w-4 h-4" />
               {aiInfillMutation.isPending ? t("cal_generating") : t("cal_generate_lessons")}
             </Button>
           </DialogFooter>
@@ -3281,11 +3282,11 @@ export default function SchoolCalendar() {
                       {fillAllProgress ? (
                         <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span className="hidden sm:inline text-xs">{(t("lp_filling_sections") ?? "Filling {{current}} of {{total}}").replace("{{current}}", String(fillAllProgress.current)).replace("{{total}}", String(fillAllProgress.total))}</span></>
                       ) : (
-                        <><Sparkles className="w-3.5 h-3.5" /><span className="hidden sm:inline">{t("lp_fill_all_empty")}</span></>
+                        <><SebaSymbol className="w-3.5 h-3.5" /><span className="hidden sm:inline">{t("lp_fill_all_empty")}</span></>
                       )}
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => setShowRegenConfirm(true)} disabled={planSheetAiGenerating || savePlanMutation.isPending} className="gap-1 text-teal-700 border-teal-300 hover:bg-teal-50">
-                      <Sparkles className="w-3.5 h-3.5" />
+                      <SebaSymbol className="w-3.5 h-3.5" />
                       <span className="hidden sm:inline">{t("lp_regenerate")}</span>
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => { if (planSheetPlanId) exportLessonPlanPdfMutation.mutate({ id: planSheetPlanId }); }} disabled={exportLessonPlanPdfMutation.isPending || planSheetAiGenerating} className="gap-1 text-blue-700 border-blue-300 hover:bg-blue-50">
@@ -3323,7 +3324,7 @@ export default function SchoolCalendar() {
           {/* AI generating overlay */}
           {planSheetAiGenerating && (
             <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-background/90 backdrop-blur-sm rounded-lg">
-              <Sparkles className="w-8 h-8 text-primary animate-pulse" />
+              <SebaSymbol className="w-8 h-8 text-primary animate-pulse" />
               <p className="text-sm font-medium text-foreground">{t("lp_generating")}</p>
               <p className="text-xs text-muted-foreground">{t("lp_generate_ai")}</p>
             </div>
@@ -3710,7 +3711,7 @@ export default function SchoolCalendar() {
               onClick={handleRegenPlan}
               className="bg-teal-600 text-white hover:bg-teal-700"
             >
-              <Sparkles className="w-3.5 h-3.5 mr-1" />
+              <SebaSymbol className="w-3.5 h-3.5 mr-1" />
               {t("lp_regenerate")}
             </AlertDialogAction>
           </AlertDialogFooter>

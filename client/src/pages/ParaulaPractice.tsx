@@ -3,7 +3,8 @@ import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, RotateCcw, Volume2, VolumeX, Check, Copy, RefreshCw, Sparkles, Loader2 } from "lucide-react";
+import { ArrowLeft, RotateCcw, Volume2, VolumeX, Check, Copy, RefreshCw, Loader2 } from "lucide-react";
+import { SebaSymbol } from "@/components/SebaSymbol";
 import { useI18n } from "@/contexts/I18nContext";
 import { toast } from "sonner";
 
@@ -468,7 +469,7 @@ export default function ParaulaPractice() {
                   className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-white/5 border border-white/15 text-white/60 hover:bg-white/10 hover:text-white/80 transition-colors disabled:opacity-50"
                   title={t("paraula_auto_rate")}
                 >
-                  {autoAssignMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                  {autoAssignMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <SebaSymbol className="w-3 h-3" />}
                   {t("paraula_auto_rate")}
                 </button>
               </div>

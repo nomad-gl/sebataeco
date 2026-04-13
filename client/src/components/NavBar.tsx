@@ -3,7 +3,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Link, useLocation } from "wouter";
 import {
   BookOpen, MessageCircle, Dumbbell, LayoutDashboard,
-  Sparkles, Library, TrendingUp, ChevronDown, Menu, X, Zap,
+  Library, TrendingUp, ChevronDown, Menu, X, Zap,
   Presentation as PresentationIcon, Globe, Users, MessagesSquare, Bell, Download,
   CalendarDays, FileText, Settings as SettingsIcon, ShieldAlert, Lock,
 } from "lucide-react";
@@ -13,6 +13,7 @@ import { useI18n, Lang } from "@/contexts/I18nContext";
 import { DialectBadge } from "@/components/CatalanDialectDetector";
 import { usePwaInstall } from "@/hooks/usePwaInstall";
 import { Share, Plus } from "lucide-react";
+import { SebaSymbol } from "@/components/SebaSymbol";
 
 const LANG_OPTIONS: { code: Lang; label: string; flag: string }[] = [
   { code: "ca", label: "CA", flag: "🏴" },
@@ -55,7 +56,7 @@ export default function NavBar() {
   ];
 
   const teacherItems = [
-    { href: "/create",        label: t("nav_create"),        icon: Sparkles },
+    { href: "/create",        label: t("nav_create"),        icon: SebaSymbol },
     { href: "/presentation",  label: t("nav_presentation"),  icon: PresentationIcon },
     { href: "/my-materials",  label: t("nav_my_materials"),  icon: Library },
     { href: "/challenge",     label: t("nav_challenge"),     icon: Zap },
@@ -166,7 +167,7 @@ export default function NavBar() {
                       : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                 )}
               >
-                <Sparkles className="w-4 h-4" />
+                <SebaSymbol className="w-4 h-4" />
                 {t("nav_teacher")}
                 <ChevronDown className={cn("w-3 h-3 transition-transform", dropOpen && "rotate-180")} />
               </button>

@@ -3,7 +3,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import {
-  Loader2, Send, User, Sparkles, Mic, MicOff, Radio,
+  Loader2, Send, User, Mic, MicOff, Radio,
   ThumbsUp, ThumbsDown, Volume2, VolumeX, Play, Square,
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -12,6 +12,7 @@ import { useAinaWakeWord } from "@/hooks/useAinaWakeWord";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { SebaSymbol } from "@/components/SebaSymbol";
 
 /**
  * Message type matching server-side LLM Message interface
@@ -588,7 +589,7 @@ export function AIChatBox({
   const TypingIndicator = () => (
     <div className="flex gap-3 justify-start items-start">
       <div className="size-8 shrink-0 mt-1 rounded-full bg-primary/10 flex items-center justify-center">
-        <Sparkles className="size-4 text-primary animate-pulse" />
+        <SebaSymbol className="size-4 text-primary animate-pulse" />
       </div>
       <div className="rounded-lg px-4 py-3 bg-white/15 text-white flex flex-col gap-2">
         <div className="flex items-center gap-1.5">
@@ -686,7 +687,7 @@ export function AIChatBox({
           <div className="flex h-full flex-col p-4">
             <div className="flex flex-1 flex-col items-center justify-center gap-6 text-white/60">
               <div className="flex flex-col items-center gap-3">
-                <Sparkles className="size-12 opacity-20" />
+                <SebaSymbol className="size-12 opacity-20" />
                 <p className="text-sm">{resolvedEmptyState}</p>
               </div>
               {suggestedPrompts && suggestedPrompts.length > 0 && (
@@ -737,7 +738,7 @@ export function AIChatBox({
                   >
                     {message.role === "assistant" && (
                       <div className="size-8 shrink-0 mt-1 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Sparkles className="size-4 text-primary" />
+                        <SebaSymbol className="size-4 text-primary" />
                       </div>
                     )}
                     <div className={cn("flex flex-col", message.role === "user" ? "items-end" : "items-start")}>

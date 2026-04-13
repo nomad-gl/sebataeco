@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { X, Sparkles, RefreshCw, Wifi, Volume2, RotateCcw } from "lucide-react";
+import { X, RefreshCw, Wifi, Volume2, RotateCcw } from "lucide-react";
+import { SebaSymbol } from "@/components/SebaSymbol";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useI18n, type TranslationKey } from "@/contexts/I18nContext";
@@ -99,7 +100,7 @@ export default function WhatsNewBanner() {
       <div className="max-w-3xl mx-auto px-4 py-3">
         {/* Header row */}
         <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-primary shrink-0" />
+          <SebaSymbol className="w-4 h-4 text-primary shrink-0" />
           <span className="text-sm font-semibold text-white flex-1">
             {t("wn_title")}
           </span>

@@ -18,10 +18,11 @@ import {
 } from "recharts";
 import {
   ArrowLeft, User, TrendingUp, BookOpen, FileText,
-  CheckCircle2, Circle, Loader2, Sparkles, Trophy, Star, Download, X, Plus, ImagePlus, X as XIcon,
+  CheckCircle2, Circle, Loader2, Trophy, Star, Download, X, Plus, ImagePlus, X as XIcon,
   Pencil, Eye, RotateCcw, Save,
 } from "lucide-react";
 import NavBar from "@/components/NavBar";
+import { SebaSymbol } from "@/components/SebaSymbol";
 import { Streamdown } from "streamdown";
 
 const GRADE_COLORS: Record<string, string> = {
@@ -636,7 +637,7 @@ export default function StudentProgress() {
                     {(createAssignment.isPending || generateAssignment.isPending) ? (
                       <><Loader2 className="w-4 h-4 animate-spin mr-2" />{t("sp_generating_assignment")}</>
                     ) : (
-                      <><Sparkles className="w-4 h-4 mr-2" />{t("sp_save_and_generate")}</>
+                      <><SebaSymbol className="w-4 h-4 mr-2" />{t("sp_save_and_generate")}</>
                     )}
                   </Button>
                 </div>
@@ -646,7 +647,7 @@ export default function StudentProgress() {
                   <div className="mt-4 border border-teal-500/30 rounded-lg bg-teal-900/20 p-4 space-y-3">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-teal-400" />
+                        <SebaSymbol className="w-4 h-4 text-teal-400" />
                         <span className="text-white font-medium text-sm">{t("sp_ai_assignment_preview")}</span>
                         <Badge className="bg-teal-600 text-white text-xs border-0">{t("sp_ai_badge")}</Badge>
                         {editingContent && <Badge className="bg-amber-500 text-white text-xs border-0">{t("sp_edited_assignment_badge")}</Badge>}
@@ -741,7 +742,7 @@ export default function StudentProgress() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-white text-base flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-yellow-400" />
+                    <SebaSymbol className="w-5 h-5 text-yellow-400" />
                     {t("sp_ai_report_title")}
                   </CardTitle>
                   <Button
@@ -760,7 +761,7 @@ export default function StudentProgress() {
                     {generating ? (
                       <><Loader2 className="w-4 h-4 animate-spin mr-2" />{t("sp_generating")}</>
                     ) : (
-                      <><Sparkles className="w-4 h-4 mr-2" />{t("sp_generate_report")}</>
+                      <><SebaSymbol className="w-4 h-4 mr-2" />{t("sp_generate_report")}</>
                     )}
                   </Button>
                 </div>
@@ -1253,7 +1254,7 @@ function AssignmentRow({
             <Badge className="bg-white/10 text-white/60 text-xs border-0">{assignment.frequency}</Badge>
             {displayContent && (
               <Badge className="bg-teal-600/40 text-teal-200 text-xs border-0">
-                <Sparkles className="w-3 h-3 mr-1" />{t("sp_ai_badge")}
+                <SebaSymbol className="w-3 h-3 mr-1" />{t("sp_ai_badge")}
               </Badge>
             )}
             {assignment.editedContent && (
@@ -1369,7 +1370,7 @@ function AssignmentRow({
                 onClick={() => setShowAssess(!showAssess)}
                 className="border-purple-500/40 text-purple-300 hover:text-purple-200 bg-transparent text-xs h-7"
               >
-                <Sparkles className="w-3 h-3 mr-1" />{t("sp_assess_with_ai")}
+                <SebaSymbol className="w-3 h-3 mr-1" />{t("sp_assess_with_ai")}
               </Button>
             </div>
           </div>
@@ -1462,7 +1463,7 @@ function AssignmentRow({
                 >
                   {assessUploaded.isPending
                     ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />{t("sp_assessing_uploaded")}</>
-                    : <><Sparkles className="w-3 h-3 mr-1" />{t("sp_assess_uploaded")}</>}
+                    : <><SebaSymbol className="w-3 h-3 mr-1" />{t("sp_assess_uploaded")}</>}
                 </Button>
               )}
 
@@ -1482,7 +1483,7 @@ function AssignmentRow({
                 disabled={!studentResponse.trim() || assess.isPending}
                 className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs"
               >
-                {assess.isPending ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />{t("sp_assessing")}</> : <><Sparkles className="w-3 h-3 mr-1" />{t("sp_assess_with_ai")}</>}
+                {assess.isPending ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />{t("sp_assessing")}</> : <><SebaSymbol className="w-3 h-3 mr-1" />{t("sp_assess_with_ai")}</>}
               </Button>
 
               {assignment.aiFeedback && (

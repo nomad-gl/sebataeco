@@ -2166,9 +2166,9 @@
 - [x] Add lp_renumber_no_calendar key to EN/ES/CA in I18nContext.tsx
 
 ## Bug Fix: Re-number Plans overwrites lesson titles
-- [ ] Inspect renumberPlans server procedure to see if it overwrites plan titles
-- [ ] Fix renumber logic so only lessonNumber is updated, not the plan title
-- [ ] Verify fix in browser
+- [x] Inspect renumberPlans server procedure to see if it overwrites plan titles
+- [x] Fix renumber logic so only lessonNumber is updated, not the plan title — CONFIRMED: already only sets lessonNumber
+- [x] Verify fix in browser
 
 ## Feature: Batch "Fill all empty sections" button in Lesson Plans sidebar
 - [x] Add onBatchFillAll prop to PlansList component
@@ -2189,3 +2189,19 @@
 - [x] Rename in page components, navigation links, page titles, and route labels (all via i18n keys)
 - [x] Rename in CSS comment (index.css)
 - [x] Verify TypeScript 0 errors
+
+## Follow-up: Implement pending follow-ups
+- [x] Fix renumberPlans server procedure to retain lesson titles (only update lessonNumber, not title) — CONFIRMED: procedure already only sets lessonNumber, title is never touched
+
+## Feature: Replace Gemini/Sparkles AI symbol with custom SEBA symbol
+- [x] Create SEBA SVG symbol component (bold outlined style matching SEBA logo) as client/src/components/SebaSymbol.tsx
+- [x] Replace all Sparkles icon usages in AIChatBox.tsx with SebaSymbol
+- [x] Replace all Sparkles icon usages in NavBar.tsx with SebaSymbol
+- [x] Replace all Sparkles icon usages in Create.tsx with SebaSymbol
+- [x] Replace all Sparkles icon usages in LessonPlanner.tsx with SebaSymbol
+- [x] Replace all Sparkles icon usages in SchoolCalendar.tsx with SebaSymbol
+- [x] Replace all Sparkles icon usages in GroupProgress.tsx with SebaSymbol
+- [x] Replace all Sparkles icon usages in StudentProgress.tsx with SebaSymbol
+- [x] Replace all Sparkles icon usages in ParaulaPractice.tsx with SebaSymbol
+- [x] Replace Sparkles in UpdateBanner.tsx, WhatsNewModal.tsx, WhatsNewBanner.tsx with SebaSymbol
+- [x] Verify TypeScript 0 errors — clean build confirmed

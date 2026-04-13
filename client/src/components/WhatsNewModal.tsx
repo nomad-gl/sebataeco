@@ -1,4 +1,5 @@
-import { X, Sparkles, Zap, Bot, Download, Bell } from "lucide-react";
+import { X, Zap, Bot, Download, Bell } from "lucide-react";
+import { SebaSymbol } from "@/components/SebaSymbol";
 import { useI18n } from "@/contexts/I18nContext";
 
 interface WhatsNewModalProps {
@@ -18,7 +19,7 @@ export default function WhatsNewModal({ open, onClose }: WhatsNewModalProps) {
       desc: t("whats_new_self_learning_desc"),
     },
     {
-      icon: Sparkles,
+      icon: SebaSymbol,
       color: "text-purple-400",
       bg: "bg-purple-400/10",
       title: t("whats_new_follow_up"),
@@ -61,7 +62,7 @@ export default function WhatsNewModal({ open, onClose }: WhatsNewModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-primary" />
+            <SebaSymbol className="w-5 h-5 text-primary" />
             <h2 className="text-base font-bold text-white">{t("whats_new_header")}</h2>
           </div>
           <button

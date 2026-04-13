@@ -12,11 +12,12 @@ import { toast } from "sonner";
 import { getLoginUrl } from "@/const";
 import {
   BookOpen, Presentation, Grid3X3, AlignLeft, Search, CreditCard,
-  Loader2, ChevronRight, Lock, Sparkles, Save, ArrowLeft, Pencil, X,
+  Loader2, ChevronRight, Lock, Save, ArrowLeft, Pencil, X,
   ImagePlus, Upload, Wand2, Trash2, Gamepad2,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useI18n } from "@/contexts/I18nContext";
+import { SebaSymbol } from "@/components/SebaSymbol";
 import type { TranslationKey } from "@/contexts/I18nContext";
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
@@ -554,7 +555,7 @@ export default function Create() {
                 {t("create_discard")}
               </Button>
               <Button variant="outline" size="sm" onClick={handleGenerate} disabled={generateMutation.isPending} className="gap-1.5">
-                {generateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                {generateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <SebaSymbol className="w-3.5 h-3.5" />}
                 {t("create_regenerate")}
               </Button>
               <Button size="sm" onClick={handleSave} disabled={saveMutation.isPending} className="gap-1.5">
@@ -695,7 +696,7 @@ export default function Create() {
               </>
             ) : (
               <>
-                <Sparkles className="w-4 h-4" />
+                <SebaSymbol className="w-4 h-4" />
                 {t("create_generate")}
                 <ChevronRight className="w-4 h-4" />
               </>

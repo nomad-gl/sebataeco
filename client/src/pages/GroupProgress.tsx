@@ -14,10 +14,11 @@ import {
 } from "recharts";
 import { useState as _useState } from "react";
 import {
-  ArrowLeft, Users, TrendingUp, Loader2, Sparkles, Trophy, Medal, Download, ImagePlus, X as XIcon,
+  ArrowLeft, Users, TrendingUp, Loader2, Trophy, Medal, Download, ImagePlus, X as XIcon,
   FileText, CheckCircle2, XCircle, Clock, History, ChevronDown, ChevronRight,
 } from "lucide-react";
 import NavBar from "@/components/NavBar";
+import { SebaSymbol } from "@/components/SebaSymbol";
 import { Streamdown } from "streamdown";
 
 const GRADE_COLORS: Record<string, string> = {
@@ -332,7 +333,7 @@ export default function GroupProgress() {
                     ) : allReportsResults ? (
                       <><FileText className="w-4 h-4" />{t("gp_all_reports_regenerate")}</>
                     ) : (
-                      <><Sparkles className="w-4 h-4" />{t("gp_generate_all_reports")}</>
+                      <><SebaSymbol className="w-4 h-4" />{t("gp_generate_all_reports")}</>
                     )}
                   </Button>
                 </div>
@@ -442,7 +443,7 @@ export default function GroupProgress() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-white text-base flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-yellow-400" />
+                    <SebaSymbol className="w-5 h-5 text-yellow-400" />
                     {t("gp_report_title")}
                   </CardTitle>
                   <Button
@@ -460,7 +461,7 @@ export default function GroupProgress() {
                     {generating ? (
                       <><Loader2 className="w-4 h-4 animate-spin mr-2" />{t("gp_generating")}</>
                     ) : (
-                      <><Sparkles className="w-4 h-4 mr-2" />{t("gp_generate_report")}</>
+                      <><SebaSymbol className="w-4 h-4 mr-2" />{t("gp_generate_report")}</>
                     )}
                   </Button>
                 </div>

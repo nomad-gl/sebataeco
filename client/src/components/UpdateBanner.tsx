@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { RefreshCw, X, Sparkles } from "lucide-react";
+import { RefreshCw, X } from "lucide-react";
+import { SebaSymbol } from "@/components/SebaSymbol";
 import { useAppUpdate } from "@/hooks/useAppUpdate";
 import WhatsNewModal from "./WhatsNewModal";
 
@@ -19,7 +20,7 @@ export default function UpdateBanner() {
       >
         {/* Left: icon + message + what's new link */}
         <div className="flex items-center gap-2 min-w-0">
-          <Sparkles className="w-4 h-4 flex-shrink-0 opacity-90" />
+          <SebaSymbol className="w-4 h-4 flex-shrink-0 opacity-90" />
           <span className="text-sm font-medium truncate">
             A new version of AINA is available
           </span>

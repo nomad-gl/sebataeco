@@ -13,7 +13,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { Plus, Sparkles, Trash2, Printer, BookOpen, Save, List, X, Copy, LayoutTemplate, FolderOpen, FileDown, ArrowUpDown, ArrowUp01, CalendarDays, Loader2, RefreshCw, Hash } from "lucide-react";
+import { Plus, Trash2, Printer, BookOpen, Save, List, X, Copy, LayoutTemplate, FolderOpen, FileDown, ArrowUpDown, ArrowUp01, CalendarDays, Loader2, RefreshCw, Hash } from "lucide-react";
+import { SebaSymbol } from "@/components/SebaSymbol";
 import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import LogoUploader from "@/components/LogoUploader";
@@ -396,11 +397,11 @@ function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplic
               </span>
             </>
           ) : (
-            <><Sparkles className="w-3 h-3" /> {t("lp_batch_fill_all")}</>
+            <><SebaSymbol className="w-3 h-3" /> {t("lp_batch_fill_all")}</>
           )}
         </Button>
         <Button size="sm" className="w-full gap-1" onClick={onAi}>
-          <Sparkles className="w-3 h-3" /> {t("lp_generate_ai")}
+          <SebaSymbol className="w-3 h-3" /> {t("lp_generate_ai")}
         </Button>
       </div>
     </div>
@@ -1149,7 +1150,7 @@ export default function LessonPlanner() {
                     {fillAllProgress ? (
                       <><Loader2 className="w-4 h-4 animate-spin" /><span className="hidden sm:inline text-xs">{t("lp_filling_sections").replace("{{current}}", String(fillAllProgress.current)).replace("{{total}}", String(fillAllProgress.total))}</span></>
                     ) : (
-                      <><Sparkles className="w-4 h-4" /><span className="hidden sm:inline">{t("lp_fill_all_empty")}</span></>
+                      <><SebaSymbol className="w-4 h-4" /><span className="hidden sm:inline">{t("lp_fill_all_empty")}</span></>
                     )}
                   </Button>
                 )}
@@ -1531,7 +1532,7 @@ export default function LessonPlanner() {
       {/* AI Generate Dialog */}
       <Dialog open={showAiDialog} onOpenChange={(open) => { setShowAiDialog(open); if (!open) { setAiDate(""); setAiSessionTime(""); setAiUnit(""); setAiCalendarId(""); } }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><Sparkles className="w-5 h-5 text-teal-500" /> {t("lp_ai_dialog_title")}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><SebaSymbol className="w-5 h-5 text-teal-500" /> {t("lp_ai_dialog_title")}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             {/* Core lesson info */}
             <div>
@@ -1645,7 +1646,7 @@ export default function LessonPlanner() {
                 existing: existingSnapshot,
               });
             }} disabled={aiMutation.isPending} className="gap-1">
-              <Sparkles className="w-4 h-4" />
+              <SebaSymbol className="w-4 h-4" />
               {aiMutation.isPending ? t("lp_generating") : t("lp_generate")}
             </Button>
           </DialogFooter>
