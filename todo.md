@@ -2182,3 +2182,10 @@
 - [x] Identify root cause: PDFKit switchToPage(0) out of bounds — PDFDocument was created without bufferPages:true, so page switching for footer rendering failed
 - [x] Fix: added bufferPages:true to PDFDocument constructor and doc.flushPages() before doc.end() in server/lessonPlanPdf.ts
 - [x] Verify PDF download works in browser (282-page PDF generated and opened successfully)
+
+## Rename: "Class Challenge" → "Seba Classroom"
+- [x] Find all occurrences of "Class Challenge" / "class challenge" / "class_challenge" in codebase
+- [x] Update all EN/ES/CA i18n translation values in I18nContext.tsx (nav_challenge, challenge_title, challenge_subtitle, challenge_start, challenge_join, join_title, join_challenge_over, groups_no_challenges_hint, admin_stat_challenges, challenge_save_group_dialog_desc)
+- [x] Rename in page components, navigation links, page titles, and route labels (all via i18n keys)
+- [x] Rename in CSS comment (index.css)
+- [x] Verify TypeScript 0 errors
