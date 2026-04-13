@@ -20,9 +20,6 @@ const SUGGESTED_KEYS: TranslationKey[] = [
   "chat_suggested_1",
   "chat_suggested_2",
   "chat_suggested_3",
-  "chat_suggested_4",
-  "chat_suggested_5",
-  "chat_suggested_6",
 ];
 
 export default function Chat() {
