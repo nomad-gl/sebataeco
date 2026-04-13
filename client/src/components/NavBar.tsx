@@ -47,12 +47,16 @@ export default function NavBar() {
   });
   const utils = trpc.useUtils();
 
-  const mainNavItems = [
+  // Items before Teacher dropdown
+  const mainNavItemsBefore = [
     { href: "/",          label: t("nav_home"),     icon: BookOpen },
     { href: "/chat",      label: t("nav_chat"),     icon: MessageCircle },
     { href: "/practice",  label: t("nav_practice"), icon: Dumbbell },
-    { href: "/progress",  label: t("nav_progress"), icon: TrendingUp },
+  ];
+  // Items after Teacher dropdown
+  const mainNavItemsAfter = [
     { href: "/forum",     label: t("nav_forum"),    icon: MessagesSquare },
+    { href: "/progress",  label: t("nav_progress"), icon: TrendingUp },
   ];
 
   const teacherItems = [
@@ -134,7 +138,8 @@ export default function NavBar() {
 
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-1">
-            {mainNavItems.map(({ href, label, icon: Icon }) => {
+            {/* Items before Teacher dropdown: Home, Chat, Practice */}
+            {mainNavItemsBefore.map(({ href, label, icon: Icon }) => {
               const active = location === href || (href !== "/" && location.startsWith(href));
               return (
                 <Link
@@ -155,7 +160,7 @@ export default function NavBar() {
               );
             })}
 
-            {/* Teacher dropdown */}
+            {/* Teacher dropdown (after Practice, before TA Forum) */}
             <div ref={dropRef} className="relative">
               <button
                 onClick={() => setDropOpen((o) => !o)}
@@ -195,6 +200,28 @@ export default function NavBar() {
                 </div>
               )}
             </div>
+
+            {/* Items after Teacher dropdown: TA Forum, Progress */}
+            {mainNavItemsAfter.map(({ href, label, icon: Icon }) => {
+              const active = location === href || (href !== "/" && location.startsWith(href));
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                    active
+                      ? "bg-primary text-primary-foreground"
+                      : isClassroomPage
+                        ? "text-white/80 hover:text-white hover:bg-white/15"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                  {label}
+                </Link>
+              );
+            })}
 
             {/* Settings link (desktop) */}
             {user && (
@@ -400,7 +427,7 @@ export default function NavBar() {
               <p className={cn("text-xs font-semibold uppercase tracking-wider mb-2 px-1", isClassroomPage ? "text-white/50" : "text-muted-foreground")}>
                 {t("nav_home")} &amp; {t("nav_practice")}
               </p>
-              {mainNavItems.map(({ href, label, icon: Icon }) => {
+              {[...mainNavItemsBefore, ...mainNavItemsAfter].map(({ href, label, icon: Icon }) => {
                 const active = location === href || (href !== "/" && location.startsWith(href));
                 return (
                   <Link
