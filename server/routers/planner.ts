@@ -2386,4 +2386,5 @@ Generate a detailed lesson plan with specific activities for each procedure stag
         .where(and(eq(sessionTemplates.id, input.id), eq(sessionTemplates.userId, ctx.user.id)));
       return { ok: true };
     }),
+
 });

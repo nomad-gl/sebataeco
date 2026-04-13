@@ -1726,6 +1726,12 @@ export const translations = {
     challenge_history_clear: "Clear filters",
     challenge_history_no_results: "No sessions match your search or date range.",
     challenge_history_result_count: "sessions found",
+    challenge_history_rank: "Rank",
+    challenge_history_student: "Student",
+    challenge_history_score: "Score",
+    challenge_history_correct: "Correct",
+    challenge_history_total: "Total",
+    challenge_history_export_csv: "Export CSV",
     nav_help: "Help & Instructions",
 
     // Help page — structural
@@ -3645,6 +3651,12 @@ export const translations = {
     challenge_history_clear: "Borrar filtros",
     challenge_history_no_results: "Ninguna sesión coincide con tu búsqueda o rango de fechas.",
     challenge_history_result_count: "sesiones encontradas",
+    challenge_history_rank: "Posición",
+    challenge_history_student: "Estudiante",
+    challenge_history_score: "Puntuación",
+    challenge_history_correct: "Correctas",
+    challenge_history_total: "Total",
+    challenge_history_export_csv: "Exportar CSV",
     nav_help: "Ayuda e Instrucciones",
 
     // Help page — structural
@@ -5550,6 +5562,12 @@ export const translations = {
     challenge_history_clear: "Esborrar filtres",
     challenge_history_no_results: "Cap sessió coincideix amb la teva cerca o rang de dates.",
     challenge_history_result_count: "sessions trobades",
+    challenge_history_rank: "Posició",
+    challenge_history_student: "Estudiant",
+    challenge_history_score: "Puntuació",
+    challenge_history_correct: "Correctes",
+    challenge_history_total: "Total",
+    challenge_history_export_csv: "Exportar CSV",
     nav_help: "Ajuda i Instruccions",
 
     // Help page — structural

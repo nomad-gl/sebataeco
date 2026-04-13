@@ -2243,3 +2243,19 @@
 - [x] Replace 8 hard-coded strings with t() calls (mic denied alert, TA Fòrum title, Me fallback, Aina label, hold-to-record tooltip, recording indicator, release-to-send hint, footer)
 - [x] Add 7 missing keys to EN, ES, CA sections of I18nContext.tsx
 - [x] Verify TypeScript 0 errors
+
+## Feature: Export session history to CSV (Seba Classroom History tab)
+- [x] Add "Export CSV" button to each expanded session row in Challenge.tsx History tab
+- [x] Generate CSV client-side: columns = Rank, Student Name, Score, Correct Answers, Total Questions
+- [x] Filename: seba-classroom-{roomCode}-{date}.csv
+- [x] i18n: EN/ES/CA keys for challenge_history_rank, challenge_history_student, challenge_history_score, challenge_history_correct, challenge_history_total, challenge_history_export_csv
+- [x] TypeScript 0 errors verified
+
+## Feature: Lesson Planner template library
+- [x] Confirmed: template system already fully implemented using lessonPlans.isTemplate flag
+- [x] Existing procedures: saveAsTemplate, listTemplates, deleteTemplate (all working)
+- [x] UI: Save as Template + Load Template buttons already in toolbar, dialogs already wired
+- [x] Removed redundant lesson_plan_templates table/procedures (duplicate of existing system)
+- [x] Added vitest tests for saveAsTemplate (3 cases), listTemplates (2 cases), deleteTemplate (1 case)
+- [x] All 90 tests pass (9 test files)
+- [x] TypeScript 0 errors verified

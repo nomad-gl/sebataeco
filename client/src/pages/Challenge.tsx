@@ -439,7 +439,35 @@ export default function Challenge() {
                           {/* Expanded full leaderboard */}
                           {isExpanded && (
                             <div className="border-t border-white/10 px-4 pb-4">
-                              <h3 className="text-sm font-semibold text-white/80 mt-3 mb-2">{t("challenge_leaderboard")}</h3>
+                              <div className="flex items-center justify-between mt-3 mb-2">
+                                <h3 className="text-sm font-semibold text-white/80">{t("challenge_leaderboard")}</h3>
+                                {session.participants.length > 0 && (
+                                  <button
+                                    onClick={() => {
+                                      const rows = session.participants.map((p, i) => ({
+                                        [t("challenge_history_rank")]: i + 1,
+                                        [t("challenge_history_student")]: p.nickname,
+                                        [t("challenge_history_score")]: p.score,
+                                        [t("challenge_history_correct")]: p.score,
+                                        [t("challenge_history_total")]: session.questionCount,
+                                      }));
+                                      const header = Object.keys(rows[0]).join(",");
+                                      const body = rows.map(r => Object.values(r).join(",")).join("\n");
+                                      const blob = new Blob([header + "\n" + body], { type: "text/csv;charset=utf-8;" });
+                                      const url = URL.createObjectURL(blob);
+                                      const a = document.createElement("a");
+                                      a.href = url;
+                                      a.download = `seba-classroom-${session.roomCode}-${new Date(session.createdAt).toISOString().slice(0, 10)}.csv`;
+                                      a.click();
+                                      URL.revokeObjectURL(url);
+                                    }}
+                                    className="flex items-center gap-1.5 text-xs text-yellow-300 hover:text-yellow-200 bg-yellow-400/10 hover:bg-yellow-400/20 border border-yellow-400/30 rounded-lg px-2.5 py-1.5 transition-colors"
+                                  >
+                                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                    {t("challenge_history_export_csv")}
+                                  </button>
+                                )}
+                              </div>
                               {session.participants.length === 0 ? (
                                 <p className="text-sm text-white/40">{t("challenge_no_participants")}</p>
                               ) : (

@@ -275,3 +275,77 @@ describe("planner.aiInfillCalendar", () => {
     expect((result as any).generated).toBe(0);
   });
 });
+
+// ── Lesson Plan Templates ──────────────────────────────────────────────────────
+
+const mockPlan = {
+  id: 99, userId: 1, title: "Fractions Lesson", subject: "Maths", yearGroup: "5th Primary",
+  duration: "60", unit: "Number", lessonNumber: "3", academicYear: "2025-2026",
+  skills: null, systems: null, specificCompetences: null, saberesBasicos: null,
+  learningOutcomes: null, evaluationCriteria: null, previousKnowledge: null,
+  materials: null, spaces: null, procedures: null, competencies: null,
+  calendarEventId: null, calendarId: null, lessonDate: null,
+  aiGenerated: false, isTemplate: false, templateName: null,
+  createdAt: new Date(), updatedAt: new Date(),
+};
+
+describe("planner.saveAsTemplate", () => {
+  beforeEach(() => resetMockDb());
+
+  it("fetches the source plan and inserts a template copy", async () => {
+    mockDb.where.mockResolvedValueOnce([mockPlan]); // select plan
+    mockDb.values.mockResolvedValue([{ insertId: 55 }]);
+    const caller = appRouter.createCaller(makeCtx());
+    const result = await caller.planner.saveAsTemplate({ planId: 99, templateName: "My Fractions Template" });
+    expect(mockDb.select).toHaveBeenCalled();
+    expect(mockDb.insert).toHaveBeenCalled();
+    expect(result).toHaveProperty("id", 55);
+  });
+
+  it("throws when the source plan is not found", async () => {
+    mockDb.where.mockResolvedValueOnce([]); // plan not found
+    const caller = appRouter.createCaller(makeCtx());
+    await expect(
+      caller.planner.saveAsTemplate({ planId: 999, templateName: "Ghost Template" })
+    ).rejects.toThrow();
+  });
+
+  it("rejects an empty template name", async () => {
+    const caller = appRouter.createCaller(makeCtx());
+    await expect(
+      caller.planner.saveAsTemplate({ planId: 99, templateName: "" })
+    ).rejects.toThrow();
+  });
+});
+
+describe("planner.listTemplates", () => {
+  beforeEach(() => resetMockDb());
+
+  it("returns an array of templates for the current user", async () => {
+    const templatePlan = { ...mockPlan, isTemplate: true, templateName: "My Fractions Template" };
+    mockDb.orderBy.mockResolvedValue([templatePlan]);
+    const caller = appRouter.createCaller(makeCtx());
+    const result = await caller.planner.listTemplates();
+    expect(Array.isArray(result)).toBe(true);
+    expect(mockDb.select).toHaveBeenCalled();
+  });
+
+  it("returns empty array when no templates exist", async () => {
+    mockDb.orderBy.mockResolvedValue([]);
+    const caller = appRouter.createCaller(makeCtx());
+    const result = await caller.planner.listTemplates();
+    expect(result).toEqual([]);
+  });
+});
+
+describe("planner.deleteTemplate", () => {
+  beforeEach(() => resetMockDb());
+
+  it("calls delete and returns success", async () => {
+    mockDb.where.mockResolvedValue([]);
+    const caller = appRouter.createCaller(makeCtx());
+    const result = await caller.planner.deleteTemplate({ id: 55 });
+    expect(mockDb.delete).toHaveBeenCalled();
+    expect(result).toEqual({ success: true });
+  });
+});

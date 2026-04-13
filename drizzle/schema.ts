@@ -899,3 +899,23 @@ export const sessionTemplates = mysqlTable("session_templates", {
 
 export type SessionTemplate = typeof sessionTemplates.$inferSelect;
 export type InsertSessionTemplate = typeof sessionTemplates.$inferInsert;
+
+/**
+ * Lesson plan templates — reusable plan structures saved by teachers.
+ * The `data` column stores a JSON snapshot of all lesson plan fields
+ * (excluding title and lessonNumber so they can be set fresh on apply).
+ */
+export const lessonPlanTemplates = mysqlTable("lesson_plan_templates", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  /** Display name for this template, e.g. "Standard Primary Science Lesson" */
+  name: varchar("name", { length: 128 }).notNull(),
+  /** Optional short description */
+  description: varchar("description", { length: 255 }),
+  /** JSON snapshot of all lesson plan fields (subject, yearGroup, competencies, sections, etc.) */
+  data: text("data").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type LessonPlanTemplate = typeof lessonPlanTemplates.$inferSelect;
+export type InsertLessonPlanTemplate = typeof lessonPlanTemplates.$inferInsert;
