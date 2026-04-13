@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -308,6 +309,13 @@ export default function SchoolCalendar() {
   // Local draft entries used in the create/edit calendar dialog
   type SessionDraft = { id?: number; name: string; lessonDays: string; startTime: string; endTime: string };
   const [sessionDrafts, setSessionDrafts] = useState<SessionDraft[]>([]);
+  // Build a new draft pre-filled from the calendar's current defaults
+  const defaultSessionDraft = (): SessionDraft => ({
+    name: "",
+    lessonDays: calForm.lessonDays && calForm.lessonDays !== "[]" ? calForm.lessonDays : "[]",
+    startTime: calForm.defaultStartTime || "09:00",
+    endTime: calForm.defaultEndTime || "10:00",
+  });
   const emptySessionDraft = (): SessionDraft => ({ name: "", lessonDays: "[]", startTime: "09:00", endTime: "10:00" });
 
   // Fetch sessions for the currently-selected calendar (for the edit dialog)
@@ -1436,9 +1444,43 @@ export default function SchoolCalendar() {
                 <div className="min-w-0 flex-1">
                   <div className="truncate flex items-center gap-1">
                     {cal.name}
-                    {clashedCalendarIds.has(cal.id) && (
-                      <span title={t("cal_clash_warning")} className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-amber-500 text-white text-[9px] font-bold shrink-0">⚠</span>
-                    )}
+                    {clashedCalendarIds.has(cal.id) && (() => {
+                      // Collect clash pairs that involve this calendar
+                      const relevant = clashPairs.filter(
+                        ({ sessionA, sessionB }) => sessionA.calendarId === cal.id || sessionB.calendarId === cal.id
+                      );
+                      const dayNames = [t("cal_day_sun"), t("cal_day_mon"), t("cal_day_tue"), t("cal_day_wed"), t("cal_day_thu"), t("cal_day_fri"), t("cal_day_sat")];
+                      return (
+                        <Popover>
+                          <PopoverTrigger asChild onClick={e => e.stopPropagation()}>
+                            <span
+                              className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-amber-500 text-white text-[9px] font-bold shrink-0 cursor-pointer hover:bg-amber-600 transition-colors"
+                              aria-label={t("cal_clash_warning")}
+                            >⚠</span>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-72 p-3 text-sm" side="right" align="start">
+                            <p className="font-semibold text-amber-600 mb-2">{t("cal_clash_warning")}</p>
+                            <p className="text-xs text-muted-foreground mb-3">{t("cal_clash_desc")}</p>
+                            <div className="space-y-2">
+                              {relevant.map(({ sessionA, sessionB, sharedDays, overlapStart, overlapEnd }, i) => {
+                                const mine = sessionA.calendarId === cal.id ? sessionA : sessionB;
+                                const other = sessionA.calendarId === cal.id ? sessionB : sessionA;
+                                const otherCal = (calendars as SchoolCalendar[]).find(c => c.id === other.calendarId);
+                                const dayLabels = sharedDays.map((d: number) => dayNames[d]).join(", ");
+                                return (
+                                  <div key={i} className="border border-amber-200 bg-amber-50 rounded p-2 text-xs space-y-0.5">
+                                    <div className="font-medium text-amber-800">"{mine.name}" {t("cal_clash_between")} "{other.name}"</div>
+                                    {otherCal && <div className="text-muted-foreground">{otherCal.name}</div>}
+                                    <div><span className="font-medium">{t("cal_clash_days")}:</span> {dayLabels}</div>
+                                    <div><span className="font-medium">{t("cal_clash_time")}:</span> {overlapStart}–{overlapEnd}</div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      );
+                    })()}
                   </div>
                   <div className="text-xs text-muted-foreground truncate">{cal.subject} · {cal.yearLevel}</div>
                 </div>
@@ -2471,9 +2513,8 @@ export default function SchoolCalendar() {
                   type="button" variant="outline" size="sm"
                   className="gap-1 text-xs h-7"
                   onClick={() => {
-                    // Save all existing sessions first (update), then add new ones
-                    // For the edit dialog, we manage sessions directly via mutations
-                    setSessionDrafts(d => [...d, emptySessionDraft()]);
+                    // Pre-fill from calendar defaults so teacher only needs to set the name
+                    setSessionDrafts(d => [...d, defaultSessionDraft()]);
                   }}
                 ><Plus className="w-3.5 h-3.5" /> {t("cal_add_session")}</Button>
               </div>
@@ -2589,8 +2630,10 @@ export default function SchoolCalendar() {
               ))}
             </div>
           </div>
-          <DialogFooter className="flex justify-between">
-            <div className="flex items-center gap-2">
+          {/* Footer — two rows to avoid button overlap on narrow dialogs */}
+          <div className="pt-4 border-t space-y-2">
+            {/* Row 1: destructive / utility actions */}
+            <div className="flex flex-wrap items-center gap-2">
               {calForm.calendarType === "full_year" && (
                 <Button
                   variant="outline"
@@ -2607,7 +2650,8 @@ export default function SchoolCalendar() {
                 <Trash2 className="w-4 h-4 mr-1" /> {t("cal_delete_calendar")}
               </Button>
             </div>
-            <div className="flex gap-2">
+            {/* Row 2: cancel / save */}
+            <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setShowEditCalDialog(false)}>{t("cal_cancel")}</Button>
               <Button
                 onClick={() => {
@@ -2632,7 +2676,7 @@ export default function SchoolCalendar() {
                 {t("cal_save")}
               </Button>
             </div>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 

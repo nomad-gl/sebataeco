@@ -2127,3 +2127,14 @@
 - [x] Each entry row: name input, day-of-week toggle buttons (Mon–Fri), time pickers for start and end time
 - [x] Clash indicator: amber ⚠ badge on any calendar in the sidebar whose sessions clash with another calendar's sessions
 - [x] i18n: EN/ES/CA keys for session entries UI and clash warnings
+
+## Bug Fix: Edit Calendar dialog footer button overlap
+- [x] Split the footer into two rows: destructive actions (Seed Holidays, Delete) on the left, Cancel/Save on the right, with flex-wrap so they never overlap on narrow dialogs
+
+## Feature: Clash detail popover on ⚠ badge
+- [x] Clicking the amber ⚠ badge in the sidebar opens a popover listing each clash pair (entry A in Calendar X vs entry B in Calendar Y), shared days, and overlapping time range
+- [x] Server extended to return sharedDays[], overlapStart, overlapEnd in each clash pair
+- [x] i18n: uses existing cal_day_* keys for day names in EN/ES/CA
+
+## Feature: Auto-fill new session entry from calendar defaults
+- [x] When teacher clicks "Add Entry", pre-fill day toggles from the calendar's lessonDays field and start/end times from defaultStartTime/defaultEndTime

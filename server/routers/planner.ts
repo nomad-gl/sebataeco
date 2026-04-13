@@ -2236,7 +2236,13 @@ Generate a detailed lesson plan with specific activities for each procedure stag
       const clashes: Array<{
         sessionA: typeof sessions[0];
         sessionB: typeof sessions[0];
+        sharedDays: number[];
+        overlapStart: string;
+        overlapEnd: string;
       }> = [];
+
+      // Helper: convert minutes back to HH:MM
+      const fromMin = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 
       for (let i = 0; i < sessions.length; i++) {
         for (let j = i + 1; j < sessions.length; j++) {
@@ -2246,13 +2252,19 @@ Generate a detailed lesson plan with specific activities for each procedure stag
           if (a.calendarId === b.calendarId) continue;
           const daysA = parseDays(a.lessonDays);
           const daysB = parseDays(b.lessonDays);
-          const sharedDay = daysA.some(d => daysB.includes(d));
-          if (!sharedDay) continue;
+          const sharedDays = daysA.filter(d => daysB.includes(d));
+          if (sharedDays.length === 0) continue;
           // Time overlap: A starts before B ends AND B starts before A ends
           const aStart = toMin(a.startTime); const aEnd = toMin(a.endTime);
           const bStart = toMin(b.startTime); const bEnd = toMin(b.endTime);
           if (aStart < bEnd && bStart < aEnd) {
-            clashes.push({ sessionA: a, sessionB: b });
+            clashes.push({
+              sessionA: a,
+              sessionB: b,
+              sharedDays,
+              overlapStart: fromMin(Math.max(aStart, bStart)),
+              overlapEnd: fromMin(Math.min(aEnd, bEnd)),
+            });
           }
         }
       }
