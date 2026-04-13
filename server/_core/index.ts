@@ -10,6 +10,7 @@ import { serveStatic, setupVite } from "./vite";
 import cron from "node-cron";
 import { runRetentionPurge } from "../routers/privacy";
 import { runAuditRetentionPurge, auditRetentionStatus } from "../routers/audit";
+import { runBiasScan, biasScanStatus } from "../biasScan";
 import { startHealthMonitor } from "../selfHeal";
 import { getDb } from "../db";
 import { questionTranslations } from "../../drizzle/schema";
@@ -148,6 +149,20 @@ async function startServer() {
     } catch (err) {
       auditRetentionStatus.lastError = err instanceof Error ? err.message : String(err);
       console.error("[AuditRetention] Purge failed:", err);
+    }
+  });
+
+  // 24-hour bias scan at 04:00 UTC — scans all unresolved bias flags and auto-applies fixes
+  cron.schedule("0 4 * * *", async () => {
+    console.log("[BiasScan] Starting 24-hour bias incident scan...");
+    try {
+      const result = await runBiasScan();
+      biasScanStatus.lastRunAt = new Date();
+      biasScanStatus.lastResult = result;
+      console.log(`[BiasScan] Scan complete: ${result.summary}`);
+    } catch (err) {
+      biasScanStatus.lastError = err instanceof Error ? err.message : String(err);
+      console.error("[BiasScan] Scan failed:", err);
     }
   });
 }

@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertTriangle, CheckCircle, ChevronDown, ChevronUp, ClipboardList, FileText, ShieldCheck } from "lucide-react";
+import { AlertTriangle, CheckCircle, ChevronDown, ChevronUp, ClipboardList, FileText, RefreshCw, Scan, ShieldCheck, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 const COMPETENCY_CODES = ["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"];
@@ -300,10 +300,18 @@ function BiasIncidentsTab() {
   const utils = trpc.useUtils();
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [showResolved, setShowResolved] = useState(false);
+  const [selectedScanId, setSelectedScanId] = useState<number | null>(null);
 
   const { data: flags = [], isLoading } = trpc.accountability.bias.listFlags.useQuery({
     resolved: showResolved,
   });
+
+  const { data: lastScan } = trpc.accountability.bias.lastScanStatus.useQuery();
+  const { data: scanHistory = [] } = trpc.accountability.bias.listScans.useQuery({ limit: 5 });
+  const { data: scanFixes = [] } = trpc.accountability.bias.getScanFixes.useQuery(
+    { scanRunId: selectedScanId! },
+    { enabled: selectedScanId !== null }
+  );
 
   const resolveMutation = trpc.accountability.bias.resolveFlag.useMutation({
     onSuccess: () => {
@@ -311,6 +319,16 @@ function BiasIncidentsTab() {
       toast.success(t("acc_bias_resolve"));
     },
     onError: (e) => toast.error(e.message),
+  });
+
+  const runScanMutation = trpc.accountability.bias.runScan.useMutation({
+    onSuccess: (result) => {
+      utils.accountability.bias.listFlags.invalidate();
+      utils.accountability.bias.lastScanStatus.invalidate();
+      utils.accountability.bias.listScans.invalidate();
+      toast.success(`Scan complete: ${result.summary}`);
+    },
+    onError: (e) => toast.error(`Scan failed: ${e.message}`),
   });
 
   const severityVariant = (s: string): "destructive" | "outline" | "secondary" => {
@@ -325,20 +343,111 @@ function BiasIncidentsTab() {
     return t("acc_bias_low");
   };
 
+  const scanStatusColor = (status: string) => {
+    if (status === "completed") return "text-green-600";
+    if (status === "failed") return "text-destructive";
+    return "text-amber-600";
+  };
+
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold">{t("acc_tab_bias")}</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            The bias-guard middleware scans every AI response. Incidents are logged here for review.
+            The bias-guard middleware scans every AI response. A 24-hour automated scan detects and auto-resolves incidents.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setShowResolved((v) => !v)}>
-          {showResolved ? t("acc_bias_unresolved") : t("acc_bias_resolved")}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setShowResolved((v) => !v)}>
+            {showResolved ? t("acc_bias_unresolved") : t("acc_bias_resolved")}
+          </Button>
+          <Button
+            size="sm"
+            variant="default"
+            onClick={() => runScanMutation.mutate()}
+            disabled={runScanMutation.isPending}
+          >
+            {runScanMutation.isPending ? (
+              <RefreshCw className="h-4 w-4 mr-1.5 animate-spin" />
+            ) : (
+              <Scan className="h-4 w-4 mr-1.5" />
+            )}
+            Run Scan Now
+          </Button>
+        </div>
       </div>
 
+      {/* Last scan status banner */}
+      {lastScan && (
+        <Card className="bg-muted/40">
+          <CardContent className="py-3 px-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <Scan className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Last scan:</span>
+                <span className="text-sm text-muted-foreground">
+                  {new Date(lastScan.runAt).toLocaleString()}
+                </span>
+                <Badge
+                  variant="outline"
+                  className={scanStatusColor(lastScan.status)}
+                >
+                  {lastScan.status}
+                </Badge>
+              </div>
+              <div className="flex gap-4 text-sm text-muted-foreground">
+                <span>{lastScan.incidentCount} incident{lastScan.incidentCount !== 1 ? "s" : ""} found</span>
+                <span>{lastScan.fixesApplied} auto-resolved</span>
+              </div>
+            </div>
+            {lastScan.summary && (
+              <p className="text-xs text-muted-foreground mt-1.5">{lastScan.summary}</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Scan history */}
+      {scanHistory.length > 1 && (
+        <div>
+          <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+            <Sparkles className="h-4 w-4" /> Recent Scan History
+          </h3>
+          <div className="space-y-1.5">
+            {scanHistory.map((run) => (
+              <button
+                key={run.id}
+                className="w-full text-left text-xs rounded border px-3 py-2 hover:bg-muted/60 transition-colors"
+                onClick={() => setSelectedScanId(selectedScanId === run.id ? null : run.id)}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">{new Date(run.runAt).toLocaleString()}</span>
+                  <div className="flex gap-3">
+                    <span className={scanStatusColor(run.status)}>{run.status}</span>
+                    <span>{run.incidentCount} found · {run.fixesApplied} fixed</span>
+                  </div>
+                </div>
+                {selectedScanId === run.id && scanFixes.length > 0 && (
+                  <div className="mt-2 space-y-2">
+                    {scanFixes.map((fix) => (
+                      <div key={fix.id} className="bg-muted rounded p-2 space-y-1">
+                        <p className="font-medium text-foreground">Flag #{fix.biasFlagId}</p>
+                        <p className="text-muted-foreground"><span className="font-medium">Explanation:</span> {fix.biasExplanation}</p>
+                        <p className="text-muted-foreground"><span className="font-medium">Suggested fix:</span> {fix.suggestedFix}</p>
+                        <Badge variant="secondary" className="text-green-600 text-[10px]">Auto-applied</Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Flag list */}
       {isLoading ? (
         <div className="text-muted-foreground text-sm">Loading...</div>
       ) : flags.length === 0 ? (

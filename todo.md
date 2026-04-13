@@ -2280,3 +2280,12 @@
 - [x] Add tooltip to Teacher dropdown button (visible at md, hidden at lg when label shows)
 - [x] BackToTop: use glass/white style on dark-background (classroom) pages, primary style elsewhere
 - [x] TypeScript 0 errors verified
+
+## 24-hour bias scan with auto-fix
+- [x] Add biasScanRuns table to schema (id, runAt, incidentCount, fixesApplied, status, summary)
+- [x] Generate and apply Drizzle migration SQL
+- [x] Add server/biasScan.ts: runBiasScan() queries unresolved flags, invokes LLM for fix suggestions, persists results, notifies owner if incidents found
+- [x] Add tRPC procedures: accountability.bias.runScan (admin), accountability.bias.listScans, accountability.bias.applyFix
+- [x] Schedule runBiasScan() every 24h via server-side cron (node-cron)
+- [x] Update BiasIncidentsTab UI: show last scan time, scan status badge, per-incident LLM fix suggestion, "Apply Fix" button
+- [x] TypeScript 0 errors verified

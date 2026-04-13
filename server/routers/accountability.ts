@@ -19,7 +19,10 @@ import {
   aiBiasFlags,
   aiLearningPaths,
   practiceSessions,
+  biasScanRuns,
+  biasScanFixSuggestions,
 } from "../../drizzle/schema";
+import { runBiasScan, biasScanStatus } from "../biasScan";
 import { eq, desc, and } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
 import { COMPETENCY_META } from "../knowledge/lomloeKnowledgeBank";
@@ -258,6 +261,63 @@ const biasFlagRouter = router({
         .where(eq(aiBiasFlags.id, input.flagId));
 
       return { success: true };
+    }),
+
+  /** Manually trigger a bias scan (admin only). */
+  runScan: protectedProcedure
+    .mutation(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+      const result = await runBiasScan();
+      biasScanStatus.lastRunAt = new Date();
+      biasScanStatus.lastResult = result;
+      return result;
+    }),
+
+  /** List past bias scan runs (admin only). */
+  listScans: protectedProcedure
+    .input(z.object({ limit: z.number().min(1).max(50).default(10) }))
+    .query(async ({ input, ctx }) => {
+      if (ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+      const db = await getDb();
+      if (!db) return [];
+      return db
+        .select()
+        .from(biasScanRuns)
+        .orderBy(desc(biasScanRuns.runAt))
+        .limit(input.limit);
+    }),
+
+  /** Get fix suggestions for a specific scan run (admin only). */
+  getScanFixes: protectedProcedure
+    .input(z.object({ scanRunId: z.number() }))
+    .query(async ({ input, ctx }) => {
+      if (ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+      const db = await getDb();
+      if (!db) return [];
+      return db
+        .select()
+        .from(biasScanFixSuggestions)
+        .where(eq(biasScanFixSuggestions.scanRunId, input.scanRunId))
+        .orderBy(desc(biasScanFixSuggestions.createdAt));
+    }),
+
+  /** Get the last scan status (for all authenticated users). */
+  lastScanStatus: protectedProcedure
+    .query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return null;
+      const [latest] = await db
+        .select()
+        .from(biasScanRuns)
+        .orderBy(desc(biasScanRuns.runAt))
+        .limit(1);
+      return latest ?? null;
     }),
 });
 

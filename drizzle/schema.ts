@@ -919,3 +919,50 @@ export const lessonPlanTemplates = mysqlTable("lesson_plan_templates", {
 
 export type LessonPlanTemplate = typeof lessonPlanTemplates.$inferSelect;
 export type InsertLessonPlanTemplate = typeof lessonPlanTemplates.$inferInsert;
+
+/**
+ * Bias scan runs — one row per 24-hour automated scan of unresolved bias flags.
+ * Tracks when the scan ran, how many incidents were found, and how many fixes
+ * were automatically applied.
+ */
+export const biasScanRuns = mysqlTable("bias_scan_runs", {
+  id: int("id").autoincrement().primaryKey(),
+  /** UTC timestamp when the scan started */
+  runAt: timestamp("runAt").defaultNow().notNull(),
+  /** 'running' | 'completed' | 'failed' */
+  status: mysqlEnum("status", ["running", "completed", "failed"]).default("running").notNull(),
+  /** Total unresolved bias flags found at scan time */
+  incidentCount: int("incidentCount").default(0).notNull(),
+  /** Number of incidents for which a fix suggestion was generated */
+  fixesGenerated: int("fixesGenerated").default(0).notNull(),
+  /** Number of incidents automatically resolved during this scan */
+  fixesApplied: int("fixesApplied").default(0).notNull(),
+  /** Plain-language summary of the scan result */
+  summary: text("summary"),
+  /** Error message if status = 'failed' */
+  errorMessage: text("errorMessage"),
+});
+export type BiasScanRun = typeof biasScanRuns.$inferSelect;
+export type InsertBiasScanRun = typeof biasScanRuns.$inferInsert;
+
+/**
+ * Bias scan fix suggestions — one row per bias flag that was analysed during
+ * a scan. Stores the LLM-generated fix suggestion and whether it was applied.
+ */
+export const biasScanFixSuggestions = mysqlTable("bias_scan_fix_suggestions", {
+  id: int("id").autoincrement().primaryKey(),
+  /** References bias_scan_runs.id */
+  scanRunId: int("scanRunId").notNull(),
+  /** References ai_bias_flags.id */
+  biasFlagId: int("biasFlagId").notNull(),
+  /** LLM-generated explanation of why this output is biased */
+  biasExplanation: text("biasExplanation").notNull(),
+  /** LLM-generated replacement/corrected output text */
+  suggestedFix: text("suggestedFix").notNull(),
+  /** Whether the fix has been applied (flag resolved) */
+  applied: boolean("applied").default(false).notNull(),
+  appliedAt: timestamp("appliedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type BiasScanFixSuggestion = typeof biasScanFixSuggestions.$inferSelect;
+export type InsertBiasScanFixSuggestion = typeof biasScanFixSuggestions.$inferInsert;
