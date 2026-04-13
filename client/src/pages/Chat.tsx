@@ -19,7 +19,6 @@ type YearGroup = "junior" | "primary" | "secondary";
 const SUGGESTED_KEYS: TranslationKey[] = [
   "chat_suggested_1",
   "chat_suggested_2",
-  "chat_suggested_3",
 ];
 
 export default function Chat() {
