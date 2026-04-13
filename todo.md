@@ -2275,3 +2275,8 @@
 - [x] Sticky back-to-top button component (BackToTop.tsx) shown after 300px scroll
 - [x] Wire BackToTop into App.tsx layout so it appears on all pages
 - [x] TypeScript 0 errors verified
+
+## Nav tooltip + adaptive back-to-top
+- [x] Add tooltip to Teacher dropdown button (visible at md, hidden at lg when label shows)
+- [x] BackToTop: use glass/white style on dark-background (classroom) pages, primary style elsewhere
+- [x] TypeScript 0 errors verified

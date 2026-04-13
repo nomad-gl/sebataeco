@@ -161,9 +161,11 @@ export default function NavBar() {
             })}
 
             {/* Teacher dropdown (after Practice, before TA Forum) */}
-            <div ref={dropRef} className="relative">
+            <div ref={dropRef} className="relative group/teacher">
               <button
                 onClick={() => setDropOpen((o) => !o)}
+                title={t("nav_teacher")}
+                aria-label={t("nav_teacher")}
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
                   isTeacherActive
