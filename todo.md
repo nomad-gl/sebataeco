@@ -2259,3 +2259,12 @@
 - [x] Added vitest tests for saveAsTemplate (3 cases), listTemplates (2 cases), deleteTemplate (1 case)
 - [x] All 90 tests pass (9 test files)
 - [x] TypeScript 0 errors verified
+
+## Feature: Group filter dropdown in Seba Classroom History tab
+- [x] Add historyGroupFilter state (string, default "all") to Challenge.tsx
+- [x] Derive unique yearGroup values from sessionHistory data (sorted alphabetically)
+- [x] Add "Filter by group" Select dropdown in the History tab filter bar (alongside search and date pickers)
+- [x] Update filteredHistory useMemo to also filter by selected yearGroup
+- [x] Show "All year groups" as the default option
+- [x] i18n: EN/ES/CA keys for challenge_history_all_groups (EN: All year groups / ES: Todos los grupos / CA: Tots els grups)
+- [x] TypeScript 0 errors verified (clean build confirmed)

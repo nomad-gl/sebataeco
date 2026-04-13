@@ -1732,6 +1732,7 @@ export const translations = {
     challenge_history_correct: "Correct",
     challenge_history_total: "Total",
     challenge_history_export_csv: "Export CSV",
+    challenge_history_all_groups: "All year groups",
     nav_help: "Help & Instructions",
 
     // Help page — structural
@@ -3657,6 +3658,7 @@ export const translations = {
     challenge_history_correct: "Correctas",
     challenge_history_total: "Total",
     challenge_history_export_csv: "Exportar CSV",
+    challenge_history_all_groups: "Todos los grupos",
     nav_help: "Ayuda e Instrucciones",
 
     // Help page — structural
@@ -5568,6 +5570,7 @@ export const translations = {
     challenge_history_correct: "Correctes",
     challenge_history_total: "Total",
     challenge_history_export_csv: "Exportar CSV",
+    challenge_history_all_groups: "Tots els grups",
     nav_help: "Ajuda i Instruccions",
 
     // Help page — structural

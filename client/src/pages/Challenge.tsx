@@ -53,6 +53,7 @@ export default function Challenge() {
   const [historySearch, setHistorySearch] = useState("");
   const [historyDateFrom, setHistoryDateFrom] = useState("");
   const [historyDateTo, setHistoryDateTo] = useState("");
+  const [historyGroupFilter, setHistoryGroupFilter] = useState("all");
   const [roomId, setRoomId] = useState<number | null>(null);
   const [title, setTitle] = useState(urlMaterialTitle);
   const [competency, setCompetency] = useState<CompetencyCode | undefined>();
@@ -103,6 +104,13 @@ export default function Challenge() {
   const myMaterials = trpc.materials.list.useQuery(undefined, { enabled: isAuthenticated && view === "create" });
 
   // Client-side filtering for the History tab
+  const uniqueYearGroups = useMemo(() => {
+    if (!sessionHistory.data) return [];
+    const seen = new Set<string>();
+    sessionHistory.data.forEach((s) => { if (s.yearGroup) seen.add(s.yearGroup); });
+    return Array.from(seen).sort();
+  }, [sessionHistory.data]);
+
   const filteredHistory = useMemo(() => {
     if (!sessionHistory.data) return [];
     const q = historySearch.trim().toLowerCase();
@@ -113,11 +121,12 @@ export default function Challenge() {
       const ts = new Date(s.createdAt).getTime();
       if (from && ts < from) return false;
       if (to && ts > to) return false;
+      if (historyGroupFilter !== "all" && s.yearGroup !== historyGroupFilter) return false;
       return true;
     });
-  }, [sessionHistory.data, historySearch, historyDateFrom, historyDateTo]);
+  }, [sessionHistory.data, historySearch, historyDateFrom, historyDateTo, historyGroupFilter]);
 
-  const hasHistoryFilter = historySearch !== "" || historyDateFrom !== "" || historyDateTo !== "";
+  const hasHistoryFilter = historySearch !== "" || historyDateFrom !== "" || historyDateTo !== "" || historyGroupFilter !== "all";
 
   // Detect if this is a PARAULA live room
   const isParaulaRoom = !!(roomQuery.data && (() => {
@@ -349,6 +358,23 @@ export default function Challenge() {
                       className="pl-9 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-yellow-400/60"
                     />
                   </div>
+                  {/* Group filter */}
+                  {uniqueYearGroups.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-white/40 flex-shrink-0" />
+                      <Select value={historyGroupFilter} onValueChange={setHistoryGroupFilter}>
+                        <SelectTrigger className="flex-1 bg-white/10 border-white/20 text-white/80 focus:border-yellow-400/60 h-9">
+                          <SelectValue placeholder={t("challenge_history_all_groups")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">{t("challenge_history_all_groups")}</SelectItem>
+                          {uniqueYearGroups.map((yg) => (
+                            <SelectItem key={yg} value={yg}>{yg}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 flex-wrap">
                     <CalendarRange className="w-4 h-4 text-white/40 flex-shrink-0" />
                     <input
@@ -368,7 +394,7 @@ export default function Challenge() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => { setHistorySearch(""); setHistoryDateFrom(""); setHistoryDateTo(""); }}
+                        onClick={() => { setHistorySearch(""); setHistoryDateFrom(""); setHistoryDateTo(""); setHistoryGroupFilter("all"); }}
                         className="text-white/60 hover:text-white hover:bg-white/10 gap-1.5 flex-shrink-0"
                       >
                         <FilterX className="w-3.5 h-3.5" /> {t("challenge_history_clear")}
