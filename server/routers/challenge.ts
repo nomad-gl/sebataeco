@@ -249,6 +249,36 @@ export const challengeRouter = router({
     return getChallengesByHost(ctx.user.id);
   }),
 
+  /** Get full session history with leaderboards for the History tab */
+  getSessionHistory: protectedProcedure.query(async ({ ctx }) => {
+    const sessions = await getChallengesByHost(ctx.user.id);
+    // Only return finished sessions for the history tab
+    const finished = sessions.filter((s) => s.status === "finished");
+    // Fetch participants for each session in parallel
+    const withParticipants = await Promise.all(
+      finished.map(async (session) => {
+        const participants = await getParticipants(session.id);
+        let questionCount = 0;
+        try { questionCount = (JSON.parse(session.questions) as unknown[]).length; } catch { /* ignore */ }
+        return {
+          id: session.id,
+          title: session.title,
+          roomCode: session.roomCode,
+          competency: session.competency,
+          yearGroup: session.yearGroup,
+          createdAt: session.createdAt,
+          questionCount,
+          participants: participants.map((p) => ({
+            id: p.id,
+            nickname: p.nickname,
+            score: p.score,
+          })),
+        };
+      })
+    );
+    return withParticipants;
+  }),
+
   /** Get challenge state (teacher view) */
   getRoom: protectedProcedure
     .input(z.object({ id: z.number() }))

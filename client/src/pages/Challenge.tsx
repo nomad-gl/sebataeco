@@ -13,7 +13,7 @@ import {
   Zap, Users, Trophy, ChevronRight, ChevronLeft,
   Copy, Play, SkipForward, StopCircle, Plus, Loader2,
   BookOpen, Library, CheckCircle2, QrCode, Link2, Printer, Eye, ArrowLeft,
-  BarChart2, Check, X as XIcon,
+  BarChart2, Check, X as XIcon, History, ChevronDown, ChevronUp, Medal,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import CompetencySelector from "@/components/CompetencySelector";
@@ -48,6 +48,8 @@ export default function Challenge() {
   const urlMaterialTitle = urlParams.get("materialTitle") ? decodeURIComponent(urlParams.get("materialTitle")!) : "";
 
   const [view, setView] = useState<"home" | "create" | "lobby" | "live" | "results">(urlMaterialId ? "create" : "home");
+  const [homeTab, setHomeTab] = useState<"sessions" | "history">("sessions");
+  const [expandedSession, setExpandedSession] = useState<number | null>(null);
   const [roomId, setRoomId] = useState<number | null>(null);
   const [title, setTitle] = useState(urlMaterialTitle);
   const [competency, setCompetency] = useState<CompetencyCode | undefined>();
@@ -94,6 +96,7 @@ export default function Challenge() {
   );
 
   const myRooms = trpc.challenge.myRooms.useQuery(undefined, { enabled: isAuthenticated });
+  const sessionHistory = trpc.challenge.getSessionHistory.useQuery(undefined, { enabled: isAuthenticated && homeTab === "history" });
   const myMaterials = trpc.materials.list.useQuery(undefined, { enabled: isAuthenticated && view === "create" });
 
   // Detect if this is a PARAULA live room
@@ -259,27 +262,142 @@ export default function Challenge() {
               </Button>
             </div>
 
-            {/* Past rooms */}
-            {myRooms.data && myRooms.data.length > 0 && (
-              <div className="space-y-3">
-                <h2 className="text-lg font-semibold text-white/90">{t("challenge_leaderboard")}</h2>
-                <div className="grid gap-3">
-                  {myRooms.data.slice(0, 6).map((r) => (
-                    <div
-                      key={r.id}
-                      className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 flex items-center justify-between cursor-pointer hover:bg-white/15 transition-colors"
-                      onClick={() => { setRoomId(r.id); setView(r.status === "finished" ? "results" : "lobby"); }}
-                    >
-                      <div>
-                        <p className="font-semibold text-white">{r.title}</p>
-                        <p className="text-sm text-white/60">{t("challenge_room_code")}: <span className="font-mono font-bold text-yellow-300">{r.roomCode}</span></p>
-                      </div>
-                      <Badge className={r.status === "finished" ? "bg-gray-500" : r.status === "active" ? "bg-green-500" : "bg-yellow-500"}>
-                        {r.status}
-                      </Badge>
+            {/* Tab switcher: Sessions / History */}
+            <div className="flex rounded-xl overflow-hidden border border-white/20 max-w-sm mx-auto">
+              {([
+                { key: "sessions", label: t("challenge_tab_sessions"), icon: Zap },
+                { key: "history", label: t("challenge_tab_history"), icon: History },
+              ] as const).map(({ key, label, icon: Icon }) => (
+                <button
+                  key={key}
+                  onClick={() => setHomeTab(key)}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors ${
+                    homeTab === key ? "bg-yellow-400/30 text-yellow-200" : "text-white/60 hover:text-white/80 hover:bg-white/5"
+                  }`}
+                >
+                  <Icon className="w-4 h-4" /> {label}
+                </button>
+              ))}
+            </div>
+
+            {/* ── Sessions sub-tab ── */}
+            {homeTab === "sessions" && (
+              <>
+                {myRooms.data && myRooms.data.length > 0 ? (
+                  <div className="space-y-3">
+                    <h2 className="text-lg font-semibold text-white/90">{t("challenge_leaderboard")}</h2>
+                    <div className="grid gap-3">
+                      {myRooms.data.slice(0, 6).map((r) => (
+                        <div
+                          key={r.id}
+                          className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 flex items-center justify-between cursor-pointer hover:bg-white/15 transition-colors"
+                          onClick={() => { setRoomId(r.id); setView(r.status === "finished" ? "results" : "lobby"); }}
+                        >
+                          <div>
+                            <p className="font-semibold text-white">{r.title}</p>
+                            <p className="text-sm text-white/60">{t("challenge_room_code")}: <span className="font-mono font-bold text-yellow-300">{r.roomCode}</span></p>
+                          </div>
+                          <Badge className={r.status === "finished" ? "bg-gray-500" : r.status === "active" ? "bg-green-500" : "bg-yellow-500"}>
+                            {r.status}
+                          </Badge>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-10 text-white/50">
+                    <Zap className="w-10 h-10 mx-auto mb-3 opacity-40" />
+                    <p>{t("challenge_no_sessions")}</p>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* ── History sub-tab ── */}
+            {homeTab === "history" && (
+              <div className="space-y-3">
+                <h2 className="text-lg font-semibold text-white/90">{t("challenge_tab_history")}</h2>
+                {sessionHistory.isLoading && (
+                  <div className="flex justify-center py-10">
+                    <Loader2 className="w-6 h-6 animate-spin text-yellow-300" />
+                  </div>
+                )}
+                {!sessionHistory.isLoading && (!sessionHistory.data || sessionHistory.data.length === 0) && (
+                  <div className="text-center py-10 text-white/50">
+                    <History className="w-10 h-10 mx-auto mb-3 opacity-40" />
+                    <p>{t("challenge_history_empty")}</p>
+                  </div>
+                )}
+                {sessionHistory.data && sessionHistory.data.length > 0 && (
+                  <div className="grid gap-3">
+                    {sessionHistory.data.map((session) => {
+                      const isExpanded = expandedSession === session.id;
+                      const top3 = session.participants.slice(0, 3);
+                      const medalColors = ["text-yellow-300", "text-gray-300", "text-amber-600"];
+                      return (
+                        <div key={session.id} className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl overflow-hidden">
+                          {/* Session header row */}
+                          <button
+                            className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors text-left"
+                            onClick={() => setExpandedSession(isExpanded ? null : session.id)}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-white truncate">{session.title}</p>
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                                <span className="text-xs text-white/50 font-mono">{session.roomCode}</span>
+                                <span className="text-xs text-white/50">{new Date(session.createdAt).toLocaleDateString()}</span>
+                                <span className="text-xs text-white/50">{session.questionCount} {t("challenge_questions_label")}</span>
+                                <span className="text-xs text-white/50">{session.participants.length} {t("challenge_participants_label")}</span>
+                                {session.competency && (
+                                  <Badge className="text-xs bg-yellow-400/20 text-yellow-300 border-yellow-400/30">{session.competency}</Badge>
+                                )}
+                              </div>
+                              {/* Top 3 mini-leaderboard preview */}
+                              {top3.length > 0 && (
+                                <div className="flex items-center gap-2 mt-2">
+                                  {top3.map((p, i) => (
+                                    <span key={p.id} className={`text-xs font-medium flex items-center gap-1 ${medalColors[i]}`}>
+                                      <Medal className="w-3 h-3" />{p.nickname} ({p.score}/{session.questionCount})
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            <div className="ml-3 flex-shrink-0 text-white/50">
+                              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                            </div>
+                          </button>
+
+                          {/* Expanded full leaderboard */}
+                          {isExpanded && (
+                            <div className="border-t border-white/10 px-4 pb-4">
+                              <h3 className="text-sm font-semibold text-white/80 mt-3 mb-2">{t("challenge_leaderboard")}</h3>
+                              {session.participants.length === 0 ? (
+                                <p className="text-sm text-white/40">{t("challenge_no_participants")}</p>
+                              ) : (
+                                <div className="space-y-1.5">
+                                  {session.participants.map((p, i) => (
+                                    <div key={p.id} className="flex items-center gap-3 bg-white/5 rounded-lg px-3 py-2">
+                                      <span className={`text-sm font-bold w-5 text-center ${i < 3 ? medalColors[i] : "text-white/40"}`}>{i + 1}</span>
+                                      <span className="flex-1 text-sm text-white font-medium truncate">{p.nickname}</span>
+                                      <span className="text-sm font-bold text-yellow-300">{p.score}<span className="text-white/40 font-normal">/{session.questionCount}</span></span>
+                                      <div className="w-20 bg-white/10 rounded-full h-1.5">
+                                        <div
+                                          className="bg-yellow-400 h-1.5 rounded-full transition-all"
+                                          style={{ width: `${session.questionCount > 0 ? Math.round((p.score / session.questionCount) * 100) : 0}%` }}
+                                        />
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>

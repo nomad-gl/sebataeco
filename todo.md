@@ -2205,3 +2205,12 @@
 - [x] Replace all Sparkles icon usages in ParaulaPractice.tsx with SebaSymbol
 - [x] Replace Sparkles in UpdateBanner.tsx, WhatsNewModal.tsx, WhatsNewBanner.tsx with SebaSymbol
 - [x] Verify TypeScript 0 errors — clean build confirmed
+
+## Feature: History tab in Seba Classroom page
+- [x] Inspect existing challenge/session DB schema and server router
+- [x] Add tRPC procedure: challenge.getSessionHistory (list past sessions with scores, group, date, leaderboard)
+- [x] Add History tab to Seba Classroom page (Sessions / History tab switcher)
+- [x] History list: show session date, room code, question count, participant count, top 3 medal scores
+- [x] Expandable row / detail panel: full leaderboard with score bars per session
+- [x] i18n: EN/ES/CA keys for all History tab labels (7 new keys × 3 languages = 21 entries)
+- [x] TypeScript keys verified present in I18nContext.tsx (21 occurrences confirmed)

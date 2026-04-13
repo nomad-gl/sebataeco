@@ -1706,6 +1706,13 @@ export const translations = {
     lp_batch_fill_all: "Fill all empty sections",
     lp_batch_fill_progress: "Filling plan {{current}} of {{total}}…",
     lp_batch_fill_done: "{{count}} plans filled with AI content",
+    challenge_tab_sessions: "Sessions",
+    challenge_tab_history: "History",
+    challenge_no_sessions: "No sessions yet. Start your first Seba Classroom session!",
+    challenge_history_empty: "No completed sessions yet. Finished sessions will appear here.",
+    challenge_questions_label: "questions",
+    challenge_participants_label: "participants",
+    challenge_no_participants: "No participants joined this session.",
   },
 
   es: {
@@ -3399,6 +3406,13 @@ export const translations = {
     lp_batch_fill_all: "Rellenar secciones vacías",
     lp_batch_fill_progress: "Rellenando plan {{current}} de {{total}}…",
     lp_batch_fill_done: "{{count}} planes rellenados con IA",
+    challenge_tab_sessions: "Sesiones",
+    challenge_tab_history: "Historial",
+    challenge_no_sessions: "Aún no hay sesiones. ¡Inicia tu primera sesión de Seba Classroom!",
+    challenge_history_empty: "Aún no hay sesiones completadas. Las sesiones finalizadas aparecerán aquí.",
+    challenge_questions_label: "preguntas",
+    challenge_participants_label: "participantes",
+    challenge_no_participants: "Ningún participante se unió a esta sesión.",
   },
 
   ca: {
@@ -5092,6 +5106,13 @@ export const translations = {
     lp_batch_fill_all: "Omplir seccions buides",
     lp_batch_fill_progress: "Omplint pla {{current}} de {{total}}…",
     lp_batch_fill_done: "{{count}} plans omplerts amb IA",
+    challenge_tab_sessions: "Sessions",
+    challenge_tab_history: "Historial",
+    challenge_no_sessions: "Encara no hi ha sessions. Comença la teva primera sessió de Seba Classroom!",
+    challenge_history_empty: "Encara no hi ha sessions completades. Les sessions finalitzades apareixeran aquí.",
+    challenge_questions_label: "preguntes",
+    challenge_participants_label: "participants",
+    challenge_no_participants: "Cap participant es va unir a aquesta sessió.",
   },
 } as const;
 
