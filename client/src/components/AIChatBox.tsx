@@ -708,7 +708,7 @@ export function AIChatBox({
                         onSendMessage(prompt);
                       }}
                       disabled={isLoading}
-                      className="rounded-lg border border-white/25 bg-white/10 text-white px-4 py-2 text-sm transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-lg border border-white/40 bg-white/25 text-white px-4 py-2 text-sm transition-colors hover:bg-white/35 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {prompt}
                     </button>
