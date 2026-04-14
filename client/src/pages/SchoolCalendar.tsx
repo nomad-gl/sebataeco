@@ -255,7 +255,18 @@ export default function SchoolCalendar() {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     setDetailAnchor({ x: rect.left, y: rect.bottom + 4 });
   };
-  const closeDetail = () => { setDetailEvent(null); setDetailAnchor(null); };
+  const closeDetail = () => { setDetailEvent(null); setDetailAnchor(null); setDuplicateDate(""); };
+  const [duplicateDate, setDuplicateDate] = useState("");
+  const [showDuplicateInput, setShowDuplicateInput] = useState(false);
+  const duplicateEventMutation = trpc.planner.duplicateCalendarEvent.useMutation({
+    onSuccess: () => {
+      utils.planner.listCalendarEvents.invalidate();
+      closeDetail();
+      setShowDuplicateInput(false);
+      toast.success("Event duplicated");
+    },
+    onError: (err) => toast.error(err.message),
+  });
   const [showLinkGroupDialog, setShowLinkGroupDialog] = useState(false);
   const [linkGroupId, setLinkGroupId] = useState<string>("");
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
@@ -3160,17 +3171,13 @@ export default function SchoolCalendar() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          {isLesson ? (
-                            <button
-                              className="font-medium text-sm truncate text-left hover:underline focus:outline-none"
-                              onClick={() => openPlanSheet(ev)}
-                              title={hasPlan ? t("cal_view_plan") : t("cal_add_plan")}
-                            >
-                              {ev.title}
-                            </button>
-                          ) : (
-                            <span className="font-medium text-sm truncate">{ev.title}</span>
-                          )}
+                          <button
+                            className="font-medium text-sm truncate text-left hover:underline focus:outline-none"
+                            onClick={(e) => { setShowDayPanel(false); setTimeout(() => openDetail(ev, e), 80); }}
+                            title="View details"
+                          >
+                            {ev.title}
+                          </button>
                           {isLesson && (
                             <Badge className={`h-4 px-1.5 text-[10px] font-normal gap-0.5 ${
                               hasPlan
@@ -3963,10 +3970,15 @@ export default function SchoolCalendar() {
                       ? "bg-green-600 hover:bg-green-700 text-white"
                       : ""
                   }`}
+                  disabled={createLinkedPlanMutation.isPending}
                   onClick={() => { const ev = detailEvent; closeDetail(); setTimeout(() => openPlanSheet(ev), 50); }}
                 >
-                  <ClipboardList className="w-3.5 h-3.5" />
-                  {(eventPlanMap as Record<number, number>)[detailEvent.id] ? t("cal_view_plan") : t("cal_add_plan")}
+                  {createLinkedPlanMutation.isPending && planSheetEventId === detailEvent.id
+                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    : <ClipboardList className="w-3.5 h-3.5" />}
+                  {createLinkedPlanMutation.isPending && planSheetEventId === detailEvent.id
+                    ? "Creating…"
+                    : (eventPlanMap as Record<number, number>)[detailEvent.id] ? t("cal_view_plan") : t("cal_add_plan")}
                 </Button>
               )}
               <Button
@@ -3981,12 +3993,40 @@ export default function SchoolCalendar() {
               <Button
                 size="sm"
                 variant="outline"
+                className="gap-1.5"
+                title="Duplicate to another date"
+                onClick={() => setShowDuplicateInput(v => !v)}
+              >
+                <Copy className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
                 className="text-destructive border-destructive/40 hover:bg-destructive/10"
                 onClick={() => { closeDetail(); deleteMutation.mutate({ id: detailEvent.id }); }}
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </Button>
             </div>
+            {showDuplicateInput && (
+              <div className="flex gap-2 items-center pt-1 border-t border-border/50">
+                <input
+                  type="date"
+                  value={duplicateDate}
+                  onChange={e => setDuplicateDate(e.target.value)}
+                  className="flex-1 text-xs rounded border border-input bg-background px-2 py-1 focus:outline-none focus:ring-1 focus:ring-ring"
+                />
+                <Button
+                  size="sm"
+                  disabled={!duplicateDate || duplicateEventMutation.isPending}
+                  onClick={() => duplicateEventMutation.mutate({ id: detailEvent.id, newDate: duplicateDate })}
+                  className="gap-1.5 shrink-0"
+                >
+                  {duplicateEventMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Copy className="w-3.5 h-3.5" />}
+                  Copy
+                </Button>
+              </div>
+            )}
           </div>
         </>
       )}

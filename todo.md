@@ -2304,3 +2304,8 @@
 - [x] Add event detail popover/panel so clicking an event shows full details with "View Plan" and "Edit Event" actions
 - [x] Non-lesson events: show detail popover with description, time, type, and Edit/Delete actions
 - [x] Lesson events: show detail popover with plan status, description, time, and "Open Plan" / "Edit Event" actions
+
+## Calendar: Three follow-up improvements
+- [x] Add duplicate event action to detail popover (copy event to a new date)
+- [x] Route Day Panel event chips through the detail popover instead of direct open
+- [x] Add loading spinner to "Add Plan" button while AI generation is pending

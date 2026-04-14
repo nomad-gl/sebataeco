@@ -295,6 +295,38 @@ export const plannerRouter = router({
       return { success: true };
     }),
 
+  duplicateCalendarEvent: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      newDate: z.string(), // YYYY-MM-DD
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      const [original] = await db
+        .select()
+        .from(schoolCalendarEvents)
+        .where(and(eq(schoolCalendarEvents.id, input.id), eq(schoolCalendarEvents.userId, ctx.user.id)))
+        .limit(1);
+      if (!original) throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+      const result = await db.insert(schoolCalendarEvents).values({
+        userId: ctx.user.id,
+        calendarId: original.calendarId,
+        academicYear: original.academicYear,
+        eventDate: new Date(input.newDate),
+        eventType: original.eventType,
+        title: original.title,
+        description: original.description,
+        competency: original.competency,
+        yearGroup: original.yearGroup,
+        subject: original.subject,
+        startTime: original.startTime,
+        endTime: original.endTime,
+        aiGenerated: false,
+      });
+      return { id: (result as any)[0].insertId };
+    }),
+
   aiInfillCalendar: protectedProcedure
     .input(z.object({
       calendarId: z.number(),
