@@ -2309,3 +2309,7 @@
 - [x] Add duplicate event action to detail popover (copy event to a new date)
 - [x] Route Day Panel event chips through the detail popover instead of direct open
 - [x] Add loading spinner to "Add Plan" button while AI generation is pending
+
+## Calendar: Bulk duplicate + undo delete
+- [x] Bulk duplicate event to multiple selected dates from detail popover
+- [x] Undo delete: soft-delete with toast Undo action for calendar events

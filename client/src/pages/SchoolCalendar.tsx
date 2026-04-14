@@ -255,15 +255,18 @@ export default function SchoolCalendar() {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     setDetailAnchor({ x: rect.left, y: rect.bottom + 4 });
   };
-  const closeDetail = () => { setDetailEvent(null); setDetailAnchor(null); setDuplicateDate(""); };
-  const [duplicateDate, setDuplicateDate] = useState("");
+  const closeDetail = () => { setDetailEvent(null); setDetailAnchor(null); setDuplicateDates([]); setDuplicateDateInput(""); setShowDuplicateInput(false); };
+  const [duplicateDates, setDuplicateDates] = useState<string[]>([]);
+  const [duplicateDateInput, setDuplicateDateInput] = useState("");
   const [showDuplicateInput, setShowDuplicateInput] = useState(false);
-  const duplicateEventMutation = trpc.planner.duplicateCalendarEvent.useMutation({
-    onSuccess: () => {
+  const bulkDuplicateMutation = trpc.planner.bulkDuplicateCalendarEvent.useMutation({
+    onSuccess: (data) => {
       utils.planner.listCalendarEvents.invalidate();
       closeDetail();
       setShowDuplicateInput(false);
-      toast.success("Event duplicated");
+      setDuplicateDates([]);
+      setDuplicateDateInput("");
+      toast.success(`Event copied to ${data.created} date${data.created === 1 ? "" : "s"}`);
     },
     onError: (err) => toast.error(err.message),
   });
@@ -524,6 +527,29 @@ export default function SchoolCalendar() {
     onSuccess: () => { utils.planner.listCalendarEvents.invalidate(); setShowDeleteEventDialog(false); setShowEditDialog(false); },
     onError: (e) => toast.error(e.message),
   });
+  const pendingDeleteRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleDeleteWithUndo = (id: number, label?: string) => {
+    if (pendingDeleteRef.current) clearTimeout(pendingDeleteRef.current);
+    const toastId = `del-${id}-${Date.now()}`;
+    toast(label ? `"${label}" will be deleted` : "Event will be deleted", {
+      id: toastId,
+      action: {
+        label: "Undo",
+        onClick: () => {
+          if (pendingDeleteRef.current) clearTimeout(pendingDeleteRef.current);
+          pendingDeleteRef.current = null;
+          toast.dismiss(toastId);
+          toast.success("Delete cancelled");
+        },
+      },
+      duration: 5000,
+    });
+    pendingDeleteRef.current = setTimeout(() => {
+      pendingDeleteRef.current = null;
+      toast.dismiss(toastId);
+      deleteMutation.mutate({ id });
+    }, 5000);
+  };
 
   const deleteSeriesMutation = trpc.planner.deleteEventSeries.useMutation({
     onSuccess: () => { utils.planner.listCalendarEvents.invalidate(); setShowDeleteEventDialog(false); setShowEditDialog(false); toast.success(t("cal_series_deleted")); },
@@ -2654,7 +2680,7 @@ export default function SchoolCalendar() {
                       placeholder={t("cal_session_name_ph")}
                     />
                     <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"
-                      onClick={() => deleteSessionMutation.mutate({ id: s.id })}>
+                       onClick={() => deleteSessionMutation.mutate({ id: s.id })}>
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
@@ -2988,7 +3014,7 @@ export default function SchoolCalendar() {
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={deleteMutation.isPending}
-              onClick={() => { if (editingEvent) deleteMutation.mutate({ id: editingEvent.id }); }}
+              onClick={() => { if (editingEvent) { setShowDeleteEventDialog(false); setShowEditDialog(false); handleDeleteWithUndo(editingEvent.id, editingEvent.title); } }}
             >
               {deleteMutation.isPending ? "…" : (editingEvent?.seriesId ? t("cal_delete_event_only") : t("cal_delete_event_only"))}
             </AlertDialogAction>
@@ -4003,27 +4029,49 @@ export default function SchoolCalendar() {
                 size="sm"
                 variant="outline"
                 className="text-destructive border-destructive/40 hover:bg-destructive/10"
-                onClick={() => { closeDetail(); deleteMutation.mutate({ id: detailEvent.id }); }}
+                onClick={() => { closeDetail(); handleDeleteWithUndo(detailEvent.id, detailEvent.title); }}
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </Button>
             </div>
             {showDuplicateInput && (
-              <div className="flex gap-2 items-center pt-1 border-t border-border/50">
-                <input
-                  type="date"
-                  value={duplicateDate}
-                  onChange={e => setDuplicateDate(e.target.value)}
-                  className="flex-1 text-xs rounded border border-input bg-background px-2 py-1 focus:outline-none focus:ring-1 focus:ring-ring"
-                />
+              <div className="space-y-2 pt-2 border-t border-border/50">
+                <p className="text-[11px] text-muted-foreground font-medium">Copy to dates (up to 50)</p>
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    value={duplicateDateInput}
+                    onChange={e => setDuplicateDateInput(e.target.value)}
+                    className="flex-1 text-xs rounded border border-input bg-background px-2 py-1 focus:outline-none focus:ring-1 focus:ring-ring"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!duplicateDateInput || duplicateDates.includes(duplicateDateInput) || duplicateDates.length >= 50}
+                    onClick={() => { if (duplicateDateInput && !duplicateDates.includes(duplicateDateInput)) { setDuplicateDates(d => [...d, duplicateDateInput].sort()); setDuplicateDateInput(""); } }}
+                    className="shrink-0 px-2"
+                  >
+                    + Add
+                  </Button>
+                </div>
+                {duplicateDates.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {duplicateDates.map(d => (
+                      <span key={d} className="inline-flex items-center gap-1 text-[10px] bg-muted rounded px-1.5 py-0.5">
+                        {d}
+                        <button onClick={() => setDuplicateDates(ds => ds.filter(x => x !== d))} className="text-muted-foreground hover:text-destructive">×</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <Button
                   size="sm"
-                  disabled={!duplicateDate || duplicateEventMutation.isPending}
-                  onClick={() => duplicateEventMutation.mutate({ id: detailEvent.id, newDate: duplicateDate })}
-                  className="gap-1.5 shrink-0"
+                  className="w-full gap-1.5"
+                  disabled={duplicateDates.length === 0 || bulkDuplicateMutation.isPending}
+                  onClick={() => bulkDuplicateMutation.mutate({ id: detailEvent.id, dates: duplicateDates })}
                 >
-                  {duplicateEventMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Copy className="w-3.5 h-3.5" />}
-                  Copy
+                  {bulkDuplicateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Copy className="w-3.5 h-3.5" />}
+                  {bulkDuplicateMutation.isPending ? "Copying…" : `Copy to ${duplicateDates.length} date${duplicateDates.length === 1 ? "" : "s"}`}
                 </Button>
               </div>
             )}
