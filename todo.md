@@ -2319,13 +2319,22 @@
 - [x] Bulk-apply default times to existing timeless calendar events (button in calendar toolbar)
 
 ## Director Dropdown Menu
-- [ ] Add i18n keys for all 7 Director dropdown items (EN/ES/CA)
-- [ ] Build Director dropdown in NavBar (unlinked from Teacher, mirrors Teacher dropdown pattern)
-- [ ] Create stub page: School Overview (/director/overview)
-- [ ] Create stub page: Staff Activity (/director/staff)
-- [ ] Create stub page: Curriculum Compliance (/director/curriculum)
-- [ ] Wire AI Accountability link (/accountability) in Director dropdown
-- [ ] Create stub page: Student Progress (/director/progress)
-- [ ] Create stub page: Reports & Exports (/director/reports)
-- [ ] Create stub page: Settings & Permissions (/director/settings)
-- [ ] Register all Director routes in App.tsx
+- [x] Add i18n keys for all 7 Director dropdown items (EN/ES/CA)
+- [x] Build Director dropdown in NavBar (unlinked from Teacher, mirrors Teacher dropdown pattern)
+- [x] Create stub page: School Overview (/director/overview)
+- [x] Create stub page: Staff Activity (/director/staff)
+- [x] Create stub page: Curriculum Compliance (/director/curriculum)
+- [x] Wire AI Accountability link (/accountability) in Director dropdown
+- [x] Create stub page: Student Progress (/director/progress)
+- [x] Create stub page: Reports & Exports (/director/reports)
+- [x] Create stub page: Settings & Permissions (/director/settings)
+- [x] Register all Director routes in App.tsx
+
+## Director Follow-ups
+- [ ] Add tRPC directorStats procedure (active teachers, lesson plans, AI sessions, competency coverage, calendar events)
+- [ ] Add tRPC staffActivity procedure (per-teacher breakdown)
+- [ ] Add tRPC curriculumCompliance procedure (LOMLOE competency gap analysis)
+- [ ] Build live School Overview page with real stats
+- [ ] Build Curriculum Compliance view with LOMLOE heatmap/gap table
+- [ ] Add role-gating: restrict /director/* to admin role
+- [ ] Add frontend guard: redirect non-admins away from Director pages

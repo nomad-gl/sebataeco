@@ -1,9 +1,18 @@
 import DashboardLayout from "@/components/DashboardLayout";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { useLocation } from "wouter";
+import { useEffect } from "react";
 import { useI18n } from "@/contexts/I18nContext";
 import { Download, BarChart3 } from "lucide-react";
 
 export default function DirectorReports() {
   const { t } = useI18n();
+  const { user, loading: authLoading } = useAuth();
+  const [, navigate] = useLocation();
+  useEffect(() => { if (!authLoading && user && user.role !== "admin") navigate("/"); }, [authLoading, user, navigate]);
+  if (authLoading || (!user && !authLoading)) return null;
+  if (user?.role !== "admin") return null;
+
   return (
     <DashboardLayout>
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
