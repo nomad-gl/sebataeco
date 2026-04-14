@@ -2500,4 +2500,12 @@
 - [x] Add TA Forum link to Director dropdown items list
 - [x] Add nav_administration, nav_admin_errors, nav_ai_models i18n keys to EN/ES/CA
 - [x] Verify TypeScript 0 errors
+- [x] Save checkpoint
+
+
+## Session 12: Voice Nicknames (Clara / Nana)
+- [x] Find voice/speech recognition wake-word handling code
+- [x] Add "Clara" and "Nana" as accepted trigger names alongside "Aina"
+- [x] Ensure transcript normalisation strips the nickname before sending to LLM
+- [x] Verify TypeScript 0 errors
 - [ ] Save checkpoint

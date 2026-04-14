@@ -60,9 +60,16 @@ function toBCP47(lang: string | undefined): string {
 
 function containsWakeWord(transcript: string): boolean {
   const t = transcript.toLowerCase().trim();
-  if (/\b(aina|klara)\b/.test(t)) return true;
+  // Primary names: Aina, Clara, Nana
+  if (/\b(aina|clara|nana|klara)\b/.test(t)) return true;
+  // Phonetic near-misses for Aina
   if (/\b(ayna|anna|haina|ina|i na|ay na|ay-na)\b/.test(t)) return true;
-  if (/^(aina|ayna|anna|haina|klara)/.test(t)) return true;
+  // Phonetic near-misses for Clara
+  if (/\b(klara|claro|claro|klara|clarita|klar)\b/.test(t)) return true;
+  // Phonetic near-misses for Nana
+  if (/\b(nana|nanna|nena|nano)\b/.test(t)) return true;
+  // Prefix matches (catches start-of-sentence detections)
+  if (/^(aina|ayna|anna|haina|klara|clara|nana|nanna)/.test(t)) return true;
   return false;
 }
 

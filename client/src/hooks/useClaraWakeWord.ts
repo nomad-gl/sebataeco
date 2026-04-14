@@ -246,7 +246,7 @@ export function useAinaWakeWord({
         .join(" ")
         .toLowerCase();
 
-      if (/\b(aina|klara)\b/.test(transcript)) {
+      if (/\b(aina|clara|nana|klara|ayna|anna|haina|nanna|clarita|klar|nena)\b/.test(transcript)) {
         updateState("activating");
         try { rec.abort(); } catch { /* ignore */ }
         wakeRef.current = null;
