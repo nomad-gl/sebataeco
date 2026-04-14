@@ -2559,15 +2559,15 @@
 - [x] No additional changes needed — TTS voice restore was already fully implemented
 
 ## Session 16: Wake Word Pronunciation Recorder & Tester
-- [ ] Add "Test Pronunciation" panel to AdminWakeWords page
-- [ ] Record button: uses Web Speech API SpeechRecognition to listen in ca-ES and es-ES simultaneously
-- [ ] Show live transcript of what was heard during recording
-- [ ] After recording, run the containsWakeWord matcher against the transcript and show pass/fail result
-- [ ] Show which specific word/variant matched (if any)
-- [ ] Show the raw transcript so admin can decide whether to add it as a new phonetic variant
-- [ ] "Add as variant" quick-action button on the result — appends the heard transcript to the closest matching word's variants list
-- [ ] Add i18n keys for all new UI strings (EN/ES/CA)
-- [ ] Verify TypeScript 0 errors
+- [x] Add "Test Pronunciation" panel to AdminWakeWords page
+- [x] Record button: uses Web Speech API SpeechRecognition to listen in ca-ES and es-ES simultaneously
+- [x] Show live transcript of what was heard during recording
+- [x] After recording, run the containsWakeWord matcher against the transcript and show pass/fail result
+- [x] Show which specific word/variant matched (if any)
+- [x] Show the raw transcript so admin can decide whether to add it as a new phonetic variant
+- [x] "Add as variant" quick-action button on the result — appends the heard transcript to the closest matching word's variants list
+- [x] Add i18n keys for all new UI strings (EN/ES/CA)
+- [x] Verify TypeScript 0 errors
 - [ ] Save checkpoint
 
 ## Session 17: Lifelike TTS Voices (CA/ES)
