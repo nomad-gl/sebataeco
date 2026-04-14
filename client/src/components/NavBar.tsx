@@ -7,9 +7,11 @@ import {
   Presentation as PresentationIcon, Globe, Users, MessagesSquare, Bell, Download,
   CalendarDays, FileText, Settings as SettingsIcon, ShieldAlert, Lock, HelpCircle,
   BarChart3, UserCheck, BookCheck, GraduationCap, Sparkles,
+  ClipboardList, Banknote, UserCog, FolderOpen, Building2, Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { AdminPinGate, isAdminUnlocked } from "@/components/AdminPinGate";
 import { useI18n, Lang } from "@/contexts/I18nContext";
 import { DialectBadge } from "@/components/CatalanDialectDetector";
 import { usePwaInstall } from "@/hooks/usePwaInstall";
@@ -31,6 +33,9 @@ export default function NavBar() {
   const [hosOpen, setHosOpen]           = useState(false);
   const [situacioOpen, setSituacioOpen] = useState(false);
   const [adminOpen, setAdminOpen]       = useState(false);
+  const [pinOpen, setPinOpen]           = useState(false);
+  const [pinTarget, setPinTarget]       = useState<string | null>(null);
+  const [platformUnlocked, setPlatformUnlocked] = useState(() => isAdminUnlocked());
   const [langOpen, setLangOpen]         = useState(false);
   const [mobileOpen, setMobileOpen]     = useState(false);
   const [bellOpen, setBellOpen]         = useState(false);
@@ -69,17 +74,42 @@ export default function NavBar() {
   const isSituacioActive = situacioItems.some(
     (i) => location === i.href || (i.href !== "/" && location.startsWith(i.href))
   );
-  // Administration dropdown items (admin-only)
-  const adminItems = [
-    { href: "/admin",       label: t("nav_admin"),          icon: LayoutDashboard },
-    { href: "/admin/errors",label: t("nav_admin_errors"),  icon: ShieldAlert },
-    { href: "/audit",       label: t("nav_audit"),          icon: BarChart3 },
-    { href: "/ai-models",   label: t("nav_ai_models"),      icon: Sparkles },
-    { href: "/accountability", label: t("nav_accountability"), icon: Lock },
+  // Administration dropdown — school admin functions (top section)
+  const schoolAdminItems = [
+    { href: "/admin/enrolment",   label: t("nav_admin_enrolment"),   icon: ClipboardList },
+    { href: "/admin/finance",     label: t("nav_admin_finance"),     icon: Banknote },
+    { href: "/admin/staff",       label: t("nav_admin_staff"),       icon: UserCog },
+    { href: "/admin/documents",   label: t("nav_admin_documents"),   icon: FolderOpen },
+    { href: "/admin/governance",  label: t("nav_admin_governance"),  icon: Building2 },
+    { href: "/admin/facilities",  label: t("nav_admin_facilities"),  icon: Wrench },
   ];
-  const isAdminActive = adminItems.some(
+  // Platform management tools (bottom section — PIN-gated)
+  const platformItems = [
+    { href: "/admin",             label: t("nav_admin"),             icon: LayoutDashboard },
+    { href: "/admin/errors",      label: t("nav_admin_errors"),      icon: ShieldAlert },
+    { href: "/audit",             label: t("nav_audit"),             icon: BarChart3 },
+    { href: "/ai-models",         label: t("nav_ai_models"),         icon: Sparkles },
+    { href: "/accountability",    label: t("nav_accountability"),    icon: Lock },
+  ];
+  const allAdminItems = [...schoolAdminItems, ...platformItems];
+  const isAdminActive = allAdminItems.some(
     (i) => location === i.href || (i.href !== "/" && location.startsWith(i.href))
   );
+  // Handler: navigate to platform tool — prompt PIN if not yet unlocked
+  const handlePlatformClick = useCallback((href: string, e: React.MouseEvent) => {
+    if (!platformUnlocked) {
+      e.preventDefault();
+      setPinTarget(href);
+      setPinOpen(true);
+      setAdminOpen(false);
+    }
+  }, [platformUnlocked]);
+  const handlePinSuccess = useCallback(() => {
+    setPlatformUnlocked(true);
+    setPinOpen(false);
+    if (pinTarget) window.location.href = pinTarget;
+    setPinTarget(null);
+  }, [pinTarget]);
 
   const hosItems = [
     { href: "/head-of-study/progress",            label: t("hos_progress"),            icon: GraduationCap },
@@ -324,8 +354,12 @@ export default function NavBar() {
                 <ChevronDown className={cn("w-3 h-3 transition-transform hidden lg:inline", adminOpen && "rotate-180")} />
               </button>
               {adminOpen && (
-                <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-border rounded-xl shadow-lg py-1 z-50">
-                  {adminItems.map(({ href, label, icon: Icon }) => {
+                <div className="absolute right-0 top-full mt-1 w-64 bg-white border border-border rounded-xl shadow-lg py-1 z-50">
+                  {/* School administration section */}
+                  <p className="px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    {t("nav_admin_school_section")}
+                  </p>
+                  {schoolAdminItems.map(({ href, label, icon: Icon }) => {
                     const active = location === href || (href !== "/" && location.startsWith(href));
                     return (
                       <Link
@@ -339,6 +373,34 @@ export default function NavBar() {
                       >
                         <Icon className="w-4 h-4" />
                         {label}
+                      </Link>
+                    );
+                  })}
+                  {/* Divider */}
+                  <div className="my-1 border-t border-border" />
+                  {/* Platform tools section — PIN-gated */}
+                  <p className="px-4 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                    <Lock className="w-3 h-3" />
+                    {t("nav_admin_platform_section")}
+                    {!platformUnlocked && <span className="ml-auto text-[9px] bg-amber-100 text-amber-700 rounded px-1">PIN</span>}
+                    {platformUnlocked && <span className="ml-auto text-[9px] bg-green-100 text-green-700 rounded px-1">{t("nav_admin_unlocked")}</span>}
+                  </p>
+                  {platformItems.map(({ href, label, icon: Icon }) => {
+                    const active = location === href || (href !== "/" && location.startsWith(href));
+                    return (
+                      <Link
+                        key={href}
+                        href={href}
+                        onClick={(e) => { handlePlatformClick(href, e); if (platformUnlocked) setAdminOpen(false); }}
+                        className={cn(
+                          "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
+                          active ? "text-primary bg-primary/5" : "text-foreground hover:bg-secondary",
+                          !platformUnlocked && "opacity-60"
+                        )}
+                      >
+                        <Icon className="w-4 h-4" />
+                        {label}
+                        {!platformUnlocked && <Lock className="w-3 h-3 ml-auto text-muted-foreground" />}
                       </Link>
                     );
                   })}
@@ -736,10 +798,11 @@ export default function NavBar() {
             {/* Administration tools — admin only */}
             {user?.role === "admin" && (
             <div className="px-4 py-3">
+              {/* School admin section */}
               <p className={cn("text-xs font-semibold uppercase tracking-wider mb-2 px-1", isClassroomPage ? "text-white/50" : "text-muted-foreground")}>
-                {t("nav_administration")}
+                {t("nav_administration")} — {t("nav_admin_school_section")}
               </p>
-              {adminItems.map(({ href, label, icon: Icon }) => {
+              {schoolAdminItems.map(({ href, label, icon: Icon }) => {
                 const active = location === href || (href !== "/" && location.startsWith(href));
                 return (
                   <Link
@@ -757,6 +820,37 @@ export default function NavBar() {
                   >
                     <Icon className="w-5 h-5 flex-shrink-0" />
                     {label}
+                  </Link>
+                );
+              })}
+              {/* Divider + Platform tools */}
+              <div className="my-2 border-t border-border/40" />
+              <p className={cn("text-xs font-semibold uppercase tracking-wider mb-2 px-1 flex items-center gap-1", isClassroomPage ? "text-white/50" : "text-muted-foreground")}>
+                <Lock className="w-3 h-3" />
+                {t("nav_admin_platform_section")}
+                {!platformUnlocked && <span className="ml-auto text-[9px] bg-amber-100 text-amber-700 rounded px-1">PIN</span>}
+                {platformUnlocked && <span className="ml-auto text-[9px] bg-green-100 text-green-700 rounded px-1">{t("nav_admin_unlocked")}</span>}
+              </p>
+              {platformItems.map(({ href, label, icon: Icon }) => {
+                const active = location === href || (href !== "/" && location.startsWith(href));
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={(e) => { handlePlatformClick(href, e); if (platformUnlocked) setMobileOpen(false); }}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mb-1",
+                      active
+                        ? "bg-primary text-primary-foreground"
+                        : isClassroomPage
+                          ? "text-white/80 hover:text-white hover:bg-white/15"
+                          : "text-foreground hover:bg-secondary",
+                      !platformUnlocked && "opacity-60"
+                    )}
+                  >
+                    <Icon className="w-5 h-5 flex-shrink-0" />
+                    {label}
+                    {!platformUnlocked && <Lock className="w-4 h-4 ml-auto text-muted-foreground" />}
                   </Link>
                 );
               })}
@@ -933,6 +1027,12 @@ export default function NavBar() {
           </div>
         </div>
       )}
+      {/* PIN gate modal for platform tools */}
+      <AdminPinGate
+        open={pinOpen}
+        onSuccess={handlePinSuccess}
+        onCancel={() => { setPinOpen(false); setPinTarget(null); }}
+      />
     </>
   );
 }

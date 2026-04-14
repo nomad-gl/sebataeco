@@ -2508,4 +2508,22 @@
 - [x] Add "Clara" and "Nana" as accepted trigger names alongside "Aina"
 - [x] Ensure transcript normalisation strips the nickname before sending to LLM
 - [x] Verify TypeScript 0 errors
+- [x] Save checkpoint
+
+
+### Session 13: Administration Dropdown Rebuild + PIN Gate
+- [x] Build AdminPinGate component: 4-digit PIN entry dialog, session memory (unlocked for browser session), shake animation on wrong PIN
+- [x] Store PIN 2024 in AdminPinGate component (client-side session gate)
+- [x] Rebuild Administration dropdown with two sections separated by a divider:
+  - School admin section: Enrolment & Records, Budget & Finance, Staff Management, School Documents, Governing Bodies, Facilities & Inventory
+  - Platform tools section (PIN-gated): Admin Panel, Error Log, Audit Trail, AI Models, AI Accountability
+- [x] Platform tools section shows a lock icon and "Platform Tools" label; clicking any item triggers PIN dialog if not yet unlocked
+- [x] Once PIN is entered correctly, platform tools remain accessible for the rest of the browser session (sessionStorage flag)
+- [x] Add i18n keys for all new school-admin headings (EN/ES/CA)
+- [x] Update mobile nav Administration section to match
+- [x] Verify TypeScript 0 errors
 - [ ] Save checkpoint
+## Session 13b: Missing Column Warnings — Resolved
+- [x] Diagnosed: selfHeal.ts EXPECTED_TABLES referenced stale column names from an older schema design
+- [x] Fixed: Updated EXPECTED_TABLES to match actual live Drizzle schema (no DB migrations needed)
+- [x] Columns affected: teaching_materials, aina_user_profiles, question_answers, question_review_status
