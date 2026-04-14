@@ -7,6 +7,7 @@ import {
   classGroups,
   groupStudents,
   users,
+  assessmentEvents,
 } from "../../drizzle/schema";
 import { eq, and, gte, lte, inArray } from "drizzle-orm";
 
@@ -426,7 +427,7 @@ export const hosRouter = router({
       }
     }),
 
-  /**
+   /**
    * Delete a class group by id.
    */
   deleteGroup: protectedProcedure
@@ -438,4 +439,81 @@ export const hosRouter = router({
       return { success: true };
     }),
 
+  // ─── Assessment Calendar ──────────────────────────────────────────────────────
+
+  /**
+   * Get all assessment events for a given academic year.
+   */
+  getAssessmentEvents: protectedProcedure
+    .input(z.object({ academicYear: z.string().default("2025-26") }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return [];
+      return db
+        .select()
+        .from(assessmentEvents)
+        .where(eq(assessmentEvents.academicYear, input.academicYear))
+        .orderBy(assessmentEvents.startDate);
+    }),
+
+  /**
+   * Create or update an assessment event.
+   * If id is provided, update; otherwise insert.
+   */
+  upsertAssessmentEvent: protectedProcedure
+    .input(z.object({
+      id: z.number().optional(),
+      title: z.string().min(1).max(256),
+      eventType: z.enum(["exam", "evaluation", "deadline", "meeting", "other"]),
+      yearGroup: z.string().optional(),
+      subject: z.string().optional(),
+      startDate: z.string(),
+      endDate: z.string(),
+      notes: z.string().optional(),
+      academicYear: z.string().default("2025-26"),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      if (input.id) {
+        await db.update(assessmentEvents)
+          .set({
+            title: input.title,
+            eventType: input.eventType,
+            yearGroup: input.yearGroup ?? null,
+            subject: input.subject ?? null,
+            startDate: input.startDate,
+            endDate: input.endDate,
+            notes: input.notes ?? null,
+            academicYear: input.academicYear,
+          })
+          .where(eq(assessmentEvents.id, input.id));
+        return { id: input.id };
+      } else {
+        const [result] = await db.insert(assessmentEvents).values({
+          title: input.title,
+          eventType: input.eventType,
+          yearGroup: input.yearGroup ?? null,
+          subject: input.subject ?? null,
+          startDate: input.startDate,
+          endDate: input.endDate,
+          notes: input.notes ?? null,
+          createdBy: ctx.user.id,
+          academicYear: input.academicYear,
+        });
+        return { id: (result as unknown as { insertId: number }).insertId };
+      }
+    }),
+
+  /**
+   * Delete an assessment event by id.
+   */
+  deleteAssessmentEvent: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      await db.delete(assessmentEvents).where(eq(assessmentEvents.id, input.id));
+      return { success: true };
+    }),
 });

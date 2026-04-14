@@ -57,6 +57,7 @@ import HosCurriculum from "./pages/hos/HosCurriculum";
 import HosReports from "./pages/hos/HosReports";
 import HosSettings from "./pages/hos/HosSettings";
 import SituacioGenerator from "./pages/SituacioGenerator";
+import MySituacions from "./pages/MySituacions";
 
 function Router() {
   return (
@@ -106,6 +107,7 @@ function Router() {
         <Route path="/head-of-study/reports" component={HosReports} />
         <Route path="/head-of-study/settings" component={HosSettings} />
         <Route path="/situacio" component={SituacioGenerator} />
+        <Route path="/my-situacions" component={MySituacions} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

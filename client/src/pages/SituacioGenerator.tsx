@@ -3,12 +3,11 @@ import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
 import NavBar from "@/components/NavBar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, Copy, Check, BookOpen, Target, ClipboardList, Zap, BookMarked } from "lucide-react";
+import { Loader2, Sparkles, Copy, Check, BookOpen, Target, ClipboardList, Zap, BookMarked, Save, Download } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +36,7 @@ type SituacioResult = {
 
 export default function SituacioGenerator() {
   const { t, lang } = useI18n();
+  const utils = trpc.useUtils();
 
   const [topic, setTopic] = useState("");
   const [yearGroup, setYearGroup] = useState<"junior" | "primary" | "secondary">("secondary");
@@ -44,14 +44,23 @@ export default function SituacioGenerator() {
   const [selectedComps, setSelectedComps] = useState<CompetencyCode[]>([]);
   const [result, setResult] = useState<SituacioResult | null>(null);
   const [copied, setCopied] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const generateMutation = trpc.lomloe.generateSituacio.useMutation({
     onSuccess: (data) => {
       setResult(data as SituacioResult);
+      setSaved(false);
     },
-    onError: () => {
-      toast.error(t("situacio_error"));
+    onError: () => toast.error(t("situacio_error")),
+  });
+
+  const saveMutation = trpc.lomloe.saveSituacio.useMutation({
+    onSuccess: () => {
+      setSaved(true);
+      utils.lomloe.getMySituacions.invalidate();
+      toast.success(t("my_situacions_saved"));
     },
+    onError: () => toast.error(t("my_situacions_save_error")),
   });
 
   function toggleComp(code: CompetencyCode) {
@@ -73,9 +82,9 @@ export default function SituacioGenerator() {
     });
   }
 
-  function handleCopy() {
-    if (!result) return;
-    const text = [
+  function buildMarkdown(): string {
+    if (!result) return "";
+    return [
       `# ${result.title}`,
       `\n## ${t("situacio_context_label")}\n${result.context}`,
       `\n## ${t("situacio_task_label")}\n${result.task}`,
@@ -87,11 +96,79 @@ export default function SituacioGenerator() {
       ...result.activities.map((a) => `**${a.phase}:** ${a.description}`),
       `\n*${result.lomloeRef}*`,
     ].join("\n");
-    navigator.clipboard.writeText(text).then(() => {
+  }
+
+  function handleCopy() {
+    navigator.clipboard.writeText(buildMarkdown()).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
       toast.success(t("situacio_copied"));
     });
+  }
+
+  function handleSave() {
+    if (!result) return;
+    saveMutation.mutate({
+      title: result.title,
+      topic,
+      subject,
+      yearGroup,
+      competencies: selectedComps,
+      resultJson: JSON.stringify(result),
+    });
+  }
+
+  function handleDownloadPdf() {
+    if (!result) return;
+    const markdown = buildMarkdown();
+    // Build a simple printable HTML page and trigger browser print
+    const html = `<!DOCTYPE html>
+<html lang="${lang}">
+<head>
+<meta charset="UTF-8">
+<title>${result.title}</title>
+<style>
+  body { font-family: Georgia, serif; max-width: 720px; margin: 40px auto; padding: 0 20px; color: #1a1a1a; line-height: 1.6; }
+  h1 { font-size: 1.6rem; border-bottom: 2px solid #4f46e5; padding-bottom: 8px; color: #312e81; }
+  h2 { font-size: 1.1rem; color: #4f46e5; margin-top: 1.5rem; }
+  .badge { display: inline-block; background: #e0e7ff; color: #3730a3; border-radius: 9999px; padding: 2px 10px; font-size: 0.75rem; font-weight: 700; margin-right: 6px; }
+  .ref { color: #6b7280; font-style: italic; font-size: 0.85rem; margin-top: 1.5rem; }
+  ol, ul { padding-left: 1.5rem; }
+  li { margin-bottom: 4px; }
+  .activity { margin-bottom: 12px; }
+  .activity-phase { font-weight: 700; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.05em; color: #6d28d9; }
+  @media print { body { margin: 20px; } }
+</style>
+</head>
+<body>
+<h1>${result.title}</h1>
+<h2>${t("situacio_context_label")}</h2>
+<p>${result.context}</p>
+<h2>${t("situacio_task_label")}</h2>
+<p>${result.task}</p>
+<h2>${t("situacio_competencies_label")}</h2>
+<ul>
+${result.competencies.map(c => `<li><span class="badge">${c.code}</span> ${c.description}</li>`).join("\n")}
+</ul>
+<h2>${t("situacio_activities_label")}</h2>
+${result.activities.map(a => `<div class="activity"><p class="activity-phase">${a.phase}</p><p>${a.description}</p></div>`).join("\n")}
+<h2>${t("situacio_criteria_label")}</h2>
+<ol>
+${result.criteria.map(c => `<li>${c}</li>`).join("\n")}
+</ol>
+<p class="ref">${result.lomloeRef}</p>
+</body>
+</html>`;
+
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, "_blank");
+    if (win) {
+      win.onload = () => {
+        win.print();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      };
+    }
   }
 
   return (
@@ -214,22 +291,43 @@ export default function SituacioGenerator() {
 
             {result && !generateMutation.isPending && (
               <>
-                {/* Title + copy */}
-                <div className="flex items-start justify-between gap-3">
+                {/* Title + action buttons */}
+                <div className="flex items-start justify-between gap-3 flex-wrap">
                   <div>
                     <p className="text-xs text-white/50 uppercase tracking-wide mb-1">{t("situacio_result_title")}</p>
                     <h2 className="text-xl font-bold text-white">{result.title}</h2>
                     <p className="text-xs text-white/40 mt-1 italic">{result.lomloeRef}</p>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCopy}
-                    className="bg-white/10 border-white/20 text-white hover:bg-white/20 gap-1.5 flex-shrink-0"
-                  >
-                    {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    {copied ? t("situacio_copied") : t("situacio_copy")}
-                  </Button>
+                  <div className="flex gap-2 flex-wrap">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCopy}
+                      className="bg-white/10 border-white/20 text-white hover:bg-white/20 gap-1.5"
+                    >
+                      {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copied ? t("situacio_copied") : t("situacio_copy")}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSave}
+                      disabled={saveMutation.isPending || saved}
+                      className="bg-white/10 border-white/20 text-white hover:bg-white/20 gap-1.5"
+                    >
+                      {saveMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                      {saved ? "Saved" : t("sa_save")}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleDownloadPdf}
+                      className="bg-white/10 border-white/20 text-white hover:bg-white/20 gap-1.5"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      {t("sa_download_pdf")}
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Context */}

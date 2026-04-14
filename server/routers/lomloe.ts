@@ -14,7 +14,7 @@ import { invokeLLM } from "../_core/llm";
 import { ainaTranslateBatch } from "../ainaTranslation";
 import { getAinaProfile, upsertAinaProfile, rateMessage, getUserRatings, saveQuestionAnswer, getQuestionAnalytics, getPendingQuestions, reviewQuestion } from "../db";
 import { getDb } from "../db";
-import { generatedQuestions, questionTranslations } from "../../drizzle/schema";
+import { generatedQuestions, questionTranslations, savedSituacions } from "../../drizzle/schema";
 import { eq, and, inArray } from "drizzle-orm";
 
 const CompetencyCodeSchema = z.enum(["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"]);
@@ -1172,5 +1172,63 @@ Return ONLY a valid JSON object (no markdown, no code fences) with exactly these
           message: "Failed to parse LLM response as JSON",
         });
       }
+    }),
+
+  // ─── My Situacions Library ─────────────────────────────────────────────────────────────────
+
+  /**
+   * Save a generated Situació to the user's personal library.
+   */
+  saveSituacio: protectedProcedure
+    .input(z.object({
+      title: z.string().min(1).max(256),
+      topic: z.string().min(1).max(256),
+      subject: z.string().min(1).max(128),
+      yearGroup: z.string().min(1).max(32),
+      competencies: z.array(z.string()).min(1),
+      resultJson: z.string().min(1),
+      language: z.string().default("ca"),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const [result] = await db.insert(savedSituacions).values({
+        userId: ctx.user.id,
+        title: input.title,
+        topic: input.topic,
+        subject: input.subject,
+        yearGroup: input.yearGroup,
+        competencies: input.competencies.join(","),
+        resultJson: input.resultJson,
+        language: input.language,
+      });
+      return { id: (result as unknown as { insertId: number }).insertId };
+    }),
+
+  /**
+   * Get all saved Situacions for the current user.
+   */
+  getMySituacions: protectedProcedure
+    .query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      return db
+        .select()
+        .from(savedSituacions)
+        .where(eq(savedSituacions.userId, ctx.user.id))
+        .orderBy(savedSituacions.createdAt);
+    }),
+
+  /**
+   * Delete a saved Situació (only the owner can delete).
+   */
+  deleteSituacio: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      await db.delete(savedSituacions)
+        .where(and(eq(savedSituacions.id, input.id), eq(savedSituacions.userId, ctx.user.id)));
+      return { success: true };
     }),
 });

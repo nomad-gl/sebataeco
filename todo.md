@@ -2403,3 +2403,19 @@
 - [x] Add i18n keys for Class Groups, Situació, and role promotion (EN/ES/CA)
 - [x] Verify TypeScript 0 errors
 - [x] Update todo.md and save checkpoint
+
+## Session 6: Assessment Calendar + SA PDF Export + My Situacions Library
+
+- [x] Add assessment_events table to drizzle/schema.ts (id, title, eventType, yearGroup, date, endDate, notes, createdBy)
+- [x] Add saved_situacions table to drizzle/schema.ts (id, userId, title, topic, subject, yearGroup, competencies, result JSON, createdAt)
+- [x] Write and apply migration SQL for both new tables
+- [x] Add tRPC procedures: hos.getAssessmentEvents, hos.upsertAssessmentEvent, hos.deleteAssessmentEvent
+- [x] Add tRPC procedures: lomloe.saveSituacio, lomloe.getMySituacions, lomloe.deleteSituacio
+- [x] Build /head-of-study/assessment-calendar page — term-based calendar with event CRUD (exam, evaluation, deadline, other)
+- [x] Add PDF export button to /situacio page — formats full SA as printable A4 PDF
+- [x] Build /my-situacions page — library of saved SAs with open/delete/copy actions
+- [x] Add "Save" button to SA Generator results panel
+- [x] Add "My Situacions" link to NavBar SA Generator area or Teacher dropdown
+- [x] Add i18n keys for Assessment Calendar, SA PDF export, and My Situacions (EN/ES/CA)
+- [x] Verify TypeScript 0 errors
+- [x] Update todo.md and save checkpoint

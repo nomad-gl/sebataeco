@@ -1043,3 +1043,50 @@ export const attendanceRecords = mysqlTable("attendance_records", {
 export type AttendanceRecord = typeof attendanceRecords.$inferSelect;
 export type InsertAttendanceRecord = typeof attendanceRecords.$inferInsert;
 
+
+/**
+ * Assessment events — HOS term-based calendar of exams, evaluations, and deadlines.
+ */
+export const assessmentEvents = mysqlTable("assessment_events", {
+  id: int("id").autoincrement().primaryKey(),
+  title: varchar("title", { length: 256 }).notNull(),
+  eventType: mysqlEnum("eventType", ["exam", "evaluation", "deadline", "meeting", "other"]).notNull().default("exam"),
+  /** Optional year group filter — null means school-wide */
+  yearGroup: varchar("yearGroup", { length: 64 }),
+  /** Optional subject */
+  subject: varchar("subject", { length: 128 }),
+  /** Start date (YYYY-MM-DD) */
+  startDate: varchar("startDate", { length: 16 }).notNull(),
+  /** End date (YYYY-MM-DD) — same as startDate for single-day events */
+  endDate: varchar("endDate", { length: 16 }).notNull(),
+  notes: text("notes"),
+  /** FK to users.id — who created the event */
+  createdBy: int("createdBy"),
+  academicYear: varchar("academicYear", { length: 16 }).notNull().default("2025-26"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type AssessmentEvent = typeof assessmentEvents.$inferSelect;
+export type InsertAssessmentEvent = typeof assessmentEvents.$inferInsert;
+
+/**
+ * Saved Situacions d'Aprenentatge — teacher personal library.
+ */
+export const savedSituacions = mysqlTable("saved_situacions", {
+  id: int("id").autoincrement().primaryKey(),
+  /** FK to users.id */
+  userId: int("userId").notNull(),
+  title: varchar("title", { length: 256 }).notNull(),
+  topic: varchar("topic", { length: 256 }).notNull(),
+  subject: varchar("subject", { length: 128 }).notNull(),
+  yearGroup: varchar("yearGroup", { length: 32 }).notNull(),
+  /** Comma-separated competency codes e.g. "CCL,STEM,CD" */
+  competencies: varchar("competencies", { length: 128 }).notNull(),
+  /** Full JSON result blob */
+  resultJson: text("resultJson").notNull(),
+  language: varchar("language", { length: 8 }).notNull().default("ca"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type SavedSituacio = typeof savedSituacions.$inferSelect;
+export type InsertSavedSituacio = typeof savedSituacions.$inferInsert;

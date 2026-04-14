@@ -54,8 +54,9 @@ export default function NavBar() {
 
   // Items before Teacher dropdown (Home removed — logo already links to /)
   const mainNavItemsBefore = [
-    { href: "/chat",      label: t("nav_chat"),     icon: MessageCircle },
-    { href: "/situacio", label: t("nav_situacio"),  icon: Sparkles },
+    { href: "/chat",           label: t("nav_chat"),           icon: MessageCircle },
+    { href: "/situacio",      label: t("nav_situacio"),       icon: Sparkles },
+    { href: "/my-situacions", label: t("nav_my_situacions"),  icon: Library },
   ];
   // Items after Teacher dropdown (TA Forum only — Director is now a dropdown)
   const mainNavItemsAfter = [
