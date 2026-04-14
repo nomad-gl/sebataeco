@@ -1055,4 +1055,122 @@ Structure your responses clearly. Use these patterns depending on the question t
       }).catch(() => {});
       return result;
     }),
+
+  /**
+   * Generate a structured Situació d'Aprenentatge (SA) aligned to LOMLOE.
+   * Returns a JSON object with context, task, competencies, criteria, and activities.
+   */
+  generateSituacio: protectedProcedure
+    .input(
+      z.object({
+        topic: z.string().min(3).max(300),
+        yearGroup: YearGroupSchema,
+        subject: z.string().min(2).max(128),
+        competencies: z.array(CompetencyCodeSchema).min(1).max(8),
+        language: z.enum(["ca", "es", "en"]).default("ca"),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const compList = input.competencies.join(", ");
+      const langInstruction =
+        input.language === "ca"
+          ? "Respond entirely in Catalan (català)."
+          : input.language === "es"
+          ? "Respond entirely in Spanish (castellano)."
+          : "Respond entirely in English.";
+
+      const response = await invokeLLM({
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert Catalan secondary school curriculum designer with deep knowledge of Spain's LOMLOE education law (RD 217/2022) and the Catalan curriculum framework (Decret 175/2022). You specialise in designing Situacions d'Aprenentatge (SA) — project-based learning units that integrate multiple LOMLOE key competencies through authentic, meaningful tasks. ${langInstruction}`,
+          },
+          {
+            role: "user",
+            content: `Design a complete Situació d'Aprenentatge for the following parameters:
+
+- Topic/Context: ${input.topic}
+- Year Group: ${input.yearGroup}
+- Subject: ${input.subject}
+- Target LOMLOE Competencies: ${compList}
+
+Return ONLY a valid JSON object (no markdown, no code fences) with exactly these fields:
+{
+  "title": "Short evocative title for the SA",
+  "context": "2-3 sentences situating the SA in a real-world or local Catalan context, explaining why it is relevant to students",
+  "task": "1-2 sentences describing the central challenge or product students will create",
+  "competencies": [
+    { "code": "CCL", "description": "How this competency is developed in this SA" }
+  ],
+  "criteria": [
+    "Specific, observable assessment criterion 1",
+    "Specific, observable assessment criterion 2",
+    "Specific, observable assessment criterion 3"
+  ],
+  "activities": [
+    { "phase": "Activació", "description": "Brief description of the activation activity" },
+    { "phase": "Exploració", "description": "Brief description of the exploration activity" },
+    { "phase": "Aplicació", "description": "Brief description of the application activity" },
+    { "phase": "Avaluació", "description": "Brief description of the evaluation activity" }
+  ],
+  "lomloeRef": "Relevant LOMLOE article reference, e.g. RD 217/2022, Art. 12"
+}`,
+          },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "situacio_aprenentatge",
+            strict: true,
+            schema: {
+              type: "object",
+              properties: {
+                title: { type: "string" },
+                context: { type: "string" },
+                task: { type: "string" },
+                competencies: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      code: { type: "string" },
+                      description: { type: "string" },
+                    },
+                    required: ["code", "description"],
+                    additionalProperties: false,
+                  },
+                },
+                criteria: { type: "array", items: { type: "string" } },
+                activities: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      phase: { type: "string" },
+                      description: { type: "string" },
+                    },
+                    required: ["phase", "description"],
+                    additionalProperties: false,
+                  },
+                },
+                lomloeRef: { type: "string" },
+              },
+              required: ["title", "context", "task", "competencies", "criteria", "activities", "lomloeRef"],
+              additionalProperties: false,
+            },
+          },
+        },
+      });
+
+      const rawContent = response.choices[0]?.message?.content ?? "{}";
+      const raw = typeof rawContent === "string" ? rawContent : JSON.stringify(rawContent);
+      try {
+        return JSON.parse(raw);
+      } catch {
+        throw new (await import("@trpc/server")).TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to parse LLM response as JSON",
+        });
+      }
+    }),
 });

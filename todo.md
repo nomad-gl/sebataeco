@@ -2389,3 +2389,17 @@
 - [x] Improve Aina system prompt — richer LOMLOE context, structured answers, competency tagging
 - [x] Add i18n keys for Timetable and Attendance pages (EN/ES/CA)
 - [x] Update todo.md and save checkpoint
+
+## Session 5: Class Groups + Situació de Aprenentatge + Role Promotion UI
+
+- [x] Add class_groups table to drizzle/schema.ts (id, name, yearGroup, formTutorId, studentCount, notes)
+- [x] Write and apply migration SQL for class_groups table
+- [x] Add tRPC procedures: hos.getGroups, hos.upsertGroup, hos.deleteGroup
+- [x] Build /head-of-study/groups page — editable table with form tutor, year, student count, add/edit/delete
+- [x] Add generateSituacio tRPC procedure to lomloe router (structured LLM output: context, task, competencies, criteria)
+- [x] Build /situacio page — standalone Situació de Aprenentatge generator with topic/year/competency inputs and structured output
+- [x] Add SA Generator link to NavBar (between Aina and Teacher)
+- [x] Add role promotion UI to DirectorSettings — list all users, promote/demote to head_of_study
+- [x] Add i18n keys for Class Groups, Situació, and role promotion (EN/ES/CA)
+- [x] Verify TypeScript 0 errors
+- [x] Update todo.md and save checkpoint

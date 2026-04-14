@@ -6,7 +6,7 @@ import {
   Library, TrendingUp, ChevronDown, Menu, X, Zap,
   Presentation as PresentationIcon, Globe, Users, MessagesSquare, Bell, Download,
   CalendarDays, FileText, Settings as SettingsIcon, ShieldAlert, Lock, HelpCircle,
-  BarChart3, UserCheck, BookCheck, GraduationCap,
+  BarChart3, UserCheck, BookCheck, GraduationCap, Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
@@ -55,6 +55,7 @@ export default function NavBar() {
   // Items before Teacher dropdown (Home removed — logo already links to /)
   const mainNavItemsBefore = [
     { href: "/chat",      label: t("nav_chat"),     icon: MessageCircle },
+    { href: "/situacio", label: t("nav_situacio"),  icon: Sparkles },
   ];
   // Items after Teacher dropdown (TA Forum only — Director is now a dropdown)
   const mainNavItemsAfter = [

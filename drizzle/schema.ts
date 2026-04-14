@@ -111,6 +111,17 @@ export const classGroups = mysqlTable("class_groups", {
   className: varchar("className", { length: 128 }).notNull(),
   level: varchar("level", { length: 64 }).notNull(),
   assessmentTitle: varchar("assessmentTitle", { length: 255 }).notNull(),
+  /** HOS fields — added in migration 0033 */
+  /** Year group: junior | primary | secondary */
+  yearGroup: mysqlEnum("yearGroup", ["junior", "primary", "secondary"]).default("secondary"),
+  /** Academic year e.g. "2025-26" */
+  academicYear: varchar("academicYear", { length: 16 }).default("2025-26"),
+  /** FK to users.id — form tutor */
+  formTutorId: int("formTutorId"),
+  /** Approximate student count */
+  studentCount: int("studentCount").default(0),
+  /** Optional notes */
+  notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -1031,3 +1042,4 @@ export const attendanceRecords = mysqlTable("attendance_records", {
 
 export type AttendanceRecord = typeof attendanceRecords.$inferSelect;
 export type InsertAttendanceRecord = typeof attendanceRecords.$inferInsert;
+

@@ -339,4 +339,103 @@ export const hosRouter = router({
 
       return { success: true };
     }),
+
+  // ─── Class Groups ─────────────────────────────────────────────────────────────
+
+  /**
+   * List all class groups for a given academic year, enriched with form tutor name.
+   */
+  getGroups: protectedProcedure
+    .input(z.object({ academicYear: z.string().default("2025-26") }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return [];
+
+      const groups = await db
+        .select()
+        .from(classGroups)
+        .where(eq(classGroups.academicYear, input.academicYear));
+
+      // Enrich with form tutor names
+      const tutorIds = Array.from(
+        new Set(groups.map((g) => g.formTutorId).filter((x): x is number => x != null))
+      );
+      const tutorMap: Record<number, string> = {};
+      if (tutorIds.length > 0) {
+        const tutors = await db
+          .select({ id: users.id, name: users.name })
+          .from(users)
+          .where(inArray(users.id, tutorIds));
+        tutors.forEach((t) => { if (t.name) tutorMap[t.id] = t.name; });
+      }
+
+      return groups.map((g) => ({
+        ...g,
+        formTutorName: g.formTutorId ? (tutorMap[g.formTutorId] ?? null) : null,
+      }));
+    }),
+
+  /**
+   * Create or update a class group (upsert by id).
+   * Pass id=0 or omit to create; pass existing id to update.
+   */
+  upsertGroup: protectedProcedure
+    .input(
+      z.object({
+        id: z.number().optional(),
+        className: z.string().min(1).max(128),
+        yearGroup: z.enum(["junior", "primary", "secondary"]).default("secondary"),
+        academicYear: z.string().default("2025-26"),
+        formTutorId: z.number().nullable().optional(),
+        studentCount: z.number().min(0).max(999).default(0),
+        notes: z.string().max(1000).nullable().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+
+      if (input.id && input.id > 0) {
+        // Update
+        await db
+          .update(classGroups)
+          .set({
+            className: input.className,
+            yearGroup: input.yearGroup,
+            academicYear: input.academicYear,
+            formTutorId: input.formTutorId ?? null,
+            studentCount: input.studentCount,
+            notes: input.notes ?? null,
+          })
+          .where(eq(classGroups.id, input.id));
+        return { id: input.id };
+      } else {
+        // Insert — userId is required by the existing schema; use 0 as placeholder for HOS-created groups
+        const [result] = await db.insert(classGroups).values({
+          userId: 0,
+          className: input.className,
+          level: input.yearGroup,
+          assessmentTitle: "",
+          yearGroup: input.yearGroup,
+          academicYear: input.academicYear,
+          formTutorId: input.formTutorId ?? null,
+          studentCount: input.studentCount,
+          notes: input.notes ?? null,
+        });
+        return { id: (result as unknown as { insertId: number }).insertId };
+      }
+    }),
+
+  /**
+   * Delete a class group by id.
+   */
+  deleteGroup: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      await db.delete(classGroups).where(eq(classGroups.id, input.id));
+      return { success: true };
+    }),
+
 });

@@ -33,16 +33,16 @@ export default function DirectorSettings() {
     onError: () => toast.error(t("dir_settings_save_error")),
   });
 
-  const [pendingRoles, setPendingRoles] = useState<Record<string, "user" | "admin">>({});
+  const [pendingRoles, setPendingRoles] = useState<Record<string, "user" | "admin" | "head_of_study">>({}); 
 
-  function handleRoleChange(userId: string, newRole: "user" | "admin") {
+  function handleRoleChange(userId: string, newRole: "user" | "admin" | "head_of_study") {
     setPendingRoles(prev => ({ ...prev, [userId]: newRole }));
   }
 
   function saveRole(userId: string) {
     const role = pendingRoles[userId];
     if (!role) return;
-    updateRoleMutation.mutate({ userId, role });
+    updateRoleMutation.mutate({ userId, role: role as "user" | "admin" });
     setPendingRoles(prev => { const n = { ...prev }; delete n[userId]; return n; });
   }
 
@@ -90,19 +90,20 @@ export default function DirectorSettings() {
                   </thead>
                   <tbody>
                     {users.map(u => {
-                      const currentRole = (pendingRoles[String(u.id)] ?? u.role ?? "user") as "user" | "admin";
+                      const currentRole = (pendingRoles[String(u.id)] ?? u.role ?? "user") as "user" | "admin" | "head_of_study";
                       const isDirty = pendingRoles[String(u.id)] !== undefined;
                       return (
                         <tr key={u.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                           <td className="py-2.5 pr-4 font-medium">{u.name ?? t("dir_unknown_teacher")}</td>
                           <td className="py-2.5 pr-4 text-muted-foreground text-xs">{u.email ?? "—"}</td>
                           <td className="py-2.5 pr-4">
-                            <Select value={currentRole} onValueChange={(v) => handleRoleChange(String(u.id), v as "user" | "admin")}>
-                              <SelectTrigger className="h-7 w-28 text-xs">
+                            <Select value={currentRole} onValueChange={(v) => handleRoleChange(String(u.id), v as "user" | "admin" | "head_of_study")}>
+                              <SelectTrigger className="h-7 w-36 text-xs">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="user">{t("dir_settings_role_teacher")}</SelectItem>
+                                <SelectItem value="head_of_study">{t("dir_settings_role_hos")}</SelectItem>
                                 <SelectItem value="admin">{t("dir_settings_role_admin")}</SelectItem>
                               </SelectContent>
                             </Select>
