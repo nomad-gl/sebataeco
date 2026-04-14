@@ -2487,4 +2487,17 @@
 - [x] HosOrAdminRoute: show toast notification when a Teacher (user role) tries to access /situacio or /my-situacions
 - [x] Add i18n key situacio_no_permission to EN/ES/CA
 - [x] Verify TypeScript 0 errors
+- [x] Save checkpoint
+
+## Session 11: NavBar Restructure
+- [x] Move TA Forum (/forum) from mainNavItemsAfter into the Teacher dropdown items list
+- [x] Remove mainNavItemsAfter array (now empty) and its desktop/mobile render blocks
+- [x] Create new Administration dropdown in NavBar (left of Head of Study) containing: Admin (/admin), Admin Errors (/admin/errors), Audit (/audit), AI Models (/ai-models), Accountability (/accountability)
+- [x] Add administrationRef, administrationOpen state, and outside-click handler for Administration dropdown
+- [x] Add isAdministrationActive computed value
+- [x] Add Administration dropdown to mobile nav menu
+- [x] Add TA Forum link to Head of Study dropdown items list
+- [x] Add TA Forum link to Director dropdown items list
+- [x] Add nav_administration, nav_admin_errors, nav_ai_models i18n keys to EN/ES/CA
+- [x] Verify TypeScript 0 errors
 - [ ] Save checkpoint

@@ -30,6 +30,7 @@ export default function NavBar() {
   const [directorOpen, setDirectorOpen] = useState(false);
   const [hosOpen, setHosOpen]           = useState(false);
   const [situacioOpen, setSituacioOpen] = useState(false);
+  const [adminOpen, setAdminOpen]       = useState(false);
   const [langOpen, setLangOpen]         = useState(false);
   const [mobileOpen, setMobileOpen]     = useState(false);
   const [bellOpen, setBellOpen]         = useState(false);
@@ -37,6 +38,7 @@ export default function NavBar() {
   const directorRef = useRef<HTMLDivElement>(null);
   const hosRef      = useRef<HTMLDivElement>(null);
   const situacioRef = useRef<HTMLDivElement>(null);
+  const adminRef    = useRef<HTMLDivElement>(null);
   const langRef     = useRef<HTMLDivElement>(null);
   const bellRef     = useRef<HTMLDivElement>(null);
 
@@ -67,10 +69,17 @@ export default function NavBar() {
   const isSituacioActive = situacioItems.some(
     (i) => location === i.href || (i.href !== "/" && location.startsWith(i.href))
   );
-  // Items after Teacher dropdown (TA Forum only — Director is now a dropdown)
-  const mainNavItemsAfter = [
-    { href: "/forum",     label: t("nav_forum"),    icon: MessagesSquare },
+  // Administration dropdown items (admin-only)
+  const adminItems = [
+    { href: "/admin",       label: t("nav_admin"),          icon: LayoutDashboard },
+    { href: "/admin/errors",label: t("nav_admin_errors"),  icon: ShieldAlert },
+    { href: "/audit",       label: t("nav_audit"),          icon: BarChart3 },
+    { href: "/ai-models",   label: t("nav_ai_models"),      icon: Sparkles },
+    { href: "/accountability", label: t("nav_accountability"), icon: Lock },
   ];
+  const isAdminActive = adminItems.some(
+    (i) => location === i.href || (i.href !== "/" && location.startsWith(i.href))
+  );
 
   const hosItems = [
     { href: "/head-of-study/progress",            label: t("hos_progress"),            icon: GraduationCap },
@@ -109,11 +118,10 @@ export default function NavBar() {
     { href: "/groups",        label: t("nav_groups"),        icon: Users },
     { href: "/questions",     label: t("nav_questions"),     icon: BookOpen },
     { href: "/progress",      label: t("nav_group_progress"), icon: TrendingUp },
-    { href: "/admin",         label: t("nav_admin"),         icon: LayoutDashboard },
+    { href: "/forum",         label: t("nav_forum"),         icon: MessagesSquare },
     { href: "/school-calendar", label: t("nav_school_calendar"), icon: CalendarDays },
     { href: "/lesson-planner",  label: t("nav_lesson_planner"),  icon: FileText },
     { href: "/help",             label: t("nav_help"),            icon: HelpCircle },
-    { href: "/accountability",   label: t("nav_accountability"),  icon: ShieldAlert },
     { href: "/privacy",           label: t("nav_privacy"),          icon: Lock },
   ];
 
@@ -130,13 +138,14 @@ export default function NavBar() {
       if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false);
       if (bellRef.current && !bellRef.current.contains(e.target as Node)) setBellOpen(false);
       if (situacioRef.current && !situacioRef.current.contains(e.target as Node)) setSituacioOpen(false);
+      if (adminRef.current && !adminRef.current.contains(e.target as Node)) setAdminOpen(false);
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
   // Close mobile menu on route change
-  useEffect(() => { setMobileOpen(false); setDropOpen(false); setDirectorOpen(false); setHosOpen(false); setSituacioOpen(false); setLangOpen(false); }, [location]);
+  useEffect(() => { setMobileOpen(false); setDropOpen(false); setDirectorOpen(false); setHosOpen(false); setSituacioOpen(false); setAdminOpen(false); setLangOpen(false); }, [location]);
 
   // Note: body scroll lock removed — the mobile nav panel itself scrolls instead
   // (overflow-y-auto on the nav element handles long menus on small screens)
@@ -294,28 +303,49 @@ export default function NavBar() {
               )}
             </div>
 
-            {/* Items after Teacher dropdown: TA Forum */}
-            {mainNavItemsAfter.map(({ href, label, icon: Icon }) => {
-              const active = location === href || (href !== "/" && location.startsWith(href));
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  title={label}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
-                    active
-                      ? "bg-primary text-primary-foreground"
-                      : isClassroomPage
-                        ? "text-white/80 hover:text-white hover:bg-white/15"
-                        : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                  )}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span className="hidden lg:inline">{label}</span>
-                </Link>
-              );
-            })}
+            {/* Administration dropdown — admin only */}
+            {user?.role === "admin" && (
+            <div ref={adminRef} className="relative">
+              <button
+                onClick={() => setAdminOpen((o) => !o)}
+                title={t("nav_administration")}
+                aria-label={t("nav_administration")}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                  isAdminActive
+                    ? "bg-primary text-primary-foreground"
+                    : isClassroomPage
+                      ? "text-white/80 hover:text-white hover:bg-white/15"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                )}
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                <span className="hidden lg:inline">{t("nav_administration")}</span>
+                <ChevronDown className={cn("w-3 h-3 transition-transform hidden lg:inline", adminOpen && "rotate-180")} />
+              </button>
+              {adminOpen && (
+                <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-border rounded-xl shadow-lg py-1 z-50">
+                  {adminItems.map(({ href, label, icon: Icon }) => {
+                    const active = location === href || (href !== "/" && location.startsWith(href));
+                    return (
+                      <Link
+                        key={href}
+                        href={href}
+                        onClick={() => setAdminOpen(false)}
+                        className={cn(
+                          "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
+                          active ? "text-primary bg-primary/5" : "text-foreground hover:bg-secondary"
+                        )}
+                      >
+                        <Icon className="w-4 h-4" />
+                        {label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            )}
 
             {/* Head of Study dropdown — visible to admin and head_of_study roles */}
             {(user?.role === "admin" || user?.role === "head_of_study") && (
@@ -357,6 +387,18 @@ export default function NavBar() {
                       </Link>
                     );
                   })}
+                  {/* TA Forum */}
+                  <Link
+                    href="/forum"
+                    onClick={() => setHosOpen(false)}
+                    className={cn(
+                      "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
+                      location === "/forum" ? "text-primary bg-primary/5" : "text-foreground hover:bg-secondary"
+                    )}
+                  >
+                    <MessagesSquare className="w-4 h-4" />
+                    {t("nav_forum")}
+                  </Link>
                 </div>
               )}
             </div>
@@ -401,6 +443,18 @@ export default function NavBar() {
                       </Link>
                     );
                   })}
+                  {/* TA Forum */}
+                  <Link
+                    href="/forum"
+                    onClick={() => setDirectorOpen(false)}
+                    className={cn(
+                      "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
+                      location === "/forum" ? "text-primary bg-primary/5" : "text-foreground hover:bg-secondary"
+                    )}
+                  >
+                    <MessagesSquare className="w-4 h-4" />
+                    {t("nav_forum")}
+                  </Link>
                 </div>
               )}
             </div>
@@ -609,7 +663,7 @@ export default function NavBar() {
               <p className={cn("text-xs font-semibold uppercase tracking-wider mb-2 px-1", isClassroomPage ? "text-white/50" : "text-muted-foreground")}>
   {t("nav_home")} &amp; {t("nav_chat")}
               </p>
-              {[...mainNavItemsBefore, ...mainNavItemsAfter].map(({ href, label, icon: Icon }) => {
+              {mainNavItemsBefore.map(({ href, label, icon: Icon }) => {
                 const active = location === href || (href !== "/" && location.startsWith(href));
                 return (
                   <Link
@@ -679,6 +733,36 @@ export default function NavBar() {
             </div>
             )}
 
+            {/* Administration tools — admin only */}
+            {user?.role === "admin" && (
+            <div className="px-4 py-3">
+              <p className={cn("text-xs font-semibold uppercase tracking-wider mb-2 px-1", isClassroomPage ? "text-white/50" : "text-muted-foreground")}>
+                {t("nav_administration")}
+              </p>
+              {adminItems.map(({ href, label, icon: Icon }) => {
+                const active = location === href || (href !== "/" && location.startsWith(href));
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mb-1",
+                      active
+                        ? "bg-primary text-primary-foreground"
+                        : isClassroomPage
+                          ? "text-white/80 hover:text-white hover:bg-white/15"
+                          : "text-foreground hover:bg-secondary"
+                    )}
+                  >
+                    <Icon className="w-5 h-5 flex-shrink-0" />
+                    {label}
+                  </Link>
+                );
+              })}
+            </div>
+            )}
+
             {/* Head of Study tools — role-gated */}
             {(user?.role === "admin" || user?.role === "head_of_study") && (
             <div className="px-4 py-3">
@@ -706,6 +790,22 @@ export default function NavBar() {
                   </Link>
                 );
               })}
+              {/* TA Forum */}
+              <Link
+                href="/forum"
+                onClick={() => setMobileOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mb-1",
+                  location === "/forum"
+                    ? "bg-primary text-primary-foreground"
+                    : isClassroomPage
+                      ? "text-white/80 hover:text-white hover:bg-white/15"
+                      : "text-foreground hover:bg-secondary"
+                )}
+              >
+                <MessagesSquare className="w-5 h-5 flex-shrink-0" />
+                {t("nav_forum")}
+              </Link>
             </div>
             )}
 
@@ -735,6 +835,22 @@ export default function NavBar() {
                   </Link>
                 );
               })}
+              {/* TA Forum */}
+              <Link
+                href="/forum"
+                onClick={() => setMobileOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mb-1",
+                  location === "/forum"
+                    ? "bg-primary text-primary-foreground"
+                    : isClassroomPage
+                      ? "text-white/80 hover:text-white hover:bg-white/15"
+                      : "text-foreground hover:bg-secondary"
+                )}
+              >
+                <MessagesSquare className="w-5 h-5 flex-shrink-0" />
+                {t("nav_forum")}
+              </Link>
             </div>
 
             {/* Teacher tools */}
