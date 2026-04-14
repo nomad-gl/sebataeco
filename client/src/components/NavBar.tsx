@@ -6,7 +6,7 @@ import {
   Library, TrendingUp, ChevronDown, Menu, X, Zap,
   Presentation as PresentationIcon, Globe, Users, MessagesSquare, Bell, Download,
   CalendarDays, FileText, Settings as SettingsIcon, ShieldAlert, Lock, HelpCircle,
-  BarChart3, UserCheck, BookCheck, GraduationCap, Sparkles,
+  BarChart3, UserCheck, BookCheck, GraduationCap, Sparkles, Mic,
   ClipboardList, Banknote, UserCog, FolderOpen, Building2, Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -90,6 +90,7 @@ export default function NavBar() {
     { href: "/audit",             label: t("nav_audit"),             icon: BarChart3 },
     { href: "/ai-models",         label: t("nav_ai_models"),         icon: Sparkles },
     { href: "/accountability",    label: t("nav_accountability"),    icon: Lock },
+    { href: "/admin/wake-words",  label: t("nav_wake_words"),        icon: Mic },
   ];
   const allAdminItems = [...schoolAdminItems, ...platformItems];
   const isAdminActive = allAdminItems.some(

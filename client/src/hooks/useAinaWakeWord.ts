@@ -35,6 +35,11 @@ export type UseAinaWakeWordOptions = {
   lang?: string;
   /** Whether the always-on mode is enabled (default true) */
   enabled?: boolean;
+  /**
+   * Optional custom wake-word matcher. When provided, replaces the built-in
+   * hardcoded `containsWakeWord` function. Use this to inject DB-driven words.
+   */
+  containsWakeWord?: (transcript: string) => boolean;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -117,7 +122,10 @@ export function useAinaWakeWord({
   onActivated,
   lang,
   enabled = true,
+  containsWakeWord: customContainsWakeWord,
 }: UseAinaWakeWordOptions) {
+  const containsWakeWordRef = useRef(customContainsWakeWord ?? containsWakeWord);
+  useEffect(() => { containsWakeWordRef.current = customContainsWakeWord ?? containsWakeWord; }, [customContainsWakeWord]);
   const [wakeState, setWakeState] = useState<WakeWordState>("idle");
   const [permissionError, setPermissionError] = useState<string | null>(null);
   const [isListening, setIsListening] = useState(false);
@@ -282,7 +290,7 @@ export function useAinaWakeWord({
           .map((r: any) => r[0].transcript as string)
           .join(" ");
 
-        if (containsWakeWord(transcript)) {
+        if (containsWakeWordRef.current(transcript)) {
           activatingRef.current = true; // claim the activation slot
 
           console.group("[Aina] Wake word detected!");

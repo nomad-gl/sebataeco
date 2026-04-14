@@ -24,6 +24,7 @@ import { whatsNewRouter } from "./routers/whatsNew";
 import { selfHealRouter } from "./routers/selfHeal";
 import { directorRouter } from "./routers/director";
 import { hosRouter } from "./routers/hos";
+import { wakeWordsRouter } from "./routers/wakeWords";
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -66,6 +67,7 @@ export const appRouter = router({
   selfHeal: selfHealRouter,
   director: directorRouter,
   hos: hosRouter,
+  wakeWords: wakeWordsRouter,
 });
 
 export type AppRouter = typeof appRouter;

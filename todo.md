@@ -2538,3 +2538,22 @@
 - [x] Registered all 6 new routes in App.tsx (/admin/enrolment, /admin/finance, /admin/staff, /admin/documents, /admin/governance, /admin/facilities)
 - [x] Verified TypeScript 0 errors
 - [ ] Save checkpoint
+
+## Session 15: Wake Words Management
+- [x] Add wake_words table to drizzle/schema.ts (id, word, phonetic_variants JSON, is_primary bool, createdAt)
+- [x] Generate migration SQL and apply via webdev_execute_sql
+- [x] Seed default wake words: aina (primary), clara, nana
+- [x] Add tRPC procedures: wakeWords.getAll, addWakeWord, deleteWakeWord, toggleActive, setPrimary, updateVariants
+- [x] Build /admin/wake-words page with full CRUD UI (add word + variants, toggle active, set primary, delete)
+- [x] Add /admin/wake-words route to App.tsx and add link to NavBar platformItems (PIN-gated)
+- [x] Create useWakeWordConfig hook: fetches active words from DB, builds containsWakeWord matcher
+- [x] Add optional containsWakeWord prop to useAinaWakeWord.ts and wire useWakeWordConfig in AIChatBox
+- [x] Add i18n keys for Wake Words admin page (EN/ES/CA)
+- [x] Verify TypeScript 0 errors
+- [ ] Save checkpoint
+
+## Session 15b: Restore Last-Used TTS Voice
+- [x] Confirmed: ttsVoice column exists in users table
+- [x] Confirmed: AIChatBox saves voice to DB via setTtsVoice mutation on change
+- [x] Confirmed: AIChatBox loads saved voice from DB on login (useEffect on user.id)
+- [x] No additional changes needed — TTS voice restore was already fully implemented

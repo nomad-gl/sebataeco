@@ -9,6 +9,7 @@ import {
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Streamdown } from "streamdown";
 import { useAinaWakeWord } from "@/hooks/useAinaWakeWord";
+import { useWakeWordConfig } from "@/hooks/useWakeWordConfig";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -489,11 +490,13 @@ export function AIChatBox({
 
   // Keep forceRestartRef in sync with the latest wakeForceRestart
   // (declared after useAinaWakeWord so the ref is always current)
+  const { containsWakeWord: dbContainsWakeWord, primaryWord: _wakeWordPrimary } = useWakeWordConfig();
   const { wakeState, permissionError: wakePermissionError, isListening: wakeIsListening, requestPermission: wakeRequestPermission, forceRestart: wakeForceRestart } = useAinaWakeWord({
     onTranscript: handleWakeTranscript,
     onActivated: handleWakeActivated,
     enabled: !isMobile && alwaysOnEnabled,
     lang: lang || "ca",
+    containsWakeWord: dbContainsWakeWord,
   });
 
   useEffect(() => {

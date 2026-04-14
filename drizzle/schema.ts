@@ -1108,3 +1108,26 @@ export const schoolSettings = mysqlTable("school_settings", {
 });
 export type SchoolSettings = typeof schoolSettings.$inferSelect;
 export type InsertSchoolSettings = typeof schoolSettings.$inferInsert;
+
+/**
+ * Wake words — admin-configurable trigger words for the voice assistant.
+ * The primary word is shown in the UI hint; all active words are checked
+ * during speech recognition.
+ */
+export const wakeWords = mysqlTable("wake_words", {
+  id: int("id").primaryKey().autoincrement(),
+  /** The trigger word (lowercase, e.g. "aina") */
+  word: varchar("word", { length: 64 }).notNull(),
+  /**
+   * JSON array of phonetic near-miss variants that speech recognition
+   * may produce, e.g. ["ayna","anna","haina","ina"]
+   */
+  phoneticVariants: text("phoneticVariants").notNull(),
+  /** If true, this word is shown in the mic status hint text */
+  isPrimary: boolean("isPrimary").default(false).notNull(),
+  /** If false, the word is disabled but not deleted */
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type WakeWord = typeof wakeWords.$inferSelect;
+export type InsertWakeWord = typeof wakeWords.$inferInsert;
