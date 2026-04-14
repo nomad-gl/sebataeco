@@ -2317,3 +2317,15 @@
 ## Calendar: Day-total teaching hours badge + bulk-apply default times
 - [x] Day-total teaching hours badge on month grid date cells
 - [x] Bulk-apply default times to existing timeless calendar events (button in calendar toolbar)
+
+## Director Dropdown Menu
+- [ ] Add i18n keys for all 7 Director dropdown items (EN/ES/CA)
+- [ ] Build Director dropdown in NavBar (unlinked from Teacher, mirrors Teacher dropdown pattern)
+- [ ] Create stub page: School Overview (/director/overview)
+- [ ] Create stub page: Staff Activity (/director/staff)
+- [ ] Create stub page: Curriculum Compliance (/director/curriculum)
+- [ ] Wire AI Accountability link (/accountability) in Director dropdown
+- [ ] Create stub page: Student Progress (/director/progress)
+- [ ] Create stub page: Reports & Exports (/director/reports)
+- [ ] Create stub page: Settings & Permissions (/director/settings)
+- [ ] Register all Director routes in App.tsx

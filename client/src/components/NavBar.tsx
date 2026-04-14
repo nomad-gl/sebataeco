@@ -6,6 +6,7 @@ import {
   Library, TrendingUp, ChevronDown, Menu, X, Zap,
   Presentation as PresentationIcon, Globe, Users, MessagesSquare, Bell, Download,
   CalendarDays, FileText, Settings as SettingsIcon, ShieldAlert, Lock, HelpCircle,
+  BarChart3, UserCheck, BookCheck, GraduationCap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
@@ -25,13 +26,15 @@ export default function NavBar() {
   const [location] = useLocation();
   const { t, lang, setLang } = useI18n();
   const isClassroomPage = location === "/chat" || location === "/practice" || location === "/progress";
-  const [dropOpen, setDropOpen]     = useState(false);
-  const [langOpen, setLangOpen]     = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [bellOpen, setBellOpen]     = useState(false);
-  const dropRef = useRef<HTMLDivElement>(null);
-  const langRef = useRef<HTMLDivElement>(null);
-  const bellRef = useRef<HTMLDivElement>(null);
+  const [dropOpen, setDropOpen]         = useState(false);
+  const [directorOpen, setDirectorOpen] = useState(false);
+  const [langOpen, setLangOpen]         = useState(false);
+  const [mobileOpen, setMobileOpen]     = useState(false);
+  const [bellOpen, setBellOpen]         = useState(false);
+  const dropRef     = useRef<HTMLDivElement>(null);
+  const directorRef = useRef<HTMLDivElement>(null);
+  const langRef     = useRef<HTMLDivElement>(null);
+  const bellRef     = useRef<HTMLDivElement>(null);
 
   const { user } = useAuth();
   const { data: unreadCount = 0 } = trpc.notifications.getUnreadCount.useQuery(undefined, {
@@ -52,11 +55,24 @@ export default function NavBar() {
     { href: "/chat",      label: t("nav_chat"),     icon: MessageCircle },
     { href: "/practice",  label: t("nav_practice"), icon: Dumbbell },
   ];
-  // Items after Teacher dropdown
+  // Items after Teacher dropdown (TA Forum only — Director is now a dropdown)
   const mainNavItemsAfter = [
     { href: "/forum",     label: t("nav_forum"),    icon: MessagesSquare },
-    { href: "/progress",  label: t("nav_progress"), icon: TrendingUp },
   ];
+
+  const directorItems = [
+    { href: "/director/overview",  label: t("dir_overview"),         icon: BarChart3 },
+    { href: "/director/staff",     label: t("dir_staff"),            icon: UserCheck },
+    { href: "/director/curriculum",label: t("dir_curriculum"),       icon: BookCheck },
+    { href: "/accountability",     label: t("dir_accountability"),   icon: ShieldAlert },
+    { href: "/director/progress",  label: t("dir_student_progress"), icon: GraduationCap },
+    { href: "/director/reports",   label: t("dir_reports"),          icon: Download },
+    { href: "/director/settings",  label: t("dir_settings"),         icon: SettingsIcon },
+  ];
+
+  const isDirectorActive = directorItems.some(
+    (i) => location === i.href || (i.href !== "/" && location.startsWith(i.href))
+  );
 
   const teacherItems = [
     { href: "/create",        label: t("nav_create"),        icon: SebaSymbol },
@@ -82,6 +98,7 @@ export default function NavBar() {
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (dropRef.current && !dropRef.current.contains(e.target as Node)) setDropOpen(false);
+      if (directorRef.current && !directorRef.current.contains(e.target as Node)) setDirectorOpen(false);
       if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false);
       if (bellRef.current && !bellRef.current.contains(e.target as Node)) setBellOpen(false);
     }
@@ -90,7 +107,7 @@ export default function NavBar() {
   }, []);
 
   // Close mobile menu on route change
-  useEffect(() => { setMobileOpen(false); setDropOpen(false); setLangOpen(false); }, [location]);
+  useEffect(() => { setMobileOpen(false); setDropOpen(false); setDirectorOpen(false); setLangOpen(false); }, [location]);
 
   // Note: body scroll lock removed — the mobile nav panel itself scrolls instead
   // (overflow-y-auto on the nav element handles long menus on small screens)
@@ -203,7 +220,7 @@ export default function NavBar() {
               )}
             </div>
 
-            {/* Items after Teacher dropdown: TA Forum, Director */}
+            {/* Items after Teacher dropdown: TA Forum */}
             {mainNavItemsAfter.map(({ href, label, icon: Icon }) => {
               const active = location === href || (href !== "/" && location.startsWith(href));
               return (
@@ -225,6 +242,49 @@ export default function NavBar() {
                 </Link>
               );
             })}
+
+            {/* Director dropdown */}
+            <div ref={directorRef} className="relative">
+              <button
+                onClick={() => setDirectorOpen((o) => !o)}
+                title={t("nav_director")}
+                aria-label={t("nav_director")}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                  isDirectorActive
+                    ? "bg-primary text-primary-foreground"
+                    : isClassroomPage
+                      ? "text-white/80 hover:text-white hover:bg-white/15"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                )}
+              >
+                <BarChart3 className="w-4 h-4" />
+                <span className="hidden lg:inline">{t("nav_director")}</span>
+                <ChevronDown className={cn("w-3 h-3 transition-transform hidden lg:inline", directorOpen && "rotate-180")} />
+              </button>
+
+              {directorOpen && (
+                <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-border rounded-xl shadow-lg py-1 z-50">
+                  {directorItems.map(({ href, label, icon: Icon }) => {
+                    const active = location === href || (href !== "/" && location.startsWith(href));
+                    return (
+                      <Link
+                        key={href}
+                        href={href}
+                        onClick={() => setDirectorOpen(false)}
+                        className={cn(
+                          "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
+                          active ? "text-primary bg-primary/5" : "text-foreground hover:bg-secondary"
+                        )}
+                      >
+                        <Icon className="w-4 h-4" />
+                        {label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
             {/* Settings link (desktop) */}
             {user && (
@@ -469,6 +529,34 @@ export default function NavBar() {
                 </button>
               </div>
             )}
+
+            {/* Director tools */}
+            <div className="px-4 py-3">
+              <p className={cn("text-xs font-semibold uppercase tracking-wider mb-2 px-1", isClassroomPage ? "text-white/50" : "text-muted-foreground")}>
+                {t("nav_director")}
+              </p>
+              {directorItems.map(({ href, label, icon: Icon }) => {
+                const active = location === href || (href !== "/" && location.startsWith(href));
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mb-1",
+                      active
+                        ? "bg-primary text-primary-foreground"
+                        : isClassroomPage
+                          ? "text-white/80 hover:text-white hover:bg-white/15"
+                          : "text-foreground hover:bg-secondary"
+                    )}
+                  >
+                    <Icon className="w-5 h-5 flex-shrink-0" />
+                    {label}
+                  </Link>
+                );
+              })}
+            </div>
 
             {/* Teacher tools */}
             <div className="px-4 py-3">

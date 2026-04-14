@@ -42,6 +42,12 @@ import Dpa from "./pages/Dpa";
 import AiModels from "./pages/AiModels";
 import Paraula from "./pages/Paraula";
 import ParaulaPractice from "./pages/ParaulaPractice";
+import DirectorOverview from "./pages/director/DirectorOverview";
+import DirectorStaff from "./pages/director/DirectorStaff";
+import DirectorCurriculum from "./pages/director/DirectorCurriculum";
+import DirectorStudentProgress from "./pages/director/DirectorStudentProgress";
+import DirectorReports from "./pages/director/DirectorReports";
+import DirectorSettings from "./pages/director/DirectorSettings";
 
 function Router() {
   return (
@@ -76,6 +82,12 @@ function Router() {
         <Route path="/ai-models" component={AiModels} />
         <Route path="/paraula" component={Paraula} />
         <Route path="/paraula-practice" component={ParaulaPractice} />
+        <Route path="/director/overview" component={DirectorOverview} />
+        <Route path="/director/staff" component={DirectorStaff} />
+        <Route path="/director/curriculum" component={DirectorCurriculum} />
+        <Route path="/director/progress" component={DirectorStudentProgress} />
+        <Route path="/director/reports" component={DirectorReports} />
+        <Route path="/director/settings" component={DirectorSettings} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>
