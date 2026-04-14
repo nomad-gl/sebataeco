@@ -2578,3 +2578,14 @@
 - [x] English voice selection left unchanged (female|samantha|karen|moira|nova|shimmer priority)
 - [x] Verify TypeScript 0 errors
 - [ ] Save checkpoint
+
+## Session 18: Custom Audio Responses
+- [x] Add audio_responses DB table to drizzle/schema.ts (id, label, triggerPhrases TEXT, fileUrl, fileKey, mimeType, fileSize, isActive, createdAt, updatedAt)
+- [x] Apply migration SQL for audio_responses table
+- [x] Add tRPC procedures: audioResponses.getAll, upload (S3 + DB), delete, toggleActive, updateTriggers
+- [x] Build AdminAudioResponses page: drag-drop upload zone, file list with playback preview, trigger phrase editor, active toggle, delete
+- [x] Add /admin/audio-responses route in App.tsx
+- [x] Add Audio Responses link to platformItems in NavBar.tsx (PIN-gated, Music icon)
+- [x] Add all audio_* and nav_audio_responses i18n keys to EN/ES/CA
+- [x] Verify TypeScript 0 errors
+- [ ] Save checkpoint

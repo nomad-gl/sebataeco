@@ -1131,3 +1131,30 @@ export const wakeWords = mysqlTable("wake_words", {
 });
 export type WakeWord = typeof wakeWords.$inferSelect;
 export type InsertWakeWord = typeof wakeWords.$inferInsert;
+
+/**
+ * Custom audio responses — admin-uploaded audio files that play back
+ * when the assistant's reply contains a matching trigger phrase.
+ */
+export const audioResponses = mysqlTable("audio_responses", {
+  id: int("id").primaryKey().autoincrement(),
+  /** Human-readable label, e.g. "Welcome greeting" */
+  label: varchar("label", { length: 256 }).notNull(),
+  /** JSON array of trigger phrases (lowercase), e.g. ["hello","welcome","hola"] */
+  triggerPhrases: text("triggerPhrases").notNull(),
+  /** Public S3 URL for the audio file */
+  fileUrl: text("fileUrl").notNull(),
+  /** S3 key used for deletion */
+  fileKey: varchar("fileKey", { length: 512 }).notNull(),
+  /** MIME type, e.g. "audio/mpeg" */
+  mimeType: varchar("mimeType", { length: 64 }).notNull().default("audio/mpeg"),
+  /** Duration in seconds (optional, filled after upload) */
+  durationSecs: int("durationSecs"),
+  /** Whether this audio response is enabled */
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  /** Owner user id */
+  createdBy: varchar("createdBy", { length: 128 }),
+});
+export type AudioResponse = typeof audioResponses.$inferSelect;
+export type InsertAudioResponse = typeof audioResponses.$inferInsert;

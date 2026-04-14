@@ -7,7 +7,7 @@ import {
   Presentation as PresentationIcon, Globe, Users, MessagesSquare, Bell, Download,
   CalendarDays, FileText, Settings as SettingsIcon, ShieldAlert, Lock, HelpCircle,
   BarChart3, UserCheck, BookCheck, GraduationCap, Sparkles, Mic,
-  ClipboardList, Banknote, UserCog, FolderOpen, Building2, Wrench,
+  ClipboardList, Banknote, UserCog, FolderOpen, Building2, Wrench, Music,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -91,6 +91,7 @@ export default function NavBar() {
     { href: "/ai-models",         label: t("nav_ai_models"),         icon: Sparkles },
     { href: "/accountability",    label: t("nav_accountability"),    icon: Lock },
     { href: "/admin/wake-words",  label: t("nav_wake_words"),        icon: Mic },
+    { href: "/admin/audio-responses", label: t("nav_audio_responses"), icon: Music },
   ];
   const allAdminItems = [...schoolAdminItems, ...platformItems];
   const isAdminActive = allAdminItems.some(

@@ -65,6 +65,7 @@ import AdminDocuments from "./pages/admin/AdminDocuments";
 import AdminGovernance from "./pages/admin/AdminGovernance";
 import AdminFacilities from "./pages/admin/AdminFacilities";
 import AdminWakeWords from "./pages/admin/AdminWakeWords";
+import AdminAudioResponses from "./pages/admin/AdminAudioResponses";
 import { useAuth } from "./_core/hooks/useAuth";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
@@ -106,6 +107,7 @@ function Router() {
         <Route path="/admin/governance" component={AdminGovernance} />
         <Route path="/admin/facilities" component={AdminFacilities} />
         <Route path="/admin/wake-words" component={AdminWakeWords} />
+        <Route path="/admin/audio-responses" component={AdminAudioResponses} />
         <Route path="/create" component={Create} />
         <Route path="/my-materials" component={MyMaterials} />
         <Route path="/materials/:id" component={MaterialView} />
