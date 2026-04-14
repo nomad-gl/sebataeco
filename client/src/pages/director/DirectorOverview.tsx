@@ -9,6 +9,7 @@ import {
   AlertTriangle, ShieldCheck, TrendingUp,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -36,6 +37,9 @@ export default function DirectorOverview() {
   }, [authLoading, user, navigate]);
 
   const { data: stats, isLoading } = trpc.director.getStats.useQuery(undefined, {
+    enabled: !!user && user.role === "admin",
+  });
+  const { data: trends, isLoading: trendsLoading } = trpc.director.getTrends.useQuery(undefined, {
     enabled: !!user && user.role === "admin",
   });
 
@@ -157,6 +161,63 @@ export default function DirectorOverview() {
             )}
           </CardContent>
         </Card>
+
+        {/* Trend sparklines */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Lesson plans trend */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <TrendingUp className="w-4 h-4 text-green-500" />
+                {t("dir_trend_plans")}
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">{t("dir_trend_plans_desc")}</p>
+            </CardHeader>
+            <CardContent>
+              {trendsLoading ? (
+                <div className="h-24 flex items-center justify-center"><Skeleton className="h-20 w-full" /></div>
+              ) : (
+                <ResponsiveContainer width="100%" height={80}>
+                  <LineChart data={(trends?.weeks ?? []).map(w => ({ week: w.label, count: w.plansCreated }))}>
+                    <XAxis dataKey="week" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
+                    <Tooltip
+                      contentStyle={{ fontSize: 11, padding: "4px 8px", borderRadius: 6 }}
+                      formatter={(v: number) => [v, t("dir_stat_lesson_plans")]}
+                    />
+                    <Line type="monotone" dataKey="count" stroke="#22c55e" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* AI sessions trend */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <Sparkles className="w-4 h-4 text-purple-500" />
+                {t("dir_trend_ai")}
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">{t("dir_trend_ai_desc")}</p>
+            </CardHeader>
+            <CardContent>
+              {trendsLoading ? (
+                <div className="h-24 flex items-center justify-center"><Skeleton className="h-20 w-full" /></div>
+              ) : (
+                <ResponsiveContainer width="100%" height={80}>
+                  <LineChart data={(trends?.weeks ?? []).map(w => ({ week: w.label, count: w.aiPlans }))}>
+                    <XAxis dataKey="week" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
+                    <Tooltip
+                      contentStyle={{ fontSize: 11, padding: "4px 8px", borderRadius: 6 }}
+                      formatter={(v: number) => [v, t("dir_trend_ai")]}
+                    />
+                    <Line type="monotone" dataKey="count" stroke="#a855f7" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         <p className="text-xs text-muted-foreground text-right">Powered by SEBA</p>
       </div>

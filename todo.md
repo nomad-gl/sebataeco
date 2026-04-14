@@ -2331,10 +2331,18 @@
 - [x] Register all Director routes in App.tsx
 
 ## Director Follow-ups
-- [ ] Add tRPC directorStats procedure (active teachers, lesson plans, AI sessions, competency coverage, calendar events)
-- [ ] Add tRPC staffActivity procedure (per-teacher breakdown)
-- [ ] Add tRPC curriculumCompliance procedure (LOMLOE competency gap analysis)
-- [ ] Build live School Overview page with real stats
-- [ ] Build Curriculum Compliance view with LOMLOE heatmap/gap table
-- [ ] Add role-gating: restrict /director/* to admin role
-- [ ] Add frontend guard: redirect non-admins away from Director pages
+- [x] Add tRPC directorStats procedure (active teachers, lesson plans, AI sessions, competency coverage, calendar events)
+- [x] Add tRPC staffActivity procedure (per-teacher breakdown)
+- [x] Add tRPC curriculumCompliance procedure (LOMLOE competency gap analysis)
+- [x] Build live School Overview page with real stats
+- [x] Build Curriculum Compliance view with LOMLOE heatmap/gap table
+- [x] Add role-gating: restrict /director/* to admin role
+- [x] Add frontend guard: redirect non-admins away from Director pages
+
+## Director Follow-ups 2
+- [x] Build Reports & Exports page with bias scan CSV and curriculum PDF export
+- [x] Build Settings & Permissions page with role management and school defaults
+- [x] Add trend sparkline charts to School Overview (week-over-week lesson plans and AI usage)
+- [x] Add getReportsData and getTrends tRPC procedures to director router
+- [x] Add getSchoolSettings and updateSchoolSettings tRPC procedures
+- [x] Add getUsersForAdmin and updateUserRole tRPC procedures
