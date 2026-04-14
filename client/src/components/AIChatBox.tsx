@@ -304,7 +304,18 @@ export function AIChatBox({
     const langCode = document.documentElement.lang || navigator.language || "en";
     const voices = window.speechSynthesis.getVoices();
     const l = langCode.split("-")[0];
-    const voice = voices.find(v => v.lang.startsWith(l)) ?? voices[0] ?? null;
+    // Use the same lifelike voice priority for ca/es previews
+    let voice: SpeechSynthesisVoice | null = null;
+    if (l === "ca" || l === "es") {
+      voice = voices.find(v => v.lang.startsWith(l) && /google/i.test(v.name) && /neural|natural|enhanced/i.test(v.name))
+        ?? voices.find(v => v.lang.startsWith(l) && /microsoft/i.test(v.name) && /neural/i.test(v.name))
+        ?? voices.find(v => v.lang.startsWith(l) && /google/i.test(v.name))
+        ?? voices.find(v => v.lang.startsWith(l) && /microsoft/i.test(v.name))
+        ?? voices.find(v => v.lang.startsWith(l))
+        ?? voices[0] ?? null;
+    } else {
+      voice = voices.find(v => v.lang.startsWith(l)) ?? voices[0] ?? null;
+    }
     const u = new SpeechSynthesisUtterance(sampleText);
     u.lang = langCode; u.rate = 1.0;
     if (voice) u.voice = voice;
@@ -369,8 +380,29 @@ export function AIChatBox({
     // the voiceschanged event and then retry (up to 3 seconds).
     const doSpeak = (voices: SpeechSynthesisVoice[]) => {
       const l = langCode.split("-")[0];
-      const voice = voices.find(v => v.lang.startsWith(l) && /female|samantha|karen|moira|nova|shimmer/i.test(v.name))
-        ?? voices.find(v => v.lang.startsWith(l)) ?? voices[0] ?? null;
+      // For Catalan and Spanish: prioritise the most lifelike Neural voices
+      // (Google Neural > Microsoft Neural > any female-sounding > any matching lang)
+      // For English: keep existing behaviour unchanged.
+      let voice: SpeechSynthesisVoice | null = null;
+      if (l === "ca" || l === "es") {
+        // 1. Google Neural (e.g. "Google español" or "Google català" — Neural quality)
+        voice = voices.find(v => v.lang.startsWith(l) && /google/i.test(v.name) && /neural|natural|enhanced/i.test(v.name))
+          // 2. Microsoft Neural (e.g. "Microsoft Elvira" or "Microsoft Helena")
+          ?? voices.find(v => v.lang.startsWith(l) && /microsoft/i.test(v.name) && /neural/i.test(v.name))
+          // 3. Any Google voice for this language
+          ?? voices.find(v => v.lang.startsWith(l) && /google/i.test(v.name))
+          // 4. Any Microsoft voice for this language
+          ?? voices.find(v => v.lang.startsWith(l) && /microsoft/i.test(v.name))
+          // 5. Any female-sounding voice
+          ?? voices.find(v => v.lang.startsWith(l) && /female|mujer|dona/i.test(v.name))
+          // 6. Any voice for this language
+          ?? voices.find(v => v.lang.startsWith(l))
+          ?? voices[0] ?? null;
+      } else {
+        // English — keep existing behaviour
+        voice = voices.find(v => v.lang.startsWith(l) && /female|samantha|karen|moira|nova|shimmer/i.test(v.name))
+          ?? voices.find(v => v.lang.startsWith(l)) ?? voices[0] ?? null;
+      }
       const speakChunk = (i: number) => {
         if (cancelledRef.current || i >= chunks.length) {
           setIsSpeaking(false);

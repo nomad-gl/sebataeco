@@ -2557,3 +2557,24 @@
 - [x] Confirmed: AIChatBox saves voice to DB via setTtsVoice mutation on change
 - [x] Confirmed: AIChatBox loads saved voice from DB on login (useEffect on user.id)
 - [x] No additional changes needed — TTS voice restore was already fully implemented
+
+## Session 16: Wake Word Pronunciation Recorder & Tester
+- [ ] Add "Test Pronunciation" panel to AdminWakeWords page
+- [ ] Record button: uses Web Speech API SpeechRecognition to listen in ca-ES and es-ES simultaneously
+- [ ] Show live transcript of what was heard during recording
+- [ ] After recording, run the containsWakeWord matcher against the transcript and show pass/fail result
+- [ ] Show which specific word/variant matched (if any)
+- [ ] Show the raw transcript so admin can decide whether to add it as a new phonetic variant
+- [ ] "Add as variant" quick-action button on the result — appends the heard transcript to the closest matching word's variants list
+- [ ] Add i18n keys for all new UI strings (EN/ES/CA)
+- [ ] Verify TypeScript 0 errors
+- [ ] Save checkpoint
+
+## Session 17: Lifelike TTS Voices (CA/ES)
+- [x] Found TTS voice selection logic in AIChatBox playBrowserTTS and playVoicePreview
+- [x] Identified best available lifelike voices: Google Neural > Microsoft Neural > Google > Microsoft > female-sounding > any matching lang
+- [x] Updated playBrowserTTS: ca/es now uses Neural voice priority chain
+- [x] Updated playVoicePreview: ca/es previews also use Neural voice priority chain
+- [x] English voice selection left unchanged (female|samantha|karen|moira|nova|shimmer priority)
+- [x] Verify TypeScript 0 errors
+- [ ] Save checkpoint
