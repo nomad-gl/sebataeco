@@ -2419,3 +2419,11 @@
 - [x] Add i18n keys for Assessment Calendar, SA PDF export, and My Situacions (EN/ES/CA)
 - [x] Verify TypeScript 0 errors
 - [x] Update todo.md and save checkpoint
+
+## Session 7: Regenerate Button on My Situacions
+
+- [x] Add Regenerate button to each SA card in /my-situacions — navigates to /situacio with topic, subject, yearGroup, competencies as URL search params
+- [x] Update SituacioGenerator to read URL params on mount and pre-fill form fields
+- [x] Add sa_regenerate i18n key to EN/ES/CA
+- [x] Verify TypeScript 0 errors
+- [ ] Save checkpoint

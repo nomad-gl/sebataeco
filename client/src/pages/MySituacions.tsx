@@ -5,10 +5,10 @@ import NavBar from "@/components/NavBar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, BookMarked, Copy, Check, Trash2, BookOpen, Target, ClipboardList, Zap, ExternalLink } from "lucide-react";
+import { Loader2, BookMarked, Copy, Check, Trash2, BookOpen, Target, ClipboardList, Zap, ExternalLink, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
 
@@ -64,6 +64,7 @@ function toSaved(raw: RawSituacio): SavedSituacio {
 export default function MySituacions() {
   const { t } = useI18n();
   const utils = trpc.useUtils();
+  const [, navigate] = useLocation();
 
   const { data: rawSituacions = [], isLoading } = trpc.lomloe.getMySituacions.useQuery();
   const situacions: SavedSituacio[] = (rawSituacions as RawSituacio[]).map(toSaved);
@@ -94,6 +95,16 @@ export default function MySituacions() {
       ...result.activities.map((a) => `**${a.phase}:** ${a.description}`),
       `\n*${result.lomloeRef}*`,
     ].join("\n");
+  }
+
+  function handleRegenerate(item: SavedSituacio) {
+    const params = new URLSearchParams({
+      topic: item.topic,
+      subject: item.subject,
+      yearGroup: item.yearGroup,
+      competencies: item.competencies.join(","),
+    });
+    navigate(`/situacio?${params.toString()}`);
   }
 
   function handleCopy(item: SavedSituacio) {
@@ -182,6 +193,15 @@ export default function MySituacions() {
                       className="flex-1 bg-white/10 border-white/20 text-white hover:bg-white/20 text-xs"
                     >
                       {t("my_situacions_open")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleRegenerate(item)}
+                      title={t("sa_regenerate")}
+                      className="bg-white/10 border-white/20 text-emerald-300 hover:bg-emerald-500/20 px-2"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
                     </Button>
                     <Button
                       size="sm"

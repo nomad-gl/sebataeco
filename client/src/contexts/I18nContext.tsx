@@ -2210,6 +2210,7 @@ export const translations = {
     sa_save: "Save to Library",
     sa_download_pdf: "Download PDF",
     nav_my_situacions: "My Situacions",
+    sa_regenerate: "Regenerate with these settings",
   },
 
   es: {
@@ -4389,6 +4390,7 @@ export const translations = {
     sa_save: "Guardar en biblioteca",
     sa_download_pdf: "Descargar PDF",
     nav_my_situacions: "Mis Situaciones",
+    sa_regenerate: "Regenerar con estos parámetros",
   },
 
   ca: {
@@ -6568,6 +6570,7 @@ export const translations = {
     sa_save: "Desar a la biblioteca",
     sa_download_pdf: "Descarregar PDF",
     nav_my_situacions: "Les Meves Situacions",
+    sa_regenerate: "Regenerar amb aquests paràmetres",
   },
 } as const;
 

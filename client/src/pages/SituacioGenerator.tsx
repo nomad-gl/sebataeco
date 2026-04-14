@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
 import NavBar from "@/components/NavBar";
@@ -38,13 +38,29 @@ export default function SituacioGenerator() {
   const { t, lang } = useI18n();
   const utils = trpc.useUtils();
 
-  const [topic, setTopic] = useState("");
-  const [yearGroup, setYearGroup] = useState<"junior" | "primary" | "secondary">("secondary");
-  const [subject, setSubject] = useState("");
-  const [selectedComps, setSelectedComps] = useState<CompetencyCode[]>([]);
+  // Pre-fill from URL params (e.g. when navigating from My Situacions Regenerate button)
+  const searchParams = new URLSearchParams(window.location.search);
+  const initTopic = searchParams.get("topic") ?? "";
+  const initSubject = searchParams.get("subject") ?? "";
+  const initYearGroup = (searchParams.get("yearGroup") ?? "secondary") as "junior" | "primary" | "secondary";
+  const initComps = searchParams.get("competencies")
+    ? (searchParams.get("competencies")!.split(",").filter(Boolean) as CompetencyCode[])
+    : [];
+
+  const [topic, setTopic] = useState(initTopic);
+  const [yearGroup, setYearGroup] = useState<"junior" | "primary" | "secondary">(initYearGroup);
+  const [subject, setSubject] = useState(initSubject);
+  const [selectedComps, setSelectedComps] = useState<CompetencyCode[]>(initComps);
   const [result, setResult] = useState<SituacioResult | null>(null);
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  // Clear URL params after reading so a manual refresh doesn't re-apply them
+  useEffect(() => {
+    if (window.location.search) {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   const generateMutation = trpc.lomloe.generateSituacio.useMutation({
     onSuccess: (data) => {
