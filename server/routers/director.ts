@@ -12,9 +12,15 @@ import {
   schoolCalendarEvents,
   aiBiasFlags,
   biasScanRuns,
+  studentProgress,
+  groupStudents,
+  classGroups,
 } from "../../drizzle/schema";
-import { count, eq, gte, sql, desc, and, lt } from "drizzle-orm";
+import { count, eq, gte, sql, desc, and, lt, inArray } from "drizzle-orm";
 import { appSettings } from "../../drizzle/schema";
+import { notifyOwner } from "../_core/notification";
+import { generateDirectorReportPdf } from "../directorReportPdf";
+import { storagePut } from "../storage";
 
 /** The 8 LOMLOE key competencies */
 const LOMLOE_COMPETENCIES = [
@@ -27,6 +33,8 @@ const LOMLOE_COMPETENCIES = [
   { code: "CE", label: "Emprendedora" },
   { code: "CCEC", label: "Conciencia y expresiones culturales" },
 ];
+
+const ALL_COMPETENCY_CODES = LOMLOE_COMPETENCIES.map(c => c.code);
 
 export const directorRouter = router({
   /** School-wide overview stats */
@@ -171,6 +179,97 @@ export const directorRouter = router({
     return { allPlans, allScans, allFlags, allTeachers };
   }),
 
+  /** Generate a school-wide director PDF report and return a download URL */
+  generateDirectorPdf: adminProcedure
+    .input(z.object({ locale: z.enum(["en", "es", "ca"]).default("en") }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+
+      // Gather all data needed for the report
+      const [statsData, staffData, complianceData, settingsRows] = await Promise.all([
+        (async () => {
+          const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+          const [[totalTeachers], [totalLessonPlans], [aiGeneratedPlans], [totalPracticeSessions], [openBiasFlags], [recentScanRuns]] = await Promise.all([
+            db.select({ count: count() }).from(users).where(eq(users.role, "user")),
+            db.select({ count: count() }).from(lessonPlans),
+            db.select({ count: count() }).from(lessonPlans).where(eq(lessonPlans.aiGenerated, true)),
+            db.select({ count: count() }).from(practiceSessions),
+            db.select({ count: count() }).from(aiBiasFlags).where(eq(aiBiasFlags.resolved, false)),
+            db.select({ count: count() }).from(biasScanRuns).where(gte(biasScanRuns.runAt, thirtyDaysAgo)),
+          ]);
+          return {
+            totalTeachers: totalTeachers?.count ?? 0,
+            totalLessonPlans: totalLessonPlans?.count ?? 0,
+            aiGeneratedPlans: aiGeneratedPlans?.count ?? 0,
+            totalPracticeSessions: totalPracticeSessions?.count ?? 0,
+            openBiasFlags: openBiasFlags?.count ?? 0,
+            recentScanRuns: recentScanRuns?.count ?? 0,
+          };
+        })(),
+        (async () => {
+          const allTeachers = await db
+            .select({ id: users.id, name: users.name, email: users.email, lastSignedIn: users.lastSignedIn })
+            .from(users).where(eq(users.role, "user")).orderBy(desc(users.lastSignedIn));
+          return Promise.all(allTeachers.map(async (teacher) => {
+            const [[plans], [aiPlansRow]] = await Promise.all([
+              db.select({ count: count() }).from(lessonPlans).where(eq(lessonPlans.userId, teacher.id)),
+              db.select({ count: count() }).from(lessonPlans).where(and(eq(lessonPlans.userId, teacher.id), eq(lessonPlans.aiGenerated, true))),
+            ]);
+            return { name: teacher.name, email: teacher.email, lastActive: teacher.lastSignedIn, plansCreated: plans?.count ?? 0, aiPlans: aiPlansRow?.count ?? 0 };
+          }));
+        })(),
+        (async () => {
+          const allPlans = await db.select({ competencies: lessonPlans.competencies, subject: lessonPlans.subject }).from(lessonPlans);
+          const totalPlans = allPlans.length;
+          const competencyCounts: Record<string, number> = {};
+          for (const { code } of LOMLOE_COMPETENCIES) competencyCounts[code] = 0;
+          const subjectMap: Record<string, Set<string>> = {};
+          for (const plan of allPlans) {
+            const subject = plan.subject ?? "Unknown";
+            if (!subjectMap[subject]) subjectMap[subject] = new Set();
+            if (!plan.competencies) continue;
+            try {
+              const codes: string[] = JSON.parse(plan.competencies);
+              for (const code of codes) {
+                if (code in competencyCounts) competencyCounts[code]++;
+                subjectMap[subject].add(code);
+              }
+            } catch { /* skip */ }
+          }
+          const competencyCoverage = LOMLOE_COMPETENCIES.map(({ code, label }) => ({
+            code, label,
+            count: competencyCounts[code] ?? 0,
+            percentage: totalPlans > 0 ? Math.round(((competencyCounts[code] ?? 0) / totalPlans) * 100) : 0,
+          }));
+          const subjectCoverage = Object.entries(subjectMap).map(([subject, codes]) => ({
+            subject,
+            competenciesCovered: codes.size,
+            competencyList: Array.from(codes),
+          })).sort((a, b) => b.competenciesCovered - a.competenciesCovered);
+          return { competencyCoverage, subjectCoverage };
+        })(),
+        db.select().from(appSettings),
+      ]);
+
+      const settings: Record<string, string> = {};
+      for (const row of settingsRows) settings[row.key] = row.value;
+
+      const pdfBuffer = await generateDirectorReportPdf({
+        schoolName: settings.school_name ?? null,
+        generatedAt: new Date(),
+        locale: input.locale,
+        stats: statsData,
+        competencyCoverage: complianceData.competencyCoverage,
+        staffActivity: staffData,
+        subjectCoverage: complianceData.subjectCoverage,
+      });
+
+      const fileKey = `director-reports/seba-director-report-${Date.now()}.pdf`;
+      const { url } = await storagePut(fileKey, pdfBuffer, "application/pdf");
+      return { url, filename: `seba-director-report-${new Date().toISOString().slice(0, 10)}.pdf` };
+    }),
+
   /** Get school-wide settings */
   getSchoolSettings: adminProcedure.query(async () => {
     const db = await getDb();
@@ -200,13 +299,33 @@ export const directorRouter = router({
     return db.select({ id: users.id, name: users.name, email: users.email, role: users.role, createdAt: users.createdAt, lastSignedIn: users.lastSignedIn }).from(users).orderBy(desc(users.createdAt));
   }),
 
-  /** Update a user's role */
+  /** Update a user's role — sends owner notification when promoting to admin */
   updateUserRole: adminProcedure
     .input(z.object({ userId: z.string(), role: z.enum(["user", "admin"]) }))
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
+
+      // Fetch current role before updating
+      const [targetUser] = await db
+        .select({ name: users.name, email: users.email, role: users.role })
+        .from(users)
+        .where(eq(users.id, parseInt(input.userId, 10)));
+
       await db.update(users).set({ role: input.role }).where(eq(users.id, parseInt(input.userId, 10)));
+
+      // Notify owner when a user is promoted to admin
+      if (input.role === "admin" && targetUser?.role !== "admin") {
+        try {
+          await notifyOwner({
+            title: "SEBA: New Admin Promoted",
+            content: `A user has been promoted to Director/Admin on SEBA.\n\nName: ${targetUser?.name ?? "Unknown"}\nEmail: ${targetUser?.email ?? "Unknown"}\nPromoted at: ${new Date().toISOString()}`,
+          });
+        } catch {
+          // Non-fatal — role update already succeeded
+        }
+      }
+
       return { success: true };
     }),
 
@@ -284,5 +403,89 @@ export const directorRouter = router({
       subjectCoverage,
       gapCount: competencies.filter(c => c.gap).length,
     };
+  }),
+
+  /** School-wide student progress: per-class competency heatmap for director view */
+  getSchoolWideStudentProgress: adminProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+
+    // Get all class groups across all teachers
+    const allGroups = await db
+      .select({
+        id: classGroups.id,
+        className: classGroups.className,
+        level: classGroups.level,
+        userId: classGroups.userId,
+      })
+      .from(classGroups)
+      .orderBy(classGroups.className);
+
+    if (allGroups.length === 0) {
+      return { groups: [], schoolAverages: ALL_COMPETENCY_CODES.map(code => ({ code, average: null })) };
+    }
+
+    const groupIds = allGroups.map(g => g.id);
+
+    // Get all student progress records for all groups
+    const allRecords = await db
+      .select()
+      .from(studentProgress)
+      .where(inArray(studentProgress.groupId, groupIds));
+
+    // Get student counts per group
+    const studentCountRows = await db
+      .select({ groupId: groupStudents.groupId, cnt: count() })
+      .from(groupStudents)
+      .where(inArray(groupStudents.groupId, groupIds))
+      .groupBy(groupStudents.groupId);
+
+    const studentCountMap: Record<number, number> = {};
+    for (const row of studentCountRows) {
+      studentCountMap[row.groupId] = row.cnt;
+    }
+
+    // Per-group competency averages
+    const groupSummaries = allGroups.map(group => {
+      const groupRecords = allRecords.filter(r => r.groupId === group.id);
+      const totals: Record<string, { sum: number; count: number }> = {};
+      for (const r of groupRecords) {
+        if (!totals[r.competency]) totals[r.competency] = { sum: 0, count: 0 };
+        totals[r.competency].sum += r.score;
+        totals[r.competency].count += 1;
+      }
+      const competencyAverages = ALL_COMPETENCY_CODES.map(code => ({
+        code,
+        average: totals[code] ? Math.round(totals[code].sum / totals[code].count) : null,
+        activityCount: totals[code]?.count ?? 0,
+      }));
+      const scored = competencyAverages.filter(c => c.average !== null);
+      const overall = scored.length > 0
+        ? Math.round(scored.reduce((s, c) => s + (c.average ?? 0), 0) / scored.length)
+        : null;
+      return {
+        groupId: group.id,
+        className: group.className,
+        level: group.level,
+        studentCount: studentCountMap[group.id] ?? 0,
+        totalActivities: groupRecords.length,
+        competencyAverages,
+        overall,
+      };
+    });
+
+    // School-wide averages across all groups
+    const schoolTotals: Record<string, { sum: number; count: number }> = {};
+    for (const r of allRecords) {
+      if (!schoolTotals[r.competency]) schoolTotals[r.competency] = { sum: 0, count: 0 };
+      schoolTotals[r.competency].sum += r.score;
+      schoolTotals[r.competency].count += 1;
+    }
+    const schoolAverages = ALL_COMPETENCY_CODES.map(code => ({
+      code,
+      average: schoolTotals[code] ? Math.round(schoolTotals[code].sum / schoolTotals[code].count) : null,
+    }));
+
+    return { groups: groupSummaries, schoolAverages };
   }),
 });

@@ -2029,6 +2029,57 @@ export const translations = {
     help_admin_s3_title: "Manage users",
     help_admin_s3_desc: "Promote users to admin, deactivate accounts, or review individual teacher activity.",
     help_admin_tip1: "Admin access is granted by updating the user role in the database. Contact your system administrator.",
+
+    // Director – Student Progress heatmap
+    dir_progress_no_groups: "No class groups found",
+    dir_progress_no_groups_desc: "Create class groups in My Classes to start tracking school-wide student progress.",
+    dir_progress_total_classes: "Classes",
+    dir_progress_total_students: "Students",
+    dir_progress_total_activities: "Activities",
+    dir_progress_school_avg: "School Avg",
+    dir_progress_school_competency_avgs: "School-wide Competency Averages",
+    dir_progress_school_competency_avgs_desc: "Average score per LOMLOE competency across all class groups.",
+    dir_progress_heatmap_title: "Class Competency Heatmap",
+    dir_progress_heatmap_desc: "Average competency score per class group. Scores are aggregated from all recorded student activities.",
+    dir_progress_class: "Class",
+    dir_progress_students: "Students",
+    dir_progress_overall: "Overall",
+    dir_progress_legend: "Legend",
+    dir_progress_no_data: "No data",
+    dir_progress_no_activity: "No activity recorded yet",
+    dir_progress_no_activity_desc: "Log student activities in My Classes to populate the heatmap.",
+    dir_progress_lomloe_note: "All data is aggregated at class level. Individual student identifiers are not displayed in this view in accordance with LOMLOE data minimisation principles.",
+
+    // Director – PDF export
+    dir_pdf_export: "Export School Report PDF",
+    dir_pdf_generating: "Generating PDF…",
+    dir_pdf_error: "Failed to generate PDF. Please try again.",
+    dir_pdf_ready: "PDF ready — downloading now",
+
+    // Director – Admin promotion notification
+    dir_admin_promoted_notify_title: "New Admin Promoted",
+
+    // Head of Study (Cap d'Estudis) dropdown
+    nav_head_of_study: "Head of Study",
+    hos_progress: "Student Progress",
+    hos_groups: "Class Groups",
+    hos_timetable: "Timetable",
+    hos_attendance: "Attendance",
+    hos_assessment_calendar: "Assessment Calendar",
+    hos_curriculum: "Curriculum Compliance",
+    hos_reports: "Reports & Exports",
+    hos_settings: "Settings & Permissions",
+    // Head of Study page descriptions
+    hos_progress_desc: "Anonymised competency attainment trends and practice performance across all classes.",
+    hos_groups_desc: "Overview of all class groups, their assigned teachers, and student counts.",
+    hos_timetable_desc: "View and manage class timetables and session scheduling across the school.",
+    hos_attendance_desc: "Aggregate attendance data and absence patterns across year groups.",
+    hos_assessment_calendar_desc: "Key exam dates, evaluation periods, and assessment deadlines.",
+    hos_curriculum_desc: "LOMLOE competency coverage across all lesson plans — identify gaps in the 8 required competencies.",
+    hos_reports_desc: "Generate and download PDF/CSV school reports on curricular coverage, AI usage, and bias scan history.",
+    hos_settings_desc: "Manage teacher accounts, assign roles, and configure school-wide platform defaults.",
+    hos_coming_soon: "Coming soon",
+    hos_coming_soon_desc: "This section will display live school data once connected.",
   },
 
   es: {
@@ -4031,6 +4082,56 @@ export const translations = {
     help_admin_s3_title: "Gestionar usuarios",
     help_admin_s3_desc: "Promueve usuarios a administrador, desactiva cuentas o revisa la actividad de docentes.",
     help_admin_tip1: "El acceso de administrador se otorga actualizando el rol del usuario en la base de datos.",
+
+    // Director – Student Progress heatmap
+    dir_progress_no_groups: "No se encontraron grupos de clase",
+    dir_progress_no_groups_desc: "Crea grupos de clase en Mis Clases para empezar a seguir el progreso del alumnado.",
+    dir_progress_total_classes: "Clases",
+    dir_progress_total_students: "Alumnos",
+    dir_progress_total_activities: "Actividades",
+    dir_progress_school_avg: "Media del centro",
+    dir_progress_school_competency_avgs: "Medias de competencias del centro",
+    dir_progress_school_competency_avgs_desc: "Puntuación media por competencia LOMLOE en todos los grupos de clase.",
+    dir_progress_heatmap_title: "Mapa de competencias por clase",
+    dir_progress_heatmap_desc: "Puntuación media por competencia y grupo de clase. Las puntuaciones se agregan de todas las actividades registradas.",
+    dir_progress_class: "Clase",
+    dir_progress_students: "Alumnos",
+    dir_progress_overall: "Global",
+    dir_progress_legend: "Leyenda",
+    dir_progress_no_data: "Sin datos",
+    dir_progress_no_activity: "Sin actividad registrada todavía",
+    dir_progress_no_activity_desc: "Registra actividades de alumnos en Mis Clases para rellenar el mapa.",
+    dir_progress_lomloe_note: "Todos los datos se agregan a nivel de clase. Los identificadores individuales de alumnos no se muestran en esta vista, de acuerdo con los principios de minimización de datos de la LOMLOE.",
+
+    // Director – PDF export
+    dir_pdf_export: "Exportar informe PDF del centro",
+    dir_pdf_generating: "Generando PDF…",
+    dir_pdf_error: "Error al generar el PDF. Inténtalo de nuevo.",
+    dir_pdf_ready: "PDF listo — descargando ahora",
+
+    // Director – Admin promotion notification
+    dir_admin_promoted_notify_title: "Nuevo administrador promovido",
+
+    // Head of Study (Cap d'Estudis) dropdown
+    nav_head_of_study: "Jefe de Estudios",
+    hos_progress: "Progreso del Alumnado",
+    hos_groups: "Grupos de Clase",
+    hos_timetable: "Horarios",
+    hos_attendance: "Asistencia",
+    hos_assessment_calendar: "Calendario de Evaluación",
+    hos_curriculum: "Cumplimiento Curricular",
+    hos_reports: "Informes y Exportaciones",
+    hos_settings: "Configuración y Permisos",
+    hos_progress_desc: "Tendencias anonimizadas de adquisición de competencias y rendimiento en práctica en todas las clases.",
+    hos_groups_desc: "Visión general de todos los grupos de clase, sus docentes asignados y el número de alumnos.",
+    hos_timetable_desc: "Consulta y gestiona los horarios de clase y la programación de sesiones en el centro.",
+    hos_attendance_desc: "Datos agregados de asistencia y patrones de ausencia por curso.",
+    hos_assessment_calendar_desc: "Fechas clave de exámenes, períodos de evaluación y plazos de entrega.",
+    hos_curriculum_desc: "Cobertura de competencias LOMLOE en todas las programaciones — identifica lagunas en las 8 competencias requeridas.",
+    hos_reports_desc: "Genera y descarga informes PDF/CSV del centro sobre cobertura curricular, uso de IA e historial de análisis de sesgos.",
+    hos_settings_desc: "Gestiona cuentas de docentes, asigna roles y configura los valores predeterminados del centro.",
+    hos_coming_soon: "Próximamente",
+    hos_coming_soon_desc: "Esta sección mostrará datos en tiempo real del centro una vez conectada.",
   },
 
   ca: {
@@ -6033,6 +6134,56 @@ export const translations = {
     help_admin_s3_title: "Gestionar usuaris",
     help_admin_s3_desc: "Promou usuaris a administrador, desactiva comptes o revisa l'activitat de docents.",
     help_admin_tip1: "L'accés d'administrador s'atorga actualitzant el rol de l'usuari a la base de dades.",
+
+    // Director – Student Progress heatmap
+    dir_progress_no_groups: "No s'han trobat grups de classe",
+    dir_progress_no_groups_desc: "Crea grups de classe a Les Meves Classes per començar a seguir el progrés de l'alumnat.",
+    dir_progress_total_classes: "Classes",
+    dir_progress_total_students: "Alumnes",
+    dir_progress_total_activities: "Activitats",
+    dir_progress_school_avg: "Mitjana del centre",
+    dir_progress_school_competency_avgs: "Mitjanes de competències del centre",
+    dir_progress_school_competency_avgs_desc: "Puntuació mitjana per competència LOMLOE a tots els grups de classe.",
+    dir_progress_heatmap_title: "Mapa de competències per classe",
+    dir_progress_heatmap_desc: "Puntuació mitjana per competència i grup de classe. Les puntuacions s'agreguen de totes les activitats registrades.",
+    dir_progress_class: "Classe",
+    dir_progress_students: "Alumnes",
+    dir_progress_overall: "Global",
+    dir_progress_legend: "Llegenda",
+    dir_progress_no_data: "Sense dades",
+    dir_progress_no_activity: "Sense activitat registrada encara",
+    dir_progress_no_activity_desc: "Registra activitats d'alumnes a Les Meves Classes per omplir el mapa.",
+    dir_progress_lomloe_note: "Totes les dades s'agreguen a nivell de classe. Els identificadors individuals d'alumnes no es mostren en aquesta vista, d'acord amb els principis de minimització de dades de la LOMLOE.",
+
+    // Director – PDF export
+    dir_pdf_export: "Exportar informe PDF del centre",
+    dir_pdf_generating: "Generant PDF…",
+    dir_pdf_error: "Error en generar el PDF. Torna-ho a intentar.",
+    dir_pdf_ready: "PDF llest — descarregant ara",
+
+    // Director – Admin promotion notification
+    dir_admin_promoted_notify_title: "Nou administrador promogut",
+
+    // Head of Study (Cap d'Estudis) dropdown
+    nav_head_of_study: "Cap d'Estudis",
+    hos_progress: "Progrés de l'Alumnat",
+    hos_groups: "Grups de Classe",
+    hos_timetable: "Horaris",
+    hos_attendance: "Assistència",
+    hos_assessment_calendar: "Calendari d'Avaluació",
+    hos_curriculum: "Compliment Curricular",
+    hos_reports: "Informes i Exportacions",
+    hos_settings: "Configuració i Permisos",
+    hos_progress_desc: "Tendències anonimitzades d'adquisició de competències i rendiment en pràctica a totes les classes.",
+    hos_groups_desc: "Visió general de tots els grups de classe, els seus docents assignats i el nombre d'alumnes.",
+    hos_timetable_desc: "Consulta i gestiona els horaris de classe i la programació de sessions al centre.",
+    hos_attendance_desc: "Dades agregades d'assistència i patrons d'absència per curs.",
+    hos_assessment_calendar_desc: "Dates clau d'exàmens, períodes d'avaluació i terminis de lliurament.",
+    hos_curriculum_desc: "Cobertura de competències LOMLOE en totes les programacions — identifica buits en les 8 competències requerides.",
+    hos_reports_desc: "Genera i descarrega informes PDF/CSV del centre sobre cobertura curricular, ús de la IA i historial d'anàlisi de biaixos.",
+    hos_settings_desc: "Gestiona comptes de docents, assigna rols i configura els valors predeterminats del centre.",
+    hos_coming_soon: "Properament",
+    hos_coming_soon_desc: "Aquesta secció mostrarà dades en temps real del centre un cop connectada.",
   },
 } as const;
 

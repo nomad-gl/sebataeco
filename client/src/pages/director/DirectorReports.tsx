@@ -1,13 +1,14 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useI18n } from "@/contexts/I18nContext";
 import { trpc } from "@/lib/trpc";
-import { Download, FileText, Shield, Users, Loader2, BarChart3 } from "lucide-react";
+import { Download, FileText, Shield, Users, Loader2, BarChart3, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 function downloadCSV(filename: string, rows: string[][]) {
   const csv = rows.map(r => r.map(c => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
@@ -20,15 +21,38 @@ function downloadCSV(filename: string, rows: string[][]) {
   URL.revokeObjectURL(url);
 }
 
+function downloadFromUrl(url: string, filename: string) {
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.target = "_blank";
+  a.click();
+}
+
 export default function DirectorReports() {
   const { t } = useI18n();
   const { user, loading: authLoading } = useAuth();
   const [, navigate] = useLocation();
+  const [pdfLoading, setPdfLoading] = useState(false);
   useEffect(() => { if (!authLoading && user && user.role !== "admin") navigate("/"); }, [authLoading, user, navigate]);
   if (authLoading || (!user && !authLoading)) return null;
   if (user?.role !== "admin") return null;
 
   const { data, isLoading } = trpc.director.getReportsData.useQuery();
+  const generatePdf = trpc.director.generateDirectorPdf.useMutation();
+
+  async function handleExportPdf() {
+    setPdfLoading(true);
+    try {
+      const result = await generatePdf.mutateAsync({ locale: "en" });
+      downloadFromUrl(result.url, result.filename);
+      toast.success(t("dir_pdf_ready"));
+    } catch {
+      toast.error(t("dir_pdf_error"));
+    } finally {
+      setPdfLoading(false);
+    }
+  }
 
   function exportLessonPlans() {
     if (!data) return;
@@ -126,14 +150,28 @@ export default function DirectorReports() {
     <DashboardLayout>
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-primary/10">
-            <Download className="w-6 h-6 text-primary" />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-primary/10">
+              <Download className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">{t("dir_reports")}</h1>
+              <p className="text-sm text-muted-foreground">{t("dir_reports_desc")}</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">{t("dir_reports")}</h1>
-            <p className="text-sm text-muted-foreground">{t("dir_reports_desc")}</p>
-          </div>
+          {/* School Report PDF export */}
+          <Button
+            onClick={handleExportPdf}
+            disabled={pdfLoading || isLoading}
+            className="shrink-0 gap-2"
+          >
+            {pdfLoading ? (
+              <><Loader2 className="w-4 h-4 animate-spin" />{t("dir_pdf_generating")}</>
+            ) : (
+              <><FileDown className="w-4 h-4" />{t("dir_pdf_export")}</>
+            )}
+          </Button>
         </div>
 
         {isLoading ? (

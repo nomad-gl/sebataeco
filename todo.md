@@ -2346,3 +2346,34 @@
 - [x] Add getReportsData and getTrends tRPC procedures to director router
 - [x] Add getSchoolSettings and updateSchoolSettings tRPC procedures
 - [x] Add getUsersForAdmin and updateUserRole tRPC procedures
+
+## Director Follow-ups 3 (Session 3)
+- [x] Add getSchoolWideStudentProgress tRPC procedure to director router (school-wide competency heatmap by class/year group)
+- [x] Add generateDirectorPdf tRPC procedure to director router (school-wide PDF report)
+- [x] Build DirectorStudentProgress page with live LOMLOE competency heatmap by class/year group
+- [x] Add PDF export button to DirectorReports page (calls generateDirectorPdf, downloads PDF)
+- [x] Add notifyOwner call in updateUserRole mutation when role is promoted to admin
+- [x] Add i18n keys for Student Progress page (EN/ES/CA)
+- [x] Add i18n keys for PDF export button and admin notification (EN/ES/CA)
+- [x] Verify TypeScript 0 errors
+- [x] Save checkpoint
+
+## NavBar: Head of Study button
+- [x] Unlink the Practice button (removed from mainNavItemsBefore)
+- [x] Rename "Practice" to "Head of Study" in NavBar (desktop + mobile, all three languages EN/ES/CA)
+- [x] Move "Head of Study" button to the right of the Teacher dropdown button (now a dropdown)
+
+## Head of Study (Cap d'Estudis) Dropdown
+
+- [x] Add nav_head_of_study key and 8 sub-page keys to EN/ES/CA in I18nContext.tsx
+- [x] Add Head of Study dropdown to NavBar (desktop + mobile) between Teacher and Director
+- [x] Create /head-of-study/progress page (reuse DirectorStudentProgress)
+- [x] Create /head-of-study/groups stub page (Class Groups overview)
+- [x] Create /head-of-study/timetable stub page (Timetable / Scheduling)
+- [x] Create /head-of-study/attendance stub page (Attendance Overview)
+- [x] Create /head-of-study/assessment-calendar stub page (Assessment Calendar)
+- [x] Create /head-of-study/curriculum stub page (Curriculum Compliance)
+- [x] Create /head-of-study/reports stub page (Reports & Exports)
+- [x] Create /head-of-study/settings stub page (Settings & Permissions)
+- [x] Register all 8 routes in App.tsx
+- [x] Update dialectOverrides.ts for Valencian nav_head_of_study key

@@ -48,6 +48,14 @@ import DirectorCurriculum from "./pages/director/DirectorCurriculum";
 import DirectorStudentProgress from "./pages/director/DirectorStudentProgress";
 import DirectorReports from "./pages/director/DirectorReports";
 import DirectorSettings from "./pages/director/DirectorSettings";
+import HosProgress from "./pages/hos/HosProgress";
+import HosGroups from "./pages/hos/HosGroups";
+import HosTimetable from "./pages/hos/HosTimetable";
+import HosAttendance from "./pages/hos/HosAttendance";
+import HosAssessmentCalendar from "./pages/hos/HosAssessmentCalendar";
+import HosCurriculum from "./pages/hos/HosCurriculum";
+import HosReports from "./pages/hos/HosReports";
+import HosSettings from "./pages/hos/HosSettings";
 
 function Router() {
   return (
@@ -88,6 +96,14 @@ function Router() {
         <Route path="/director/progress" component={DirectorStudentProgress} />
         <Route path="/director/reports" component={DirectorReports} />
         <Route path="/director/settings" component={DirectorSettings} />
+        <Route path="/head-of-study/progress" component={HosProgress} />
+        <Route path="/head-of-study/groups" component={HosGroups} />
+        <Route path="/head-of-study/timetable" component={HosTimetable} />
+        <Route path="/head-of-study/attendance" component={HosAttendance} />
+        <Route path="/head-of-study/assessment-calendar" component={HosAssessmentCalendar} />
+        <Route path="/head-of-study/curriculum" component={HosCurriculum} />
+        <Route path="/head-of-study/reports" component={HosReports} />
+        <Route path="/head-of-study/settings" component={HosSettings} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

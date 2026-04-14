@@ -28,11 +28,13 @@ export default function NavBar() {
   const isClassroomPage = location === "/chat" || location === "/practice" || location === "/progress";
   const [dropOpen, setDropOpen]         = useState(false);
   const [directorOpen, setDirectorOpen] = useState(false);
+  const [hosOpen, setHosOpen]           = useState(false);
   const [langOpen, setLangOpen]         = useState(false);
   const [mobileOpen, setMobileOpen]     = useState(false);
   const [bellOpen, setBellOpen]         = useState(false);
   const dropRef     = useRef<HTMLDivElement>(null);
   const directorRef = useRef<HTMLDivElement>(null);
+  const hosRef      = useRef<HTMLDivElement>(null);
   const langRef     = useRef<HTMLDivElement>(null);
   const bellRef     = useRef<HTMLDivElement>(null);
 
@@ -53,12 +55,26 @@ export default function NavBar() {
   // Items before Teacher dropdown (Home removed — logo already links to /)
   const mainNavItemsBefore = [
     { href: "/chat",      label: t("nav_chat"),     icon: MessageCircle },
-    { href: "/practice",  label: t("nav_practice"), icon: Dumbbell },
   ];
   // Items after Teacher dropdown (TA Forum only — Director is now a dropdown)
   const mainNavItemsAfter = [
     { href: "/forum",     label: t("nav_forum"),    icon: MessagesSquare },
   ];
+
+  const hosItems = [
+    { href: "/head-of-study/progress",            label: t("hos_progress"),            icon: GraduationCap },
+    { href: "/head-of-study/groups",              label: t("hos_groups"),              icon: Users },
+    { href: "/head-of-study/timetable",           label: t("hos_timetable"),           icon: CalendarDays },
+    { href: "/head-of-study/attendance",          label: t("hos_attendance"),          icon: UserCheck },
+    { href: "/head-of-study/assessment-calendar", label: t("hos_assessment_calendar"), icon: BookOpen },
+    { href: "/head-of-study/curriculum",          label: t("hos_curriculum"),          icon: BookCheck },
+    { href: "/head-of-study/reports",             label: t("hos_reports"),             icon: Download },
+    { href: "/head-of-study/settings",            label: t("hos_settings"),            icon: SettingsIcon },
+  ];
+
+  const isHosActive = hosItems.some(
+    (i) => location === i.href || (i.href !== "/" && location.startsWith(i.href))
+  );
 
   const directorItems = [
     { href: "/director/overview",  label: t("dir_overview"),         icon: BarChart3 },
@@ -99,6 +115,7 @@ export default function NavBar() {
     function handleClick(e: MouseEvent) {
       if (dropRef.current && !dropRef.current.contains(e.target as Node)) setDropOpen(false);
       if (directorRef.current && !directorRef.current.contains(e.target as Node)) setDirectorOpen(false);
+      if (hosRef.current && !hosRef.current.contains(e.target as Node)) setHosOpen(false);
       if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false);
       if (bellRef.current && !bellRef.current.contains(e.target as Node)) setBellOpen(false);
     }
@@ -107,7 +124,7 @@ export default function NavBar() {
   }, []);
 
   // Close mobile menu on route change
-  useEffect(() => { setMobileOpen(false); setDropOpen(false); setDirectorOpen(false); setLangOpen(false); }, [location]);
+  useEffect(() => { setMobileOpen(false); setDropOpen(false); setDirectorOpen(false); setHosOpen(false); setLangOpen(false); }, [location]);
 
   // Note: body scroll lock removed — the mobile nav panel itself scrolls instead
   // (overflow-y-auto on the nav element handles long menus on small screens)
@@ -242,6 +259,49 @@ export default function NavBar() {
                 </Link>
               );
             })}
+
+            {/* Head of Study dropdown */}
+            <div ref={hosRef} className="relative">
+              <button
+                onClick={() => setHosOpen((o) => !o)}
+                title={t("nav_head_of_study")}
+                aria-label={t("nav_head_of_study")}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                  isHosActive
+                    ? "bg-primary text-primary-foreground"
+                    : isClassroomPage
+                      ? "text-white/80 hover:text-white hover:bg-white/15"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                )}
+              >
+                <GraduationCap className="w-4 h-4" />
+                <span className="hidden lg:inline">{t("nav_head_of_study")}</span>
+                <ChevronDown className={cn("w-3 h-3 transition-transform hidden lg:inline", hosOpen && "rotate-180")} />
+              </button>
+
+              {hosOpen && (
+                <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-border rounded-xl shadow-lg py-1 z-50">
+                  {hosItems.map(({ href, label, icon: Icon }) => {
+                    const active = location === href || (href !== "/" && location.startsWith(href));
+                    return (
+                      <Link
+                        key={href}
+                        href={href}
+                        onClick={() => setHosOpen(false)}
+                        className={cn(
+                          "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
+                          active ? "text-primary bg-primary/5" : "text-foreground hover:bg-secondary"
+                        )}
+                      >
+                        <Icon className="w-4 h-4" />
+                        {label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
             {/* Director dropdown */}
             <div ref={directorRef} className="relative">
@@ -488,7 +548,7 @@ export default function NavBar() {
             {/* Main nav */}
             <div className={cn("px-4 py-3 border-b", isClassroomPage ? "border-white/15" : "border-border")}>
               <p className={cn("text-xs font-semibold uppercase tracking-wider mb-2 px-1", isClassroomPage ? "text-white/50" : "text-muted-foreground")}>
-                {t("nav_home")} &amp; {t("nav_practice")}
+  {t("nav_home")} &amp; {t("nav_chat")}
               </p>
               {[...mainNavItemsBefore, ...mainNavItemsAfter].map(({ href, label, icon: Icon }) => {
                 const active = location === href || (href !== "/" && location.startsWith(href));
@@ -529,6 +589,34 @@ export default function NavBar() {
                 </button>
               </div>
             )}
+
+            {/* Head of Study tools */}
+            <div className="px-4 py-3">
+              <p className={cn("text-xs font-semibold uppercase tracking-wider mb-2 px-1", isClassroomPage ? "text-white/50" : "text-muted-foreground")}>
+                {t("nav_head_of_study")}
+              </p>
+              {hosItems.map(({ href, label, icon: Icon }) => {
+                const active = location === href || (href !== "/" && location.startsWith(href));
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mb-1",
+                      active
+                        ? "bg-primary text-primary-foreground"
+                        : isClassroomPage
+                          ? "text-white/80 hover:text-white hover:bg-white/15"
+                          : "text-foreground hover:bg-secondary"
+                    )}
+                  >
+                    <Icon className="w-5 h-5 flex-shrink-0" />
+                    {label}
+                  </Link>
+                );
+              })}
+            </div>
 
             {/* Director tools */}
             <div className="px-4 py-3">
