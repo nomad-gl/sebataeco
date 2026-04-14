@@ -17,7 +17,7 @@ import { ChevronLeft, ChevronRight, Plus, Trash2, CalendarDays,
   ExternalLink, LayoutList, Pencil, School, BookOpen, User, GraduationCap,
   FolderOpen, X, Check, Download, Link, Unlink, Users, Save, ClipboardList,
   ListChecks, RefreshCw, FileDown, Hash, Mic, MicOff, Volume2, VolumeX, ChevronDown, Loader2, Copy,
-  BookTemplate, LayoutTemplate,
+  BookTemplate, LayoutTemplate, Clock,
 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { SebaSymbol } from "@/components/SebaSymbol";
@@ -1919,6 +1919,19 @@ export default function SchoolCalendar() {
                     </div>
                     <Button variant="ghost" size="icon" onClick={nextMonth}><ChevronRight className="w-4 h-4" /></Button>
                     <div className="flex items-center gap-1 ml-auto">
+                      {selectedCalendarId && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-[10px] px-2 gap-1 text-teal-700 border-teal-300 hover:bg-teal-50 dark:text-teal-400 dark:border-teal-700 dark:hover:bg-teal-950/30"
+                          disabled={applyDefaultTimeMutation.isPending}
+                          onClick={() => applyDefaultTimeMutation.mutate({ calendarId: selectedCalendarId })}
+                          title="Fill missing start/end times on all lesson events using the calendar's default session time"
+                        >
+                          {applyDefaultTimeMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Clock className="w-3 h-3" />}
+                          <span className="hidden sm:inline">{applyDefaultTimeMutation.isPending ? "Applying…" : "Fill Times"}</span>
+                        </Button>
+                      )}
                       <span className="text-[11px] text-muted-foreground hidden sm:inline">{t("cal_wk_abbr")}</span>
                       <Input
                         type="number"
@@ -2011,6 +2024,19 @@ export default function SchoolCalendar() {
                     </div>
                     <Button variant="ghost" size="icon" onClick={nextMonth}><ChevronRight className="w-4 h-4" /></Button>
                     <div className="flex items-center gap-1 ml-auto">
+                      {selectedCalendarId && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-[10px] px-2 gap-1 text-teal-700 border-teal-300 hover:bg-teal-50 dark:text-teal-400 dark:border-teal-700 dark:hover:bg-teal-950/30"
+                          disabled={applyDefaultTimeMutation.isPending}
+                          onClick={() => applyDefaultTimeMutation.mutate({ calendarId: selectedCalendarId })}
+                          title="Fill missing start/end times on all lesson events using the calendar's default session time"
+                        >
+                          {applyDefaultTimeMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Clock className="w-3 h-3" />}
+                          <span className="hidden sm:inline">{applyDefaultTimeMutation.isPending ? "Applying…" : "Fill Times"}</span>
+                        </Button>
+                      )}
                       <span className="text-[11px] text-muted-foreground hidden sm:inline">{t("cal_wk_abbr")}</span>
                       <Input
                         type="number"
@@ -2080,6 +2106,16 @@ export default function SchoolCalendar() {
                             const dayEvents = eventsByDate[key] ?? [];
                             const isWeekend = day.getDay() === 0 || day.getDay() === 6;
                             const isToday = key === new Date().toISOString().split("T")[0];
+                            const dayTeachingMins = dayEvents.reduce((sum, ev) => {
+                              if (ev.eventType !== "lesson" && ev.eventType !== "ai_generated") return sum;
+                              const dur = calcDuration(ev.startTime, ev.endTime);
+                              return sum + (dur ?? 0);
+                            }, 0);
+                            const dayTimeLabel = dayTeachingMins > 0
+                              ? dayTeachingMins >= 60
+                                ? `${Math.floor(dayTeachingMins / 60)}h${dayTeachingMins % 60 > 0 ? `${dayTeachingMins % 60}m` : ""}`
+                                : `${dayTeachingMins}m`
+                              : null;
                             return (
                               <div
                                 key={key}
@@ -2087,7 +2123,12 @@ export default function SchoolCalendar() {
                                 onClick={() => openDayPanel(day)}
                               >
                                 <div className="flex items-center justify-between mb-1">
-                                  <span className={`text-xs font-medium ${isToday ? "text-primary" : "text-muted-foreground"}`}>{day.getDate()}</span>
+                                  <div className="flex items-center gap-1">
+                                    <span className={`text-xs font-medium ${isToday ? "text-primary" : "text-muted-foreground"}`}>{day.getDate()}</span>
+                                    {dayTimeLabel && (
+                                      <span className="text-[9px] font-mono text-teal-600 bg-teal-50 dark:bg-teal-950/40 dark:text-teal-400 rounded px-0.5 leading-tight" title={`${dayTeachingMins} min teaching`}>{dayTimeLabel}</span>
+                                    )}
+                                  </div>
                                   {!isWeekend && (
                                     <span
                                       className="opacity-0 group-hover:opacity-80 transition-opacity cursor-pointer hover:text-primary"

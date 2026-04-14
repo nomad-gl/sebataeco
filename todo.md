@@ -2313,3 +2313,7 @@
 ## Calendar: Bulk duplicate + undo delete
 - [x] Bulk duplicate event to multiple selected dates from detail popover
 - [x] Undo delete: soft-delete with toast Undo action for calendar events
+
+## Calendar: Day-total teaching hours badge + bulk-apply default times
+- [x] Day-total teaching hours badge on month grid date cells
+- [x] Bulk-apply default times to existing timeless calendar events (button in calendar toolbar)

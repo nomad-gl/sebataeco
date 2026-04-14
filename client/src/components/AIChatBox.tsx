@@ -691,7 +691,7 @@ export function AIChatBox({
                 <p className="text-sm">{resolvedEmptyState}</p>
               </div>
               {suggestedPrompts && suggestedPrompts.length > 0 && (
-                <div className="flex max-w-2xl flex-wrap justify-center gap-2">
+                <div className="flex w-full max-w-2xl flex-col sm:flex-row sm:flex-wrap sm:justify-center gap-2">
                   {suggestedPrompts.map((prompt, index) => (
                     <button
                       key={index}
@@ -708,7 +708,7 @@ export function AIChatBox({
                         onSendMessage(prompt);
                       }}
                       disabled={isLoading}
-                      className="rounded-lg border border-white/40 bg-white/25 text-white px-4 py-2 text-sm transition-colors hover:bg-white/35 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="w-full sm:w-auto rounded-lg border border-white/40 bg-white/25 text-white px-4 py-2.5 text-sm text-left sm:text-center transition-colors hover:bg-white/35 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {prompt}
                     </button>
