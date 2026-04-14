@@ -260,7 +260,8 @@ export default function NavBar() {
               );
             })}
 
-            {/* Head of Study dropdown */}
+            {/* Head of Study dropdown — visible to admin and head_of_study roles */}
+            {(user?.role === "admin" || user?.role === "head_of_study") && (
             <div ref={hosRef} className="relative">
               <button
                 onClick={() => setHosOpen((o) => !o)}
@@ -302,6 +303,7 @@ export default function NavBar() {
                 </div>
               )}
             </div>
+            )}
 
             {/* Director dropdown */}
             <div ref={directorRef} className="relative">
@@ -590,7 +592,8 @@ export default function NavBar() {
               </div>
             )}
 
-            {/* Head of Study tools */}
+            {/* Head of Study tools — role-gated */}
+            {(user?.role === "admin" || user?.role === "head_of_study") && (
             <div className="px-4 py-3">
               <p className={cn("text-xs font-semibold uppercase tracking-wider mb-2 px-1", isClassroomPage ? "text-white/50" : "text-muted-foreground")}>
                 {t("nav_head_of_study")}
@@ -617,6 +620,7 @@ export default function NavBar() {
                 );
               })}
             </div>
+            )}
 
             {/* Director tools */}
             <div className="px-4 py-3">

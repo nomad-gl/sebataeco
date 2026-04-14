@@ -1,4 +1,4 @@
-import { boolean, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { boolean, date, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -9,7 +9,7 @@ export const users = mysqlTable("users", {
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  role: mysqlEnum("role", ["user", "admin", "head_of_study"]).default("user").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -981,3 +981,53 @@ export const appSettings = mysqlTable("app_settings", {
 });
 export type AppSetting = typeof appSettings.$inferSelect;
 export type InsertAppSetting = typeof appSettings.$inferInsert;
+
+/**
+ * Timetable slots — Head of Study weekly schedule grid.
+ * One row per period per day. dayOfWeek: 1=Mon … 5=Fri.
+ */
+export const timetableSlots = mysqlTable("timetable_slots", {
+  id: int("id").autoincrement().primaryKey(),
+  /** 1=Monday … 5=Friday */
+  dayOfWeek: int("dayOfWeek").notNull(),
+  /** 1-based period index within the day */
+  periodNumber: int("periodNumber").notNull(),
+  /** HH:MM e.g. '09:00' */
+  startTime: varchar("startTime", { length: 8 }).notNull(),
+  /** HH:MM e.g. '10:00' */
+  endTime: varchar("endTime", { length: 8 }).notNull(),
+  /** FK to users.id — null means unassigned */
+  teacherId: int("teacherId"),
+  /** FK to class_groups.id — null means unassigned */
+  classGroupId: int("classGroupId"),
+  subject: varchar("subject", { length: 128 }),
+  room: varchar("room", { length: 64 }),
+  academicYear: varchar("academicYear", { length: 16 }).notNull().default("2025-26"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type TimetableSlot = typeof timetableSlots.$inferSelect;
+export type InsertTimetableSlot = typeof timetableSlots.$inferInsert;
+
+/**
+ * Attendance records — daily register per student per class group.
+ * One row per student per date (unique constraint).
+ */
+export const attendanceRecords = mysqlTable("attendance_records", {
+  id: int("id").autoincrement().primaryKey(),
+  /** FK to class_groups.id */
+  classGroupId: int("classGroupId").notNull(),
+  /** FK to group_students.id */
+  studentId: int("studentId").notNull(),
+  date: date("date").notNull(),
+  status: mysqlEnum("status", ["present", "absent", "late", "excused"]).notNull().default("present"),
+  notes: text("notes"),
+  /** FK to users.id — who marked the register */
+  recordedBy: int("recordedBy"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AttendanceRecord = typeof attendanceRecords.$inferSelect;
+export type InsertAttendanceRecord = typeof attendanceRecords.$inferInsert;

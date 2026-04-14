@@ -2377,3 +2377,15 @@
 - [x] Create /head-of-study/settings stub page (Settings & Permissions)
 - [x] Register all 8 routes in App.tsx
 - [x] Update dialectOverrides.ts for Valencian nav_head_of_study key
+
+## Session 4: HOS Role Gate + Timetable + Attendance + Aina Improvement
+
+- [x] Add head_of_study to users role enum in drizzle/schema.ts
+- [x] Generate and apply migration SQL for role enum change
+- [x] Add HOS-specific tRPC procedures (getTimetable, saveTimetable, getAttendance, saveAttendance)
+- [x] Build /head-of-study/timetable page — weekly grid, teacher/class slot assignments
+- [x] Build /head-of-study/attendance page — daily register per class + 30-day absence rate chart
+- [x] Add role gate: HOS dropdown only visible to users with role head_of_study or admin
+- [x] Improve Aina system prompt — richer LOMLOE context, structured answers, competency tagging
+- [x] Add i18n keys for Timetable and Attendance pages (EN/ES/CA)
+- [x] Update todo.md and save checkpoint

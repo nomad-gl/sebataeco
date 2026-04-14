@@ -23,6 +23,7 @@ import { dpaRouter } from "./routers/dpa";
 import { whatsNewRouter } from "./routers/whatsNew";
 import { selfHealRouter } from "./routers/selfHeal";
 import { directorRouter } from "./routers/director";
+import { hosRouter } from "./routers/hos";
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -64,6 +65,7 @@ export const appRouter = router({
   whatsNew: whatsNewRouter,
   selfHeal: selfHealRouter,
   director: directorRouter,
+  hos: hosRouter,
 });
 
 export type AppRouter = typeof appRouter;
