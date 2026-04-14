@@ -2482,3 +2482,9 @@
 - [x] Add nav_situacio_nav i18n key (EN: "Situació", ES: "Situació", CA: "Situació")
 - [x] Add HosOrAdminRoute wrapper in App.tsx — redirects non-admin/non-HOS users to / on /situacio and /my-situacions
 - [x] TypeScript 0 errors confirmed (npx tsc --noEmit)
+
+## Session 10: Situació Permission Toast
+- [x] HosOrAdminRoute: show toast notification when a Teacher (user role) tries to access /situacio or /my-situacions
+- [x] Add i18n key situacio_no_permission to EN/ES/CA
+- [x] Verify TypeScript 0 errors
+- [ ] Save checkpoint

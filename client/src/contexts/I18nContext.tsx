@@ -2174,6 +2174,7 @@ export const translations = {
     situacio_empty: "Fill in the form and click Generate to create a Situació d'Aprenentatge.",
     nav_situacio: "SA Generator",
     nav_situacio_nav: "Situació",
+    situacio_no_permission: "You need Head of Study or Director permissions to access Situació pages.",
     dir_settings_role_hos: "Head of Study",
     // Assessment Calendar (HOS)
     acal_title: "Assessment Calendar",
@@ -4385,6 +4386,7 @@ export const translations = {
     situacio_empty: "Rellena el formulario y haz clic en Generar para crear una Situación de Aprendizaje.",
     nav_situacio: "Generador SA",
     nav_situacio_nav: "Situació",
+    situacio_no_permission: "Necesitas permisos de Cap d'Estudis o Director para acceder a las páginas de Situació.",
     dir_settings_role_hos: "Cap d'Estudis",
     // Assessment Calendar (HOS)
     acal_title: "Calendario de Evaluación",
@@ -6593,6 +6595,7 @@ export const translations = {
     situacio_empty: "Omple el formulari i fes clic a Generar per crear una Situació d'Aprenentatge.",
     nav_situacio: "Generador SA",
     nav_situacio_nav: "Situació",
+    situacio_no_permission: "Necessites permisos de Cap d'Estudis o Director per accedir a les pàgines de Situació.",
     dir_settings_role_hos: "Cap d'Estudis",
     // Assessment Calendar (HOS)
     acal_title: "Calendari d'Avaluació",

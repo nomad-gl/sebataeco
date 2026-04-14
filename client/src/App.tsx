@@ -60,16 +60,26 @@ import SituacioGenerator from "./pages/SituacioGenerator";
 import MySituacions from "./pages/MySituacions";
 import { useAuth } from "./_core/hooks/useAuth";
 import { useLocation } from "wouter";
+import { useEffect } from "react";
+import { toast } from "sonner";
+import { useI18n } from "./contexts/I18nContext";
 
-/** Wraps a component and redirects to / if the user lacks admin or head_of_study role. */
+/** Wraps a component and redirects to / with a toast if the user lacks admin or head_of_study role. */
 function HosOrAdminRoute({ component: Component }: { component: React.ComponentType }) {
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
+  const { t } = useI18n();
+  const hasPermission = !user || user.role === "admin" || user.role === "head_of_study";
+
+  useEffect(() => {
+    if (!loading && user && !hasPermission) {
+      toast.error(t("situacio_no_permission"), { duration: 5000 });
+      navigate("/");
+    }
+  }, [loading, user, hasPermission, navigate, t]);
+
   if (loading) return null;
-  if (user && user.role !== "admin" && user.role !== "head_of_study") {
-    navigate("/");
-    return null;
-  }
+  if (!hasPermission) return null;
   return <Component />;
 }
 
