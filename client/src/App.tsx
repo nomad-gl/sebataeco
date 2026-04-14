@@ -58,6 +58,12 @@ import HosReports from "./pages/hos/HosReports";
 import HosSettings from "./pages/hos/HosSettings";
 import SituacioGenerator from "./pages/SituacioGenerator";
 import MySituacions from "./pages/MySituacions";
+import AdminEnrolment from "./pages/admin/AdminEnrolment";
+import AdminFinance from "./pages/admin/AdminFinance";
+import AdminStaff from "./pages/admin/AdminStaff";
+import AdminDocuments from "./pages/admin/AdminDocuments";
+import AdminGovernance from "./pages/admin/AdminGovernance";
+import AdminFacilities from "./pages/admin/AdminFacilities";
 import { useAuth } from "./_core/hooks/useAuth";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
@@ -92,6 +98,12 @@ function Router() {
         <Route path="/practice" component={Practice} />
         <Route path="/admin" component={Admin} />
         <Route path="/admin/errors" component={AdminErrors} />
+        <Route path="/admin/enrolment" component={AdminEnrolment} />
+        <Route path="/admin/finance" component={AdminFinance} />
+        <Route path="/admin/staff" component={AdminStaff} />
+        <Route path="/admin/documents" component={AdminDocuments} />
+        <Route path="/admin/governance" component={AdminGovernance} />
+        <Route path="/admin/facilities" component={AdminFacilities} />
         <Route path="/create" component={Create} />
         <Route path="/my-materials" component={MyMaterials} />
         <Route path="/materials/:id" component={MaterialView} />

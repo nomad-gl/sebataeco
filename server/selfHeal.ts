@@ -22,10 +22,10 @@ import { notifyOwner } from "./_core/notification";
 const EXPECTED_TABLES: Record<string, string[]> = {
   users: ["id", "openId", "name", "email", "role", "createdAt", "updatedAt"],
   practice_sessions: ["id", "userId", "competency", "score", "createdAt"],
-  teaching_materials: ["id", "userId", "type", "title", "topic", "content", "createdAt"],
+  teaching_materials: ["id", "userId", "type", "title", "topic", "content", "createdAt", "updatedAt"],
   class_challenges: ["id", "hostId", "roomCode", "title", "status", "createdAt"],
   challenge_participants: ["id", "challengeId", "nickname", "score"],
-  aina_user_profiles: ["userId", "questionCount", "communicationStyle", "lastUpdated"],
+  aina_user_profiles: ["userId", "questionCount", "avgQuestionLength", "competencyFrequency", "topicKeywords", "communicationStyle"],
   aina_message_ratings: ["id", "userId", "messageId", "rating", "createdAt"],
   question_answers: ["id", "questionId", "competency", "yearGroup", "isCorrect", "createdAt"],
   question_review_status: ["questionId", "status", "createdAt"],
