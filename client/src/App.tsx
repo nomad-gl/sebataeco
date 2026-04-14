@@ -58,6 +58,20 @@ import HosReports from "./pages/hos/HosReports";
 import HosSettings from "./pages/hos/HosSettings";
 import SituacioGenerator from "./pages/SituacioGenerator";
 import MySituacions from "./pages/MySituacions";
+import { useAuth } from "./_core/hooks/useAuth";
+import { useLocation } from "wouter";
+
+/** Wraps a component and redirects to / if the user lacks admin or head_of_study role. */
+function HosOrAdminRoute({ component: Component }: { component: React.ComponentType }) {
+  const { user, loading } = useAuth();
+  const [, navigate] = useLocation();
+  if (loading) return null;
+  if (user && user.role !== "admin" && user.role !== "head_of_study") {
+    navigate("/");
+    return null;
+  }
+  return <Component />;
+}
 
 function Router() {
   return (
@@ -106,8 +120,12 @@ function Router() {
         <Route path="/head-of-study/curriculum" component={HosCurriculum} />
         <Route path="/head-of-study/reports" component={HosReports} />
         <Route path="/head-of-study/settings" component={HosSettings} />
-        <Route path="/situacio" component={SituacioGenerator} />
-        <Route path="/my-situacions" component={MySituacions} />
+        <Route path="/situacio">
+          <HosOrAdminRoute component={SituacioGenerator} />
+        </Route>
+        <Route path="/my-situacions">
+          <HosOrAdminRoute component={MySituacions} />
+        </Route>
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

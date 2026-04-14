@@ -1231,4 +1231,61 @@ Return ONLY a valid JSON object (no markdown, no code fences) with exactly these
         .where(and(eq(savedSituacions.id, input.id), eq(savedSituacions.userId, ctx.user.id)));
       return { success: true };
     }),
+
+  /**
+   * Toggle the school-wide shared flag on a saved Situació.
+   * Only admin or head_of_study users can share SAs.
+   */
+  toggleShareSituacio: protectedProcedure
+    .input(z.object({ id: z.number(), shared: z.boolean() }))
+    .mutation(async ({ input, ctx }) => {
+      const role = (ctx.user as { role?: string }).role ?? "user";
+      if (role !== "admin" && role !== "head_of_study") {
+        const { TRPCError } = await import("@trpc/server");
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only admins or heads of study can share SAs." });
+      }
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      await db.update(savedSituacions)
+        .set({ isShared: input.shared })
+        .where(eq(savedSituacions.id, input.id));
+      return { success: true };
+    }),
+
+  /**
+   * Get all school-wide shared Situacions (visible to all authenticated users).
+   */
+  getSharedSituacions: protectedProcedure
+    .query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      return db
+        .select()
+        .from(savedSituacions)
+        .where(eq(savedSituacions.isShared, true))
+        .orderBy(savedSituacions.createdAt);
+    }),
+
+  /**
+   * Update the content of a saved Situació (inline editing).
+   * Only the owner can update their own SA.
+   */
+  updateSituacioContent: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      title: z.string().optional(),
+      resultJson: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const updates: Record<string, unknown> = {};
+      if (input.title !== undefined) updates.title = input.title;
+      if (input.resultJson !== undefined) updates.resultJson = input.resultJson;
+      if (Object.keys(updates).length === 0) return { success: true };
+      await db.update(savedSituacions)
+        .set(updates)
+        .where(and(eq(savedSituacions.id, input.id), eq(savedSituacions.userId, ctx.user.id)));
+      return { success: true };
+    }),
 });

@@ -17,7 +17,7 @@ import {
   classGroups,
 } from "../../drizzle/schema";
 import { count, eq, gte, sql, desc, and, lt, inArray } from "drizzle-orm";
-import { appSettings } from "../../drizzle/schema";
+import { appSettings, schoolSettings } from "../../drizzle/schema";
 import { notifyOwner } from "../_core/notification";
 import { generateDirectorReportPdf } from "../directorReportPdf";
 import { storagePut } from "../storage";
@@ -487,5 +487,69 @@ export const directorRouter = router({
     }));
 
     return { groups: groupSummaries, schoolAverages };
+  }),
+
+  // ─── School Settings (logo, name) ────────────────────────────────────────────
+
+  /**
+   * Get the school branding settings (logo, name) from the singleton school_settings row.
+   */
+  getSchoolBranding: adminProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) return { id: 1, schoolName: null, logoUrl: null, logoKey: null, updatedAt: new Date() };
+    const rows = await db.select().from(schoolSettings).where(eq(schoolSettings.id, 1));
+    if (rows.length === 0) {
+      await db.insert(schoolSettings).values({ id: 1 });
+      return { id: 1, schoolName: null, logoUrl: null, logoKey: null, updatedAt: new Date() };
+    }
+    return rows[0];
+  }),
+
+  /**
+   * Update school name.
+   */
+  updateSchoolName: adminProcedure
+    .input(z.object({ schoolName: z.string().max(256) }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      await db.update(schoolSettings)
+        .set({ schoolName: input.schoolName })
+        .where(eq(schoolSettings.id, 1));
+      return { success: true };
+    }),
+
+  /**
+   * Upload a school logo — accepts base64 data URL, stores in S3, saves URL to DB.
+   */
+  uploadSchoolLogo: adminProcedure
+    .input(z.object({
+      dataUrl: z.string(),
+      mimeType: z.string().default("image/png"),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const base64 = input.dataUrl.includes(",") ? input.dataUrl.split(",")[1] : input.dataUrl;
+      const buffer = Buffer.from(base64, "base64");
+      const ext = input.mimeType.split("/")[1] ?? "png";
+      const key = `school-logos/logo-${Date.now()}.${ext}`;
+      const { url } = await storagePut(key, buffer, input.mimeType);
+      await db.update(schoolSettings)
+        .set({ logoUrl: url, logoKey: key })
+        .where(eq(schoolSettings.id, 1));
+      return { url };
+    }),
+
+  /**
+   * Remove the school logo.
+   */
+  removeSchoolLogo: adminProcedure.mutation(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+    await db.update(schoolSettings)
+      .set({ logoUrl: null, logoKey: null })
+      .where(eq(schoolSettings.id, 1));
+    return { success: true };
   }),
 });

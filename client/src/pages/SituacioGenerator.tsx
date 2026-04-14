@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
 import NavBar from "@/components/NavBar";
@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Sparkles, Copy, Check, BookOpen, Target, ClipboardList, Zap, BookMarked, Save, Download } from "lucide-react";
+import { Loader2, Sparkles, Copy, Check, BookOpen, Target, ClipboardList, Zap, BookMarked, Save, Download, Pencil, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -34,9 +35,72 @@ type SituacioResult = {
   lomloeRef: string;
 };
 
+/** Inline editable text field — shows text normally, switches to textarea on click */
+function EditableField({
+  value,
+  onChange,
+  multiline = true,
+  className,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  multiline?: boolean;
+  className?: string;
+}) {
+  const [editing, setEditing] = useState(false);
+  const ref = useRef<HTMLTextAreaElement | HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing) ref.current?.focus();
+  }, [editing]);
+
+  if (editing) {
+    if (multiline) {
+      return (
+        <Textarea
+          ref={ref as React.RefObject<HTMLTextAreaElement>}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={() => setEditing(false)}
+          className={cn("bg-white/15 border-white/30 text-white resize-none min-h-[80px] text-sm", className)}
+          rows={4}
+        />
+      );
+    }
+    return (
+      <Input
+        ref={ref as React.RefObject<HTMLInputElement>}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={() => setEditing(false)}
+        className={cn("bg-white/15 border-white/30 text-white text-sm", className)}
+      />
+    );
+  }
+
+  return (
+    <div
+      className={cn(
+        "group relative cursor-pointer rounded-md px-2 py-1 -mx-2 -my-1 hover:bg-white/10 transition-colors",
+        className
+      )}
+      onClick={() => setEditing(true)}
+      title="Click to edit"
+    >
+      <p className="text-white/80 text-sm leading-relaxed whitespace-pre-wrap">{value}</p>
+      <Pencil className="absolute top-1.5 right-1.5 w-3 h-3 text-white/30 opacity-0 group-hover:opacity-100 transition-opacity" />
+    </div>
+  );
+}
+
 export default function SituacioGenerator() {
   const { t, lang } = useI18n();
   const utils = trpc.useUtils();
+
+  // Fetch school logo for print header
+  const { data: branding } = trpc.director.getSchoolBranding.useQuery(undefined, {
+    retry: false,
+  });
 
   // Pre-fill from URL params (e.g. when navigating from My Situacions Regenerate button)
   const searchParams = new URLSearchParams(window.location.search);
@@ -136,8 +200,10 @@ export default function SituacioGenerator() {
 
   function handleDownloadPdf() {
     if (!result) return;
-    const markdown = buildMarkdown();
-    // Build a simple printable HTML page and trigger browser print
+    const logoHtml = branding?.logoUrl
+      ? `<img src="${branding.logoUrl}" alt="School Logo" style="height:60px;object-fit:contain;margin-bottom:8px;" />`
+      : "";
+    const schoolName = branding?.schoolName ?? "";
     const html = `<!DOCTYPE html>
 <html lang="${lang}">
 <head>
@@ -145,19 +211,28 @@ export default function SituacioGenerator() {
 <title>${result.title}</title>
 <style>
   body { font-family: Georgia, serif; max-width: 720px; margin: 40px auto; padding: 0 20px; color: #1a1a1a; line-height: 1.6; }
-  h1 { font-size: 1.6rem; border-bottom: 2px solid #4f46e5; padding-bottom: 8px; color: #312e81; }
-  h2 { font-size: 1.1rem; color: #4f46e5; margin-top: 1.5rem; }
+  .header { display: flex; align-items: center; gap: 16px; border-bottom: 2px solid #4f46e5; padding-bottom: 12px; margin-bottom: 20px; }
+  .header-text h1 { font-size: 1.4rem; color: #312e81; margin: 0; }
+  .header-text p { font-size: 0.85rem; color: #6b7280; margin: 2px 0 0; }
+  h2 { font-size: 1.05rem; color: #4f46e5; margin-top: 1.5rem; border-left: 3px solid #4f46e5; padding-left: 8px; }
   .badge { display: inline-block; background: #e0e7ff; color: #3730a3; border-radius: 9999px; padding: 2px 10px; font-size: 0.75rem; font-weight: 700; margin-right: 6px; }
-  .ref { color: #6b7280; font-style: italic; font-size: 0.85rem; margin-top: 1.5rem; }
+  .ref { color: #6b7280; font-style: italic; font-size: 0.85rem; margin-top: 1.5rem; border-top: 1px solid #e5e7eb; padding-top: 8px; }
   ol, ul { padding-left: 1.5rem; }
   li { margin-bottom: 4px; }
   .activity { margin-bottom: 12px; }
   .activity-phase { font-weight: 700; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.05em; color: #6d28d9; }
+  .powered { text-align: right; font-size: 0.7rem; color: #9ca3af; margin-top: 20px; }
   @media print { body { margin: 20px; } }
 </style>
 </head>
 <body>
-<h1>${result.title}</h1>
+<div class="header">
+  ${logoHtml}
+  <div class="header-text">
+    <h1>${result.title}</h1>
+    ${schoolName ? `<p>${schoolName}</p>` : ""}
+  </div>
+</div>
 <h2>${t("situacio_context_label")}</h2>
 <p>${result.context}</p>
 <h2>${t("situacio_task_label")}</h2>
@@ -173,6 +248,7 @@ ${result.activities.map(a => `<div class="activity"><p class="activity-phase">${
 ${result.criteria.map(c => `<li>${c}</li>`).join("\n")}
 </ol>
 <p class="ref">${result.lomloeRef}</p>
+<p class="powered">Powered by SEBA</p>
 </body>
 </html>`;
 
@@ -185,6 +261,35 @@ ${result.criteria.map(c => `<li>${c}</li>`).join("\n")}
         setTimeout(() => URL.revokeObjectURL(url), 5000);
       };
     }
+  }
+
+  // Helpers to update individual fields in result
+  function updateResult(patch: Partial<SituacioResult>) {
+    if (!result) return;
+    setResult({ ...result, ...patch });
+    setSaved(false);
+  }
+
+  function updateActivity(index: number, field: "phase" | "description", value: string) {
+    if (!result) return;
+    const activities = result.activities.map((a, i) =>
+      i === index ? { ...a, [field]: value } : a
+    );
+    updateResult({ activities });
+  }
+
+  function updateCriterion(index: number, value: string) {
+    if (!result) return;
+    const criteria = result.criteria.map((c, i) => (i === index ? value : c));
+    updateResult({ criteria });
+  }
+
+  function updateCompetencyDesc(index: number, value: string) {
+    if (!result) return;
+    const competencies = result.competencies.map((c, i) =>
+      i === index ? { ...c, description: value } : c
+    );
+    updateResult({ competencies });
   }
 
   return (
@@ -309,10 +414,20 @@ ${result.criteria.map(c => `<li>${c}</li>`).join("\n")}
               <>
                 {/* Title + action buttons */}
                 <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <p className="text-xs text-white/50 uppercase tracking-wide mb-1">{t("situacio_result_title")}</p>
-                    <h2 className="text-xl font-bold text-white">{result.title}</h2>
-                    <p className="text-xs text-white/40 mt-1 italic">{result.lomloeRef}</p>
+                    <EditableField
+                      value={result.title}
+                      onChange={(v) => updateResult({ title: v })}
+                      multiline={false}
+                      className="text-xl font-bold"
+                    />
+                    <EditableField
+                      value={result.lomloeRef}
+                      onChange={(v) => updateResult({ lomloeRef: v })}
+                      multiline={false}
+                      className="text-xs text-white/40 italic mt-1"
+                    />
                   </div>
                   <div className="flex gap-2 flex-wrap">
                     <Button
@@ -332,7 +447,7 @@ ${result.criteria.map(c => `<li>${c}</li>`).join("\n")}
                       className="bg-white/10 border-white/20 text-white hover:bg-white/20 gap-1.5"
                     >
                       {saveMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                      {saved ? "Saved" : t("sa_save")}
+                      {saved ? t("sa_saved") : t("sa_save")}
                     </Button>
                     <Button
                       variant="outline"
@@ -346,6 +461,12 @@ ${result.criteria.map(c => `<li>${c}</li>`).join("\n")}
                   </div>
                 </div>
 
+                {/* Edit hint */}
+                <p className="text-white/40 text-xs flex items-center gap-1">
+                  <Pencil className="w-3 h-3" />
+                  {t("sa_edit_hint")}
+                </p>
+
                 {/* Context */}
                 <Card className="bg-white/10 backdrop-blur-md border-white/20">
                   <CardHeader className="pb-2">
@@ -355,7 +476,7 @@ ${result.criteria.map(c => `<li>${c}</li>`).join("\n")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-white/80 text-sm leading-relaxed">{result.context}</p>
+                    <EditableField value={result.context} onChange={(v) => updateResult({ context: v })} />
                   </CardContent>
                 </Card>
 
@@ -368,7 +489,7 @@ ${result.criteria.map(c => `<li>${c}</li>`).join("\n")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-white/80 text-sm leading-relaxed">{result.task}</p>
+                    <EditableField value={result.task} onChange={(v) => updateResult({ task: v })} />
                   </CardContent>
                 </Card>
 
@@ -381,7 +502,7 @@ ${result.criteria.map(c => `<li>${c}</li>`).join("\n")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    {result.competencies.map((c) => (
+                    {result.competencies.map((c, i) => (
                       <div key={c.code} className="flex items-start gap-2">
                         <span className={cn(
                           "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold flex-shrink-0 mt-0.5",
@@ -389,7 +510,12 @@ ${result.criteria.map(c => `<li>${c}</li>`).join("\n")}
                         )}>
                           {c.code}
                         </span>
-                        <p className="text-white/75 text-sm leading-relaxed">{c.description}</p>
+                        <EditableField
+                          value={c.description}
+                          onChange={(v) => updateCompetencyDesc(i, v)}
+                          multiline={false}
+                          className="flex-1"
+                        />
                       </div>
                     ))}
                   </CardContent>
@@ -409,9 +535,17 @@ ${result.criteria.map(c => `<li>${c}</li>`).join("\n")}
                         <span className="w-6 h-6 rounded-full bg-white/15 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
                           {i + 1}
                         </span>
-                        <div>
-                          <p className="text-white text-xs font-semibold uppercase tracking-wide">{a.phase}</p>
-                          <p className="text-white/75 text-sm leading-relaxed">{a.description}</p>
+                        <div className="flex-1 min-w-0">
+                          <EditableField
+                            value={a.phase}
+                            onChange={(v) => updateActivity(i, "phase", v)}
+                            multiline={false}
+                            className="text-xs font-semibold uppercase tracking-wide"
+                          />
+                          <EditableField
+                            value={a.description}
+                            onChange={(v) => updateActivity(i, "description", v)}
+                          />
                         </div>
                       </div>
                     ))}
@@ -427,9 +561,17 @@ ${result.criteria.map(c => `<li>${c}</li>`).join("\n")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <ol className="space-y-1.5 list-decimal list-inside">
+                    <ol className="space-y-2 list-none">
                       {result.criteria.map((c, i) => (
-                        <li key={i} className="text-white/75 text-sm leading-relaxed">{c}</li>
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="text-white/50 text-sm font-mono mt-1 flex-shrink-0">{i + 1}.</span>
+                          <EditableField
+                            value={c}
+                            onChange={(v) => updateCriterion(i, v)}
+                            multiline={false}
+                            className="flex-1"
+                          />
+                        </li>
                       ))}
                     </ol>
                   </CardContent>

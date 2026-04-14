@@ -8,6 +8,7 @@ import {
   groupStudents,
   users,
   assessmentEvents,
+  lessonPlans,
 } from "../../drizzle/schema";
 import { eq, and, gte, lte, inArray } from "drizzle-orm";
 
@@ -515,5 +516,52 @@ export const hosRouter = router({
       if (!db) throw new Error("DB unavailable");
       await db.delete(assessmentEvents).where(eq(assessmentEvents.id, input.id));
       return { success: true };
+    }),
+
+  /**
+   * Curriculum Compliance — aggregate LOMLOE competency coverage across all lesson plans,
+   * grouped by yearGroup. Returns an array of { yearGroup, competency, count, total, pct }.
+   */
+  getCurriculumCompliance: protectedProcedure
+    .query(async () => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+
+      const plans = await db
+        .select({
+          yearGroup: lessonPlans.yearGroup,
+          competencies: lessonPlans.competencies,
+        })
+        .from(lessonPlans);
+
+      const LOMLOE_CODES = ["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"];
+      const YEAR_GROUPS = ["junior", "primary", "secondary"];
+
+      const totalByYearGroup: Record<string, number> = {};
+      const coverageMap: Record<string, Record<string, number>> = {};
+
+      for (const plan of plans) {
+        const yg = plan.yearGroup ?? "secondary";
+        totalByYearGroup[yg] = (totalByYearGroup[yg] ?? 0) + 1;
+        if (!coverageMap[yg]) coverageMap[yg] = {};
+        let codes: string[] = [];
+        try { codes = plan.competencies ? JSON.parse(plan.competencies) : []; } catch { codes = []; }
+        for (const code of codes) {
+          if (LOMLOE_CODES.includes(code)) {
+            coverageMap[yg][code] = (coverageMap[yg][code] ?? 0) + 1;
+          }
+        }
+      }
+
+      const rows: { yearGroup: string; competency: string; count: number; total: number; pct: number }[] = [];
+      for (const yg of YEAR_GROUPS) {
+        const total = totalByYearGroup[yg] ?? 0;
+        for (const code of LOMLOE_CODES) {
+          const count = coverageMap[yg]?.[code] ?? 0;
+          const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+          rows.push({ yearGroup: yg, competency: code, count, total, pct });
+        }
+      }
+      return rows;
     }),
 });

@@ -1,11 +1,17 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
+import { useAuth } from "@/_core/hooks/useAuth";
 import NavBar from "@/components/NavBar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, BookMarked, Copy, Check, Trash2, BookOpen, Target, ClipboardList, Zap, ExternalLink, RefreshCw } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import {
+  Loader2, BookMarked, Copy, Check, Trash2, BookOpen, Target,
+  ClipboardList, Zap, ExternalLink, RefreshCw, Globe, Lock,
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Link, useLocation } from "wouter";
@@ -39,8 +45,10 @@ type RawSituacio = {
   topic: string;
   subject: string;
   yearGroup: string;
-  competencies: string; // stored as JSON string in DB
+  competencies: string;
   resultJson: string;
+  isShared?: boolean | null;
+  sharedBy?: string | null;
   createdAt: Date;
 };
 
@@ -52,22 +60,41 @@ type SavedSituacio = {
   yearGroup: string;
   competencies: string[];
   resultJson: string;
+  isShared: boolean;
+  sharedBy: string | null;
   createdAt: number;
 };
 
 function toSaved(raw: RawSituacio): SavedSituacio {
   let comps: string[] = [];
   try { comps = JSON.parse(raw.competencies); } catch { comps = []; }
-  return { ...raw, competencies: comps, createdAt: new Date(raw.createdAt).getTime() };
+  return {
+    ...raw,
+    competencies: comps,
+    isShared: raw.isShared === true,
+    sharedBy: raw.sharedBy ?? null,
+    createdAt: new Date(raw.createdAt).getTime(),
+  };
 }
 
 export default function MySituacions() {
   const { t } = useI18n();
+  const { user } = useAuth();
   const utils = trpc.useUtils();
   const [, navigate] = useLocation();
+  const [activeTab, setActiveTab] = useState<"mine" | "shared">("mine");
 
-  const { data: rawSituacions = [], isLoading } = trpc.lomloe.getMySituacions.useQuery();
-  const situacions: SavedSituacio[] = (rawSituacions as RawSituacio[]).map(toSaved);
+  const isHos = user?.role === "admin" || user?.role === "head_of_study";
+
+  const { data: rawMine = [], isLoading: loadingMine } = trpc.lomloe.getMySituacions.useQuery();
+  const { data: rawShared = [], isLoading: loadingShared } = trpc.lomloe.getSharedSituacions.useQuery(
+    undefined,
+    { enabled: activeTab === "shared" }
+  );
+
+  const mine: SavedSituacio[] = (rawMine as RawSituacio[]).map(toSaved);
+  const shared: SavedSituacio[] = (rawShared as RawSituacio[]).map(toSaved);
+
   const [viewItem, setViewItem] = useState<SavedSituacio | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -76,6 +103,15 @@ export default function MySituacions() {
       utils.lomloe.getMySituacions.invalidate();
       toast.success(t("my_situacions_deleted"));
     },
+  });
+
+  const toggleShareMutation = trpc.lomloe.toggleShareSituacio.useMutation({
+    onSuccess: () => {
+      utils.lomloe.getMySituacions.invalidate();
+      utils.lomloe.getSharedSituacions.invalidate();
+      toast.success(t("my_situacions_share_toggled") ?? "Sharing updated.");
+    },
+    onError: () => toast.error(t("my_situacions_save_error")),
   });
 
   function getParsed(item: SavedSituacio): SituacioResult | null {
@@ -119,6 +155,107 @@ export default function MySituacions() {
 
   const viewParsed = viewItem ? getParsed(viewItem) : null;
 
+  function SituacioCard({ item, showShareToggle = false }: { item: SavedSituacio; showShareToggle?: boolean }) {
+    return (
+      <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-colors group">
+        <CardHeader className="pb-2">
+          <div className="flex items-start justify-between gap-2">
+            <CardTitle className="text-white text-sm leading-snug line-clamp-2 flex-1">{item.title}</CardTitle>
+            {item.isShared && (
+              <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-xs shrink-0 gap-1">
+                <Globe className="w-3 h-3" /> Shared
+              </Badge>
+            )}
+          </div>
+          <p className="text-white/50 text-xs mt-1">{item.subject} · {item.yearGroup}</p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-white/60 text-xs line-clamp-1 italic">{item.topic}</p>
+          <div className="flex flex-wrap gap-1">
+            {item.competencies.map((c) => (
+              <span key={c} className={cn("inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold", COMPETENCY_META[c] ?? "bg-gray-100 text-gray-800")}>
+                {c}
+              </span>
+            ))}
+          </div>
+          <p className="text-white/40 text-xs">{new Date(item.createdAt).toLocaleDateString()}</p>
+          <div className="flex gap-2 pt-1 flex-wrap">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setViewItem(item)}
+              className="flex-1 bg-white/10 border-white/20 text-white hover:bg-white/20 text-xs"
+            >
+              {t("my_situacions_open")}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleRegenerate(item)}
+              title={t("sa_regenerate")}
+              className="bg-white/10 border-white/20 text-emerald-300 hover:bg-emerald-500/20 px-2"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleCopy(item)}
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20 px-2"
+            >
+              {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+            </Button>
+            {showShareToggle && isHos && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => toggleShareMutation.mutate({ id: item.id, shared: !item.isShared })}
+                disabled={toggleShareMutation.isPending}
+                title={item.isShared ? "Unshare from school library" : "Share with school library"}
+                className={cn(
+                  "bg-white/10 border-white/20 px-2",
+                  item.isShared
+                    ? "text-emerald-300 hover:bg-emerald-500/20"
+                    : "text-white/50 hover:bg-white/20"
+                )}
+              >
+                {item.isShared ? <Globe className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => deleteMutation.mutate({ id: item.id })}
+              disabled={deleteMutation.isPending}
+              className="bg-white/10 border-white/20 text-red-300 hover:bg-red-500/20 px-2"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  function EmptyState({ href }: { href?: string }) {
+    return (
+      <Card className="bg-white/10 backdrop-blur-md border-white/20 flex items-center justify-center py-16">
+        <div className="text-center space-y-3">
+          <BookMarked className="w-10 h-10 text-white/30 mx-auto" />
+          <p className="text-white/50 text-sm max-w-xs">{t("my_situacions_empty")}</p>
+          {href && (
+            <Link href={href}>
+              <Button variant="outline" size="sm" className="bg-white/10 border-white/20 text-white hover:bg-white/20 gap-1.5 mt-2">
+                <ExternalLink className="w-3.5 h-3.5" />
+                SA Generator
+              </Button>
+            </Link>
+          )}
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <div className="chat-bg min-h-screen flex flex-col">
       <NavBar />
@@ -142,90 +279,67 @@ export default function MySituacions() {
           </Link>
         </div>
 
-        {isLoading && (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-6 h-6 animate-spin text-white/60" />
-          </div>
-        )}
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "mine" | "shared")}>
+          <TabsList className="bg-white/10 border border-white/20">
+            <TabsTrigger value="mine" className="data-[state=active]:bg-white data-[state=active]:text-primary text-white/70 gap-1.5">
+              <BookMarked className="w-3.5 h-3.5" />
+              {t("my_situacions_tab_mine") ?? "My Library"}
+              {mine.length > 0 && (
+                <span className="ml-1 bg-white/20 text-white text-xs rounded-full px-1.5 py-0.5">{mine.length}</span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="shared" className="data-[state=active]:bg-white data-[state=active]:text-primary text-white/70 gap-1.5">
+              <Globe className="w-3.5 h-3.5" />
+              {t("my_situacions_tab_shared") ?? "School Library"}
+              {shared.length > 0 && (
+                <span className="ml-1 bg-white/20 text-white text-xs rounded-full px-1.5 py-0.5">{shared.length}</span>
+              )}
+            </TabsTrigger>
+          </TabsList>
 
-        {!isLoading && situacions.length === 0 && (
-          <Card className="bg-white/10 backdrop-blur-md border-white/20 flex items-center justify-center py-16">
-            <div className="text-center space-y-3">
-              <BookMarked className="w-10 h-10 text-white/30 mx-auto" />
-              <p className="text-white/50 text-sm max-w-xs">{t("my_situacions_empty")}</p>
-              <Link href="/situacio">
-                <Button variant="outline" size="sm" className="bg-white/10 border-white/20 text-white hover:bg-white/20 gap-1.5 mt-2">
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  SA Generator
-                </Button>
-              </Link>
+          {/* My Library */}
+          <TabsContent value="mine" className="mt-4">
+            {loadingMine && (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="w-6 h-6 animate-spin text-white/60" />
+              </div>
+            )}
+            {!loadingMine && mine.length === 0 && <EmptyState href="/situacio" />}
+            {!loadingMine && mine.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {mine.map((item) => (
+                  <SituacioCard key={item.id} item={item} showShareToggle />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* School Library */}
+          <TabsContent value="shared" className="mt-4">
+            <div className="mb-3 flex items-center gap-2">
+              <Globe className="w-4 h-4 text-emerald-300" />
+              <p className="text-sm text-white/60">
+                {isHos
+                  ? (t("my_situacions_shared_desc_hos") ?? "SAs marked as shared by any Head of Study or Director are visible to all teachers here.")
+                  : (t("my_situacions_shared_desc") ?? "School-wide SAs shared by the Head of Study or Director.")}
+              </p>
             </div>
-          </Card>
-        )}
-
-        {!isLoading && situacions.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {situacions.map((item) => (
-              <Card key={item.id} className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-colors group">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-white text-sm leading-snug line-clamp-2">{item.title}</CardTitle>
-                  <p className="text-white/50 text-xs mt-1">
-                    {item.subject} · {item.yearGroup}
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <p className="text-white/60 text-xs line-clamp-1 italic">{item.topic}</p>
-                  <div className="flex flex-wrap gap-1">
-                    {item.competencies.map((c) => (
-                      <span key={c} className={cn("inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold", COMPETENCY_META[c] ?? "bg-gray-100 text-gray-800")}>
-                        {c}
-                      </span>
-                    ))}
-                  </div>
-                  <p className="text-white/40 text-xs">
-                    {new Date(item.createdAt).toLocaleDateString()}
-                  </p>
-                  <div className="flex gap-2 pt-1">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setViewItem(item)}
-                      className="flex-1 bg-white/10 border-white/20 text-white hover:bg-white/20 text-xs"
-                    >
-                      {t("my_situacions_open")}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleRegenerate(item)}
-                      title={t("sa_regenerate")}
-                      className="bg-white/10 border-white/20 text-emerald-300 hover:bg-emerald-500/20 px-2"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleCopy(item)}
-                      className="bg-white/10 border-white/20 text-white hover:bg-white/20 px-2"
-                    >
-                      {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => deleteMutation.mutate({ id: item.id })}
-                      disabled={deleteMutation.isPending}
-                      className="bg-white/10 border-white/20 text-red-300 hover:bg-red-500/20 px-2"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+            {loadingShared && (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="w-6 h-6 animate-spin text-white/60" />
+              </div>
+            )}
+            {!loadingShared && shared.length === 0 && <EmptyState />}
+            {!loadingShared && shared.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {shared.map((item) => (
+                  <SituacioCard key={item.id} item={item} showShareToggle={false} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Detail Dialog */}
@@ -300,6 +414,12 @@ export default function MySituacions() {
                   {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                   {t("my_situacions_copy")}
                 </Button>
+                {viewItem && (
+                  <Button size="sm" variant="outline" onClick={() => handleRegenerate(viewItem)} className="gap-1.5">
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    {t("sa_regenerate")}
+                  </Button>
+                )}
               </div>
             </div>
           )}

@@ -2426,4 +2426,59 @@
 - [x] Update SituacioGenerator to read URL params on mount and pre-fill form fields
 - [x] Add sa_regenerate i18n key to EN/ES/CA
 - [x] Verify TypeScript 0 errors
+- [x] Save checkpoint
+
+## Session 8: SA Editor + Curriculum Compliance + Shared SA Library
+
+- [ ] SA Generator: make all result fields (title, context, task, competencies, criteria, activities, lomloeRef) inline-editable
+- [ ] SA Generator: add print button (window.print with print-optimised CSS)
+- [ ] SA Generator: ensure Save to Library persists edited content (not original LLM output)
+- [ ] Add is_shared column to saved_situacions table in drizzle/schema.ts
+- [ ] Write and apply migration SQL (0035) for is_shared column
+- [ ] Add tRPC procedures: lomloe.toggleShareSituacio, lomloe.getSharedSituacions
+- [ ] Build /head-of-study/curriculum page — LOMLOE competency coverage table with % bars per class group
+- [ ] Update /my-situacions: add "Mine" / "School Library" tabs
+- [ ] Add share toggle button on each SA card (HOS/admin only) to mark as school-wide
+- [ ] School Library tab shows all is_shared SAs from all users, read-only for teachers
+- [ ] Add i18n keys for SA editing, curriculum compliance, and shared library (EN/ES/CA)
+- [ ] Verify TypeScript 0 errors
 - [ ] Save checkpoint
+
+## Session 8 (continued): School Logo on Print/Export
+
+- [ ] Add school_settings table to drizzle/schema.ts (id, schoolName, logoUrl, logoKey, updatedAt)
+- [ ] Write and apply migration SQL for school_settings table
+- [ ] Add tRPC procedures: director.getSchoolSettings, director.updateSchoolSettings (logo upload via S3)
+- [ ] Add logo upload UI to DirectorSettings page (upload image, preview, save)
+- [ ] Inject school logo into SA Generator print/PDF (window.print() header)
+- [ ] Inject school logo into Director Report PDF (server-side PDFKit header)
+- [ ] Inject school logo into Assessment Calendar print
+- [ ] Inject school logo into My Situacions print/export
+- [ ] Add i18n keys for school logo settings (EN/ES/CA)
+
+## Session 8 (continued): SA Generator + My Situacions Role Gate
+
+- [ ] Gate /situacio route: redirect non-admin/non-HOS users to home with a toast
+- [ ] Gate /my-situacions route: redirect non-admin/non-HOS users to home with a toast
+- [ ] Hide "SA Generator" NavBar link for users without admin or head_of_study role
+- [ ] Hide "My Situacions" NavBar link for users without admin or head_of_study role
+
+## Session 8 (continued): Situació Dropdown in NavBar
+
+- [ ] Create a new "Situació" dropdown in NavBar containing SA Generator (/situacio) and My Situacions (/my-situacions)
+- [ ] Remove the individual SA Generator and My Situacions links from mainNavItemsBefore
+- [ ] Gate the Situació dropdown to admin and head_of_study roles only
+- [ ] Add nav_situacio_dropdown i18n key to EN/ES/CA
+
+## Session 9: Curriculum Compliance + Shared SA Library + Situació Dropdown + Role Gate
+- [x] Build /head-of-study/curriculum page (HosCurriculum.tsx) — LOMLOE competency coverage bars per year group
+- [x] Add hos.getCurriculumCompliance tRPC procedure — aggregates lesson plan competencies by yearGroup
+- [x] Register /head-of-study/curriculum route in App.tsx (was already present from prior session)
+- [x] Add curriculum_subtitle, curriculum_overall_coverage, curriculum_across_competencies, curriculum_by_competency, curriculum_no_data, curriculum_plans, curriculum_legend i18n keys (EN/ES/CA)
+- [x] Verify MySituacions.tsx Shared SA Library tab is fully wired (tabs, getSharedSituacions query, toggleShareSituacio mutation, HOS share toggle button)
+- [x] Create Situació dropdown in NavBar — contains SA Generator (/situacio) and My Situacions (/my-situacions)
+- [x] Remove individual SA Generator and My Situacions links from mainNavItemsBefore
+- [x] Gate Situació dropdown to admin and head_of_study roles only (desktop + mobile nav)
+- [x] Add nav_situacio_nav i18n key (EN: "Situació", ES: "Situació", CA: "Situació")
+- [x] Add HosOrAdminRoute wrapper in App.tsx — redirects non-admin/non-HOS users to / on /situacio and /my-situacions
+- [x] TypeScript 0 errors confirmed (npx tsc --noEmit)

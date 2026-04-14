@@ -29,12 +29,14 @@ export default function NavBar() {
   const [dropOpen, setDropOpen]         = useState(false);
   const [directorOpen, setDirectorOpen] = useState(false);
   const [hosOpen, setHosOpen]           = useState(false);
+  const [situacioOpen, setSituacioOpen] = useState(false);
   const [langOpen, setLangOpen]         = useState(false);
   const [mobileOpen, setMobileOpen]     = useState(false);
   const [bellOpen, setBellOpen]         = useState(false);
   const dropRef     = useRef<HTMLDivElement>(null);
   const directorRef = useRef<HTMLDivElement>(null);
   const hosRef      = useRef<HTMLDivElement>(null);
+  const situacioRef = useRef<HTMLDivElement>(null);
   const langRef     = useRef<HTMLDivElement>(null);
   const bellRef     = useRef<HTMLDivElement>(null);
 
@@ -55,9 +57,16 @@ export default function NavBar() {
   // Items before Teacher dropdown (Home removed — logo already links to /)
   const mainNavItemsBefore = [
     { href: "/chat",           label: t("nav_chat"),           icon: MessageCircle },
+  ];
+
+  // Situació dropdown items — gated to admin/head_of_study
+  const situacioItems = [
     { href: "/situacio",      label: t("nav_situacio"),       icon: Sparkles },
     { href: "/my-situacions", label: t("nav_my_situacions"),  icon: Library },
   ];
+  const isSituacioActive = situacioItems.some(
+    (i) => location === i.href || (i.href !== "/" && location.startsWith(i.href))
+  );
   // Items after Teacher dropdown (TA Forum only — Director is now a dropdown)
   const mainNavItemsAfter = [
     { href: "/forum",     label: t("nav_forum"),    icon: MessagesSquare },
@@ -120,13 +129,14 @@ export default function NavBar() {
       if (hosRef.current && !hosRef.current.contains(e.target as Node)) setHosOpen(false);
       if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false);
       if (bellRef.current && !bellRef.current.contains(e.target as Node)) setBellOpen(false);
+      if (situacioRef.current && !situacioRef.current.contains(e.target as Node)) setSituacioOpen(false);
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
   // Close mobile menu on route change
-  useEffect(() => { setMobileOpen(false); setDropOpen(false); setDirectorOpen(false); setHosOpen(false); setLangOpen(false); }, [location]);
+  useEffect(() => { setMobileOpen(false); setDropOpen(false); setDirectorOpen(false); setHosOpen(false); setSituacioOpen(false); setLangOpen(false); }, [location]);
 
   // Note: body scroll lock removed — the mobile nav panel itself scrolls instead
   // (overflow-y-auto on the nav element handles long menus on small screens)
@@ -195,6 +205,51 @@ export default function NavBar() {
                 </Link>
               );
             })}
+
+            {/* Situació dropdown — gated to admin / head_of_study */}
+            {(user?.role === "admin" || user?.role === "head_of_study") && (
+            <div ref={situacioRef} className="relative">
+              <button
+                onClick={() => setSituacioOpen((o) => !o)}
+                title={t("nav_situacio_nav")}
+                aria-label={t("nav_situacio_nav")}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                  isSituacioActive
+                    ? "bg-primary text-primary-foreground"
+                    : isClassroomPage
+                      ? "text-white/80 hover:text-white hover:bg-white/15"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                )}
+              >
+                <Sparkles className="w-4 h-4" />
+                <span className="hidden lg:inline">{t("nav_situacio_nav")}</span>
+                <ChevronDown className={cn("w-3 h-3 transition-transform hidden lg:inline", situacioOpen && "rotate-180")} />
+              </button>
+
+              {situacioOpen && (
+                <div className="absolute left-0 top-full mt-1 w-52 bg-white border border-border rounded-xl shadow-lg py-1 z-50">
+                  {situacioItems.map(({ href, label, icon: Icon }) => {
+                    const active = location === href || (href !== "/" && location.startsWith(href));
+                    return (
+                      <Link
+                        key={href}
+                        href={href}
+                        onClick={() => setSituacioOpen(false)}
+                        className={cn(
+                          "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
+                          active ? "text-primary bg-primary/5" : "text-foreground hover:bg-secondary"
+                        )}
+                      >
+                        <Icon className="w-4 h-4" />
+                        {label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            )}
 
             {/* Teacher dropdown (after Practice, before TA Forum) */}
             <div ref={dropRef} className="relative group/teacher">
@@ -592,6 +647,36 @@ export default function NavBar() {
                   Install App
                 </button>
               </div>
+            )}
+
+            {/* Situació tools — role-gated to admin / head_of_study */}
+            {(user?.role === "admin" || user?.role === "head_of_study") && (
+            <div className={cn("px-4 py-3 border-b", isClassroomPage ? "border-white/15" : "border-border")}>
+              <p className={cn("text-xs font-semibold uppercase tracking-wider mb-2 px-1", isClassroomPage ? "text-white/50" : "text-muted-foreground")}>
+                {t("nav_situacio_nav")}
+              </p>
+              {situacioItems.map(({ href, label, icon: Icon }) => {
+                const active = location === href || (href !== "/" && location.startsWith(href));
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mb-1",
+                      active
+                        ? "bg-primary text-primary-foreground"
+                        : isClassroomPage
+                          ? "text-white/80 hover:text-white hover:bg-white/15"
+                          : "text-foreground hover:bg-secondary"
+                    )}
+                  >
+                    <Icon className="w-5 h-5 flex-shrink-0" />
+                    {label}
+                  </Link>
+                );
+              })}
+            </div>
             )}
 
             {/* Head of Study tools — role-gated */}

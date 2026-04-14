@@ -1085,8 +1085,26 @@ export const savedSituacions = mysqlTable("saved_situacions", {
   /** Full JSON result blob */
   resultJson: text("resultJson").notNull(),
   language: varchar("language", { length: 8 }).notNull().default("ca"),
+  /** Whether this SA is shared school-wide (set by HOS/admin) */
+  isShared: boolean("isShared").default(false).notNull(),
+  /** Display name of the author (denormalised for shared library) */
+  sharedBy: varchar("sharedBy", { length: 128 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 export type SavedSituacio = typeof savedSituacions.$inferSelect;
 export type InsertSavedSituacio = typeof savedSituacions.$inferInsert;
+
+/**
+ * School-wide settings — logo, name, and branding.
+ * Single-row table (id = 1 always).
+ */
+export const schoolSettings = mysqlTable("school_settings", {
+  id: int("id").primaryKey().autoincrement(),
+  schoolName: varchar("schoolName", { length: 256 }),
+  logoUrl: text("logoUrl"),
+  logoKey: varchar("logoKey", { length: 512 }),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type SchoolSettings = typeof schoolSettings.$inferSelect;
+export type InsertSchoolSettings = typeof schoolSettings.$inferInsert;
