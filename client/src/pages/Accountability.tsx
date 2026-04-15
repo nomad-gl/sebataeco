@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertTriangle, CheckCircle, ChevronDown, ChevronUp, ClipboardList, Clock, Download, FileText, RefreshCw, Scan, ShieldCheck, Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle, ChevronDown, ChevronUp, ClipboardList, Clock, Download, FileText, RefreshCw, Scan, ShieldCheck } from "lucide-react";
+import { SebaSymbol } from "@/components/SebaSymbol";
 import { toast } from "sonner";
 
 const COMPETENCY_CODES = ["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"];
@@ -507,7 +508,7 @@ function BiasIncidentsTab() {
       {scanHistory.length > 1 && (
         <div>
           <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
-            <Sparkles className="h-4 w-4" /> Recent Scan History
+            <SebaSymbol className="h-4 w-4" /> Recent Scan History
           </h3>
           <div className="space-y-1.5">
             {scanHistory.map((run) => (

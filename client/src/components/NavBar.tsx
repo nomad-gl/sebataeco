@@ -6,7 +6,7 @@ import {
   Library, TrendingUp, ChevronDown, Menu, X, Zap,
   Presentation as PresentationIcon, Globe, Users, MessagesSquare, Bell, Download,
   CalendarDays, FileText, Settings as SettingsIcon, ShieldAlert, Lock, HelpCircle,
-  BarChart3, UserCheck, BookCheck, GraduationCap, Sparkles, Mic,
+  BarChart3, UserCheck, BookCheck, GraduationCap, Mic,
   ClipboardList, Banknote, UserCog, FolderOpen, Building2, Wrench, Music,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -68,7 +68,7 @@ export default function NavBar() {
 
   // Situació dropdown items — gated to admin/head_of_study
   const situacioItems = [
-    { href: "/situacio",      label: t("nav_situacio"),       icon: Sparkles },
+    { href: "/situacio",      label: t("nav_situacio"),       icon: SebaSymbol },
     { href: "/my-situacions", label: t("nav_my_situacions"),  icon: Library },
   ];
   const isSituacioActive = situacioItems.some(
@@ -88,7 +88,7 @@ export default function NavBar() {
     { href: "/admin",             label: t("nav_admin"),             icon: LayoutDashboard },
     { href: "/admin/errors",      label: t("nav_admin_errors"),      icon: ShieldAlert },
     { href: "/audit",             label: t("nav_audit"),             icon: BarChart3 },
-    { href: "/ai-models",         label: t("nav_ai_models"),         icon: Sparkles },
+    { href: "/ai-models",         label: t("nav_ai_models"),         icon: SebaSymbol },
     { href: "/accountability",    label: t("nav_accountability"),    icon: Lock },
     { href: "/admin/wake-words",  label: t("nav_wake_words"),        icon: Mic },
     { href: "/admin/audio-responses", label: t("nav_audio_responses"), icon: Music },
@@ -265,7 +265,7 @@ export default function NavBar() {
                       : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                 )}
               >
-                <Sparkles className="w-4 h-4" />
+                <SebaSymbol className="w-4 h-4" />
                 <span className="hidden lg:inline">{t("nav_situacio_nav")}</span>
                 <ChevronDown className={cn("w-3 h-3 transition-transform hidden lg:inline", situacioOpen && "rotate-180")} />
               </button>

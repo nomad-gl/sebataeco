@@ -4,7 +4,8 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
-import { UserCheck, Users, BookOpen, Sparkles, Activity } from "lucide-react";
+import { UserCheck, Users, BookOpen, Activity } from "lucide-react";
+import { SebaSymbol } from "@/components/SebaSymbol";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -88,7 +89,7 @@ export default function DirectorStaff() {
                         <span className="flex items-center justify-end gap-1"><BookOpen className="w-3 h-3" />{t("dir_plans_col")}</span>
                       </th>
                       <th className="pb-2 pr-4 font-medium text-right">
-                        <span className="flex items-center justify-end gap-1"><Sparkles className="w-3 h-3" />{t("dir_ai_col")}</span>
+                        <span className="flex items-center justify-end gap-1"><SebaSymbol className="w-3 h-3" />{t("dir_ai_col")}</span>
                       </th>
                       <th className="pb-2 font-medium text-right">{t("dir_last_active_col")}</th>
                     </tr>

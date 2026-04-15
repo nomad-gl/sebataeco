@@ -2261,7 +2261,7 @@ export default function SchoolCalendar() {
                       { type: "excursion",   icon: "🚌",  label: eventLabels.excursion },
                       { type: "event",       icon: "🎉",  label: eventLabels.event },
                       { type: "lesson",      icon: "📖",  label: eventLabels.lesson },
-                      { type: "ai_generated",icon: "✨",  label: eventLabels.ai_generated },
+                      { type: "ai_generated",icon: "",  label: eventLabels.ai_generated },
                     ] as { type: string; icon: string; label: string }[]).map(({ type, icon, label }) => (
                       <button
                         key={type}

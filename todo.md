@@ -2621,3 +2621,9 @@
 - [x] Replace hardcoded strings with t() calls in HosAttendance.tsx (Loading…, No attendance data recorded yet)
 - [x] Verify language toggle works for all attendance UI text (101 tests passing)
 - [ ] Save checkpoint
+
+## Feature: Replace sparkle symbols with SEBA 'S' logo mark
+- [x] Audit all files for ✨ emoji and Lucide Sparkles icon imports/usages (5 files: NavBar, Accountability, SchoolCalendar, SituacioGenerator, DirectorOverview, DirectorStaff)
+- [x] SebaSymbol component already existed — no new component needed
+- [x] Replace every sparkle instance with SebaSymbol component (10 replacements across 5 files)
+- [ ] Save checkpoint

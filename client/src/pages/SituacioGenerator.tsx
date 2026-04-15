@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Sparkles, Copy, Check, BookOpen, Target, ClipboardList, Zap, BookMarked, Save, Download, Pencil, X } from "lucide-react";
+import { Loader2, Copy, Check, BookOpen, Target, ClipboardList, Zap, BookMarked, Save, Download, Pencil, X } from "lucide-react";
+import { SebaSymbol } from "@/components/SebaSymbol";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -299,7 +300,7 @@ ${result.criteria.map(c => `<li>${c}</li>`).join("\n")}
         {/* Header */}
         <div className="flex items-start gap-3">
           <div className="p-2.5 rounded-xl bg-white/15 mt-0.5">
-            <Sparkles className="w-6 h-6 text-white" />
+            <SebaSymbol className="w-6 h-6 text-white" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">{t("situacio_title")}</h1>
@@ -382,7 +383,7 @@ ${result.criteria.map(c => `<li>${c}</li>`).join("\n")}
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-4 h-4" />
+                    <SebaSymbol className="w-4 h-4" />
                     {t("situacio_generate")}
                   </>
                 )}
@@ -395,7 +396,7 @@ ${result.criteria.map(c => `<li>${c}</li>`).join("\n")}
             {!result && !generateMutation.isPending && (
               <Card className="bg-white/10 backdrop-blur-md border-white/20 flex items-center justify-center py-16">
                 <div className="text-center space-y-3">
-                  <Sparkles className="w-10 h-10 text-white/30 mx-auto" />
+                  <SebaSymbol className="w-10 h-10 text-white/30 mx-auto" />
                   <p className="text-white/50 text-sm max-w-xs">{t("situacio_empty")}</p>
                 </div>
               </Card>

@@ -5,9 +5,10 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 import {
-  BarChart3, Users, BookOpen, Sparkles, Calendar,
+  BarChart3, Users, BookOpen, Calendar,
   AlertTriangle, ShieldCheck, TrendingUp,
 } from "lucide-react";
+import { SebaSymbol } from "@/components/SebaSymbol";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Badge } from "@/components/ui/badge";
@@ -49,7 +50,7 @@ export default function DirectorOverview() {
   const statCards = [
     { icon: Users, label: t("dir_stat_teachers"), value: stats?.totalTeachers, color: "text-blue-500" },
     { icon: BookOpen, label: t("dir_stat_lesson_plans"), value: stats?.totalLessonPlans, color: "text-green-500" },
-    { icon: Sparkles, label: t("dir_stat_ai_plans"), value: stats?.aiGeneratedPlans, color: "text-purple-500" },
+    { icon: SebaSymbol, label: t("dir_stat_ai_plans"), value: stats?.aiGeneratedPlans, color: "text-purple-500" },
     { icon: TrendingUp, label: t("dir_stat_practice_sessions"), value: stats?.totalPracticeSessions, color: "text-cyan-500" },
     { icon: Calendar, label: t("dir_stat_calendar_events"), value: stats?.totalCalendarEvents, color: "text-amber-500" },
     { icon: AlertTriangle, label: t("dir_stat_open_bias_flags"), value: stats?.openBiasFlags, color: "text-red-500" },
@@ -195,7 +196,7 @@ export default function DirectorOverview() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-sm">
-                <Sparkles className="w-4 h-4 text-purple-500" />
+                <SebaSymbol className="w-4 h-4 text-purple-500" />
                 {t("dir_trend_ai")}
               </CardTitle>
               <p className="text-xs text-muted-foreground">{t("dir_trend_ai_desc")}</p>
