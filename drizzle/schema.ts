@@ -1158,3 +1158,22 @@ export const audioResponses = mysqlTable("audio_responses", {
 });
 export type AudioResponse = typeof audioResponses.$inferSelect;
 export type InsertAudioResponse = typeof audioResponses.$inferInsert;
+
+/**
+ * Attendance changes — audit trail of who changed each attendance record.
+ */
+export const attendanceChanges = mysqlTable("attendance_changes", {
+  id: int("id").autoincrement().primaryKey(),
+  /** FK to attendance_records.id */
+  attendanceRecordId: int("attendanceRecordId").notNull(),
+  /** FK to users.id — who made the change */
+  changedBy: int("changedBy").notNull(),
+  changedByName: varchar("changedByName", { length: 256 }).notNull(),
+  changedAt: timestamp("changedAt").defaultNow().notNull(),
+  previousStatus: mysqlEnum("previousStatus", ["present", "absent", "late", "excused"]),
+  newStatus: mysqlEnum("newStatus", ["present", "absent", "late", "excused"]).notNull(),
+  note: text("note"),
+});
+
+export type AttendanceChange = typeof attendanceChanges.$inferSelect;
+export type InsertAttendanceChange = typeof attendanceChanges.$inferInsert;

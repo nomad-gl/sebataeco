@@ -66,6 +66,7 @@ import AdminGovernance from "./pages/admin/AdminGovernance";
 import AdminFacilities from "./pages/admin/AdminFacilities";
 import AdminWakeWords from "./pages/admin/AdminWakeWords";
 import AdminAudioResponses from "./pages/admin/AdminAudioResponses";
+import AttendanceRegister from "./pages/AttendanceRegister";
 import { useAuth } from "./_core/hooks/useAuth";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
@@ -120,6 +121,7 @@ function Router() {
         <Route path="/groups/:groupId/progress" component={GroupProgress} />
         <Route path="/groups/:groupId/student/:studentId" component={StudentProgress} />
         <Route path="/competency/:code" component={CompetencyDetail} />
+        <Route path="/attendance" component={AttendanceRegister} />
         <Route path="/forum" component={Forum} />
         <Route path="/school-calendar" component={SchoolCalendar} />
         <Route path="/lesson-planner" component={LessonPlanner} />

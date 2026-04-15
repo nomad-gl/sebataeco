@@ -136,6 +136,7 @@ export default function NavBar() {
     { href: "/director/progress",  label: t("dir_student_progress"), icon: GraduationCap },
     { href: "/director/reports",   label: t("dir_reports"),          icon: Download },
     { href: "/director/settings",  label: t("dir_settings"),         icon: SettingsIcon },
+    { href: "/attendance",           label: t("nav_attendance"),       icon: ClipboardList },
   ];
 
   const isDirectorActive = directorItems.some(
@@ -150,6 +151,7 @@ export default function NavBar() {
     { href: "/groups",        label: t("nav_groups"),        icon: Users },
     { href: "/questions",     label: t("nav_questions"),     icon: BookOpen },
     { href: "/progress",      label: t("nav_group_progress"), icon: TrendingUp },
+    { href: "/attendance",   label: t("nav_attendance"),   icon: UserCheck },
     { href: "/forum",         label: t("nav_forum"),         icon: MessagesSquare },
     { href: "/school-calendar", label: t("nav_school_calendar"), icon: CalendarDays },
     { href: "/lesson-planner",  label: t("nav_lesson_planner"),  icon: FileText },

@@ -26,6 +26,7 @@ import { directorRouter } from "./routers/director";
 import { hosRouter } from "./routers/hos";
 import { wakeWordsRouter } from "./routers/wakeWords";
 import { audioResponsesRouter } from "./routers/audioResponses";
+import { attendanceRouter } from "./routers/attendance";
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -70,6 +71,7 @@ export const appRouter = router({
   hos: hosRouter,
   wakeWords: wakeWordsRouter,
   audioResponses: audioResponsesRouter,
+  attendance: attendanceRouter,
 });
 
 export type AppRouter = typeof appRouter;

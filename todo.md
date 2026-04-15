@@ -2589,3 +2589,26 @@
 - [x] Add all audio_* and nav_audio_responses i18n keys to EN/ES/CA
 - [x] Verify TypeScript 0 errors
 - [ ] Save checkpoint
+
+## Session 19: HosGroups Data Migration from sebata.forum
+- [ ] Scrape sebata.forum/groups to extract year groups and student lists
+- [ ] Scrape sebataeco.com/head-of-study/groups to understand current data model
+- [ ] Map sebata.forum group names to year group labels used in seba-ai-studio
+- [ ] Seed groups and students into the DB (school_groups / students tables or equivalent)
+- [ ] Update HosGroups page to display seeded groups and students
+- [ ] Verify TypeScript 0 errors
+- [ ] Save checkpoint
+
+## Session 20: Shared Synced Attendance Register
+- [x] Add attendance_records table (id, groupId, studentId, date, status: present/absent/late/excused, note, markedBy, markedAt)
+- [x] Add attendance_changes table (id, attendanceRecordId, changedBy, changedAt, previousStatus, newStatus, note)
+- [x] Apply migration SQL for both tables (both tables confirmed in DB)
+- [x] Add tRPC procedures: attendance.getByGroupAndDate, attendance.markAttendance (upsert + log change), attendance.getRecentChanges (last N changes with user info), attendance.getGroups
+- [x] Build shared AttendanceRegister component: date navigator, group selector, student list with status buttons (Present/Absent/Late/Excused), notes field
+- [x] Add change-history panel to AttendanceRegister: shows last 10 changes with editor name, timestamp, old→new status
+- [x] Add Attendance page for Teacher role (/attendance) with shared component
+- [x] Add Attendance link to Teacher dropdown in NavBar
+- [x] Add Attendance link to Director dropdown in NavBar
+- [x] Add i18n keys for all attendance UI strings (EN/ES/CA)
+- [x] Verify TypeScript 0 errors (all 101 tests passing)
+- [ ] Save checkpoint
