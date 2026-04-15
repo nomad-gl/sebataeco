@@ -2612,3 +2612,12 @@
 - [x] Add i18n keys for all attendance UI strings (EN/ES/CA)
 - [x] Verify TypeScript 0 errors (all 101 tests passing)
 - [ ] Save checkpoint
+
+## Bug Fix: Hardcoded strings in Attendance UI dropdowns/buttons
+- [x] Audit AttendanceRegister.tsx for all hardcoded English strings (status buttons, panel headings, labels)
+- [x] Audit HosAttendance.tsx for hardcoded strings
+- [x] Add missing i18n keys to EN/ES/CA in I18nContext.tsx (attendance_loading, attendance_no_data)
+- [x] Replace hardcoded strings with t() calls in AttendanceRegister.tsx (STATUS_CONFIG moved inside component, audit trail badges translated)
+- [x] Replace hardcoded strings with t() calls in HosAttendance.tsx (Loading…, No attendance data recorded yet)
+- [x] Verify language toggle works for all attendance UI text (101 tests passing)
+- [ ] Save checkpoint

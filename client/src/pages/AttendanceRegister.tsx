@@ -12,11 +12,11 @@ import { toast } from "sonner";
 
 type AttendanceStatus = "present" | "absent" | "late" | "excused";
 
-const STATUS_CONFIG: Record<AttendanceStatus, { label: string; color: string; icon: React.ReactNode }> = {
-  present: { label: "Present", color: "bg-emerald-500 hover:bg-emerald-600 text-white", icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
-  absent: { label: "Absent", color: "bg-red-500 hover:bg-red-600 text-white", icon: <XCircle className="w-3.5 h-3.5" /> },
-  late: { label: "Late", color: "bg-amber-500 hover:bg-amber-600 text-white", icon: <Clock className="w-3.5 h-3.5" /> },
-  excused: { label: "Excused", color: "bg-blue-500 hover:bg-blue-600 text-white", icon: <FileCheck className="w-3.5 h-3.5" /> },
+const STATUS_COLORS: Record<AttendanceStatus, string> = {
+  present: "bg-emerald-500 hover:bg-emerald-600 text-white",
+  absent: "bg-red-500 hover:bg-red-600 text-white",
+  late: "bg-amber-500 hover:bg-amber-600 text-white",
+  excused: "bg-blue-500 hover:bg-blue-600 text-white",
 };
 
 function formatDate(d: Date): string {
@@ -31,6 +31,13 @@ function addDays(d: Date, n: number): Date {
 
 export default function AttendanceRegister() {
   const { t } = useI18n();
+
+  const STATUS_CONFIG: Record<AttendanceStatus, { label: string; color: string; icon: React.ReactNode }> = {
+    present: { label: t("attendance_present"), color: STATUS_COLORS.present, icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
+    absent: { label: t("attendance_absent"), color: STATUS_COLORS.absent, icon: <XCircle className="w-3.5 h-3.5" /> },
+    late: { label: t("attendance_late"), color: STATUS_COLORS.late, icon: <Clock className="w-3.5 h-3.5" /> },
+    excused: { label: t("attendance_excused"), color: STATUS_COLORS.excused, icon: <FileCheck className="w-3.5 h-3.5" /> },
+  };
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
   const [notes, setNotes] = useState<Record<number, string>>({});
@@ -234,12 +241,12 @@ export default function AttendanceRegister() {
                           <span className="font-medium">{change.changedByName}</span>
                           {change.previousStatus && (
                             <>
-                              <Badge variant="outline" className="text-[10px] px-1 py-0">{change.previousStatus}</Badge>
+                              <Badge variant="outline" className="text-[10px] px-1 py-0">{t(`attendance_${change.previousStatus}` as any) ?? change.previousStatus}</Badge>
                               <span className="text-muted-foreground">→</span>
                             </>
                           )}
-                          <Badge className={`text-[10px] px-1 py-0 ${STATUS_CONFIG[change.newStatus]?.color ?? ""}`}>
-                            {change.newStatus}
+                          <Badge className={`text-[10px] px-1 py-0 ${STATUS_COLORS[change.newStatus as AttendanceStatus] ?? ""}`}>
+                            {t(`attendance_${change.newStatus}` as any) ?? change.newStatus}
                           </Badge>
                         </div>
                         <p className="text-muted-foreground">

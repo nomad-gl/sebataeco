@@ -232,7 +232,7 @@ export default function HosAttendance() {
               </div>
             ) : loadingAttendance ? (
               <div className="flex items-center justify-center h-48 text-muted-foreground">
-                Loading…
+                {t("attendance_loading")}
               </div>
             ) : students.length === 0 ? (
               <div className="flex items-center justify-center h-48 text-muted-foreground rounded-xl border border-dashed border-border">
@@ -320,10 +320,10 @@ export default function HosAttendance() {
             <h2 className="text-lg font-semibold">{t("attendance_chart_title") ?? "30-Day Absence Rate by Class"}</h2>
 
             {loadingChart ? (
-              <div className="flex items-center justify-center h-64 text-muted-foreground">Loading…</div>
+              <div className="flex items-center justify-center h-64 text-muted-foreground">{t("attendance_loading")}</div>
             ) : chartData.length === 0 ? (
               <div className="flex items-center justify-center h-64 text-muted-foreground rounded-xl border border-dashed border-border">
-                No attendance data recorded yet.
+                {t("attendance_no_data")}
               </div>
             ) : (
               <div className="rounded-xl border border-border bg-card p-4 shadow-sm">

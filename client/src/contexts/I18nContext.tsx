@@ -2155,6 +2155,8 @@ export const translations = {
     attendance_status_late: "Late",
     attendance_status_excused: "Excused",
     attendance_status_unmarked: "Unmarked",
+    attendance_loading: "Loading…",
+    attendance_no_data: "No attendance data recorded yet.",
     nav_attendance: "Attendance Register",
     // Class Groups (HOS)
     hos_group_add: "Add Group",
@@ -4466,6 +4468,8 @@ export const translations = {
     attendance_status_late: "Tarde",
     attendance_status_excused: "Justificado",
     attendance_status_unmarked: "Sin marcar",
+    attendance_loading: "Cargando…",
+    attendance_no_data: "Aún no hay datos de asistencia registrados.",
     nav_attendance: "Registro de asistencia",
     // Class Groups (HOS)
     hos_group_add: "Añadir Grupo",
@@ -6774,6 +6778,8 @@ export const translations = {
     attendance_status_late: "Tard",
     attendance_status_excused: "Justificat",
     attendance_status_unmarked: "Sense marcar",
+    attendance_loading: "Carregant…",
+    attendance_no_data: "Encara no hi ha dades d'assistència registrades.",
     nav_attendance: "Registre d'assistència",
     // Class Groups (HOS)
     hos_group_add: "Afegir Grup",
