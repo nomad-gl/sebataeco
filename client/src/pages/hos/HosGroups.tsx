@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import { useI18n } from "@/contexts/I18nContext";
 import { trpc } from "@/lib/trpc";
 import {
-  Users, Plus, Pencil, Trash2, Loader2, GraduationCap, UserCheck,
+  Users, Plus, Pencil, Trash2, Loader2, GraduationCap, UserCheck, Video,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -230,6 +230,22 @@ export default function HosGroups() {
                         </td>
                         <td className="py-3 text-right">
                           <div className="flex items-center justify-end gap-1">
+                            {/* Group video room button */}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 text-[#003082] hover:text-[#003082]"
+                              onClick={() =>
+                                window.open(
+                                  `https://meet.jit.si/seba-group-${g.id}`,
+                                  "_blank",
+                                  "noopener,noreferrer"
+                                )
+                              }
+                              title={t("hos_video_room")}
+                            >
+                              <Video className="w-3.5 h-3.5" />
+                            </Button>
                             <Button
                               variant="ghost"
                               size="sm"

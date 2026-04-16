@@ -2689,3 +2689,26 @@
 - [x] Add i18n keys for video call and members panel (EN/ES/CA)
 - [x] Verify TypeScript 0 errors
 - [x] Save checkpoint
+
+## Session 25: Video Call Branding + Follow-up Features
+- [x] Remove Jitsi brand name and logo from video call modal header
+- [x] Add SEBA logo on the left of the video call modal header overlay
+- [x] Add school logo on the right of the video call modal header overlay
+- [x] Seed sample attendance records for the 14 class groups (307 students, 1535 records)
+- [x] Add group-specific video room button to HosGroups page (opens Jitsi room per group)
+- [ ] Add group-specific video room button to Attendance page (opens Jitsi room per group)
+- [x] Add i18n keys for video room button (EN/ES/CA)
+- [ ] Add Groups & Enrolment section to Director Report PDF (group name, year group, student count)
+- [ ] Verify TypeScript 0 errors
+- [ ] Save checkpoint
+
+## Session 25b: Pre-Call Screen + Filters + Backgrounds
+- [x] Generate 20 AI video call backgrounds (school/educational/Catalan themes)
+- [x] Upload backgrounds to CDN
+- [x] Build PreCallScreen component (camera/mic test before joining)
+- [x] Add video filters panel (blur, grayscale, warm, cool, vintage)
+- [x] Add background selector grid to pre-call screen
+- [x] Wire PreCallScreen into SebaConnect video call flow
+- [x] Add i18n keys for pre-call screen and filters (EN/ES/CA)
+- [x] TypeScript 0 errors
+- [x] Save checkpoint

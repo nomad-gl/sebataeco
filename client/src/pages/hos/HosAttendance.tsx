@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { UserCheck, BarChart3, CheckCircle2, XCircle, Clock, FileCheck } from "lucide-react";
+import { UserCheck, BarChart3, CheckCircle2, XCircle, Clock, FileCheck, Video } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
@@ -221,6 +221,23 @@ export default function HosAttendance() {
                 <Button variant="outline" size="sm" onClick={markAllPresent}>
                   <CheckCircle2 className="h-4 w-4 mr-1.5" />
                   {t("attendance_mark_all_present") ?? "Mark all present"}
+                </Button>
+              )}
+              {selectedGroupId && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-[#003082] border-[#003082]/30 hover:bg-[#003082]/5"
+                  onClick={() =>
+                    window.open(
+                      `https://meet.jit.si/seba-group-${selectedGroupId}`,
+                      "_blank",
+                      "noopener,noreferrer"
+                    )
+                  }
+                >
+                  <Video className="h-4 w-4 mr-1.5" />
+                  {t("hos_video_room")}
                 </Button>
               )}
             </div>

@@ -7,11 +7,12 @@
  * - Assignments tab per channel
  * - Files tab per channel (S3-backed)
  * - Members right panel (reuses forum.getUsers with online presence)
- * - Video call via Jitsi Meet (no API key needed)
+ * - Video call with branded header (SEBA logo left, school logo right)
  * - Catalan sovereignty identity (senyera accent colours)
  */
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import PreCallScreen, { type VideoBackground, type VideoFilter } from "@/components/PreCallScreen";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useI18n } from "@/contexts/I18nContext";
@@ -223,6 +224,19 @@ export default function SebaConnect() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [membersOpen, setMembersOpen] = useState(true);
   const [videoCallActive, setVideoCallActive] = useState(false);
+  const [preCallActive, setPreCallActive] = useState(false);
+  const [callOpts, setCallOpts] = useState<{ videoEnabled: boolean; audioEnabled: boolean; background: VideoBackground; filter: VideoFilter } | null>(null);
+  const [schoolLogo, setSchoolLogo] = useState<string | null>(
+    () => localStorage.getItem("seba_school_logo")
+  );
+  // Keep school logo in sync if it changes in another tab/component
+  useEffect(() => {
+    const onLogoChange = (e: Event) => {
+      setSchoolLogo((e as CustomEvent<string | null>).detail);
+    };
+    window.addEventListener("seba_logo_changed", onLogoChange);
+    return () => window.removeEventListener("seba_logo_changed", onLogoChange);
+  }, []);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -512,7 +526,7 @@ export default function SebaConnect() {
               size="sm"
               variant="ghost"
               className="gap-1.5 text-xs h-7 text-[#003082] hover:bg-[#003082]/10"
-              onClick={() => setVideoCallActive(true)}
+              onClick={() => setPreCallActive(true)}
               title={t("connect_video_call")}
             >
               <Video className="w-3.5 h-3.5" />
@@ -865,19 +879,57 @@ export default function SebaConnect() {
         </div>
       </aside>
 
+      {/* ── Pre-Call Setup Dialog ─────────────────────────────────────────── */}
+      <Dialog open={preCallActive} onOpenChange={(open) => { if (!open) setPreCallActive(false); }}>
+        <DialogContent className="max-w-4xl w-full p-0 overflow-hidden rounded-xl" style={{ height: "560px" }}>
+          <PreCallScreen
+            roomName={`seba-connect-${selectedChannelId}`}
+            channelName={selectedChannel?.name ?? t("connect_video_call")}
+            sebaLogoUrl="https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/seba-logo-dark-Bxgq2SHvBzBLRLJPNdvmwf.png"
+            schoolLogoUrl={schoolLogo ?? undefined}
+            onJoin={(opts) => {
+              setCallOpts(opts);
+              setPreCallActive(false);
+              setVideoCallActive(true);
+            }}
+            onCancel={() => setPreCallActive(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
       {/* ── Video Call Dialog ───────────────────────────────────────────────── */}
       <Dialog open={videoCallActive} onOpenChange={setVideoCallActive}>
-        <DialogContent className="max-w-4xl w-full p-0 overflow-hidden">
-          <DialogHeader className="px-4 py-3 border-b border-border bg-card flex-row items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Video className="w-4 h-4 text-[#003082]" />
-              <DialogTitle className="text-sm font-semibold">
-                {t("connect_video_call")} · {selectedChannel?.name ?? "Canal"}
-              </DialogTitle>
+        <DialogContent className="max-w-5xl w-full p-0 overflow-hidden rounded-xl">
+          {/* Branded header: SEBA logo left, channel name centre, school logo right */}
+          <div className="flex items-center justify-between px-4 py-2.5 bg-[#003082] text-white">
+            {/* Left: SEBA logo */}
+            <div className="flex items-center gap-2 min-w-[120px]">
+              <img
+                src="https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/seba-logo-dark-Bxgq2SHvBzBLRLJPNdvmwf.png"
+                alt="SEBA"
+                className="h-7 object-contain brightness-0 invert"
+              />
             </div>
-          </DialogHeader>
+            {/* Centre: channel name */}
+            <DialogTitle className="text-sm font-semibold text-white tracking-wide">
+              {selectedChannel?.name ?? t("connect_video_call")}
+            </DialogTitle>
+            {/* Right: school logo (if uploaded) */}
+            <div className="flex items-center justify-end min-w-[120px]">
+              {schoolLogo ? (
+                <img
+                  src={schoolLogo}
+                  alt="School logo"
+                  className="h-8 max-w-[100px] object-contain rounded"
+                />
+              ) : (
+                <span className="text-xs text-white/40 italic">{t("logo_label")}</span>
+              )}
+            </div>
+          </div>
+          {/* Video iframe — Jitsi with watermarks hidden */}
           <iframe
-            src={`https://meet.jit.si/seba-connect-${selectedChannelId}`}
+            src={`https://meet.jit.si/seba-connect-${selectedChannelId}#config.defaultLanguage=${lang}&config.disableDeepLinking=true&interfaceConfig.SHOW_JITSI_WATERMARK=false&interfaceConfig.SHOW_BRAND_WATERMARK=false&interfaceConfig.SHOW_POWERED_BY=false&interfaceConfig.DISPLAY_WELCOME_PAGE_CONTENT=false`}
             allow="camera; microphone; fullscreen; display-capture"
             className="w-full"
             style={{ height: "600px", border: "none" }}

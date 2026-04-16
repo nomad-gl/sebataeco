@@ -36,7 +36,19 @@ export interface DirectorReportData {
     competenciesCovered: number;
     competencyList: string[];
   }[];
+  classGroups?: {
+    className: string;
+    yearGroup: "junior" | "primary" | "secondary";
+    academicYear: string;
+    studentCount: number;
+  }[];
 }
+
+const YEAR_GROUP_LABELS: Record<string, Record<string, string>> = {
+  en: { junior: "Junior (Yr 3–4)", primary: "Primary (Yr 5–6)", secondary: "Secondary (Yr 7–10)" },
+  es: { junior: "Junior (3.º–4.º)", primary: "Primaria (5.º–6.º)", secondary: "Secundaria (7.º–10.º)" },
+  ca: { junior: "Junior (3r–4t)", primary: "Primària (5è–6è)", secondary: "Secundària (7è–10è)" },
+};
 
 const LABELS = {
   en: {
@@ -48,6 +60,12 @@ const LABELS = {
     section_competency: "LOMLOE Competency Coverage",
     section_staff: "Staff Activity",
     section_subjects: "Coverage by Subject",
+    section_groups: "Groups & Enrolment",
+    group_name: "Class Group",
+    group_year: "Year Group",
+    group_year_label: "Year",
+    group_students: "Students",
+    group_total: "Total Enrolment",
     total_teachers: "Active Teachers",
     total_plans: "Lesson Plans",
     ai_plans: "AI-Generated Plans",
@@ -80,6 +98,12 @@ const LABELS = {
     section_competency: "Cobertura de Competencias LOMLOE",
     section_staff: "Actividad del Profesorado",
     section_subjects: "Cobertura por Asignatura",
+    section_groups: "Grupos y Matrícula",
+    group_name: "Grupo",
+    group_year: "Etapa",
+    group_year_label: "Etapa",
+    group_students: "Alumnos",
+    group_total: "Matrícula Total",
     total_teachers: "Docentes activos",
     total_plans: "Planes de lección",
     ai_plans: "Planes generados por IA",
@@ -112,6 +136,12 @@ const LABELS = {
     section_competency: "Cobertura de Competències LOMLOE",
     section_staff: "Activitat del Professorat",
     section_subjects: "Cobertura per Assignatura",
+    section_groups: "Grups i Matrícula",
+    group_name: "Grup",
+    group_year: "Etapa",
+    group_year_label: "Etapa",
+    group_students: "Alumnes",
+    group_total: "Matrícula Total",
     total_teachers: "Docents actius",
     total_plans: "Plans de lliçó",
     ai_plans: "Plans generats per IA",
@@ -379,6 +409,59 @@ export async function generateDirectorReportPdf(data: DirectorReportData): Promi
         doc.text(s.competencyList.join(", "), subColList, y, { width: pageWidth - (subColList - 40) });
         doc.moveDown(0.45);
       }
+    }
+
+    // ── Groups & Enrolment ────────────────────────────────────────────────────
+    if (data.classGroups && data.classGroups.length > 0) {
+      sectionHeader(doc, L.section_groups, pageWidth);
+      doc.moveDown(0.2);
+
+      const ygLabels = YEAR_GROUP_LABELS[data.locale] ?? YEAR_GROUP_LABELS.en;
+      const grpColName = 40;
+      const grpColYear = 200;
+      const grpColStudents = 340;
+
+      const drawGroupHeader = () => {
+        const y = doc.y;
+        doc.fontSize(7).fillColor(MID_GREY).font("Helvetica-Bold");
+        doc.text(L.group_name, grpColName, y, { width: 155 });
+        doc.text(L.group_year_label, grpColYear, y, { width: 135 });
+        doc.text(L.group_students, grpColStudents, y, { width: 80 });
+        doc.moveDown(0.3);
+        doc.moveTo(40, doc.y).lineTo(40 + pageWidth, doc.y).strokeColor("#e5e7eb").lineWidth(0.5).stroke();
+        doc.moveDown(0.2);
+      };
+      drawGroupHeader();
+
+      let totalEnrolment = 0;
+      for (let i = 0; i < data.classGroups.length; i++) {
+        const g = data.classGroups[i];
+        if (doc.y > doc.page.height - 80) {
+          doc.addPage();
+          addFooter(doc, pageWidth, L.powered_by);
+          drawGroupHeader();
+        }
+        const y = doc.y;
+        if (i % 2 === 0) {
+          doc.rect(40, y - 1, pageWidth, 13).fillColor(LIGHT_GREY).fill();
+        }
+        doc.fontSize(7.5).fillColor("#1f2937").font("Helvetica");
+        doc.text(g.className, grpColName, y, { width: 155 });
+        doc.text(ygLabels[g.yearGroup] ?? g.yearGroup, grpColYear, y, { width: 135 });
+        doc.text(String(g.studentCount), grpColStudents, y, { width: 80 });
+        doc.moveDown(0.45);
+        totalEnrolment += g.studentCount;
+      }
+
+      // Total row
+      doc.moveDown(0.3);
+      doc.moveTo(40, doc.y).lineTo(40 + pageWidth, doc.y).strokeColor(BRAND_BLUE).lineWidth(0.5).stroke();
+      doc.moveDown(0.2);
+      const totY = doc.y;
+      doc.fontSize(8).fillColor(BRAND_BLUE).font("Helvetica-Bold");
+      doc.text(L.group_total, grpColName, totY, { width: 290 });
+      doc.text(String(totalEnrolment), grpColStudents, totY, { width: 80 });
+      doc.moveDown(0.6);
     }
 
     // ── LOMLOE compliance note ────────────────────────────────────────────────

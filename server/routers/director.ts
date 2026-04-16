@@ -187,7 +187,7 @@ export const directorRouter = router({
       if (!db) throw new Error("DB unavailable");
 
       // Gather all data needed for the report
-      const [statsData, staffData, complianceData, settingsRows, schoolSettingsRows] = await Promise.all([
+      const [statsData, staffData, complianceData, settingsRows, schoolSettingsRows, classGroupsData] = await Promise.all([
         (async () => {
           const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
           const [[totalTeachers], [totalLessonPlans], [aiGeneratedPlans], [totalPracticeSessions], [openBiasFlags], [recentScanRuns]] = await Promise.all([
@@ -251,6 +251,15 @@ export const directorRouter = router({
         })(),
         db.select().from(appSettings),
         db.select().from(schoolSettings).where(eq(schoolSettings.id, 1)),
+        db.select({
+          id: classGroups.id,
+          className: classGroups.className,
+          yearGroup: classGroups.yearGroup,
+          academicYear: classGroups.academicYear,
+          studentCount: classGroups.studentCount,
+        }).from(classGroups)
+          .where(eq(classGroups.academicYear, "2025-26"))
+          .orderBy(classGroups.yearGroup, classGroups.className),
       ]);
 
       const settings: Record<string, string> = {};
@@ -266,6 +275,12 @@ export const directorRouter = router({
         competencyCoverage: complianceData.competencyCoverage,
         staffActivity: staffData,
         subjectCoverage: complianceData.subjectCoverage,
+        classGroups: classGroupsData.map((g) => ({
+          className: g.className,
+          yearGroup: (g.yearGroup ?? "secondary") as "junior" | "primary" | "secondary",
+          academicYear: g.academicYear ?? "2025-26",
+          studentCount: g.studentCount ?? 0,
+        })),
       });
 
       const fileKey = `director-reports/seba-director-report-${Date.now()}.pdf`;
