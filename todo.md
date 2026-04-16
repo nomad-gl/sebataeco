@@ -2696,11 +2696,11 @@
 - [x] Add school logo on the right of the video call modal header overlay
 - [x] Seed sample attendance records for the 14 class groups (307 students, 1535 records)
 - [x] Add group-specific video room button to HosGroups page (opens Jitsi room per group)
-- [ ] Add group-specific video room button to Attendance page (opens Jitsi room per group)
+- [x] Add group-specific video room button to Attendance page (opens Jitsi room per group)
 - [x] Add i18n keys for video room button (EN/ES/CA)
-- [ ] Add Groups & Enrolment section to Director Report PDF (group name, year group, student count)
-- [ ] Verify TypeScript 0 errors
-- [ ] Save checkpoint
+- [x] Add Groups & Enrolment section to Director Report PDF (group name, year group, student count)
+- [x] Verify TypeScript 0 errors
+- [x] Save checkpoint
 
 ## Session 25b: Pre-Call Screen + Filters + Backgrounds
 - [x] Generate 20 AI video call backgrounds (school/educational/Catalan themes)
@@ -2710,5 +2710,13 @@
 - [x] Add background selector grid to pre-call screen
 - [x] Wire PreCallScreen into SebaConnect video call flow
 - [x] Add i18n keys for pre-call screen and filters (EN/ES/CA)
+- [x] TypeScript 0 errors
+- [x] Save checkpoint
+
+## Session 26: Video Call Follow-ups
+- [x] Persist last-used background and filter in localStorage (pre-selected on next call)
+- [x] Add screen share toggle button to video call modal header (Jitsi native screen share)
+- [x] Implement true background-only blur via canvas + MediaPipe Selfie Segmentation
+- [x] Show segmentation blur option in Backgrounds tab (replaces CSS blur)
 - [x] TypeScript 0 errors
 - [x] Save checkpoint

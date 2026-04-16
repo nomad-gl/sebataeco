@@ -13,8 +13,13 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
 import SebaSymbol from "@/components/SebaSymbol";
+
+// ─── localStorage keys ─────────────────────────────────────────────────────
+const LS_BG_KEY = "seba_precall_bg";
+const LS_FILTER_KEY = "seba_precall_filter";
 
 // ─── Background catalogue ──────────────────────────────────────────────────
 export interface VideoBackground {
@@ -25,7 +30,7 @@ export interface VideoBackground {
 
 export const VIDEO_BACKGROUNDS: VideoBackground[] = [
   { id: "none", label: "None", url: "" },
-  { id: "blur", label: "Blur", url: "blur" },
+  { id: "blur", label: "Smart Blur", url: "blur" },
   { id: "bg-01", label: "Classroom", url: "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/bg-01-classroom_b45bd275.jpg" },
   { id: "bg-02", label: "Library", url: "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/bg-02-library_cc3b079f.jpg" },
   { id: "bg-03", label: "Catalonia", url: "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/bg-03-catalonia_a24363ef.jpg" },
@@ -66,6 +71,29 @@ export const VIDEO_FILTERS: VideoFilter[] = [
   { id: "dark", label: "Dark Mode", css: "brightness(70%) contrast(120%)" },
 ];
 
+// ─── Helpers ───────────────────────────────────────────────────────────────
+function getSavedBg(): VideoBackground {
+  try {
+    const id = localStorage.getItem(LS_BG_KEY);
+    if (id) {
+      const found = VIDEO_BACKGROUNDS.find((b) => b.id === id);
+      if (found) return found;
+    }
+  } catch (_) { /* ignore */ }
+  return VIDEO_BACKGROUNDS[0];
+}
+
+function getSavedFilter(): VideoFilter {
+  try {
+    const id = localStorage.getItem(LS_FILTER_KEY);
+    if (id) {
+      const found = VIDEO_FILTERS.find((f) => f.id === id);
+      if (found) return found;
+    }
+  } catch (_) { /* ignore */ }
+  return VIDEO_FILTERS[0];
+}
+
 // ─── Props ─────────────────────────────────────────────────────────────────
 interface PreCallScreenProps {
   roomName: string;
@@ -80,7 +108,6 @@ type DeviceStatus = "checking" | "ok" | "denied" | "unavailable";
 
 // ─── Component ─────────────────────────────────────────────────────────────
 export default function PreCallScreen({
-  roomName,
   channelName,
   sebaLogoUrl,
   schoolLogoUrl,
@@ -88,7 +115,11 @@ export default function PreCallScreen({
   onCancel,
 }: PreCallScreenProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const segmentationRef = useRef<unknown>(null);
+  const animFrameRef = useRef<number>(0);
+  const bgImgRef = useRef<HTMLImageElement | null>(null);
 
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [audioEnabled, setAudioEnabled] = useState(true);
@@ -96,8 +127,19 @@ export default function PreCallScreen({
   const [micStatus, setMicStatus] = useState<DeviceStatus>("checking");
 
   const [activeTab, setActiveTab] = useState<"backgrounds" | "filters">("backgrounds");
-  const [selectedBg, setSelectedBg] = useState<VideoBackground>(VIDEO_BACKGROUNDS[0]);
-  const [selectedFilter, setSelectedFilter] = useState<VideoFilter>(VIDEO_FILTERS[0]);
+  const [selectedBg, setSelectedBg] = useState<VideoBackground>(getSavedBg);
+  const [selectedFilter, setSelectedFilter] = useState<VideoFilter>(getSavedFilter);
+  const [segmentationLoading, setSegmentationLoading] = useState(false);
+  const [segmentationReady, setSegmentationReady] = useState(false);
+
+  // ── Persist selections ─────────────────────────────────────────────────
+  useEffect(() => {
+    try { localStorage.setItem(LS_BG_KEY, selectedBg.id); } catch (_) { /* ignore */ }
+  }, [selectedBg]);
+
+  useEffect(() => {
+    try { localStorage.setItem(LS_FILTER_KEY, selectedFilter.id); } catch (_) { /* ignore */ }
+  }, [selectedFilter]);
 
   // ── Start camera preview ───────────────────────────────────────────────
   const startPreview = useCallback(async () => {
@@ -114,9 +156,6 @@ export default function PreCallScreen({
       if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
         setCameraStatus("denied");
         setMicStatus("denied");
-      } else if (error.name === "NotFoundError") {
-        setCameraStatus("unavailable");
-        setMicStatus("unavailable");
       } else {
         setCameraStatus("unavailable");
         setMicStatus("unavailable");
@@ -128,8 +167,107 @@ export default function PreCallScreen({
     startPreview();
     return () => {
       streamRef.current?.getTracks().forEach((t) => t.stop());
+      cancelAnimationFrame(animFrameRef.current);
+      const seg = segmentationRef.current as { close?: () => void } | null;
+      seg?.close?.();
     };
   }, [startPreview]);
+
+  // ── MediaPipe segmentation blur ────────────────────────────────────────
+  const startSegmentation = useCallback(async () => {
+    if (segmentationRef.current || !videoRef.current || cameraStatus !== "ok") return;
+    setSegmentationLoading(true);
+    try {
+      const { SelfieSegmentation } = await import("@mediapipe/selfie_segmentation");
+      const seg = new SelfieSegmentation({
+        locateFile: (file: string) =>
+          `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation@0.1/${file}`,
+      });
+      seg.setOptions({ modelSelection: 1, selfieMode: true });
+
+      seg.onResults((results: { segmentationMask: CanvasImageSource; image: CanvasImageSource }) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        const { width, height } = canvas;
+
+        // Draw segmentation mask to get person pixels
+        ctx.save();
+        ctx.clearRect(0, 0, width, height);
+
+        // Draw background
+        if (selectedBg.url && selectedBg.url !== "blur" && bgImgRef.current) {
+          ctx.drawImage(bgImgRef.current, 0, 0, width, height);
+        } else {
+          // Blurred background: draw video blurred
+          ctx.filter = "blur(16px)";
+          ctx.drawImage(results.image, 0, 0, width, height);
+          ctx.filter = "none";
+        }
+
+        // Composite: keep only person pixels from live video
+        ctx.globalCompositeOperation = "destination-in";
+        ctx.drawImage(results.segmentationMask, 0, 0, width, height);
+        ctx.globalCompositeOperation = "destination-over";
+        if (selectedBg.url && selectedBg.url !== "blur" && bgImgRef.current) {
+          ctx.drawImage(bgImgRef.current, 0, 0, width, height);
+        } else {
+          ctx.filter = "blur(16px)";
+          ctx.drawImage(results.image, 0, 0, width, height);
+          ctx.filter = "none";
+        }
+        ctx.restore();
+      });
+
+      await seg.initialize();
+      segmentationRef.current = seg;
+      setSegmentationReady(true);
+      setSegmentationLoading(false);
+
+      // Render loop
+      const sendFrame = async () => {
+        if (videoRef.current && videoRef.current.readyState >= 2) {
+          const s = segmentationRef.current as { send?: (opts: { image: HTMLVideoElement }) => Promise<void> } | null;
+          await s?.send?.({ image: videoRef.current });
+        }
+        animFrameRef.current = requestAnimationFrame(sendFrame);
+      };
+      animFrameRef.current = requestAnimationFrame(sendFrame);
+    } catch (e) {
+      console.error("Segmentation failed to load:", e);
+      setSegmentationLoading(false);
+    }
+  }, [cameraStatus, selectedBg]);
+
+  const stopSegmentation = useCallback(() => {
+    cancelAnimationFrame(animFrameRef.current);
+    const seg = segmentationRef.current as { close?: () => void } | null;
+    seg?.close?.();
+    segmentationRef.current = null;
+    setSegmentationReady(false);
+  }, []);
+
+  // ── Load background image when bg changes ─────────────────────────────
+  useEffect(() => {
+    if (selectedBg.url && selectedBg.url !== "blur") {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = selectedBg.url;
+      img.onload = () => { bgImgRef.current = img; };
+    } else {
+      bgImgRef.current = null;
+    }
+  }, [selectedBg]);
+
+  // ── Start/stop segmentation when blur bg is selected ──────────────────
+  useEffect(() => {
+    if (selectedBg.url === "blur" && cameraStatus === "ok") {
+      startSegmentation();
+    } else {
+      stopSegmentation();
+    }
+  }, [selectedBg, cameraStatus, startSegmentation, stopSegmentation]);
 
   // ── Toggle camera track ────────────────────────────────────────────────
   const toggleVideo = () => {
@@ -156,8 +294,12 @@ export default function PreCallScreen({
   // ── Preview filter CSS ─────────────────────────────────────────────────
   const previewFilter = selectedFilter.css === "none" ? undefined : selectedFilter.css;
 
+  // Whether to show canvas (segmentation) or raw video
+  const showCanvas = selectedBg.url === "blur" && (segmentationLoading || segmentationReady);
+
   // ── Join ───────────────────────────────────────────────────────────────
   const handleJoin = () => {
+    stopSegmentation();
     streamRef.current?.getTracks().forEach((t) => t.stop());
     onJoin({ videoEnabled, audioEnabled, background: selectedBg, filter: selectedFilter });
   };
@@ -168,7 +310,7 @@ export default function PreCallScreen({
       <div className="flex items-center justify-between px-6 py-3 bg-gray-900 border-b border-gray-800">
         <div className="flex items-center gap-3">
           {sebaLogoUrl ? (
-            <img src={sebaLogoUrl} alt="SEBA" className="h-8 w-auto object-contain" />
+            <img src={sebaLogoUrl} alt="SEBA" className="h-8 w-auto object-contain brightness-0 invert" />
           ) : (
             <SebaSymbol className="h-8 w-8" />
           )}
@@ -195,11 +337,18 @@ export default function PreCallScreen({
                 : undefined
             }
           >
-            {/* blur background overlay */}
-            {selectedBg.url === "blur" && (
-              <div className="absolute inset-0 bg-gray-700/60 backdrop-blur-xl" />
+            {/* MediaPipe segmentation canvas (smart blur) */}
+            {showCanvas && (
+              <canvas
+                ref={canvasRef}
+                width={640}
+                height={360}
+                className="w-full h-full object-cover"
+                style={{ filter: previewFilter }}
+              />
             )}
 
+            {/* Raw video (no bg replacement) */}
             <video
               ref={videoRef}
               autoPlay
@@ -207,11 +356,12 @@ export default function PreCallScreen({
               playsInline
               className="w-full h-full object-cover"
               style={{
-                display: videoEnabled && cameraStatus === "ok" ? "block" : "none",
+                display: videoEnabled && cameraStatus === "ok" && !showCanvas ? "block" : "none",
                 filter: previewFilter,
               }}
             />
 
+            {/* Camera off / no camera state */}
             {(!videoEnabled || cameraStatus !== "ok") && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
                 <VideoOff className="w-12 h-12 text-gray-500" />
@@ -220,6 +370,14 @@ export default function PreCallScreen({
                    cameraStatus === "unavailable" ? "No camera found" :
                    "Camera off"}
                 </span>
+              </div>
+            )}
+
+            {/* Segmentation loading spinner */}
+            {segmentationLoading && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/50">
+                <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
+                <span className="text-xs text-gray-300">Loading smart blur…</span>
               </div>
             )}
 
@@ -324,8 +482,8 @@ export default function PreCallScreen({
                     {bg.url && bg.url !== "blur" ? (
                       <img src={bg.url} alt={bg.label} className="w-full h-full object-cover" loading="lazy" />
                     ) : bg.url === "blur" ? (
-                      <div className="w-full h-full bg-gray-600/50 backdrop-blur-md flex items-center justify-center">
-                        <Settings className="w-5 h-5 text-gray-300" />
+                      <div className="w-full h-full bg-gradient-to-br from-blue-900/60 to-gray-700/60 backdrop-blur-md flex items-center justify-center">
+                        <Settings className="w-5 h-5 text-blue-300" />
                       </div>
                     ) : (
                       <div className="w-full h-full bg-gray-800 flex items-center justify-center">

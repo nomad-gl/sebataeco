@@ -55,6 +55,8 @@ import {
   ChevronRight,
   Video,
   Circle,
+  ScreenShare,
+  ScreenShareOff,
 } from "lucide-react";
 import { SebaSymbol } from "@/components/SebaSymbol";
 
@@ -226,6 +228,8 @@ export default function SebaConnect() {
   const [videoCallActive, setVideoCallActive] = useState(false);
   const [preCallActive, setPreCallActive] = useState(false);
   const [callOpts, setCallOpts] = useState<{ videoEnabled: boolean; audioEnabled: boolean; background: VideoBackground; filter: VideoFilter } | null>(null);
+  const [screenSharing, setScreenSharing] = useState(false);
+  const screenStreamRef = useRef<MediaStream | null>(null);
   const [schoolLogo, setSchoolLogo] = useState<string | null>(
     () => localStorage.getItem("seba_school_logo")
   );
@@ -927,12 +931,45 @@ export default function SebaConnect() {
               )}
             </div>
           </div>
+          {/* Screen share controls row */}
+          <div className="flex items-center gap-2 px-4 py-1.5 bg-[#001f5a] border-b border-[#002a7a]">
+            <button
+              onClick={async () => {
+                if (screenSharing) {
+                  screenStreamRef.current?.getTracks().forEach((t) => t.stop());
+                  screenStreamRef.current = null;
+                  setScreenSharing(false);
+                } else {
+                  try {
+                    const stream = await (navigator.mediaDevices as MediaDevices & { getDisplayMedia: (opts?: object) => Promise<MediaStream> }).getDisplayMedia({ video: true, audio: true });
+                    screenStreamRef.current = stream;
+                    stream.getVideoTracks()[0].onended = () => {
+                      screenStreamRef.current = null;
+                      setScreenSharing(false);
+                    };
+                    setScreenSharing(true);
+                  } catch (_) { /* user cancelled */ }
+                }
+              }}
+              className={`flex items-center gap-1.5 text-xs px-3 py-1 rounded-md transition-colors ${
+                screenSharing
+                  ? "bg-green-600 hover:bg-green-500 text-white"
+                  : "bg-white/10 hover:bg-white/20 text-white/80"
+              }`}
+            >
+              {screenSharing ? <ScreenShareOff className="w-3.5 h-3.5" /> : <ScreenShare className="w-3.5 h-3.5" />}
+              {screenSharing ? "Stop sharing" : "Share screen"}
+            </button>
+            {screenSharing && (
+              <span className="text-xs text-green-400 animate-pulse">● Sharing your screen</span>
+            )}
+          </div>
           {/* Video iframe — Jitsi with watermarks hidden */}
           <iframe
-            src={`https://meet.jit.si/seba-connect-${selectedChannelId}#config.defaultLanguage=${lang}&config.disableDeepLinking=true&interfaceConfig.SHOW_JITSI_WATERMARK=false&interfaceConfig.SHOW_BRAND_WATERMARK=false&interfaceConfig.SHOW_POWERED_BY=false&interfaceConfig.DISPLAY_WELCOME_PAGE_CONTENT=false`}
+            src={`https://meet.jit.si/seba-connect-${selectedChannelId}?lang=${lang}#config.defaultLanguage=${lang}&config.disableDeepLinking=true&interfaceConfig.SHOW_JITSI_WATERMARK=false&interfaceConfig.SHOW_BRAND_WATERMARK=false&interfaceConfig.SHOW_POWERED_BY=false&interfaceConfig.DISPLAY_WELCOME_PAGE_CONTENT=false${callOpts && !callOpts.videoEnabled ? "&config.startWithVideoMuted=true" : ""}${callOpts && !callOpts.audioEnabled ? "&config.startWithAudioMuted=true" : ""}`}
             allow="camera; microphone; fullscreen; display-capture"
             className="w-full"
-            style={{ height: "600px", border: "none" }}
+            style={{ height: "580px", border: "none" }}
             title={t("connect_video_call")}
           />
         </DialogContent>
