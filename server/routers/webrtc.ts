@@ -239,6 +239,116 @@ export const webrtcRouter = router({
       return { name: rows[0]?.name ?? `User ${input.userId}` };
     }),
 
+  /**
+   * Get the ordered raise-hand queue for a room.
+   * Returns participants who have raised their hand (unconsumed raise-hand signal),
+   * ordered by the time they raised their hand (oldest first).
+   */
+  getHandQueue: protectedProcedure
+    .input(z.object({ roomName: z.string().min(1).max(128) }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) return [];
+
+      const cutoff = new Date(Date.now() - 5 * 60_000); // 5-minute TTL for raised hands
+
+      // Find unconsumed raise-hand signals in this room
+      // We use toUserId = 0 as a broadcast sentinel for raise-hand signals
+      const signals = await db
+        .select()
+        .from(webrtcSignals)
+        .where(
+          and(
+            eq(webrtcSignals.roomName, input.roomName),
+            eq(webrtcSignals.type, "raise-hand"),
+            eq(webrtcSignals.consumed, false),
+            gt(webrtcSignals.createdAt, cutoff)
+          )
+        )
+        .orderBy(webrtcSignals.createdAt);
+
+      // Deduplicate by fromUserId (keep earliest per user)
+      const seen = new Set<number>();
+      const unique = signals.filter((s) => {
+        if (seen.has(s.fromUserId)) return false;
+        seen.add(s.fromUserId);
+        return true;
+      });
+
+      // Enrich with display names
+      const queue: { signalId: number; userId: number; name: string; raisedAt: Date }[] = [];
+      for (const s of unique) {
+        const nameRows = await db
+          .select({ name: users.name })
+          .from(users)
+          .where(eq(users.id, s.fromUserId))
+          .limit(1);
+        queue.push({
+          signalId: s.id,
+          userId: s.fromUserId,
+          name: nameRows[0]?.name ?? `User ${s.fromUserId}`,
+          raisedAt: s.createdAt,
+        });
+      }
+
+      return queue;
+    }),
+
+  /**
+   * Lower a hand — mark the raise-hand signal as consumed.
+   * Can be called by the user themselves or by the host (any participant).
+   */
+  lowerHand: protectedProcedure
+    .input(z.object({ signalId: z.number().int().positive() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) return { ok: true };
+
+      await db
+        .update(webrtcSignals)
+        .set({ consumed: true })
+        .where(eq(webrtcSignals.id, input.signalId));
+
+      return { ok: true };
+    }),
+
+  /**
+   * Raise hand broadcast — sends a raise-hand signal visible to all room participants.
+   * Uses toUserId = 0 as a broadcast sentinel (not consumed by pollSignals which
+   * filters by toUserId = ctx.user.id).
+   */
+  raiseHand: protectedProcedure
+    .input(z.object({ roomName: z.string().min(1).max(128) }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+
+      // Remove any existing unconsumed raise-hand from this user in this room first
+      await db
+        .update(webrtcSignals)
+        .set({ consumed: true })
+        .where(
+          and(
+            eq(webrtcSignals.roomName, input.roomName),
+            eq(webrtcSignals.fromUserId, ctx.user.id),
+            eq(webrtcSignals.type, "raise-hand"),
+            eq(webrtcSignals.consumed, false)
+          )
+        );
+
+      // Insert fresh raise-hand signal (toUserId = 0 = broadcast)
+      await db.insert(webrtcSignals).values({
+        roomName: input.roomName,
+        fromUserId: ctx.user.id,
+        toUserId: 0,
+        type: "raise-hand",
+        payload: JSON.stringify({ userId: ctx.user.id }),
+        consumed: false,
+      });
+
+      return { ok: true };
+    }),
+
   /** Leave a room — delete participant row + send leave signal to each peer. */
   leaveRoom: protectedProcedure
     .input(z.object({ roomName: z.string().min(1).max(128) }))

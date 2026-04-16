@@ -946,7 +946,7 @@ export default function SebaConnect() {
                   {members.filter((m) => !m.online).map((m) => (
                     <div
                       key={m.id}
-                      className="flex items-center gap-2.5 px-4 py-1.5 hover:bg-muted/50 transition-colors opacity-60"
+                      className="group/offline flex items-center gap-2.5 px-4 py-1.5 hover:bg-muted/50 transition-colors opacity-60 hover:opacity-90"
                     >
                       <div className="relative shrink-0">
                         <div
@@ -957,7 +957,15 @@ export default function SebaConnect() {
                         </div>
                         <Circle className="w-2.5 h-2.5 fill-gray-400 text-gray-400 absolute -bottom-0.5 -right-0.5" />
                       </div>
-                      <span className="text-sm truncate">{m.name}</span>
+                      <span className="text-sm truncate flex-1">{m.name}</span>
+                      {/* Schedule meeting button — visible on hover */}
+                      <button
+                        onClick={() => setMeetInviteTarget({ id: m.id, name: m.name })}
+                        title="Schedule a meeting"
+                        className="p-1 rounded opacity-0 group-hover/offline:opacity-100 hover:bg-blue-700 text-blue-400 hover:text-white transition-all"
+                      >
+                        <CalendarPlus className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   ))}
                 </div>

@@ -77,6 +77,14 @@ export default function NavBar() {
   });
   const missedCallCount = missedCallData?.count ?? 0;
 
+  // Pending meeting invitation badge
+  const { data: pendingMeetData } = trpc.meetingInvitation.getPendingCount.useQuery(undefined, {
+    enabled: !!user,
+    refetchInterval: 20_000,
+  });
+  const pendingMeetCount = pendingMeetData?.count ?? 0;
+  const connectBadge = missedCallCount + pendingMeetCount;
+
   // Items before Teacher dropdown (Home removed — logo already links to /)
   const mainNavItemsBefore = [
     { href: "/chat",           label: t("nav_chat"),           icon: MessageCircle },
@@ -348,9 +356,9 @@ export default function NavBar() {
                       >
                         <Icon className="w-4 h-4" />
                         <span className="flex-1">{label}</span>
-                        {isConnect && missedCallCount > 0 && (
+                        {isConnect && connectBadge > 0 && (
                           <span className="ml-auto flex items-center justify-center w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold">
-                            {missedCallCount > 9 ? "9+" : missedCallCount}
+                            {connectBadge > 9 ? "9+" : connectBadge}
                           </span>
                         )}
                       </Link>
@@ -1004,6 +1012,7 @@ export default function NavBar() {
               )}
               {teacherItems.map(({ href, label, icon: Icon }) => {
                 const active = location === href || (href !== "/" && location.startsWith(href));
+                const isMobileConnect = href === "/connect";
                 return (
                   <Link
                     key={href}
@@ -1018,7 +1027,12 @@ export default function NavBar() {
                     )}
                   >
                     <Icon className="w-5 h-5 flex-shrink-0" />
-                    {label}
+                    <span className="flex-1">{label}</span>
+                    {isMobileConnect && connectBadge > 0 && (
+                      <span className="flex items-center justify-center w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold">
+                        {connectBadge > 9 ? "9+" : connectBadge}
+                      </span>
+                    )}
                   </Link>
                 );
               })}

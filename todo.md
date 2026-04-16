@@ -2833,3 +2833,11 @@
 - [x] i18n keys for meeting invitation in EN/ES/CA
 - [x] TypeScript 0 errors
 - [x] Save checkpoint
+
+## Session 34: Meeting Invitation Badge + Offline Invite + Raise-Hand Queue
+- [x] Show pending meeting invitation count badge on SEBA Connect sidebar navigation icon
+- [x] Add "Schedule Meeting" CalendarPlus button to offline members list (not just online)
+- [x] Persist raise-hand signals server-side (webrtc_signals type=raise-hand); expose getHandQueue procedure
+- [x] Show ordered raise-hand queue panel in SebaMeet call header (name + lower-hand button for host)
+- [x] TypeScript 0 errors
+- [x] Save checkpoint

@@ -142,6 +142,9 @@ export function SebaMeet({
   const leaveRoom        = trpc.webrtc.leaveRoom.useMutation();
   const sendSignal       = trpc.webrtc.sendSignal.useMutation();
   const notifyOwner      = trpc.system.notifyOwner.useMutation();
+  const raiseHandMut     = trpc.webrtc.raiseHand.useMutation();
+  const lowerHandMut     = trpc.webrtc.lowerHand.useMutation();
+  const utils            = trpc.useUtils();
 
   // Poll signals every 1.5 s
   const { data: incomingSignals } = trpc.webrtc.pollSignals.useQuery(
@@ -153,6 +156,12 @@ export function SebaMeet({
   const { data: activeParticipants } = trpc.webrtc.getParticipants.useQuery(
     { roomName },
     { refetchInterval: POLL_PARTICIPANTS_MS, refetchIntervalInBackground: true }
+  );
+
+  // Poll server-side hand queue every 3 s
+  const { data: serverHandQueue } = trpc.webrtc.getHandQueue.useQuery(
+    { roomName },
+    { refetchInterval: 3_000, refetchIntervalInBackground: true }
   );
 
   // ── Create RTCPeerConnection ───────────────────────────────────────────────
@@ -480,20 +489,22 @@ export function SebaMeet({
   const toggleRaiseHand = useCallback(() => {
     const next = !handRaised;
     setHandRaised(next);
-    // Notify all peers
-    peersRef.current.forEach((p) => {
-      sendSignal.mutate({
-        roomName,
-        toUserId: p.id,
-        type: "raise-hand",
-        payload: JSON.stringify({ name: "You", raised: next }),
+    if (next) {
+      // Use server-side raiseHand procedure (broadcast via toUserId=0 sentinel)
+      raiseHandMut.mutate({ roomName }, {
+        onSuccess: () => utils.webrtc.getHandQueue.invalidate({ roomName }),
       });
-    });
-    // Update local queue
-    if (!next) {
+    } else {
+      // Lower own hand: find own signal in the queue and consume it
+      const mySignal = serverHandQueue?.find((h) => h.userId === myIdRef.current);
+      if (mySignal) {
+        lowerHandMut.mutate({ signalId: mySignal.signalId }, {
+          onSuccess: () => utils.webrtc.getHandQueue.invalidate({ roomName }),
+        });
+      }
       setRaisedHands((prev) => prev.filter((h) => h.userId !== myIdRef.current));
     }
-  }, [handRaised, roomName, sendSignal]);
+  }, [handRaised, roomName, raiseHandMut, lowerHandMut, serverHandQueue, utils]);
 
   const sendReaction = useCallback((emoji: string) => {
     const id = ++reactionCounter;
@@ -529,13 +540,26 @@ export function SebaMeet({
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Raised-hand queue */}
-          {raisedHands.length > 0 && (
-            <div className="flex items-center gap-1 bg-yellow-500/20 border border-yellow-500/40 rounded-full px-2 py-0.5">
-              <Hand className="w-3.5 h-3.5 text-yellow-400" />
-              <span className="text-yellow-300 text-xs font-medium">
-                {raisedHands.map((h) => h.name).join(", ")}
-              </span>
+          {/* Server-side raised-hand queue */}
+          {(serverHandQueue ?? []).length > 0 && (
+            <div className="flex items-center gap-1 bg-yellow-500/20 border border-yellow-500/40 rounded-lg px-2 py-0.5 max-w-xs overflow-x-auto">
+              <Hand className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {(serverHandQueue ?? []).map((h) => (
+                  <span key={h.signalId} className="flex items-center gap-1">
+                    <span className="text-yellow-300 text-xs font-medium">{h.name}</span>
+                    <button
+                      onClick={() => lowerHandMut.mutate({ signalId: h.signalId }, {
+                        onSuccess: () => utils.webrtc.getHandQueue.invalidate({ roomName }),
+                      })}
+                      title={`Lower ${h.name}'s hand`}
+                      className="text-yellow-400/60 hover:text-yellow-200 transition-colors text-[10px] leading-none"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+              </div>
             </div>
           )}
 
