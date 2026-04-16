@@ -2869,3 +2869,11 @@
 - [x] Notify sender when recipient accepts a meeting invitation (notifyOwner push)
 - [x] TypeScript 0 errors
 - [x] Save checkpoint
+
+## Session 38: Persist Settings + Follow-ups
+- [x] Persist video background/filter to localStorage; restore on next call; clear only on explicit reset
+- [x] Persist in-call chat messages to DB (call_chat_messages table); show post-call chat review
+- [x] Add decline notification push to meeting invitation sender
+- [x] Add live camera/mic preview tile to pre-call screen
+- [x] TypeScript 0 errors
+- [x] Save checkpoint

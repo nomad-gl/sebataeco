@@ -81,8 +81,9 @@ interface SebaMeetStableProps {
   dmCallRoom: { roomName: string; partnerName: string } | null;
   selectedChannelId: number;
   channelsData: Channel[] | undefined;
-  callOpts: { videoEnabled: boolean; audioEnabled: boolean } | null;
+  callOpts: { videoEnabled: boolean; audioEnabled: boolean; background: VideoBackground; filter: VideoFilter } | null;
   schoolLogo: string | null;
+  callId: number | null;
   setVideoCallActive: (v: boolean) => void;
   setDmCallRoom: (v: null) => void;
   setCallOpts: (v: null) => void;
@@ -94,6 +95,7 @@ function SebaMeetStable({
   channelsData,
   callOpts,
   schoolLogo,
+  callId,
   setVideoCallActive,
   setDmCallRoom,
   setCallOpts,
@@ -104,8 +106,10 @@ function SebaMeetStable({
   const channelName = dmCallRoom
     ? dmCallRoom.partnerName
     : channelsData?.find((c) => c.id === selectedChannelId)?.name;
-  const audioOnly = callOpts ? !callOpts.videoEnabled : false;
+  const audioOnly    = callOpts ? !callOpts.videoEnabled : false;
   const schoolLogoUrl = schoolLogo ?? undefined;
+  const videoFilter  = callOpts?.filter?.css ?? undefined;
+  const backgroundId = callOpts?.background?.id ?? undefined;
 
   const handleEnd = useCallback(() => {
     setVideoCallActive(false);
@@ -119,6 +123,9 @@ function SebaMeetStable({
       channelName={channelName}
       audioOnly={audioOnly}
       schoolLogoUrl={schoolLogoUrl}
+      videoFilter={videoFilter}
+      backgroundId={backgroundId}
+      callId={callId ?? undefined}
       onEnd={handleEnd}
     />
   );
@@ -1261,6 +1268,7 @@ export default function SebaConnect() {
               channelsData={channelsQuery.data}
               callOpts={callOpts}
               schoolLogo={schoolLogo}
+              callId={activeCallId}
               setVideoCallActive={setVideoCallActive}
               setDmCallRoom={setDmCallRoom}
               setCallOpts={setCallOpts}

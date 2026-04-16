@@ -1413,3 +1413,18 @@ export const meetingInvitations = mysqlTable("meeting_invitations", {
   respondedAt: timestamp("respondedAt"),
 });
 export type MeetingInvitation = typeof meetingInvitations.$inferSelect;
+
+/**
+ * call_chat_messages: in-call text chat messages persisted per DM call.
+ * Messages are sent over WebRTC data channel during the call and saved
+ * server-side for post-call review.
+ */
+export const callChatMessages = mysqlTable("call_chat_messages", {
+  id:         int("id").autoincrement().primaryKey(),
+  callId:     int("callId").notNull(),        // references dm_calls.id
+  userId:     int("userId").notNull(),
+  senderName: varchar("senderName", { length: 256 }).notNull(),
+  message:    text("message").notNull(),
+  sentAt:     timestamp("sentAt").defaultNow().notNull(),
+});
+export type CallChatMessage = typeof callChatMessages.$inferSelect;

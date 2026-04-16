@@ -2,14 +2,18 @@
  * CallHistoryPanel
  *
  * Collapsible panel shown at the bottom of the SEBA Connect members sidebar.
- * Displays the last 20 DM calls (both as caller and callee) with:
+ * Displays the last 20 DM calls with:
  * - Partner name, call type (video/audio), status badge, timestamp, duration
  * - "Rejoin" button for ended calls
+ * - "Chat" button to expand in-call chat history (if messages exist)
  */
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
-import { ChevronDown, ChevronRight, Phone, Video, PhoneOff, PhoneMissed } from "lucide-react";
+import {
+  ChevronDown, ChevronRight, Phone, Video,
+  PhoneOff, PhoneMissed, MessageSquare, X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface CallHistoryPanelProps {
@@ -34,9 +38,51 @@ function formatRelative(date: Date): string {
   return date.toLocaleDateString();
 }
 
+/** Inline chat history drawer for a single call */
+function CallChatDrawer({ callId, myId, onClose }: { callId: number; myId: number | null; onClose: () => void }) {
+  const { data, isLoading } = trpc.callChat.getHistory.useQuery({ callId });
+
+  return (
+    <div className="mt-1 mb-2 mx-4 rounded-lg bg-white/5 border border-white/10 overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/10">
+        <span className="text-xs font-semibold text-muted-foreground">Call chat</span>
+        <button onClick={onClose} className="text-muted-foreground hover:text-white transition-colors">
+          <X className="w-3 h-3" />
+        </button>
+      </div>
+      <div className="max-h-40 overflow-y-auto p-2 space-y-1.5">
+        {isLoading ? (
+          <p className="text-xs text-muted-foreground text-center py-2">Loading…</p>
+        ) : !data || data.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-2">No messages in this call.</p>
+        ) : (
+          data.map((msg) => (
+            <div key={msg.id} className={`flex flex-col ${msg.own ? "items-end" : "items-start"}`}>
+              <span className="text-[10px] text-muted-foreground/60 mb-0.5">{msg.senderName}</span>
+              <div
+                className={`max-w-[85%] px-2.5 py-1.5 rounded-xl text-xs ${
+                  msg.own
+                    ? "bg-blue-600 text-white rounded-br-sm"
+                    : "bg-white/10 text-white/90 rounded-bl-sm"
+                }`}
+              >
+                {msg.message}
+              </div>
+              <span className="text-[10px] text-muted-foreground/40 mt-0.5">
+                {new Date(msg.sentAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              </span>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function CallHistoryPanel({ myId, onRejoin }: CallHistoryPanelProps) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
+  const [expandedChatId, setExpandedChatId] = useState<number | null>(null);
 
   const { data: history, isLoading } = trpc.dmCall.getHistory.useQuery(undefined, {
     enabled: open && !!myId,
@@ -68,7 +114,7 @@ export function CallHistoryPanel({ myId, onRejoin }: CallHistoryPanelProps) {
       </button>
 
       {open && (
-        <div className="max-h-52 overflow-y-auto">
+        <div className="max-h-72 overflow-y-auto">
           {isLoading ? (
             <p className="px-4 py-2 text-xs text-muted-foreground">Loading…</p>
           ) : !history || history.length === 0 ? (
@@ -80,46 +126,74 @@ export function CallHistoryPanel({ myId, onRejoin }: CallHistoryPanelProps) {
                 ? (call.callerName ?? "Unknown")
                 : (call.calleeName ?? "Unknown");
               const canRejoin = call.status === "ended";
+              const chatOpen = expandedChatId === call.id;
 
               return (
-                <div
-                  key={call.id}
-                  className="flex items-start gap-2 px-4 py-2 hover:bg-white/5 transition-colors"
-                >
-                  {/* Call type icon */}
-                  <div className="mt-0.5 shrink-0">
-                    {call.audioOnly ? (
-                      <Phone className="w-3.5 h-3.5 text-muted-foreground" />
-                    ) : (
-                      <Video className="w-3.5 h-3.5 text-muted-foreground" />
-                    )}
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium truncate">{partnerName}</p>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      {statusIcon(call.status)}
-                      <span className="text-xs text-muted-foreground">{statusLabel(call.status)}</span>
-                      {call.durationSeconds ? (
-                        <span className="text-xs text-muted-foreground">· {formatDuration(call.durationSeconds)}</span>
-                      ) : null}
+                <div key={call.id}>
+                  <div className="flex items-start gap-2 px-4 py-2 hover:bg-white/5 transition-colors">
+                    {/* Call type icon */}
+                    <div className="mt-0.5 shrink-0">
+                      {call.audioOnly ? (
+                        <Phone className="w-3.5 h-3.5 text-muted-foreground" />
+                      ) : (
+                        <Video className="w-3.5 h-3.5 text-muted-foreground" />
+                      )}
                     </div>
-                    <p className="text-xs text-muted-foreground/60 mt-0.5">
-                      {formatRelative(new Date(call.startedAt))}
-                    </p>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate">{partnerName}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        {statusIcon(call.status)}
+                        <span className="text-xs text-muted-foreground">{statusLabel(call.status)}</span>
+                        {call.durationSeconds ? (
+                          <span className="text-xs text-muted-foreground">· {formatDuration(call.durationSeconds)}</span>
+                        ) : null}
+                      </div>
+                      <p className="text-xs text-muted-foreground/60 mt-0.5">
+                        {formatRelative(new Date(call.startedAt))}
+                      </p>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {/* Chat history toggle */}
+                      {call.status === "ended" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className={`h-6 px-2 text-xs shrink-0 ${
+                            chatOpen
+                              ? "text-white bg-white/10"
+                              : "text-muted-foreground hover:text-white hover:bg-white/10"
+                          }`}
+                          onClick={() => setExpandedChatId(chatOpen ? null : call.id)}
+                          title="View call chat"
+                        >
+                          <MessageSquare className="w-3 h-3" />
+                        </Button>
+                      )}
+                      {/* Rejoin button */}
+                      {canRejoin && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-xs text-blue-400 hover:text-white hover:bg-blue-700 shrink-0"
+                          onClick={() => onRejoin(call.roomName, partnerName)}
+                        >
+                          ↩
+                        </Button>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Rejoin button */}
-                  {canRejoin && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 px-2 text-xs text-blue-400 hover:text-white hover:bg-blue-700 shrink-0"
-                      onClick={() => onRejoin(call.roomName, partnerName)}
-                    >
-                      ↩
-                    </Button>
+                  {/* Inline chat drawer */}
+                  {chatOpen && (
+                    <CallChatDrawer
+                      callId={call.id}
+                      myId={myId}
+                      onClose={() => setExpandedChatId(null)}
+                    />
                   )}
                 </div>
               );

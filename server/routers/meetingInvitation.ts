@@ -215,6 +215,18 @@ export const meetingInvitationRouter = router({
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
 
+      // Fetch invitation before updating so we can notify the sender
+      const rows = await db
+        .select()
+        .from(meetingInvitations)
+        .where(
+          and(
+            eq(meetingInvitations.id, input.invitationId),
+            eq(meetingInvitations.toUserId, ctx.user.id)
+          )
+        )
+        .limit(1);
+
       await db
         .update(meetingInvitations)
         .set({ status: "declined", respondedAt: new Date() })
@@ -224,6 +236,24 @@ export const meetingInvitationRouter = router({
             eq(meetingInvitations.toUserId, ctx.user.id)
           )
         );
+
+      // Notify the sender that their invitation was declined
+      if (rows[0]) {
+        const declinerRows = await db
+          .select({ name: users.name })
+          .from(users)
+          .where(eq(users.id, ctx.user.id))
+          .limit(1);
+        const declinerName = declinerRows[0]?.name ?? `User ${ctx.user.id}`;
+        const proposedStr = rows[0].proposedAt.toLocaleString("en-GB", {
+          day: "numeric", month: "short", year: "numeric",
+          hour: "2-digit", minute: "2-digit",
+        });
+        await notifyOwner({
+          title: `❌ Meeting declined: ${rows[0].title}`,
+          content: `${declinerName} declined your meeting invitation "${rows[0].title}" proposed for ${proposedStr}. You may want to suggest a new time.`,
+        }).catch(() => { /* non-critical */ });
+      }
 
       return { ok: true };
     }),

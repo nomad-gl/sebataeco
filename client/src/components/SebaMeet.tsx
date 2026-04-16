@@ -55,11 +55,21 @@ interface ChatMessage {
   at: number;    // timestamp ms
 }
 
+// ─── localStorage keys (mirrors PreCallScreen) ───────────────────────────────
+const LS_BG_KEY     = "seba_precall_bg";
+const LS_FILTER_KEY = "seba_precall_filter";
+
 interface SebaMeetProps {
   roomName: string;
   channelName?: string;
   audioOnly?: boolean;
   schoolLogoUrl?: string;
+  /** CSS filter string from the selected VideoFilter (e.g. "grayscale(1)") */
+  videoFilter?: string;
+  /** Background id from the selected VideoBackground */
+  backgroundId?: string;
+  /** DM call ID for persisting in-call chat messages */
+  callId?: number;
   onEnd: () => void;
 }
 
@@ -111,6 +121,9 @@ const SebaMeetInner = function SebaMeet({
   channelName,
   audioOnly = false,
   schoolLogoUrl,
+  videoFilter,
+  backgroundId,
+  callId,
   onEnd,
 }: SebaMeetProps) {
   const { t } = useI18n();
@@ -162,6 +175,14 @@ const SebaMeetInner = function SebaMeet({
   const [showControls, setShowControls] = useState(true);
   const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // ── Persisted background / filter ──
+  // Read from props (passed by PreCallScreen via callOpts) or fall back to localStorage.
+  // This ensures the settings are always applied even if props are not passed.
+  const resolvedFilter = videoFilter
+    ?? (() => { try { return localStorage.getItem(LS_FILTER_KEY) ?? ""; } catch { return ""; } })();
+  const resolvedBgId   = backgroundId
+    ?? (() => { try { return localStorage.getItem(LS_BG_KEY) ?? "none"; } catch { return "none"; } })();
+
   // ── tRPC ──
   const iceServersQuery  = trpc.webrtc.getIceServers.useQuery(undefined, { staleTime: Infinity });
   const joinRoom         = trpc.webrtc.joinRoom.useMutation();
@@ -171,6 +192,7 @@ const SebaMeetInner = function SebaMeet({
   const notifyOwner      = trpc.system.notifyOwner.useMutation();
   const raiseHandMut     = trpc.webrtc.raiseHand.useMutation();
   const lowerHandMut     = trpc.webrtc.lowerHand.useMutation();
+  const saveChatMsg      = trpc.callChat.saveMessage.useMutation();
   const utils            = trpc.useUtils();
 
   // Poll signals every 1.5 s
@@ -615,7 +637,7 @@ const SebaMeetInner = function SebaMeet({
     setTimeout(() => setReactions((prev) => prev.filter((r) => r.id !== id)), 2500);
   }, []);
 
-  // Send a chat message to all peers via data channels
+  // Send a chat message to all peers via data channels and persist to DB
   const sendChatMessage = useCallback(() => {
     const text = chatInput.trim();
     if (!text) return;
@@ -627,9 +649,13 @@ const SebaMeetInner = function SebaMeet({
       ...prev,
       { id: ++chatIdRef.current, from: myNameRef.current, text, own: true, at: Date.now() },
     ]);
+    // Persist to DB if we have a callId (DM calls only)
+    if (callId) {
+      saveChatMsg.mutate({ callId, message: text });
+    }
     setChatInput("");
     setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
-  }, [chatInput]);
+  }, [chatInput, callId, saveChatMsg]);
 
   const handleEnd = useCallback(() => {
     leaveRoom.mutate({ roomName });
@@ -731,7 +757,12 @@ const SebaMeetInner = function SebaMeet({
               <span className="text-xs">Camera off</span>
             </div>
           ) : (
-            <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-full object-cover scale-x-[-1]" />
+            <video
+              ref={localVideoRef}
+              autoPlay muted playsInline
+              className="w-full h-full object-cover scale-x-[-1]"
+              style={resolvedFilter ? { filter: resolvedFilter } : undefined}
+            />
           )}
           <div className="absolute bottom-2 left-2 flex items-center gap-1 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full">
             {audioMuted && <MicOff className="w-3 h-3 text-red-400" />}

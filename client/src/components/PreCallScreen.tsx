@@ -512,6 +512,49 @@ export default function PreCallScreen({
     try { localStorage.setItem(LS_MIRROR_KEY, String(mirrored)); } catch (_) { /* ignore */ }
   }, [mirrored]);
 
+  // ── Mic level meter ───────────────────────────────────────────────────────
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const meterRafRef = useRef<number>(0);
+  const [micLevel, setMicLevel] = useState(0); // 0-100
+
+  // Start/stop mic analyser when stream or audioEnabled changes
+  useEffect(() => {
+    const stream = streamRef.current;
+    if (!stream || !audioEnabled || micStatus !== "ok") {
+      // Tear down
+      cancelAnimationFrame(meterRafRef.current);
+      audioCtxRef.current?.close().catch(() => {});
+      audioCtxRef.current = null;
+      analyserRef.current = null;
+      setMicLevel(0);
+      return;
+    }
+    // Build analyser
+    const ctx = new AudioContext();
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 256;
+    const source = ctx.createMediaStreamSource(stream);
+    source.connect(analyser);
+    audioCtxRef.current = ctx;
+    analyserRef.current = analyser;
+    const buf = new Uint8Array(analyser.frequencyBinCount);
+    const tick = () => {
+      analyser.getByteFrequencyData(buf);
+      const avg = buf.reduce((a, b) => a + b, 0) / buf.length;
+      setMicLevel(Math.min(100, Math.round((avg / 128) * 100)));
+      meterRafRef.current = requestAnimationFrame(tick);
+    };
+    meterRafRef.current = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(meterRafRef.current);
+      ctx.close().catch(() => {});
+      audioCtxRef.current = null;
+      analyserRef.current = null;
+      setMicLevel(0);
+    };
+  }, [audioEnabled, micStatus]);
+
   // ── Preview filter CSS — applied to background layer only ─────────────
   // Filters are composited behind the person so the person appears unfiltered.
   // For raw video (no bg), the filter is applied to a pseudo-background div.
@@ -651,6 +694,34 @@ export default function PreCallScreen({
               <FlipHorizontal2 className="w-5 h-5" />
               <span className="text-xs">{mirrored ? "Mirror on" : "Mirror off"}</span>
             </button>
+          </div>
+
+          {/* Mic level meter */}
+          <div className="w-full max-w-md">
+            <div className="flex items-center gap-2 mb-1">
+              <Mic className="w-3.5 h-3.5 text-gray-400" />
+              <span className="text-xs text-gray-400">
+                {!audioEnabled ? "Microphone off" : micStatus === "denied" ? "Mic access denied" : micStatus === "unavailable" ? "No mic found" : "Microphone level"}
+              </span>
+              {audioEnabled && micStatus === "ok" && micLevel > 0 && (
+                <span className="text-xs text-green-400 ml-auto">Detected ✓</span>
+              )}
+            </div>
+            <div className="h-2 rounded-full bg-gray-700 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-75"
+                style={{
+                  width: `${audioEnabled && micStatus === "ok" ? micLevel : 0}%`,
+                  background: micLevel > 70
+                    ? "#22c55e"
+                    : micLevel > 35
+                    ? "#84cc16"
+                    : micLevel > 10
+                    ? "#eab308"
+                    : "#6b7280",
+                }}
+              />
+            </div>
           </div>
 
           {/* ── Autoresolve: Device type picker ── */}
