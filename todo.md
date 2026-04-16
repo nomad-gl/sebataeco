@@ -2841,3 +2841,13 @@
 - [x] Show ordered raise-hand queue panel in SebaMeet call header (name + lower-hand button for host)
 - [x] TypeScript 0 errors
 - [x] Save checkpoint
+
+## Session 35: Call Ring Fix + Meeting Follow-ups
+- [x] Fix incoming call ring/notification: callee's browser does not ring or show IncomingCallBanner when called
+- [x] Diagnose dmCall signalling: check how caller signals the callee and how IncomingCallBanner polls for it
+- [x] Ensure ring audio plays on callee side when an incoming call is detected
+- [x] Meeting reminder notification: 15 min before proposedAt, push notification to both participants
+- [x] Recurring meeting support: add recurrence field (none/weekly/biweekly) to meeting_invitations schema + UI
+- [x] Agenda/notes field: allow sender to attach plain-text agenda to meeting invitation; show in history panel
+- [x] TypeScript 0 errors
+- [x] Save checkpoint

@@ -301,6 +301,47 @@ export default function SebaConnect() {
     window.addEventListener("seba_logo_changed", onLogoChange);
     return () => window.removeEventListener("seba_logo_changed", onLogoChange);
   }, []);
+
+  // ── Handle incoming call accepted from GlobalCallListener (cross-page) ──────
+  // Case 1: User was on /connect when they accepted — GlobalCallListener fires a
+  //         custom DOM event so we open the pre-call dialog here.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { roomName, callerName, audioOnly } = (e as CustomEvent<{
+        roomName: string;
+        callerName: string;
+        audioOnly: boolean;
+      }>).detail;
+      setDmCallRoom({ roomName, partnerName: callerName });
+      if (audioOnly) {
+        setVideoCallActive(true);
+      } else {
+        setPreCallActive(true);
+      }
+    };
+    window.addEventListener("seba:incoming-call-accepted", handler);
+    return () => window.removeEventListener("seba:incoming-call-accepted", handler);
+  }, []);
+
+  // Case 2: User navigated from another page after accepting — pick up from sessionStorage.
+  useEffect(() => {
+    const raw = sessionStorage.getItem("seba:pending-call");
+    if (!raw) return;
+    sessionStorage.removeItem("seba:pending-call");
+    try {
+      const { roomName, callerName, audioOnly } = JSON.parse(raw) as {
+        roomName: string;
+        callerName: string;
+        audioOnly: boolean;
+      };
+      setDmCallRoom({ roomName, partnerName: callerName });
+      if (audioOnly) {
+        setVideoCallActive(true);
+      } else {
+        setPreCallActive(true);
+      }
+    } catch { /* malformed — ignore */ }
+  }, []);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 

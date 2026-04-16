@@ -73,6 +73,7 @@ import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { useI18n } from "./contexts/I18nContext";
+import { GlobalCallListener } from "./components/GlobalCallListener";
 
 /** Wraps a component and redirects to / with a toast if the user lacks admin or head_of_study role. */
 function HosOrAdminRoute({ component: Component }: { component: React.ComponentType }) {
@@ -178,6 +179,7 @@ function App() {
           <DpaAcceptanceDialog />
           <WhatsNewBanner />
           <BackToTop />
+          <GlobalCallListener />
           <Router />
         </TooltipProvider>
       </ThemeProvider>

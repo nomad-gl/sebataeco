@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
-import { ChevronDown, ChevronRight, Calendar, Video, CheckCircle, XCircle, Clock, Ban } from "lucide-react";
+import { ChevronDown, ChevronRight, Calendar, Video, CheckCircle, XCircle, Clock, Ban, RefreshCw, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Props {
@@ -75,11 +75,24 @@ export function MeetingHistoryPanel({ myId, onJoin }: Props) {
                 <p className="text-[10px] text-muted-foreground">
                   {isMine ? `To: ${inv.toName}` : `From: ${inv.fromName}`}
                 </p>
-                <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                <p className="text-[10px] text-muted-foreground flex items-center gap-1 flex-wrap">
                   <Calendar className="w-3 h-3" />
                   {formatDateTime(inv.proposedAt)}
                   <span className="opacity-60">· {inv.durationMinutes} min</span>
+                  {(inv as any).recurrence && (inv as any).recurrence !== "none" && (
+                    <span className="flex items-center gap-0.5 text-blue-400">
+                      <RefreshCw className="w-2.5 h-2.5" />
+                      {(inv as any).recurrence === "weekly" ? "Weekly" : "Biweekly"}
+                    </span>
+                  )}
                 </p>
+                {/* Agenda snippet */}
+                {(inv as any).agenda && (
+                  <p className="text-[10px] text-muted-foreground flex items-start gap-1 mt-0.5">
+                    <FileText className="w-3 h-3 flex-shrink-0 mt-0.5" />
+                    <span className="line-clamp-2 opacity-80">{(inv as any).agenda}</span>
+                  </p>
+                )}
                 {inv.status === "accepted" && (
                   <Button
                     size="sm"

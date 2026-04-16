@@ -6,10 +6,11 @@
  * Accepted invitations create a SebaMeet room that both parties can join.
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure, publicProcedure } from "../_core/trpc";
 import { getDb } from "../db";
 import { meetingInvitations, users } from "../../drizzle/schema";
-import { and, eq, or, desc } from "drizzle-orm";
+import { and, eq, or, desc, lte, isNull } from "drizzle-orm";
+import { notifyOwner } from "../_core/notification";
 
 export const meetingInvitationRouter = router({
   /** Send a meeting invitation to another user. */
@@ -21,6 +22,8 @@ export const meetingInvitationRouter = router({
         proposedAt: z.date(),
         durationMinutes: z.number().int().min(5).max(480).default(30),
         message: z.string().max(1000).optional(),
+        agenda: z.string().max(4000).optional(),
+        recurrence: z.enum(["none", "weekly", "biweekly"]).default("none"),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -39,6 +42,8 @@ export const meetingInvitationRouter = router({
         proposedAt: input.proposedAt,
         durationMinutes: input.durationMinutes,
         message: input.message ?? null,
+        agenda: input.agenda ?? null,
+        recurrence: input.recurrence,
         roomName,
         status: "pending",
       });
@@ -209,4 +214,67 @@ export const meetingInvitationRouter = router({
 
       return { ok: true };
     }),
+
+  /**
+   * Check and send 15-minute reminders for accepted meetings.
+   * Called periodically by the frontend (every 5 min) for the logged-in user.
+   * Finds accepted meetings where proposedAt is within 15–20 min from now
+   * and reminderSentAt is NULL, then sends a notification and marks it sent.
+   */
+  checkReminders: protectedProcedure.mutation(async ({ ctx }) => {
+    const db = await getDb();
+    if (!db) return { sent: 0 };
+
+    const now   = new Date();
+    const soon  = new Date(now.getTime() + 20 * 60_000); // 20 min window
+    const start = new Date(now.getTime() + 14 * 60_000); // 14 min from now
+
+    // Find accepted meetings for this user (as sender or recipient) in the reminder window
+    const rows = await db
+      .select()
+      .from(meetingInvitations)
+      .where(
+        and(
+          eq(meetingInvitations.status, "accepted"),
+          isNull(meetingInvitations.reminderSentAt),
+          lte(meetingInvitations.proposedAt, soon)
+        )
+      );
+
+    // Filter: proposedAt >= start (within 14-20 min window) and involves this user
+    const due = rows.filter(
+      (r) =>
+        r.proposedAt >= start &&
+        (r.fromUserId === ctx.user.id || r.toUserId === ctx.user.id)
+    );
+
+    let sent = 0;
+    for (const inv of due) {
+      // Resolve the other participant's name
+      const otherId = inv.fromUserId === ctx.user.id ? inv.toUserId : inv.fromUserId;
+      const otherRows = await db
+        .select({ name: users.name })
+        .from(users)
+        .where(eq(users.id, otherId))
+        .limit(1);
+      const otherName = otherRows[0]?.name ?? `User ${otherId}`;
+
+      const minutesAway = Math.round((inv.proposedAt.getTime() - now.getTime()) / 60_000);
+
+      await notifyOwner({
+        title: `⏰ Meeting in ${minutesAway} min: ${inv.title}`,
+        content: `Your meeting “${inv.title}” with ${otherName} starts in about ${minutesAway} minutes. Room: ${inv.roomName}`,
+      });
+
+      // Mark reminder sent
+      await db
+        .update(meetingInvitations)
+        .set({ reminderSentAt: now })
+        .where(eq(meetingInvitations.id, inv.id));
+
+      sent++;
+    }
+
+    return { sent };
+  }),
 });
