@@ -189,6 +189,22 @@ export const meetingInvitationRouter = router({
         .set({ status: "accepted", respondedAt: new Date() })
         .where(eq(meetingInvitations.id, input.invitationId));
 
+      // Notify the sender that their invitation was accepted
+      const acceptorRows = await db
+        .select({ name: users.name })
+        .from(users)
+        .where(eq(users.id, ctx.user.id))
+        .limit(1);
+      const acceptorName = acceptorRows[0]?.name ?? `User ${ctx.user.id}`;
+      const proposedStr = rows[0].proposedAt.toLocaleString("en-GB", {
+        day: "numeric", month: "short", year: "numeric",
+        hour: "2-digit", minute: "2-digit",
+      });
+      await notifyOwner({
+        title: `✅ Meeting accepted: ${rows[0].title}`,
+        content: `${acceptorName} accepted your meeting invitation "${rows[0].title}" scheduled for ${proposedStr}.`,
+      }).catch(() => { /* non-critical */ });
+
       return { roomName: rows[0].roomName };
     }),
 

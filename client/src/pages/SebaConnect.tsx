@@ -11,7 +11,7 @@
  * - Catalan sovereignty identity (senyera accent colours)
  */
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import PreCallScreen, { type VideoBackground, type VideoFilter } from "@/components/PreCallScreen";
 import { IncomingCallBanner } from "@/components/IncomingCallBanner";
 import { CallHistoryPanel } from "@/components/CallHistoryPanel";
@@ -71,6 +71,58 @@ import { MeetingHistoryPanel } from "@/components/MeetingHistoryPanel";
 // ─── types ────────────────────────────────────────────────────────────────────
 
 type Tab = "messages" | "assignments" | "files";
+
+// ─── SebaMeetStable ───────────────────────────────────────────────────────────
+// Defined OUTSIDE SebaConnect so it is never recreated on parent re-renders.
+// This lets React.memo on SebaMeet do its job: the component only re-renders
+// when its own props change, not when SebaConnect's state changes.
+
+interface SebaMeetStableProps {
+  dmCallRoom: { roomName: string; partnerName: string } | null;
+  selectedChannelId: number;
+  channelsData: Channel[] | undefined;
+  callOpts: { videoEnabled: boolean; audioEnabled: boolean } | null;
+  schoolLogo: string | null;
+  setVideoCallActive: (v: boolean) => void;
+  setDmCallRoom: (v: null) => void;
+  setCallOpts: (v: null) => void;
+}
+
+function SebaMeetStable({
+  dmCallRoom,
+  selectedChannelId,
+  channelsData,
+  callOpts,
+  schoolLogo,
+  setVideoCallActive,
+  setDmCallRoom,
+  setCallOpts,
+}: SebaMeetStableProps) {
+  const roomName = dmCallRoom
+    ? dmCallRoom.roomName
+    : `seba-connect-${selectedChannelId}`;
+  const channelName = dmCallRoom
+    ? dmCallRoom.partnerName
+    : channelsData?.find((c) => c.id === selectedChannelId)?.name;
+  const audioOnly = callOpts ? !callOpts.videoEnabled : false;
+  const schoolLogoUrl = schoolLogo ?? undefined;
+
+  const handleEnd = useCallback(() => {
+    setVideoCallActive(false);
+    setDmCallRoom(null);
+    setCallOpts(null);
+  }, [setVideoCallActive, setDmCallRoom, setCallOpts]);
+
+  return (
+    <SebaMeet
+      roomName={roomName}
+      channelName={channelName}
+      audioOnly={audioOnly}
+      schoolLogoUrl={schoolLogoUrl}
+      onEnd={handleEnd}
+    />
+  );
+}
 
 interface Channel {
   id: number;
@@ -385,9 +437,11 @@ export default function SebaConnect() {
     refetchInterval: 30000,
   });
 
+  // Pause message polling while a call is active — prevents the 3 s refetch from
+  // re-rendering the parent and causing the SebaMeet container to flicker.
   const messagesQuery = trpc.teams.getMessages.useQuery(
     { channelId: selectedChannelId, lang },
-    { refetchInterval: 3000, enabled: tab === "messages" }
+    { refetchInterval: videoCallActive ? false : 3000, enabled: tab === "messages" && !videoCallActive }
   );
 
   const assignmentsQuery = trpc.teams.getAssignments.useQuery(
@@ -1197,18 +1251,19 @@ export default function SebaConnect() {
               <button onClick={() => setIsRecording(false)} className="text-red-300 hover:text-white ml-4">✕</button>
             </div>
           )}
-          {/* SebaMeet — sovereign WebRTC video engine */}
+          {/* SebaMeet — sovereign WebRTC video engine.
+               Props are stabilised with useMemo/useCallback so React.memo
+               on SebaMeet can bail out and prevent flicker on parent re-renders. */}
           <div className="relative w-full" style={{ height: "580px" }}>
-            <SebaMeet
-              roomName={dmCallRoom ? dmCallRoom.roomName : `seba-connect-${selectedChannelId}`}
-              channelName={dmCallRoom ? dmCallRoom.partnerName : channelsQuery.data?.find((c: Channel) => c.id === selectedChannelId)?.name}
-              audioOnly={callOpts ? !callOpts.videoEnabled : false}
-              schoolLogoUrl={schoolLogo ?? undefined}
-              onEnd={() => {
-                setVideoCallActive(false);
-                setDmCallRoom(null);
-                setCallOpts(null);
-              }}
+            <SebaMeetStable
+              dmCallRoom={dmCallRoom}
+              selectedChannelId={selectedChannelId}
+              channelsData={channelsQuery.data}
+              callOpts={callOpts}
+              schoolLogo={schoolLogo}
+              setVideoCallActive={setVideoCallActive}
+              setDmCallRoom={setDmCallRoom}
+              setCallOpts={setCallOpts}
             />
           </div>
         </DialogContent>

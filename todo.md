@@ -2861,3 +2861,11 @@
 - [x] Add ICS calendar download button for accepted meetings in MeetingHistoryPanel
 - [x] TypeScript 0 errors
 - [x] Save checkpoint
+
+## Session 37: Split-Screen Flicker Fix + Follow-ups
+- [x] Fix right-hand split-screen flicker during active call (stabilise re-render cycle)
+- [x] Add call timeout auto-mark: after 30s pending, caller marks call as missed via mutation
+- [x] Build in-call text chat panel inside SebaMeet (slide-in, message list, send input)
+- [x] Notify sender when recipient accepts a meeting invitation (notifyOwner push)
+- [x] TypeScript 0 errors
+- [x] Save checkpoint

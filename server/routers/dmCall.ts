@@ -7,6 +7,7 @@ import {
   endCall,
   getPendingCallForUser,
   getCallHistory,
+  expirePendingCalls,
 } from "../dmCalls";
 import { getDb } from "../db";
 import { users, dmCalls } from "../../drizzle/schema";
@@ -94,13 +95,24 @@ export const dmCallRouter = router({
     .query(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) return null;
+      // First fetch the call to get calleeId, then expire stale pending calls
       const rows = await db
         .select()
         .from(dmCalls)
         .where(and(eq(dmCalls.id, input.callId), eq(dmCalls.callerId, ctx.user.id)))
         .limit(1);
       if (!rows[0]) return null;
-      const call = rows[0];
+      // Auto-expire if still pending after 30 s
+      if (rows[0].status === "pending") {
+        await expirePendingCalls(rows[0].calleeId);
+      }
+      // Re-fetch after potential expiry
+      const updated = await db
+        .select()
+        .from(dmCalls)
+        .where(and(eq(dmCalls.id, input.callId), eq(dmCalls.callerId, ctx.user.id)))
+        .limit(1);
+      const call = updated[0] ?? rows[0];
       const calleeRows = await db
         .select({ name: users.name })
         .from(users)

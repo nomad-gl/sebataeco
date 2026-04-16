@@ -11,13 +11,13 @@
  * - "Powered by SEBA" watermark in recording banner.
  * - Participant name resolution via webrtc.getPeerName.
  */
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, memo } from "react";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
 import { SebaSymbol } from "@/components/SebaSymbol";
 import {
   Mic, MicOff, Video, VideoOff, PhoneOff, Monitor, MonitorOff,
-  Circle, Volume2, Users, Hand, PhoneCall, Clock,
+  Circle, Volume2, Users, Hand, PhoneCall, Clock, MessageSquare, Send as SendIcon, X,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -45,6 +45,14 @@ interface RaisedHand {
   userId: number;
   name: string;
   at: number;
+}
+
+interface ChatMessage {
+  id: number;
+  from: string;  // display name
+  text: string;
+  own: boolean;
+  at: number;    // timestamp ms
 }
 
 interface SebaMeetProps {
@@ -98,7 +106,7 @@ function QualityBars({ bars }: { bars: number }) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function SebaMeet({
+const SebaMeetInner = function SebaMeet({
   roomName,
   channelName,
   audioOnly = false,
@@ -130,6 +138,17 @@ export function SebaMeet({
   // ── Raise-hand queue ──
   const [raisedHands, setRaisedHands] = useState<RaisedHand[]>([]);
   const [handRaised,  setHandRaised]  = useState(false);
+
+  // ── In-call chat ──
+  const [chatOpen,    setChatOpen]    = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput,   setChatInput]   = useState("");
+  const chatIdRef     = useRef(0);
+  const chatEndRef    = useRef<HTMLDivElement>(null);
+  // Data channels: one per peer (keyed by peerId)
+  const dataChannelsRef = useRef<Map<number, RTCDataChannel>>(new Map());
+  // My display name (resolved once)
+  const myNameRef = useRef("Me");
 
   // ── Connection state & call timer ──
   const [callConnected,    setCallConnected]    = useState(false);
@@ -198,6 +217,33 @@ export function SebaMeet({
             payload: JSON.stringify(e.candidate),
           });
         }
+      };
+
+      // Data channel for in-call chat (offerer creates it; answerer receives it)
+      // We create it on every peer connection; the remote side receives it via ondatachannel.
+      const dc = pc.createDataChannel("chat", { ordered: true });
+      dataChannelsRef.current.set(peerId, dc);
+      dc.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data) as { from: string; text: string };
+          setChatMessages((prev) => [
+            ...prev,
+            { id: ++chatIdRef.current, from: msg.from, text: msg.text, own: false, at: Date.now() },
+          ]);
+        } catch { /* ignore */ }
+      };
+      pc.ondatachannel = (e) => {
+        // Answerer side: replace the channel reference
+        dataChannelsRef.current.set(peerId, e.channel);
+        e.channel.onmessage = (ev) => {
+          try {
+            const msg = JSON.parse(ev.data) as { from: string; text: string };
+            setChatMessages((prev) => [
+              ...prev,
+              { id: ++chatIdRef.current, from: msg.from, text: msg.text, own: false, at: Date.now() },
+            ]);
+          } catch { /* ignore */ }
+        };
       };
 
       // Track connection state for the "Connected" badge and call timer
@@ -459,11 +505,24 @@ export function SebaMeet({
 
   // ── Cleanup ───────────────────────────────────────────────────────────────
 
+  // Resolve own name from the first peer's name lookup result (use auth me)
+  const meQuery = trpc.auth.me.useQuery(undefined, { staleTime: Infinity });
+  useEffect(() => {
+    if (meQuery.data?.name) myNameRef.current = meQuery.data.name;
+  }, [meQuery.data]);
+
+  // Scroll chat to bottom when new messages arrive
+  useEffect(() => {
+    if (chatOpen) chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages, chatOpen]);
+
   useEffect(() => {
     return () => {
       localStreamRef.current?.getTracks().forEach((t) => t.stop());
       screenStreamRef.current?.getTracks().forEach((t) => t.stop());
       peersRef.current.forEach((p) => p.pc.close());
+      dataChannelsRef.current.forEach((dc) => dc.close());
+      dataChannelsRef.current.clear();
       audioCtxRef.current?.close();
       if (speakerTimerRef.current)  clearInterval(speakerTimerRef.current);
       if (qualityTimerRef.current)  clearInterval(qualityTimerRef.current);
@@ -556,11 +615,29 @@ export function SebaMeet({
     setTimeout(() => setReactions((prev) => prev.filter((r) => r.id !== id)), 2500);
   }, []);
 
+  // Send a chat message to all peers via data channels
+  const sendChatMessage = useCallback(() => {
+    const text = chatInput.trim();
+    if (!text) return;
+    const payload = JSON.stringify({ from: myNameRef.current, text });
+    dataChannelsRef.current.forEach((dc) => {
+      if (dc.readyState === "open") dc.send(payload);
+    });
+    setChatMessages((prev) => [
+      ...prev,
+      { id: ++chatIdRef.current, from: myNameRef.current, text, own: true, at: Date.now() },
+    ]);
+    setChatInput("");
+    setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+  }, [chatInput]);
+
   const handleEnd = useCallback(() => {
     leaveRoom.mutate({ roomName });
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
     screenStreamRef.current?.getTracks().forEach((t) => t.stop());
     peersRef.current.forEach((p) => p.pc.close());
+    dataChannelsRef.current.forEach((dc) => dc.close());
+    dataChannelsRef.current.clear();
     onEnd();
   }, [leaveRoom, roomName, onEnd]);
 
@@ -718,6 +795,59 @@ export function SebaMeet({
         )}
       </div>
 
+      {/* ── In-call chat panel ── */}
+      {chatOpen && (
+        <div className="absolute top-0 right-0 bottom-0 z-30 w-72 flex flex-col bg-gray-900/95 border-l border-white/10 shadow-2xl">
+          {/* Chat header */}
+          <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/10">
+            <span className="text-white text-sm font-semibold flex items-center gap-1.5">
+              <MessageSquare className="w-4 h-4 text-blue-400" />
+              In-call Chat
+            </span>
+            <button onClick={() => setChatOpen(false)} className="text-white/50 hover:text-white transition-colors">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
+            {chatMessages.length === 0 && (
+              <p className="text-white/30 text-xs text-center mt-6">No messages yet. Say hello!</p>
+            )}
+            {chatMessages.map((msg) => (
+              <div key={msg.id} className={`flex flex-col ${msg.own ? "items-end" : "items-start"}`}>
+                <span className="text-white/40 text-[10px] mb-0.5">{msg.from}</span>
+                <div className={`max-w-[90%] px-2.5 py-1.5 rounded-xl text-sm ${
+                  msg.own
+                    ? "bg-blue-600 text-white rounded-br-sm"
+                    : "bg-white/15 text-white rounded-bl-sm"
+                }`}>
+                  {msg.text}
+                </div>
+              </div>
+            ))}
+            <div ref={chatEndRef} />
+          </div>
+          {/* Input */}
+          <div className="flex items-center gap-2 px-3 py-2.5 border-t border-white/10">
+            <input
+              type="text"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendChatMessage(); } }}
+              placeholder="Type a message…"
+              className="flex-1 bg-white/10 text-white placeholder-white/30 text-sm px-3 py-1.5 rounded-lg outline-none focus:ring-1 focus:ring-blue-500"
+            />
+            <button
+              onClick={sendChatMessage}
+              disabled={!chatInput.trim()}
+              className="w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white flex items-center justify-center transition-colors"
+            >
+              <SendIcon className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Reaction overlays ── */}
       {reactions.map((r) => (
         <div
@@ -800,6 +930,23 @@ export function SebaMeet({
             <Circle className="w-4 h-4 fill-current" />
           </button>
 
+          {/* Chat toggle */}
+          <button
+            onClick={() => setChatOpen((o) => !o)}
+            className={`relative w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
+              chatOpen ? "bg-blue-600 text-white" : "bg-white/15 text-white hover:bg-white/25"
+            }`}
+            title={chatOpen ? "Close chat" : "Open chat"}
+          >
+            <MessageSquare className="w-5 h-5" />
+            {/* Unread badge */}
+            {!chatOpen && chatMessages.filter((m) => !m.own).length > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
+                {chatMessages.filter((m) => !m.own).length > 9 ? "9+" : chatMessages.filter((m) => !m.own).length}
+              </span>
+            )}
+          </button>
+
           {/* End call */}
           <button
             onClick={handleEnd}
@@ -812,4 +959,11 @@ export function SebaMeet({
       </div>
     </div>
   );
-}
+};
+
+/**
+ * Memoised export — prevents the parent (SebaConnect) from re-rendering this
+ * component on every poll tick (messages, members, call-status queries).
+ * Only re-renders when roomName / channelName / audioOnly / schoolLogoUrl / onEnd change.
+ */
+export const SebaMeet = memo(SebaMeetInner);
