@@ -1179,3 +1179,64 @@ export const attendanceChanges = mysqlTable("attendance_changes", {
 
 export type AttendanceChange = typeof attendanceChanges.$inferSelect;
 export type InsertAttendanceChange = typeof attendanceChanges.$inferInsert;
+
+// ─── SEBA Espai de Col·laboració — Extended Tables ────────────────────────────
+
+/**
+ * Forum message reactions — emoji reactions on channel messages.
+ * One row per (messageId, userId, emoji) — unique constraint prevents duplicates.
+ */
+export const forumReactions = mysqlTable("forum_reactions", {
+  id: int("id").autoincrement().primaryKey(),
+  messageId: int("messageId").notNull(),
+  userId: int("userId").notNull(),
+  emoji: varchar("emoji", { length: 8 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type ForumReaction = typeof forumReactions.$inferSelect;
+export type InsertForumReaction = typeof forumReactions.$inferInsert;
+
+/**
+ * Forum pinned messages — announcements pinned to a channel by a teacher/HOS/Director.
+ */
+export const forumPins = mysqlTable("forum_pins", {
+  id: int("id").autoincrement().primaryKey(),
+  channelId: int("channelId").notNull(),
+  messageId: int("messageId").notNull(),
+  pinnedBy: int("pinnedBy").notNull(),
+  pinnedAt: timestamp("pinnedAt").defaultNow().notNull(),
+});
+export type ForumPin = typeof forumPins.$inferSelect;
+export type InsertForumPin = typeof forumPins.$inferInsert;
+
+/**
+ * Channel files — files uploaded to a channel, stored in S3.
+ */
+export const channelFiles = mysqlTable("channel_files", {
+  id: int("id").autoincrement().primaryKey(),
+  channelId: int("channelId").notNull(),
+  uploadedBy: int("uploadedBy").notNull(),
+  fileName: varchar("fileName", { length: 255 }).notNull(),
+  fileKey: text("fileKey").notNull(),
+  fileUrl: text("fileUrl").notNull(),
+  mimeType: varchar("mimeType", { length: 128 }).notNull(),
+  fileSize: int("fileSize").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type ChannelFile = typeof channelFiles.$inferSelect;
+export type InsertChannelFile = typeof channelFiles.$inferInsert;
+
+/**
+ * Message threads — reply threads on channel messages (like Teams thread replies).
+ */
+export const forumThreadReplies = mysqlTable("forum_thread_replies", {
+  id: int("id").autoincrement().primaryKey(),
+  parentMessageId: int("parentMessageId").notNull(),
+  channelId: int("channelId").notNull(),
+  userId: int("userId").notNull(),
+  body: text("body").notNull(),
+  translatedBodies: text("translatedBodies"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type ForumThreadReply = typeof forumThreadReplies.$inferSelect;
+export type InsertForumThreadReply = typeof forumThreadReplies.$inferInsert;

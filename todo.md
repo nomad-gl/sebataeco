@@ -2644,3 +2644,49 @@
 - [x] Add i18n keys for position labels and member scan UI (EN/ES/CA)
 - [x] Auto-assign position=director to OWNER_OPEN_ID on every login (db.ts upsertUser)
 - [ ] Save checkpoint
+
+## Session 21: Fix Director Report PDF Logo + My Situacions Print
+- [ ] Fix directorReportPdf.ts: wrap Promise callback in async so await fetch(logoUrl) works
+- [ ] Pass logoUrl from school_settings into generateDirectorReportPdf call in director router
+- [ ] Add print button to MySituacions page with school logo in print header
+- [ ] Add i18n keys for print action (EN/ES/CA)
+- [ ] Save checkpoint
+
+## Session 22: MS Teams-Inspired Collaboration Suite (SEBA Connect)
+- [ ] Research MS Teams core features: channels, messaging, files, assignments, calendar, meetings
+- [ ] Design SEBA Connect feature set tailored to Catalan education context
+- [ ] DB schema: teams_channels (id, name, description, type: general|subject|year_group, createdBy, createdAt)
+- [ ] DB schema: teams_messages (id, channelId, userId, content, attachmentUrl, attachmentKey, replyToId, createdAt, updatedAt, isDeleted)
+- [ ] DB schema: teams_assignments (id, channelId, title, description, dueDate, createdBy, createdAt, maxScore)
+- [ ] DB schema: teams_submissions (id, assignmentId, userId, content, fileUrl, fileKey, submittedAt, score, feedback, gradedBy, gradedAt)
+- [ ] DB schema: teams_files (id, channelId, uploadedBy, fileName, fileUrl, fileKey, mimeType, fileSize, uploadedAt)
+- [ ] Apply all migrations
+- [ ] tRPC router: teams.getChannels, createChannel, deleteChannel
+- [ ] tRPC router: teams.getMessages, sendMessage, editMessage, deleteMessage (with auto-translation via LLM)
+- [ ] tRPC router: teams.getAssignments, createAssignment, submitAssignment, gradeSubmission
+- [ ] tRPC router: teams.getFiles, uploadFile, deleteFile
+- [ ] Build /teams page: channel sidebar + message thread view (Teams-style layout)
+- [ ] Message auto-translation: translate incoming messages to user's preferred language (EN/ES/CA)
+- [ ] Build /teams/assignments: assignment list, create form (Director/HOS/Teacher), submission view
+- [ ] Build /teams/files: file browser per channel with upload/download
+- [ ] Catalan sovereignty branding: estelada/senyera colour accents, BSC/Salamandra/Àguila/SCUC org references in channel templates
+- [ ] Add SEBA Connect link to NavBar (all authenticated users)
+- [ ] Add i18n keys for all Teams UI strings (EN/ES/CA) with Catalan as default
+- [ ] Verify TypeScript 0 errors
+- [ ] Save checkpoint
+
+### Session 22: SEBA Espai de Col·laboració (Teams-like suite)
+- [x] Add forum_reactions, forum_pins, channel_files, forum_thread_replies tables to schema.ts
+- [x] Apply migration SQL for all 4 new tables
+- [x] Extend forum tRPC router: toggleReaction, getPinnedMessages, pinMessage, uploadChannelFile, getChannelFiles, getThreadReplies, postThreadReply
+- [x] Rebuild Forum.tsx: tab bar (Messages/Files), pinned banner, reaction bar, pin button, thread reply panel
+- [x] Add Catalan sovereign identity header (Espai de Col·laboració branding)
+- [x] Add i18n keys for all new collaboration features (EN/ES/CA)
+- [ ] Save checkpoint
+## Session 22b: Aina Auto-Responsiveness Improvements
+- [x] Audit current Aina chat flow for latency bottlenecks (sequential LLM calls, 1.5s retry, 5s thinking label)
+- [x] Parallelise main LLM + follow-up generation with Promise.all (saves ~1-2s per response)
+- [x] Reduce context window to last 8 messages to cut token count and latency
+- [x] Reduce retry delay from 1500ms to 500ms
+- [x] Lower extended thinking label threshold from 5s to 3s
+- [ ] Save checkpoint

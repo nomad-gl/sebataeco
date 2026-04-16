@@ -612,7 +612,7 @@ export function AIChatBox({
 
   const displayMessages = messages.filter((msg) => msg.role !== "system");
 
-  // Track elapsed loading seconds to show extended thinking label after 5s
+  // Track elapsed loading seconds to show extended thinking label after 3s
   const [loadingSeconds, setLoadingSeconds] = useState(0);
   useEffect(() => {
     if (!isLoading) { setLoadingSeconds(0); return; }
@@ -632,7 +632,7 @@ export function AIChatBox({
           <span className="size-2 rounded-full bg-white/60 animate-bounce" style={{ animationDelay: "180ms", animationDuration: "900ms" }} />
           <span className="size-2 rounded-full bg-white/60 animate-bounce" style={{ animationDelay: "360ms", animationDuration: "900ms" }} />
         </div>
-        {loadingSeconds >= 5 && (
+        {loadingSeconds >= 3 && (
           <span className="text-xs text-white/60 animate-pulse">{t("aina_thinking")}</span>
         )}
       </div>

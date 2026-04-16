@@ -7,6 +7,7 @@ import PDFDocument from "pdfkit";
 
 export interface DirectorReportData {
   schoolName?: string | null;
+  logoUrl?: string | null;
   generatedAt: Date;
   locale: "en" | "es" | "ca";
   stats: {
@@ -160,6 +161,15 @@ function addFooter(doc: InstanceType<typeof PDFDocument>, pageWidth: number, pow
 export async function generateDirectorReportPdf(data: DirectorReportData): Promise<Buffer> {
   const L = LABELS[data.locale] ?? LABELS.en;
 
+  // Pre-fetch logo outside the Promise constructor so we can use await
+  let logoBuf: Buffer | null = null;
+  if (data.logoUrl) {
+    try {
+      const logoRes = await fetch(data.logoUrl);
+      logoBuf = Buffer.from(await logoRes.arrayBuffer());
+    } catch { /* skip logo if fetch fails */ }
+  }
+
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     const doc = new PDFDocument({ margin: 40, size: "A4" });
@@ -171,10 +181,17 @@ export async function generateDirectorReportPdf(data: DirectorReportData): Promi
 
     // ── Cover header ─────────────────────────────────────────────────────────
     doc.rect(40, 30, pageWidth, 60).fillColor(BRAND_BLUE).fill();
+    // School logo (top-right of header band)
+    if (logoBuf) {
+      try {
+        doc.image(logoBuf, 40 + pageWidth - 56, 34, { width: 52, height: 52, fit: [52, 52] });
+      } catch { /* skip if image format unsupported */ }
+    }
+    const textRight = logoBuf ? pageWidth - 68 : pageWidth - 24;
     doc.fontSize(18).fillColor("#fff").font("Helvetica-Bold")
-      .text(L.title, 52, 40, { width: pageWidth - 24 });
+      .text(L.title, 52, 40, { width: textRight });
     doc.fontSize(10).fillColor("#c7d2fe").font("Helvetica")
-      .text(L.subtitle, 52, 62, { width: pageWidth - 24 });
+      .text(L.subtitle, 52, 62, { width: textRight });
     doc.moveDown(0.3);
 
     // Meta row

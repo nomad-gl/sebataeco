@@ -97,7 +97,7 @@ export default function Chat() {
     } catch (firstErr) {
       // Silent single auto-retry after a short pause
       console.warn("[AINA chat] First attempt failed, retrying once…", firstErr);
-      await new Promise((res) => setTimeout(res, 1500));
+      await new Promise((res) => setTimeout(res, 500));
       try {
         result = await chatMutation.mutateAsync(buildPayload());
       } catch (err) {

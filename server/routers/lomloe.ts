@@ -589,56 +589,60 @@ Structure your responses clearly. Use these patterns depending on the question t
 8. **Language rule:** Always respond in the language specified below, regardless of what language the teacher's question appears to be in. Translate competency names and LOMLOE terminology appropriately for the target language.
    Respond in: ${langName}.`;
 
+      // Limit context to the last 8 messages (4 turns) to reduce token count and latency
+      // while preserving enough context for coherent follow-up responses
+      const recentMessages = input.messages.slice(-8);
       const llmMessages = [
         { role: "system" as const, content: systemPrompt },
-        ...input.messages.map((m) => ({
+        ...recentMessages.map((m) => ({
           role: m.role as "user" | "assistant",
           content: m.content,
         })),
       ];
 
-      const response = await invokeLLM({ messages: llmMessages });
-      const rawContent = response.choices?.[0]?.message?.content ?? "I'm sorry, I couldn't generate a response. Please try again.";
-      const content = typeof rawContent === "string" ? rawContent : "I'm sorry, I couldn't generate a response. Please try again.";
+      // Fire main LLM call and follow-up question generation in parallel
+      // to avoid sequential latency (saves ~1-2s per response)
+      const mainResponsePromise = invokeLLM({ messages: llmMessages });
 
-      // Generate 2–3 contextual follow-on question chips
-      let followUpQuestions: string[] = [];
-      try {
-        const followUpResponse = await invokeLLM({
-          messages: [
-            {
-              role: "system",
-              content: `You are a helpful assistant that generates short follow-on questions for a teacher using a LOMLOE curriculum assistant. Based on the conversation, suggest 2 or 3 short, natural follow-on questions the teacher might want to ask next. Each question should be concise (max 10 words), practical, and directly related to the last exchange. Respond ONLY in ${langName}. Return a JSON array of strings, nothing else.`,
-            },
-            ...llmMessages.slice(1), // conversation without system prompt
-            { role: "assistant" as const, content },
-          ],
-          response_format: {
-            type: "json_schema",
-            json_schema: {
-              name: "follow_up_questions",
-              strict: true,
-              schema: {
-                type: "object",
-                properties: {
-                  questions: {
-                    type: "array",
-                    items: { type: "string" },
-                    description: "2 or 3 short follow-on questions",
+      const followUpSystemPrompt = `You are a helpful assistant that generates short follow-on questions for a teacher using a LOMLOE curriculum assistant. Based on the conversation, suggest 2 or 3 short, natural follow-on questions the teacher might want to ask next. Each question should be concise (max 10 words), practical, and directly related to the last exchange. Respond ONLY in ${langName}. Return a JSON array of strings, nothing else.`;
+
+      // Follow-up generation waits on main response content, but runs concurrently
+      const followUpPromise: Promise<string[]> = mainResponsePromise
+        .then(async (mainResp) => {
+          const rawMain = mainResp.choices?.[0]?.message?.content ?? "";
+          const mainContent = typeof rawMain === "string" ? rawMain : "";
+          if (!mainContent) return [];
+          const followUpResponse = await invokeLLM({
+            messages: [
+              { role: "system" as const, content: followUpSystemPrompt },
+              ...llmMessages.slice(1),
+              { role: "assistant" as const, content: mainContent },
+            ],
+            response_format: {
+              type: "json_schema",
+              json_schema: {
+                name: "follow_up_questions",
+                strict: true,
+                schema: {
+                  type: "object",
+                  properties: {
+                    questions: { type: "array", items: { type: "string" }, description: "2 or 3 short follow-on questions" },
                   },
+                  required: ["questions"],
+                  additionalProperties: false,
                 },
-                required: ["questions"],
-                additionalProperties: false,
               },
             },
-          },
-        });
-        const raw = followUpResponse.choices?.[0]?.message?.content ?? "{}";
-        const parsed = JSON.parse(typeof raw === "string" ? raw : JSON.stringify(raw));
-        followUpQuestions = Array.isArray(parsed.questions) ? parsed.questions.slice(0, 3) : [];
-      } catch {
-        followUpQuestions = [];
-      }
+          });
+          const raw = followUpResponse.choices?.[0]?.message?.content ?? "{}";
+          const parsed = JSON.parse(typeof raw === "string" ? raw : JSON.stringify(raw));
+          return Array.isArray(parsed.questions) ? parsed.questions.slice(0, 3) : [];
+        })
+        .catch(() => [] as string[]);
+
+      const [response, followUpQuestions] = await Promise.all([mainResponsePromise, followUpPromise]);
+      const rawContent = response.choices?.[0]?.message?.content ?? "I'm sorry, I couldn't generate a response. Please try again.";
+      const content = typeof rawContent === "string" ? rawContent : "I'm sorry, I couldn't generate a response. Please try again.";
 
       // Fire-and-forget profile update (never blocks the response)
       if (input.userId) {

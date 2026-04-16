@@ -6,6 +6,10 @@ import {
   forumMessages,
   forumDirectMessages,
   forumPresence,
+  forumReactions,
+  forumPins,
+  channelFiles,
+  forumThreadReplies,
   users,
 } from "../../drizzle/schema";
 import { eq, desc, and, or, gt, sql } from "drizzle-orm";
@@ -475,4 +479,278 @@ export const forumRouter = router({
       );
     return { unread: Number(row?.count ?? 0) };
   }),
+
+  // ─── Reactions ─────────────────────────────────────────────────────────────
+
+  /** Toggle an emoji reaction on a channel message */
+  toggleReaction: protectedProcedure
+    .input(z.object({ messageId: z.number().int(), emoji: z.string().max(8) }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+      // Check if reaction already exists
+      const existing = await db
+        .select()
+        .from(forumReactions)
+        .where(
+          and(
+            eq(forumReactions.messageId, input.messageId),
+            eq(forumReactions.userId, ctx.user.id),
+            eq(forumReactions.emoji, input.emoji)
+          )
+        )
+        .limit(1);
+      if (existing.length > 0) {
+        await db.delete(forumReactions).where(eq(forumReactions.id, existing[0].id));
+        return { added: false };
+      } else {
+        await db.insert(forumReactions).values({
+          messageId: input.messageId,
+          userId: ctx.user.id,
+          emoji: input.emoji,
+        });
+        return { added: true };
+      }
+    }),
+
+  /** Get reactions for a list of message IDs */
+  getReactions: protectedProcedure
+    .input(z.object({ messageIds: z.array(z.number().int()) }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db || input.messageIds.length === 0) return [];
+      const rows = await db
+        .select({
+          id: forumReactions.id,
+          messageId: forumReactions.messageId,
+          userId: forumReactions.userId,
+          emoji: forumReactions.emoji,
+        })
+        .from(forumReactions)
+        .where(sql`${forumReactions.messageId} IN (${sql.join(input.messageIds.map(id => sql`${id}`), sql`, `)})`);
+      // Group by messageId -> emoji -> count + myReaction
+      const grouped: Record<number, Record<string, { count: number; mine: boolean }>> = {};
+      for (const r of rows) {
+        if (!grouped[r.messageId]) grouped[r.messageId] = {};
+        if (!grouped[r.messageId][r.emoji]) grouped[r.messageId][r.emoji] = { count: 0, mine: false };
+        grouped[r.messageId][r.emoji].count += 1;
+        if (r.userId === ctx.user.id) grouped[r.messageId][r.emoji].mine = true;
+      }
+      return Object.entries(grouped).map(([msgId, emojis]) => ({
+        messageId: Number(msgId),
+        reactions: Object.entries(emojis).map(([emoji, data]) => ({ emoji, ...data })),
+      }));
+    }),
+
+  // ─── Pins / Announcements ──────────────────────────────────────────────────
+
+  /** Pin a message in a channel (teacher/HOS/director only) */
+  pinMessage: protectedProcedure
+    .input(z.object({ channelId: z.number().int(), messageId: z.number().int() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+      // Only allow teacher, head_of_study, director
+      const pos = (ctx.user as { position?: string }).position;
+      if (!pos || !['teacher', 'head_of_study', 'director'].includes(pos)) {
+        throw new Error("Only staff can pin messages");
+      }
+      await db.insert(forumPins).values({
+        channelId: input.channelId,
+        messageId: input.messageId,
+        pinnedBy: ctx.user.id,
+      });
+      return { ok: true };
+    }),
+
+  /** Unpin a message */
+  unpinMessage: protectedProcedure
+    .input(z.object({ pinId: z.number().int() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+      await db.delete(forumPins).where(
+        and(eq(forumPins.id, input.pinId), eq(forumPins.pinnedBy, ctx.user.id))
+      );
+      return { ok: true };
+    }),
+
+  /** Get pinned messages for a channel */
+  getPinnedMessages: protectedProcedure
+    .input(z.object({ channelId: z.number().int() }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const rows = await db
+        .select({
+          pinId: forumPins.id,
+          messageId: forumPins.messageId,
+          pinnedBy: forumPins.pinnedBy,
+          pinnedAt: forumPins.pinnedAt,
+          body: forumMessages.body,
+          userName: users.name,
+        })
+        .from(forumPins)
+        .leftJoin(forumMessages, eq(forumPins.messageId, forumMessages.id))
+        .leftJoin(users, eq(forumMessages.userId, users.id))
+        .where(eq(forumPins.channelId, input.channelId))
+        .orderBy(desc(forumPins.pinnedAt))
+        .limit(5);
+      return rows;
+    }),
+
+  // ─── Channel Files ─────────────────────────────────────────────────────────
+
+  /** Upload a file to a channel (base64 encoded) */
+  uploadChannelFile: protectedProcedure
+    .input(z.object({
+      channelId: z.number().int(),
+      fileName: z.string().max(255),
+      mimeType: z.string().max(128),
+      fileBase64: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+      const { storagePut } = await import("../storage");
+      const fileBuffer = Buffer.from(input.fileBase64, "base64");
+      const ext = input.fileName.split(".").pop() ?? "bin";
+      const fileKey = `channel-files/${input.channelId}/${ctx.user.id}-${Date.now()}.${ext}`;
+      const { url: fileUrl } = await storagePut(fileKey, fileBuffer, input.mimeType);
+      await db.insert(channelFiles).values({
+        channelId: input.channelId,
+        uploadedBy: ctx.user.id,
+        fileName: input.fileName,
+        fileKey,
+        fileUrl,
+        mimeType: input.mimeType,
+        fileSize: fileBuffer.length,
+      });
+      return { fileUrl, fileKey };
+    }),
+
+  /** List files in a channel */
+  getChannelFiles: protectedProcedure
+    .input(z.object({ channelId: z.number().int() }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const rows = await db
+        .select({
+          id: channelFiles.id,
+          fileName: channelFiles.fileName,
+          fileUrl: channelFiles.fileUrl,
+          mimeType: channelFiles.mimeType,
+          fileSize: channelFiles.fileSize,
+          createdAt: channelFiles.createdAt,
+          uploaderName: users.name,
+        })
+        .from(channelFiles)
+        .leftJoin(users, eq(channelFiles.uploadedBy, users.id))
+        .where(eq(channelFiles.channelId, input.channelId))
+        .orderBy(desc(channelFiles.createdAt))
+        .limit(50);
+      return rows;
+    }),
+
+  // ─── Thread Replies ────────────────────────────────────────────────────────
+
+  /** Get replies for a parent message */
+  getThreadReplies: protectedProcedure
+    .input(z.object({ parentMessageId: z.number().int(), lang: z.string().nullish() }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const rows = await db
+        .select({
+          id: forumThreadReplies.id,
+          parentMessageId: forumThreadReplies.parentMessageId,
+          userId: forumThreadReplies.userId,
+          body: forumThreadReplies.body,
+          translatedBodies: forumThreadReplies.translatedBodies,
+          createdAt: forumThreadReplies.createdAt,
+          userName: users.name,
+        })
+        .from(forumThreadReplies)
+        .leftJoin(users, eq(forumThreadReplies.userId, users.id))
+        .where(eq(forumThreadReplies.parentMessageId, input.parentMessageId))
+        .orderBy(forumThreadReplies.createdAt)
+        .limit(50);
+
+      // Auto-translate if needed
+      if (input.lang && input.lang !== "en") {
+        for (const r of rows) {
+          let translated: Record<string, string> = {};
+          if (r.translatedBodies) { try { translated = JSON.parse(r.translatedBodies); } catch {} }
+          if (!translated[input.lang]) {
+            try {
+              const res = await invokeLLM({
+                messages: [
+                  { role: "system", content: `Translate to ${input.lang === "es" ? "Spanish" : "Catalan"}. Return only the translation.` },
+                  { role: "user", content: r.body },
+                ],
+              });
+              const content = res?.choices?.[0]?.message?.content;
+              const translatedText = typeof content === "string" ? content.trim() : r.body;
+              translated[input.lang] = translatedText;
+              await db.update(forumThreadReplies)
+                .set({ translatedBodies: JSON.stringify(translated) })
+                .where(eq(forumThreadReplies.id, r.id));
+              r.translatedBodies = JSON.stringify(translated);
+            } catch {}
+          }
+        }
+      }
+
+      return rows.map(r => {
+        let translated: Record<string, string> = {};
+        if (r.translatedBodies) { try { translated = JSON.parse(r.translatedBodies); } catch {} }
+        return {
+          id: r.id,
+          parentMessageId: r.parentMessageId,
+          userId: r.userId,
+          userName: r.userName ?? "Unknown",
+          body: (input.lang && input.lang !== "en" && translated[input.lang]) ? translated[input.lang] : r.body,
+          originalBody: r.body,
+          createdAt: r.createdAt,
+        };
+      });
+    }),
+
+  /** Post a reply to a message thread */
+  postThreadReply: protectedProcedure
+    .input(z.object({
+      parentMessageId: z.number().int(),
+      channelId: z.number().int(),
+      body: z.string().min(1).max(2000),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      await heartbeat(ctx.user.id);
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+      const result = await db.insert(forumThreadReplies).values({
+        parentMessageId: input.parentMessageId,
+        channelId: input.channelId,
+        userId: ctx.user.id,
+        body: input.body.trim(),
+      });
+      return { id: (result as unknown as [{ insertId: number }])[0].insertId };
+    }),
+
+  /** Get reply counts for a list of message IDs */
+  getReplyCount: protectedProcedure
+    .input(z.object({ messageIds: z.array(z.number().int()) }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db || input.messageIds.length === 0) return [];
+      const rows = await db
+        .select({
+          parentMessageId: forumThreadReplies.parentMessageId,
+          count: sql<number>`COUNT(*)`,
+        })
+        .from(forumThreadReplies)
+        .where(sql`${forumThreadReplies.parentMessageId} IN (${sql.join(input.messageIds.map(id => sql`${id}`), sql`, `)})`)
+        .groupBy(forumThreadReplies.parentMessageId);
+      return rows.map(r => ({ messageId: r.parentMessageId, count: Number(r.count) }));
+    }),
 });

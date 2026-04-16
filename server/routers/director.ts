@@ -187,7 +187,7 @@ export const directorRouter = router({
       if (!db) throw new Error("DB unavailable");
 
       // Gather all data needed for the report
-      const [statsData, staffData, complianceData, settingsRows] = await Promise.all([
+      const [statsData, staffData, complianceData, settingsRows, schoolSettingsRows] = await Promise.all([
         (async () => {
           const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
           const [[totalTeachers], [totalLessonPlans], [aiGeneratedPlans], [totalPracticeSessions], [openBiasFlags], [recentScanRuns]] = await Promise.all([
@@ -250,13 +250,16 @@ export const directorRouter = router({
           return { competencyCoverage, subjectCoverage };
         })(),
         db.select().from(appSettings),
+        db.select().from(schoolSettings).where(eq(schoolSettings.id, 1)),
       ]);
 
       const settings: Record<string, string> = {};
       for (const row of settingsRows) settings[row.key] = row.value;
+      const schoolBranding = schoolSettingsRows[0] ?? null;
 
       const pdfBuffer = await generateDirectorReportPdf({
-        schoolName: settings.school_name ?? null,
+        schoolName: schoolBranding?.schoolName ?? settings.school_name ?? null,
+        logoUrl: schoolBranding?.logoUrl ?? null,
         generatedAt: new Date(),
         locale: input.locale,
         stats: statsData,

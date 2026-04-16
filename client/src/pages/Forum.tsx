@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
 import NavBar from "@/components/NavBar";
@@ -7,6 +7,8 @@ import {
   Hash, MessageSquare, Users, Send, Search,
   ChevronLeft, Circle, ArrowLeft, Wifi, WifiOff,
   SmilePlus, MoreVertical, Bell, Settings, Mic, MicOff,
+  Pin, PinOff, Reply, Paperclip, FileText, Image as ImageIcon,
+  Download, X, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Link } from "wouter";
@@ -101,6 +103,14 @@ export default function Forum() {
   const [channelSince, setChannelSince] = useState<number | undefined>(undefined);
   const [dmSince, setDmSince] = useState<number | undefined>(undefined);
 
+  // new feature state
+  const [channelTab, setChannelTab] = useState<"messages" | "files">("messages");
+  const [showReactionPicker, setShowReactionPicker] = useState<number | null>(null);
+  const [threadMsgId, setThreadMsgId] = useState<number | null>(null);
+  const [threadInput, setThreadInput] = useState("");
+  const [showPinned, setShowPinned] = useState(false);
+  const [fileUploadRef] = useState(() => ({ current: null as HTMLInputElement | null }));
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -114,6 +124,28 @@ export default function Forum() {
   const channelMessagesQ = trpc.forum.getMessages.useQuery(
     { channelId: activeChannelId ?? 0, lang },
     { enabled: view === "channel" && activeChannelId !== null, refetchInterval: 2_000 }
+  );
+
+  const messageIds = useMemo(() => (channelMessagesQ.data ?? []).map(m => m.id), [channelMessagesQ.data]);
+  const reactionsQ = trpc.forum.getReactions.useQuery(
+    { messageIds },
+    { enabled: view === "channel" && messageIds.length > 0, refetchInterval: 5_000 }
+  );
+  const replyCountQ = trpc.forum.getReplyCount.useQuery(
+    { messageIds },
+    { enabled: view === "channel" && messageIds.length > 0, refetchInterval: 5_000 }
+  );
+  const pinnedQ = trpc.forum.getPinnedMessages.useQuery(
+    { channelId: activeChannelId ?? 0 },
+    { enabled: view === "channel" && activeChannelId !== null, refetchInterval: 10_000 }
+  );
+  const channelFilesQ = trpc.forum.getChannelFiles.useQuery(
+    { channelId: activeChannelId ?? 0 },
+    { enabled: view === "channel" && activeChannelId !== null && channelTab === "files", refetchInterval: 10_000 }
+  );
+  const threadRepliesQ = trpc.forum.getThreadReplies.useQuery(
+    { parentMessageId: threadMsgId ?? 0, lang },
+    { enabled: threadMsgId !== null, refetchInterval: 3_000 }
   );
 
   const dmMessagesQ = trpc.forum.getDirectMessages.useQuery(
@@ -134,6 +166,18 @@ export default function Forum() {
     },
   });
   const pingMut = trpc.forum.ping.useMutation();
+  const toggleReactionMut = trpc.forum.toggleReaction.useMutation({
+    onSuccess: () => utils.forum.getReactions.invalidate(),
+  });
+  const pinMut = trpc.forum.pinMessage.useMutation({
+    onSuccess: () => utils.forum.getPinnedMessages.invalidate(),
+  });
+  const uploadFileMut = trpc.forum.uploadChannelFile.useMutation({
+    onSuccess: () => utils.forum.getChannelFiles.invalidate(),
+  });
+  const postReplyMut = trpc.forum.postThreadReply.useMutation({
+    onSuccess: () => utils.forum.getThreadReplies.invalidate(),
+  });
   const sendVoiceMut = trpc.forum.sendVoiceMessage.useMutation({
     onSuccess: () => utils.forum.getMessages.invalidate(),
   });
@@ -252,6 +296,40 @@ export default function Forum() {
     setShowUserList(false);
     setMobileSidebarOpen(false);
   };
+
+  // ─── file upload handler ───────────────────────────────────────────────────
+  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || activeChannelId === null) return;
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onloadend = async () => {
+      const base64 = (reader.result as string).split(",")[1];
+      await uploadFileMut.mutateAsync({
+        channelId: activeChannelId,
+        fileName: file.name,
+        mimeType: file.type || "application/octet-stream",
+        fileBase64: base64,
+      });
+      setChannelTab("files");
+    };
+    e.target.value = "";
+  }, [activeChannelId, uploadFileMut]);
+
+  // ─── reaction helpers ──────────────────────────────────────────────────────
+  const reactionsMap = useMemo(() => {
+    const m: Record<number, { emoji: string; count: number; mine: boolean }[]> = {};
+    for (const r of reactionsQ.data ?? []) m[r.messageId] = r.reactions;
+    return m;
+  }, [reactionsQ.data]);
+
+  const replyCountMap = useMemo(() => {
+    const m: Record<number, number> = {};
+    for (const r of replyCountQ.data ?? []) m[r.messageId] = r.count;
+    return m;
+  }, [replyCountQ.data]);
+
+  const QUICK_EMOJIS = ["👍", "❤️", "😂", "🎉", "🙏", "🔥", "👏", "😮"];
 
   // ─── derived data ──────────────────────────────────────────────────────────
 
@@ -605,19 +683,113 @@ export default function Forum() {
 
             <div className="flex items-center gap-1 text-white/60">
               {view === "channel" && (
-                <button
-                  onClick={() => setShowUserList((v) => !v)}
-                  className="p-2 rounded-lg hover:bg-white/15 transition-colors"
-                  title={t("forum_members")}
-                >
-                  <Users className="w-4 h-4" />
-                </button>
+                <>
+                  <button
+                    onClick={() => setShowPinned(v => !v)}
+                    className={cn("p-2 rounded-lg hover:bg-white/15 transition-colors", showPinned && "bg-amber-500/30 text-amber-300")}
+                    title={t("forum_pinned")}
+                  >
+                    <Pin className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setShowUserList((v) => !v)}
+                    className="p-2 rounded-lg hover:bg-white/15 transition-colors"
+                    title={t("forum_members")}
+                  >
+                    <Users className="w-4 h-4" />
+                  </button>
+                </>
               )}
             </div>
           </div>
 
+          {/* Channel tabs */}
+          {view === "channel" && (
+            <div className="flex border-b border-white/15 bg-white/5 flex-shrink-0">
+              <button
+                onClick={() => setChannelTab("messages")}
+                className={cn(
+                  "flex items-center gap-1.5 px-4 py-2 text-xs font-semibold transition-colors",
+                  channelTab === "messages" ? "text-white border-b-2 border-white" : "text-white/50 hover:text-white/80"
+                )}
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                {t("forum_messages_tab")}
+              </button>
+              <button
+                onClick={() => setChannelTab("files")}
+                className={cn(
+                  "flex items-center gap-1.5 px-4 py-2 text-xs font-semibold transition-colors",
+                  channelTab === "files" ? "text-white border-b-2 border-white" : "text-white/50 hover:text-white/80"
+                )}
+              >
+                <Paperclip className="w-3.5 h-3.5" />
+                {t("forum_files_tab")}
+                {(channelFilesQ.data?.length ?? 0) > 0 && (
+                  <span className="ml-1 text-[10px] bg-white/20 px-1.5 py-0.5 rounded-full">{channelFilesQ.data?.length}</span>
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* Pinned messages banner */}
+          {view === "channel" && showPinned && (pinnedQ.data?.length ?? 0) > 0 && (
+            <div className="flex-shrink-0 bg-amber-500/15 border-b border-amber-400/30 px-4 py-2">
+              <div className="flex items-center gap-2 mb-1">
+                <Pin className="w-3.5 h-3.5 text-amber-300" />
+                <span className="text-xs font-bold text-amber-300 uppercase tracking-widest">{t("forum_pinned")}</span>
+                <button onClick={() => setShowPinned(false)} className="ml-auto text-white/40 hover:text-white/70"><X className="w-3.5 h-3.5" /></button>
+              </div>
+              {pinnedQ.data?.map(pin => (
+                <div key={pin.pinId} className="text-xs text-white/80 truncate pl-5">
+                  <span className="font-semibold text-white/60">{pin.userName}: </span>{pin.body}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Files tab content */}
+          {view === "channel" && channelTab === "files" && (
+            <div className="flex-1 overflow-y-auto px-4 py-4 bg-black/20 backdrop-blur-sm">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-white/80">{t("forum_files_tab")} — #{activeChannel?.name}</h3>
+                <label className="flex items-center gap-1.5 cursor-pointer px-3 py-1.5 bg-white/15 hover:bg-white/25 rounded-lg text-xs text-white font-medium transition-colors">
+                  <Paperclip className="w-3.5 h-3.5" />
+                  {t("forum_upload_file")}
+                  <input type="file" className="hidden" onChange={handleFileUpload} />
+                </label>
+              </div>
+              {(channelFilesQ.data?.length ?? 0) === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-white/40">
+                  <FileText className="w-12 h-12 mb-3 opacity-30" />
+                  <p className="text-sm">{t("forum_no_files")}</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {channelFilesQ.data?.map(f => (
+                    <div key={f.id} className="flex items-center gap-3 p-3 bg-white/10 backdrop-blur-sm border border-white/15 rounded-xl">
+                      {f.mimeType?.startsWith("image/") ? (
+                        <ImageIcon className="w-8 h-8 text-blue-300 flex-shrink-0" />
+                      ) : (
+                        <FileText className="w-8 h-8 text-white/50 flex-shrink-0" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-white truncate">{f.fileName}</p>
+                        <p className="text-xs text-white/40">{f.uploaderName} · {f.fileSize ? `${Math.round(f.fileSize / 1024)}KB` : ""}</p>
+                      </div>
+                      <a href={f.fileUrl ?? ""} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/15 hover:bg-white/25 text-white transition-colors">
+                        <Download className="w-4 h-4" />
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1 bg-black/20 backdrop-blur-sm">
+          <div className={cn("flex-1 overflow-y-auto px-4 py-4 space-y-1 bg-black/20 backdrop-blur-sm", view === "channel" && channelTab === "files" && "hidden")}>
             {(view === "channel" ? channelMessages : dmMessages).length === 0 && (
               <div className="flex flex-col items-center justify-center h-full text-center text-white/60 py-16">
                 {view === "channel" ? (
@@ -644,8 +816,10 @@ export default function Forum() {
                 ? new Date(msg.createdAt).getTime() - new Date(prevMsg.createdAt).getTime()
                 : Infinity;
               const showHeader = !sameAuthor || timeDiff > 5 * 60_000;
+              const msgReactions = reactionsMap[msg.id] ?? [];
+              const replyCount = replyCountMap[msg.id] ?? 0;
               return (
-                <div key={msg.id} className={cn("flex items-end gap-2", isMine ? "flex-row-reverse" : "flex-row", showHeader ? "mt-4" : "mt-0.5")}>
+                <div key={msg.id} className={cn("group flex items-end gap-2", isMine ? "flex-row-reverse" : "flex-row", showHeader ? "mt-4" : "mt-0.5")}>
                   {!isMine && showHeader && <Avatar name={msg.userName} size="sm" />}
                   {!isMine && !showHeader && <div className="w-7 flex-shrink-0" />}
                   <div className={cn("max-w-[70%] flex flex-col", isMine ? "items-end" : "items-start")}>
@@ -663,6 +837,78 @@ export default function Forum() {
                         msg.body
                       )}
                     </div>
+
+                    {/* Reaction bar */}
+                    {msgReactions.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1 mx-1">
+                        {msgReactions.map(r => (
+                          <button
+                            key={r.emoji}
+                            onClick={() => toggleReactionMut.mutate({ messageId: msg.id, emoji: r.emoji })}
+                            className={cn(
+                              "flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs border transition-colors",
+                              r.mine
+                                ? "bg-primary/30 border-primary/50 text-white"
+                                : "bg-white/10 border-white/20 text-white/70 hover:bg-white/20"
+                            )}
+                          >
+                            {r.emoji} <span className="font-medium">{r.count}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Action buttons (hover) */}
+                    <div className={cn(
+                      "flex items-center gap-1 mt-0.5 mx-1 opacity-0 group-hover:opacity-100 transition-opacity",
+                      isMine ? "flex-row-reverse" : "flex-row"
+                    )}>
+                      {/* Quick emoji picker */}
+                      <div className="relative">
+                        <button
+                          onClick={() => setShowReactionPicker(showReactionPicker === msg.id ? null : msg.id)}
+                          className="flex items-center justify-center w-6 h-6 rounded-full bg-white/10 hover:bg-white/25 text-white/60 hover:text-white transition-colors"
+                        >
+                          <SmilePlus className="w-3.5 h-3.5" />
+                        </button>
+                        {showReactionPicker === msg.id && (
+                          <div className={cn(
+                            "absolute bottom-7 z-50 flex gap-1 p-1.5 bg-gray-900/95 backdrop-blur-md border border-white/20 rounded-xl shadow-xl",
+                            isMine ? "right-0" : "left-0"
+                          )}>
+                            {QUICK_EMOJIS.map(e => (
+                              <button
+                                key={e}
+                                onClick={() => {
+                                  toggleReactionMut.mutate({ messageId: msg.id, emoji: e });
+                                  setShowReactionPicker(null);
+                                }}
+                                className="text-lg hover:scale-125 transition-transform p-0.5"
+                              >{e}</button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      {/* Reply */}
+                      <button
+                        onClick={() => setThreadMsgId(threadMsgId === msg.id ? null : msg.id)}
+                        className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-white/10 hover:bg-white/25 text-white/60 hover:text-white text-[10px] font-medium transition-colors"
+                      >
+                        <Reply className="w-3 h-3" />
+                        {replyCount > 0 && <span>{replyCount}</span>}
+                      </button>
+                      {/* Pin (staff only) */}
+                      {['teacher','head_of_study','director'].includes((user as {position?: string})?.position ?? '') && (
+                        <button
+                          onClick={() => pinMut.mutate({ channelId: activeChannelId!, messageId: msg.id })}
+                          className="flex items-center justify-center w-6 h-6 rounded-full bg-white/10 hover:bg-amber-500/30 text-white/60 hover:text-amber-300 transition-colors"
+                          title={t("forum_pin_message")}
+                        >
+                          <Pin className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+
                     <span className="text-[10px] text-white/40 mt-0.5 mx-1">{formatTime(msg.createdAt)}</span>
                   </div>
                 </div>
@@ -702,6 +948,57 @@ export default function Forum() {
             })}
             <div ref={messagesEndRef} />
           </div>
+
+          {/* Thread panel */}
+          {threadMsgId !== null && (
+            <div className="flex-shrink-0 border-t border-white/20 bg-black/30 backdrop-blur-md px-4 py-3 max-h-64 overflow-y-auto">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-white/70 uppercase tracking-widest">{t("forum_thread")}</span>
+                <button onClick={() => setThreadMsgId(null)} className="text-white/40 hover:text-white/70"><X className="w-3.5 h-3.5" /></button>
+              </div>
+              <div className="space-y-2 mb-2">
+                {(threadRepliesQ.data ?? []).map(r => (
+                  <div key={r.id} className="flex items-start gap-2">
+                    <Avatar name={r.userName} size="sm" />
+                    <div>
+                      <span className="text-xs font-semibold text-white/70">{r.userName}</span>
+                      <p className="text-xs text-white/80 mt-0.5">{r.body}</p>
+                    </div>
+                  </div>
+                ))}
+                {(threadRepliesQ.data?.length ?? 0) === 0 && (
+                  <p className="text-xs text-white/40">{t("forum_no_replies")}</p>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={threadInput}
+                  onChange={e => setThreadInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" && threadInput.trim() && threadMsgId && activeChannelId) {
+                      postReplyMut.mutate({ parentMessageId: threadMsgId, channelId: activeChannelId, body: threadInput.trim() });
+                      setThreadInput("");
+                    }
+                  }}
+                  placeholder={t("forum_reply_placeholder")}
+                  className="flex-1 bg-white/10 border border-white/20 rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-white/40 outline-none focus:border-white/40"
+                />
+                <button
+                  onClick={() => {
+                    if (threadInput.trim() && threadMsgId && activeChannelId) {
+                      postReplyMut.mutate({ parentMessageId: threadMsgId, channelId: activeChannelId, body: threadInput.trim() });
+                      setThreadInput("");
+                    }
+                  }}
+                  disabled={!threadInput.trim()}
+                  className="px-3 py-1.5 bg-primary text-white text-xs rounded-lg disabled:opacity-40"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Input bar */}
           <div className="flex-shrink-0 bg-white/10 backdrop-blur-md border-t border-white/20 px-4 py-3">

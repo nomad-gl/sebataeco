@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import {
   Loader2, BookMarked, Copy, Check, Trash2, BookOpen, Target,
-  ClipboardList, Zap, ExternalLink, RefreshCw, Globe, Lock,
+  ClipboardList, Zap, ExternalLink, RefreshCw, Globe, Lock, Printer,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -116,6 +116,31 @@ export default function MySituacions() {
 
   function getParsed(item: SavedSituacio): SituacioResult | null {
     try { return JSON.parse(item.resultJson); } catch { return null; }
+  }
+
+  function handlePrint(item: SavedSituacio) {
+    const parsed = getParsed(item);
+    if (!parsed) return;
+    const logo = localStorage.getItem("seba_school_logo");
+    const logoHtml = logo
+      ? `<img src="${logo}" alt="School Logo" style="height:56px;object-fit:contain;margin-bottom:6px;" />`
+      : ``;
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${parsed.title}</title>
+<style>body{font-family:sans-serif;margin:32px;color:#111}h1{font-size:1.3rem;margin-bottom:4px}h2{font-size:0.9rem;text-transform:uppercase;letter-spacing:.05em;color:#555;margin:18px 0 6px}p,li{font-size:0.88rem;line-height:1.55}ol{padding-left:1.2rem}.badge{display:inline-block;background:#e0e7ff;color:#3730a3;border-radius:9999px;padding:2px 10px;font-size:0.75rem;font-weight:700;margin-right:6px}.footer{margin-top:32px;font-size:0.7rem;color:#999;border-top:1px solid #eee;padding-top:8px}@media print{body{margin:16px}}</style></head><body>
+<div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;border-bottom:2px solid #1e3a5f;padding-bottom:12px">${logoHtml}<div><h1 style="margin:0">${parsed.title}</h1><p style="margin:2px 0;color:#555;font-size:0.8rem">${item.subject} &middot; ${item.yearGroup}</p></div></div>
+<h2>Context</h2><p>${parsed.context}</p>
+<h2>Task</h2><p>${parsed.task}</p>
+<h2>Competencies</h2>${parsed.competencies.map(c=>`<p><span class="badge">${c.code}</span>${c.description}</p>`).join('')}
+<h2>Activities</h2>${parsed.activities.map((a,i)=>`<p><strong>${i+1}. ${a.phase}:</strong> ${a.description}</p>`).join('')}
+<h2>Criteria</h2><ol>${parsed.criteria.map(c=>`<li>${c}</li>`).join('')}</ol>
+<p style="font-style:italic;color:#888;font-size:0.78rem;margin-top:12px">${parsed.lomloeRef}</p>
+<div class="footer">Powered by SEBA &middot; ${new Date().toLocaleDateString()}</div>
+</body></html>`;
+    const w = window.open('', '_blank');
+    if (!w) return;
+    w.document.write(html);
+    w.document.close();
+    setTimeout(() => { w.print(); }, 400);
   }
 
   function buildMarkdown(result: SituacioResult): string {
@@ -414,6 +439,12 @@ export default function MySituacions() {
                   {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                   {t("my_situacions_copy")}
                 </Button>
+                {viewItem && (
+                  <Button size="sm" variant="outline" onClick={() => handlePrint(viewItem)} className="gap-1.5">
+                    <Printer className="w-3.5 h-3.5" />
+                    {t("my_situacions_print") ?? "Print"}
+                  </Button>
+                )}
                 {viewItem && (
                   <Button size="sm" variant="outline" onClick={() => handleRegenerate(viewItem)} className="gap-1.5">
                     <RefreshCw className="w-3.5 h-3.5" />
