@@ -70,6 +70,13 @@ export default function NavBar() {
   });
   const utils = trpc.useUtils();
 
+  // Missed call badge — poll for unanswered incoming calls
+  const { data: missedCallData } = trpc.dmCall.getMissedCount.useQuery(undefined, {
+    enabled: !!user,
+    refetchInterval: 15_000,
+  });
+  const missedCallCount = missedCallData?.count ?? 0;
+
   // Items before Teacher dropdown (Home removed — logo already links to /)
   const mainNavItemsBefore = [
     { href: "/chat",           label: t("nav_chat"),           icon: MessageCircle },
@@ -328,6 +335,7 @@ export default function NavBar() {
                 <div className="absolute right-0 top-full mt-1 w-52 bg-white border border-border rounded-xl shadow-lg py-1 z-50">
                   {teacherItems.map(({ href, label, icon: Icon }) => {
                     const active = location === href || (href !== "/" && location.startsWith(href));
+                    const isConnect = href === "/connect";
                     return (
                       <Link
                         key={href}
@@ -339,7 +347,12 @@ export default function NavBar() {
                         )}
                       >
                         <Icon className="w-4 h-4" />
-                        {label}
+                        <span className="flex-1">{label}</span>
+                        {isConnect && missedCallCount > 0 && (
+                          <span className="ml-auto flex items-center justify-center w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold">
+                            {missedCallCount > 9 ? "9+" : missedCallCount}
+                          </span>
+                        )}
                       </Link>
                     );
                   })}

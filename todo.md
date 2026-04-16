@@ -2767,3 +2767,43 @@
 - [x] Add i18n keys for call notifications and history (EN/ES/CA)
 - [x] TypeScript 0 errors
 - [x] Save checkpoint
+
+## Session 31: Slide-Hide Panel + Follow-ups
+- [ ] Add slide/collapse toggle to backgrounds/filters panel in PreCallScreen (CSS transition, chevron button)
+- [ ] Implement end-call hook: call trpc.dmCall.end when video call dialog closes
+- [ ] Add missed call badge on SEBA Connect nav item
+- [ ] Add call ringtone (Web Audio API) with mute toggle in IncomingCallBanner
+- [ ] TypeScript 0 errors
+- [ ] Save checkpoint
+
+
+## Session 31: Slide-Hide Panel + Follow-ups
+- [ ] Add slide/collapse toggle to backgrounds/filters panel in PreCallScreen (CSS transition, chevron button)
+- [ ] Implement end-call hook: call trpc.dmCall.end when video call dialog closes
+- [ ] Add missed call badge on SEBA Connect nav item
+- [ ] Add call ringtone (Web Audio API) with mute toggle in IncomingCallBanner
+- [ ] TypeScript 0 errors
+- [ ] Save checkpoint
+
+## Session 31b: SebaMeet — Sovereign WebRTC Video Engine
+- [ ] Fix TypeScript errors from Session 31 (end-call hook status field, panel toggle)
+- [ ] Finish end-call hook, missed call badge, call ringtone
+- [ ] Save stable pre-migration checkpoint
+- [ ] Add webrtc_sessions and webrtc_signals tables to drizzle/schema.ts
+- [ ] Run migration for webrtc tables
+- [ ] Build server/routers/webrtc.ts: createSession, sendSignal, pollSignals, leaveSession procedures
+- [ ] Build client/src/components/SebaMeet.tsx: full sovereign WebRTC call UI
+  - Peer connection setup with STUN servers
+  - Local video/audio stream with mute/camera toggle
+  - Remote video stream rendering
+  - Screen share via getDisplayMedia
+  - SEBA-branded header (S symbol + logo left, school logo right)
+  - Reactions toolbar (emoji with animated indicator)
+  - Recording notice toggle
+  - End call button
+  - Audio-only mode support
+- [ ] Replace Jitsi iframe in SebaConnect with SebaMeet component
+- [ ] Wire room name, callOpts (mute/camera), and school logo into SebaMeet
+- [ ] Add i18n keys for SebaMeet UI (EN/ES/CA)
+- [ ] TypeScript 0 errors
+- [ ] Save checkpoint

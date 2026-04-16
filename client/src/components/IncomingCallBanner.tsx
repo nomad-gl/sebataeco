@@ -14,7 +14,7 @@ import { useEffect, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
 import { Button } from "@/components/ui/button";
-import { Phone, PhoneOff, Video } from "lucide-react";
+import { Phone, PhoneOff, Video, Volume2, VolumeX } from "lucide-react";
 
 interface IncomingCallBannerProps {
   /** Called when user accepts — pass room name and audioOnly flag */
@@ -25,6 +25,7 @@ export function IncomingCallBanner({ onAccept }: IncomingCallBannerProps) {
   const { t } = useI18n();
   const utils = trpc.useUtils();
   const [dismissed, setDismissed] = useState<number | null>(null);
+  const [ringMuted, setRingMuted] = useState(false);
 
   // Poll every 3 seconds
   const { data: pendingCall } = trpc.dmCall.getPending.useQuery(undefined, {
@@ -54,8 +55,8 @@ export function IncomingCallBanner({ onAccept }: IncomingCallBannerProps) {
         osc.start(ctx.currentTime);
         osc.stop(ctx.currentTime + 0.3);
       };
-      playBeep();
-      ringIntervalRef.current = setInterval(playBeep, 1500);
+      if (!ringMuted) playBeep();
+      ringIntervalRef.current = setInterval(() => { if (!ringMuted) playBeep(); }, 1500);
     } catch {
       // Audio not available — silent
     }
@@ -104,7 +105,16 @@ export function IncomingCallBanner({ onAccept }: IncomingCallBannerProps) {
 
   return (
     <div className="fixed bottom-6 right-6 z-[9999] animate-in slide-in-from-bottom-4 fade-in duration-300">
-      <div className="bg-[#003082] text-white rounded-2xl shadow-2xl p-4 w-80 border border-white/10">
+      <div className="relative bg-[#003082] text-white rounded-2xl shadow-2xl p-4 w-80 border border-white/10">
+        {/* Mute ringtone toggle */}
+        <button
+          onClick={() => setRingMuted((m) => !m)}
+          className="absolute top-3 right-3 text-white/50 hover:text-white/90 transition-colors"
+          title={ringMuted ? "Unmute ringtone" : "Mute ringtone"}
+        >
+          {ringMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+        </button>
+
         {/* Pulsing ring indicator */}
         <div className="flex items-center gap-3 mb-4">
           <div className="relative shrink-0">

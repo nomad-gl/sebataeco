@@ -15,6 +15,8 @@ import {
   AlertCircle,
   Loader2,
   FlipHorizontal2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import SebaSymbol from "@/components/SebaSymbol";
 
@@ -227,6 +229,7 @@ export default function PreCallScreen({
   const addLog = (msg: string) => setResolveLog((l) => [...l.slice(-9), msg]);
 
   const [activeTab, setActiveTab] = useState<"backgrounds" | "filters">("backgrounds");
+  const [panelOpen, setPanelOpen] = useState(true);
   const [selectedBg, setSelectedBg] = useState<VideoBackground>(getSavedBg);
   const [selectedFilter, setSelectedFilter] = useState<VideoFilter>(getSavedFilter);
   const [segmentationLoading, setSegmentationLoading] = useState(false);
@@ -544,7 +547,7 @@ export default function PreCallScreen({
       </div>
 
       {/* ── Main layout ── */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="relative flex flex-1 overflow-hidden">
         {/* Left: camera preview */}
         <div className="flex flex-col flex-1 items-center justify-center p-6 gap-4">
           {/* Video preview box */}
@@ -803,10 +806,23 @@ export default function PreCallScreen({
           </div>
         </div>
 
-        {/* Right: backgrounds + filters panel */}
-        <div className="w-72 flex flex-col border-l border-gray-800 bg-gray-900">
+        {/* Toggle button — always visible, sits at the boundary */}
+        <button
+          onClick={() => setPanelOpen((v) => !v)}
+          title={panelOpen ? "Hide panel" : "Show backgrounds & filters"}
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-5 h-12 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-l-md transition-all"
+          style={{ right: panelOpen ? "288px" : "0px" }}
+        >
+          {panelOpen ? <ChevronRight className="w-3 h-3 text-gray-400" /> : <ChevronLeft className="w-3 h-3 text-gray-400" />}
+        </button>
+
+        {/* Right: backgrounds + filters panel — slides in/out */}
+        <div
+          className="flex flex-col border-l border-gray-800 bg-gray-900 overflow-hidden transition-all duration-300 ease-in-out"
+          style={{ width: panelOpen ? "288px" : "0px", minWidth: 0, opacity: panelOpen ? 1 : 0 }}
+        >
           {/* Tab bar */}
-          <div className="flex border-b border-gray-800">
+          <div className="flex border-b border-gray-800 shrink-0">
             <button
               onClick={() => setActiveTab("backgrounds")}
               className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium transition-colors ${

@@ -9,8 +9,8 @@ import {
   getCallHistory,
 } from "../dmCalls";
 import { getDb } from "../db";
-import { users } from "../../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { users, dmCalls } from "../../drizzle/schema";
+import { and, eq, or, desc } from "drizzle-orm";
 
 export const dmCallRouter = router({
   /** Initiate a DM call — caller creates a pending record. */
@@ -72,6 +72,17 @@ export const dmCallRouter = router({
       callerName = callerRows[0]?.name ?? "Unknown";
     }
     return { ...call, callerName };
+  }),
+
+  /** Count missed calls for the current user (unanswered incoming calls). */
+  getMissedCount: protectedProcedure.query(async ({ ctx }) => {
+    const db = await getDb();
+    if (!db) return { count: 0 };
+    const rows = await db
+      .select()
+      .from(dmCalls)
+      .where(and(eq(dmCalls.calleeId, ctx.user.id), eq(dmCalls.status, "missed")));
+    return { count: rows.length };
   }),
 
   /** Get call history for the current user (last 20 calls). */

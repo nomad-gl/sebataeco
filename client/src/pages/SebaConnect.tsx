@@ -984,6 +984,13 @@ export default function SebaConnect() {
             screenStreamRef.current?.getTracks().forEach((t) => t.stop());
             screenStreamRef.current = null;
             setScreenSharing(false);
+            // Record call end in DB
+            if (activeCallId) {
+              endCallMutation.mutate({ callId: activeCallId });
+              setActiveCallId(null);
+            }
+            // Clear DM room so next call starts fresh
+            setDmCallRoom(null);
           }
           setVideoCallActive(open);
         }}>
