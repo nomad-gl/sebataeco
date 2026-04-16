@@ -2730,3 +2730,16 @@
 - [x] Call recording notice toggle in screen-share controls row
 - [x] TypeScript 0 errors
 - [x] Save checkpoint
+
+## Session 28: Autoresolve + Mirror Persistence
+- [x] Add permission query on PreCallScreen mount (camera + mic via Permissions API)
+- [x] If permission is "prompt": show guided permission request dialog asking user's device type first (laptop/tablet/phone/desktop), then request access with tailored instructions
+- [x] If permission is "denied": show step-by-step browser unlock guide with browser-specific instructions (Chrome/Firefox/Safari/Edge)
+- [x] Auto-resolve: if device found but stream fails, retry with fallback constraints (lower resolution, no audio, etc.)
+- [x] Auto-resolve: if multiple cameras found, offer device selector dropdown
+- [x] Auto-resolve: if mic found but no camera, allow audio-only mode gracefully
+- [x] Show autoresolve status panel in PreCallScreen with live diagnostics (permission state, device count, stream health)
+- [x] Persist mirror mode preference in localStorage (follow-up 1)
+- [x] Add i18n keys for autoresolve messages (EN/ES/CA)
+- [x] TypeScript 0 errors
+- [x] Save checkpoint

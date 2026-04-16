@@ -21,6 +21,94 @@ import SebaSymbol from "@/components/SebaSymbol";
 // ─── localStorage keys ─────────────────────────────────────────────────────
 const LS_BG_KEY = "seba_precall_bg";
 const LS_FILTER_KEY = "seba_precall_filter";
+const LS_MIRROR_KEY = "seba_precall_mirror";
+
+// ─── Autoresolve types ────────────────────────────────────────────────────
+type PermState = "unknown" | "prompt" | "granted" | "denied";
+type DeviceType = "laptop" | "tablet" | "phone" | "desktop" | null;
+type ResolveStep =
+  | "idle"           // normal — permissions granted, stream ok
+  | "ask_device"     // need to ask device type before prompting
+  | "requesting"     // browser permission prompt in progress
+  | "denied_guide"   // permission denied — show browser unlock guide
+  | "retrying"       // auto-retrying with fallback constraints
+  | "audio_only"     // camera unavailable, audio-only mode
+  | "resolved";      // autoresolve succeeded
+
+type BrowserName = "chrome" | "firefox" | "safari" | "edge" | "other";
+
+function detectBrowser(): BrowserName {
+  const ua = navigator.userAgent.toLowerCase();
+  if (ua.includes("edg/")) return "edge";
+  if (ua.includes("firefox")) return "firefox";
+  if (ua.includes("safari") && !ua.includes("chrome")) return "safari";
+  if (ua.includes("chrome")) return "chrome";
+  return "other";
+}
+
+const BROWSER_GUIDES: Record<BrowserName, { title: string; steps: string[] }> = {
+  chrome: {
+    title: "Unlock camera & microphone in Chrome",
+    steps: [
+      "Click the 🔒 lock icon in the address bar (top-left)",
+      "Find 'Camera' and 'Microphone' in the permissions list",
+      "Change both from 'Block' to 'Allow'",
+      "Refresh this page and try again",
+    ],
+  },
+  firefox: {
+    title: "Unlock camera & microphone in Firefox",
+    steps: [
+      "Click the 🔒 shield icon in the address bar",
+      "Select 'Connection Secure' → 'More Information'",
+      "Go to the 'Permissions' tab",
+      "Remove the 'Block' setting for Camera and Microphone",
+      "Refresh this page and try again",
+    ],
+  },
+  safari: {
+    title: "Unlock camera & microphone in Safari",
+    steps: [
+      "Open Safari → Settings (or Preferences) → Websites",
+      "Select 'Camera' in the left sidebar",
+      "Find this site and change to 'Allow'",
+      "Repeat for 'Microphone'",
+      "Refresh this page and try again",
+    ],
+  },
+  edge: {
+    title: "Unlock camera & microphone in Edge",
+    steps: [
+      "Click the 🔒 lock icon in the address bar",
+      "Click 'Permissions for this site'",
+      "Set Camera and Microphone to 'Allow'",
+      "Refresh this page and try again",
+    ],
+  },
+  other: {
+    title: "Unlock camera & microphone",
+    steps: [
+      "Open your browser's site settings for this page",
+      "Find Camera and Microphone permissions",
+      "Change both from 'Block' to 'Allow'",
+      "Refresh this page and try again",
+    ],
+  },
+};
+
+const DEVICE_TYPE_LABELS: Record<NonNullable<DeviceType>, { icon: string; label: string; hint: string }> = {
+  laptop: { icon: "💻", label: "Laptop", hint: "Built-in camera above the screen" },
+  desktop: { icon: "🖥️", label: "Desktop", hint: "External webcam required" },
+  tablet: { icon: "📱", label: "Tablet", hint: "Front or rear camera" },
+  phone: { icon: "📱", label: "Phone", hint: "Front-facing camera" },
+};
+
+function getSavedMirror(): boolean {
+  try {
+    const v = localStorage.getItem(LS_MIRROR_KEY);
+    return v === null ? true : v === "true";
+  } catch (_) { return true; }
+}
 
 // ─── Background catalogue ──────────────────────────────────────────────────
 export interface VideoBackground {
@@ -127,6 +215,17 @@ export default function PreCallScreen({
   const [cameraStatus, setCameraStatus] = useState<DeviceStatus>("checking");
   const [micStatus, setMicStatus] = useState<DeviceStatus>("checking");
 
+  // ── Autoresolve state ─────────────────────────────────────────────────
+  const [resolveStep, setResolveStep] = useState<ResolveStep>("idle");
+  const [permState, setPermState] = useState<PermState>("unknown");
+  const [deviceType, setDeviceType] = useState<DeviceType>(null);
+  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
+  const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
+  const [resolveLog, setResolveLog] = useState<string[]>([]);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
+
+  const addLog = (msg: string) => setResolveLog((l) => [...l.slice(-9), msg]);
+
   const [activeTab, setActiveTab] = useState<"backgrounds" | "filters">("backgrounds");
   const [selectedBg, setSelectedBg] = useState<VideoBackground>(getSavedBg);
   const [selectedFilter, setSelectedFilter] = useState<VideoFilter>(getSavedFilter);
@@ -141,28 +240,139 @@ export default function PreCallScreen({
   useEffect(() => {
     try { localStorage.setItem(LS_FILTER_KEY, selectedFilter.id); } catch (_) { /* ignore */ }
   }, [selectedFilter]);
-
-  // ── Start camera preview ───────────────────────────────────────────────
-  const startPreview = useCallback(async () => {
+  // ── Enumerate available cameras ──────────────────────────────────────────
+  const enumerateCameras = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-      setCameraStatus("ok");
-      setMicStatus("ok");
-    } catch (err: unknown) {
-      const error = err as DOMException;
-      if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
-        setCameraStatus("denied");
-        setMicStatus("denied");
-      } else {
-        setCameraStatus("unavailable");
-        setMicStatus("unavailable");
-      }
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cams = devices.filter((d) => d.kind === "videoinput");
+      setAvailableCameras(cams);
+      addLog(`Found ${cams.length} camera(s)`);
+      return cams;
+    } catch (_) {
+      addLog("Could not enumerate devices");
+      return [];
     }
   }, []);
+
+  // ── Apply stream to video element ───────────────────────────────────────
+  const applyStream = useCallback((stream: MediaStream) => {
+    streamRef.current = stream;
+    if (videoRef.current) videoRef.current.srcObject = stream;
+    const hasVideo = stream.getVideoTracks().length > 0;
+    const hasAudio = stream.getAudioTracks().length > 0;
+    setCameraStatus(hasVideo ? "ok" : "unavailable");
+    setMicStatus(hasAudio ? "ok" : "unavailable");
+    if (!hasVideo) setVideoEnabled(false);
+    addLog(hasVideo ? "Stream active (video + audio)" : "Stream active (audio only)");
+    setResolveStep("idle");
+  }, []);
+
+  // ── Attempt stream with fallback constraints ───────────────────────────
+  const attemptStream = useCallback(async (cameraId?: string | null): Promise<boolean> => {
+    const constraintSets: MediaStreamConstraints[] = [
+      // 1. Ideal: HD video + audio on selected/default camera
+      { video: cameraId ? { deviceId: { exact: cameraId }, width: 1280, height: 720 } : { width: 1280, height: 720 }, audio: true },
+      // 2. Fallback: any video + audio
+      { video: cameraId ? { deviceId: { exact: cameraId } } : true, audio: true },
+      // 3. Fallback: low-res video + audio
+      { video: { width: 640, height: 480 }, audio: true },
+      // 4. Fallback: video only (no audio)
+      { video: true, audio: false },
+      // 5. Last resort: audio only
+      { video: false, audio: true },
+    ];
+    for (let i = 0; i < constraintSets.length; i++) {
+      const constraints = constraintSets[i];
+      try {
+        addLog(`Trying constraint set ${i + 1}/${constraintSets.length}…`);
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        applyStream(stream);
+        if (i >= 4) setResolveStep("audio_only");
+        else if (i >= 2) setResolveStep("resolved");
+        return true;
+      } catch (err: unknown) {
+        const e = err as DOMException;
+        addLog(`Set ${i + 1} failed: ${e.name}`);
+        if (e.name === "NotAllowedError" || e.name === "PermissionDeniedError") {
+          // Permission denied — no point retrying
+          setCameraStatus("denied");
+          setMicStatus("denied");
+          setResolveStep("denied_guide");
+          return false;
+        }
+      }
+    }
+    // All sets failed
+    setCameraStatus("unavailable");
+    setMicStatus("unavailable");
+    setResolveStep("audio_only");
+    return false;
+  }, [applyStream]);
+
+  // ── Main autoresolve entry point ────────────────────────────────────────
+  const startPreview = useCallback(async () => {
+    addLog("Checking permissions…");
+    let camPerm: PermState = "unknown";
+    let micPerm: PermState = "unknown";
+
+    // Query Permissions API (non-prompting)
+    if (navigator.permissions) {
+      try {
+        const [camResult, micResult] = await Promise.all([
+          navigator.permissions.query({ name: "camera" as PermissionName }),
+          navigator.permissions.query({ name: "microphone" as PermissionName }),
+        ]);
+        camPerm = camResult.state as PermState;
+        micPerm = micResult.state as PermState;
+        addLog(`Camera: ${camPerm} | Mic: ${micPerm}`);
+      } catch (_) {
+        addLog("Permissions API unavailable, attempting direct access");
+      }
+    }
+
+    setPermState(camPerm);
+
+    if (camPerm === "denied" || micPerm === "denied") {
+      setCameraStatus("denied");
+      setMicStatus("denied");
+      setResolveStep("denied_guide");
+      addLog("Permission denied — showing unlock guide");
+      return;
+    }
+
+    if (camPerm === "prompt" || camPerm === "unknown") {
+      // Ask device type before triggering browser permission prompt
+      setResolveStep("ask_device");
+      addLog("Permission not yet granted — asking device type");
+      return;
+    }
+
+    // Permission already granted — go straight to stream
+    addLog("Permission granted — starting stream");
+    await enumerateCameras();
+    await attemptStream(selectedCameraId);
+  }, [enumerateCameras, attemptStream, selectedCameraId]);
+
+  // ── Called after user selects device type ──────────────────────────────
+  const handleDeviceTypeSelected = useCallback(async (type: NonNullable<DeviceType>) => {
+    setDeviceType(type);
+    setResolveStep("requesting");
+    addLog(`Device type: ${type} — requesting permission…`);
+    const cams = await enumerateCameras();
+    const ok = await attemptStream(cams[0]?.deviceId ?? null);
+    if (ok && cams.length > 1) {
+      addLog(`${cams.length} cameras found — selector available`);
+    }
+  }, [enumerateCameras, attemptStream]);
+
+  // ── Called when user changes camera from selector ──────────────────────
+  const handleCameraChange = useCallback(async (deviceId: string) => {
+    setSelectedCameraId(deviceId);
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    setResolveStep("retrying");
+    addLog(`Switching to camera: ${deviceId.slice(0, 12)}…`);
+    await attemptStream(deviceId);
+  }, [attemptStream]);
 
   useEffect(() => {
     startPreview();
@@ -173,7 +383,6 @@ export default function PreCallScreen({
       seg?.close?.();
     };
   }, [startPreview]);
-
   // ── MediaPipe segmentation blur ────────────────────────────────────────
   const startSegmentation = useCallback(async () => {
     if (segmentationRef.current || !videoRef.current || cameraStatus !== "ok") return;
@@ -292,9 +501,13 @@ export default function PreCallScreen({
     return <XCircle className="w-4 h-4 text-red-400" />;
   };
 
-  // ── Mirror mode state (default ON) ──────────────────────────────────────
-  const [mirrored, setMirrored] = useState(true);
+  // ── Mirror mode state (default ON, persisted) ─────────────────────────────
+  const [mirrored, setMirrored] = useState<boolean>(getSavedMirror);
   const mirrorStyle: React.CSSProperties = mirrored ? { transform: "scaleX(-1)" } : {};
+
+  useEffect(() => {
+    try { localStorage.setItem(LS_MIRROR_KEY, String(mirrored)); } catch (_) { /* ignore */ }
+  }, [mirrored]);
 
   // ── Preview filter CSS — applied to background layer only ─────────────
   // Filters are composited behind the person so the person appears unfiltered.
@@ -437,6 +650,112 @@ export default function PreCallScreen({
             </button>
           </div>
 
+          {/* ── Autoresolve: Device type picker ── */}
+          {resolveStep === "ask_device" && (
+            <div className="w-full max-w-md rounded-xl bg-blue-950/80 border border-blue-700 p-4">
+              <p className="text-sm font-semibold text-blue-200 mb-1">What device are you using?</p>
+              <p className="text-xs text-blue-300 mb-3">This helps us request the right camera and microphone for your device.</p>
+              <div className="grid grid-cols-2 gap-2">
+                {(["laptop", "desktop", "tablet", "phone"] as NonNullable<DeviceType>[]).map((dt) => {
+                  const info = DEVICE_TYPE_LABELS[dt];
+                  return (
+                    <button
+                      key={dt}
+                      onClick={() => handleDeviceTypeSelected(dt)}
+                      className="flex flex-col items-center gap-1 p-3 rounded-lg bg-blue-900/60 hover:bg-blue-800/80 border border-blue-700 transition-colors text-center"
+                    >
+                      <span className="text-2xl">{info.icon}</span>
+                      <span className="text-sm font-medium text-blue-100">{info.label}</span>
+                      <span className="text-xs text-blue-400">{info.hint}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ── Autoresolve: Requesting (spinner) ── */}
+          {resolveStep === "requesting" && (
+            <div className="w-full max-w-md rounded-xl bg-gray-800/80 border border-gray-700 p-4 flex items-center gap-3">
+              <Loader2 className="w-6 h-6 text-blue-400 animate-spin shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-gray-200">Requesting access…</p>
+                <p className="text-xs text-gray-400">Please allow camera and microphone in the browser prompt.</p>
+              </div>
+            </div>
+          )}
+
+          {/* ── Autoresolve: Retrying ── */}
+          {resolveStep === "retrying" && (
+            <div className="w-full max-w-md rounded-xl bg-yellow-950/80 border border-yellow-700 p-4 flex items-center gap-3">
+              <Loader2 className="w-6 h-6 text-yellow-400 animate-spin shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-yellow-200">Switching camera…</p>
+                <p className="text-xs text-yellow-400">Reconnecting with new device.</p>
+              </div>
+            </div>
+          )}
+
+          {/* ── Autoresolve: Resolved with fallback ── */}
+          {resolveStep === "resolved" && (
+            <div className="w-full max-w-md rounded-xl bg-green-950/80 border border-green-700 p-3 flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-green-400 shrink-0" />
+              <p className="text-xs text-green-300">Connected using a lower-quality fallback. You can still join the call.</p>
+            </div>
+          )}
+
+          {/* ── Autoresolve: Audio-only mode ── */}
+          {resolveStep === "audio_only" && (
+            <div className="w-full max-w-md rounded-xl bg-orange-950/80 border border-orange-700 p-3 flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-orange-400 shrink-0" />
+              <p className="text-xs text-orange-300">No camera found. You can still join with audio only.</p>
+            </div>
+          )}
+
+          {/* ── Autoresolve: Denied guide ── */}
+          {resolveStep === "denied_guide" && (() => {
+            const browser = detectBrowser();
+            const guide = BROWSER_GUIDES[browser];
+            return (
+              <div className="w-full max-w-md rounded-xl bg-red-950/80 border border-red-700 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <XCircle className="w-5 h-5 text-red-400 shrink-0" />
+                  <p className="text-sm font-semibold text-red-200">{guide.title}</p>
+                </div>
+                <ol className="list-decimal list-inside space-y-1.5">
+                  {guide.steps.map((step, idx) => (
+                    <li key={idx} className="text-xs text-red-300">{step}</li>
+                  ))}
+                </ol>
+                <Button
+                  size="sm"
+                  className="mt-3 w-full bg-red-700 hover:bg-red-600 text-white text-xs"
+                  onClick={() => { setResolveStep("idle"); startPreview(); }}
+                >
+                  Try again
+                </Button>
+              </div>
+            );
+          })()}
+
+          {/* ── Camera selector (multiple cameras) ── */}
+          {availableCameras.length > 1 && resolveStep === "idle" && (
+            <div className="w-full max-w-md">
+              <label className="text-xs text-gray-400 mb-1 block">Camera</label>
+              <select
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-blue-500"
+                value={selectedCameraId ?? ""}
+                onChange={(e) => handleCameraChange(e.target.value)}
+              >
+                {availableCameras.map((cam) => (
+                  <option key={cam.deviceId} value={cam.deviceId}>
+                    {cam.label || `Camera ${availableCameras.indexOf(cam) + 1}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Device status */}
           <div className="flex items-center gap-6 text-sm text-gray-400">
             <div className="flex items-center gap-1.5">
@@ -447,7 +766,30 @@ export default function PreCallScreen({
               <StatusIcon status={micStatus} />
               <span>Microphone</span>
             </div>
+            <button
+              onClick={() => setShowDiagnostics((d) => !d)}
+              className="ml-auto text-xs text-gray-600 hover:text-gray-400 transition-colors"
+            >
+              {showDiagnostics ? "Hide diagnostics" : "Diagnostics"}
+            </button>
           </div>
+
+          {/* Diagnostics log */}
+          {showDiagnostics && (
+            <div className="w-full max-w-md rounded-lg bg-gray-900 border border-gray-800 p-3">
+              <p className="text-xs font-semibold text-gray-400 mb-1.5">Autoresolve log</p>
+              {resolveLog.length === 0 ? (
+                <p className="text-xs text-gray-600">No events yet.</p>
+              ) : (
+                <ul className="space-y-0.5">
+                  {resolveLog.map((entry, i) => (
+                    <li key={i} className="text-xs text-gray-400 font-mono">{entry}</li>
+                  ))}
+                </ul>
+              )}
+              <p className="text-xs text-gray-600 mt-1.5">Browser: {detectBrowser()} | Perm: {permState} | Cameras: {availableCameras.length}</p>
+            </div>
+          )}
 
           {/* Join / Cancel */}
           <div className="flex gap-3 mt-2">
