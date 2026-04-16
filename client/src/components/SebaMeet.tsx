@@ -187,6 +187,24 @@ const SebaMeetInner = function SebaMeet({
 
   // ── Pinned speaker (click-to-promote) ──
   const [pinnedPeerId, setPinnedPeerId] = useState<number | null>(null);
+
+  // ── Participant popover ──
+  const [participantPopoverOpen, setParticipantPopoverOpen] = useState(false);
+
+  // ── PiP double-tap to swap ──
+  const pipLastTapRef = useRef<number>(0);
+  const activePeerRef = useRef<Peer | null>(null);
+  const handlePipDoubleTap = useCallback(() => {
+    const now = Date.now();
+    if (now - pipLastTapRef.current < 350) {
+      // Double-tap detected — pin/unpin the active peer to swap
+      const peer = activePeerRef.current;
+      if (peer) {
+        setPinnedPeerId((prev) => (prev === peer.id ? null : peer.id));
+      }
+    }
+    pipLastTapRef.current = now;
+  }, []);
   const pipDragRef = useRef<{ dragging: boolean; startX: number; startY: number; startPosX: number; startPosY: number }>(
     { dragging: false, startX: 0, startY: 0, startPosX: 16, startPosY: 80 }
   );
@@ -952,6 +970,8 @@ const SebaMeetInner = function SebaMeet({
     ?? null
   );
   const secondaryPeers = peers.filter((p) => p !== activePeer);
+  // Keep ref in sync so handlePipDoubleTap can read it without closure staleness
+  activePeerRef.current = activePeer;
 
   // Auto-clear pin if pinned peer leaves (use useEffect to avoid setState-in-render)
   useEffect(() => {
@@ -1053,9 +1073,9 @@ const SebaMeetInner = function SebaMeet({
         </div>
       )}
 
-      {/* ── Local PiP tile (draggable, corner-snapping) ── */}
+      {/* ── Local PiP tile (draggable, corner-snapping, double-tap to swap) ── */}
       <div
-        className="absolute z-20 w-36 h-24 sm:w-40 sm:h-28 rounded-xl overflow-hidden bg-gray-800 border-2 border-white/30 shadow-2xl cursor-grab active:cursor-grabbing"
+        className="absolute z-20 w-36 h-24 sm:w-40 sm:h-28 rounded-xl overflow-hidden bg-gray-800 border-2 border-white/30 shadow-2xl cursor-grab active:cursor-grabbing group"
         style={{
           right: pipPos.x,
           bottom: pipPos.y,
@@ -1063,6 +1083,7 @@ const SebaMeetInner = function SebaMeet({
         }}
         onMouseDown={handlePipMouseDown}
         onTouchStart={handlePipTouchStart}
+        onClick={handlePipDoubleTap}
       >
         {videoMuted ? (
           <div className="w-full h-full flex flex-col items-center justify-center gap-1 text-white/40">
@@ -1140,10 +1161,61 @@ const SebaMeetInner = function SebaMeet({
             </div>
           )}
 
-          <span className="flex items-center gap-1 text-white/70 text-xs">
-            <Users className="w-3.5 h-3.5" />
-            {totalParticipants}
-          </span>
+          {/* Participant count badge with hover/tap popover */}
+          <div className="relative">
+            <button
+              onClick={() => setParticipantPopoverOpen((o) => !o)}
+              className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full transition-colors ${
+                participantPopoverOpen
+                  ? "bg-white/20 text-white"
+                  : "text-white/70 hover:text-white hover:bg-white/10"
+              }`}
+              title="Participants"
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>{totalParticipants}</span>
+            </button>
+            {participantPopoverOpen && (
+              <div className="absolute top-full right-0 mt-2 z-50 w-56 bg-gray-900/95 border border-white/10 rounded-xl shadow-2xl overflow-hidden">
+                <div className="px-3 py-2 border-b border-white/10 flex items-center justify-between">
+                  <span className="text-white text-xs font-semibold flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5 text-blue-400" />
+                    Participants ({totalParticipants})
+                  </span>
+                  <button onClick={() => setParticipantPopoverOpen(false)} className="text-white/40 hover:text-white transition-colors">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <div className="py-1 max-h-52 overflow-y-auto">
+                  {/* Local user */}
+                  <div className="flex items-center justify-between px-3 py-1.5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0">
+                        {myNameRef.current.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="text-white text-xs truncate max-w-[110px]">{myNameRef.current} <span className="text-white/40">(You)</span></span>
+                    </div>
+                    <QualityBars bars={4} />
+                  </div>
+                  {/* Remote peers */}
+                  {peers.map((peer) => (
+                    <div key={peer.id} className="flex items-center justify-between px-3 py-1.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-full bg-gray-700 flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0">
+                          {peer.name.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="text-white text-xs truncate max-w-[110px]">{peer.name}</span>
+                        {peer.speaking && <Volume2 className="w-2.5 h-2.5 text-green-400 flex-shrink-0" />}
+                        {raisedHands.some((h) => h.userId === peer.id) && <Hand className="w-2.5 h-2.5 text-yellow-400 flex-shrink-0" />}
+                        {pinnedPeerId === peer.id && <Pin className="w-2.5 h-2.5 text-blue-400 flex-shrink-0" />}
+                      </div>
+                      <QualityBars bars={peer.quality} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
           {schoolLogoUrl && (
             <img src={schoolLogoUrl} alt="School logo" className="h-7 w-auto object-contain opacity-90" />
           )}

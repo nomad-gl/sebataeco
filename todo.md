@@ -2914,3 +2914,10 @@
 - [x] TypeScript 0 errors
 - [x] Save checkpoint
 - [x] Default-collapse backgrounds/filters panel in PreCallScreen (panelOpen starts false)
+
+## Session 43: Call UX Polish
+- [x] Participant count tooltip: hover/tap the participant badge in the header shows a popover listing all names + connection quality
+- [x] PiP double-tap to swap: double-tap local PiP tile pins/unpins the current active full-screen peer
+- [x] Settings persistence across calls: mid-call bg/filter/blur changes already write to localStorage, picked up by pre-call screen on next call
+- [x] TypeScript 0 errors
+- [x] Save checkpoint
