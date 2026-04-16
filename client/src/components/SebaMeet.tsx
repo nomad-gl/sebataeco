@@ -15,9 +15,11 @@ import { useEffect, useRef, useState, useCallback, memo } from "react";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
 import { SebaSymbol } from "@/components/SebaSymbol";
+import { VIDEO_BACKGROUNDS, VIDEO_FILTERS } from "@/components/PreCallScreen";
 import {
   Mic, MicOff, Video, VideoOff, PhoneOff, Monitor, MonitorOff,
-  Circle, Volume2, Users, Hand, PhoneCall, Clock, MessageSquare, Send as SendIcon, X,
+  Circle, Volume2, Users, Hand, PhoneCall, Clock, MessageSquare, Send as SendIcon, X, Pin,
+  Settings, Sliders, CheckCircle,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -181,16 +183,30 @@ const SebaMeetInner = function SebaMeet({
 
   // ── PiP draggable local tile (distance from bottom-right corner) ──
   const [pipPos, setPipPos] = useState({ x: 16, y: 80 });
+  const [pipTransitioning, setPipTransitioning] = useState(false);
+
+  // ── Pinned speaker (click-to-promote) ──
+  const [pinnedPeerId, setPinnedPeerId] = useState<number | null>(null);
   const pipDragRef = useRef<{ dragging: boolean; startX: number; startY: number; startPosX: number; startPosY: number }>(
     { dragging: false, startX: 0, startY: 0, startPosX: 16, startPosY: 80 }
   );
 
+  // ── In-call settings overlay ──
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<"backgrounds" | "filters">("backgrounds");
+  // Live overrides (null = use prop/localStorage)
+  const [liveFilterCss, setLiveFilterCss] = useState<string | null>(null);
+  const [liveBgId, setLiveBgId] = useState<string | null>(null);
+  const [liveBlurIntensity, setLiveBlurIntensity] = useState<number | null>(null);
+
   // ── Persisted background / filter ──
   // Read from props (passed by PreCallScreen via callOpts) or fall back to localStorage.
   // This ensures the settings are always applied even if props are not passed.
-  const resolvedFilter = videoFilter
+  const resolvedFilter = liveFilterCss
+    ?? videoFilter
     ?? (() => { try { return localStorage.getItem(LS_FILTER_KEY) ?? ""; } catch { return ""; } })();
-  const resolvedBgId   = backgroundId
+  const resolvedBgId   = liveBgId
+    ?? backgroundId
     ?? (() => { try { return localStorage.getItem(LS_BG_KEY) ?? "none"; } catch { return "none"; } })();
 
   // ── Canvas-based background compositing (mirrors PreCallScreen) ──
@@ -201,8 +217,11 @@ const SebaMeetInner = function SebaMeet({
   const [bgReady,        setBgReady]        = useState(false);
 
   // Resolve background URL from id
-  // Read blur intensity from localStorage (set by PreCallScreen)
+  // Read blur intensity from live override or localStorage (set by PreCallScreen)
   const resolvedBlurRadius = (() => {
+    if (liveBlurIntensity !== null && liveBlurIntensity >= 1 && liveBlurIntensity <= 5) {
+      return BLUR_RADIUS_MAP[liveBlurIntensity - 1];
+    }
     try {
       const v = localStorage.getItem(LS_BLUR_INTENSITY_KEY);
       if (v !== null) {
@@ -216,7 +235,12 @@ const SebaMeetInner = function SebaMeet({
   const resolvedBgUrl = (() => {
     if (!resolvedBgId || resolvedBgId === "none") return "";
     if (resolvedBgId === "blur") return "blur";
-    // Import VIDEO_BACKGROUNDS lazily to avoid circular dep — look up from localStorage key
+    // If live override is set, look up from VIDEO_BACKGROUNDS catalogue
+    if (liveBgId) {
+      const found = VIDEO_BACKGROUNDS.find((b) => b.id === liveBgId);
+      if (found?.url) return found.url;
+    }
+    // Fall back to localStorage-persisted URL (set by PreCallScreen)
     try {
       const stored = localStorage.getItem("seba_precall_bg_url");
       if (stored) return stored;
@@ -848,6 +872,27 @@ const SebaMeetInner = function SebaMeet({
       pipDragRef.current.dragging = false;
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
+      // Snap to nearest corner
+      setPipTransitioning(true);
+      setPipPos((cur) => {
+        const W = window.innerWidth;
+        const H = window.innerHeight;
+        const PIP_W = 160; const PIP_H = 112;
+        const snapX = cur.x < W / 2 - PIP_W / 2 ? 8 : 8;
+        const snapY = cur.y < H / 2 - PIP_H / 2 ? 8 : cur.y;
+        // Determine nearest corner
+        const fromRight = cur.x;   // distance from right edge
+        const fromBottom = cur.y;  // distance from bottom edge
+        const fromLeft = W - cur.x - PIP_W;
+        const fromTop = H - cur.y - PIP_H;
+        const minH = Math.min(fromRight, fromLeft);
+        const minV = Math.min(fromBottom, fromTop);
+        const cornerX = minH === fromRight ? 8 : 8 + (W - PIP_W - 16);
+        const cornerY = minV === fromBottom ? 8 : 8 + (H - PIP_H - 16);
+        void snapX; void snapY;
+        return { x: cornerX, y: cornerY };
+      });
+      setTimeout(() => setPipTransitioning(false), 300);
     };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
@@ -876,14 +921,44 @@ const SebaMeetInner = function SebaMeet({
       pipDragRef.current.dragging = false;
       window.removeEventListener("touchmove", onMove);
       window.removeEventListener("touchend", onEnd);
+      // Snap to nearest corner
+      setPipTransitioning(true);
+      setPipPos((cur) => {
+        const W = window.innerWidth;
+        const H = window.innerHeight;
+        const PIP_W = 160; const PIP_H = 112;
+        const fromRight = cur.x;
+        const fromBottom = cur.y;
+        const fromLeft = W - cur.x - PIP_W;
+        const fromTop = H - cur.y - PIP_H;
+        const minH = Math.min(fromRight, fromLeft);
+        const minV = Math.min(fromBottom, fromTop);
+        const cornerX = minH === fromRight ? 8 : 8 + (W - PIP_W - 16);
+        const cornerY = minV === fromBottom ? 8 : 8 + (H - PIP_H - 16);
+        return { x: cornerX, y: cornerY };
+      });
+      setTimeout(() => setPipTransitioning(false), 300);
     };
     window.addEventListener("touchmove", onMove, { passive: true });
     window.addEventListener("touchend", onEnd);
   }, [pipPos]);
 
-  // Determine which peer fills the main screen (loudest speaker, or first peer)
-  const activePeer = peers.find((p) => p.speaking) ?? peers[0] ?? null;
+  // Determine which peer fills the main screen:
+  // 1. Pinned peer (click-to-promote), 2. Loudest speaker, 3. First peer
+  const activePeer = (
+    (pinnedPeerId ? peers.find((p) => p.id === pinnedPeerId) : null)
+    ?? peers.find((p) => p.speaking)
+    ?? peers[0]
+    ?? null
+  );
   const secondaryPeers = peers.filter((p) => p !== activePeer);
+
+  // Auto-clear pin if pinned peer leaves (use useEffect to avoid setState-in-render)
+  useEffect(() => {
+    if (pinnedPeerId !== null && !peers.find((p) => p.id === pinnedPeerId)) {
+      setPinnedPeerId(null);
+    }
+  }, [peers, pinnedPeerId]);
 
   const totalParticipants = 1 + peers.length;
 
@@ -944,7 +1019,10 @@ const SebaMeetInner = function SebaMeet({
           {secondaryPeers.map((peer) => (
             <div
               key={peer.id}
-              className={`relative flex-shrink-0 w-28 h-20 rounded-xl overflow-hidden bg-gray-800 border-2 transition-all duration-200 ${
+              onClick={() => setPinnedPeerId((prev) => prev === peer.id ? null : peer.id)}
+              title={pinnedPeerId === peer.id ? "Unpin" : "Pin as main speaker"}
+              className={`relative flex-shrink-0 w-28 h-20 rounded-xl overflow-hidden bg-gray-800 border-2 transition-all duration-200 cursor-pointer hover:scale-105 ${
+                pinnedPeerId === peer.id ? "border-blue-400 ring-2 ring-blue-400/40" :
                 peer.speaking ? "border-green-400" : "border-white/20"
               }`}
             >
@@ -964,6 +1042,7 @@ const SebaMeetInner = function SebaMeet({
                 className="w-full h-full object-cover"
               />
               <div className="absolute bottom-1 left-1 right-1 flex items-center gap-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded-full truncate">
+                {pinnedPeerId === peer.id && <Pin className="w-2.5 h-2.5 text-blue-400 flex-shrink-0" />}
                 {peer.speaking && <Volume2 className="w-2.5 h-2.5 text-green-400 flex-shrink-0" />}
                 {raisedHands.some((h) => h.userId === peer.id) && <Hand className="w-2.5 h-2.5 text-yellow-400 flex-shrink-0" />}
                 <span className="truncate">{peer.name}</span>
@@ -974,10 +1053,14 @@ const SebaMeetInner = function SebaMeet({
         </div>
       )}
 
-      {/* ── Local PiP tile (draggable, bottom-right by default) ── */}
+      {/* ── Local PiP tile (draggable, corner-snapping) ── */}
       <div
         className="absolute z-20 w-36 h-24 sm:w-40 sm:h-28 rounded-xl overflow-hidden bg-gray-800 border-2 border-white/30 shadow-2xl cursor-grab active:cursor-grabbing"
-        style={{ right: pipPos.x, bottom: pipPos.y }}
+        style={{
+          right: pipPos.x,
+          bottom: pipPos.y,
+          transition: pipTransitioning ? "right 0.3s cubic-bezier(0.34,1.56,0.64,1), bottom 0.3s cubic-bezier(0.34,1.56,0.64,1)" : undefined,
+        }}
         onMouseDown={handlePipMouseDown}
         onTouchStart={handlePipTouchStart}
       >
@@ -1241,6 +1324,19 @@ const SebaMeetInner = function SebaMeet({
             )}
           </button>
 
+          {/* In-call settings */}
+          {!audioOnly && (
+            <button
+              onClick={() => setSettingsOpen((o) => !o)}
+              className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
+                settingsOpen ? "bg-indigo-600 text-white" : "bg-white/15 text-white hover:bg-white/25"
+              }`}
+              title="Background & filter settings"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
+          )}
+
           {/* End call */}
           <button
             onClick={handleEnd}
@@ -1251,6 +1347,140 @@ const SebaMeetInner = function SebaMeet({
           </button>
         </div>
       </div>
+
+      {/* ── In-call settings overlay ── */}
+      {settingsOpen && (
+        <div className="absolute bottom-20 right-4 z-40 w-72 bg-gray-900/95 border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+            <span className="text-white text-sm font-semibold flex items-center gap-2">
+              <Settings className="w-4 h-4 text-indigo-400" />
+              Video Settings
+            </span>
+            <button onClick={() => setSettingsOpen(false)} className="text-white/50 hover:text-white transition-colors">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex border-b border-white/10">
+            <button
+              onClick={() => setSettingsTab("backgrounds")}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors ${
+                settingsTab === "backgrounds" ? "text-indigo-300 border-b-2 border-indigo-400" : "text-white/50 hover:text-white/80"
+              }`}
+            >
+              <Circle className="w-3.5 h-3.5" />
+              Backgrounds
+            </button>
+            <button
+              onClick={() => setSettingsTab("filters")}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors ${
+                settingsTab === "filters" ? "text-indigo-300 border-b-2 border-indigo-400" : "text-white/50 hover:text-white/80"
+              }`}
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              Filters
+            </button>
+          </div>
+
+          {/* Backgrounds grid */}
+          {settingsTab === "backgrounds" && (
+            <div className="p-3 overflow-y-auto max-h-64">
+              <div className="grid grid-cols-3 gap-2">
+                {VIDEO_BACKGROUNDS.map((bg) => (
+                  <button
+                    key={bg.id}
+                    onClick={() => {
+                      setLiveBgId(bg.id);
+                      if (bg.url && bg.url !== "blur") {
+                        try { localStorage.setItem("seba_precall_bg_url", bg.url); } catch { /* ignore */ }
+                      } else {
+                        try { localStorage.removeItem("seba_precall_bg_url"); } catch { /* ignore */ }
+                      }
+                      try { localStorage.setItem(LS_BG_KEY, bg.id); } catch { /* ignore */ }
+                    }}
+                    className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all ${
+                      resolvedBgId === bg.id
+                        ? "border-indigo-400 ring-2 ring-indigo-400/30"
+                        : "border-gray-700 hover:border-gray-500"
+                    }`}
+                  >
+                    {bg.url && bg.url !== "blur" ? (
+                      <img src={bg.url} alt={bg.label} className="w-full h-full object-cover" loading="lazy" />
+                    ) : bg.url === "blur" ? (
+                      <div className="w-full h-full bg-gradient-to-br from-blue-900/60 to-gray-700/60 backdrop-blur-md flex items-center justify-center">
+                        <Settings className="w-3.5 h-3.5 text-blue-300" />
+                      </div>
+                    ) : (
+                      <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                        <VideoOff className="w-3.5 h-3.5 text-gray-500" />
+                      </div>
+                    )}
+                    <div className="absolute bottom-0 inset-x-0 bg-black/60 text-[9px] text-center py-0.5 truncate px-1 text-white">
+                      {bg.label}
+                    </div>
+                    {resolvedBgId === bg.id && (
+                      <div className="absolute top-0.5 right-0.5">
+                        <CheckCircle className="w-3 h-3 text-indigo-400" />
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+              {/* Blur intensity slider */}
+              {resolvedBgId === "blur" && (
+                <div className="mt-3">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs text-gray-300 font-medium">Blur Intensity</span>
+                    <span className="text-xs text-indigo-400 font-semibold">
+                      {["Subtle", "Light", "Medium", "Strong", "Heavy"][(liveBlurIntensity ?? 3) - 1]}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={1} max={5} step={1}
+                    value={liveBlurIntensity ?? 3}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      setLiveBlurIntensity(v);
+                      try { localStorage.setItem(LS_BLUR_INTENSITY_KEY, String(v)); } catch { /* ignore */ }
+                    }}
+                    className="w-full h-1.5 rounded-full appearance-none bg-gray-700 accent-indigo-500 cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[10px] text-gray-500 mt-1">
+                    <span>Subtle</span><span>Heavy</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Filters list */}
+          {settingsTab === "filters" && (
+            <div className="p-3 overflow-y-auto max-h-64 flex flex-col gap-1.5">
+              {VIDEO_FILTERS.map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => {
+                    // "none" means no filter — store empty string as the resolved CSS
+                    setLiveFilterCss(f.css === "none" ? "" : f.css);
+                    try { localStorage.setItem(LS_FILTER_KEY, f.id); } catch { /* ignore */ }
+                  }}
+                  className={`flex items-center justify-between px-3 py-2 rounded-lg border transition-all text-sm ${
+                    resolvedFilter === (f.css === "none" ? "" : f.css)
+                      ? "border-indigo-400 bg-indigo-500/10 text-indigo-300"
+                      : "border-gray-700 hover:border-gray-500 text-gray-300"
+                  }`}
+                >
+                  <span className="font-medium">{f.label}</span>
+                  {resolvedFilter === (f.css === "none" ? "" : f.css) && <CheckCircle className="w-4 h-4 text-indigo-400" />}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

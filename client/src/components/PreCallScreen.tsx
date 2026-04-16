@@ -243,7 +243,7 @@ export default function PreCallScreen({
   const addLog = (msg: string) => setResolveLog((l) => [...l.slice(-9), msg]);
 
   const [activeTab, setActiveTab] = useState<"backgrounds" | "filters">("backgrounds");
-  const [panelOpen, setPanelOpen] = useState(true);
+  const [panelOpen, setPanelOpen] = useState(false);
   const [selectedBg, setSelectedBg] = useState<VideoBackground>(getSavedBg);
   const [selectedFilter, setSelectedFilter] = useState<VideoFilter>(getSavedFilter);
   const [blurIntensity, setBlurIntensity] = useState<number>(getSavedBlurIntensity);

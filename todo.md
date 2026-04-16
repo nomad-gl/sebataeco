@@ -2906,3 +2906,11 @@
 - [x] In-call screen-share button in SebaMeet toolbar (already implemented in prior sessions)
 - [x] TypeScript 0 errors
 - [x] Save checkpoint
+
+## Session 42: PiP Enhancements + In-Call Settings
+- [x] Click-to-promote: tap any secondary peer tile to pin them as the full-screen speaker (overrides auto loudest-speaker)
+- [x] PiP corner snapping: on drag-end, snap local PiP tile to nearest corner with CSS transition
+- [x] In-call background/filter/blur switcher: settings button in controls bar opens compact overlay to change bg/filter/blur mid-call
+- [x] TypeScript 0 errors
+- [x] Save checkpoint
+- [x] Default-collapse backgrounds/filters panel in PreCallScreen (panelOpen starts false)
