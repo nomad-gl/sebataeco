@@ -2743,3 +2743,13 @@
 - [x] Add i18n keys for autoresolve messages (EN/ES/CA)
 - [x] TypeScript 0 errors
 - [x] Save checkpoint
+
+## Session 29: Autolink Video/Audio Call from Online Members
+- [x] Add click handler to online member rows in SEBA Connect members panel
+- [x] Generate deterministic private room name from sorted user IDs (seba-dm-{uid1}-{uid2})
+- [x] Open pre-call screen with the private room name when an online member is clicked
+- [x] Show tooltip/hint "Click to call" on hover over online member
+- [x] Show visual call indicator (phone/video icon) on online member avatar on hover
+- [x] Add i18n keys: connect_click_to_call, connect_calling (EN/ES/CA)
+- [x] TypeScript 0 errors
+- [x] Save checkpoint

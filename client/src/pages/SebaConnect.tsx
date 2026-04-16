@@ -231,6 +231,27 @@ export default function SebaConnect() {
   const [screenSharing, setScreenSharing] = useState(false);
   const screenStreamRef = useRef<MediaStream | null>(null);
   const [iframeLoading, setIframeLoading] = useState(true);
+  // DM call — set when clicking an online member; null = channel call
+  const [dmCallRoom, setDmCallRoom] = useState<{ roomName: string; partnerName: string } | null>(null);
+
+  // Current user’s numeric DB id (needed for deterministic DM room names)
+  const meQuery = trpc.auth.me.useQuery();
+  const myDbId = meQuery.data?.id ?? null;
+
+  // Generate a stable private room name from two numeric user IDs
+  const makeDmRoom = useCallback((myId: number, theirId: number) => {
+    const a = Math.min(myId, theirId);
+    const b = Math.max(myId, theirId);
+    return `seba-dm-${a}-${b}`;
+  }, []);
+
+  // Called when an online member avatar is clicked
+  const handleMemberCall = useCallback((memberId: number, memberName: string) => {
+    if (!myDbId) { toast.error("Not signed in"); return; }
+    const roomName = makeDmRoom(myDbId, memberId);
+    setDmCallRoom({ roomName, partnerName: memberName });
+    setPreCallActive(true);
+  }, [myDbId, makeDmRoom]);
   const [isRecording, setIsRecording] = useState(false);
   const [activeReaction, setActiveReaction] = useState<string | null>(null);
   const reactionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -852,21 +873,28 @@ export default function SebaConnect() {
                     {t("connect_online")} — {members.filter((m) => m.online).length}
                   </p>
                   {members.filter((m) => m.online).map((m) => (
-                    <div
+                    <button
                       key={m.id}
-                      className="flex items-center gap-2.5 px-4 py-1.5 hover:bg-muted/50 transition-colors"
+                      onClick={() => handleMemberCall(m.id, m.name)}
+                      title={t("connect_click_to_call")}
+                      className="group/member w-full flex items-center gap-2.5 px-4 py-1.5 hover:bg-blue-900/30 transition-colors cursor-pointer rounded"
                     >
                       <div className="relative shrink-0">
+                        {/* Avatar with video icon overlay on hover */}
                         <div
-                          className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                          className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white transition-opacity group-hover/member:opacity-0"
                           style={{ background: "#003082" }}
                         >
                           {m.name.charAt(0).toUpperCase()}
                         </div>
+                        <div className="w-7 h-7 rounded-full bg-[#003082] absolute inset-0 flex items-center justify-center opacity-0 group-hover/member:opacity-100 transition-opacity">
+                          <Video className="w-3.5 h-3.5 text-white" />
+                        </div>
                         <Circle className="w-2.5 h-2.5 fill-green-500 text-green-500 absolute -bottom-0.5 -right-0.5" />
                       </div>
-                      <span className="text-sm truncate">{m.name}</span>
-                    </div>
+                      <span className="text-sm truncate flex-1 text-left">{m.name}</span>
+                      <Video className="w-3 h-3 text-green-400 opacity-0 group-hover/member:opacity-100 transition-opacity shrink-0" />
+                    </button>
                   ))}
                 </div>
               )}
@@ -902,11 +930,11 @@ export default function SebaConnect() {
       </aside>
 
       {/* ── Pre-Call Setup Dialog ─────────────────────────────────────────── */}
-      <Dialog open={preCallActive} onOpenChange={(open) => { if (!open) setPreCallActive(false); }}>
+      <Dialog open={preCallActive} onOpenChange={(open) => { if (!open) { setPreCallActive(false); if (!open) setDmCallRoom(null); } }}>
         <DialogContent className="max-w-4xl w-full p-0 overflow-hidden rounded-xl" style={{ height: "560px" }}>
           <PreCallScreen
-            roomName={`seba-connect-${selectedChannelId}`}
-            channelName={selectedChannel?.name ?? t("connect_video_call")}
+            roomName={dmCallRoom ? dmCallRoom.roomName : `seba-connect-${selectedChannelId}`}
+            channelName={dmCallRoom ? dmCallRoom.partnerName : (selectedChannel?.name ?? t("connect_video_call"))}
             sebaLogoUrl="https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/seba-logo-dark-Bxgq2SHvBzBLRLJPNdvmwf.png"
             schoolLogoUrl={schoolLogo ?? undefined}
             onJoin={(opts) => {
@@ -941,9 +969,9 @@ export default function SebaConnect() {
                 className="h-6 object-contain brightness-0 invert"
               />
             </div>
-            {/* Centre: channel name */}
+            {/* Centre: channel/partner name */}
             <DialogTitle className="text-sm font-semibold text-white tracking-wide">
-              {selectedChannel?.name ?? t("connect_video_call")}
+              {dmCallRoom ? dmCallRoom.partnerName : (selectedChannel?.name ?? t("connect_video_call"))}
             </DialogTitle>
             {/* Right: school logo (if uploaded) */}
             <div className="flex items-center justify-end min-w-[120px]">
@@ -1043,7 +1071,7 @@ export default function SebaConnect() {
               </div>
             )}
             <iframe
-              src={`https://meet.jit.si/seba-connect-${selectedChannelId}?lang=${lang}#config.defaultLanguage=${lang}&config.disableDeepLinking=true&interfaceConfig.SHOW_JITSI_WATERMARK=false&interfaceConfig.SHOW_BRAND_WATERMARK=false&interfaceConfig.SHOW_POWERED_BY=false&interfaceConfig.DISPLAY_WELCOME_PAGE_CONTENT=false${callOpts && !callOpts.videoEnabled ? "&config.startWithVideoMuted=true" : ""}${callOpts && !callOpts.audioEnabled ? "&config.startWithAudioMuted=true" : ""}`}
+              src={`https://meet.jit.si/${dmCallRoom ? dmCallRoom.roomName : `seba-connect-${selectedChannelId}`}?lang=${lang}#config.defaultLanguage=${lang}&config.disableDeepLinking=true&interfaceConfig.SHOW_JITSI_WATERMARK=false&interfaceConfig.SHOW_BRAND_WATERMARK=false&interfaceConfig.SHOW_POWERED_BY=false&interfaceConfig.DISPLAY_WELCOME_PAGE_CONTENT=false${callOpts && !callOpts.videoEnabled ? "&config.startWithVideoMuted=true" : ""}${callOpts && !callOpts.audioEnabled ? "&config.startWithAudioMuted=true" : ""}`}
               allow="camera; microphone; fullscreen; display-capture"
               className="w-full h-full"
               style={{ border: "none" }}

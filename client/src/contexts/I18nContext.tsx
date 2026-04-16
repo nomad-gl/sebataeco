@@ -2379,6 +2379,8 @@ export const translations = {
     connect_messages: "Messages",
     connect_assignments: "Assignments",
     connect_files: "Files",
+    connect_click_to_call: "Click to call",
+    connect_calling: "Calling",
   },
 
   es: {
@@ -4727,6 +4729,8 @@ export const translations = {
     connect_messages: "Mensajes",
     connect_assignments: "Tareas",
     connect_files: "Archivos",
+    connect_click_to_call: "Clic para llamar",
+    connect_calling: "Llamando",
   },
 
   ca: {
@@ -7075,6 +7079,8 @@ export const translations = {
     connect_messages: "Missatges",
     connect_assignments: "Tasques",
     connect_files: "Fitxers",
+    connect_click_to_call: "Fes clic per trucar",
+    connect_calling: "Trucant",
   },
 } as const;
 
