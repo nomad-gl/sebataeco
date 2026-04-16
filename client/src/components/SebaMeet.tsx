@@ -183,6 +183,105 @@ const SebaMeetInner = function SebaMeet({
   const resolvedBgId   = backgroundId
     ?? (() => { try { return localStorage.getItem(LS_BG_KEY) ?? "none"; } catch { return "none"; } })();
 
+  // ── Canvas-based background compositing (mirrors PreCallScreen) ──
+  const localCanvasRef   = useRef<HTMLCanvasElement>(null);
+  const bgImgRef         = useRef<HTMLImageElement | null>(null);
+  const segRef           = useRef<{ send?: (o: { image: HTMLVideoElement }) => Promise<void>; close?: () => void } | null>(null);
+  const segAnimRef       = useRef<number>(0);
+  const [bgReady,        setBgReady]        = useState(false);
+
+  // Resolve background URL from id
+  const resolvedBgUrl = (() => {
+    if (!resolvedBgId || resolvedBgId === "none") return "";
+    if (resolvedBgId === "blur") return "blur";
+    // Import VIDEO_BACKGROUNDS lazily to avoid circular dep — look up from localStorage key
+    try {
+      const stored = localStorage.getItem("seba_precall_bg_url");
+      if (stored) return stored;
+    } catch { /* ignore */ }
+    return "";
+  })();
+
+  // Load background image
+  useEffect(() => {
+    if (resolvedBgUrl && resolvedBgUrl !== "blur") {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = resolvedBgUrl;
+      img.onload = () => { bgImgRef.current = img; };
+    } else {
+      bgImgRef.current = null;
+    }
+  }, [resolvedBgUrl]);
+
+  // Start/stop MediaPipe segmentation for background compositing
+  const stopBgSeg = useCallback(() => {
+    cancelAnimationFrame(segAnimRef.current);
+    segRef.current?.close?.();
+    segRef.current = null;
+    setBgReady(false);
+  }, []);
+
+  const startBgSeg = useCallback(async () => {
+    if (segRef.current || !localVideoRef.current || videoMuted) return;
+    try {
+      const { SelfieSegmentation } = await import("@mediapipe/selfie_segmentation");
+      const seg = new SelfieSegmentation({
+        locateFile: (f: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation@0.1/${f}`,
+      });
+      seg.setOptions({ modelSelection: 1, selfieMode: true });
+      seg.onResults((results: { segmentationMask: CanvasImageSource; image: CanvasImageSource }) => {
+        const canvas = localCanvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        const { width, height } = canvas;
+        ctx.save();
+        ctx.clearRect(0, 0, width, height);
+        // Draw live video (person)
+        ctx.drawImage(results.image, 0, 0, width, height);
+        // Cut out background using mask
+        ctx.globalCompositeOperation = "destination-in";
+        ctx.drawImage(results.segmentationMask, 0, 0, width, height);
+        // Draw background behind person
+        ctx.globalCompositeOperation = "destination-over";
+        if (resolvedBgUrl === "blur") {
+          ctx.filter = "blur(16px)";
+          ctx.drawImage(results.image, 0, 0, width, height);
+          ctx.filter = "none";
+        } else if (bgImgRef.current) {
+          ctx.drawImage(bgImgRef.current, 0, 0, width, height);
+        }
+        ctx.restore();
+      });
+      await seg.initialize();
+      segRef.current = seg as unknown as typeof segRef.current;
+      setBgReady(true);
+      const loop = async () => {
+        if (localVideoRef.current && localVideoRef.current.readyState >= 2) {
+          await segRef.current?.send?.({ image: localVideoRef.current });
+        }
+        segAnimRef.current = requestAnimationFrame(loop);
+      };
+      segAnimRef.current = requestAnimationFrame(loop);
+    } catch (e) {
+      console.warn("SebaMeet bg seg failed:", e);
+    }
+  }, [resolvedBgUrl, videoMuted]);
+
+  useEffect(() => {
+    if (resolvedBgUrl && !videoMuted) {
+      stopBgSeg();
+      const t = setTimeout(() => startBgSeg(), 50);
+      return () => clearTimeout(t);
+    } else {
+      stopBgSeg();
+    }
+  }, [resolvedBgUrl, videoMuted, startBgSeg, stopBgSeg]);
+
+  // Cleanup on unmount
+  useEffect(() => () => stopBgSeg(), [stopBgSeg]);
+
   // ── tRPC ──
   const iceServersQuery  = trpc.webrtc.getIceServers.useQuery(undefined, { staleTime: Infinity });
   const joinRoom         = trpc.webrtc.joinRoom.useMutation();
@@ -288,6 +387,34 @@ const SebaMeetInner = function SebaMeet({
           setPeers((prev) =>
             prev.map((p) => p.id === peerId ? { ...p, connected: false } : p)
           );
+          // Attempt ICE restart to recover from transient network drops
+          if (pc.connectionState === "disconnected") {
+            // Wait 3 s before restarting in case it self-recovers
+            setTimeout(() => {
+              if (pc.connectionState === "disconnected" || pc.connectionState === "failed") {
+                try {
+                  pc.restartIce();
+                  // Re-create offer with iceRestart flag if we are the offerer
+                  pc.createOffer({ iceRestart: true })
+                    .then((offer) => pc.setLocalDescription(offer))
+                    .then(() => {
+                      if (pc.localDescription) {
+                        sendSignal.mutate({
+                          roomName,
+                          toUserId: peerId,
+                          type: "offer",
+                          payload: JSON.stringify(pc.localDescription),
+                        });
+                      }
+                    })
+                    .catch(() => { /* ignore if not offerer */ });
+                } catch { /* ignore */ }
+              }
+            }, 3000);
+          } else {
+            // Failed state — try immediate ICE restart
+            try { pc.restartIce(); } catch { /* ignore */ }
+          }
         }
       };
 
@@ -757,12 +884,29 @@ const SebaMeetInner = function SebaMeet({
               <span className="text-xs">Camera off</span>
             </div>
           ) : (
-            <video
-              ref={localVideoRef}
-              autoPlay muted playsInline
-              className="w-full h-full object-cover scale-x-[-1]"
-              style={resolvedFilter ? { filter: resolvedFilter } : undefined}
-            />
+            <>
+              {/* Hidden raw video — always needed as source for segmentation */}
+              <video
+                ref={localVideoRef}
+                autoPlay muted playsInline
+                className="absolute inset-0 w-full h-full object-cover scale-x-[-1]"
+                style={{
+                  display: bgReady ? "none" : "block",
+                  ...(resolvedFilter ? { filter: resolvedFilter } : {}),
+                }}
+              />
+              {/* Canvas overlay — shown when background compositing is active */}
+              <canvas
+                ref={localCanvasRef}
+                width={640}
+                height={360}
+                className="absolute inset-0 w-full h-full object-cover scale-x-[-1]"
+                style={{
+                  display: bgReady ? "block" : "none",
+                  ...(resolvedFilter ? { filter: resolvedFilter } : {}),
+                }}
+              />
+            </>
           )}
           <div className="absolute bottom-2 left-2 flex items-center gap-1 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full">
             {audioMuted && <MicOff className="w-3 h-3 text-red-400" />}

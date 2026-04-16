@@ -49,6 +49,7 @@ function downloadIcs(inv: {
 interface Props {
   myId: number | null;
   onJoin: (roomName: string, title: string) => void;
+  onReschedule?: (prefill: { toUserId: number; toName: string; title: string; agenda?: string | null; recurrence?: string | null }) => void;
 }
 
 const STATUS_STYLES: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
@@ -164,7 +165,7 @@ function CalendarView({
   );
 }
 
-export function MeetingHistoryPanel({ myId, onJoin }: Props) {
+export function MeetingHistoryPanel({ myId, onJoin, onReschedule }: Props) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<"list" | "calendar">("list");
 
@@ -256,6 +257,24 @@ export function MeetingHistoryPanel({ myId, onJoin }: Props) {
                         </Button>
                         <Button size="sm" variant="outline" className="h-6 px-2 text-[10px] gap-1" title="Add to calendar (.ics)" onClick={() => downloadIcs(inv as any)}>
                           <Download className="w-3 h-3" /> .ics
+                        </Button>
+                      </div>
+                    )}
+                    {(inv.status === "declined" || inv.status === "cancelled") && isMine && onReschedule && (
+                      <div className="flex gap-1.5 mt-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 h-6 text-[10px] gap-1 border-blue-500/40 text-blue-400 hover:bg-blue-500/10"
+                          onClick={() => onReschedule({
+                            toUserId: inv.toUserId,
+                            toName: inv.toName ?? "",
+                            title: inv.title,
+                            agenda: (inv as any).agenda,
+                            recurrence: (inv as any).recurrence,
+                          })}
+                        >
+                          <RefreshCw className="w-3 h-3" /> Reschedule
                         </Button>
                       </div>
                     )}

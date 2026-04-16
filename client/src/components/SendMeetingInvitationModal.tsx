@@ -33,6 +33,9 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   toUserId: number;
   toUserName: string;
+  prefillTitle?: string;
+  prefillAgenda?: string | null;
+  prefillRecurrence?: string | null;
 }
 
 const DURATION_OPTIONS = [
@@ -55,7 +58,7 @@ function toLocalDatetimeValue(d: Date) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export function SendMeetingInvitationModal({ open, onOpenChange, toUserId, toUserName }: Props) {
+export function SendMeetingInvitationModal({ open, onOpenChange, toUserId, toUserName, prefillTitle, prefillAgenda, prefillRecurrence }: Props) {
   const { t } = useI18n();
 
   // Default to tomorrow at 09:00
@@ -63,13 +66,15 @@ export function SendMeetingInvitationModal({ open, onOpenChange, toUserId, toUse
   defaultDate.setDate(defaultDate.getDate() + 1);
   defaultDate.setHours(9, 0, 0, 0);
 
-  const [title,      setTitle]      = useState("");
+  const [title,      setTitle]      = useState(prefillTitle ?? "");
   const [dateTime,   setDateTime]   = useState(toLocalDatetimeValue(defaultDate));
   const [duration,   setDuration]   = useState("30");
-  const [recurrence, setRecurrence] = useState<"none" | "weekly" | "biweekly">("none");
+  const [recurrence, setRecurrence] = useState<"none" | "weekly" | "biweekly">(
+    (prefillRecurrence as "none" | "weekly" | "biweekly" | null | undefined) ?? "none"
+  );
   const [message,    setMessage]    = useState("");
-  const [agenda,     setAgenda]     = useState("");
-  const [showAgenda, setShowAgenda] = useState(false);
+  const [agenda,     setAgenda]     = useState(prefillAgenda ?? "");
+  const [showAgenda, setShowAgenda] = useState(!!prefillAgenda);
 
   const sendMut = trpc.meetingInvitation.send.useMutation({
     onSuccess: () => {

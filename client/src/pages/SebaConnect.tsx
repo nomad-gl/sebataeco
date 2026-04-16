@@ -318,6 +318,7 @@ export default function SebaConnect() {
   const [activeCallId, setActiveCallId] = useState<number | null>(null);
   // Meeting invitation modal state
   const [meetInviteTarget, setMeetInviteTarget] = useState<{ id: number; name: string } | null>(null);
+  const [reschedulePrefill, setReschedulePrefill] = useState<{ title?: string; agenda?: string | null; recurrence?: string | null } | null>(null);
 
   // Poll the status of the outgoing call so we can show a toast when declined/missed
   const callStatusQuery = trpc.dmCall.getCallStatus.useQuery(
@@ -1113,10 +1114,17 @@ export default function SebaConnect() {
         }} />
 
         {/* ── Meeting History Panel ──────────────────────────────────────── */}
-        <MeetingHistoryPanel myId={myDbId} onJoin={(roomName, title) => {
-          setDmCallRoom({ roomName, partnerName: title });
-          setPreCallActive(true);
-        }} />
+        <MeetingHistoryPanel
+          myId={myDbId}
+          onJoin={(roomName, title) => {
+            setDmCallRoom({ roomName, partnerName: title });
+            setPreCallActive(true);
+          }}
+          onReschedule={(prefill) => {
+            setReschedulePrefill({ title: prefill.title, agenda: prefill.agenda, recurrence: prefill.recurrence });
+            setMeetInviteTarget({ id: prefill.toUserId, name: prefill.toName });
+          }}
+        />
       </aside>
 
       {/* ── Pre-Call Setup Dialog ─────────────────────────────────────────── */}
@@ -1371,9 +1379,12 @@ export default function SebaConnect() {
       {meetInviteTarget && (
         <SendMeetingInvitationModal
           open={!!meetInviteTarget}
-          onOpenChange={(open) => { if (!open) setMeetInviteTarget(null); }}
+          onOpenChange={(open) => { if (!open) { setMeetInviteTarget(null); setReschedulePrefill(null); } }}
           toUserId={meetInviteTarget.id}
           toUserName={meetInviteTarget.name}
+          prefillTitle={reschedulePrefill?.title}
+          prefillAgenda={reschedulePrefill?.agenda}
+          prefillRecurrence={reschedulePrefill?.recurrence}
         />
       )}
 

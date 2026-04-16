@@ -237,7 +237,15 @@ export default function PreCallScreen({
 
   // ── Persist selections ─────────────────────────────────────────────────
   useEffect(() => {
-    try { localStorage.setItem(LS_BG_KEY, selectedBg.id); } catch (_) { /* ignore */ }
+    try {
+      localStorage.setItem(LS_BG_KEY, selectedBg.id);
+      // Also persist the URL so SebaMeet can resolve the image without importing the catalogue
+      if (selectedBg.url && selectedBg.url !== "blur") {
+        localStorage.setItem("seba_precall_bg_url", selectedBg.url);
+      } else {
+        localStorage.removeItem("seba_precall_bg_url");
+      }
+    } catch (_) { /* ignore */ }
   }, [selectedBg]);
 
   useEffect(() => {
@@ -473,10 +481,17 @@ export default function PreCallScreen({
     }
   }, [selectedBg]);
 
-  // ── Start/stop segmentation when blur bg is selected ──────────────────
+  // ── Start/stop segmentation for any non-none background ────────────────
+  // Segmentation is needed for both blur AND image backgrounds so the person
+  // is composited correctly over the chosen background.
+  // We stop first to ensure the new onResults closure (with updated selectedBg)
+  // is registered when we restart.
   useEffect(() => {
-    if (selectedBg.url === "blur" && cameraStatus === "ok") {
-      startSegmentation();
+    if (selectedBg.url && cameraStatus === "ok") {
+      stopSegmentation();
+      // Small delay to allow the previous instance to fully close
+      const t = setTimeout(() => { startSegmentation(); }, 50);
+      return () => clearTimeout(t);
     } else {
       stopSegmentation();
     }
@@ -561,7 +576,8 @@ export default function PreCallScreen({
   const bgFilter = selectedFilter.css === "none" ? undefined : selectedFilter.css;
 
   // Whether to show canvas (segmentation) or raw video
-  const showCanvas = selectedBg.url === "blur" && (segmentationLoading || segmentationReady);
+  // Canvas is used for ALL non-none backgrounds (both blur and image replacement)
+  const showCanvas = !!selectedBg.url && (segmentationLoading || segmentationReady);
 
   // ── Join ───────────────────────────────────────────────────────────────
   const handleJoin = () => {

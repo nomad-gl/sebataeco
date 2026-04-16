@@ -85,6 +85,13 @@ export default function NavBar() {
   const pendingMeetCount = pendingMeetData?.count ?? 0;
   const connectBadge = missedCallCount + pendingMeetCount;
 
+  // Unread forum DM badge
+  const { data: forumUnreadData } = trpc.forum.getUnreadCount.useQuery(undefined, {
+    enabled: !!user,
+    refetchInterval: 20_000,
+  });
+  const forumBadge = forumUnreadData?.unread ?? 0;
+
   // Items before Teacher dropdown (Home removed — logo already links to /)
   const mainNavItemsBefore = [
     { href: "/chat",           label: t("nav_chat"),           icon: MessageCircle },
@@ -495,6 +502,11 @@ export default function NavBar() {
                   >
                     <MessagesSquare className="w-4 h-4" />
                     {t("nav_forum")}
+                    {forumBadge > 0 && (
+                      <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+                        {forumBadge > 9 ? "9+" : forumBadge}
+                      </span>
+                    )}
                   </Link>
                 </div>
               )}
@@ -552,6 +564,11 @@ export default function NavBar() {
                   >
                     <MessagesSquare className="w-4 h-4" />
                     {t("nav_forum")}
+                    {forumBadge > 0 && (
+                      <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+                        {forumBadge > 9 ? "9+" : forumBadge}
+                      </span>
+                    )}
                   </Link>
                 </div>
               )}
@@ -936,6 +953,11 @@ export default function NavBar() {
               >
                 <MessagesSquare className="w-5 h-5 flex-shrink-0" />
                 {t("nav_forum")}
+                {forumBadge > 0 && (
+                  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                    {forumBadge > 9 ? "9+" : forumBadge}
+                  </span>
+                )}
               </Link>
             </div>
             )}
@@ -982,6 +1004,11 @@ export default function NavBar() {
               >
                 <MessagesSquare className="w-5 h-5 flex-shrink-0" />
                 {t("nav_forum")}
+                {forumBadge > 0 && (
+                  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                    {forumBadge > 9 ? "9+" : forumBadge}
+                  </span>
+                )}
               </Link>
             </div>
             )}

@@ -2887,3 +2887,12 @@
 - [x] Meeting invitation calendar view in MeetingHistoryPanel (monthly grid, accepted meetings as coloured dots)
 - [x] TypeScript 0 errors
 - [x] Save checkpoint
+
+## Session 40: Background Fix + Follow-ups
+- [x] Fix background scenery not showing in pre-call screen (canvas compositing not rendering backgrounds)
+- [x] Fix background scenery not showing in SebaMeet call mode (background/filter props not applied to local video)
+- [x] Add ICE restart / call reconnection on network drop (detect disconnected state, call pc.restartIce())
+- [x] Add Reschedule button on declined/expired meeting invitations in MeetingHistoryPanel
+- [x] Add unread DM badge on TA Forum nav icon (count unread direct messages)
+- [x] TypeScript 0 errors
+- [x] Save checkpoint
