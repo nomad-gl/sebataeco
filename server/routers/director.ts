@@ -552,4 +552,44 @@ export const directorRouter = router({
       .where(eq(schoolSettings.id, 1));
     return { success: true };
   }),
+
+  /**
+   * List all signed-up users with their position status.
+   * Director-only: used for the staff management / member scan panel.
+   */
+  listUsers: adminProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+    const allUsers = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        position: users.position,
+        role: users.role,
+        lastSignedIn: users.lastSignedIn,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .orderBy(desc(users.lastSignedIn));
+    return allUsers;
+  }),
+
+  /**
+   * Assign or update the position of a user.
+   * Director-only.
+   */
+  setUserPosition: adminProcedure
+    .input(z.object({
+      userId: z.number(),
+      position: z.enum(["unassigned", "teacher", "head_of_study", "director"]),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      await db.update(users)
+        .set({ position: input.position })
+        .where(eq(users.id, input.userId));
+      return { success: true };
+    }),
 });

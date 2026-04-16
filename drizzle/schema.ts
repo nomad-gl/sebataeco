@@ -10,6 +10,8 @@ export const users = mysqlTable("users", {
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin", "head_of_study"]).default("user").notNull(),
+  /** Position assigned by the Director — controls which nav menus are visible */
+  position: mysqlEnum("position", ["unassigned", "teacher", "head_of_study", "director"]).default("unassigned").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),

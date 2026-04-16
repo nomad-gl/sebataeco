@@ -2632,3 +2632,15 @@
 - [x] Remove School Calendar from teacherItems in NavBar.tsx
 - [x] Add School Calendar to directorItems array in NavBar.tsx
 - [ ] Save checkpoint
+
+## Feature: Position-based access control (Director assigns positions)
+- [x] Read current schema and user table structure
+- [x] Add `position` enum column to users table (values: teacher, head_of_study, director, unassigned)
+- [x] Run migration SQL for position column
+- [x] Add tRPC procedures: director.listUsers, director.setUserPosition (director-only)
+- [x] Build Director > Staff Management page: scan all signed-up users, assign position via dropdown
+- [x] Wire NavBar: Teacher menus gated by position=teacher|director, HOS by head_of_study|director, Director by director only
+- [x] Unassigned users see minimal nav (Chat only + shared items)
+- [x] Add i18n keys for position labels and member scan UI (EN/ES/CA)
+- [x] Auto-assign position=director to OWNER_OPEN_ID on every login (db.ts upsertUser)
+- [ ] Save checkpoint

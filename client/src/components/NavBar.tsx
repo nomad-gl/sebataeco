@@ -48,6 +48,15 @@ export default function NavBar() {
   const bellRef     = useRef<HTMLDivElement>(null);
 
   const { user } = useAuth();
+
+  // Position-based visibility helpers
+  // Director sees everything; each role sees its own menus plus shared menus
+  const pos = (user as { position?: string } | null)?.position ?? "unassigned";
+  const isDirectorPos   = pos === "director";
+  const isHosPos        = pos === "head_of_study" || pos === "director";
+  const isTeacherPos    = pos === "teacher" || pos === "director";
+  const isSituacioPos   = pos === "head_of_study" || pos === "director";
+
   const { data: unreadCount = 0 } = trpc.notifications.getUnreadCount.useQuery(undefined, {
     enabled: !!user,
     refetchInterval: 30_000,
@@ -249,8 +258,8 @@ export default function NavBar() {
               );
             })}
 
-            {/* Situació dropdown — gated to admin / head_of_study */}
-            {(user?.role === "admin" || user?.role === "head_of_study") && (
+            {/* Situació dropdown — gated by position */}
+            {isSituacioPos && (
             <div ref={situacioRef} className="relative">
               <button
                 onClick={() => setSituacioOpen((o) => !o)}
@@ -337,7 +346,7 @@ export default function NavBar() {
               )}
             </div>
 
-            {/* Administration dropdown — admin only */}
+            {/* Administration dropdown — admin only (system-level, role-gated) */}
             {user?.role === "admin" && (
             <div ref={adminRef} className="relative">
               <button
@@ -413,8 +422,8 @@ export default function NavBar() {
             </div>
             )}
 
-            {/* Head of Study dropdown — visible to admin and head_of_study roles */}
-            {(user?.role === "admin" || user?.role === "head_of_study") && (
+            {/* Head of Study dropdown — visible by position */}
+            {isHosPos && (
             <div ref={hosRef} className="relative">
               <button
                 onClick={() => setHosOpen((o) => !o)}
@@ -470,7 +479,8 @@ export default function NavBar() {
             </div>
             )}
 
-            {/* Director dropdown */}
+            {/* Director dropdown — position-gated */}
+            {isDirectorPos && (
             <div ref={directorRef} className="relative">
               <button
                 onClick={() => setDirectorOpen((o) => !o)}
@@ -524,6 +534,7 @@ export default function NavBar() {
                 </div>
               )}
             </div>
+            )}
 
             {/* Settings link (desktop) */}
             {user && (
@@ -770,7 +781,7 @@ export default function NavBar() {
             )}
 
             {/* Situació tools — role-gated to admin / head_of_study */}
-            {(user?.role === "admin" || user?.role === "head_of_study") && (
+            {isSituacioPos && (
             <div className={cn("px-4 py-3 border-b", isClassroomPage ? "border-white/15" : "border-border")}>
               <p className={cn("text-xs font-semibold uppercase tracking-wider mb-2 px-1", isClassroomPage ? "text-white/50" : "text-muted-foreground")}>
                 {t("nav_situacio_nav")}
@@ -862,7 +873,7 @@ export default function NavBar() {
             )}
 
             {/* Head of Study tools — role-gated */}
-            {(user?.role === "admin" || user?.role === "head_of_study") && (
+            {isHosPos && (
             <div className="px-4 py-3">
               <p className={cn("text-xs font-semibold uppercase tracking-wider mb-2 px-1", isClassroomPage ? "text-white/50" : "text-muted-foreground")}>
                 {t("nav_head_of_study")}
@@ -908,6 +919,7 @@ export default function NavBar() {
             )}
 
             {/* Director tools */}
+            {isDirectorPos && (
             <div className="px-4 py-3">
               <p className={cn("text-xs font-semibold uppercase tracking-wider mb-2 px-1", isClassroomPage ? "text-white/50" : "text-muted-foreground")}>
                 {t("nav_director")}
@@ -950,8 +962,10 @@ export default function NavBar() {
                 {t("nav_forum")}
               </Link>
             </div>
+            )}
 
             {/* Teacher tools */}
+            {isTeacherPos && (
             <div className="px-4 py-3">
               <p className={cn("text-xs font-semibold uppercase tracking-wider mb-2 px-1", isClassroomPage ? "text-white/50" : "text-muted-foreground")}>
                 {t("nav_teacher")}
@@ -995,6 +1009,7 @@ export default function NavBar() {
                 );
               })}
             </div>
+            )}
           </nav>
         </div>
       )}

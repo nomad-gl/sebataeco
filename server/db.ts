@@ -60,6 +60,12 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       updateSet.role = 'admin';
     }
 
+    // Auto-assign director position to the app owner on every login
+    if (user.openId === ENV.ownerOpenId) {
+      values.position = 'director';
+      updateSet.position = 'director';
+    }
+
     if (!values.lastSignedIn) {
       values.lastSignedIn = new Date();
     }
