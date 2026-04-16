@@ -137,6 +137,7 @@ export default function NavBar() {
     { href: "/director/reports",   label: t("dir_reports"),          icon: Download },
     { href: "/director/settings",  label: t("dir_settings"),         icon: SettingsIcon },
     { href: "/attendance",           label: t("nav_attendance"),       icon: ClipboardList },
+    { href: "/school-calendar",      label: t("nav_school_calendar"),  icon: CalendarDays },
   ];
 
   const isDirectorActive = directorItems.some(
@@ -153,7 +154,6 @@ export default function NavBar() {
     { href: "/progress",      label: t("nav_group_progress"), icon: TrendingUp },
     { href: "/attendance",   label: t("nav_attendance"),   icon: UserCheck },
     { href: "/forum",         label: t("nav_forum"),         icon: MessagesSquare },
-    { href: "/school-calendar", label: t("nav_school_calendar"), icon: CalendarDays },
     { href: "/lesson-planner",  label: t("nav_lesson_planner"),  icon: FileText },
     { href: "/help",             label: t("nav_help"),            icon: HelpCircle },
     { href: "/privacy",           label: t("nav_privacy"),          icon: Lock },

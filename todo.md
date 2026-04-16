@@ -2627,3 +2627,8 @@
 - [x] SebaSymbol component already existed — no new component needed
 - [x] Replace every sparkle instance with SebaSymbol component (10 replacements across 5 files)
 - [ ] Save checkpoint
+
+## Nav: Move School Calendar into Director dropdown
+- [x] Remove School Calendar from teacherItems in NavBar.tsx
+- [x] Add School Calendar to directorItems array in NavBar.tsx
+- [ ] Save checkpoint
