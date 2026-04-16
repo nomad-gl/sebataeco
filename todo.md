@@ -2753,3 +2753,17 @@
 - [x] Add i18n keys: connect_click_to_call, connect_calling (EN/ES/CA)
 - [x] TypeScript 0 errors
 - [x] Save checkpoint
+
+## Session 30: DM Call Notifications + Audio-Only + Call History
+- [x] Add dm_calls table to drizzle schema (id, callerId, calleeId, roomName, status, startedAt, endedAt, durationSeconds, audioOnly)
+- [x] Run migration for dm_calls table
+- [x] Add DB helpers: initiateCall, acceptCall, declineCall, endCall, getCallHistory, getPendingCallForUser
+- [x] Add tRPC procedures: dmCall.initiate, dmCall.accept, dmCall.decline, dmCall.end, dmCall.getHistory, dmCall.getPending
+- [x] Build IncomingCallBanner component with ringing animation, caller name, Accept/Decline buttons
+- [x] Wire IncomingCallBanner into SebaConnect (polls every 3s for pending calls)
+- [x] Add audio-only call button (phone icon) on online member hover alongside video icon
+- [x] Update handleMemberCall to accept audioOnly flag and pass to PreCallScreen
+- [x] Build call history panel in members sidebar (collapsible, shows last 20 DM calls)
+- [x] Add i18n keys for call notifications and history (EN/ES/CA)
+- [x] TypeScript 0 errors
+- [x] Save checkpoint

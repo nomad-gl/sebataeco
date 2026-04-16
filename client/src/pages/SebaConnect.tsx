@@ -13,6 +13,8 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import PreCallScreen, { type VideoBackground, type VideoFilter } from "@/components/PreCallScreen";
+import { IncomingCallBanner } from "@/components/IncomingCallBanner";
+import { CallHistoryPanel } from "@/components/CallHistoryPanel";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useI18n } from "@/contexts/I18nContext";
@@ -57,6 +59,7 @@ import {
   Circle,
   ScreenShare,
   ScreenShareOff,
+  Phone,
 } from "lucide-react";
 import { SebaSymbol } from "@/components/SebaSymbol";
 
@@ -245,13 +248,24 @@ export default function SebaConnect() {
     return `seba-dm-${a}-${b}`;
   }, []);
 
+  // tRPC mutation to record the call in the DB
+  const initiateCallMutation = trpc.dmCall.initiate.useMutation();
+  const endCallMutation = trpc.dmCall.end.useMutation();
+  const [activeCallId, setActiveCallId] = useState<number | null>(null);
+
   // Called when an online member avatar is clicked
-  const handleMemberCall = useCallback((memberId: number, memberName: string) => {
+  const handleMemberCall = useCallback(async (memberId: number, memberName: string, audioOnly = false) => {
     if (!myDbId) { toast.error("Not signed in"); return; }
     const roomName = makeDmRoom(myDbId, memberId);
     setDmCallRoom({ roomName, partnerName: memberName });
+    try {
+      const { callId } = await initiateCallMutation.mutateAsync({ calleeId: memberId, roomName, audioOnly });
+      setActiveCallId(callId);
+    } catch {
+      // Non-critical — call still works without DB record
+    }
     setPreCallActive(true);
-  }, [myDbId, makeDmRoom]);
+  }, [myDbId, makeDmRoom, initiateCallMutation]);
   const [isRecording, setIsRecording] = useState(false);
   const [activeReaction, setActiveReaction] = useState<string | null>(null);
   const reactionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -873,28 +887,38 @@ export default function SebaConnect() {
                     {t("connect_online")} — {members.filter((m) => m.online).length}
                   </p>
                   {members.filter((m) => m.online).map((m) => (
-                    <button
+                    <div
                       key={m.id}
-                      onClick={() => handleMemberCall(m.id, m.name)}
-                      title={t("connect_click_to_call")}
-                      className="group/member w-full flex items-center gap-2.5 px-4 py-1.5 hover:bg-blue-900/30 transition-colors cursor-pointer rounded"
+                      className="group/member w-full flex items-center gap-2.5 px-4 py-1.5 hover:bg-blue-900/30 transition-colors rounded"
                     >
                       <div className="relative shrink-0">
-                        {/* Avatar with video icon overlay on hover */}
                         <div
-                          className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white transition-opacity group-hover/member:opacity-0"
+                          className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white"
                           style={{ background: "#003082" }}
                         >
                           {m.name.charAt(0).toUpperCase()}
                         </div>
-                        <div className="w-7 h-7 rounded-full bg-[#003082] absolute inset-0 flex items-center justify-center opacity-0 group-hover/member:opacity-100 transition-opacity">
-                          <Video className="w-3.5 h-3.5 text-white" />
-                        </div>
                         <Circle className="w-2.5 h-2.5 fill-green-500 text-green-500 absolute -bottom-0.5 -right-0.5" />
                       </div>
                       <span className="text-sm truncate flex-1 text-left">{m.name}</span>
-                      <Video className="w-3 h-3 text-green-400 opacity-0 group-hover/member:opacity-100 transition-opacity shrink-0" />
-                    </button>
+                      {/* Video + Audio call buttons — visible on hover */}
+                      <div className="flex items-center gap-1 opacity-0 group-hover/member:opacity-100 transition-opacity shrink-0">
+                        <button
+                          onClick={() => handleMemberCall(m.id, m.name, false)}
+                          title={t("connect_click_to_call")}
+                          className="p-1 rounded hover:bg-blue-700 text-green-400 hover:text-white transition-colors"
+                        >
+                          <Video className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleMemberCall(m.id, m.name, true)}
+                          title={t("call_audio_only_label")}
+                          className="p-1 rounded hover:bg-blue-700 text-green-400 hover:text-white transition-colors"
+                        >
+                          <Phone className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
@@ -927,6 +951,12 @@ export default function SebaConnect() {
             </>
           )}
         </div>
+
+        {/* ── Call History Panel ──────────────────────────────────────────── */}
+        <CallHistoryPanel myId={myDbId} onRejoin={(roomName, partnerName) => {
+          setDmCallRoom({ roomName, partnerName });
+          setPreCallActive(true);
+        }} />
       </aside>
 
       {/* ── Pre-Call Setup Dialog ─────────────────────────────────────────── */}
@@ -1170,6 +1200,19 @@ export default function SebaConnect() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* ── Incoming Call Banner ─────────────────────────────────────────── */}
+      <IncomingCallBanner
+        onAccept={(roomName, callerName, audioOnly) => {
+          setDmCallRoom({ roomName, partnerName: callerName });
+          if (audioOnly) {
+            // Skip pre-call screen for audio-only accepted calls
+            setVideoCallActive(true);
+          } else {
+            setPreCallActive(true);
+          }
+        }}
+      />
     </div>
   );
 }

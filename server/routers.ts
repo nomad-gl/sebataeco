@@ -28,6 +28,7 @@ import { wakeWordsRouter } from "./routers/wakeWords";
 import { audioResponsesRouter } from "./routers/audioResponses";
 import { attendanceRouter } from "./routers/attendance";
 import { teamsRouter } from "./routers/teams";
+import { dmCallRouter } from "./routers/dmCall";
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -74,6 +75,7 @@ export const appRouter = router({
   audioResponses: audioResponsesRouter,
   attendance: attendanceRouter,
   teams: teamsRouter,
+  dmCall: dmCallRouter,
 });
 
 export type AppRouter = typeof appRouter;

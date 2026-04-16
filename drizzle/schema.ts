@@ -1331,3 +1331,25 @@ export const teamsFiles = mysqlTable("teams_files", {
   uploadedAt: timestamp("uploadedAt").defaultNow().notNull(),
 });
 export type TeamsFile = typeof teamsFiles.$inferSelect;
+
+/**
+ * DM call records — one row per direct-message video/audio call between two users.
+ * status: 'pending' = ringing, 'active' = accepted, 'declined' = callee declined,
+ *         'missed' = no answer (expired), 'ended' = call ended normally.
+ */
+export const dmCalls = mysqlTable("dm_calls", {
+  id: int("id").autoincrement().primaryKey(),
+  callerId: int("callerId").notNull(),
+  calleeId: int("calleeId").notNull(),
+  roomName: varchar("roomName", { length: 128 }).notNull(),
+  status: mysqlEnum("status", ["pending", "active", "declined", "missed", "ended"])
+    .default("pending")
+    .notNull(),
+  audioOnly: boolean("audioOnly").default(false).notNull(),
+  startedAt: timestamp("startedAt").defaultNow().notNull(),
+  acceptedAt: timestamp("acceptedAt"),
+  endedAt: timestamp("endedAt"),
+  durationSeconds: int("durationSeconds"),
+});
+export type DmCall = typeof dmCalls.$inferSelect;
+export type InsertDmCall = typeof dmCalls.$inferInsert;
