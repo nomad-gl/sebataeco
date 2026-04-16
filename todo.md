@@ -2896,3 +2896,13 @@
 - [x] Add unread DM badge on TA Forum nav icon (count unread direct messages)
 - [x] TypeScript 0 errors
 - [x] Save checkpoint
+
+## Session 41: Full-Screen Call + Follow-ups
+- [x] Replace split-screen call layout with full-screen video: remote peer fills screen, local video as draggable PiP tile
+- [x] Draggable PiP tile: snap to corners, shows local canvas (background/filter) or raw video
+- [x] Multi-peer: largest/active speaker fills screen, others shown as small PiP tiles in a row
+- [x] Mark DMs as read when conversation is opened (invalidate getUnreadCount + getConversations in openDm)
+- [x] Background blur intensity slider (1-5 levels) in pre-call background picker
+- [x] In-call screen-share button in SebaMeet toolbar (already implemented in prior sessions)
+- [x] TypeScript 0 errors
+- [x] Save checkpoint

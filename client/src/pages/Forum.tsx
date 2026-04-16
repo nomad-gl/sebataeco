@@ -295,6 +295,9 @@ export default function Forum() {
     setActiveDmUserId(userId);
     setShowUserList(false);
     setMobileSidebarOpen(false);
+    // Clear unread badge immediately when opening a DM conversation
+    utils.forum.getUnreadCount.invalidate();
+    utils.forum.getConversations.invalidate();
   };
 
   // ─── file upload handler ───────────────────────────────────────────────────

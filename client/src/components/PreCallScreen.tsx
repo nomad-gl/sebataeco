@@ -24,6 +24,20 @@ import SebaSymbol from "@/components/SebaSymbol";
 const LS_BG_KEY = "seba_precall_bg";
 const LS_FILTER_KEY = "seba_precall_filter";
 const LS_MIRROR_KEY = "seba_precall_mirror";
+const LS_BLUR_INTENSITY_KEY = "seba_precall_blur_intensity";
+
+// Blur intensity levels: 1 (subtle) → 5 (heavy)
+const BLUR_RADIUS_MAP = [4, 8, 12, 16, 24]; // px
+function getSavedBlurIntensity(): number {
+  try {
+    const v = localStorage.getItem(LS_BLUR_INTENSITY_KEY);
+    if (v !== null) {
+      const n = parseInt(v, 10);
+      if (n >= 1 && n <= 5) return n;
+    }
+  } catch (_) { /* ignore */ }
+  return 3; // default: medium
+}
 
 // ─── Autoresolve types ────────────────────────────────────────────────────
 type PermState = "unknown" | "prompt" | "granted" | "denied";
@@ -232,6 +246,7 @@ export default function PreCallScreen({
   const [panelOpen, setPanelOpen] = useState(true);
   const [selectedBg, setSelectedBg] = useState<VideoBackground>(getSavedBg);
   const [selectedFilter, setSelectedFilter] = useState<VideoFilter>(getSavedFilter);
+  const [blurIntensity, setBlurIntensity] = useState<number>(getSavedBlurIntensity);
   const [segmentationLoading, setSegmentationLoading] = useState(false);
   const [segmentationReady, setSegmentationReady] = useState(false);
 
@@ -251,6 +266,10 @@ export default function PreCallScreen({
   useEffect(() => {
     try { localStorage.setItem(LS_FILTER_KEY, selectedFilter.id); } catch (_) { /* ignore */ }
   }, [selectedFilter]);
+
+  useEffect(() => {
+    try { localStorage.setItem(LS_BLUR_INTENSITY_KEY, String(blurIntensity)); } catch (_) { /* ignore */ }
+  }, [blurIntensity]);
   // ── Enumerate available cameras ──────────────────────────────────────────
   const enumerateCameras = useCallback(async () => {
     try {
@@ -422,7 +441,7 @@ export default function PreCallScreen({
           ctx.drawImage(bgImgRef.current, 0, 0, width, height);
         } else {
           // Blurred background: draw video blurred
-          ctx.filter = "blur(16px)";
+          ctx.filter = `blur(${BLUR_RADIUS_MAP[blurIntensity - 1]}px)`;
           ctx.drawImage(results.image, 0, 0, width, height);
           ctx.filter = "none";
         }
@@ -434,7 +453,7 @@ export default function PreCallScreen({
         if (selectedBg.url && selectedBg.url !== "blur" && bgImgRef.current) {
           ctx.drawImage(bgImgRef.current, 0, 0, width, height);
         } else {
-          ctx.filter = "blur(16px)";
+          ctx.filter = `blur(${BLUR_RADIUS_MAP[blurIntensity - 1]}px)`;
           ctx.drawImage(results.image, 0, 0, width, height);
           ctx.filter = "none";
         }
@@ -583,6 +602,8 @@ export default function PreCallScreen({
   const handleJoin = () => {
     stopSegmentation();
     streamRef.current?.getTracks().forEach((t) => t.stop());
+    // Persist blur intensity so SebaMeet can read it from localStorage
+    try { localStorage.setItem(LS_BLUR_INTENSITY_KEY, String(blurIntensity)); } catch (_) { /* ignore */ }
     onJoin({ videoEnabled, audioEnabled, background: selectedBg, filter: selectedFilter });
   };
 
@@ -970,6 +991,30 @@ export default function PreCallScreen({
                   </button>
                 ))}
               </div>
+              {/* Blur intensity slider — only shown when Smart Blur is selected */}
+              {selectedBg.id === "blur" && (
+                <div className="mt-3 px-1">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs text-gray-300 font-medium">Blur Intensity</span>
+                    <span className="text-xs text-blue-400 font-semibold">
+                      {["Subtle", "Light", "Medium", "Strong", "Heavy"][blurIntensity - 1]}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={1}
+                    max={5}
+                    step={1}
+                    value={blurIntensity}
+                    onChange={(e) => setBlurIntensity(Number(e.target.value))}
+                    className="w-full h-1.5 rounded-full appearance-none bg-gray-700 accent-blue-500 cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[10px] text-gray-500 mt-1">
+                    <span>Subtle</span>
+                    <span>Heavy</span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

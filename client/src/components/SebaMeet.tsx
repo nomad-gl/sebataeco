@@ -56,8 +56,12 @@ interface ChatMessage {
 }
 
 // ─── localStorage keys (mirrors PreCallScreen) ───────────────────────────────
-const LS_BG_KEY     = "seba_precall_bg";
-const LS_FILTER_KEY = "seba_precall_filter";
+const LS_BG_KEY            = "seba_precall_bg";
+const LS_FILTER_KEY        = "seba_precall_filter";
+const LS_BLUR_INTENSITY_KEY = "seba_precall_blur_intensity";
+
+// Mirrors PreCallScreen BLUR_RADIUS_MAP
+const BLUR_RADIUS_MAP = [4, 8, 12, 16, 24]; // px
 
 interface SebaMeetProps {
   roomName: string;
@@ -175,6 +179,12 @@ const SebaMeetInner = function SebaMeet({
   const [showControls, setShowControls] = useState(true);
   const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // ── PiP draggable local tile (distance from bottom-right corner) ──
+  const [pipPos, setPipPos] = useState({ x: 16, y: 80 });
+  const pipDragRef = useRef<{ dragging: boolean; startX: number; startY: number; startPosX: number; startPosY: number }>(
+    { dragging: false, startX: 0, startY: 0, startPosX: 16, startPosY: 80 }
+  );
+
   // ── Persisted background / filter ──
   // Read from props (passed by PreCallScreen via callOpts) or fall back to localStorage.
   // This ensures the settings are always applied even if props are not passed.
@@ -191,6 +201,18 @@ const SebaMeetInner = function SebaMeet({
   const [bgReady,        setBgReady]        = useState(false);
 
   // Resolve background URL from id
+  // Read blur intensity from localStorage (set by PreCallScreen)
+  const resolvedBlurRadius = (() => {
+    try {
+      const v = localStorage.getItem(LS_BLUR_INTENSITY_KEY);
+      if (v !== null) {
+        const n = parseInt(v, 10);
+        if (n >= 1 && n <= 5) return BLUR_RADIUS_MAP[n - 1];
+      }
+    } catch { /* ignore */ }
+    return 16; // default: 16px (intensity 4)
+  })();
+
   const resolvedBgUrl = (() => {
     if (!resolvedBgId || resolvedBgId === "none") return "";
     if (resolvedBgId === "blur") return "blur";
@@ -246,7 +268,7 @@ const SebaMeetInner = function SebaMeet({
         // Draw background behind person
         ctx.globalCompositeOperation = "destination-over";
         if (resolvedBgUrl === "blur") {
-          ctx.filter = "blur(16px)";
+          ctx.filter = `blur(${resolvedBlurRadius}px)`;
           ctx.drawImage(results.image, 0, 0, width, height);
           ctx.filter = "none";
         } else if (bgImgRef.current) {
@@ -803,14 +825,196 @@ const SebaMeetInner = function SebaMeet({
     return `${m}:${s}`;
   };
 
+  // ── PiP drag handlers ──
+  const handlePipMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    pipDragRef.current = {
+      dragging: true,
+      startX: e.clientX,
+      startY: e.clientY,
+      startPosX: pipPos.x,
+      startPosY: pipPos.y,
+    };
+    const onMove = (me: MouseEvent) => {
+      if (!pipDragRef.current.dragging) return;
+      const dx = me.clientX - pipDragRef.current.startX;
+      const dy = me.clientY - pipDragRef.current.startY;
+      setPipPos({
+        x: Math.max(8, pipDragRef.current.startPosX - dx),
+        y: Math.max(8, pipDragRef.current.startPosY - dy),
+      });
+    };
+    const onUp = () => {
+      pipDragRef.current.dragging = false;
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }, [pipPos]);
+
+  const handlePipTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    pipDragRef.current = {
+      dragging: true,
+      startX: touch.clientX,
+      startY: touch.clientY,
+      startPosX: pipPos.x,
+      startPosY: pipPos.y,
+    };
+    const onMove = (te: TouchEvent) => {
+      if (!pipDragRef.current.dragging) return;
+      const t = te.touches[0];
+      const dx = t.clientX - pipDragRef.current.startX;
+      const dy = t.clientY - pipDragRef.current.startY;
+      setPipPos({
+        x: Math.max(8, pipDragRef.current.startPosX - dx),
+        y: Math.max(8, pipDragRef.current.startPosY - dy),
+      });
+    };
+    const onEnd = () => {
+      pipDragRef.current.dragging = false;
+      window.removeEventListener("touchmove", onMove);
+      window.removeEventListener("touchend", onEnd);
+    };
+    window.addEventListener("touchmove", onMove, { passive: true });
+    window.addEventListener("touchend", onEnd);
+  }, [pipPos]);
+
+  // Determine which peer fills the main screen (loudest speaker, or first peer)
+  const activePeer = peers.find((p) => p.speaking) ?? peers[0] ?? null;
+  const secondaryPeers = peers.filter((p) => p !== activePeer);
+
   const totalParticipants = 1 + peers.length;
 
   return (
     <div
-      className="relative w-full h-full bg-gray-950 flex flex-col overflow-hidden select-none"
+      className="relative w-full h-full bg-gray-950 overflow-hidden select-none"
       onMouseMove={resetControlsTimer}
       onTouchStart={resetControlsTimer}
     >
+      {/* ── Full-screen main video area ── */}
+      <div className="absolute inset-0 bg-gray-900">
+        {peers.length === 0 ? (
+          /* Empty state: show waiting overlay */
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <div className="bg-black/40 rounded-2xl px-6 py-4 flex flex-col items-center gap-2">
+              <Users className="w-8 h-8 text-white/40" />
+              <p className="text-white/50 text-sm">Waiting for others to join…</p>
+            </div>
+          </div>
+        ) : (
+          /* Active peer fills the screen */
+          activePeer ? (
+            <>
+              {/* Hidden audio */}
+              <audio
+                ref={(el) => {
+                  (activePeer.audioRef as React.MutableRefObject<HTMLAudioElement | null>).current = el;
+                  if (el && activePeer.stream) { el.srcObject = activePeer.stream; el.play().catch(() => {}); }
+                }}
+                autoPlay playsInline className="hidden"
+              />
+              <video
+                ref={(el) => {
+                  (activePeer.videoRef as React.MutableRefObject<HTMLVideoElement | null>).current = el;
+                  if (el && activePeer.stream) { el.srcObject = activePeer.stream; el.play().catch(() => {}); }
+                }}
+                autoPlay playsInline muted
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              {/* Active peer name label */}
+              <div className="absolute bottom-24 left-4 flex items-center gap-1.5 bg-black/50 text-white text-sm px-3 py-1 rounded-full">
+                {activePeer.speaking && <Volume2 className="w-3.5 h-3.5 text-green-400" />}
+                {raisedHands.some((h) => h.userId === activePeer.id) && <Hand className="w-3.5 h-3.5 text-yellow-400" />}
+                <span>{activePeer.name}</span>
+                <QualityBars bars={activePeer.quality} />
+              </div>
+            </>
+          ) : null
+        )}
+      </div>
+
+      {/* ── Secondary peers strip (bottom, above controls) ── */}
+      {secondaryPeers.length > 0 && (
+        <div
+          className="absolute bottom-20 left-0 right-0 z-10 flex items-end gap-2 px-3 overflow-x-auto"
+          style={{ scrollbarWidth: "none" }}
+        >
+          {secondaryPeers.map((peer) => (
+            <div
+              key={peer.id}
+              className={`relative flex-shrink-0 w-28 h-20 rounded-xl overflow-hidden bg-gray-800 border-2 transition-all duration-200 ${
+                peer.speaking ? "border-green-400" : "border-white/20"
+              }`}
+            >
+              <audio
+                ref={(el) => {
+                  (peer.audioRef as React.MutableRefObject<HTMLAudioElement | null>).current = el;
+                  if (el && peer.stream) { el.srcObject = peer.stream; el.play().catch(() => {}); }
+                }}
+                autoPlay playsInline className="hidden"
+              />
+              <video
+                ref={(el) => {
+                  (peer.videoRef as React.MutableRefObject<HTMLVideoElement | null>).current = el;
+                  if (el && peer.stream) { el.srcObject = peer.stream; el.play().catch(() => {}); }
+                }}
+                autoPlay playsInline muted
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute bottom-1 left-1 right-1 flex items-center gap-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded-full truncate">
+                {peer.speaking && <Volume2 className="w-2.5 h-2.5 text-green-400 flex-shrink-0" />}
+                {raisedHands.some((h) => h.userId === peer.id) && <Hand className="w-2.5 h-2.5 text-yellow-400 flex-shrink-0" />}
+                <span className="truncate">{peer.name}</span>
+                <QualityBars bars={peer.quality} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Local PiP tile (draggable, bottom-right by default) ── */}
+      <div
+        className="absolute z-20 w-36 h-24 sm:w-40 sm:h-28 rounded-xl overflow-hidden bg-gray-800 border-2 border-white/30 shadow-2xl cursor-grab active:cursor-grabbing"
+        style={{ right: pipPos.x, bottom: pipPos.y }}
+        onMouseDown={handlePipMouseDown}
+        onTouchStart={handlePipTouchStart}
+      >
+        {videoMuted ? (
+          <div className="w-full h-full flex flex-col items-center justify-center gap-1 text-white/40">
+            <VideoOff className="w-6 h-6" />
+            <span className="text-[10px]">Camera off</span>
+          </div>
+        ) : (
+          <>
+            {/* Raw local video — source for segmentation; shown when bg compositing is off */}
+            <video
+              ref={localVideoRef}
+              autoPlay muted playsInline
+              className="absolute inset-0 w-full h-full object-cover scale-x-[-1]"
+              style={{ display: bgReady ? "none" : "block", ...(resolvedFilter ? { filter: resolvedFilter } : {}) }}
+            />
+            {/* Canvas — shown when background compositing is active */}
+            <canvas
+              ref={localCanvasRef}
+              width={640} height={360}
+              className="absolute inset-0 w-full h-full object-cover scale-x-[-1]"
+              style={{ display: bgReady ? "block" : "none", ...(resolvedFilter ? { filter: resolvedFilter } : {}) }}
+            />
+          </>
+        )}
+        {/* PiP label */}
+        <div className="absolute bottom-1 left-1 flex items-center gap-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+          {audioMuted && <MicOff className="w-2.5 h-2.5 text-red-400" />}
+          {handRaised  && <Hand  className="w-2.5 h-2.5 text-yellow-400" />}
+          <span>You</span>
+        </div>
+        {screenSharing && (
+          <div className="absolute top-1 right-1 bg-blue-600 text-white text-[9px] px-1 py-0.5 rounded-full font-semibold">Sharing</div>
+        )}
+      </div>
+
       {/* ── Header ── */}
       <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/70 to-transparent">
         <div className="flex items-center gap-2">
@@ -873,102 +1077,6 @@ const SebaMeetInner = function SebaMeet({
           <span className="text-white/80 font-normal tracking-wide text-[10px]">Powered by SEBA</span>
         </div>
       )}
-
-      {/* ── Video grid ── */}
-      <div className={`flex-1 grid gap-1 p-1 pt-14 ${gridClass(totalParticipants)}`}>
-        {/* Local video */}
-        <div className="relative rounded-lg overflow-hidden bg-gray-900 flex items-center justify-center">
-          {videoMuted ? (
-            <div className="flex flex-col items-center gap-2 text-white/40">
-              <VideoOff className="w-8 h-8" />
-              <span className="text-xs">Camera off</span>
-            </div>
-          ) : (
-            <>
-              {/* Hidden raw video — always needed as source for segmentation */}
-              <video
-                ref={localVideoRef}
-                autoPlay muted playsInline
-                className="absolute inset-0 w-full h-full object-cover scale-x-[-1]"
-                style={{
-                  display: bgReady ? "none" : "block",
-                  ...(resolvedFilter ? { filter: resolvedFilter } : {}),
-                }}
-              />
-              {/* Canvas overlay — shown when background compositing is active */}
-              <canvas
-                ref={localCanvasRef}
-                width={640}
-                height={360}
-                className="absolute inset-0 w-full h-full object-cover scale-x-[-1]"
-                style={{
-                  display: bgReady ? "block" : "none",
-                  ...(resolvedFilter ? { filter: resolvedFilter } : {}),
-                }}
-              />
-            </>
-          )}
-          <div className="absolute bottom-2 left-2 flex items-center gap-1 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full">
-            {audioMuted && <MicOff className="w-3 h-3 text-red-400" />}
-            {handRaised  && <Hand  className="w-3 h-3 text-yellow-400" />}
-            <span>You</span>
-          </div>
-          {screenSharing && (
-            <div className="absolute top-2 right-2 bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded-full font-semibold">Sharing</div>
-          )}
-        </div>
-
-        {/* Remote peers */}
-        {peers.map((peer) => (
-          <div
-            key={peer.id}
-            className={`relative rounded-lg overflow-hidden bg-gray-900 flex items-center justify-center transition-all duration-200 ${
-              peer.speaking ? "ring-2 ring-green-400 ring-offset-1 ring-offset-gray-950" : ""
-            }`}
-          >
-            {/* Hidden audio element — plays remote audio independently of video autoplay policy */}
-            <audio
-              ref={(el) => {
-                (peer.audioRef as React.MutableRefObject<HTMLAudioElement | null>).current = el;
-                if (el && peer.stream) {
-                  el.srcObject = peer.stream;
-                  el.play().catch(() => {});
-                }
-              }}
-              autoPlay
-              playsInline
-              className="hidden"
-            />
-            <video
-              ref={(el) => {
-                (peer.videoRef as React.MutableRefObject<HTMLVideoElement | null>).current = el;
-                if (el && peer.stream) {
-                  el.srcObject = peer.stream;
-                  el.play().catch(() => {});
-                }
-              }}
-              autoPlay
-              playsInline
-              muted
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute bottom-2 left-2 flex items-center gap-1.5 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full">
-              {peer.speaking && <Volume2 className="w-3 h-3 text-green-400" />}
-              {raisedHands.some((h) => h.userId === peer.id) && <Hand className="w-3 h-3 text-yellow-400" />}
-              <span>{peer.name}</span>
-              <QualityBars bars={peer.quality} />
-            </div>
-          </div>
-        ))}
-
-        {/* Empty state */}
-        {peers.length === 0 && (
-          <div className="flex flex-col items-center justify-center text-white/30 gap-3">
-            <Users className="w-10 h-10" />
-            <p className="text-sm">Waiting for others to join…</p>
-          </div>
-        )}
-      </div>
 
       {/* ── In-call chat panel ── */}
       {chatOpen && (
