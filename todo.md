@@ -2877,3 +2877,13 @@
 - [x] Add live camera/mic preview tile to pre-call screen
 - [x] TypeScript 0 errors
 - [x] Save checkpoint
+
+## Session 39: Bug Fixes + Follow-ups
+- [x] Fix call/video call screen height (too tall — reduce Dialog height, make responsive)
+- [x] Fix split-screen right-hand flicker (root cause: move SebaMeet outside Dialog, use CSS visibility instead of conditional mount)
+- [x] Fix mobile layout of call/video call screen (SebaMeet grid, controls, chat panel)
+- [x] Fix TA Forum messages button "something went wrong" error
+- [x] Emoji reactions in in-call chat panel (👍 ❤️ 😂 🎉 🤔 picker, sent over data channel)
+- [x] Meeting invitation calendar view in MeetingHistoryPanel (monthly grid, accepted meetings as coloured dots)
+- [x] TypeScript 0 errors
+- [x] Save checkpoint

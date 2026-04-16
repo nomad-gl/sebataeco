@@ -92,10 +92,10 @@ function calcQuality(rttMs: number, lossPercent: number): number {
 
 function gridClass(n: number): string {
   if (n <= 1) return "grid-cols-1";
-  if (n <= 2) return "grid-cols-2";
+  if (n <= 2) return "grid-cols-1 sm:grid-cols-2";
   if (n <= 4) return "grid-cols-2";
-  if (n <= 6) return "grid-cols-3";
-  return "grid-cols-4";
+  if (n <= 6) return "grid-cols-2 sm:grid-cols-3";
+  return "grid-cols-2 sm:grid-cols-4";
 }
 
 function QualityBars({ bars }: { bars: number }) {
@@ -828,7 +828,7 @@ const SebaMeetInner = function SebaMeet({
 
       {/* ── In-call chat panel ── */}
       {chatOpen && (
-        <div className="absolute top-0 right-0 bottom-0 z-30 w-72 flex flex-col bg-gray-900/95 border-l border-white/10 shadow-2xl">
+        <div className="absolute top-0 right-0 bottom-0 z-30 w-full sm:w-72 flex flex-col bg-gray-900/95 border-l border-white/10 shadow-2xl">
           {/* Chat header */}
           <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/10">
             <span className="text-white text-sm font-semibold flex items-center gap-1.5">
@@ -858,8 +858,19 @@ const SebaMeetInner = function SebaMeet({
             ))}
             <div ref={chatEndRef} />
           </div>
+          {/* Emoji quick-pick */}
+          <div className="flex items-center gap-1 px-3 pt-2 pb-1 border-t border-white/10">
+            {["👍","❤️","😂","🎉","🤔","👏","🙌","🔥"].map((emoji) => (
+              <button
+                key={emoji}
+                onClick={() => setChatInput((prev) => prev + emoji)}
+                className="text-base hover:scale-125 transition-transform px-0.5"
+                title={emoji}
+              >{emoji}</button>
+            ))}
+          </div>
           {/* Input */}
-          <div className="flex items-center gap-2 px-3 py-2.5 border-t border-white/10">
+          <div className="flex items-center gap-2 px-3 py-2">
             <input
               type="text"
               value={chatInput}
@@ -896,9 +907,9 @@ const SebaMeetInner = function SebaMeet({
           showControls ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
       >
-        <div className="flex items-center justify-center gap-2 pb-5 pt-3 bg-gradient-to-t from-black/80 to-transparent">
+        <div className="flex items-center justify-center gap-1 sm:gap-2 pb-5 pt-3 bg-gradient-to-t from-black/80 to-transparent flex-wrap px-2">
           {/* Reactions */}
-          <div className="flex items-center gap-1 bg-white/10 rounded-full px-2 py-1 mr-2">
+          <div className="hidden sm:flex items-center gap-1 bg-white/10 rounded-full px-2 py-1 mr-2">
             {REACTIONS.map((emoji) => (
               <button key={emoji} onClick={() => sendReaction(emoji)} className="text-lg hover:scale-125 transition-transform px-0.5">{emoji}</button>
             ))}
