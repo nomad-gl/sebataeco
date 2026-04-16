@@ -29,6 +29,7 @@ import { audioResponsesRouter } from "./routers/audioResponses";
 import { attendanceRouter } from "./routers/attendance";
 import { teamsRouter } from "./routers/teams";
 import { dmCallRouter } from "./routers/dmCall";
+import { webrtcRouter } from "./routers/webrtc";
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -76,6 +77,7 @@ export const appRouter = router({
   attendance: attendanceRouter,
   teams: teamsRouter,
   dmCall: dmCallRouter,
+  webrtc: webrtcRouter,
 });
 
 export type AppRouter = typeof appRouter;

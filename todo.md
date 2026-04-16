@@ -2786,13 +2786,13 @@
 - [ ] Save checkpoint
 
 ## Session 31b: SebaMeet — Sovereign WebRTC Video Engine
-- [ ] Fix TypeScript errors from Session 31 (end-call hook status field, panel toggle)
-- [ ] Finish end-call hook, missed call badge, call ringtone
-- [ ] Save stable pre-migration checkpoint
-- [ ] Add webrtc_sessions and webrtc_signals tables to drizzle/schema.ts
-- [ ] Run migration for webrtc tables
-- [ ] Build server/routers/webrtc.ts: createSession, sendSignal, pollSignals, leaveSession procedures
-- [ ] Build client/src/components/SebaMeet.tsx: full sovereign WebRTC call UI
+- [x] Fix TypeScript errors from Session 31 (end-call hook status field, panel toggle)
+- [x] Finish end-call hook, missed call badge, call ringtone
+- [x] Save stable pre-migration checkpoint
+- [x] Add webrtc_sessions and webrtc_signals tables to drizzle/schema.ts
+- [x] Run migration for webrtc tables
+- [x] Build server/routers/webrtc.ts: createSession, sendSignal, pollSignals, leaveSession procedures
+- [x] Build client/src/components/SebaMeet.tsx: full sovereign WebRTC call UI
   - Peer connection setup with STUN servers
   - Local video/audio stream with mute/camera toggle
   - Remote video stream rendering
@@ -2802,8 +2802,8 @@
   - Recording notice toggle
   - End call button
   - Audio-only mode support
-- [ ] Replace Jitsi iframe in SebaConnect with SebaMeet component
-- [ ] Wire room name, callOpts (mute/camera), and school logo into SebaMeet
-- [ ] Add i18n keys for SebaMeet UI (EN/ES/CA)
-- [ ] TypeScript 0 errors
-- [ ] Save checkpoint
+- [x] Replace Jitsi iframe in SebaConnect with SebaMeet component
+- [x] Wire room name, callOpts (mute/camera), and school logo into SebaMeet
+- [x] Add i18n keys for SebaMeet UI (EN/ES/CA)
+- [x] TypeScript 0 errors
+- [x] Save checkpoint

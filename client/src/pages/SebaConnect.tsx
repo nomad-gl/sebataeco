@@ -15,6 +15,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import PreCallScreen, { type VideoBackground, type VideoFilter } from "@/components/PreCallScreen";
 import { IncomingCallBanner } from "@/components/IncomingCallBanner";
 import { CallHistoryPanel } from "@/components/CallHistoryPanel";
+import { SebaMeet } from "@/components/SebaMeet";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useI18n } from "@/contexts/I18nContext";
@@ -1098,22 +1099,18 @@ export default function SebaConnect() {
               <button onClick={() => setIsRecording(false)} className="text-red-300 hover:text-white ml-4">✕</button>
             </div>
           )}
-          {/* Video iframe — Jitsi with watermarks hidden, wrapped in branded container */}
+          {/* SebaMeet — sovereign WebRTC video engine */}
           <div className="relative w-full" style={{ height: "580px" }}>
-            {/* SEBA-branded loading overlay — shown until iframe fires onLoad */}
-            {iframeLoading && (
-              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-[#003082]">
-                <SebaSymbol size={48} color="white" bg="#1a4fa0" />
-                <p className="text-white/70 text-sm animate-pulse">Connecting…</p>
-              </div>
-            )}
-            <iframe
-              src={`https://meet.jit.si/${dmCallRoom ? dmCallRoom.roomName : `seba-connect-${selectedChannelId}`}?lang=${lang}#config.defaultLanguage=${lang}&config.disableDeepLinking=true&interfaceConfig.SHOW_JITSI_WATERMARK=false&interfaceConfig.SHOW_BRAND_WATERMARK=false&interfaceConfig.SHOW_POWERED_BY=false&interfaceConfig.DISPLAY_WELCOME_PAGE_CONTENT=false${callOpts && !callOpts.videoEnabled ? "&config.startWithVideoMuted=true" : ""}${callOpts && !callOpts.audioEnabled ? "&config.startWithAudioMuted=true" : ""}`}
-              allow="camera; microphone; fullscreen; display-capture"
-              className="w-full h-full"
-              style={{ border: "none" }}
-              title={t("connect_video_call")}
-              onLoad={() => setIframeLoading(false)}
+            <SebaMeet
+              roomName={dmCallRoom ? dmCallRoom.roomName : `seba-connect-${selectedChannelId}`}
+              channelName={dmCallRoom ? dmCallRoom.partnerName : channelsQuery.data?.find((c: Channel) => c.id === selectedChannelId)?.name}
+              audioOnly={callOpts ? !callOpts.videoEnabled : false}
+              schoolLogoUrl={schoolLogo ?? undefined}
+              onEnd={() => {
+                setVideoCallActive(false);
+                setDmCallRoom(null);
+                setCallOpts(null);
+              }}
             />
           </div>
         </DialogContent>

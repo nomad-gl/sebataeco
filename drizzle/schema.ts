@@ -1353,3 +1353,28 @@ export const dmCalls = mysqlTable("dm_calls", {
 });
 export type DmCall = typeof dmCalls.$inferSelect;
 export type InsertDmCall = typeof dmCalls.$inferInsert;
+
+/**
+ * WebRTC signalling — sovereign peer-to-peer video/audio for SebaMeet.
+ * webrtc_sessions: one row per active call room (channel or DM).
+ * webrtc_signals: SDP offer/answer and ICE candidates exchanged via polling.
+ */
+export const webrtcSessions = mysqlTable("webrtc_sessions", {
+  id: int("id").autoincrement().primaryKey(),
+  roomName: varchar("roomName", { length: 128 }).notNull().unique(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  endedAt: timestamp("endedAt"),
+});
+export type WebrtcSession = typeof webrtcSessions.$inferSelect;
+
+export const webrtcSignals = mysqlTable("webrtc_signals", {
+  id: int("id").autoincrement().primaryKey(),
+  roomName: varchar("roomName", { length: 128 }).notNull(),
+  fromUserId: int("fromUserId").notNull(),
+  toUserId: int("toUserId"),
+  type: varchar("type", { length: 32 }).notNull(),
+  payload: text("payload").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  consumed: boolean("consumed").default(false).notNull(),
+});
+export type WebrtcSignal = typeof webrtcSignals.$inferSelect;
