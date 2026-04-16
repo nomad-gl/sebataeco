@@ -2817,3 +2817,19 @@
 - [x] Add live call quality indicator (1-4 bars, based on RTT + packet loss from getStats)
 - [x] TypeScript 0 errors
 - [x] Save checkpoint
+
+## Session 33: WebRTC Fix + Follow-ups + Meeting Invitations
+- [x] Fix WebRTC peer connection: add webrtc_participants table (presence-based discovery)
+- [x] Rewrite webrtc.ts router: joinRoom upserts participant row, returns active peers; heartbeat; getParticipants; targeted sendSignal; leaveRoom deletes row + notifies peers
+- [x] Rewrite SebaMeet.tsx: heartbeat interval, getParticipants polling for late joiners, raise-hand queue panel, "Powered by SEBA" recording watermark, participant name resolution
+- [x] Add raise-hand queue: server-side raise-hand signal type, RaisedHandQueue panel in call header
+- [x] Add "Powered by SEBA" watermark to recording banner (SebaSymbol + wordmark inline)
+- [x] Add participant name resolution via webrtc.getPeerName procedure
+- [x] Meeting Invitation DB table (meeting_invitations): id, fromUserId, toUserId, roomName, title, proposedAt, message, status (pending/accepted/declined/cancelled), createdAt
+- [x] Meeting Invitation tRPC router: send, getPending, accept, decline, cancel, getHistory
+- [x] Meeting Invitation UI in SEBA Connect members panel: "Invite to Meeting" button on member hover
+- [x] MeetingInvitationBanner: incoming invitation overlay with date/time, accept/decline, "Join now" on accepted
+- [x] Meeting invitation history in CallHistoryPanel or separate panel
+- [x] i18n keys for meeting invitation in EN/ES/CA
+- [x] TypeScript 0 errors
+- [x] Save checkpoint

@@ -61,8 +61,12 @@ import {
   ScreenShare,
   ScreenShareOff,
   Phone,
+  CalendarPlus,
 } from "lucide-react";
 import { SebaSymbol } from "@/components/SebaSymbol";
+import { MeetingInvitationBanner } from "@/components/MeetingInvitationBanner";
+import { SendMeetingInvitationModal } from "@/components/SendMeetingInvitationModal";
+import { MeetingHistoryPanel } from "@/components/MeetingHistoryPanel";
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -253,6 +257,8 @@ export default function SebaConnect() {
   const initiateCallMutation = trpc.dmCall.initiate.useMutation();
   const endCallMutation = trpc.dmCall.end.useMutation();
   const [activeCallId, setActiveCallId] = useState<number | null>(null);
+  // Meeting invitation modal state
+  const [meetInviteTarget, setMeetInviteTarget] = useState<{ id: number; name: string } | null>(null);
 
   // Called when an online member avatar is clicked
   const handleMemberCall = useCallback(async (memberId: number, memberName: string, audioOnly = false) => {
@@ -918,6 +924,13 @@ export default function SebaConnect() {
                         >
                           <Phone className="w-3.5 h-3.5" />
                         </button>
+                        <button
+                          onClick={() => setMeetInviteTarget({ id: m.id, name: m.name })}
+                          title="Schedule a meeting"
+                          className="p-1 rounded hover:bg-blue-700 text-blue-300 hover:text-white transition-colors"
+                        >
+                          <CalendarPlus className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -956,6 +969,12 @@ export default function SebaConnect() {
         {/* ── Call History Panel ──────────────────────────────────────────── */}
         <CallHistoryPanel myId={myDbId} onRejoin={(roomName, partnerName) => {
           setDmCallRoom({ roomName, partnerName });
+          setPreCallActive(true);
+        }} />
+
+        {/* ── Meeting History Panel ──────────────────────────────────────── */}
+        <MeetingHistoryPanel myId={myDbId} onJoin={(roomName, title) => {
+          setDmCallRoom({ roomName, partnerName: title });
           setPreCallActive(true);
         }} />
       </aside>
@@ -1206,6 +1225,24 @@ export default function SebaConnect() {
       </Dialog>
 
       {/* ── Incoming Call Banner ─────────────────────────────────────────── */}
+      {/* ── Meeting Invitation Modal ─────────────────────────────────────── */}
+      {meetInviteTarget && (
+        <SendMeetingInvitationModal
+          open={!!meetInviteTarget}
+          onOpenChange={(open) => { if (!open) setMeetInviteTarget(null); }}
+          toUserId={meetInviteTarget.id}
+          toUserName={meetInviteTarget.name}
+        />
+      )}
+
+      {/* ── Meeting Invitation Banner ────────────────────────────────────── */}
+      <MeetingInvitationBanner
+        onAccept={(roomName, title) => {
+          setDmCallRoom({ roomName, partnerName: title });
+          setPreCallActive(true);
+        }}
+      />
+
       <IncomingCallBanner
         onAccept={(roomName, callerName, audioOnly) => {
           setDmCallRoom({ roomName, partnerName: callerName });

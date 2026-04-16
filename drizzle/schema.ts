@@ -1378,3 +1378,35 @@ export const webrtcSignals = mysqlTable("webrtc_signals", {
   consumed: boolean("consumed").default(false).notNull(),
 });
 export type WebrtcSignal = typeof webrtcSignals.$inferSelect;
+
+/**
+ * webrtc_participants: one row per user currently in a room.
+ * Heartbeat-based presence — rows older than 30 s are treated as gone.
+ */
+export const webrtcParticipants = mysqlTable("webrtc_participants", {
+  id: int("id").autoincrement().primaryKey(),
+  roomName: varchar("roomName", { length: 128 }).notNull(),
+  userId: int("userId").notNull(),
+  joinedAt: timestamp("joinedAt").defaultNow().notNull(),
+  lastSeen: timestamp("lastSeen").defaultNow().notNull(),
+});
+export type WebrtcParticipant = typeof webrtcParticipants.$inferSelect;
+
+/**
+ * meeting_invitations: scheduled meeting invitations between users.
+ * Sender proposes a date/time + optional message; recipient accepts or declines.
+ */
+export const meetingInvitations = mysqlTable("meeting_invitations", {
+  id: int("id").autoincrement().primaryKey(),
+  fromUserId: int("fromUserId").notNull(),
+  toUserId: int("toUserId").notNull(),
+  title: varchar("title", { length: 256 }).notNull(),
+  proposedAt: timestamp("proposedAt").notNull(),
+  durationMinutes: int("durationMinutes").default(30).notNull(),
+  message: text("message"),
+  roomName: varchar("roomName", { length: 128 }).notNull(),
+  status: mysqlEnum("status", ["pending", "accepted", "declined", "cancelled"]).default("pending").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  respondedAt: timestamp("respondedAt"),
+});
+export type MeetingInvitation = typeof meetingInvitations.$inferSelect;

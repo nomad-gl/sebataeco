@@ -30,6 +30,7 @@ import { attendanceRouter } from "./routers/attendance";
 import { teamsRouter } from "./routers/teams";
 import { dmCallRouter } from "./routers/dmCall";
 import { webrtcRouter } from "./routers/webrtc";
+import { meetingInvitationRouter } from "./routers/meetingInvitation";
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -78,6 +79,7 @@ export const appRouter = router({
   teams: teamsRouter,
   dmCall: dmCallRouter,
   webrtc: webrtcRouter,
+  meetingInvitation: meetingInvitationRouter,
 });
 
 export type AppRouter = typeof appRouter;

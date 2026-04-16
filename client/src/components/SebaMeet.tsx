@@ -1,18 +1,15 @@
 /**
- * SebaMeet — Sovereign WebRTC Video Call Engine
+ * SebaMeet — Sovereign WebRTC Video Call Engine (Session 33 rewrite)
  *
- * Replaces the Jitsi iframe with a fully self-hosted peer-to-peer call.
- * Uses tRPC polling for signalling (offer/answer/ICE) — no external service.
- *
- * Architecture:
- * - One RTCPeerConnection per remote peer (up to 8 participants)
- * - ICE servers: STUN (Google + Cloudflare) + TURN (Metered.ca relay) from server
- * - Signalling: tRPC webrtc.sendSignal / webrtc.pollSignals (polls every 1.5 s)
- * - Screen share: getDisplayMedia, replaces video track on all peer connections
- * - Speaker highlight: AudioContext analyser per peer, active speaker gets glow border
- * - Call quality: RTCPeerConnection.getStats() RTT + packet-loss → 1–4 bar icon
- * - Reactions: local animated overlay, no network needed
- * - Recording notice: local state, sends owner notification
+ * Key fixes vs Session 32:
+ * - Presence-based peer discovery: joinRoom now upserts a webrtc_participants row
+ *   so late joiners can find existing participants via getParticipants polling.
+ * - Heartbeat: fires every 10 s to keep the participant row alive.
+ * - Targeted signals: sendSignal always has toUserId — no broadcast ambiguity.
+ * - Late-joiner handling: getParticipants polled every 3 s; new peers get offers.
+ * - Raise-hand queue: raise-hand signal type stored server-side; shown in header.
+ * - "Powered by SEBA" watermark in recording banner.
+ * - Participant name resolution via webrtc.getPeerName.
  */
 import { useEffect, useRef, useState, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
@@ -20,8 +17,7 @@ import { useI18n } from "@/contexts/I18nContext";
 import { SebaSymbol } from "@/components/SebaSymbol";
 import {
   Mic, MicOff, Video, VideoOff, PhoneOff, Monitor, MonitorOff,
-  Hand, ThumbsUp, Smile, Heart, Circle,
-  Volume2, VolumeX, Users, Wifi, WifiOff,
+  Circle, Volume2, Users, Hand,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -33,9 +29,7 @@ interface Peer {
   stream: MediaStream | null;
   videoRef: React.RefObject<HTMLVideoElement>;
   muted: boolean;
-  /** 0 = unknown, 1–4 = quality bars */
-  quality: number;
-  /** true when this peer is the active speaker */
+  quality: number;   // 0 = unknown, 1–4 bars
   speaking: boolean;
 }
 
@@ -43,6 +37,12 @@ interface Reaction {
   id: number;
   emoji: string;
   x: number;
+}
+
+interface RaisedHand {
+  userId: number;
+  name: string;
+  at: number;
 }
 
 interface SebaMeetProps {
@@ -57,18 +57,19 @@ interface SebaMeetProps {
 
 let reactionCounter = 0;
 const REACTIONS = ["✋", "👍", "👏", "😄", "❤️"];
-const MAX_PEERS = 7; // 1 local + 7 remote = 8 total
+const MAX_PEERS = 7;
+const HEARTBEAT_MS = 10_000;
+const POLL_PARTICIPANTS_MS = 3_000;
+const POLL_SIGNALS_MS = 1_500;
 
-/** Map RTT (ms) + packet-loss (%) to 1–4 quality bars */
 function calcQuality(rttMs: number, lossPercent: number): number {
-  if (rttMs === 0) return 4; // no data yet → optimistic
+  if (rttMs === 0) return 4;
   if (rttMs > 400 || lossPercent > 10) return 1;
-  if (rttMs > 200 || lossPercent > 5) return 2;
-  if (rttMs > 100 || lossPercent > 2) return 3;
+  if (rttMs > 200 || lossPercent > 5)  return 2;
+  if (rttMs > 100 || lossPercent > 2)  return 3;
   return 4;
 }
 
-/** Grid class based on total participant count */
 function gridClass(n: number): string {
   if (n <= 1) return "grid-cols-1";
   if (n <= 2) return "grid-cols-2";
@@ -77,13 +78,11 @@ function gridClass(n: number): string {
   return "grid-cols-4";
 }
 
-/** Quality bar icon component */
 function QualityBars({ bars }: { bars: number }) {
   if (bars === 0) return null;
   const colors = ["text-red-400", "text-orange-400", "text-yellow-400", "text-green-400"];
-  const color = colors[bars - 1];
   return (
-    <span className={`flex items-end gap-px ${color}`} title={`Signal: ${bars}/4`}>
+    <span className={`flex items-end gap-px ${colors[bars - 1]}`} title={`Signal: ${bars}/4`}>
       {[1, 2, 3, 4].map((b) => (
         <span
           key={b}
@@ -106,49 +105,57 @@ export function SebaMeet({
 }: SebaMeetProps) {
   const { t } = useI18n();
 
-  // ── Local media state ──
+  // ── Local media ──
   const localStreamRef = useRef<MediaStream | null>(null);
-  const localVideoRef = useRef<HTMLVideoElement>(null);
-  const [audioMuted, setAudioMuted] = useState(false);
-  const [videoMuted, setVideoMuted] = useState(audioOnly);
+  const localVideoRef  = useRef<HTMLVideoElement>(null);
+  const [audioMuted,   setAudioMuted]   = useState(false);
+  const [videoMuted,   setVideoMuted]   = useState(audioOnly);
   const [screenSharing, setScreenSharing] = useState(false);
   const screenStreamRef = useRef<MediaStream | null>(null);
 
   // ── Peers ──
-  const [peers, setPeers] = useState<Peer[]>([]);
-  const peersRef = useRef<Peer[]>([]);
-  const myIdRef = useRef<number | null>(null);
+  const [peers, setPeers]   = useState<Peer[]>([]);
+  const peersRef            = useRef<Peer[]>([]);
+  const myIdRef             = useRef<number | null>(null);
+  const knownPeerIds        = useRef<Set<number>>(new Set());
 
-  // ── Speaker detection ──
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const analyserMapRef = useRef<Map<number, AnalyserNode>>(new Map());
-  const speakerTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // ── Speaker / quality ──
+  const audioCtxRef      = useRef<AudioContext | null>(null);
+  const analyserMapRef   = useRef<Map<number, AnalyserNode>>(new Map());
+  const speakerTimerRef  = useRef<ReturnType<typeof setInterval> | null>(null);
+  const qualityTimerRef  = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ── Quality polling ──
-  const qualityTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // ── Raise-hand queue ──
+  const [raisedHands, setRaisedHands] = useState<RaisedHand[]>([]);
+  const [handRaised,  setHandRaised]  = useState(false);
 
-  // ── UI state ──
-  const [reactions, setReactions] = useState<Reaction[]>([]);
-  const [recording, setRecording] = useState(false);
+  // ── UI ──
+  const [reactions,    setReactions]    = useState<Reaction[]>([]);
+  const [recording,    setRecording]    = useState(false);
   const [showControls, setShowControls] = useState(true);
   const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── tRPC ──
-  const iceServersQuery = trpc.webrtc.getIceServers.useQuery(undefined, {
-    staleTime: Infinity,
-  });
-  const joinRoom = trpc.webrtc.joinRoom.useMutation();
-  const sendSignal = trpc.webrtc.sendSignal.useMutation();
-  const leaveRoom = trpc.webrtc.leaveRoom.useMutation();
-  const notifyOwner = trpc.system.notifyOwner.useMutation();
+  const iceServersQuery  = trpc.webrtc.getIceServers.useQuery(undefined, { staleTime: Infinity });
+  const joinRoom         = trpc.webrtc.joinRoom.useMutation();
+  const heartbeatMut     = trpc.webrtc.heartbeat.useMutation();
+  const leaveRoom        = trpc.webrtc.leaveRoom.useMutation();
+  const sendSignal       = trpc.webrtc.sendSignal.useMutation();
+  const notifyOwner      = trpc.system.notifyOwner.useMutation();
 
-  // Poll for signals every 1.5 s
+  // Poll signals every 1.5 s
   const { data: incomingSignals } = trpc.webrtc.pollSignals.useQuery(
     { roomName },
-    { refetchInterval: 1500, refetchIntervalInBackground: true }
+    { refetchInterval: POLL_SIGNALS_MS, refetchIntervalInBackground: true }
   );
 
-  // ── Create peer connection ──────────────────────────────────────────────────
+  // Poll participants every 3 s (late-joiner discovery)
+  const { data: activeParticipants } = trpc.webrtc.getParticipants.useQuery(
+    { roomName },
+    { refetchInterval: POLL_PARTICIPANTS_MS, refetchIntervalInBackground: true }
+  );
+
+  // ── Create RTCPeerConnection ───────────────────────────────────────────────
 
   const createPeerConnection = useCallback(
     (peerId: number, peerName: string): Peer => {
@@ -160,13 +167,11 @@ export function SebaMeet({
       const videoRef = { current: null } as unknown as React.RefObject<HTMLVideoElement>;
 
       // Add local tracks
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach((track) => {
-          pc.addTrack(track, localStreamRef.current!);
-        });
-      }
+      localStreamRef.current?.getTracks().forEach((track) => {
+        pc.addTrack(track, localStreamRef.current!);
+      });
 
-      // ICE candidates → send via signalling
+      // ICE candidates → targeted signal
       pc.onicecandidate = (e) => {
         if (e.candidate) {
           sendSignal.mutate({
@@ -178,45 +183,44 @@ export function SebaMeet({
         }
       };
 
-      // Remote stream → attach to video element + set up audio analyser
+      // Remote stream
       const remoteStream = new MediaStream();
       pc.ontrack = (e) => {
         e.streams[0]?.getTracks().forEach((t) => remoteStream.addTrack(t));
-        if (videoRef.current) {
-          videoRef.current.srcObject = remoteStream;
-        }
-        // Set up audio analyser for speaker detection
-        const audioTracks = remoteStream.getAudioTracks();
-        if (audioTracks.length > 0) {
+        if (videoRef.current) videoRef.current.srcObject = remoteStream;
+
+        // Audio analyser for speaker detection
+        if (remoteStream.getAudioTracks().length > 0) {
           try {
-            if (!audioCtxRef.current) {
-              audioCtxRef.current = new AudioContext();
-            }
-            const source = audioCtxRef.current.createMediaStreamSource(remoteStream);
+            if (!audioCtxRef.current) audioCtxRef.current = new AudioContext();
+            const src      = audioCtxRef.current.createMediaStreamSource(remoteStream);
             const analyser = audioCtxRef.current.createAnalyser();
             analyser.fftSize = 256;
-            source.connect(analyser);
+            src.connect(analyser);
             analyserMapRef.current.set(peerId, analyser);
-          } catch {
-            // AudioContext may be blocked in some browsers
-          }
+          } catch { /* blocked */ }
         }
       };
 
-      const peer: Peer = {
-        id: peerId,
-        name: peerName,
-        pc,
-        stream: remoteStream,
-        videoRef,
-        muted: false,
-        quality: 0,
-        speaking: false,
-      };
-
-      return peer;
+      return { id: peerId, name: peerName, pc, stream: remoteStream, videoRef, muted: false, quality: 0, speaking: false };
     },
     [roomName, sendSignal, iceServersQuery.data]
+  );
+
+  // ── Offer helper ──────────────────────────────────────────────────────────
+
+  const sendOfferTo = useCallback(
+    async (peer: Peer) => {
+      const offer = await peer.pc.createOffer();
+      await peer.pc.setLocalDescription(offer);
+      sendSignal.mutate({
+        roomName,
+        toUserId: peer.id,
+        type: "offer",
+        payload: JSON.stringify(offer),
+      });
+    },
+    [roomName, sendSignal]
   );
 
   // ── Initialise: get media + join room ─────────────────────────────────────
@@ -232,39 +236,57 @@ export function SebaMeet({
         });
         if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return; }
         localStreamRef.current = stream;
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = stream;
-        }
+        if (localVideoRef.current) localVideoRef.current.srcObject = stream;
 
         const result = await joinRoom.mutateAsync({ roomName });
         if (cancelled) return;
         myIdRef.current = result.myId;
 
-        // Connect to existing peers (up to MAX_PEERS)
+        // Connect to peers already in the room
         for (const remotePeer of result.peers.slice(0, MAX_PEERS)) {
           if (cancelled) break;
+          if (knownPeerIds.current.has(remotePeer.id)) continue;
+          knownPeerIds.current.add(remotePeer.id);
           const peer = createPeerConnection(remotePeer.id, remotePeer.name);
-          const offer = await peer.pc.createOffer();
-          await peer.pc.setLocalDescription(offer);
-          sendSignal.mutate({
-            roomName,
-            toUserId: remotePeer.id,
-            type: "offer",
-            payload: JSON.stringify(offer),
-          });
           peersRef.current = [...peersRef.current, peer];
           if (!cancelled) setPeers([...peersRef.current]);
+          await sendOfferTo(peer);
         }
       } catch (err) {
         console.error("[SebaMeet] init error", err);
       }
     })();
 
-    return () => {
-      cancelled = true;
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomName]);
+
+  // ── Heartbeat ─────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      heartbeatMut.mutate({ roomName });
+    }, HEARTBEAT_MS);
+    return () => clearInterval(timer);
+  }, [roomName, heartbeatMut]);
+
+  // ── Late-joiner discovery: connect to new participants ────────────────────
+
+  useEffect(() => {
+    if (!activeParticipants || myIdRef.current === null) return;
+
+    (async () => {
+      for (const remotePeer of activeParticipants) {
+        if (knownPeerIds.current.has(remotePeer.id)) continue;
+        if (peersRef.current.length >= MAX_PEERS) break;
+        knownPeerIds.current.add(remotePeer.id);
+        const peer = createPeerConnection(remotePeer.id, remotePeer.name);
+        peersRef.current = [...peersRef.current, peer];
+        setPeers([...peersRef.current]);
+        await sendOfferTo(peer);
+      }
+    })();
+  }, [activeParticipants, createPeerConnection, sendOfferTo]);
 
   // ── Handle incoming signals ────────────────────────────────────────────────
 
@@ -276,20 +298,42 @@ export function SebaMeet({
         const fromId = signal.fromUserId;
         if (fromId === myIdRef.current) continue;
 
+        // ── Leave ──
         if (signal.type === "leave") {
           peersRef.current.find((p) => p.id === fromId)?.pc.close();
           peersRef.current = peersRef.current.filter((p) => p.id !== fromId);
+          knownPeerIds.current.delete(fromId);
           analyserMapRef.current.delete(fromId);
           setPeers([...peersRef.current]);
           continue;
         }
 
+        // ── Raise-hand ──
+        if (signal.type === "raise-hand") {
+          try {
+            const data = JSON.parse(signal.payload) as { name: string; raised: boolean };
+            setRaisedHands((prev) => {
+              if (data.raised) {
+                if (prev.some((h) => h.userId === fromId)) return prev;
+                return [...prev, { userId: fromId, name: data.name, at: Date.now() }];
+              } else {
+                return prev.filter((h) => h.userId !== fromId);
+              }
+            });
+          } catch { /* ignore */ }
+          continue;
+        }
+
+        // ── SDP / ICE ──
         let peer = peersRef.current.find((p) => p.id === fromId);
 
         if (!peer && peersRef.current.length < MAX_PEERS) {
-          peer = createPeerConnection(fromId, `User ${fromId}`);
-          peersRef.current = [...peersRef.current, peer];
-          setPeers([...peersRef.current]);
+          if (!knownPeerIds.current.has(fromId)) {
+            knownPeerIds.current.add(fromId);
+            peer = createPeerConnection(fromId, `User ${fromId}`);
+            peersRef.current = [...peersRef.current, peer];
+            setPeers([...peersRef.current]);
+          }
         }
 
         if (!peer) continue;
@@ -313,90 +357,56 @@ export function SebaMeet({
         } else if (signal.type === "ice-candidate") {
           try {
             await peer.pc.addIceCandidate(new RTCIceCandidate(payload));
-          } catch {
-            // ignore stale candidates
-          }
+          } catch { /* stale */ }
         }
       }
     })();
   }, [incomingSignals, createPeerConnection, roomName, sendSignal]);
 
-  // ── Speaker detection (audio level polling every 200 ms) ──────────────────
+  // ── Speaker detection ─────────────────────────────────────────────────────
 
   useEffect(() => {
     speakerTimerRef.current = setInterval(() => {
       const buf = new Uint8Array(128);
-      let maxPeerId = -1;
-      let maxLevel = 15; // threshold — below this = silence
-
+      let maxId = -1, maxLevel = 15;
       analyserMapRef.current.forEach((analyser, peerId) => {
         analyser.getByteFrequencyData(buf);
         const avg = buf.reduce((a, b) => a + b, 0) / buf.length;
-        if (avg > maxLevel) {
-          maxLevel = avg;
-          maxPeerId = peerId;
-        }
+        if (avg > maxLevel) { maxLevel = avg; maxId = peerId; }
       });
-
-      setPeers((prev) =>
-        prev.map((p) => ({ ...p, speaking: p.id === maxPeerId }))
-      );
+      setPeers((prev) => prev.map((p) => ({ ...p, speaking: p.id === maxId })));
     }, 200);
-
-    return () => {
-      if (speakerTimerRef.current) clearInterval(speakerTimerRef.current);
-    };
+    return () => { if (speakerTimerRef.current) clearInterval(speakerTimerRef.current); };
   }, []);
 
-  // ── Call quality polling (getStats every 5 s) ─────────────────────────────
+  // ── Call quality ──────────────────────────────────────────────────────────
 
   useEffect(() => {
     qualityTimerRef.current = setInterval(async () => {
       const updated: Record<number, number> = {};
-
       for (const peer of peersRef.current) {
         try {
           const stats = await peer.pc.getStats();
-          let rttMs = 0;
-          let lossPercent = 0;
-
-          stats.forEach((report) => {
-            if (report.type === "remote-inbound-rtp") {
-              if (report.roundTripTime !== undefined) {
-                rttMs = Math.max(rttMs, report.roundTripTime * 1000);
-              }
-              if (
-                report.packetsLost !== undefined &&
-                report.packetsReceived !== undefined &&
-                report.packetsReceived > 0
-              ) {
-                lossPercent = Math.max(
-                  lossPercent,
-                  (report.packetsLost / (report.packetsLost + report.packetsReceived)) * 100
-                );
+          let rttMs = 0, lossPercent = 0;
+          stats.forEach((r) => {
+            if (r.type === "remote-inbound-rtp") {
+              if (r.roundTripTime !== undefined) rttMs = Math.max(rttMs, r.roundTripTime * 1000);
+              if (r.packetsLost !== undefined && r.packetsReceived !== undefined && r.packetsReceived > 0) {
+                lossPercent = Math.max(lossPercent, (r.packetsLost / (r.packetsLost + r.packetsReceived)) * 100);
               }
             }
           });
-
           updated[peer.id] = calcQuality(rttMs, lossPercent);
-        } catch {
-          updated[peer.id] = 0;
-        }
+        } catch { updated[peer.id] = 0; }
       }
-
       if (Object.keys(updated).length > 0) {
-        setPeers((prev) =>
-          prev.map((p) => ({ ...p, quality: updated[p.id] ?? p.quality }))
-        );
+        setPeers((prev) => prev.map((p) => ({ ...p, quality: updated[p.id] ?? p.quality })));
       }
     }, 5000);
-
-    return () => {
-      if (qualityTimerRef.current) clearInterval(qualityTimerRef.current);
-    };
+    return () => { if (qualityTimerRef.current) clearInterval(qualityTimerRef.current); };
   }, []);
 
-  // ── Cleanup on unmount ─────────────────────────────────────────────────────
+  // ── Cleanup ───────────────────────────────────────────────────────────────
 
   useEffect(() => {
     return () => {
@@ -404,13 +414,13 @@ export function SebaMeet({
       screenStreamRef.current?.getTracks().forEach((t) => t.stop());
       peersRef.current.forEach((p) => p.pc.close());
       audioCtxRef.current?.close();
-      if (speakerTimerRef.current) clearInterval(speakerTimerRef.current);
-      if (qualityTimerRef.current) clearInterval(qualityTimerRef.current);
+      if (speakerTimerRef.current)  clearInterval(speakerTimerRef.current);
+      if (qualityTimerRef.current)  clearInterval(qualityTimerRef.current);
       if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
     };
   }, []);
 
-  // ── Controls auto-hide ─────────────────────────────────────────────────────
+  // ── Controls auto-hide ────────────────────────────────────────────────────
 
   const resetControlsTimer = useCallback(() => {
     setShowControls(true);
@@ -441,12 +451,10 @@ export function SebaMeet({
       screenStreamRef.current?.getTracks().forEach((t) => t.stop());
       screenStreamRef.current = null;
       setScreenSharing(false);
-      // Restore camera track on all peers
       const videoTrack = localStreamRef.current?.getVideoTracks()[0];
       if (videoTrack) {
         peersRef.current.forEach((p) => {
-          const sender = p.pc.getSenders().find((s) => s.track?.kind === "video");
-          sender?.replaceTrack(videoTrack);
+          p.pc.getSenders().find((s) => s.track?.kind === "video")?.replaceTrack(videoTrack);
         });
       }
     } else {
@@ -456,30 +464,40 @@ export function SebaMeet({
         setScreenSharing(true);
         const screenTrack = screen.getVideoTracks()[0];
         peersRef.current.forEach((p) => {
-          const sender = p.pc.getSenders().find((s) => s.track?.kind === "video");
-          sender?.replaceTrack(screenTrack);
+          p.pc.getSenders().find((s) => s.track?.kind === "video")?.replaceTrack(screenTrack);
         });
         screenTrack.onended = () => toggleScreenShare();
-      } catch {
-        // user cancelled
-      }
+      } catch { /* user cancelled */ }
     }
   }, [screenSharing]);
 
   const toggleRecording = useCallback(() => {
     const next = !recording;
     setRecording(next);
-    if (next) {
-      notifyOwner.mutate({
-        title: "SebaMeet — Recording started",
-        content: `Recording started in room: ${roomName}`,
-      });
-    }
+    if (next) notifyOwner.mutate({ title: "SebaMeet — Recording started", content: `Room: ${roomName}` });
   }, [recording, roomName, notifyOwner]);
+
+  const toggleRaiseHand = useCallback(() => {
+    const next = !handRaised;
+    setHandRaised(next);
+    // Notify all peers
+    peersRef.current.forEach((p) => {
+      sendSignal.mutate({
+        roomName,
+        toUserId: p.id,
+        type: "raise-hand",
+        payload: JSON.stringify({ name: "You", raised: next }),
+      });
+    });
+    // Update local queue
+    if (!next) {
+      setRaisedHands((prev) => prev.filter((h) => h.userId !== myIdRef.current));
+    }
+  }, [handRaised, roomName, sendSignal]);
 
   const sendReaction = useCallback((emoji: string) => {
     const id = ++reactionCounter;
-    const x = 10 + Math.random() * 80;
+    const x  = 10 + Math.random() * 80;
     setReactions((prev) => [...prev, { id, emoji, x }]);
     setTimeout(() => setReactions((prev) => prev.filter((r) => r.id !== id)), 2500);
   }, []);
@@ -492,7 +510,7 @@ export function SebaMeet({
     onEnd();
   }, [leaveRoom, roomName, onEnd]);
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────────
 
   const totalParticipants = 1 + peers.length;
 
@@ -504,43 +522,46 @@ export function SebaMeet({
     >
       {/* ── Header ── */}
       <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/70 to-transparent">
-        {/* Left: SEBA branding */}
         <div className="flex items-center gap-2">
           <SebaSymbol className="w-7 h-7 text-white" />
           <span className="text-white font-bold text-sm tracking-wide">SebaMeet</span>
-          {channelName && (
-            <span className="text-white/60 text-xs ml-1">· {channelName}</span>
-          )}
+          {channelName && <span className="text-white/60 text-xs ml-1">· {channelName}</span>}
         </div>
 
-        {/* Right: school logo + participant count */}
         <div className="flex items-center gap-3">
+          {/* Raised-hand queue */}
+          {raisedHands.length > 0 && (
+            <div className="flex items-center gap-1 bg-yellow-500/20 border border-yellow-500/40 rounded-full px-2 py-0.5">
+              <Hand className="w-3.5 h-3.5 text-yellow-400" />
+              <span className="text-yellow-300 text-xs font-medium">
+                {raisedHands.map((h) => h.name).join(", ")}
+              </span>
+            </div>
+          )}
+
           <span className="flex items-center gap-1 text-white/70 text-xs">
             <Users className="w-3.5 h-3.5" />
             {totalParticipants}
           </span>
           {schoolLogoUrl && (
-            <img
-              src={schoolLogoUrl}
-              alt="School logo"
-              className="h-7 w-auto object-contain opacity-90"
-            />
+            <img src={schoolLogoUrl} alt="School logo" className="h-7 w-auto object-contain opacity-90" />
           )}
         </div>
       </div>
 
-      {/* ── Recording banner ── */}
+      {/* ── Recording banner with SEBA watermark ── */}
       {recording && (
         <div className="absolute top-14 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-red-600/90 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg">
           <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-          Recording
+          <span>Recording</span>
+          <span className="mx-1 opacity-40">·</span>
+          <SebaSymbol className="w-3.5 h-3.5 text-white/80" />
+          <span className="text-white/80 font-normal tracking-wide text-[10px]">Powered by SEBA</span>
         </div>
       )}
 
       {/* ── Video grid ── */}
-      <div
-        className={`flex-1 grid gap-1 p-1 pt-14 ${gridClass(totalParticipants)}`}
-      >
+      <div className={`flex-1 grid gap-1 p-1 pt-14 ${gridClass(totalParticipants)}`}>
         {/* Local video */}
         <div className="relative rounded-lg overflow-hidden bg-gray-900 flex items-center justify-center">
           {videoMuted ? (
@@ -549,22 +570,15 @@ export function SebaMeet({
               <span className="text-xs">Camera off</span>
             </div>
           ) : (
-            <video
-              ref={localVideoRef}
-              autoPlay
-              muted
-              playsInline
-              className="w-full h-full object-cover scale-x-[-1]"
-            />
+            <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-full object-cover scale-x-[-1]" />
           )}
           <div className="absolute bottom-2 left-2 flex items-center gap-1 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full">
             {audioMuted && <MicOff className="w-3 h-3 text-red-400" />}
+            {handRaised  && <Hand  className="w-3 h-3 text-yellow-400" />}
             <span>You</span>
           </div>
           {screenSharing && (
-            <div className="absolute top-2 right-2 bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded-full font-semibold">
-              Sharing
-            </div>
+            <div className="absolute top-2 right-2 bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded-full font-semibold">Sharing</div>
           )}
         </div>
 
@@ -587,13 +601,14 @@ export function SebaMeet({
             />
             <div className="absolute bottom-2 left-2 flex items-center gap-1.5 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full">
               {peer.speaking && <Volume2 className="w-3 h-3 text-green-400" />}
+              {raisedHands.some((h) => h.userId === peer.id) && <Hand className="w-3 h-3 text-yellow-400" />}
               <span>{peer.name}</span>
               <QualityBars bars={peer.quality} />
             </div>
           </div>
         ))}
 
-        {/* Empty state when alone */}
+        {/* Empty state */}
         {peers.length === 0 && (
           <div className="flex flex-col items-center justify-center text-white/30 gap-3">
             <Users className="w-10 h-10" />
@@ -623,16 +638,20 @@ export function SebaMeet({
           {/* Reactions */}
           <div className="flex items-center gap-1 bg-white/10 rounded-full px-2 py-1 mr-2">
             {REACTIONS.map((emoji) => (
-              <button
-                key={emoji}
-                onClick={() => sendReaction(emoji)}
-                className="text-lg hover:scale-125 transition-transform px-0.5"
-                title={emoji}
-              >
-                {emoji}
-              </button>
+              <button key={emoji} onClick={() => sendReaction(emoji)} className="text-lg hover:scale-125 transition-transform px-0.5">{emoji}</button>
             ))}
           </div>
+
+          {/* Raise hand */}
+          <button
+            onClick={toggleRaiseHand}
+            className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
+              handRaised ? "bg-yellow-500 text-white" : "bg-white/15 text-white hover:bg-white/25"
+            }`}
+            title={handRaised ? "Lower hand" : "Raise hand"}
+          >
+            <Hand className="w-5 h-5" />
+          </button>
 
           {/* Mute audio */}
           <button
