@@ -490,4 +490,22 @@ export const teamsRouter = router({
       await db.delete(teamsFiles).where(eq(teamsFiles.id, input.fileId));
       return { ok: true };
     }),
+
+  // ── Members ───────────────────────────────────────────────────────────────
+
+  getMembers: protectedProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) return [];
+    const members = await db
+      .select({
+        openId: users.openId,
+        name: users.name,
+        position: users.position,
+        lastSignedIn: users.lastSignedIn,
+      })
+      .from(users)
+      .where(sql`${users.position} != 'unassigned'`)
+      .orderBy(asc(users.name));
+    return members;
+  }),
 });

@@ -2681,3 +2681,11 @@
 - [x] Reduce retry delay from 1500ms to 500ms
 - [x] Lower extended thinking label threshold from 5s to 3s
 - [x] Save checkpoint (55947fbc)
+
+## Session 24: SEBA Connect — Member Sync + Video Calls
+- [x] Sync SEBA Connect member list from same users table as TA Forum (all users with position != unassigned)
+- [x] Add Members panel to SEBA Connect right sidebar: avatar, name, position badge, online indicator
+- [x] Add Video Call button to channel header (Jitsi Meet — no API key needed, opens in modal/new tab)
+- [x] Add i18n keys for video call and members panel (EN/ES/CA)
+- [x] Verify TypeScript 0 errors
+- [x] Save checkpoint

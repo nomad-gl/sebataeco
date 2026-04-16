@@ -2370,6 +2370,14 @@ export const translations = {
     audio_info_active: "Inactive audio responses are stored but never played.",
     audio_info_limit: "Audio files are stored securely in S3. Supported formats: MP3, WAV, OGG, M4A.",
     nav_audio_responses: "Audio Responses",
+    connect_members: "Members",
+    connect_video_call: "Video Call",
+    connect_online: "Online",
+    connect_offline: "Offline",
+    connect_toggle_members: "Toggle members panel",
+    connect_messages: "Messages",
+    connect_assignments: "Assignments",
+    connect_files: "Files",
   },
 
   es: {
@@ -4709,6 +4717,14 @@ export const translations = {
     audio_info_active: "Las respuestas de audio inactivas se almacenan pero nunca se reproducen.",
     audio_info_limit: "Los archivos de audio se almacenan de forma segura en S3. Formatos admitidos: MP3, WAV, OGG, M4A.",
     nav_audio_responses: "Respuestas de Audio",
+    connect_members: "Miembros",
+    connect_video_call: "Videollamada",
+    connect_online: "En línea",
+    connect_offline: "Sin conexión",
+    connect_toggle_members: "Ver miembros",
+    connect_messages: "Mensajes",
+    connect_assignments: "Tareas",
+    connect_files: "Archivos",
   },
 
   ca: {
@@ -7048,6 +7064,14 @@ export const translations = {
     audio_info_active: "Les respostes d'àudio inactives s'emmagatzemen però mai es reprodueixen.",
     audio_info_limit: "Els fitxers d'àudio s'emmagatzemen de forma segura a S3. Formats admesos: MP3, WAV, OGG, M4A.",
     nav_audio_responses: "Respostes d'Àudio",
+    connect_members: "Membres",
+    connect_video_call: "Videotrucada",
+    connect_online: "En línia",
+    connect_offline: "Desconnectat",
+    connect_toggle_members: "Veure membres",
+    connect_messages: "Missatges",
+    connect_assignments: "Tasques",
+    connect_files: "Fitxers",
   },
 } as const;
 

@@ -6,6 +6,8 @@
  * - Message thread with auto-translation (EN/ES/CA)
  * - Assignments tab per channel
  * - Files tab per channel (S3-backed)
+ * - Members right panel (reuses forum.getUsers with online presence)
+ * - Video call via Jitsi Meet (no API key needed)
  * - Catalan sovereignty identity (senyera accent colours)
  */
 
@@ -50,6 +52,8 @@ import {
   X,
   ChevronDown,
   ChevronRight,
+  Video,
+  Circle,
 } from "lucide-react";
 import { SebaSymbol } from "@/components/SebaSymbol";
 
@@ -217,6 +221,8 @@ export default function SebaConnect() {
   const [assignDesc, setAssignDesc] = useState("");
   const [assignDue, setAssignDue] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [membersOpen, setMembersOpen] = useState(true);
+  const [videoCallActive, setVideoCallActive] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -244,6 +250,11 @@ export default function SebaConnect() {
     { channelId: selectedChannelId },
     { enabled: tab === "files" }
   );
+
+  // Members panel — reuse forum.getUsers (same presence data as TA Forum)
+  const membersQuery = trpc.forum.getUsers.useQuery(undefined, {
+    refetchInterval: 30000,
+  });
 
   const utils = trpc.useUtils();
 
@@ -312,7 +323,7 @@ export default function SebaConnect() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messagesQuery.data]);
 
-  // ── handlers ───────────────────────────────────────────────────────────────
+  // ── handlers ──────────────────────────────────────────────────────────────
 
   function handleSend() {
     const text = messageText.trim();
@@ -351,6 +362,8 @@ export default function SebaConnect() {
 
   const selectedChannel = channelsQuery.data?.find((c) => c.id === selectedChannelId);
   const messages = (messagesQuery.data ?? []) as Message[];
+  const members = membersQuery.data ?? [];
+  const onlineCount = members.filter((m) => m.online).length;
 
   // ─── render ─────────────────────────────────────────────────────────────────
 
@@ -477,22 +490,46 @@ export default function SebaConnect() {
             </>
           )}
 
-          {/* Tab bar */}
+          {/* Tab bar + Video Call + Members toggle */}
           <div className="ml-auto flex items-center gap-1">
-            {(["messages", "assignments", "files"] as Tab[]).map((t) => (
+            {(["messages", "assignments", "files"] as Tab[]).map((tabItem) => (
               <Button
-                key={t}
+                key={tabItem}
                 size="sm"
-                variant={tab === t ? "default" : "ghost"}
-                className={`gap-1.5 text-xs h-7 ${tab === t ? "bg-[#AE0001] hover:bg-[#8a0001]" : ""}`}
-                onClick={() => setTab(t)}
+                variant={tab === tabItem ? "default" : "ghost"}
+                className={`gap-1.5 text-xs h-7 ${tab === tabItem ? "bg-[#AE0001] hover:bg-[#8a0001]" : ""}`}
+                onClick={() => setTab(tabItem)}
               >
-                {t === "messages" && <MessageSquare className="w-3.5 h-3.5" />}
-                {t === "assignments" && <ClipboardList className="w-3.5 h-3.5" />}
-                {t === "files" && <FolderOpen className="w-3.5 h-3.5" />}
-                {t === "messages" ? "Missatges" : t === "assignments" ? "Tasques" : "Fitxers"}
+                {tabItem === "messages" && <MessageSquare className="w-3.5 h-3.5" />}
+                {tabItem === "assignments" && <ClipboardList className="w-3.5 h-3.5" />}
+                {tabItem === "files" && <FolderOpen className="w-3.5 h-3.5" />}
+                {tabItem === "messages" ? t("connect_messages") : tabItem === "assignments" ? t("connect_assignments") : t("connect_files")}
               </Button>
             ))}
+
+            {/* Video Call button */}
+            <Button
+              size="sm"
+              variant="ghost"
+              className="gap-1.5 text-xs h-7 text-[#003082] hover:bg-[#003082]/10"
+              onClick={() => setVideoCallActive(true)}
+              title={t("connect_video_call")}
+            >
+              <Video className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{t("connect_video_call")}</span>
+            </Button>
+
+            {/* Members toggle */}
+            <Button
+              size="sm"
+              variant={membersOpen ? "default" : "ghost"}
+              className={`gap-1.5 text-xs h-7 ${membersOpen ? "bg-[#003082] hover:bg-[#002060]" : ""}`}
+              onClick={() => setMembersOpen((o) => !o)}
+              title={t("connect_toggle_members")}
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{onlineCount}</span>
+            </Button>
           </div>
         </div>
 
@@ -743,6 +780,111 @@ export default function SebaConnect() {
           </div>
         )}
       </div>
+
+      {/* ── Members right sidebar ───────────────────────────────────────────── */}
+      <aside
+        className={`${
+          membersOpen ? "w-56" : "w-0"
+        } transition-all duration-200 overflow-hidden shrink-0 border-l border-border flex flex-col bg-card`}
+      >
+        {/* Members header */}
+        <div className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-[#003082]" />
+            <span className="font-semibold text-sm">{t("connect_members")}</span>
+          </div>
+          <Badge variant="secondary" className="text-xs">
+            <Circle className="w-2 h-2 fill-green-500 text-green-500 mr-1" />
+            {onlineCount}
+          </Badge>
+        </div>
+
+        {/* Members list */}
+        <div className="flex-1 overflow-y-auto py-2">
+          {membersQuery.isLoading ? (
+            <div className="px-4 py-2 text-xs text-muted-foreground">Carregant…</div>
+          ) : members.length === 0 ? (
+            <div className="px-4 py-4 text-xs text-muted-foreground text-center">
+              Cap membre trobat
+            </div>
+          ) : (
+            <>
+              {/* Online members */}
+              {members.filter((m) => m.online).length > 0 && (
+                <div>
+                  <p className="px-4 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    {t("connect_online")} — {members.filter((m) => m.online).length}
+                  </p>
+                  {members.filter((m) => m.online).map((m) => (
+                    <div
+                      key={m.id}
+                      className="flex items-center gap-2.5 px-4 py-1.5 hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="relative shrink-0">
+                        <div
+                          className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                          style={{ background: "#003082" }}
+                        >
+                          {m.name.charAt(0).toUpperCase()}
+                        </div>
+                        <Circle className="w-2.5 h-2.5 fill-green-500 text-green-500 absolute -bottom-0.5 -right-0.5" />
+                      </div>
+                      <span className="text-sm truncate">{m.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Offline members */}
+              {members.filter((m) => !m.online).length > 0 && (
+                <div className="mt-2">
+                  <p className="px-4 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    {t("connect_offline")} — {members.filter((m) => !m.online).length}
+                  </p>
+                  {members.filter((m) => !m.online).map((m) => (
+                    <div
+                      key={m.id}
+                      className="flex items-center gap-2.5 px-4 py-1.5 hover:bg-muted/50 transition-colors opacity-60"
+                    >
+                      <div className="relative shrink-0">
+                        <div
+                          className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                          style={{ background: "#6b7280" }}
+                        >
+                          {m.name.charAt(0).toUpperCase()}
+                        </div>
+                        <Circle className="w-2.5 h-2.5 fill-gray-400 text-gray-400 absolute -bottom-0.5 -right-0.5" />
+                      </div>
+                      <span className="text-sm truncate">{m.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </aside>
+
+      {/* ── Video Call Dialog ───────────────────────────────────────────────── */}
+      <Dialog open={videoCallActive} onOpenChange={setVideoCallActive}>
+        <DialogContent className="max-w-4xl w-full p-0 overflow-hidden">
+          <DialogHeader className="px-4 py-3 border-b border-border bg-card flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Video className="w-4 h-4 text-[#003082]" />
+              <DialogTitle className="text-sm font-semibold">
+                {t("connect_video_call")} · {selectedChannel?.name ?? "Canal"}
+              </DialogTitle>
+            </div>
+          </DialogHeader>
+          <iframe
+            src={`https://meet.jit.si/seba-connect-${selectedChannelId}`}
+            allow="camera; microphone; fullscreen; display-capture"
+            className="w-full"
+            style={{ height: "600px", border: "none" }}
+            title={t("connect_video_call")}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* ── Create Channel Dialog ──────────────────────────────────────────── */}
       <Dialog open={showCreateChannel} onOpenChange={setShowCreateChannel}>
