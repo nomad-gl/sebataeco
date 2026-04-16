@@ -2720,3 +2720,13 @@
 - [x] Show segmentation blur option in Backgrounds tab (replaces CSS blur)
 - [x] TypeScript 0 errors
 - [x] Save checkpoint
+
+## Session 27: Video Call Fixes + Follow-ups
+- [x] Show SEBA S symbol alongside logo in video call header (both visible)
+- [x] Suppress Jitsi logo/branding visible when dialog closes (replace with SEBA overlay)
+- [x] Filters apply to background layer only (not the person), mirror mode as default
+- [x] Virtual background canvas track injection into live Jitsi call
+- [x] Raise hand / emoji reaction buttons in video call header
+- [x] Call recording notice toggle in screen-share controls row
+- [x] TypeScript 0 errors
+- [x] Save checkpoint

@@ -14,6 +14,7 @@ import {
   XCircle,
   AlertCircle,
   Loader2,
+  FlipHorizontal2,
 } from "lucide-react";
 import SebaSymbol from "@/components/SebaSymbol";
 
@@ -291,8 +292,14 @@ export default function PreCallScreen({
     return <XCircle className="w-4 h-4 text-red-400" />;
   };
 
-  // ── Preview filter CSS ─────────────────────────────────────────────────
-  const previewFilter = selectedFilter.css === "none" ? undefined : selectedFilter.css;
+  // ── Mirror mode state (default ON) ──────────────────────────────────────
+  const [mirrored, setMirrored] = useState(true);
+  const mirrorStyle: React.CSSProperties = mirrored ? { transform: "scaleX(-1)" } : {};
+
+  // ── Preview filter CSS — applied to background layer only ─────────────
+  // Filters are composited behind the person so the person appears unfiltered.
+  // For raw video (no bg), the filter is applied to a pseudo-background div.
+  const bgFilter = selectedFilter.css === "none" ? undefined : selectedFilter.css;
 
   // Whether to show canvas (segmentation) or raw video
   const showCanvas = selectedBg.url === "blur" && (segmentationLoading || segmentationReady);
@@ -309,10 +316,9 @@ export default function PreCallScreen({
       {/* ── Header ── */}
       <div className="flex items-center justify-between px-6 py-3 bg-gray-900 border-b border-gray-800">
         <div className="flex items-center gap-3">
-          {sebaLogoUrl ? (
-            <img src={sebaLogoUrl} alt="SEBA" className="h-8 w-auto object-contain brightness-0 invert" />
-          ) : (
-            <SebaSymbol className="h-8 w-8" />
+          <SebaSymbol size={28} color="white" bg="#1a4fa0" className="shrink-0" />
+          {sebaLogoUrl && (
+            <img src={sebaLogoUrl} alt="SEBA" className="h-6 w-auto object-contain brightness-0 invert" />
           )}
           <div>
             <p className="text-sm font-semibold leading-none">{channelName}</p>
@@ -331,33 +337,41 @@ export default function PreCallScreen({
           {/* Video preview box */}
           <div
             className="relative w-full max-w-md aspect-video rounded-xl overflow-hidden bg-gray-800 shadow-2xl"
-            style={
-              selectedBg.url && selectedBg.url !== "blur"
-                ? { backgroundImage: `url(${selectedBg.url})`, backgroundSize: "cover", backgroundPosition: "center" }
-                : undefined
-            }
           >
-            {/* MediaPipe segmentation canvas (smart blur) */}
+            {/* Background layer with filter applied — sits behind the person */}
+            {selectedBg.url && selectedBg.url !== "blur" && (
+              <div
+                className="absolute inset-0"
+                style={{
+                  backgroundImage: `url(${selectedBg.url})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  filter: bgFilter,
+                }}
+              />
+            )}
+
+            {/* MediaPipe segmentation canvas (smart blur) — person sharp, bg blurred */}
             {showCanvas && (
               <canvas
                 ref={canvasRef}
                 width={640}
                 height={360}
-                className="w-full h-full object-cover"
-                style={{ filter: previewFilter }}
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{ ...mirrorStyle }}
               />
             )}
 
-            {/* Raw video (no bg replacement) */}
+            {/* Raw video (no bg replacement) — person layer, no filter */}
             <video
               ref={videoRef}
               autoPlay
               muted
               playsInline
-              className="w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-cover"
               style={{
                 display: videoEnabled && cameraStatus === "ok" && !showCanvas ? "block" : "none",
-                filter: previewFilter,
+                ...mirrorStyle,
               }}
             />
 
@@ -410,6 +424,16 @@ export default function PreCallScreen({
             >
               {audioEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
               <span className="text-xs">{audioEnabled ? "Mic on" : "Mic off"}</span>
+            </button>
+            <button
+              onClick={() => setMirrored((m) => !m)}
+              className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-colors ${
+                mirrored ? "bg-blue-700 hover:bg-blue-600" : "bg-gray-700 hover:bg-gray-600"
+              }`}
+              title="Toggle mirror mode"
+            >
+              <FlipHorizontal2 className="w-5 h-5" />
+              <span className="text-xs">{mirrored ? "Mirror on" : "Mirror off"}</span>
             </button>
           </div>
 

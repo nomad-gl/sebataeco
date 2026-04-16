@@ -230,6 +230,24 @@ export default function SebaConnect() {
   const [callOpts, setCallOpts] = useState<{ videoEnabled: boolean; audioEnabled: boolean; background: VideoBackground; filter: VideoFilter } | null>(null);
   const [screenSharing, setScreenSharing] = useState(false);
   const screenStreamRef = useRef<MediaStream | null>(null);
+  const [iframeLoading, setIframeLoading] = useState(true);
+  const [isRecording, setIsRecording] = useState(false);
+  const [activeReaction, setActiveReaction] = useState<string | null>(null);
+  const reactionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Reset iframe loading state each time the call dialog opens
+  useEffect(() => {
+    if (videoCallActive) {
+      setIframeLoading(true);
+      setIsRecording(false);
+      setActiveReaction(null);
+    }
+  }, [videoCallActive]);
+
+  const sendReaction = (emoji: string) => {
+    setActiveReaction(emoji);
+    if (reactionTimerRef.current) clearTimeout(reactionTimerRef.current);
+    reactionTimerRef.current = setTimeout(() => setActiveReaction(null), 3000);
+  };
   const [schoolLogo, setSchoolLogo] = useState<string | null>(
     () => localStorage.getItem("seba_school_logo")
   );
@@ -902,16 +920,25 @@ export default function SebaConnect() {
       </Dialog>
 
       {/* ── Video Call Dialog ───────────────────────────────────────────────── */}
-      <Dialog open={videoCallActive} onOpenChange={setVideoCallActive}>
-        <DialogContent className="max-w-5xl w-full p-0 overflow-hidden rounded-xl">
-          {/* Branded header: SEBA logo left, channel name centre, school logo right */}
+      <Dialog open={videoCallActive} onOpenChange={(open) => {
+          if (!open) {
+            // Stop screen share when dialog closes
+            screenStreamRef.current?.getTracks().forEach((t) => t.stop());
+            screenStreamRef.current = null;
+            setScreenSharing(false);
+          }
+          setVideoCallActive(open);
+        }}>
+        <DialogContent className="max-w-5xl w-full p-0 overflow-hidden rounded-xl bg-[#003082]">
+          {/* Branded header: SEBA S + logo left, channel name centre, school logo right */}
           <div className="flex items-center justify-between px-4 py-2.5 bg-[#003082] text-white">
-            {/* Left: SEBA logo */}
-            <div className="flex items-center gap-2 min-w-[120px]">
+            {/* Left: S symbol + SEBA wordmark */}
+            <div className="flex items-center gap-2 min-w-[140px]">
+              <SebaSymbol size={28} color="white" bg="#1a4fa0" className="shrink-0" />
               <img
                 src="https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/seba-logo-dark-Bxgq2SHvBzBLRLJPNdvmwf.png"
                 alt="SEBA"
-                className="h-7 object-contain brightness-0 invert"
+                className="h-6 object-contain brightness-0 invert"
               />
             </div>
             {/* Centre: channel name */}
@@ -931,47 +958,99 @@ export default function SebaConnect() {
               )}
             </div>
           </div>
-          {/* Screen share controls row */}
-          <div className="flex items-center gap-2 px-4 py-1.5 bg-[#001f5a] border-b border-[#002a7a]">
-            <button
-              onClick={async () => {
-                if (screenSharing) {
-                  screenStreamRef.current?.getTracks().forEach((t) => t.stop());
-                  screenStreamRef.current = null;
-                  setScreenSharing(false);
-                } else {
-                  try {
-                    const stream = await (navigator.mediaDevices as MediaDevices & { getDisplayMedia: (opts?: object) => Promise<MediaStream> }).getDisplayMedia({ video: true, audio: true });
-                    screenStreamRef.current = stream;
-                    stream.getVideoTracks()[0].onended = () => {
-                      screenStreamRef.current = null;
-                      setScreenSharing(false);
-                    };
-                    setScreenSharing(true);
-                  } catch (_) { /* user cancelled */ }
-                }
-              }}
-              className={`flex items-center gap-1.5 text-xs px-3 py-1 rounded-md transition-colors ${
-                screenSharing
-                  ? "bg-green-600 hover:bg-green-500 text-white"
-                  : "bg-white/10 hover:bg-white/20 text-white/80"
-              }`}
-            >
-              {screenSharing ? <ScreenShareOff className="w-3.5 h-3.5" /> : <ScreenShare className="w-3.5 h-3.5" />}
-              {screenSharing ? "Stop sharing" : "Share screen"}
-            </button>
-            {screenSharing && (
-              <span className="text-xs text-green-400 animate-pulse">● Sharing your screen</span>
-            )}
+          {/* Call toolbar: reactions, screen share, recording */}
+          <div className="flex items-center justify-between px-4 py-1.5 bg-[#001f5a] border-b border-[#002a7a]">
+            {/* Left: reaction buttons */}
+            <div className="flex items-center gap-1.5">
+              {(["\u270b", "\uD83D\uDC4D", "\uD83D\uDC4F", "\uD83D\uDE04", "\u2764\uFE0F"] as const).map((emoji) => (
+                <button
+                  key={emoji}
+                  onClick={() => sendReaction(emoji)}
+                  className={`text-base px-2 py-0.5 rounded-md transition-all hover:scale-125 ${
+                    activeReaction === emoji ? "bg-yellow-500/30 scale-125" : "hover:bg-white/10"
+                  }`}
+                  title={emoji === "\u270b" ? "Raise hand" : "React"}
+                >
+                  {emoji}
+                </button>
+              ))}
+              {activeReaction && (
+                <span className="text-xs text-yellow-300 animate-pulse ml-1">{activeReaction} Reacting…</span>
+              )}
+            </div>
+
+            {/* Right: screen share + recording */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={async () => {
+                  if (screenSharing) {
+                    screenStreamRef.current?.getTracks().forEach((t) => t.stop());
+                    screenStreamRef.current = null;
+                    setScreenSharing(false);
+                  } else {
+                    try {
+                      const stream = await (navigator.mediaDevices as MediaDevices & { getDisplayMedia: (opts?: object) => Promise<MediaStream> }).getDisplayMedia({ video: true, audio: true });
+                      screenStreamRef.current = stream;
+                      stream.getVideoTracks()[0].onended = () => {
+                        screenStreamRef.current = null;
+                        setScreenSharing(false);
+                      };
+                      setScreenSharing(true);
+                    } catch (_) { /* user cancelled */ }
+                  }
+                }}
+                className={`flex items-center gap-1.5 text-xs px-3 py-1 rounded-md transition-colors ${
+                  screenSharing
+                    ? "bg-green-600 hover:bg-green-500 text-white"
+                    : "bg-white/10 hover:bg-white/20 text-white/80"
+                }`}
+              >
+                {screenSharing ? <ScreenShareOff className="w-3.5 h-3.5" /> : <ScreenShare className="w-3.5 h-3.5" />}
+                {screenSharing ? "Stop sharing" : "Share screen"}
+              </button>
+
+              {/* Recording notice toggle */}
+              <button
+                onClick={() => setIsRecording((r) => !r)}
+                className={`flex items-center gap-1.5 text-xs px-3 py-1 rounded-md transition-colors ${
+                  isRecording
+                    ? "bg-red-600 hover:bg-red-500 text-white"
+                    : "bg-white/10 hover:bg-white/20 text-white/80"
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full ${
+                  isRecording ? "bg-white animate-pulse" : "bg-white/50"
+                }`} />
+                {isRecording ? "Recording" : "Record"}
+              </button>
+            </div>
           </div>
-          {/* Video iframe — Jitsi with watermarks hidden */}
-          <iframe
-            src={`https://meet.jit.si/seba-connect-${selectedChannelId}?lang=${lang}#config.defaultLanguage=${lang}&config.disableDeepLinking=true&interfaceConfig.SHOW_JITSI_WATERMARK=false&interfaceConfig.SHOW_BRAND_WATERMARK=false&interfaceConfig.SHOW_POWERED_BY=false&interfaceConfig.DISPLAY_WELCOME_PAGE_CONTENT=false${callOpts && !callOpts.videoEnabled ? "&config.startWithVideoMuted=true" : ""}${callOpts && !callOpts.audioEnabled ? "&config.startWithAudioMuted=true" : ""}`}
-            allow="camera; microphone; fullscreen; display-capture"
-            className="w-full"
-            style={{ height: "580px", border: "none" }}
-            title={t("connect_video_call")}
-          />
+
+          {/* Recording notice banner */}
+          {isRecording && (
+            <div className="flex items-center justify-between px-4 py-1.5 bg-red-900/60 border-b border-red-800 text-xs text-red-200">
+              <span>● This call is being recorded. All participants have been notified.</span>
+              <button onClick={() => setIsRecording(false)} className="text-red-300 hover:text-white ml-4">✕</button>
+            </div>
+          )}
+          {/* Video iframe — Jitsi with watermarks hidden, wrapped in branded container */}
+          <div className="relative w-full" style={{ height: "580px" }}>
+            {/* SEBA-branded loading overlay — shown until iframe fires onLoad */}
+            {iframeLoading && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-[#003082]">
+                <SebaSymbol size={48} color="white" bg="#1a4fa0" />
+                <p className="text-white/70 text-sm animate-pulse">Connecting…</p>
+              </div>
+            )}
+            <iframe
+              src={`https://meet.jit.si/seba-connect-${selectedChannelId}?lang=${lang}#config.defaultLanguage=${lang}&config.disableDeepLinking=true&interfaceConfig.SHOW_JITSI_WATERMARK=false&interfaceConfig.SHOW_BRAND_WATERMARK=false&interfaceConfig.SHOW_POWERED_BY=false&interfaceConfig.DISPLAY_WELCOME_PAGE_CONTENT=false${callOpts && !callOpts.videoEnabled ? "&config.startWithVideoMuted=true" : ""}${callOpts && !callOpts.audioEnabled ? "&config.startWithAudioMuted=true" : ""}`}
+              allow="camera; microphone; fullscreen; display-capture"
+              className="w-full h-full"
+              style={{ border: "none" }}
+              title={t("connect_video_call")}
+              onLoad={() => setIframeLoading(false)}
+            />
+          </div>
         </DialogContent>
       </Dialog>
 
