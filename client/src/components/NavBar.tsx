@@ -7,7 +7,7 @@ import {
   Presentation as PresentationIcon, Globe, Users, MessagesSquare, Bell, Download,
   CalendarDays, FileText, Settings as SettingsIcon, ShieldAlert, Lock, HelpCircle,
   BarChart3, UserCheck, BookCheck, GraduationCap, Mic,
-  ClipboardList, Banknote, UserCog, FolderOpen, Building2, Wrench, Music,
+  ClipboardList, Banknote, UserCog, FolderOpen, Building2, Wrench, Music, Wifi,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -163,6 +163,7 @@ export default function NavBar() {
     { href: "/progress",      label: t("nav_group_progress"), icon: TrendingUp },
     { href: "/attendance",   label: t("nav_attendance"),   icon: UserCheck },
     { href: "/forum",         label: t("nav_forum"),         icon: MessagesSquare },
+    { href: "/connect",       label: t("nav_connect"),       icon: Wifi },
     { href: "/lesson-planner",  label: t("nav_lesson_planner"),  icon: FileText },
     { href: "/help",             label: t("nav_help"),            icon: HelpCircle },
     { href: "/privacy",           label: t("nav_privacy"),          icon: Lock },

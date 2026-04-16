@@ -1063,9 +1063,10 @@ export const translations = {
 
     // NavBar - Forum
     nav_forum: "TA Fòrum",
+    nav_connect: "SEBA Connect",
 
     // TA Forum
-    forum_title: "TA F\u00f2rum",
+    forum_title: "TA Fòrum",
     forum_powered: "Powered by AINA | TA",
     forum_channels: "Channels",
     forum_dms: "Messages",
@@ -3424,10 +3425,11 @@ export const translations = {
     cd_powered_by: "Con tecnología de AINA",
 
     // NavBar - Forum
-    nav_forum: "TA F\u00f2rum",
+    nav_forum: "TA Fòrum",
+    nav_connect: "SEBA Connect",
 
     // TA Forum
-    forum_title: "TA F\u00f2rum",
+    forum_title: "TA Fòrum",
     forum_powered: "Desarrollado por AINA | TA",
     forum_channels: "Canales",
     forum_dms: "Mensajes",
@@ -5762,10 +5764,11 @@ export const translations = {
     cd_powered_by: "Impulsat per AINA",
 
     // NavBar - Forum
-    nav_forum: "TA F\u00f2rum",
+    nav_forum: "TA Fòrum",
+    nav_connect: "SEBA Connect",
 
     // TA Forum
-    forum_title: "TA F\u00f2rum",
+    forum_title: "TA Fòrum",
     forum_powered: "Impulsat per AINA | TA",
     forum_channels: "Canals",
     forum_dms: "Missatges",

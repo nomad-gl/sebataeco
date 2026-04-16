@@ -1240,3 +1240,94 @@ export const forumThreadReplies = mysqlTable("forum_thread_replies", {
 });
 export type ForumThreadReply = typeof forumThreadReplies.$inferSelect;
 export type InsertForumThreadReply = typeof forumThreadReplies.$inferInsert;
+
+// ─── SEBA Connect (Teams-style collaboration) ───────────────────────────────
+
+/**
+ * SEBA Connect channels — subject, year group, or general spaces.
+ */
+export const teamsChannels = mysqlTable("teams_channels", {
+  id: int("id").primaryKey().autoincrement(),
+  name: varchar("name", { length: 100 }).notNull(),
+  description: text("description"),
+  /** general | subject | year_group | announcement */
+  type: varchar("type", { length: 30 }).notNull().default("general"),
+  /** Optional hex colour accent for the channel icon */
+  colour: varchar("colour", { length: 10 }),
+  createdBy: varchar("createdBy", { length: 128 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  isArchived: boolean("isArchived").default(false).notNull(),
+});
+export type TeamsChannel = typeof teamsChannels.$inferSelect;
+
+/**
+ * SEBA Connect messages — per-channel messages with cached translations.
+ */
+export const teamsMessages = mysqlTable("teams_messages", {
+  id: int("id").primaryKey().autoincrement(),
+  channelId: int("channelId").notNull(),
+  userId: varchar("userId", { length: 128 }).notNull(),
+  /** Original content as typed by the sender */
+  content: text("content").notNull(),
+  /** JSON map { en, es, ca } — cached after first translation request */
+  translations: text("translations"),
+  attachmentUrl: text("attachmentUrl"),
+  attachmentKey: text("attachmentKey"),
+  attachmentName: varchar("attachmentName", { length: 255 }),
+  replyToId: int("replyToId"),
+  isDeleted: boolean("isDeleted").default(false).notNull(),
+  editedAt: timestamp("editedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type TeamsMessage = typeof teamsMessages.$inferSelect;
+
+/**
+ * SEBA Connect assignments — tasks created by teachers/HOS/Director per channel.
+ */
+export const teamsAssignments = mysqlTable("teams_assignments", {
+  id: int("id").primaryKey().autoincrement(),
+  channelId: int("channelId").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  dueDate: timestamp("dueDate"),
+  createdBy: varchar("createdBy", { length: 128 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  maxScore: int("maxScore").default(100),
+  isPublished: boolean("isPublished").default(true).notNull(),
+});
+export type TeamsAssignment = typeof teamsAssignments.$inferSelect;
+
+/**
+ * SEBA Connect submissions — student responses to assignments.
+ */
+export const teamsSubmissions = mysqlTable("teams_submissions", {
+  id: int("id").primaryKey().autoincrement(),
+  assignmentId: int("assignmentId").notNull(),
+  userId: varchar("userId", { length: 128 }).notNull(),
+  content: text("content"),
+  fileUrl: text("fileUrl"),
+  fileKey: text("fileKey"),
+  fileName: varchar("fileName", { length: 255 }),
+  submittedAt: timestamp("submittedAt").defaultNow().notNull(),
+  score: int("score"),
+  feedback: text("feedback"),
+  gradedBy: varchar("gradedBy", { length: 128 }),
+  gradedAt: timestamp("gradedAt"),
+});
+export type TeamsSubmission = typeof teamsSubmissions.$inferSelect;
+
+/**
+ * SEBA Connect files — shared files per channel (S3-backed).
+ */
+export const teamsFiles = mysqlTable("teams_files", {
+  id: int("id").primaryKey().autoincrement(),
+  channelId: int("channelId").notNull(),
+  uploadedBy: varchar("uploadedBy", { length: 128 }).notNull(),
+  fileName: varchar("fileName", { length: 255 }).notNull(),
+  fileUrl: text("fileUrl").notNull(),
+  fileKey: text("fileKey").notNull(),
+  mimeType: varchar("mimeType", { length: 100 }),
+  fileSize: int("fileSize"),
+  uploadedAt: timestamp("uploadedAt").defaultNow().notNull(),
+});
+export type TeamsFile = typeof teamsFiles.$inferSelect;

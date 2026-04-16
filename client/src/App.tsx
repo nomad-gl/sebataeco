@@ -23,6 +23,7 @@ import StudentProgress from "./pages/StudentProgress";
 import GroupProgress from "./pages/GroupProgress";
 import CompetencyDetail from "./pages/CompetencyDetail";
 import Forum from "./pages/Forum";
+import SebaConnect from "./pages/SebaConnect";
 import SchoolCalendar from "./pages/SchoolCalendar";
 import LessonPlanner from "./pages/LessonPlanner";
 import Help from "./pages/Help";
@@ -123,6 +124,7 @@ function Router() {
         <Route path="/competency/:code" component={CompetencyDetail} />
         <Route path="/attendance" component={AttendanceRegister} />
         <Route path="/forum" component={Forum} />
+        <Route path="/connect" component={SebaConnect} />
         <Route path="/school-calendar" component={SchoolCalendar} />
         <Route path="/lesson-planner" component={LessonPlanner} />
         <Route path="/help" component={Help} />
