@@ -2769,21 +2769,21 @@
 - [x] Save checkpoint
 
 ## Session 31: Slide-Hide Panel + Follow-ups
-- [ ] Add slide/collapse toggle to backgrounds/filters panel in PreCallScreen (CSS transition, chevron button)
-- [ ] Implement end-call hook: call trpc.dmCall.end when video call dialog closes
-- [ ] Add missed call badge on SEBA Connect nav item
-- [ ] Add call ringtone (Web Audio API) with mute toggle in IncomingCallBanner
-- [ ] TypeScript 0 errors
-- [ ] Save checkpoint
+- [x] Add slide/collapse toggle to backgrounds/filters panel in PreCallScreen (CSS transition, chevron button)
+- [x] Implement end-call hook: call trpc.dmCall.end when video call dialog closes
+- [x] Add missed call badge on SEBA Connect nav item
+- [x] Add call ringtone (Web Audio API) with mute toggle in IncomingCallBanner
+- [x] TypeScript 0 errors
+- [x] Save checkpoint
 
 
 ## Session 31: Slide-Hide Panel + Follow-ups
-- [ ] Add slide/collapse toggle to backgrounds/filters panel in PreCallScreen (CSS transition, chevron button)
-- [ ] Implement end-call hook: call trpc.dmCall.end when video call dialog closes
-- [ ] Add missed call badge on SEBA Connect nav item
-- [ ] Add call ringtone (Web Audio API) with mute toggle in IncomingCallBanner
-- [ ] TypeScript 0 errors
-- [ ] Save checkpoint
+- [x] Add slide/collapse toggle to backgrounds/filters panel in PreCallScreen (CSS transition, chevron button)
+- [x] Implement end-call hook: call trpc.dmCall.end when video call dialog closes
+- [x] Add missed call badge on SEBA Connect nav item
+- [x] Add call ringtone (Web Audio API) with mute toggle in IncomingCallBanner
+- [x] TypeScript 0 errors
+- [x] Save checkpoint
 
 ## Session 31b: SebaMeet — Sovereign WebRTC Video Engine
 - [x] Fix TypeScript errors from Session 31 (end-call hook status field, panel toggle)
@@ -2805,5 +2805,15 @@
 - [x] Replace Jitsi iframe in SebaConnect with SebaMeet component
 - [x] Wire room name, callOpts (mute/camera), and school logo into SebaMeet
 - [x] Add i18n keys for SebaMeet UI (EN/ES/CA)
+- [x] TypeScript 0 errors
+- [x] Save checkpoint
+
+## Session 32: SebaMeet Follow-ups
+- [x] Add TURN server ICE config to SebaMeet (Metered.ca free tier TURN credentials via env)
+- [x] Add TURN server credentials to webrtc signalling router ICE config
+- [x] Add tRPC procedure to return ICE server config (STUN + TURN) from server
+- [x] Extend SebaMeet peer grid to support up to 8 participants (responsive 2x2/2x3/2x4 grid)
+- [x] Add speaker-highlight mode (active speaker border glow based on audio level)
+- [x] Add live call quality indicator (1-4 bars, based on RTT + packet loss from getStats)
 - [x] TypeScript 0 errors
 - [x] Save checkpoint

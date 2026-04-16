@@ -137,6 +137,27 @@ export const webrtcRouter = router({
       }));
     }),
 
+  /** Return ICE server config (STUN + TURN) — credentials stay server-side. */
+  getIceServers: protectedProcedure.query(() => {
+    const servers = [
+      { urls: "stun:stun.l.google.com:19302" },
+      { urls: "stun:stun1.l.google.com:19302" },
+      { urls: "stun:stun.cloudflare.com:3478" },
+      // Metered.ca open relay TURN — works through symmetric NATs and corporate firewalls
+      {
+        urls: [
+          "turn:a.relay.metered.ca:80",
+          "turn:a.relay.metered.ca:80?transport=tcp",
+          "turn:a.relay.metered.ca:443",
+          "turn:a.relay.metered.ca:443?transport=tcp",
+        ],
+        username: process.env.TURN_USERNAME ?? "openrelayproject",
+        credential: process.env.TURN_CREDENTIAL ?? "openrelayproject",
+      },
+    ];
+    return servers;
+  }),
+
   /** Leave a room — broadcast a 'leave' signal so peers can clean up. */
   leaveRoom: protectedProcedure
     .input(z.object({ roomName: z.string().min(1).max(128) }))
