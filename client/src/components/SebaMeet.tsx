@@ -17,7 +17,7 @@ import { useI18n } from "@/contexts/I18nContext";
 import { SebaSymbol } from "@/components/SebaSymbol";
 import {
   Mic, MicOff, Video, VideoOff, PhoneOff, Monitor, MonitorOff,
-  Circle, Volume2, Users, Hand,
+  Circle, Volume2, Users, Hand, PhoneCall, Clock,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -28,9 +28,11 @@ interface Peer {
   pc: RTCPeerConnection;
   stream: MediaStream | null;
   videoRef: React.RefObject<HTMLVideoElement>;
+  audioRef: React.RefObject<HTMLAudioElement>;
   muted: boolean;
   quality: number;   // 0 = unknown, 1–4 bars
   speaking: boolean;
+  connected: boolean;
 }
 
 interface Reaction {
@@ -129,6 +131,12 @@ export function SebaMeet({
   const [raisedHands, setRaisedHands] = useState<RaisedHand[]>([]);
   const [handRaised,  setHandRaised]  = useState(false);
 
+  // ── Connection state & call timer ──
+  const [callConnected,    setCallConnected]    = useState(false);
+  const [callSeconds,      setCallSeconds]      = useState(0);
+  const callStartRef       = useRef<number | null>(null);
+  const callTimerRef       = useRef<ReturnType<typeof setInterval> | null>(null);
+
   // ── UI ──
   const [reactions,    setReactions]    = useState<Reaction[]>([]);
   const [recording,    setRecording]    = useState(false);
@@ -192,16 +200,50 @@ export function SebaMeet({
         }
       };
 
-      // Remote stream
+      // Track connection state for the "Connected" badge and call timer
+      pc.onconnectionstatechange = () => {
+        if (pc.connectionState === "connected") {
+          setCallConnected(true);
+          if (!callStartRef.current) {
+            callStartRef.current = Date.now();
+            if (callTimerRef.current) clearInterval(callTimerRef.current);
+            callTimerRef.current = setInterval(() => {
+              setCallSeconds(Math.floor((Date.now() - callStartRef.current!) / 1000));
+            }, 1000);
+          }
+          // Resume audio context if suspended (browser autoplay policy)
+          audioCtxRef.current?.resume().catch(() => {});
+          setPeers((prev) =>
+            prev.map((p) => p.id === peerId ? { ...p, connected: true } : p)
+          );
+        } else if (pc.connectionState === "disconnected" || pc.connectionState === "failed") {
+          setPeers((prev) =>
+            prev.map((p) => p.id === peerId ? { ...p, connected: false } : p)
+          );
+        }
+      };
+
+      // Remote stream — attach to BOTH video and a hidden audio element
+      const audioRef = { current: null } as unknown as React.RefObject<HTMLAudioElement>;
       const remoteStream = new MediaStream();
       pc.ontrack = (e) => {
         e.streams[0]?.getTracks().forEach((t) => remoteStream.addTrack(t));
-        if (videoRef.current) videoRef.current.srcObject = remoteStream;
+        // Video element
+        if (videoRef.current) {
+          videoRef.current.srcObject = remoteStream;
+          videoRef.current.play().catch(() => {});
+        }
+        // Dedicated audio element — ensures audio plays even when video is muted/hidden
+        if (audioRef.current) {
+          audioRef.current.srcObject = remoteStream;
+          audioRef.current.play().catch(() => {});
+        }
 
         // Audio analyser for speaker detection
         if (remoteStream.getAudioTracks().length > 0) {
           try {
             if (!audioCtxRef.current) audioCtxRef.current = new AudioContext();
+            else audioCtxRef.current.resume().catch(() => {});
             const src      = audioCtxRef.current.createMediaStreamSource(remoteStream);
             const analyser = audioCtxRef.current.createAnalyser();
             analyser.fftSize = 256;
@@ -211,7 +253,7 @@ export function SebaMeet({
         }
       };
 
-      return { id: peerId, name: peerName, pc, stream: remoteStream, videoRef, muted: false, quality: 0, speaking: false };
+      return { id: peerId, name: peerName, pc, stream: remoteStream, videoRef, audioRef, muted: false, quality: 0, speaking: false, connected: false };
     },
     [roomName, sendSignal, iceServersQuery.data]
   );
@@ -425,6 +467,7 @@ export function SebaMeet({
       audioCtxRef.current?.close();
       if (speakerTimerRef.current)  clearInterval(speakerTimerRef.current);
       if (qualityTimerRef.current)  clearInterval(qualityTimerRef.current);
+      if (callTimerRef.current)     clearInterval(callTimerRef.current);
       if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
     };
   }, []);
@@ -523,6 +566,13 @@ export function SebaMeet({
 
   // ── Render ────────────────────────────────────────────────────────────────
 
+  // ── Call timer formatter ──
+  const formatCallTime = (secs: number) => {
+    const m = Math.floor(secs / 60).toString().padStart(2, "0");
+    const s = (secs % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
+  };
+
   const totalParticipants = 1 + peers.length;
 
   return (
@@ -540,6 +590,16 @@ export function SebaMeet({
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Connected badge + call timer */}
+          {callConnected && (
+            <div className="flex items-center gap-1.5 bg-green-500/20 border border-green-500/40 text-green-300 text-xs px-2.5 py-1 rounded-full">
+              <PhoneCall className="w-3 h-3" />
+              <span className="font-medium">Connected</span>
+              <span className="opacity-70">·</span>
+              <Clock className="w-3 h-3" />
+              <span className="font-mono">{formatCallTime(callSeconds)}</span>
+            </div>
+          )}
           {/* Server-side raised-hand queue */}
           {(serverHandQueue ?? []).length > 0 && (
             <div className="flex items-center gap-1 bg-yellow-500/20 border border-yellow-500/40 rounded-lg px-2 py-0.5 max-w-xs overflow-x-auto">
@@ -614,13 +674,30 @@ export function SebaMeet({
               peer.speaking ? "ring-2 ring-green-400 ring-offset-1 ring-offset-gray-950" : ""
             }`}
           >
-            <video
+            {/* Hidden audio element — plays remote audio independently of video autoplay policy */}
+            <audio
               ref={(el) => {
-                (peer.videoRef as React.MutableRefObject<HTMLVideoElement | null>).current = el;
-                if (el && peer.stream) el.srcObject = peer.stream;
+                (peer.audioRef as React.MutableRefObject<HTMLAudioElement | null>).current = el;
+                if (el && peer.stream) {
+                  el.srcObject = peer.stream;
+                  el.play().catch(() => {});
+                }
               }}
               autoPlay
               playsInline
+              className="hidden"
+            />
+            <video
+              ref={(el) => {
+                (peer.videoRef as React.MutableRefObject<HTMLVideoElement | null>).current = el;
+                if (el && peer.stream) {
+                  el.srcObject = peer.stream;
+                  el.play().catch(() => {});
+                }
+              }}
+              autoPlay
+              playsInline
+              muted
               className="w-full h-full object-cover"
             />
             <div className="absolute bottom-2 left-2 flex items-center gap-1.5 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full">

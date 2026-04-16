@@ -2851,3 +2851,13 @@
 - [x] Agenda/notes field: allow sender to attach plain-text agenda to meeting invitation; show in history panel
 - [x] TypeScript 0 errors
 - [x] Save checkpoint
+
+## Session 36: Call Connection UX Fix + Follow-ups
+- [x] Fix SebaMeet audio: ensure remote audio track is added to audio element and plays on connection
+- [x] Add call connected state indicator (green "Connected" badge in call header)
+- [x] Add call duration timer (starts when first peer connects, shown in call header)
+- [x] Add missed-call toast on caller side when callee declines or call expires (30s timeout)
+- [x] Push notifyOwner notification to meeting invitation recipient when invitation is sent
+- [x] Add ICS calendar download button for accepted meetings in MeetingHistoryPanel
+- [x] TypeScript 0 errors
+- [x] Save checkpoint

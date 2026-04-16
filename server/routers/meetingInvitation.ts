@@ -48,6 +48,23 @@ export const meetingInvitationRouter = router({
         status: "pending",
       });
 
+      // Notify the owner (project owner = school admin) so they can see new invitations
+      // Also build a user-facing notification message for the recipient
+      const senderRows = await db
+        .select({ name: users.name })
+        .from(users)
+        .where(eq(users.id, ctx.user.id))
+        .limit(1);
+      const senderName = senderRows[0]?.name ?? `User ${ctx.user.id}`;
+      const proposedStr = input.proposedAt.toLocaleString("en-GB", {
+        day: "numeric", month: "short", year: "numeric",
+        hour: "2-digit", minute: "2-digit",
+      });
+      await notifyOwner({
+        title: `📅 New meeting invitation: ${input.title}`,
+        content: `${senderName} invited you to "${input.title}" on ${proposedStr} (${input.durationMinutes} min).${input.message ? ` Message: ${input.message}` : ""}`,
+      }).catch(() => { /* non-critical */ });
+
       return { invitationId: Number((result as any).insertId), roomName };
     }),
 

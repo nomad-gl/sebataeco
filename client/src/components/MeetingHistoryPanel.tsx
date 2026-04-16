@@ -7,8 +7,54 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
-import { ChevronDown, ChevronRight, Calendar, Video, CheckCircle, XCircle, Clock, Ban, RefreshCw, FileText } from "lucide-react";
+import { ChevronDown, ChevronRight, Calendar, Video, CheckCircle, XCircle, Clock, Ban, RefreshCw, FileText, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+/** Generate and download a .ics calendar file for a meeting invitation. */
+function downloadIcs(inv: {
+  title: string;
+  proposedAt: Date | string;
+  durationMinutes: number;
+  roomName: string;
+  message?: string | null;
+  agenda?: string | null;
+}) {
+  const start = typeof inv.proposedAt === "string" ? new Date(inv.proposedAt) : inv.proposedAt;
+  const end   = new Date(start.getTime() + inv.durationMinutes * 60_000);
+
+  const fmt = (d: Date) =>
+    d.toISOString().replace(/[-:]/g, "").replace(".000", "");
+
+  const description = [
+    inv.message ? `Message: ${inv.message}` : "",
+    inv.agenda  ? `Agenda:\n${inv.agenda}` : "",
+    `Room: ${inv.roomName}`,
+  ].filter(Boolean).join("\n").replace(/\n/g, "\\n");
+
+  const ics = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//SEBA AI Studio//SebaMeet//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    `DTSTART:${fmt(start)}`,
+    `DTEND:${fmt(end)}`,
+    `SUMMARY:${inv.title}`,
+    `DESCRIPTION:${description}`,
+    `UID:${inv.roomName}@sebataeco.com`,
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n");
+
+  const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = `${inv.title.replace(/[^a-z0-9]/gi, "_")}.ics`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 interface Props {
   myId: number | null;
@@ -94,14 +140,26 @@ export function MeetingHistoryPanel({ myId, onJoin }: Props) {
                   </p>
                 )}
                 {inv.status === "accepted" && (
-                  <Button
-                    size="sm"
-                    className="w-full h-6 text-[10px] bg-[#003082] hover:bg-[#002060] text-white gap-1 mt-1"
-                    onClick={() => onJoin(inv.roomName, inv.title)}
-                  >
-                    <Video className="w-3 h-3" />
-                    Join now
-                  </Button>
+                  <div className="flex gap-1.5 mt-1">
+                    <Button
+                      size="sm"
+                      className="flex-1 h-6 text-[10px] bg-[#003082] hover:bg-[#002060] text-white gap-1"
+                      onClick={() => onJoin(inv.roomName, inv.title)}
+                    >
+                      <Video className="w-3 h-3" />
+                      Join now
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-6 px-2 text-[10px] gap-1"
+                      title="Add to calendar (.ics)"
+                      onClick={() => downloadIcs(inv as any)}
+                    >
+                      <Download className="w-3 h-3" />
+                      .ics
+                    </Button>
+                  </div>
                 )}
               </div>
             );

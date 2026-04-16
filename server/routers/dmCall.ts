@@ -85,6 +85,33 @@ export const dmCallRouter = router({
     return { count: rows.length };
   }),
 
+  /**
+   * Poll the status of a specific call (caller uses this to detect decline/timeout).
+   * Returns the call status and callee name.
+   */
+  getCallStatus: protectedProcedure
+    .input(z.object({ callId: z.number().int().positive() }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) return null;
+      const rows = await db
+        .select()
+        .from(dmCalls)
+        .where(and(eq(dmCalls.id, input.callId), eq(dmCalls.callerId, ctx.user.id)))
+        .limit(1);
+      if (!rows[0]) return null;
+      const call = rows[0];
+      const calleeRows = await db
+        .select({ name: users.name })
+        .from(users)
+        .where(eq(users.id, call.calleeId))
+        .limit(1);
+      return {
+        ...call,
+        calleeName: calleeRows[0]?.name ?? "Unknown",
+      };
+    }),
+
   /** Get call history for the current user (last 20 calls). */
   getHistory: protectedProcedure.query(async ({ ctx }) => {
     const calls = await getCallHistory(ctx.user.id);

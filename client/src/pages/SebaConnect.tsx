@@ -260,11 +260,41 @@ export default function SebaConnect() {
   // Meeting invitation modal state
   const [meetInviteTarget, setMeetInviteTarget] = useState<{ id: number; name: string } | null>(null);
 
+  // Poll the status of the outgoing call so we can show a toast when declined/missed
+  const callStatusQuery = trpc.dmCall.getCallStatus.useQuery(
+    { callId: activeCallId! },
+    {
+      enabled: activeCallId !== null && preCallActive,
+      refetchInterval: 3_000,
+      refetchIntervalInBackground: false,
+    }
+  );
+
+  // Show missed-call toast when the callee declines or the call times out
+  const prevCallStatusRef = useRef<string | null>(null);
+  useEffect(() => {
+    const status = callStatusQuery.data?.status;
+    if (!status) return;
+    if (prevCallStatusRef.current === status) return;
+    prevCallStatusRef.current = status;
+    const calleeName = callStatusQuery.data?.calleeName ?? "the other person";
+    if (status === "declined") {
+      toast.error(`${calleeName} declined the call`, { duration: 5000 });
+      setPreCallActive(false);
+      setVideoCallActive(false);
+    } else if (status === "missed") {
+      toast.info(`${calleeName} didn't answer`, { duration: 5000 });
+      setPreCallActive(false);
+      setVideoCallActive(false);
+    }
+  }, [callStatusQuery.data]);
+
   // Called when an online member avatar is clicked
   const handleMemberCall = useCallback(async (memberId: number, memberName: string, audioOnly = false) => {
     if (!myDbId) { toast.error("Not signed in"); return; }
     const roomName = makeDmRoom(myDbId, memberId);
     setDmCallRoom({ roomName, partnerName: memberName });
+    prevCallStatusRef.current = null;
     try {
       const { callId } = await initiateCallMutation.mutateAsync({ calleeId: memberId, roomName, audioOnly });
       setActiveCallId(callId);
