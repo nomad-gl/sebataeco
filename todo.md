@@ -2929,3 +2929,10 @@
 - [x] TypeScript 0 errors
 - [x] Save checkpoint
 - [x] Fix video flickering: stable ref callbacks + activePeer stream sync useEffect prevent srcObject re-assignment on every render
+
+## Session 45: Host Transfer + Recording Download + Noise Suppression
+- [x] Host transfer: ⋯ button next to each peer in participant popover (host only); click opens context menu with "Make host" option; sends host-transfer data-channel signal; current host loses host status
+- [x] Call recording download: MediaRecorder captures canvas stream at 25fps; on stop, a download toast appears with a .webm download link; blob URL revoked after download
+- [x] Noise suppression toggle: in Filters tab of in-call settings overlay; replaces audio track mid-call with new noiseSuppression constraint; respects current mute state
+- [x] TypeScript 0 errors
+- [x] Save checkpoint

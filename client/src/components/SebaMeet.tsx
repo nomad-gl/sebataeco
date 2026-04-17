@@ -228,6 +228,17 @@ const SebaMeetInner = function SebaMeet({
   const [liveBgId, setLiveBgId] = useState<string | null>(null);
   const [liveBlurIntensity, setLiveBlurIntensity] = useState<number | null>(null);
 
+  // ── Noise suppression toggle ──
+  const [noiseSuppression, setNoiseSuppression] = useState(true);
+
+  // ── MediaRecorder for canvas-stream recording ──
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+
+  // ── Host transfer ──
+  const [contextMenuPeerId, setContextMenuPeerId] = useState<number | null>(null);
+
   // ── Persisted background / filter ──
   // Read from props (passed by PreCallScreen via callOpts) or fall back to localStorage.
   // This ensures the settings are always applied even if props are not passed.
@@ -427,6 +438,11 @@ const SebaMeetInner = function SebaMeet({
             const stream = localStreamRef.current;
             if (stream) stream.getAudioTracks().forEach((t) => { t.enabled = false; });
             setAudioMuted(true);
+            return;
+          }
+          if (parsed.type === "host-transfer") {
+            // We have been made host
+            setIsHost(true);
             return;
           }
           // Default: chat message
@@ -850,7 +866,32 @@ const SebaMeetInner = function SebaMeet({
   const toggleRecording = useCallback(() => {
     const next = !recording;
     setRecording(next);
-    if (next) notifyOwner.mutate({ title: "SebaMeet — Recording started", content: `Room: ${roomName}` });
+    if (next) {
+      // Start recording the local canvas stream (or raw video if no canvas)
+      notifyOwner.mutate({ title: "SebaMeet — Recording started", content: `Room: ${roomName}` });
+      const canvas = localCanvasRef.current;
+      const captureStream: MediaStream | null = canvas
+        ? (canvas as HTMLCanvasElement & { captureStream?: (fps?: number) => MediaStream }).captureStream?.(25) ?? null
+        : localStreamRef.current;
+      if (captureStream && typeof MediaRecorder !== "undefined") {
+        recordedChunksRef.current = [];
+        const mr = new MediaRecorder(captureStream, { mimeType: "video/webm;codecs=vp8" });
+        mr.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
+        mr.onstop = () => {
+          const blob = new Blob(recordedChunksRef.current, { type: "video/webm" });
+          const url = URL.createObjectURL(blob);
+          setDownloadUrl(url);
+        };
+        mr.start();
+        mediaRecorderRef.current = mr;
+      }
+    } else {
+      // Stop recording
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+        mediaRecorderRef.current = null;
+      }
+    }
   }, [recording, roomName, notifyOwner]);
 
   const toggleRaiseHand = useCallback(() => {
@@ -907,6 +948,44 @@ const SebaMeetInner = function SebaMeet({
       if (dc.readyState === "open") dc.send(payload);
     });
   }, []);
+
+  // Host transfer: send host-transfer signal to a specific peer and relinquish host status
+  const handleMakeHost = useCallback((peerId: number) => {
+    const dc = dataChannelsRef.current.get(peerId);
+    if (dc && dc.readyState === "open") {
+      dc.send(JSON.stringify({ type: "host-transfer" }));
+    }
+    setIsHost(false);
+    setContextMenuPeerId(null);
+  }, []);
+
+  // Noise suppression: replace audio track with new constraints
+  const toggleNoiseSuppression = useCallback(async () => {
+    const next = !noiseSuppression;
+    setNoiseSuppression(next);
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        audio: { noiseSuppression: next, echoCancellation: true },
+        video: false,
+      });
+      const newAudioTrack = newStream.getAudioTracks()[0];
+      if (!newAudioTrack) return;
+      // Replace in local stream
+      const oldAudioTrack = localStreamRef.current?.getAudioTracks()[0];
+      if (oldAudioTrack && localStreamRef.current) {
+        localStreamRef.current.removeTrack(oldAudioTrack);
+        localStreamRef.current.addTrack(newAudioTrack);
+        oldAudioTrack.stop();
+      }
+      // Replace in all peer connections
+      peersRef.current.forEach((p) => {
+        const sender = p.pc.getSenders().find((s) => s.track?.kind === "audio");
+        if (sender) sender.replaceTrack(newAudioTrack).catch(() => {});
+      });
+      // Respect current mute state
+      newAudioTrack.enabled = !audioMuted;
+    } catch { /* ignore — user may have denied */ }
+  }, [noiseSuppression, audioMuted]);
 
   const handleEnd = useCallback(() => {
     // Build call summary before tearing down
@@ -1297,17 +1376,49 @@ const SebaMeetInner = function SebaMeet({
                   </div>
                   {/* Remote peers */}
                   {peers.map((peer) => (
-                    <div key={peer.id} className="flex items-center justify-between px-3 py-1.5">
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded-full bg-gray-700 flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0">
-                          {peer.name.charAt(0).toUpperCase()}
+                    <div key={peer.id} className="relative">
+                      <div
+                        className="flex items-center justify-between px-3 py-1.5 hover:bg-white/5 rounded cursor-default"
+                        onContextMenu={(e) => {
+                          if (!isHost) return;
+                          e.preventDefault();
+                          setContextMenuPeerId((prev) => prev === peer.id ? null : peer.id);
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 rounded-full bg-gray-700 flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0">
+                            {peer.name.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="text-white text-xs truncate max-w-[90px]">{peer.name}</span>
+                          {peer.speaking && <Volume2 className="w-2.5 h-2.5 text-green-400 flex-shrink-0" />}
+                          {raisedHands.some((h) => h.userId === peer.id) && <Hand className="w-2.5 h-2.5 text-yellow-400 flex-shrink-0" />}
+                          {pinnedPeerId === peer.id && <Pin className="w-2.5 h-2.5 text-blue-400 flex-shrink-0" />}
                         </div>
-                        <span className="text-white text-xs truncate max-w-[110px]">{peer.name}</span>
-                        {peer.speaking && <Volume2 className="w-2.5 h-2.5 text-green-400 flex-shrink-0" />}
-                        {raisedHands.some((h) => h.userId === peer.id) && <Hand className="w-2.5 h-2.5 text-yellow-400 flex-shrink-0" />}
-                        {pinnedPeerId === peer.id && <Pin className="w-2.5 h-2.5 text-blue-400 flex-shrink-0" />}
+                        <div className="flex items-center gap-1.5">
+                          <QualityBars bars={peer.quality} />
+                          {isHost && (
+                            <button
+                              onClick={() => setContextMenuPeerId((prev) => prev === peer.id ? null : peer.id)}
+                              className="text-white/30 hover:text-orange-400 transition-colors ml-1"
+                              title="Host options"
+                            >
+                              <span className="text-[10px] leading-none">⋯</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <QualityBars bars={peer.quality} />
+                      {/* Host context menu */}
+                      {isHost && contextMenuPeerId === peer.id && (
+                        <div className="absolute right-2 top-full mt-0.5 z-50 bg-gray-800 border border-white/10 rounded-lg shadow-xl overflow-hidden">
+                          <button
+                            onClick={() => handleMakeHost(peer.id)}
+                            className="flex items-center gap-2 px-3 py-2 text-xs text-orange-300 hover:bg-orange-500/20 w-full whitespace-nowrap transition-colors"
+                          >
+                            <Pin className="w-3 h-3" />
+                            Make host
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1659,10 +1770,47 @@ const SebaMeetInner = function SebaMeet({
                   {resolvedFilter === (f.css === "none" ? "" : f.css) && <CheckCircle className="w-4 h-4 text-indigo-400" />}
                 </button>
               ))}
+              {/* Noise suppression toggle */}
+              <div className="mt-2 pt-2 border-t border-white/10">
+                <button
+                  onClick={toggleNoiseSuppression}
+                  className={`flex items-center justify-between w-full px-3 py-2 rounded-lg border transition-all text-sm ${
+                    noiseSuppression
+                      ? "border-green-500/50 bg-green-500/10 text-green-300"
+                      : "border-gray-700 hover:border-gray-500 text-gray-300"
+                  }`}
+                >
+                  <span className="font-medium">Noise Suppression</span>
+                  <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${
+                    noiseSuppression ? "bg-green-500/20 text-green-400" : "bg-gray-700 text-gray-400"
+                  }`}>
+                    {noiseSuppression ? "ON" : "OFF"}
+                  </span>
+                </button>
+              </div>
             </div>
           )}
         </div>
       )}
+      {/* ── Recording download toast ── */}
+      {downloadUrl && (
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 bg-gray-900/95 border border-white/10 rounded-xl shadow-2xl px-4 py-3">
+          <Circle className="w-4 h-4 text-red-400 fill-current flex-shrink-0" />
+          <span className="text-white text-sm">Recording ready</span>
+          <a
+            href={downloadUrl}
+            download={`seba-call-${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.webm`}
+            onClick={() => setTimeout(() => { URL.revokeObjectURL(downloadUrl); setDownloadUrl(null); }, 1000)}
+            className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+          >
+            Download
+          </a>
+          <button onClick={() => { URL.revokeObjectURL(downloadUrl); setDownloadUrl(null); }} className="text-white/40 hover:text-white transition-colors">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* ── Call summary card (shown briefly on hang-up) ── */}
       {callSummary && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
