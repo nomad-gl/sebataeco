@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import {
   Loader2, Send, User, Mic, MicOff, Radio,
   ThumbsUp, ThumbsDown, Volume2, VolumeX, Play, Square,
+  Paperclip, ImageIcon, X as XIcon,
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Streamdown } from "streamdown";
@@ -27,6 +28,12 @@ export type Message = {
   id?: string;
   /** Current rating from the user: 'up' | 'down' | undefined */
   rating?: "up" | "down";
+  /** For generated images or uploaded image files — rendered inline in the bubble */
+  imageUrl?: string;
+  /** For non-image uploaded files — rendered as a download link */
+  attachmentUrl?: string;
+  attachmentName?: string;
+  attachmentMime?: string;
 };
 
 function formatTime(ts?: number): string {
@@ -283,6 +290,58 @@ export function AIChatBox({
   // tRPC mutations for voice pipeline
   const uploadAudioMutation = trpc.voice.uploadAudio.useMutation();
   const transcribeMutation = trpc.voice.transcribe.useMutation();
+
+  // ─── Image generation + file upload ─────────────────────────────────────────
+  const generateImageMutation = trpc.aina.generateImage.useMutation();
+  const uploadFileMutation = trpc.aina.uploadFile.useMutation();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingFile, setPendingFile] = useState<{ name: string; base64: string; mimeType: string; previewUrl?: string } | null>(null);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+
+  /** Detect whether the user's message is an image generation request */
+  const isImageRequest = useCallback((text: string): boolean => {
+    const lower = text.toLowerCase();
+    // /image command
+    if (lower.startsWith("/image ") || lower.startsWith("/img ")) return true;
+    // Natural language patterns (EN/ES/CA)
+    const patterns = [
+      /^(generate|create|draw|make|produce|design|paint|illustrate)\s+(an?\s+)?(image|picture|photo|illustration|drawing|artwork|poster|diagram)/i,
+      /^(genera|crea|dibuixa|fes|pinta|il·lustra)\s+(una?\s+)?(imatge|foto|il·lustració|dibuix|pòster|diagrama)/i,
+      /^(genera|crea|dibuja|haz|pinta|ilustra)\s+(una?\s+)?(imagen|foto|ilustración|dibujo|póster|diagrama)/i,
+    ];
+    return patterns.some((p) => p.test(lower.trim()));
+  }, []);
+
+  /** Strip the command prefix or verb from an image prompt */
+  const extractImagePrompt = useCallback((text: string): string => {
+    return text
+      .replace(/^\/image\s+/i, "")
+      .replace(/^\/img\s+/i, "")
+      .replace(/^(generate|create|draw|make|produce|design|paint|illustrate)\s+(an?\s+)?(image|picture|photo|illustration|drawing|artwork|poster|diagram)\s+(of\s+)?/i, "")
+      .replace(/^(genera|crea|dibuixa|fes|pinta|il·lustra)\s+(una?\s+)?(imatge|foto|il·lustració|dibuix|pòster|diagrama)\s+(de\s+)?/i, "")
+      .replace(/^(genera|crea|dibuja|haz|pinta|ilustra)\s+(una?\s+)?(imagen|foto|ilustración|dibujo|póster|diagrama)\s+(de\s+)?/i, "")
+      .trim() || text;
+  }, []);
+
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const MAX = 16 * 1024 * 1024;
+    if (file.size > MAX) {
+      alert("File exceeds the 16 MB limit.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const base64 = result.split(",")[1];
+      const previewUrl = file.type.startsWith("image/") ? result : undefined;
+      setPendingFile({ name: file.name, base64, mimeType: file.type, previewUrl });
+    };
+    reader.readAsDataURL(file);
+    // Reset so the same file can be re-selected
+    e.target.value = "";
+  }, []);
 
   // ─── TTS playback via browser Web Speech API ─────────────────────────────────
 
@@ -669,13 +728,56 @@ export function AIChatBox({
 
   // ─── Form handlers ───────────────────────────────────────────────────────────
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedInput = input.trim();
-    if (!trimmedInput || isLoading) return;
-    // Unlock speech synthesis on the first user gesture so desktop browsers
-    // allow subsequent auto-play calls that happen outside a gesture context.
+    if ((!trimmedInput && !pendingFile) || isLoading) return;
     unlockSpeechSynthesis();
+
+    // ── Case 1: image generation request ─────────────────────────────────────
+    if (trimmedInput && isImageRequest(trimmedInput)) {
+      const prompt = extractImagePrompt(trimmedInput);
+      setInput("");
+      setIsGeneratingImage(true);
+      // Show the user's request immediately as a plain text bubble
+      onSendMessage(trimmedInput);
+      try {
+        const { url } = await generateImageMutation.mutateAsync({ prompt });
+        // Inject a synthetic assistant message carrying the image URL
+        onSendMessage(`__image__${url}`);
+      } catch {
+        onSendMessage("__image_error__");
+      } finally {
+        setIsGeneratingImage(false);
+      }
+      textareaRef.current?.focus();
+      return;
+    }
+
+    // ── Case 2: file attached ─────────────────────────────────────────────────
+    if (pendingFile) {
+      const file = pendingFile;
+      setPendingFile(null);
+      try {
+        const { url, mimeType } = await uploadFileMutation.mutateAsync({
+          fileBase64: file.base64,
+          fileName: file.name,
+          mimeType: file.mimeType,
+          fileSize: Math.round((file.base64.length * 3) / 4),
+        });
+        // Encode attachment info into the message so Chat.tsx can parse it
+        const caption = trimmedInput || file.name;
+        const isImage = mimeType.startsWith("image/");
+        onSendMessage(isImage ? `__upload_image__${url}__caption__${caption}` : `__upload_file__${url}__name__${file.name}__mime__${mimeType}__caption__${caption}`);
+      } catch {
+        onSendMessage("__upload_error__");
+      }
+      setInput("");
+      textareaRef.current?.focus();
+      return;
+    }
+
+    // ── Case 3: normal text message ───────────────────────────────────────────
     onSendMessage(trimmedInput);
     setInput("");
     textareaRef.current?.focus();
@@ -785,7 +887,35 @@ export function AIChatBox({
                             : "bg-white/15 text-white"
                         )}
                       >
-                        {message.role === "assistant" ? (
+                        {message.role === "assistant" && message.content === "__image_error__" ? (
+                          <p className="text-sm text-red-400">{t("aina_image_gen_error")}</p>
+                        ) : message.role === "assistant" && message.content === "__upload_error__" ? (
+                          <p className="text-sm text-red-400">{t("aina_upload_error")}</p>
+                        ) : message.imageUrl ? (
+                          <div className="flex flex-col gap-2">
+                            <img
+                              src={message.imageUrl}
+                              alt={message.content || "Generated image"}
+                              className="rounded-lg max-w-full max-h-80 object-contain"
+                            />
+                            {message.content && message.content !== message.imageUrl && (
+                              <p className="text-xs text-white/60">{message.content}</p>
+                            )}
+                          </div>
+                        ) : message.attachmentUrl ? (
+                          <div className="flex flex-col gap-1.5">
+                            {message.content && <p className="whitespace-pre-wrap text-sm">{message.content}</p>}
+                            <a
+                              href={message.attachmentUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-xs text-white/80 hover:bg-white/20 transition-colors"
+                            >
+                              <Paperclip className="size-3 shrink-0" />
+                              <span className="truncate max-w-[200px]">{message.attachmentName || "Attachment"}</span>
+                            </a>
+                          </div>
+                        ) : message.role === "assistant" ? (
                           <div className="prose prose-sm dark:prose-invert max-w-none">
                             <Streamdown>{message.content}</Streamdown>
                           </div>
@@ -938,6 +1068,22 @@ export function AIChatBox({
         </div>
       )}
 
+      {/* Image generating status bar */}
+      {isGeneratingImage && (
+        <div className="px-4 py-1 text-xs flex items-center gap-1.5 border-t border-white/10 text-purple-300 bg-purple-500/10">
+          <Loader2 className="size-3 animate-spin" />
+          {t("aina_generating_image")}
+        </div>
+      )}
+
+      {/* File uploading status bar */}
+      {uploadFileMutation.isPending && (
+        <div className="px-4 py-1 text-xs flex items-center gap-1.5 border-t border-white/10 text-blue-300 bg-blue-500/10">
+          <Loader2 className="size-3 animate-spin" />
+          {t("aina_uploading_file")}
+        </div>
+      )}
+
       {/* Input Area */}
       <form
         ref={inputAreaRef}
@@ -947,6 +1093,26 @@ export function AIChatBox({
           isMobile ? "flex flex-col gap-2" : "flex gap-2 items-end"
         )}
       >
+        {/* Pending file preview */}
+        {pendingFile && (
+          <div className="flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-3 py-2 mb-1">
+            {pendingFile.previewUrl ? (
+              <img src={pendingFile.previewUrl} alt={pendingFile.name} className="size-10 rounded object-cover shrink-0" />
+            ) : (
+              <Paperclip className="size-4 text-white/50 shrink-0" />
+            )}
+            <span className="flex-1 text-xs text-white/80 truncate">{pendingFile.name}</span>
+            <button
+              type="button"
+              onClick={() => setPendingFile(null)}
+              className="text-white/40 hover:text-white/80 transition-colors"
+              title="Remove file"
+            >
+              <XIcon className="size-3.5" />
+            </button>
+          </div>
+        )}
+
         {/* Textarea row (full width on mobile, flex-1 on desktop) */}
         <div className={cn("flex flex-col gap-1", isMobile ? "w-full" : "flex-1")}>
           <Textarea
@@ -1133,6 +1299,60 @@ export function AIChatBox({
             </Button>
           )}
 
+          {/* Upload file button */}
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadFileMutation.isPending || isGeneratingImage}
+            title={t("aina_attach_file")}
+            className={cn(
+              "shrink-0 h-[38px] w-[38px] text-white/60 hover:text-white hover:bg-white/15",
+              pendingFile && "text-blue-400 hover:text-blue-300"
+            )}
+          >
+            {uploadFileMutation.isPending
+              ? <Loader2 className="size-4 animate-spin" />
+              : <Paperclip className="size-4" />}
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"
+            onChange={handleFileSelect}
+          />
+
+          {/* Image generation button */}
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            onClick={() => {
+              const prompt = input.trim();
+              if (!prompt) {
+                setInput("/image ");
+                textareaRef.current?.focus();
+              } else if (isImageRequest(prompt)) {
+                handleSubmit({ preventDefault: () => {} } as React.FormEvent);
+              } else {
+                setInput(`/image ${prompt}`);
+                textareaRef.current?.focus();
+              }
+            }}
+            disabled={isGeneratingImage || isLoading}
+            title={t("aina_generate_image")}
+            className={cn(
+              "shrink-0 h-[38px] w-[38px] text-white/60 hover:text-white hover:bg-white/15",
+              isGeneratingImage && "text-purple-400 animate-pulse"
+            )}
+          >
+            {isGeneratingImage
+              ? <Loader2 className="size-4 animate-spin" />
+              : <ImageIcon className="size-4" />}
+          </Button>
+
           {/* Mic button — shown on ALL devices */}
           <Button
             type="button"
@@ -1158,7 +1378,7 @@ export function AIChatBox({
           <Button
             type="submit"
             size="icon"
-            disabled={!input.trim() || isLoading}
+            disabled={(!input.trim() && !pendingFile) || isLoading || isGeneratingImage || uploadFileMutation.isPending}
             className="shrink-0 h-[38px] w-[38px]"
           >
             {isLoading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}

@@ -76,6 +76,58 @@ export default function Chat() {
   }, [lang]);
 
   const handleSendMessage = async (content: string) => {
+    // ── Handle synthetic tokens injected by AIChatBox for image gen / uploads ───────────
+    if (content.startsWith("__image__")) {
+      const url = content.slice("__image__".length);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "", imageUrl: url, timestamp: Date.now() },
+      ]);
+      return;
+    }
+    if (content === "__image_error__") {
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "__image_error__", timestamp: Date.now() },
+      ]);
+      return;
+    }
+    if (content.startsWith("__upload_image__")) {
+      const rest = content.slice("__upload_image__".length);
+      const [url, captionPart] = rest.split("__caption__");
+      setMessages((prev) => [
+        ...prev,
+        { role: "user", content: captionPart || "", imageUrl: url, timestamp: Date.now() },
+      ]);
+      return;
+    }
+    if (content.startsWith("__upload_file__")) {
+      const rest = content.slice("__upload_file__".length);
+      const urlMatch = rest.match(/^(.+?)__name__/);
+      const nameMatch = rest.match(/__name__(.+?)__mime__/);
+      const mimeMatch = rest.match(/__mime__(.+?)__caption__/);
+      const captionMatch = rest.match(/__caption__(.+)$/);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "user",
+          content: captionMatch?.[1] || "",
+          attachmentUrl: urlMatch?.[1] || "",
+          attachmentName: nameMatch?.[1] || "File",
+          attachmentMime: mimeMatch?.[1] || "application/octet-stream",
+          timestamp: Date.now(),
+        },
+      ]);
+      return;
+    }
+    if (content === "__upload_error__") {
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "__upload_error__", timestamp: Date.now() },
+      ]);
+      return;
+    }
+
     const userMsg: Message = { role: "user", content, timestamp: Date.now() };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);

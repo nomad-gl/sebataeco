@@ -2985,3 +2985,23 @@
 - [x] Translate remaining hardcoded strings in SebaConnect (audit all non-t() strings, add missing i18n keys to EN/ES/CA, replace with t() calls)
 - [x] Mobile bottom navigation bar in SebaConnect (fixed bottom bar, md:hidden, icons for Channels/Messages/Assignments/Files/Members)
 - [x] Swipe gestures in SebaConnect (swipe right opens sidebar, swipe left opens members panel)
+
+## Session 52: Aina Image Generation + File Upload
+
+- [x] Add `aina.generateImage` tRPC procedure (server/routers/aina.ts)
+- [x] Add `aina.uploadFile` tRPC procedure (server/routers/aina.ts)
+- [x] Register ainaRouter in server/routers.ts
+- [x] Extend Message type with imageUrl, attachmentUrl, attachmentName, attachmentMime fields
+- [x] Add isImageRequest() and extractImagePrompt() helpers to AIChatBox
+- [x] Add handleFileSelect() and pendingFile state to AIChatBox
+- [x] Intercept image-gen requests in handleSubmit (Case 1 — natural language + /image command)
+- [x] Intercept file uploads in handleSubmit (Case 2)
+- [x] Add pending file preview strip above textarea
+- [x] Add upload button (Paperclip) and image-gen button (ImageIcon) to input toolbar
+- [x] Add image-generating and file-uploading status bars
+- [x] Render imageUrl inline in message bubbles (user and assistant)
+- [x] Render attachmentUrl as download link in message bubbles
+- [x] Render __image_error__ and __upload_error__ error bubbles with i18n text
+- [x] Update Chat.tsx handleSendMessage to parse all synthetic tokens
+- [x] Add aina_image_gen_error, aina_upload_error, aina_generating_image, aina_uploading_file, aina_attach_file, aina_generate_image i18n keys (EN/ES/CA)
+- [x] Write and pass 6 unit tests for aina router (server/aina.test.ts)
