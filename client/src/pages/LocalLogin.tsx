@@ -1,0 +1,305 @@
+/**
+ * Sovereign login / registration page.
+ * No Google, Meta, or Manus OAuth — fully self-hosted.
+ * Session cookie is issued by the server using the same JWT_SECRET
+ * as the Manus OAuth path, so existing users are unaffected.
+ */
+
+import { useState } from "react";
+import { trpc } from "@/lib/trpc";
+import { useI18n } from "@/contexts/I18nContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Globe, Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
+
+const BG_IMAGE =
+  "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/hero-bg-UMuQESLM5HrV2VsrndDo2h.webp";
+
+const LANG_OPTIONS = [
+  { code: "en", label: "English" },
+  { code: "es", label: "Español" },
+  { code: "ca", label: "Català" },
+];
+
+export default function LocalLogin() {
+  const { t, lang, setLang } = useI18n();
+  const [showLangMenu, setShowLangMenu] = useState(false);
+
+  // ── Login state ──────────────────────────────────────────────────────────
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [showLoginPw, setShowLoginPw] = useState(false);
+  const [loginError, setLoginError] = useState("");
+
+  // ── Register state ───────────────────────────────────────────────────────
+  const [regEmail, setRegEmail] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+  const [regConfirm, setRegConfirm] = useState("");
+  const [regName, setRegName] = useState("");
+  const [showRegPw, setShowRegPw] = useState(false);
+  const [regError, setRegError] = useState("");
+
+  // ── Mutations ────────────────────────────────────────────────────────────
+  const loginMutation = trpc.localAuth.login.useMutation({
+    onSuccess: () => {
+      window.location.href = "/";
+    },
+    onError: (err) => setLoginError(err.message),
+  });
+
+  const registerMutation = trpc.localAuth.register.useMutation({
+    onSuccess: () => {
+      window.location.href = "/";
+    },
+    onError: (err) => setRegError(err.message),
+  });
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError("");
+    loginMutation.mutate({ email: loginEmail, password: loginPassword });
+  };
+
+  const handleRegister = (e: React.FormEvent) => {
+    e.preventDefault();
+    setRegError("");
+    if (regPassword !== regConfirm) {
+      setRegError(t("local_auth_passwords_no_match"));
+      return;
+    }
+    registerMutation.mutate({
+      email: regEmail,
+      password: regPassword,
+      displayName: regName,
+    });
+  };
+
+  return (
+    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden">
+      {/* Full-screen background */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${BG_IMAGE})` }}
+      />
+      {/* Dark overlay */}
+      <div className="absolute inset-0 bg-black/55" />
+
+      {/* Language selector — top right */}
+      <div className="absolute top-4 right-4 z-20">
+        <div className="relative">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-white/80 hover:text-white hover:bg-white/10 gap-1.5"
+            onClick={() => setShowLangMenu((v) => !v)}
+          >
+            <Globe className="w-4 h-4" />
+            {LANG_OPTIONS.find((l) => l.code === lang)?.label ?? "Language"}
+          </Button>
+          {showLangMenu && (
+            <div className="absolute right-0 mt-1 w-36 rounded-lg bg-white/95 backdrop-blur shadow-lg border border-gray-200 overflow-hidden z-30">
+              {LANG_OPTIONS.map((opt) => (
+                <button
+                  key={opt.code}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
+                    lang === opt.code ? "font-semibold text-red-600" : "text-gray-700"
+                  }`}
+                  onClick={() => {
+                    setLang(opt.code as "en" | "es" | "ca");
+                    setShowLangMenu(false);
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Login card */}
+      <div className="relative z-10 w-full max-w-md mx-4">
+        {/* SEBA logo / title */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 mb-3">
+            <ShieldCheck className="w-8 h-8 text-red-400" />
+            <span className="text-3xl font-bold text-white tracking-tight">SEBA</span>
+          </div>
+          <p className="text-white/70 text-sm">{t("local_auth_subtitle")}</p>
+        </div>
+
+        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl overflow-hidden">
+          <Tabs defaultValue="login" className="w-full">
+            <TabsList className="w-full rounded-none bg-white/10 border-b border-white/20 h-12">
+              <TabsTrigger
+                value="login"
+                className="flex-1 text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/15 rounded-none h-full"
+              >
+                {t("local_auth_sign_in")}
+              </TabsTrigger>
+              <TabsTrigger
+                value="register"
+                className="flex-1 text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/15 rounded-none h-full"
+              >
+                {t("local_auth_create_account")}
+              </TabsTrigger>
+            </TabsList>
+
+            {/* ── Login tab ── */}
+            <TabsContent value="login" className="p-6">
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label className="text-white/80 text-sm">{t("local_auth_email")}</Label>
+                  <Input
+                    type="email"
+                    autoComplete="email"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    required
+                    className="bg-white/10 border-white/25 text-white placeholder:text-white/40 focus:border-white/60"
+                    placeholder="teacher@escola.cat"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-white/80 text-sm">{t("local_auth_password")}</Label>
+                  <div className="relative">
+                    <Input
+                      type={showLoginPw ? "text" : "password"}
+                      autoComplete="current-password"
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      required
+                      className="bg-white/10 border-white/25 text-white placeholder:text-white/40 focus:border-white/60 pr-10"
+                      placeholder="••••••••"
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80"
+                      onClick={() => setShowLoginPw((v) => !v)}
+                    >
+                      {showLoginPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {loginError && (
+                  <p className="text-red-300 text-sm bg-red-900/30 border border-red-500/30 rounded-lg px-3 py-2">
+                    {loginError}
+                  </p>
+                )}
+
+                <Button
+                  type="submit"
+                  disabled={loginMutation.isPending}
+                  className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold h-11 mt-2"
+                >
+                  {loginMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : null}
+                  {loginMutation.isPending ? t("local_auth_signing_in") : t("local_auth_sign_in")}
+                </Button>
+              </form>
+            </TabsContent>
+
+            {/* ── Register tab ── */}
+            <TabsContent value="register" className="p-6">
+              <form onSubmit={handleRegister} className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label className="text-white/80 text-sm">{t("local_auth_display_name")}</Label>
+
+                  <Input
+                    type="text"
+                    autoComplete="name"
+                    value={regName}
+                    onChange={(e) => setRegName(e.target.value)}
+                    required
+                    className="bg-white/10 border-white/25 text-white placeholder:text-white/40 focus:border-white/60"
+                    placeholder={t("local_auth_display_name_placeholder")}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-white/80 text-sm">{t("local_auth_email")}</Label>
+                  <Input
+                    type="email"
+                    autoComplete="email"
+                    value={regEmail}
+                    onChange={(e) => setRegEmail(e.target.value)}
+                    required
+                    className="bg-white/10 border-white/25 text-white placeholder:text-white/40 focus:border-white/60"
+                    placeholder="teacher@escola.cat"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-white/80 text-sm">{t("local_auth_password")}</Label>
+                  <div className="relative">
+                    <Input
+                      type={showRegPw ? "text" : "password"}
+                      autoComplete="new-password"
+                      value={regPassword}
+                      onChange={(e) => setRegPassword(e.target.value)}
+                      required
+                      minLength={8}
+                      className="bg-white/10 border-white/25 text-white placeholder:text-white/40 focus:border-white/60 pr-10"
+                      placeholder="••••••••"
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80"
+                      onClick={() => setShowRegPw((v) => !v)}
+                    >
+                      {showRegPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <p className="text-white/40 text-xs">{t("local_auth_password_hint")}</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-white/80 text-sm">{t("local_auth_confirm_password")}</Label>
+                  <Input
+                    type={showRegPw ? "text" : "password"}
+                    autoComplete="new-password"
+                    value={regConfirm}
+                    onChange={(e) => setRegConfirm(e.target.value)}
+                    required
+                    className="bg-white/10 border-white/25 text-white placeholder:text-white/40 focus:border-white/60"
+                    placeholder="••••••••"
+                  />
+                </div>
+
+                {regError && (
+                  <p className="text-red-300 text-sm bg-red-900/30 border border-red-500/30 rounded-lg px-3 py-2">
+                    {regError}
+                  </p>
+                )}
+
+                <Button
+                  type="submit"
+                  disabled={registerMutation.isPending}
+                  className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold h-11 mt-2"
+                >
+                  {registerMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : null}
+                  {registerMutation.isPending
+                    ? t("local_auth_creating")
+                    : t("local_auth_create_account")}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        {/* Sovereignty notice */}
+        <p className="text-center text-white/40 text-xs mt-6 flex items-center justify-center gap-1.5">
+          <ShieldCheck className="w-3.5 h-3.5" />
+          {t("local_auth_sovereignty_notice")}
+        </p>
+      </div>
+    </div>
+  );
+}

@@ -3099,3 +3099,11 @@
 
 - [x] Add image generation capability statement to Aina system prompt
 - [x] Remove any implicit restriction on image creation
+
+## Session 62: Sovereign Login + Image Confirmation i18n
+
+- [ ] Extend DB schema with email, password_hash, display_name for local auth
+- [ ] Add register/login tRPC procedures with bcrypt
+- [ ] Build sovereign login/register UI page (no Google/Meta)
+- [ ] Update App.tsx routing to use new login page
+- [ ] Add image confirmation i18n keys (EN/ES/CA)

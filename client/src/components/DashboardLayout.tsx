@@ -19,7 +19,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { getLoginUrl } from "@/const";
+import LocalLogin from "@/pages/LocalLogin";
 import { useIsMobile } from "@/hooks/useMobile";
 import { LayoutDashboard, LogOut, PanelLeft, Users } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
@@ -54,30 +54,7 @@ export default function DashboardLayout({
   }
 
   if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="flex flex-col items-center gap-8 p-8 max-w-md w-full">
-          <div className="flex flex-col items-center gap-6">
-            <h1 className="text-2xl font-semibold tracking-tight text-center">
-              {t("dash_sign_in_title")}
-            </h1>
-            <p className="text-sm text-muted-foreground text-center max-w-sm">
-              {t("dash_sign_in_desc")}
-            </p>
-          </div>
-          <Button
-            onClick={() => {
-              const returnPath = window.location.pathname + window.location.search;
-              window.location.href = getLoginUrl(returnPath);
-            }}
-            size="lg"
-            className="w-full shadow-lg hover:shadow-xl transition-all"
-          >
-            {t("dash_sign_in_btn")}
-          </Button>
-        </div>
-      </div>
-    );
+    return <LocalLogin />;
   }
 
   return (

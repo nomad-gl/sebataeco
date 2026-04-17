@@ -16,6 +16,10 @@ export const users = mysqlTable("users", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
   ttsVoice: mysqlEnum("ttsVoice", ["nova", "shimmer", "alloy", "fable"]).default("nova"),
+  /** Bcrypt hash for local email+password auth. NULL for Manus OAuth users. */
+  passwordHash: varchar("passwordHash", { length: 255 }),
+  /** Preferred display name set during local registration. */
+  displayName: varchar("displayName", { length: 128 }),
 });
 
 export type User = typeof users.$inferSelect;

@@ -2449,9 +2449,26 @@ export const translations = {
     call_duration: "Duration",
     call_missed: "Missed",
     call_ended: "Ended",
-    call_audio_only_label: "Audio only call",
+     call_audio_only_label: "Audio only call",
+    // Local sovereign auth
+    local_auth_sign_in: "Sign In",
+    local_auth_create_account: "Create Account",
+    local_auth_email: "Email address",
+    local_auth_password: "Password",
+    local_auth_confirm_password: "Confirm password",
+    local_auth_display_name: "Display name",
+    local_auth_display_name_placeholder: "e.g. Maria García",
+    local_auth_password_hint: "Minimum 8 characters",
+    local_auth_passwords_no_match: "Passwords do not match.",
+    local_auth_signing_in: "Signing in…",
+    local_auth_creating: "Creating account…",
+    local_auth_subtitle: "Sovereign AI Platform for Catalan Education",
+    local_auth_sovereignty_notice: "Your data stays in Catalonia — no Google or Meta login required.",
+    // Image generation confirmation phrases
+    aina_image_confirm_1: "Of course! I'm generating that image for you right now — it will appear in just a moment! 🎨",
+    aina_image_confirm_2: "On it! Creating your image now… 🖼️",
+    aina_image_confirm_3: "Great idea! Generating your image — hang tight! ✨",
   },
-
   es: {
     // NavBar
     nav_home: "Inicio",
@@ -4868,9 +4885,26 @@ export const translations = {
     call_duration: "Duración",
     call_missed: "Perdida",
     call_ended: "Finalizada",
-    call_audio_only_label: "Llamada de solo audio",
+     call_audio_only_label: "Llamada de solo audio",
+    // Local sovereign auth
+    local_auth_sign_in: "Iniciar sesión",
+    local_auth_create_account: "Crear cuenta",
+    local_auth_email: "Correo electrónico",
+    local_auth_password: "Contraseña",
+    local_auth_confirm_password: "Confirmar contraseña",
+    local_auth_display_name: "Nombre para mostrar",
+    local_auth_display_name_placeholder: "p. ej. María García",
+    local_auth_password_hint: "Mínimo 8 caracteres",
+    local_auth_passwords_no_match: "Las contraseñas no coinciden.",
+    local_auth_signing_in: "Iniciando sesión…",
+    local_auth_creating: "Creando cuenta…",
+    local_auth_subtitle: "Plataforma de IA Soberana para la Educación Catalana",
+    local_auth_sovereignty_notice: "Tus datos permanecen en Cataluña — no se requiere inicio de sesión con Google o Meta.",
+    // Image generation confirmation phrases
+    aina_image_confirm_1: "¡Por supuesto! Estoy generando esa imagen ahora mismo — ¡aparecerá en un momento! 🎨",
+    aina_image_confirm_2: "¡En ello! Creando tu imagen ahora… 🖼️",
+    aina_image_confirm_3: "¡Buena idea! Generando tu imagen — ¡un momento! ✨",
   },
-
   ca: {
     // NavBar
     nav_home: "Inici",
@@ -7288,6 +7322,24 @@ export const translations = {
     call_missed: "Perduda",
     call_ended: "Finalitzada",
     call_audio_only_label: "Trucada de només àudio",
+    // Local sovereign auth
+    local_auth_sign_in: "Iniciar sessió",
+    local_auth_create_account: "Crear compte",
+    local_auth_email: "Adreça electrònica",
+    local_auth_password: "Contrasenya",
+    local_auth_confirm_password: "Confirmar contrasenya",
+    local_auth_display_name: "Nom per mostrar",
+    local_auth_display_name_placeholder: "p. ex. Maria García",
+    local_auth_password_hint: "Mínim 8 caràcters",
+    local_auth_passwords_no_match: "Les contrasenyes no coincideixen.",
+    local_auth_signing_in: "Iniciant sessió…",
+    local_auth_creating: "Creant compte…",
+    local_auth_subtitle: "Plataforma d'IA Sobirana per a l'Educació Catalana",
+    local_auth_sovereignty_notice: "Les teves dades romanen a Catalunya — no cal iniciar sessió amb Google o Meta.",
+    // Image generation confirmation phrases
+    aina_image_confirm_1: "Per descomptat! Estic generant aquesta imatge ara mateix — apareixerà en un moment! 🎨",
+    aina_image_confirm_2: "Ara mateix! Creant la teva imatge… 🖼️",
+    aina_image_confirm_3: "Bona idea! Generant la teva imatge — un moment! ✨",
   },
 } as const;
 
