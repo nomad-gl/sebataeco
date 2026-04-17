@@ -3202,3 +3202,7 @@
 - [x] Add i18n labels for the three new action types in the Audit Dashboard (EN/ES/CA)
 - [x] Add "Account Changes" filter tab / action-type filter option in the Audit Dashboard UI
 - [x] Display actor name (Director who performed the action) and target user name in the audit row
+
+## Bug Fix: Login page — unable to sign in
+
+- [x] Diagnose and fix login failure on LocalLogin page — applied missing passwordHash and displayName columns to live database
