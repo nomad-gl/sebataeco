@@ -3259,3 +3259,9 @@
 - [x] Add purgeExpiredInvites() helper in director.ts: deletes rows where expiresAt < (now - 30 days) AND usedAt IS NULL
 - [x] Call purgeExpiredInvites() lazily (fire-and-forget) inside listTeacherInvites and getPendingInviteCount
 - [x] Schedule purgeExpiredInvites() at server startup via a daily setInterval (every 24 h) as a safety net
+
+## Feature: Live expiry countdown on pending invites
+
+- [x] Create InviteCountdown component: shows relative time to expiry (e.g. "Expires in 6 h 12 m"), ticks every 60 s, turns amber when < 6 h remain, turns red when < 1 h remains
+- [x] Replace static "Pending" badge in DirectorUsers.tsx invite history table with InviteCountdown
+- [x] Add i18n keys for countdown labels (EN/ES/CA)

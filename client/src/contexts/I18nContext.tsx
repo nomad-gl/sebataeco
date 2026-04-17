@@ -2595,6 +2595,11 @@ export const translations = {
     // Login page — request access note
     local_auth_need_access: "Need access?",
     local_auth_contact_director: "Contact your Director",
+    // Invite countdown badge
+    inv_countdown_expired: "Expired",
+    inv_countdown_days: "Expires in {d}d {h}h",
+    inv_countdown_hours: "Expires in {h}h {m}m",
+    inv_countdown_minutes: "Expires in {m}m",
   },
   es: {
     // NavBar
@@ -5158,6 +5163,11 @@ export const translations = {
     // Login page — request access note
     local_auth_need_access: "¿Necesitas acceso?",
     local_auth_contact_director: "Contacta con tu Director",
+    // Invite countdown badge
+    inv_countdown_expired: "Caducada",
+    inv_countdown_days: "Caduca en {d}d {h}h",
+    inv_countdown_hours: "Caduca en {h}h {m}m",
+    inv_countdown_minutes: "Caduca en {m}m",
   },
   ca: {
     // NavBar
@@ -7721,6 +7731,11 @@ export const translations = {
     // Login page — request access note
     local_auth_need_access: "Necessites accés?",
     local_auth_contact_director: "Contacta amb el teu Director",
+    // Invite countdown badge
+    inv_countdown_expired: "Caducada",
+    inv_countdown_days: "Caduca en {d}d {h}h",
+    inv_countdown_hours: "Caduca en {h}h {m}m",
+    inv_countdown_minutes: "Caduca en {m}m",
   },
 } as const;
 

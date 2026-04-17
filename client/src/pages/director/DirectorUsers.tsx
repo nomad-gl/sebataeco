@@ -4,6 +4,7 @@
  *           invite history table with Resend button.
  */
 import { Badge } from "@/components/ui/badge";
+import { InviteCountdown } from "@/components/InviteCountdown";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -433,9 +434,7 @@ export default function DirectorUsers() {
                           </Badge>
                         )}
                         {invite.status === "pending" && (
-                          <Badge variant="outline" className="text-xs text-amber-600 border-amber-600">
-                            {t("dir_invite_status_pending")}
-                          </Badge>
+                          <InviteCountdown expiresAt={new Date(invite.expiresAt)} />
                         )}
                         {invite.status === "expired" && (
                           <Badge variant="outline" className="text-xs text-destructive border-destructive">
