@@ -1,11 +1,11 @@
 /**
  * DirectorUsers — Director-only page listing all local (email+password) accounts.
- * Shows: display name, email, role badge, status badge (Active/Deactivated),
- * position, last sign-in, and action buttons: Reset Password + Deactivate/Reactivate.
+ * Features: role selector, deactivate/reactivate, bulk deactivate, invite teacher.
  */
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -27,6 +28,7 @@ import { trpc } from "@/lib/trpc";
 import {
   KeyRound,
   Loader2,
+  MailPlus,
   Search,
   ShieldCheck,
   User,
@@ -77,6 +79,11 @@ export default function DirectorUsers() {
   const [confirmReset, setConfirmReset] = useState<LocalUser | null>(null);
   const [confirmDeactivate, setConfirmDeactivate] = useState<DeactivateAction | null>(null);
   const [resetResult, setResetResult] = useState<{ url: string; expiresAt: Date } | null>(null);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteResult, setInviteResult] = useState<{ url: string; expiresAt: Date } | null>(null);
 
   const { data: users = [], isLoading, refetch } = trpc.director.listLocalUsers.useQuery();
 
@@ -107,14 +114,31 @@ export default function DirectorUsers() {
     onError: (err) => toast.error(err.message),
   });
 
+  const bulkDeactivateMutation = trpc.director.bulkDeactivateUsers.useMutation({
+    onSuccess: (data) => {
+      setShowBulkConfirm(false);
+      setSelected(new Set());
+      toast.success(t("dir_users_bulk_deactivated_toast").replace("{n}", String(data.count)));
+      refetch();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const inviteMutation = trpc.director.createTeacherInvite.useMutation({
+    onSuccess: (data) => {
+      setShowInvite(false);
+      setInviteEmail("");
+      setInviteResult({ url: data.inviteUrl, expiresAt: new Date(data.expiresAt) });
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   const isDeactivatePending = deactivateMutation.isPending || reactivateMutation.isPending;
 
   const roleMutation = trpc.director.updateUserRole.useMutation({
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       toast.success(t("dir_users_role_updated_toast"));
-      // Optimistically update the local list so the UI reflects the change immediately
       refetch();
-      void variables;
     },
     onError: (err) => toast.error(err.message),
   });
@@ -130,26 +154,70 @@ export default function DirectorUsers() {
     );
   });
 
+  // Active (non-deactivated) users in the filtered list
+  const activeFiltered = filtered.filter((u) => !u.deactivatedAt);
+  const allActiveSelected =
+    activeFiltered.length > 0 && activeFiltered.every((u) => selected.has(u.id));
+
+  const toggleSelect = (id: number) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (allActiveSelected) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(activeFiltered.map((u) => u.id)));
+    }
+  };
+
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Users className="h-7 w-7 text-primary" />
-        <div>
-          <h1 className="text-2xl font-bold">{t("dir_users_title")}</h1>
-          <p className="text-sm text-muted-foreground">{t("dir_users_subtitle")}</p>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-3">
+          <Users className="h-7 w-7 text-primary" />
+          <div>
+            <h1 className="text-2xl font-bold">{t("dir_users_title")}</h1>
+            <p className="text-sm text-muted-foreground">{t("dir_users_subtitle")}</p>
+          </div>
         </div>
+        <Button
+          className="gap-2"
+          onClick={() => setShowInvite(true)}
+        >
+          <MailPlus className="h-4 w-4" />
+          {t("dir_users_invite_btn")}
+        </Button>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          className="pl-9"
-          placeholder={t("dir_users_search_placeholder")}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      {/* Search + bulk toolbar */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder={t("dir_users_search_placeholder")}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        {selected.size > 0 && (
+          <Button
+            variant="destructive"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setShowBulkConfirm(true)}
+          >
+            <UserX className="h-4 w-4" />
+            {t("dir_users_bulk_deactivate_btn").replace("{n}", String(selected.size))}
+          </Button>
+        )}
       </div>
 
       {/* Table card */}
@@ -175,6 +243,13 @@ export default function DirectorUsers() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/40">
+                    <th className="px-4 py-3 w-10">
+                      <Checkbox
+                        checked={allActiveSelected}
+                        onCheckedChange={toggleSelectAll}
+                        aria-label="Select all active"
+                      />
+                    </th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">{t("dir_users_col_name")}</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">{t("dir_users_col_email")}</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">{t("dir_users_col_role")}</th>
@@ -187,11 +262,20 @@ export default function DirectorUsers() {
                 <tbody>
                   {filtered.map((user) => {
                     const isDeactivated = !!user.deactivatedAt;
+                    const isChecked = selected.has(user.id);
                     return (
                       <tr
                         key={user.id}
-                        className={`border-b last:border-0 transition-colors ${isDeactivated ? "opacity-60 bg-muted/10" : "hover:bg-muted/20"}`}
+                        className={`border-b last:border-0 transition-colors ${isDeactivated ? "opacity-60 bg-muted/10" : isChecked ? "bg-primary/5" : "hover:bg-muted/20"}`}
                       >
+                        <td className="px-4 py-3">
+                          <Checkbox
+                            checked={isChecked}
+                            disabled={isDeactivated}
+                            onCheckedChange={() => !isDeactivated && toggleSelect(user.id)}
+                            aria-label={`Select ${user.displayName ?? user.email}`}
+                          />
+                        </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -345,6 +429,95 @@ export default function DirectorUsers() {
                   ? t("dir_users_reactivate_confirm_btn")
                   : t("dir_users_deactivate_confirm_btn")}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk deactivate confirm dialog */}
+      <Dialog open={showBulkConfirm} onOpenChange={(open) => !open && setShowBulkConfirm(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("dir_users_bulk_deactivate_confirm_title")}</DialogTitle>
+            <DialogDescription>
+              {t("dir_users_bulk_deactivate_confirm_desc").replace("{n}", String(selected.size))}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowBulkConfirm(false)}>
+              {t("dir_users_cancel")}
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={bulkDeactivateMutation.isPending}
+              onClick={() => bulkDeactivateMutation.mutate({ userIds: Array.from(selected) })}
+            >
+              {bulkDeactivateMutation.isPending
+                ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />{t("dir_users_resetting")}</>
+                : t("dir_users_bulk_deactivate_confirm_btn").replace("{n}", String(selected.size))}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invite teacher dialog */}
+      <Dialog open={showInvite} onOpenChange={(open) => { if (!open) { setShowInvite(false); setInviteEmail(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("dir_users_invite_title")}</DialogTitle>
+            <DialogDescription>{t("dir_users_invite_desc")}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="invite-email">{t("dir_users_invite_email_label")}</Label>
+            <Input
+              id="invite-email"
+              type="email"
+              placeholder="teacher@school.edu"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setShowInvite(false); setInviteEmail(""); }}>
+              {t("dir_users_cancel")}
+            </Button>
+            <Button
+              disabled={inviteMutation.isPending || !inviteEmail.trim()}
+              onClick={() => inviteMutation.mutate({ email: inviteEmail.trim(), origin: window.location.origin })}
+            >
+              {inviteMutation.isPending
+                ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />{t("dir_users_invite_sending")}</>
+                : t("dir_users_invite_send_btn")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invite link result dialog */}
+      <Dialog open={!!inviteResult} onOpenChange={(open) => !open && setInviteResult(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("dir_users_invite_done_title")}</DialogTitle>
+            <DialogDescription>{t("dir_users_invite_done_desc")}</DialogDescription>
+          </DialogHeader>
+          <div className="rounded-md bg-muted p-3 text-xs font-mono break-all select-all">
+            {inviteResult?.url}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {t("dir_users_reset_expires")}: {inviteResult ? formatDate(inviteResult.expiresAt) : ""}
+          </p>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (inviteResult?.url) {
+                  navigator.clipboard.writeText(inviteResult.url);
+                  toast.success(t("dir_users_reset_copied"));
+                }
+              }}
+            >
+              {t("dir_users_reset_copy_link")}
+            </Button>
+            <Button onClick={() => setInviteResult(null)}>{t("dir_users_close")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

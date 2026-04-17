@@ -3213,3 +3213,15 @@
 - [x] Add i18n keys for role selector (EN/ES/CA)
 - [x] Add inline role Select dropdown per row in DirectorUsers.tsx with optimistic update
 - [x] Record role change in audit log (actor, target user, old role, new role, timestamp)
+
+## Feature: SEBA logo on sign-in page + bulk deactivate + invite teacher
+
+- [x] Add SEBA logo (VITE_APP_LOGO) to LocalLogin sign-in page above the form title
+- [x] Bulk deactivate: add checkboxes to DirectorUsers table rows
+- [x] Bulk deactivate: add "Deactivate selected" toolbar button with confirmation dialog
+- [x] Bulk deactivate: add director.bulkDeactivateUsers tRPC procedure
+- [x] Invite teacher: add teacher_invites DB table (token, email, createdBy, expiresAt, usedAt)
+- [x] Invite teacher: add director.createTeacherInvite tRPC procedure
+- [x] Invite teacher: add "Invite Teacher" button on DirectorUsers page with email input dialog
+- [x] Invite teacher: add /register?invite=<token> landing page that pre-fills email and registers on submit
+- [x] Add i18n keys for bulk deactivate and invite teacher (EN/ES/CA)

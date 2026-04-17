@@ -162,9 +162,19 @@ export default function LocalLogin() {
       <div className="relative z-10 w-full max-w-md mx-4">
         {/* SEBA logo / title */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 mb-3">
-            <ShieldCheck className="w-8 h-8 text-red-400" />
-            <span className="text-3xl font-bold text-white tracking-tight">SEBA</span>
+          <div className="flex justify-center mb-3">
+            {import.meta.env.VITE_APP_LOGO ? (
+              <img
+                src={import.meta.env.VITE_APP_LOGO}
+                alt="SEBA"
+                className="h-16 w-auto object-contain drop-shadow-lg"
+              />
+            ) : (
+              <div className="inline-flex items-center gap-2">
+                <ShieldCheck className="w-8 h-8 text-red-400" />
+                <span className="text-3xl font-bold text-white tracking-tight">SEBA</span>
+              </div>
+            )}
           </div>
           <p className="text-white/70 text-sm">{t("local_auth_subtitle")}</p>
         </div>

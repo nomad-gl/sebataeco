@@ -319,7 +319,7 @@ export const directorRouter = router({
     return db.select({ id: users.id, name: users.name, email: users.email, role: users.role, createdAt: users.createdAt, lastSignedIn: users.lastSignedIn }).from(users).orderBy(desc(users.createdAt));
   }),
 
-  /** Update a user's role — sends owner notification when promoting to admin */
+  /** Update a user's role - sends owner notification when promoting to admin */
   updateUserRole: adminProcedure
     .input(z.object({ userId: z.union([z.string(), z.number()]), role: z.enum(["user", "admin"]) }))
     .mutation(async ({ input, ctx }) => {
@@ -770,6 +770,51 @@ export const directorRouter = router({
         details: JSON.stringify({ targetUserId: input.userId }),
       });
       return { success: true };
+    }),
+
+  bulkDeactivateUsers: adminProcedure
+    .input(z.object({ userIds: z.array(z.number()).min(1).max(100) }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const safeIds = input.userIds.filter((id) => id !== ctx.user.id);
+      if (safeIds.length === 0) throw new Error("Cannot deactivate your own account");
+      await db
+        .update(users)
+        .set({ deactivatedAt: new Date() })
+        .where(and(inArray(users.id, safeIds), isNotNull(users.passwordHash)));
+      for (const userId of safeIds) {
+        await db.insert(adminAuditLogs).values({
+          userId: ctx.user.id,
+          action: "deactivate_user",
+          resource: "user",
+          resourceId: String(userId),
+          details: JSON.stringify({ targetUserId: userId, bulk: true }),
+        });
+      }
+      return { count: safeIds.length };
+    }),
+
+  createTeacherInvite: adminProcedure
+    .input(z.object({ email: z.string().email().optional(), origin: z.string().url() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const { teacherInvites } = await import("../../drizzle/schema");
+      const token = crypto.randomBytes(32).toString("hex");
+      const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
+      await db.insert(teacherInvites).values({
+        token,
+        email: input.email ?? null,
+        createdByUserId: ctx.user.id,
+        expiresAt,
+      });
+      const inviteUrl = `${input.origin}/register?invite=${token}`;
+      await notifyOwner({
+        title: "New Teacher Invite Generated",
+        content: `A Director generated a teacher registration link${input.email ? ` for ${input.email}` : ""}. Link: ${inviteUrl} (expires ${expiresAt.toISOString()})`,
+      });
+      return { inviteUrl, expiresAt };
     }),
 
 });
