@@ -3089,3 +3089,8 @@
 
 - [x] Expand isImageRequest regex to cover mid-sentence and indirect image requests (EN/ES/CA)
 - [x] Ensure plain-text send triggers image generation without toolbar button
+
+## Session 60: LLM Fallback for Failed Image Generation
+
+- [x] Send __image_fallback__ token from AIChatBox catch block with original prompt
+- [x] Handle __image_fallback__ in Chat.tsx: fire LLM call with system note to describe the image

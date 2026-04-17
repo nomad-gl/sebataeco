@@ -850,7 +850,8 @@ export function AIChatBox({
         ];
         onSendMessage(`__image_variations__${JSON.stringify(variations)}`);
       } catch {
-        onSendMessage("__image_error__");
+        // Image generation failed — send fallback token so Chat.tsx can ask the LLM to describe the image instead
+        onSendMessage(`__image_fallback__${prompt}`);
       } finally {
         setIsGeneratingImage(false);
       }
@@ -1058,7 +1059,7 @@ export function AIChatBox({
                                         setIsGeneratingImage(true);
                                         generateImageMutation.mutateAsync({ prompt: extractImagePrompt(prompt) })
                                           .then(({ url }) => { onSendMessage(`__image__${url}`); })
-                                          .catch(() => { onSendMessage("__image_error__"); })
+                                          .catch(() => { onSendMessage(`__image_fallback__${extractImagePrompt(stripVariationSuffix(message.content!))}`); })
                                           .finally(() => { setIsGeneratingImage(false); setInput(""); });
                                       }, 0);
                                     }}
