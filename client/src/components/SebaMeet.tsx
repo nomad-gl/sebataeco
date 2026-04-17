@@ -255,6 +255,11 @@ const SebaMeetInner = function SebaMeet({
   const segRef           = useRef<{ send?: (o: { image: HTMLVideoElement }) => Promise<void>; close?: () => void } | null>(null);
   const segAnimRef       = useRef<number>(0);
   const [bgReady,        setBgReady]        = useState(false);
+  // Stable refs so onResults always reads the latest values without closure staleness
+  const resolvedBgUrlRef    = useRef("");
+  const resolvedBlurRadiusRef = useRef(16);
+  // Cached offscreen canvas for person masking (reused every frame to avoid GC pressure)
+  const personCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Resolve background URL from id
   // Read blur intensity from live override or localStorage (set by PreCallScreen)
@@ -288,13 +293,18 @@ const SebaMeetInner = function SebaMeet({
     return "";
   })();
 
+  // Keep stable refs in sync so onResults never reads stale closure values
+  useEffect(() => { resolvedBgUrlRef.current = resolvedBgUrl; }, [resolvedBgUrl]);
+  useEffect(() => { resolvedBlurRadiusRef.current = resolvedBlurRadius; }, [resolvedBlurRadius]);
+
   // Load background image
   useEffect(() => {
     if (resolvedBgUrl && resolvedBgUrl !== "blur") {
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.src = resolvedBgUrl;
-      img.onload = () => { bgImgRef.current = img; };
+      img.onload = () => { bgImgRef.current = img; setBgReady(true); };
+      img.onerror = () => { bgImgRef.current = null; };
     } else {
       bgImgRef.current = null;
     }
@@ -322,22 +332,46 @@ const SebaMeetInner = function SebaMeet({
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
         const { width, height } = canvas;
+        // Read latest values from stable refs (never stale)
+        const bgUrl    = resolvedBgUrlRef.current;
+        const blurPx   = resolvedBlurRadiusRef.current;
+        const bgImg    = bgImgRef.current;
+
         ctx.save();
         ctx.clearRect(0, 0, width, height);
-        // Draw live video (person)
-        ctx.drawImage(results.image, 0, 0, width, height);
-        // Cut out background using mask
-        ctx.globalCompositeOperation = "destination-in";
-        ctx.drawImage(results.segmentationMask, 0, 0, width, height);
-        // Draw background behind person
-        ctx.globalCompositeOperation = "destination-over";
-        if (resolvedBgUrl === "blur") {
-          ctx.filter = `blur(${resolvedBlurRadius}px)`;
+
+        // Step 1: Draw the background layer first
+        if (bgUrl === "blur") {
+          ctx.filter = `blur(${blurPx}px)`;
           ctx.drawImage(results.image, 0, 0, width, height);
           ctx.filter = "none";
-        } else if (bgImgRef.current) {
-          ctx.drawImage(bgImgRef.current, 0, 0, width, height);
+        } else if (bgImg) {
+          // Cover-fit the background image
+          const scale = Math.max(width / bgImg.naturalWidth, height / bgImg.naturalHeight);
+          const sw = bgImg.naturalWidth * scale;
+          const sh = bgImg.naturalHeight * scale;
+          const sx = (width - sw) / 2;
+          const sy = (height - sh) / 2;
+          ctx.drawImage(bgImg, sx, sy, sw, sh);
+        } else {
+          // Background image not yet loaded — show dark placeholder
+          ctx.fillStyle = "#111";
+          ctx.fillRect(0, 0, width, height);
         }
+
+        // Step 2: Draw the person on top, masked to the segmentation silhouette
+        // Reuse cached offscreen canvas (avoid GC pressure at 60fps)
+        if (!personCanvasRef.current) personCanvasRef.current = document.createElement("canvas");
+        const personCanvas = personCanvasRef.current;
+        if (personCanvas.width !== width) personCanvas.width = width;
+        if (personCanvas.height !== height) personCanvas.height = height;
+        const pCtx = personCanvas.getContext("2d")!;
+        pCtx.drawImage(results.image, 0, 0, width, height);
+        pCtx.globalCompositeOperation = "destination-in";
+        pCtx.drawImage(results.segmentationMask, 0, 0, width, height);
+
+        // Step 3: Composite the masked person over the background
+        ctx.drawImage(personCanvas, 0, 0);
         ctx.restore();
       });
       await seg.initialize();

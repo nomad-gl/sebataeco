@@ -2936,3 +2936,9 @@
 - [x] Noise suppression toggle: in Filters tab of in-call settings overlay; replaces audio track mid-call with new noiseSuppression constraint; respects current mute state
 - [x] TypeScript 0 errors
 - [x] Save checkpoint
+
+## Session 46: Segmentation Fix
+- [x] Fix background segmentation: rewrote compositing to two-pass approach (draw background first, then mask person onto offscreen canvas and composite on top); stable refs prevent stale closure values; cover-fit scaling for background images
+- [x] Verify fix works in both SebaMeet (in-call) and PreCallScreen (pre-call preview)
+- [x] TypeScript 0 errors
+- [x] Save checkpoint

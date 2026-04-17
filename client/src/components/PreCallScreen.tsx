@@ -432,31 +432,36 @@ export default function PreCallScreen({
         if (!ctx) return;
         const { width, height } = canvas;
 
-        // Draw segmentation mask to get person pixels
         ctx.save();
         ctx.clearRect(0, 0, width, height);
 
-        // Draw background
-        if (selectedBg.url && selectedBg.url !== "blur" && bgImgRef.current) {
-          ctx.drawImage(bgImgRef.current, 0, 0, width, height);
+        // Step 1: Draw background layer
+        const bgImg = bgImgRef.current;
+        const isBlur = !selectedBg.url || selectedBg.url === "blur";
+        if (!isBlur && bgImg) {
+          // Cover-fit the background image
+          const scale = Math.max(width / bgImg.naturalWidth, height / bgImg.naturalHeight);
+          const sw = bgImg.naturalWidth * scale;
+          const sh = bgImg.naturalHeight * scale;
+          const sx = (width - sw) / 2;
+          const sy = (height - sh) / 2;
+          ctx.drawImage(bgImg, sx, sy, sw, sh);
         } else {
-          // Blurred background: draw video blurred
+          // Blurred background
           ctx.filter = `blur(${BLUR_RADIUS_MAP[blurIntensity - 1]}px)`;
           ctx.drawImage(results.image, 0, 0, width, height);
           ctx.filter = "none";
         }
 
-        // Composite: keep only person pixels from live video
-        ctx.globalCompositeOperation = "destination-in";
-        ctx.drawImage(results.segmentationMask, 0, 0, width, height);
-        ctx.globalCompositeOperation = "destination-over";
-        if (selectedBg.url && selectedBg.url !== "blur" && bgImgRef.current) {
-          ctx.drawImage(bgImgRef.current, 0, 0, width, height);
-        } else {
-          ctx.filter = `blur(${BLUR_RADIUS_MAP[blurIntensity - 1]}px)`;
-          ctx.drawImage(results.image, 0, 0, width, height);
-          ctx.filter = "none";
-        }
+        // Step 2: Mask person onto offscreen canvas then composite over background
+        const personCanvas = document.createElement("canvas");
+        personCanvas.width = width;
+        personCanvas.height = height;
+        const pCtx = personCanvas.getContext("2d")!;
+        pCtx.drawImage(results.image, 0, 0, width, height);
+        pCtx.globalCompositeOperation = "destination-in";
+        pCtx.drawImage(results.segmentationMask, 0, 0, width, height);
+        ctx.drawImage(personCanvas, 0, 0);
         ctx.restore();
       });
 
