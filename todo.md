@@ -3094,3 +3094,8 @@
 
 - [x] Send __image_fallback__ token from AIChatBox catch block with original prompt
 - [x] Handle __image_fallback__ in Chat.tsx: fire LLM call with system note to describe the image
+
+## Session 61: Remove Aina Image Restriction from System Prompt
+
+- [x] Add image generation capability statement to Aina system prompt
+- [x] Remove any implicit restriction on image creation
