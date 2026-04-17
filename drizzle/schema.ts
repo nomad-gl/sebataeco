@@ -20,6 +20,8 @@ export const users = mysqlTable("users", {
   passwordHash: varchar("passwordHash", { length: 255 }),
   /** Preferred display name set during local registration. */
   displayName: varchar("displayName", { length: 128 }),
+  /** Set by a Director to prevent login without deleting data. NULL = active. */
+  deactivatedAt: timestamp("deactivatedAt"),
 });
 
 export type User = typeof users.$inferSelect;

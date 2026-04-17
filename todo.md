@@ -3183,3 +3183,15 @@
 - [x] Add i18n keys for user management page (EN/ES/CA)
 - [x] Register /director/users route in App.tsx
 - [x] Add "Users" nav link to Director sidebar in DashboardLayout.tsx
+
+## Feature: Deactivate Account + Audit Log (Director Users follow-ups 2 & 3)
+
+- [x] DB migration: add deactivatedAt column (nullable datetime) to users table
+- [x] Add director.deactivateUser tRPC procedure (sets deactivatedAt = now)
+- [x] Add director.reactivateUser tRPC procedure (sets deactivatedAt = null)
+- [x] Update director.listLocalUsers to include deactivatedAt in returned rows
+- [x] Block login for deactivated users in localAuth.login procedure
+- [x] Add Deactivate/Reactivate button to DirectorUsers.tsx with status badge (Active/Deactivated)
+- [x] Record adminRequestReset event in audit log (actor, target user, timestamp, action type)
+- [x] Record deactivate/reactivate events in audit log
+- [x] Add i18n keys for deactivate/reactivate UI (EN/ES/CA)

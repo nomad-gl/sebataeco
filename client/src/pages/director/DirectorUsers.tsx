@@ -1,7 +1,7 @@
 /**
  * DirectorUsers — Director-only page listing all local (email+password) accounts.
- * Shows: display name, email, role badge, position, last sign-in, and a
- * "Reset Password" action that triggers adminRequestReset on the server.
+ * Shows: display name, email, role badge, status badge (Active/Deactivated),
+ * position, last sign-in, and action buttons: Reset Password + Deactivate/Reactivate.
  */
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,8 @@ import {
   ShieldCheck,
   User,
   Users,
+  UserX,
+  UserCheck,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -37,7 +39,10 @@ type LocalUser = {
   position: string | null;
   lastSignedIn: Date | null;
   createdAt: Date | null;
+  deactivatedAt: Date | null;
 };
+
+type DeactivateAction = { user: LocalUser; action: "deactivate" | "reactivate" };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatDate(date: Date | null): string {
@@ -62,21 +67,40 @@ function positionLabel(position: string | null): string {
 export default function DirectorUsers() {
   const { t } = useI18n();
   const [search, setSearch] = useState("");
-  const [confirmUser, setConfirmUser] = useState<LocalUser | null>(null);
+  const [confirmReset, setConfirmReset] = useState<LocalUser | null>(null);
+  const [confirmDeactivate, setConfirmDeactivate] = useState<DeactivateAction | null>(null);
   const [resetResult, setResetResult] = useState<{ url: string; expiresAt: Date } | null>(null);
 
   const { data: users = [], isLoading, refetch } = trpc.director.listLocalUsers.useQuery();
 
   const resetMutation = trpc.director.adminRequestReset.useMutation({
     onSuccess: (data) => {
-      setConfirmUser(null);
+      setConfirmReset(null);
       setResetResult({ url: data.resetUrl, expiresAt: new Date(data.expiresAt) });
       refetch();
     },
-    onError: (err) => {
-      toast.error(err.message);
-    },
+    onError: (err) => toast.error(err.message),
   });
+
+  const deactivateMutation = trpc.director.deactivateUser.useMutation({
+    onSuccess: () => {
+      setConfirmDeactivate(null);
+      toast.success(t("dir_users_deactivated_toast"));
+      refetch();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const reactivateMutation = trpc.director.reactivateUser.useMutation({
+    onSuccess: () => {
+      setConfirmDeactivate(null);
+      toast.success(t("dir_users_reactivated_toast"));
+      refetch();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const isDeactivatePending = deactivateMutation.isPending || reactivateMutation.isPending;
 
   // Filter by search
   const filtered = users.filter((u) => {
@@ -137,48 +161,79 @@ export default function DirectorUsers() {
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">{t("dir_users_col_name")}</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">{t("dir_users_col_email")}</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">{t("dir_users_col_role")}</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">{t("dir_users_col_status")}</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">{t("dir_users_col_position")}</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">{t("dir_users_col_last_signin")}</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">{t("dir_users_col_joined")}</th>
                     <th className="text-right px-4 py-3 font-medium text-muted-foreground">{t("dir_users_col_actions")}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((user) => (
-                    <tr key={user.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                            {user.role === "admin"
-                              ? <ShieldCheck className="h-4 w-4 text-primary" />
-                              : <User className="h-4 w-4 text-muted-foreground" />
-                            }
+                  {filtered.map((user) => {
+                    const isDeactivated = !!user.deactivatedAt;
+                    return (
+                      <tr
+                        key={user.id}
+                        className={`border-b last:border-0 transition-colors ${isDeactivated ? "opacity-60 bg-muted/10" : "hover:bg-muted/20"}`}
+                      >
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                              {user.role === "admin"
+                                ? <ShieldCheck className="h-4 w-4 text-primary" />
+                                : <User className="h-4 w-4 text-muted-foreground" />
+                              }
+                            </div>
+                            <span className="font-medium">{user.displayName ?? "—"}</span>
                           </div>
-                          <span className="font-medium">{user.displayName ?? "—"}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">{user.email ?? "—"}</td>
-                      <td className="px-4 py-3">
-                        <Badge variant={user.role === "admin" ? "default" : "secondary"}>
-                          {user.role === "admin" ? t("dir_users_role_admin") : t("dir_users_role_user")}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">{positionLabel(user.position)}</td>
-                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatDate(user.lastSignedIn)}</td>
-                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatDate(user.createdAt)}</td>
-                      <td className="px-4 py-3 text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="gap-1.5"
-                          onClick={() => setConfirmUser(user)}
-                        >
-                          <KeyRound className="h-3.5 w-3.5" />
-                          {t("dir_users_reset_btn")}
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">{user.email ?? "—"}</td>
+                        <td className="px-4 py-3">
+                          <Badge variant={user.role === "admin" ? "default" : "secondary"}>
+                            {user.role === "admin" ? t("dir_users_role_admin") : t("dir_users_role_user")}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3">
+                          {isDeactivated ? (
+                            <Badge variant="destructive" className="text-xs">
+                              {t("dir_users_status_deactivated")}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-xs text-green-600 border-green-600">
+                              {t("dir_users_status_active")}
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">{positionLabel(user.position)}</td>
+                        <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatDate(user.lastSignedIn)}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-end gap-2">
+                            {!isDeactivated && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1.5"
+                                onClick={() => setConfirmReset(user)}
+                              >
+                                <KeyRound className="h-3.5 w-3.5" />
+                                {t("dir_users_reset_btn")}
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant={isDeactivated ? "outline" : "ghost"}
+                              className={`gap-1.5 ${isDeactivated ? "text-green-600 border-green-600 hover:bg-green-50" : "text-destructive hover:text-destructive hover:bg-destructive/10"}`}
+                              onClick={() => setConfirmDeactivate({ user, action: isDeactivated ? "reactivate" : "deactivate" })}
+                            >
+                              {isDeactivated
+                                ? <><UserCheck className="h-3.5 w-3.5" />{t("dir_users_reactivate_btn")}</>
+                                : <><UserX className="h-3.5 w-3.5" />{t("dir_users_deactivate_btn")}</>
+                              }
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -187,28 +242,69 @@ export default function DirectorUsers() {
       </Card>
 
       {/* Confirm reset dialog */}
-      <Dialog open={!!confirmUser} onOpenChange={(open) => !open && setConfirmUser(null)}>
+      <Dialog open={!!confirmReset} onOpenChange={(open) => !open && setConfirmReset(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t("dir_users_reset_confirm_title")}</DialogTitle>
             <DialogDescription>
-              {t("dir_users_reset_confirm_desc").replace("{name}", confirmUser?.displayName ?? confirmUser?.email ?? String(confirmUser?.id ?? ""))}
+              {t("dir_users_reset_confirm_desc").replace("{name}", confirmReset?.displayName ?? confirmReset?.email ?? String(confirmReset?.id ?? ""))}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setConfirmUser(null)}>
+            <Button variant="ghost" onClick={() => setConfirmReset(null)}>
               {t("dir_users_cancel")}
             </Button>
             <Button
               disabled={resetMutation.isPending}
               onClick={() => {
-                if (!confirmUser) return;
-                resetMutation.mutate({ userId: confirmUser.id, origin: window.location.origin });
+                if (!confirmReset) return;
+                resetMutation.mutate({ userId: confirmReset.id, origin: window.location.origin });
               }}
             >
               {resetMutation.isPending
                 ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />{t("dir_users_resetting")}</>
                 : t("dir_users_reset_confirm_btn")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm deactivate / reactivate dialog */}
+      <Dialog open={!!confirmDeactivate} onOpenChange={(open) => !open && setConfirmDeactivate(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {confirmDeactivate?.action === "reactivate"
+                ? t("dir_users_reactivate_confirm_title")
+                : t("dir_users_deactivate_confirm_title")}
+            </DialogTitle>
+            <DialogDescription>
+              {confirmDeactivate?.action === "reactivate"
+                ? t("dir_users_reactivate_confirm_desc").replace("{name}", confirmDeactivate.user.displayName ?? confirmDeactivate.user.email ?? String(confirmDeactivate.user.id))
+                : t("dir_users_deactivate_confirm_desc").replace("{name}", confirmDeactivate?.user.displayName ?? confirmDeactivate?.user.email ?? String(confirmDeactivate?.user.id ?? ""))}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setConfirmDeactivate(null)}>
+              {t("dir_users_cancel")}
+            </Button>
+            <Button
+              variant={confirmDeactivate?.action === "reactivate" ? "default" : "destructive"}
+              disabled={isDeactivatePending}
+              onClick={() => {
+                if (!confirmDeactivate) return;
+                if (confirmDeactivate.action === "reactivate") {
+                  reactivateMutation.mutate({ userId: confirmDeactivate.user.id });
+                } else {
+                  deactivateMutation.mutate({ userId: confirmDeactivate.user.id });
+                }
+              }}
+            >
+              {isDeactivatePending
+                ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />{t("dir_users_resetting")}</>
+                : confirmDeactivate?.action === "reactivate"
+                  ? t("dir_users_reactivate_confirm_btn")
+                  : t("dir_users_deactivate_confirm_btn")}
             </Button>
           </DialogFooter>
         </DialogContent>

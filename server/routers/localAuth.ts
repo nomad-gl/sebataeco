@@ -268,6 +268,14 @@ export const localAuthRouter = router({
         });
       }
 
+      // Block deactivated accounts
+      if (user.deactivatedAt) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "This account has been deactivated. Please contact your school administrator.",
+        });
+      }
+
       // Update last sign-in
       await db
         .update(users)

@@ -19,7 +19,7 @@ import {
 import { count, eq, gte, sql, desc, and, lt, inArray, isNotNull } from "drizzle-orm";
 import crypto from "crypto";
 import { passwordResetTokens } from "../../drizzle/schema";
-import { appSettings, schoolSettings } from "../../drizzle/schema";
+import { appSettings, schoolSettings, adminAuditLogs } from "../../drizzle/schema";
 import { notifyOwner } from "../_core/notification";
 import { generateDirectorReportPdf } from "../directorReportPdf";
 import { storagePut } from "../storage";
@@ -661,6 +661,7 @@ export const directorRouter = router({
         position: users.position,
         lastSignedIn: users.lastSignedIn,
         createdAt: users.createdAt,
+        deactivatedAt: users.deactivatedAt,
       })
       .from(users)
       .where(isNotNull(users.passwordHash))
@@ -704,6 +705,59 @@ export const directorRouter = router({
         content: `A Director has issued a password reset for user ${user.displayName ?? user.email}.\n\nReset link (expires in 1 hour):\n${resetUrl}`,
       });
 
+      // Audit log entry for the reset
+      await db.insert(adminAuditLogs).values({
+        userId: user.id,
+        action: "admin_password_reset",
+        resource: "user",
+        resourceId: String(user.id),
+        details: JSON.stringify({ issuedBy: "director", email: user.email }),
+      });
+
       return { success: true, resetUrl, expiresAt };
+    }),
+
+  /**
+   * Director: deactivate a local account (prevents login, data preserved).
+   */
+  deactivateUser: adminProcedure
+    .input(z.object({ userId: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      await db
+        .update(users)
+        .set({ deactivatedAt: new Date() })
+        .where(and(eq(users.id, input.userId), isNotNull(users.passwordHash)));
+      await db.insert(adminAuditLogs).values({
+        userId: ctx.user.id,
+        action: "deactivate_user",
+        resource: "user",
+        resourceId: String(input.userId),
+        details: JSON.stringify({ targetUserId: input.userId }),
+      });
+      return { success: true };
+    }),
+
+  /**
+   * Director: reactivate a previously deactivated local account.
+   */
+  reactivateUser: adminProcedure
+    .input(z.object({ userId: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      await db
+        .update(users)
+        .set({ deactivatedAt: null })
+        .where(and(eq(users.id, input.userId), isNotNull(users.passwordHash)));
+      await db.insert(adminAuditLogs).values({
+        userId: ctx.user.id,
+        action: "reactivate_user",
+        resource: "user",
+        resourceId: String(input.userId),
+        details: JSON.stringify({ targetUserId: input.userId }),
+      });
+      return { success: true };
     }),
 });
