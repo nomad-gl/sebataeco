@@ -16,7 +16,7 @@ import {
   groupStudents,
   classGroups,
 } from "../../drizzle/schema";
-import { count, eq, gte, sql, desc, and, lt, inArray, isNotNull } from "drizzle-orm";
+import { count, eq, gte, sql, desc, and, lt, inArray, isNotNull, isNull, gt } from "drizzle-orm";
 import crypto from "crypto";
 import { passwordResetTokens } from "../../drizzle/schema";
 import { appSettings, schoolSettings, adminAuditLogs } from "../../drizzle/schema";
@@ -836,6 +836,29 @@ export const directorRouter = router({
         usedAt: r.usedAt,
         status: r.usedAt ? "used" : r.expiresAt < now ? "expired" : "pending",
       }));
+    }),
+
+  /**
+   * Returns the count of teacher invites that are pending:
+   * not yet used and not yet expired.
+   * Used by the NavBar to show a badge on the Director menu item.
+   */
+  getPendingInviteCount: adminProcedure
+    .query(async () => {
+      const db = await getDb();
+      if (!db) return { count: 0 };
+      const { teacherInvites } = await import("../../drizzle/schema");
+      const now = new Date();
+      const rows = await db
+        .select({ id: teacherInvites.id })
+        .from(teacherInvites)
+        .where(
+          and(
+            isNull(teacherInvites.usedAt),
+            gt(teacherInvites.expiresAt, now)
+          )
+        );
+      return { count: rows.length };
     }),
 
   resendTeacherInvite: adminProcedure

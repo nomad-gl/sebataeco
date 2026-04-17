@@ -135,6 +135,13 @@ export default function NavBar() {
   });
   const forumBadge = forumUnreadData?.unread ?? 0;
 
+  // Pending teacher invite badge (Director only)
+  const { data: pendingInviteData } = trpc.director.getPendingInviteCount.useQuery(undefined, {
+    enabled: !!user && isDirectorPos,
+    refetchInterval: 60_000,
+  });
+  const pendingInviteCount = pendingInviteData?.count ?? 0;
+
   // Items before Teacher dropdown (Home removed — logo already links to /)
   const mainNavItemsBefore = [
     { href: "/chat",           label: t("nav_chat"),           icon: MessageCircle },
@@ -577,6 +584,11 @@ export default function NavBar() {
               >
                 <BarChart3 className="w-4 h-4" />
                 <span className="hidden lg:inline">{t("nav_director")}</span>
+                {pendingInviteCount > 0 && (
+                  <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-bold text-white leading-none">
+                    {pendingInviteCount > 9 ? "9+" : pendingInviteCount}
+                  </span>
+                )}
                 <ChevronDown className={cn("w-3 h-3 transition-transform hidden lg:inline", directorOpen && "rotate-180")} />
               </button>
 
@@ -584,6 +596,7 @@ export default function NavBar() {
                 <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-border rounded-xl shadow-lg py-1 z-50">
                   {directorItems.map(({ href, label, icon: Icon }) => {
                     const active = location === href || (href !== "/" && location.startsWith(href));
+                    const isUsersItem = href === "/director/users";
                     return (
                       <Link
                         key={href}
@@ -596,6 +609,11 @@ export default function NavBar() {
                       >
                         <Icon className="w-4 h-4" />
                         {label}
+                        {isUsersItem && pendingInviteCount > 0 && (
+                          <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-bold text-white leading-none">
+                            {pendingInviteCount > 9 ? "9+" : pendingInviteCount}
+                          </span>
+                        )}
                       </Link>
                     );
                   })}
@@ -1028,6 +1046,7 @@ export default function NavBar() {
               </p>
               {directorItems.map(({ href, label, icon: Icon }) => {
                 const active = location === href || (href !== "/" && location.startsWith(href));
+                const isUsersItem = href === "/director/users";
                 return (
                   <Link
                     key={href}
@@ -1044,6 +1063,11 @@ export default function NavBar() {
                   >
                     <Icon className="w-5 h-5 flex-shrink-0" />
                     {label}
+                    {isUsersItem && pendingInviteCount > 0 && (
+                      <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-white leading-none">
+                        {pendingInviteCount > 9 ? "9+" : pendingInviteCount}
+                      </span>
+                    )}
                   </Link>
                 );
               })}

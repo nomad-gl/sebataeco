@@ -3248,3 +3248,8 @@
 - [x] Rate-limit verifyInviteToken: max 10 requests per IP per minute using in-memory store, return TOO_MANY_REQUESTS with i18n error
 - [x] Add "request access" note to LocalLogin.tsx with mailto link and i18n keys (EN/ES/CA)
 - [x] Notify Director (notifyOwner) when a teacher completes registration via invite
+
+## Feature: Pending-invite count badge on Director nav item
+
+- [x] Add director.getPendingInviteCount tRPC query: counts invites where usedAt IS NULL and expiresAt > now
+- [x] Wire badge into the Director nav item in DashboardLayout: show count when > 0, auto-refresh every 60s
