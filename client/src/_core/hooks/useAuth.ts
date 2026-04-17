@@ -14,8 +14,15 @@ export function useAuth(options?: UseAuthOptions) {
   const utils = trpc.useUtils();
 
   const meQuery = trpc.auth.me.useQuery(undefined, {
-    retry: false,
-    refetchOnWindowFocus: false,
+    // Allow 1 retry for network-level failures (e.g. sandbox cold-start).
+    // We keep it at 1 (not the default 3) to avoid masking real auth errors.
+    retry: (failureCount, error) => {
+      const isNetworkError = error instanceof Error && error.message === "Failed to fetch";
+      return isNetworkError && failureCount < 1;
+    },
+    // Re-check auth when the user returns to the tab — this silently recovers
+    // sessions after a sandbox wake-up or brief network interruption.
+    refetchOnWindowFocus: true,
     // Keep the JWT session alive by refreshing auth state every 15 minutes.
     // This prevents the session cookie from expiring during idle periods.
     refetchInterval: 15 * 60 * 1000,

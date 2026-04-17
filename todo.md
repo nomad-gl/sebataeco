@@ -3151,3 +3151,9 @@
 - [x] Update all inline "Sign in" links in pages (Admin, Challenge, Create, GroupProgress, Groups, MyMaterials, Presentation, Progress, Settings, StudentProgress) to use /login?returnPath=...
 - [x] Update DashboardLayout to navigate to /login?returnPath=... instead of showing LocalLogin inline
 - [x] LocalLogin: read returnPath from URL search param and redirect there on success
+
+## Bug Fix: Errors found in logs
+
+- [x] Add automatic retry with exponential backoff for cold-start "Failed to fetch" in tRPC client (main.tsx)
+- [x] Move @import font URL to top of index.css to fix PostCSS @import ordering warning
+- [x] Add retry-on-window-focus for auth.me query so it recovers silently after sandbox wake-up

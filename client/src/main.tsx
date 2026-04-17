@@ -161,11 +161,27 @@ const trpcClient = trpc.createClient({
         if (existingSignal) {
           existingSignal.addEventListener("abort", () => controller.abort(), { once: true });
         }
-        return globalThis.fetch(input, {
-          ...(init ?? {}),
-          credentials: "include",
-          signal: controller.signal,
-        }).then(async (res) => {
+        // Retry up to 3 times with exponential backoff for cold-start "Failed to fetch"
+        // errors (network-level failures where no HTTP response is received at all).
+        // This covers sandbox wake-up and brief server restart windows.
+        const attemptFetch = (attempt: number): Promise<Response> =>
+          globalThis.fetch(input, {
+            ...(init ?? {}),
+            credentials: "include",
+            signal: controller.signal,
+          }).catch((err) => {
+            const isNetworkError = err instanceof TypeError && err.message === "Failed to fetch";
+            const isAborted = controller.signal.aborted;
+            if (isNetworkError && !isAborted && attempt < 3) {
+              const delay = 800 * Math.pow(2, attempt - 1); // 800ms, 1.6s, 3.2s
+              return new Promise<Response>((resolve, reject) =>
+                setTimeout(() => attemptFetch(attempt + 1).then(resolve, reject), delay)
+              );
+            }
+            throw err;
+          });
+
+        return attemptFetch(1).then(async (res) => {
           // If the response is not JSON (e.g. HTML login page from proxy/CDN),
           // convert it to a proper tRPC-compatible error response so the client
           // can handle it gracefully instead of throwing a JSON parse error.
