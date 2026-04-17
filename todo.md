@@ -3225,3 +3225,12 @@
 - [x] Invite teacher: add "Invite Teacher" button on DirectorUsers page with email input dialog
 - [x] Invite teacher: add /register?invite=<token> landing page that pre-fills email and registers on submit
 - [x] Add i18n keys for bulk deactivate and invite teacher (EN/ES/CA)
+
+## Feature: Invite history table + Resend invite
+
+- [x] Add director.listTeacherInvites tRPC procedure: returns all invites with token, email, createdAt, expiresAt, usedAt, status (pending/used/expired)
+- [x] Add director.resendTeacherInvite tRPC procedure: invalidates old token, creates new 48h token, notifies owner
+- [x] Add invite history section to DirectorUsers.tsx below the users table
+- [x] Show status badge per invite (Pending / Used / Expired)
+- [x] Add Resend button for pending/expired invites (not used ones)
+- [x] Add i18n keys for invite history section (EN/ES/CA)

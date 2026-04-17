@@ -817,4 +817,52 @@ export const directorRouter = router({
       return { inviteUrl, expiresAt };
     }),
 
+  listTeacherInvites: adminProcedure
+    .query(async () => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const { teacherInvites } = await import("../../drizzle/schema");
+      const now = new Date();
+      const rows = await db
+        .select()
+        .from(teacherInvites)
+        .orderBy(desc(teacherInvites.createdAt));
+      return rows.map((r) => ({
+        id: r.id,
+        token: r.token,
+        email: r.email,
+        createdAt: r.createdAt,
+        expiresAt: r.expiresAt,
+        usedAt: r.usedAt,
+        status: r.usedAt ? "used" : r.expiresAt < now ? "expired" : "pending",
+      }));
+    }),
+
+  resendTeacherInvite: adminProcedure
+    .input(z.object({ inviteId: z.number(), origin: z.string().url() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const { teacherInvites } = await import("../../drizzle/schema");
+      const [existing] = await db
+        .select()
+        .from(teacherInvites)
+        .where(eq(teacherInvites.id, input.inviteId))
+        .limit(1);
+      if (!existing) throw new Error("Invite not found");
+      if (existing.usedAt) throw new Error("Invite already used");
+      const token = crypto.randomBytes(32).toString("hex");
+      const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
+      await db
+        .update(teacherInvites)
+        .set({ token, expiresAt })
+        .where(eq(teacherInvites.id, input.inviteId));
+      const inviteUrl = `${input.origin}/register?invite=${token}`;
+      await notifyOwner({
+        title: "Teacher Invite Resent",
+        content: `A Director resent a teacher registration link${existing.email ? ` for ${existing.email}` : ""}. New link: ${inviteUrl} (expires ${expiresAt.toISOString()})`,
+      });
+      return { inviteUrl, expiresAt };
+    }),
+
 });

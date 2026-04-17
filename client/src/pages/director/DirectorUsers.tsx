@@ -1,6 +1,7 @@
 /**
  * DirectorUsers — Director-only page listing all local (email+password) accounts.
- * Features: role selector, deactivate/reactivate, bulk deactivate, invite teacher.
+ * Features: role selector, deactivate/reactivate, bulk deactivate, invite teacher,
+ *           invite history table with Resend button.
  */
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import {
   KeyRound,
   Loader2,
   MailPlus,
+  RefreshCw,
   Search,
   ShieldCheck,
   User,
@@ -52,6 +54,16 @@ type LocalUser = {
 };
 
 type DeactivateAction = { user: LocalUser; action: "deactivate" | "reactivate" };
+
+type InviteRow = {
+  id: number;
+  token: string;
+  email: string | null;
+  createdAt: Date | null;
+  expiresAt: Date;
+  usedAt: Date | null;
+  status: "pending" | "used" | "expired";
+};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatDate(date: Date | null): string {
@@ -85,7 +97,13 @@ export default function DirectorUsers() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteResult, setInviteResult] = useState<{ url: string; expiresAt: Date } | null>(null);
 
+  // Invite history state
+  const [confirmResend, setConfirmResend] = useState<InviteRow | null>(null);
+  const [resendResult, setResendResult] = useState<{ url: string; expiresAt: Date } | null>(null);
+
   const { data: users = [], isLoading, refetch } = trpc.director.listLocalUsers.useQuery();
+  const { data: invites = [], isLoading: invitesLoading, refetch: refetchInvites } =
+    trpc.director.listTeacherInvites.useQuery();
 
   const resetMutation = trpc.director.adminRequestReset.useMutation({
     onSuccess: (data) => {
@@ -129,6 +147,17 @@ export default function DirectorUsers() {
       setShowInvite(false);
       setInviteEmail("");
       setInviteResult({ url: data.inviteUrl, expiresAt: new Date(data.expiresAt) });
+      refetchInvites();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const resendMutation = trpc.director.resendTeacherInvite.useMutation({
+    onSuccess: (data) => {
+      setConfirmResend(null);
+      setResendResult({ url: data.inviteUrl, expiresAt: new Date(data.expiresAt) });
+      toast.success(t("dir_invite_resend_toast"));
+      refetchInvites();
     },
     onError: (err) => toast.error(err.message),
   });
@@ -364,6 +393,81 @@ export default function DirectorUsers() {
         </CardContent>
       </Card>
 
+      {/* Invite history card */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold">
+            {t("dir_invite_history_title")} ({invites.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {invitesLoading ? (
+            <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
+              <Loader2 className="h-5 w-5 animate-spin" />
+            </div>
+          ) : invites.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
+              <MailPlus className="h-8 w-8 opacity-30" />
+              <p className="text-sm">{t("dir_invite_history_empty")}</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/40">
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">{t("dir_invite_col_email")}</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">{t("dir_invite_col_status")}</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">{t("dir_invite_col_created")}</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">{t("dir_invite_col_expires")}</th>
+                    <th className="text-right px-4 py-3 font-medium text-muted-foreground">{t("dir_invite_col_actions")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(invites as InviteRow[]).map((invite) => (
+                    <tr key={invite.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                      <td className="px-4 py-3 text-muted-foreground">{invite.email ?? "—"}</td>
+                      <td className="px-4 py-3">
+                        {invite.status === "used" && (
+                          <Badge variant="outline" className="text-xs text-green-600 border-green-600">
+                            {t("dir_invite_status_used")}
+                          </Badge>
+                        )}
+                        {invite.status === "pending" && (
+                          <Badge variant="outline" className="text-xs text-amber-600 border-amber-600">
+                            {t("dir_invite_status_pending")}
+                          </Badge>
+                        )}
+                        {invite.status === "expired" && (
+                          <Badge variant="outline" className="text-xs text-destructive border-destructive">
+                            {t("dir_invite_status_expired")}
+                          </Badge>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatDate(invite.createdAt)}</td>
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatDate(invite.expiresAt)}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex justify-end">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5"
+                            disabled={invite.status === "used"}
+                            onClick={() => setConfirmResend(invite)}
+                          >
+                            <RefreshCw className="h-3.5 w-3.5" />
+                            {t("dir_invite_resend_btn")}
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Confirm reset dialog */}
       <Dialog open={!!confirmReset} onOpenChange={(open) => !open && setConfirmReset(null)}>
         <DialogContent>
@@ -518,6 +622,64 @@ export default function DirectorUsers() {
               {t("dir_users_reset_copy_link")}
             </Button>
             <Button onClick={() => setInviteResult(null)}>{t("dir_users_close")}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm resend invite dialog */}
+      <Dialog open={!!confirmResend} onOpenChange={(open) => !open && setConfirmResend(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("dir_invite_resend_confirm_title")}</DialogTitle>
+            <DialogDescription>
+              {t("dir_invite_resend_confirm_desc").replace("{email}", confirmResend?.email ?? "—")}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setConfirmResend(null)}>
+              {t("dir_users_cancel")}
+            </Button>
+            <Button
+              disabled={resendMutation.isPending}
+              onClick={() => {
+                if (!confirmResend) return;
+                resendMutation.mutate({ inviteId: confirmResend.id, origin: window.location.origin });
+              }}
+            >
+              {resendMutation.isPending
+                ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />{t("dir_users_resetting")}</>
+                : t("dir_invite_resend_btn")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Resend result dialog */}
+      <Dialog open={!!resendResult} onOpenChange={(open) => !open && setResendResult(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("dir_invite_resend_done_title")}</DialogTitle>
+            <DialogDescription>{t("dir_invite_resend_done_desc")}</DialogDescription>
+          </DialogHeader>
+          <div className="rounded-md bg-muted p-3 text-xs font-mono break-all select-all">
+            {resendResult?.url}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {t("dir_users_reset_expires")}: {resendResult ? formatDate(resendResult.expiresAt) : ""}
+          </p>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (resendResult?.url) {
+                  navigator.clipboard.writeText(resendResult.url);
+                  toast.success(t("dir_users_reset_copied"));
+                }
+              }}
+            >
+              {t("dir_users_reset_copy_link")}
+            </Button>
+            <Button onClick={() => setResendResult(null)}>{t("dir_users_close")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
