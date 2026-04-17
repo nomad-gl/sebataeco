@@ -3080,3 +3080,7 @@
 
 - [x] Add i18n keys for variation suffixes (more detailed, different style, wider view) to EN/ES/CA
 - [x] Use t() in AIChatBox for variation suffix strings
+
+## Session 58: Strip Variation Suffix on Regenerate
+
+- [x] Add stripVariationSuffix helper and apply it in the Regenerate button handler in AIChatBox

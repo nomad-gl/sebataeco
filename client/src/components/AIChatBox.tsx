@@ -330,6 +330,30 @@ export function AIChatBox({
       .trim() || text;
   }, []);
 
+  /**
+   * Remove any localised variation suffix appended by the variation chips.
+   * Suffixes are separated by " — " (em-dash with spaces) and match any of the
+   * known variation suffix translation values across all supported languages.
+   */
+  const stripVariationSuffix = useCallback((text: string): string => {
+    // All known variation suffixes across EN / ES / CA
+    const knownSuffixes = [
+      // EN
+      "more detailed", "different style", "wider view",
+      // ES
+      "m\u00e1s detallado", "estilo diferente", "vista m\u00e1s amplia",
+      // CA
+      "m\u00e9s detallat", "estil diferent", "vista m\u00e9s \u00e0mplia",
+    ];
+    for (const suffix of knownSuffixes) {
+      const marker = ` \u2014 ${suffix}`;
+      if (text.endsWith(marker)) {
+        return text.slice(0, text.length - marker.length).trim();
+      }
+    }
+    return text;
+  }, []);
+
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -958,7 +982,9 @@ export function AIChatBox({
                                 {message.content && (
                                   <button
                                     onClick={() => {
-                                      const prompt = message.content!;
+                                      const rawPrompt = message.content!;
+                                      // Strip any localised variation suffix before regenerating
+                                      const prompt = stripVariationSuffix(rawPrompt);
                                       setInput(prompt);
                                       // Trigger submit on next tick so input state is set
                                       setTimeout(() => {
