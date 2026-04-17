@@ -2981,3 +2981,7 @@
 - [x] Header wraps on mobile (flex-wrap) so tab buttons don't overflow
 - [x] TypeScript 0 errors
 - [x] Save checkpoint
+## Session 51: SebaConnect Mobile UX + i18n
+- [x] Translate remaining hardcoded strings in SebaConnect (audit all non-t() strings, add missing i18n keys to EN/ES/CA, replace with t() calls)
+- [x] Mobile bottom navigation bar in SebaConnect (fixed bottom bar, md:hidden, icons for Channels/Messages/Assignments/Files/Members)
+- [x] Swipe gestures in SebaConnect (swipe right opens sidebar, swipe left opens members panel)

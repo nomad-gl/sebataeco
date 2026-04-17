@@ -64,6 +64,7 @@ import {
   Phone,
   CalendarPlus,
   ArrowLeft,
+  Menu,
 } from "lucide-react";
 import { SebaSymbol } from "@/components/SebaSymbol";
 import { MeetingInvitationBanner } from "@/components/MeetingInvitationBanner";
@@ -240,7 +241,7 @@ function MessageBubble({
               className="flex items-center gap-1 mt-1.5 text-xs underline opacity-80"
             >
               <Paperclip className="w-3 h-3" />
-              {msg.attachmentName ?? "Fitxer adjunt"}
+              {msg.attachmentName ?? t("connect_attachment_label")}
             </a>
           )}
         </div>
@@ -326,6 +327,34 @@ export default function SebaConnect() {
   // Meeting invitation modal state
   const [meetInviteTarget, setMeetInviteTarget] = useState<{ id: number; name: string } | null>(null);
   const [reschedulePrefill, setReschedulePrefill] = useState<{ title?: string; agenda?: string | null; recurrence?: string | null } | null>(null);
+
+  // ── Swipe gesture state ──────────────────────────────────────────────────
+  const touchStartXRef = useRef<number | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartXRef.current = e.touches[0].clientX;
+    touchStartYRef.current = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchStartXRef.current === null || touchStartYRef.current === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartXRef.current;
+    const deltaY = e.changedTouches[0].clientY - touchStartYRef.current;
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+    // Only trigger if horizontal swipe dominates (avoid scroll conflicts)
+    if (Math.abs(deltaX) < 60 || Math.abs(deltaX) < Math.abs(deltaY) * 1.5) return;
+    if (deltaX > 60) {
+      // Swipe right → open sidebar
+      setSidebarOpen(true);
+      setMembersOpen(false);
+    } else if (deltaX < -60) {
+      // Swipe left → open members panel
+      setMembersOpen(true);
+      setSidebarOpen(false);
+    }
+  }, []);
 
   // Poll the status of the outgoing call so we can show a toast when declined/missed
   const callStatusQuery = trpc.dmCall.getCallStatus.useQuery(
@@ -594,7 +623,7 @@ export default function SebaConnect() {
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-auto md:h-[calc(100vh-64px)] overflow-visible md:overflow-hidden bg-background">
+    <div className="flex flex-col md:flex-row h-auto md:h-[calc(100vh-64px)] overflow-visible md:overflow-hidden bg-background pb-16 md:pb-0">
       {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
       <aside
         className={`${
@@ -618,7 +647,7 @@ export default function SebaConnect() {
             <SebaSymbol className="w-5 h-5 text-white" />
             <div>
               <p className="text-white font-bold text-sm leading-tight">SEBA Connect</p>
-              <p className="text-white/70 text-xs">Espai de Col·laboració</p>
+              <p className="text-white/70 text-xs">{t("connect_subtitle")}</p>
             </div>
           </div>
         </div>
@@ -627,7 +656,7 @@ export default function SebaConnect() {
         <div className="flex-1 overflow-y-auto py-2">
           <div className="px-3 mb-1 flex items-center justify-between">
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Canals
+              {t("connect_channels_heading")}
             </span>
             {canManage && (
               <Button
@@ -643,7 +672,7 @@ export default function SebaConnect() {
           </div>
 
           {channelsQuery.isLoading ? (
-            <div className="px-3 py-2 text-xs text-muted-foreground">Carregant…</div>
+            <div className="px-3 py-2 text-xs text-muted-foreground">{t("connect_loading")}</div>
           ) : (
             (channelsQuery.data ?? []).map((ch) => (
               <button
@@ -687,8 +716,12 @@ export default function SebaConnect() {
         </div>
       </aside>
 
-      {/* ── Main area ───────────────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col overflow-visible md:overflow-hidden min-h-0">
+       {/* ── Main area ────────────────────────────────────────────────── */}
+      <div
+        className="flex-1 flex flex-col overflow-visible md:overflow-hidden min-h-0"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         {/* Channel header */}
         <div className="min-h-14 border-b border-border flex flex-wrap items-center gap-2 px-3 py-2 shrink-0 bg-card">
           <Button
@@ -764,12 +797,12 @@ export default function SebaConnect() {
           <>
             <div className="flex-1 overflow-y-auto px-4 py-4 min-h-[40vh] md:min-h-0">
               {messagesQuery.isLoading ? (
-                <div className="text-center text-muted-foreground text-sm py-8">Carregant missatges…</div>
+                <div className="text-center text-muted-foreground text-sm py-8">{t("connect_loading_messages")}</div>
               ) : messages.length === 0 ? (
                 <div className="text-center text-muted-foreground text-sm py-16">
                   <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-30" />
                   <p>{t("connect_no_messages")}</p>
-                  <p className="text-xs mt-1">Sigues el primer a escriure!</p>
+                  <p className="text-xs mt-1">{t("connect_be_first_to_write")}</p>
                 </div>
               ) : (
                 <>
@@ -888,13 +921,13 @@ export default function SebaConnect() {
                   onClick={() => setShowCreateAssignment(true)}
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  Nova tasca
+                  {t("connect_new_task_btn")}
                 </Button>
               )}
             </div>
 
             {assignmentsQuery.isLoading ? (
-              <div className="text-muted-foreground text-sm">Carregant tasques…</div>
+              <div className="text-muted-foreground text-sm">{t("connect_loading_tasks")}</div>
             ) : (assignmentsQuery.data ?? []).length === 0 ? (
               <div className="text-center text-muted-foreground py-16">
                 <ClipboardList className="w-10 h-10 mx-auto mb-3 opacity-30" />
@@ -955,13 +988,13 @@ export default function SebaConnect() {
                   disabled={uploadFileMutation.isPending}
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  Pujar fitxer
+                  {t("connect_upload_file_btn")}
                 </Button>
               </div>
             </div>
 
             {filesQuery.isLoading ? (
-              <div className="text-muted-foreground text-sm">Carregant fitxers…</div>
+              <div className="text-muted-foreground text-sm">{t("connect_loading_files")}</div>
             ) : (filesQuery.data ?? []).length === 0 ? (
               <div className="text-center text-muted-foreground py-16">
                 <FolderOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
@@ -1029,10 +1062,10 @@ export default function SebaConnect() {
         {/* Members list */}
         <div className="flex-1 overflow-y-auto py-2">
           {membersQuery.isLoading ? (
-            <div className="px-4 py-2 text-xs text-muted-foreground">Carregant…</div>
+            <div className="px-4 py-2 text-xs text-muted-foreground">{t("connect_loading")}</div>
           ) : members.length === 0 ? (
             <div className="px-4 py-4 text-xs text-muted-foreground text-center">
-              Cap membre trobat
+              {t("connect_no_members")}
             </div>
           ) : (
             <>
@@ -1305,16 +1338,16 @@ export default function SebaConnect() {
       <Dialog open={showCreateChannel} onOpenChange={setShowCreateChannel}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Crear nou canal</DialogTitle>
+            <DialogTitle>{t("connect_new_channel_title")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 mt-2">
             <Input
-              placeholder="Nom del canal"
+              placeholder={t("connect_channel_name_placeholder")}
               value={newChannelName}
               onChange={(e) => setNewChannelName(e.target.value)}
             />
             <Textarea
-              placeholder="Descripció (opcional)"
+              placeholder={t("connect_description_placeholder")}
               value={newChannelDesc}
               onChange={(e) => setNewChannelDesc(e.target.value)}
               rows={2}
@@ -1324,10 +1357,10 @@ export default function SebaConnect() {
               value={newChannelType}
               onChange={(e) => setNewChannelType(e.target.value as typeof newChannelType)}
             >
-              <option value="general">General</option>
-              <option value="subject">Assignatura</option>
-              <option value="year_group">Curs / Grup</option>
-              <option value="announcement">Anunci oficial</option>
+              <option value="general">{t("connect_channel_type_general")}</option>
+              <option value="subject">{t("connect_channel_type_subject")}</option>
+              <option value="year_group">{t("connect_channel_type_year_group")}</option>
+              <option value="announcement">{t("connect_channel_type_announcement")}</option>
             </select>
             <Button
               className="w-full bg-[#AE0001] hover:bg-[#8a0001]"
@@ -1350,22 +1383,22 @@ export default function SebaConnect() {
       <Dialog open={showCreateAssignment} onOpenChange={setShowCreateAssignment}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Nova tasca</DialogTitle>
+            <DialogTitle>{t("connect_new_task_title")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 mt-2">
             <Input
-              placeholder="Títol de la tasca"
+              placeholder={t("connect_task_title_placeholder")}
               value={assignTitle}
               onChange={(e) => setAssignTitle(e.target.value)}
             />
             <Textarea
-              placeholder="Descripció (opcional)"
+              placeholder={t("connect_description_placeholder")}
               value={assignDesc}
               onChange={(e) => setAssignDesc(e.target.value)}
               rows={3}
             />
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Data límit (opcional)</label>
+              <label className="text-xs text-muted-foreground mb-1 block">{t("connect_due_date_label")}</label>
               <Input
                 type="date"
                 value={assignDue}
@@ -1423,6 +1456,69 @@ export default function SebaConnect() {
           }
         }}
       />
+
+      {/* ── Mobile bottom navigation bar ─────────────────────────────────── */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-border bg-card flex items-center justify-around px-1 py-1 safe-area-inset-bottom">
+        {/* Channels (sidebar toggle) */}
+        <button
+          type="button"
+          onClick={() => { setSidebarOpen((o) => !o); setMembersOpen(false); }}
+          className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors ${
+            sidebarOpen ? "text-[#AE0001] bg-[#AE0001]/10" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Menu className="w-5 h-5" />
+          <span className="text-[10px] font-medium leading-none">{t("connect_channels_heading")}</span>
+        </button>
+
+        {/* Messages */}
+        <button
+          type="button"
+          onClick={() => { setTab("messages"); setSidebarOpen(false); setMembersOpen(false); }}
+          className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors ${
+            tab === "messages" && !sidebarOpen && !membersOpen ? "text-[#AE0001] bg-[#AE0001]/10" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <MessageSquare className="w-5 h-5" />
+          <span className="text-[10px] font-medium leading-none">{t("connect_messages")}</span>
+        </button>
+
+        {/* Assignments */}
+        <button
+          type="button"
+          onClick={() => { setTab("assignments"); setSidebarOpen(false); setMembersOpen(false); }}
+          className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors ${
+            tab === "assignments" && !sidebarOpen && !membersOpen ? "text-[#AE0001] bg-[#AE0001]/10" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <ClipboardList className="w-5 h-5" />
+          <span className="text-[10px] font-medium leading-none">{t("connect_assignments")}</span>
+        </button>
+
+        {/* Files */}
+        <button
+          type="button"
+          onClick={() => { setTab("files"); setSidebarOpen(false); setMembersOpen(false); }}
+          className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors ${
+            tab === "files" && !sidebarOpen && !membersOpen ? "text-[#AE0001] bg-[#AE0001]/10" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <FolderOpen className="w-5 h-5" />
+          <span className="text-[10px] font-medium leading-none">{t("connect_files")}</span>
+        </button>
+
+        {/* Members (right panel toggle) */}
+        <button
+          type="button"
+          onClick={() => { setMembersOpen((o) => !o); setSidebarOpen(false); }}
+          className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors ${
+            membersOpen ? "text-[#003082] bg-[#003082]/10" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Users className="w-5 h-5" />
+          <span className="text-[10px] font-medium leading-none">{t("connect_members")}</span>
+        </button>
+      </nav>
     </div>
   );
 }
