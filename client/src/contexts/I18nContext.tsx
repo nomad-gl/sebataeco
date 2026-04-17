@@ -206,6 +206,7 @@ export const translations = {
     dir_users_reactivate_confirm_desc: "Reactivate {name}? They will be able to sign in again immediately.",
     dir_users_reactivate_confirm_btn: "Reactivate",
     dir_users_deactivated_toast: "Account deactivated.",
+    dir_users_role_updated_toast: "Role updated successfully.",
     dir_users_reactivated_toast: "Account reactivated.",
     // Audit Dashboard
     audit_title: "AI Audit Dashboard",
@@ -2745,6 +2746,7 @@ export const translations = {
     dir_users_reactivate_confirm_desc: "\u00bfReactivar a {name}? Podr\u00e1 iniciar sesi\u00f3n de nuevo inmediatamente.",
     dir_users_reactivate_confirm_btn: "Reactivar",
     dir_users_deactivated_toast: "Cuenta desactivada.",
+    dir_users_role_updated_toast: "Rol actualizado correctamente.",
     dir_users_reactivated_toast: "Cuenta reactivada.",
     audit_title: "Panel de Auditoría IA",
     audit_subtitle: "Registro completo de todas las decisiones de IA, correcciones y alertas de sesgo",
@@ -5256,6 +5258,7 @@ export const translations = {
     dir_users_reactivate_confirm_desc: "Reactivar {name}? Podr\u00e0 iniciar sessi\u00f3 de nou immediatament.",
     dir_users_reactivate_confirm_btn: "Reactivar",
     dir_users_deactivated_toast: "Compte desactivat.",
+    dir_users_role_updated_toast: "Rol actualitzat correctament.",
     dir_users_reactivated_toast: "Compte reactivat.",
     audit_title: "Tauler d'Auditoria IA",
     audit_subtitle: "Registre complet de totes les decisions de la IA, correccions i alertes de biaix",

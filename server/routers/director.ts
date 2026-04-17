@@ -321,21 +321,33 @@ export const directorRouter = router({
 
   /** Update a user's role — sends owner notification when promoting to admin */
   updateUserRole: adminProcedure
-    .input(z.object({ userId: z.string(), role: z.enum(["user", "admin"]) }))
-    .mutation(async ({ input }) => {
+    .input(z.object({ userId: z.union([z.string(), z.number()]), role: z.enum(["user", "admin"]) }))
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-
+      const numericId = typeof input.userId === "string" ? parseInt(input.userId, 10) : input.userId;
+      // Prevent self-demotion
+      if (numericId === ctx.user.id && input.role !== "admin") {
+        throw new Error("Cannot demote your own account");
+      }
       // Fetch current role before updating
       const [targetUser] = await db
-        .select({ name: users.name, email: users.email, role: users.role })
+        .select({ name: users.name, email: users.email, role: users.role, passwordHash: users.passwordHash })
         .from(users)
-        .where(eq(users.id, parseInt(input.userId, 10)));
-
-      await db.update(users).set({ role: input.role }).where(eq(users.id, parseInt(input.userId, 10)));
-
+        .where(eq(users.id, numericId));
+      if (!targetUser) throw new Error("User not found");
+      const oldRole = targetUser.role;
+      await db.update(users).set({ role: input.role }).where(eq(users.id, numericId));
+      // Write audit log entry
+      await db.insert(adminAuditLogs).values({
+        userId: ctx.user.id,
+        action: "update_user_role",
+        resource: "user",
+        resourceId: String(numericId),
+        details: JSON.stringify({ targetUserId: numericId, oldRole, newRole: input.role }),
+      });
       // Notify owner when a user is promoted to admin
-      if (input.role === "admin" && targetUser?.role !== "admin") {
+      if (input.role === "admin" && oldRole !== "admin") {
         try {
           await notifyOwner({
             title: "SEBA: New Admin Promoted",
@@ -345,8 +357,7 @@ export const directorRouter = router({
           // Non-fatal — role update already succeeded
         }
       }
-
-      return { success: true };
+      return { success: true, newRole: input.role };
     }),
 
   /** LOMLOE curriculum compliance — competency gap analysis across all lesson plans */
@@ -760,4 +771,5 @@ export const directorRouter = router({
       });
       return { success: true };
     }),
+
 });

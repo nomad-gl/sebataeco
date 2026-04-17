@@ -15,6 +15,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useI18n } from "@/contexts/I18nContext";
 import { trpc } from "@/lib/trpc";
 import {
@@ -102,6 +109,16 @@ export default function DirectorUsers() {
 
   const isDeactivatePending = deactivateMutation.isPending || reactivateMutation.isPending;
 
+  const roleMutation = trpc.director.updateUserRole.useMutation({
+    onSuccess: (_, variables) => {
+      toast.success(t("dir_users_role_updated_toast"));
+      // Optimistically update the local list so the UI reflects the change immediately
+      refetch();
+      void variables;
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   // Filter by search
   const filtered = users.filter((u) => {
     const q = search.toLowerCase();
@@ -188,9 +205,31 @@ export default function DirectorUsers() {
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">{user.email ?? "—"}</td>
                         <td className="px-4 py-3">
-                          <Badge variant={user.role === "admin" ? "default" : "secondary"}>
-                            {user.role === "admin" ? t("dir_users_role_admin") : t("dir_users_role_user")}
-                          </Badge>
+                          <Select
+                            value={user.role === "admin" ? "admin" : "user"}
+                            onValueChange={(newRole) => {
+                              roleMutation.mutate({ userId: user.id, role: newRole as "user" | "admin" });
+                            }}
+                            disabled={roleMutation.isPending || isDeactivated}
+                          >
+                            <SelectTrigger className="h-7 w-28 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="admin">
+                                <span className="flex items-center gap-1.5">
+                                  <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                                  {t("dir_users_role_admin")}
+                                </span>
+                              </SelectItem>
+                              <SelectItem value="user">
+                                <span className="flex items-center gap-1.5">
+                                  <User className="h-3.5 w-3.5 text-muted-foreground" />
+                                  {t("dir_users_role_user")}
+                                </span>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
                         </td>
                         <td className="px-4 py-3">
                           {isDeactivated ? (

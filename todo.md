@@ -3206,3 +3206,10 @@
 ## Bug Fix: Login page — unable to sign in
 
 - [x] Diagnose and fix login failure on LocalLogin page — applied missing passwordHash and displayName columns to live database
+
+## Feature: Inline role selector on Director Users page
+
+- [x] Add director.updateUserRole tRPC procedure (director-only): updates role field for a given userId
+- [x] Add i18n keys for role selector (EN/ES/CA)
+- [x] Add inline role Select dropdown per row in DirectorUsers.tsx with optimistic update
+- [x] Record role change in audit log (actor, target user, old role, new role, timestamp)
