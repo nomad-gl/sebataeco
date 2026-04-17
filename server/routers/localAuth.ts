@@ -22,6 +22,32 @@ import { notifyOwner } from "../_core/notification";
 
 const BCRYPT_ROUNDS = 12;
 
+// ─── In-memory rate limiter for verifyInviteToken ─────────────────────────────
+// Lightweight Map-based store: keyed by IP, value is { count, windowStart }.
+// Resets automatically after RATE_WINDOW_MS. No external dependency needed.
+const VERIFY_RATE_LIMIT = 10; // max requests
+const RATE_WINDOW_MS = 60 * 1000; // per 1 minute
+
+const verifyRateLimitStore = new Map<string, { count: number; windowStart: number }>();
+
+function checkVerifyRateLimit(ip: string): void {
+  const now = Date.now();
+  const entry = verifyRateLimitStore.get(ip);
+  if (!entry || now - entry.windowStart >= RATE_WINDOW_MS) {
+    // New window
+    verifyRateLimitStore.set(ip, { count: 1, windowStart: now });
+    return;
+  }
+  entry.count++;
+  if (entry.count > VERIFY_RATE_LIMIT) {
+    const retryAfterSec = Math.ceil((RATE_WINDOW_MS - (now - entry.windowStart)) / 1000);
+    throw new TRPCError({
+      code: "TOO_MANY_REQUESTS",
+      message: `Too many verification attempts. Please wait ${retryAfterSec} seconds before trying again.`,
+    });
+  }
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /** Derive a stable openId from a local email so it never collides with Manus openIds */
@@ -38,7 +64,14 @@ export const localAuthRouter = router({
    */
   verifyInviteToken: publicProcedure
     .input(z.object({ token: z.string().min(1) }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
+      // Rate-limit: max 10 checks per IP per minute
+      const ip =
+        (ctx.req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim() ??
+        ctx.req.socket?.remoteAddress ??
+        "unknown";
+      checkVerifyRateLimit(ip);
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
 
@@ -150,6 +183,13 @@ export const localAuthRouter = router({
         .update(teacherInvites)
         .set({ usedAt: now })
         .where(eq(teacherInvites.id, invite.id));
+
+      // Notify the Director that a new teacher has completed registration
+      // Fire-and-forget: don't block the response if the notification fails
+      notifyOwner({
+        title: `New teacher registered: ${input.displayName}`,
+        content: `A new teacher account has been created via invite.\n\nName: ${input.displayName}\nEmail: ${normalised}\nRegistered at: ${now.toISOString()}`,
+      }).catch(() => { /* silent — notification failure should not block registration */ });
 
       // Issue session cookie
       const sessionToken = await sdk.createSessionToken(openId, {

@@ -2592,6 +2592,9 @@ export const translations = {
     reg_invite_form_subtitle: "Complete the form below to set up your teacher account.",
     reg_invite_email_locked: "This email address was specified in your invite and cannot be changed.",
     reg_invite_submit_btn: "Create account",
+    // Login page — request access note
+    local_auth_need_access: "Need access?",
+    local_auth_contact_director: "Contact your Director",
   },
   es: {
     // NavBar
@@ -5152,6 +5155,9 @@ export const translations = {
     reg_invite_form_subtitle: "Completa el formulario a continuación para configurar tu cuenta de docente.",
     reg_invite_email_locked: "Esta dirección de correo fue especificada en tu invitación y no se puede cambiar.",
     reg_invite_submit_btn: "Crear cuenta",
+    // Login page — request access note
+    local_auth_need_access: "¿Necesitas acceso?",
+    local_auth_contact_director: "Contacta con tu Director",
   },
   ca: {
     // NavBar
@@ -7712,6 +7718,9 @@ export const translations = {
     reg_invite_form_subtitle: "Completa el formulari a continuació per configurar el teu compte de docent.",
     reg_invite_email_locked: "Aquesta adreça de correu va ser especificada a la teva invitació i no es pot canviar.",
     reg_invite_submit_btn: "Crear compte",
+    // Login page — request access note
+    local_auth_need_access: "Necessites accés?",
+    local_auth_contact_director: "Contacta amb el teu Director",
   },
 } as const;
 

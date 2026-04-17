@@ -3242,3 +3242,9 @@
 - [x] Create dedicated /register page (RegisterWithInvite.tsx) that reads ?invite= from URL, calls verifyInviteToken on mount, shows error screen for invalid/expired/used tokens, pre-fills email if invite has one
 - [x] Register /register route in App.tsx pointing to the new page
 - [x] Add i18n keys for invite validation states (EN/ES/CA)
+
+## Follow-ups: Post-invite-validation improvements
+
+- [x] Rate-limit verifyInviteToken: max 10 requests per IP per minute using in-memory store, return TOO_MANY_REQUESTS with i18n error
+- [x] Add "request access" note to LocalLogin.tsx with mailto link and i18n keys (EN/ES/CA)
+- [x] Notify Director (notifyOwner) when a teacher completes registration via invite

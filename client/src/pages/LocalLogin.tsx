@@ -297,6 +297,17 @@ export default function LocalLogin() {
           <ShieldCheck className="w-3.5 h-3.5" />
           {t("local_auth_sovereignty_notice")}
         </p>
+
+        {/* Request access note */}
+        <p className="text-center text-white/50 text-xs mt-3">
+          {t("local_auth_need_access")}{" "}
+          <a
+            href={lang === "en" ? "mailto:hello@sebaenquiries.com" : "mailto:hola@sebaecos.com"}
+            className="underline underline-offset-2 text-white/70 hover:text-white transition-colors"
+          >
+            {t("local_auth_contact_director")}
+          </a>
+        </p>
       </div>
     </div>
   );
