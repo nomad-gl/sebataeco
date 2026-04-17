@@ -3174,3 +3174,12 @@
 - [x] Show token expiry countdown on ResetPassword.tsx page
 - [x] Add per-email rate-limit (1 request per 5 min) to requestReset endpoint with i18n error message
 - [x] Add i18n keys for rate-limit error and expiry countdown (EN/ES/CA)
+
+## Feature: Director User Management Page
+
+- [x] Add director.listLocalUsers tRPC procedure (director-only): returns id, displayName, email, role, position, lastSignedIn, loginMethod
+- [x] Add director.adminRequestReset tRPC procedure (director-only): triggers requestReset for a given userId
+- [x] Create DirectorUsers.tsx page with table: name, email, role badge, position, last sign-in, Reset Password button
+- [x] Add i18n keys for user management page (EN/ES/CA)
+- [x] Register /director/users route in App.tsx
+- [x] Add "Users" nav link to Director sidebar in DashboardLayout.tsx

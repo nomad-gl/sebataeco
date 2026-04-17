@@ -211,6 +211,7 @@ export default function NavBar() {
     { href: "/director/progress",  label: t("dir_student_progress"), icon: GraduationCap },
     { href: "/director/reports",   label: t("dir_reports"),          icon: Download },
     { href: "/director/settings",  label: t("dir_settings"),         icon: SettingsIcon },
+    { href: "/director/users",     label: t("dir_users_nav"),        icon: UserCog },
     { href: "/attendance",           label: t("nav_attendance"),       icon: ClipboardList },
     { href: "/school-calendar",      label: t("nav_school_calendar"),  icon: CalendarDays },
     { href: "/connect",             label: t("nav_connect"),          icon: Wifi },

@@ -16,7 +16,9 @@ import {
   groupStudents,
   classGroups,
 } from "../../drizzle/schema";
-import { count, eq, gte, sql, desc, and, lt, inArray } from "drizzle-orm";
+import { count, eq, gte, sql, desc, and, lt, inArray, isNotNull } from "drizzle-orm";
+import crypto from "crypto";
+import { passwordResetTokens } from "../../drizzle/schema";
 import { appSettings, schoolSettings } from "../../drizzle/schema";
 import { notifyOwner } from "../_core/notification";
 import { generateDirectorReportPdf } from "../directorReportPdf";
@@ -642,4 +644,66 @@ export const directorRouter = router({
     await db.delete(appSettings).where(eq(appSettings.key, "login_bg_url"));
     return { success: true };
   }),
+
+  /**
+   * Director: list all local (email+password) accounts.
+   * Returns id, displayName, email, role, position, lastSignedIn, createdAt.
+   */
+  listLocalUsers: adminProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+    const rows = await db
+      .select({
+        id: users.id,
+        displayName: users.displayName,
+        email: users.email,
+        role: users.role,
+        position: users.position,
+        lastSignedIn: users.lastSignedIn,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .where(isNotNull(users.passwordHash))
+      .orderBy(desc(users.lastSignedIn));
+    return rows;
+  }),
+
+  /**
+   * Director: trigger a password reset on behalf of a local user.
+   * Invalidates existing tokens, creates a new one, and notifies the owner.
+   */
+  adminRequestReset: adminProcedure
+    .input(z.object({ userId: z.number().int().positive(), origin: z.string().url() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+
+      const [user] = await db
+        .select({ id: users.id, displayName: users.displayName, email: users.email })
+        .from(users)
+        .where(and(eq(users.id, input.userId), isNotNull(users.passwordHash)))
+        .limit(1);
+
+      if (!user) throw new Error("User not found or not a local account");
+
+      // Invalidate old tokens
+      await db
+        .update(passwordResetTokens)
+        .set({ usedAt: new Date() })
+        .where(eq(passwordResetTokens.userId, user.id));
+
+      const token = crypto.randomBytes(48).toString("hex");
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      await db.insert(passwordResetTokens).values({ userId: user.id, token, expiresAt });
+
+      const resetUrl = `${input.origin}/reset-password?token=${token}&expiresAt=${expiresAt.getTime()}`;
+
+      await notifyOwner({
+        title: `Password reset issued for ${user.email ?? user.displayName ?? String(user.id)}`,
+        content: `A Director has issued a password reset for user ${user.displayName ?? user.email}.\n\nReset link (expires in 1 hour):\n${resetUrl}`,
+      });
+
+      return { success: true, resetUrl, expiresAt };
+    }),
 });
