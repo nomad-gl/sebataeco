@@ -19,11 +19,11 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import LocalLogin from "@/pages/LocalLogin";
 import { useIsMobile } from "@/hooks/useMobile";
 import { LayoutDashboard, LogOut, PanelLeft, Users } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
+import { getLoginUrl } from "@/const";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 import { useI18n } from "@/contexts/I18nContext";
@@ -54,7 +54,10 @@ export default function DashboardLayout({
   }
 
   if (!user) {
-    return <LocalLogin />;
+    // Redirect to the login page, preserving the current path for post-login return
+    const currentPath = typeof window !== "undefined" ? window.location.pathname + window.location.search : "/";
+    window.location.href = getLoginUrl(currentPath);
+    return <DashboardLayoutSkeleton />;
   }
 
   return (

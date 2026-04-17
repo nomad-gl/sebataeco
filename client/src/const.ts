@@ -1,11 +1,20 @@
 export { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 
 /**
- * Generate login URL at runtime so redirect URI reflects the current origin.
- * Pass an optional returnPath (e.g. "/create") to be restored after login.
- * The state encodes JSON { redirectUri, returnPath } as base64.
+ * Returns the local login page URL with an optional returnPath query param.
+ * This is the primary sign-in entry point — no external OAuth portal involved.
+ * e.g. getLoginUrl("/chat") → "/login?returnPath=%2Fchat"
  */
 export const getLoginUrl = (returnPath?: string) => {
+  const path = returnPath && returnPath !== "/" ? returnPath : undefined;
+  return path ? `/login?returnPath=${encodeURIComponent(path)}` : "/login";
+};
+
+/**
+ * Returns the full Manus OAuth URL.
+ * Kept only for the OAuth callback flow — do NOT use for regular sign-in links.
+ */
+export const getOAuthUrl = (returnPath?: string) => {
   const oauthPortalUrl = import.meta.env.VITE_OAUTH_PORTAL_URL;
   const appId = import.meta.env.VITE_APP_ID;
   const redirectUri = `${window.location.origin}/api/oauth/callback`;

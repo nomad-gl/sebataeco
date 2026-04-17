@@ -5,7 +5,7 @@
  * as the Manus OAuth path, so existing users are unaffected.
  */
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,17 @@ export default function LocalLogin() {
   const { data: customBg } = trpc.director.getLoginBackground.useQuery();
   const bgImage = customBg ?? DEFAULT_BG;
   const [showLangMenu, setShowLangMenu] = useState(false);
+
+  // ── Return path — where to go after successful login ─────────────────────
+  const returnPath = useMemo(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const rp = params.get("returnPath");
+      // Only allow same-origin relative paths to prevent open-redirect
+      if (rp && rp.startsWith("/") && !rp.startsWith("//")) return rp;
+    } catch { /* ignore */ }
+    return "/";
+  }, []);
 
   // ── Login state ──────────────────────────────────────────────────────────
   const [loginEmail, setLoginEmail] = useState("");
@@ -63,14 +74,14 @@ export default function LocalLogin() {
   // ── Mutations ────────────────────────────────────────────────────────────
   const loginMutation = trpc.localAuth.login.useMutation({
     onSuccess: () => {
-      window.location.href = "/";
+      window.location.href = returnPath;
     },
     onError: (err) => setLoginError(err.message),
   });
 
   const registerMutation = trpc.localAuth.register.useMutation({
     onSuccess: () => {
-      window.location.href = "/";
+      window.location.href = returnPath;
     },
     onError: (err) => setRegError(err.message),
   });

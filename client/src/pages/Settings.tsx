@@ -280,7 +280,7 @@ export default function Settings() {
                 Please sign in to access your settings.
               </p>
               <Button asChild>
-                <a href={getLoginUrl("/settings")}>Sign In</a>
+                <a href={getLoginUrl(window.location.pathname + window.location.search)}>Sign In</a>
               </Button>
             </CardContent>
           </Card>

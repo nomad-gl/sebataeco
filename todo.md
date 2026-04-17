@@ -3135,3 +3135,19 @@
 ## Bug Fix: OAuth callback — {"error":"OAuth callback failed"}
 
 - [x] Fix decodeState() in server/_core/sdk.ts to parse JSON state and extract redirectUri (with legacy plain-URL fallback)
+
+## Feature: Return to previous page after login
+
+- [x] DashboardLayout: pass current pathname as returnPath to getLoginUrl()
+- [x] LocalLogin: read returnPath from URL query param and redirect there on successful login/register
+- [x] App.tsx: pass returnPath to LocalLogin route when redirecting unauthenticated users
+- [x] useAuth / any inline "Sign in" links: pass window.location.pathname as returnPath
+
+## Feature: Remove old Manus OAuth login page — use LocalLogin everywhere
+
+- [x] Add /login route in App.tsx that renders LocalLogin
+- [x] Replace getLoginUrl() in const.ts with getLocalLoginUrl(returnPath?) that returns /login?returnPath=...
+- [x] Update main.tsx redirectToLoginIfUnauthorized to use getLocalLoginUrl
+- [x] Update all inline "Sign in" links in pages (Admin, Challenge, Create, GroupProgress, Groups, MyMaterials, Presentation, Progress, Settings, StudentProgress) to use /login?returnPath=...
+- [x] Update DashboardLayout to navigate to /login?returnPath=... instead of showing LocalLogin inline
+- [x] LocalLogin: read returnPath from URL search param and redirect there on success
