@@ -153,6 +153,7 @@ export default function NavBar() {
     { href: "/head-of-study/curriculum",          label: t("hos_curriculum"),          icon: BookCheck },
     { href: "/head-of-study/reports",             label: t("hos_reports"),             icon: Download },
     { href: "/head-of-study/settings",            label: t("hos_settings"),            icon: SettingsIcon },
+    { href: "/connect",                           label: t("nav_connect"),             icon: Wifi },
   ];
 
   const isHosActive = hosItems.some(
@@ -169,6 +170,7 @@ export default function NavBar() {
     { href: "/director/settings",  label: t("dir_settings"),         icon: SettingsIcon },
     { href: "/attendance",           label: t("nav_attendance"),       icon: ClipboardList },
     { href: "/school-calendar",      label: t("nav_school_calendar"),  icon: CalendarDays },
+    { href: "/connect",             label: t("nav_connect"),          icon: Wifi },
   ];
 
   const isDirectorActive = directorItems.some(

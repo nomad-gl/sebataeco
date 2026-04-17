@@ -2948,3 +2948,12 @@
 - [x] Live background preview thumbnails: BackgroundThumbnail component renders composited person+background at ~5fps in each tile; falls back to static image when segmentation not active
 - [x] TypeScript 0 errors
 - [x] Save checkpoint
+
+## Session 48: Video Quality + Multi-Invitee Meetings
+- [x] Improve video call quality: getUserMedia 1280x720 ideal / 1920x1080 max, 30fps; WebRTC encoding maxBitrate 2.5Mbps video + 128kbps audio
+- [x] Fix meeting invite: backend accepts array of toUserIds, shared roomName for all invitees; modal rewritten with searchable multi-select invitee picker
+- [x] TypeScript 0 errors
+- [x] Save checkpoint
+- [x] Custom background upload: callBackground tRPC router, S3 upload, "Upload your own" tile + custom bg tile with remove button in PreCallScreen; URL persisted to localStorage
+- [x] Add a back button to the SebaConnect page header (navigates back to previous page)
+- [x] Add SebaConnect link to Director and Head of Studies dropdown menus

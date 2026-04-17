@@ -12,6 +12,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useLocation } from "wouter";
 import PreCallScreen, { type VideoBackground, type VideoFilter } from "@/components/PreCallScreen";
 import { IncomingCallBanner } from "@/components/IncomingCallBanner";
 import { CallHistoryPanel } from "@/components/CallHistoryPanel";
@@ -62,6 +63,7 @@ import {
   ScreenShareOff,
   Phone,
   CalendarPlus,
+  ArrowLeft,
 } from "lucide-react";
 import { SebaSymbol } from "@/components/SebaSymbol";
 import { MeetingInvitationBanner } from "@/components/MeetingInvitationBanner";
@@ -276,6 +278,7 @@ export default function SebaConnect() {
   const { user } = useAuth();
   const { t, lang: currentLang } = useI18n();
   const lang = (currentLang === "ca" ? "ca" : currentLang === "es" ? "es" : "en") as "en" | "es" | "ca";
+  const [, navigate] = useLocation();
 
   const [selectedChannelId, setSelectedChannelId] = useState<number>(1);
   const [tab, setTab] = useState<Tab>("messages");
@@ -600,6 +603,14 @@ export default function SebaConnect() {
           style={{ background: "linear-gradient(135deg, #AE0001 0%, #003082 100%)" }}
         >
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              className="p-1 rounded hover:bg-white/20 transition-colors text-white/80 hover:text-white shrink-0"
+              title="Back to home"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
             <SebaSymbol className="w-5 h-5 text-white" />
             <div>
               <p className="text-white font-bold text-sm leading-tight">SEBA Connect</p>

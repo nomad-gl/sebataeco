@@ -13,11 +13,13 @@ import { and, eq, or, desc, lte, isNull } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
 
 export const meetingInvitationRouter = router({
-  /** Send a meeting invitation to another user. */
+  /** Send a meeting invitation to one or more users (all share the same room). */
   send: protectedProcedure
     .input(
       z.object({
-        toUserId: z.number().int().positive(),
+        // Accept either a single id (legacy) or an array of ids
+        toUserId:  z.number().int().positive().optional(),
+        toUserIds: z.array(z.number().int().positive()).min(1).max(20).optional(),
         title: z.string().min(1).max(256),
         proposedAt: z.date(),
         durationMinutes: z.number().int().min(5).max(480).default(30),
@@ -30,26 +32,39 @@ export const meetingInvitationRouter = router({
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
 
-      // Deterministic room name: meeting-{min}-{max}-{timestamp}
-      const a = Math.min(ctx.user.id, input.toUserId);
-      const b = Math.max(ctx.user.id, input.toUserId);
-      const roomName = `meeting-${a}-${b}-${Date.now()}`;
-
-      const result = await db.insert(meetingInvitations).values({
-        fromUserId: ctx.user.id,
-        toUserId: input.toUserId,
-        title: input.title,
-        proposedAt: input.proposedAt,
-        durationMinutes: input.durationMinutes,
-        message: input.message ?? null,
-        agenda: input.agenda ?? null,
-        recurrence: input.recurrence,
-        roomName,
-        status: "pending",
+      // Resolve recipient list — support both legacy single-id and new multi-id
+      const rawIds = input.toUserIds ?? (input.toUserId ? [input.toUserId] : []);
+      const seen = new Set<number>();
+      const recipientIds: number[] = rawIds.filter((id) => {
+        if (id === ctx.user.id || seen.has(id)) return false;
+        seen.add(id);
+        return true;
       });
 
-      // Notify the owner (project owner = school admin) so they can see new invitations
-      // Also build a user-facing notification message for the recipient
+      if (recipientIds.length === 0) throw new Error("No valid recipients");
+
+      // One shared room for all invitees
+      const roomName = `meeting-${ctx.user.id}-${Date.now()}`;
+
+      // Insert one invitation row per recipient
+      const insertedIds: number[] = [];
+      for (const toUserId of recipientIds) {
+        const result = await db.insert(meetingInvitations).values({
+          fromUserId: ctx.user.id,
+          toUserId,
+          title: input.title,
+          proposedAt: input.proposedAt,
+          durationMinutes: input.durationMinutes,
+          message: input.message ?? null,
+          agenda: input.agenda ?? null,
+          recurrence: input.recurrence,
+          roomName,
+          status: "pending",
+        });
+        insertedIds.push(Number((result as any).insertId));
+      }
+
+      // Notify owner with recipient count
       const senderRows = await db
         .select({ name: users.name })
         .from(users)
@@ -60,12 +75,13 @@ export const meetingInvitationRouter = router({
         day: "numeric", month: "short", year: "numeric",
         hour: "2-digit", minute: "2-digit",
       });
+      const recipientCount = recipientIds.length;
       await notifyOwner({
         title: `📅 New meeting invitation: ${input.title}`,
-        content: `${senderName} invited you to "${input.title}" on ${proposedStr} (${input.durationMinutes} min).${input.message ? ` Message: ${input.message}` : ""}`,
+        content: `${senderName} invited ${recipientCount} participant${recipientCount > 1 ? "s" : ""} to "${input.title}" on ${proposedStr} (${input.durationMinutes} min).${input.message ? ` Message: ${input.message}` : ""}`,
       }).catch(() => { /* non-critical */ });
 
-      return { invitationId: Number((result as any).insertId), roomName };
+      return { invitationIds: insertedIds, roomName };
     }),
 
   /** Get pending invitations addressed to the current user. */

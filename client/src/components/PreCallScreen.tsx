@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -17,6 +18,8 @@ import {
   FlipHorizontal2,
   ChevronLeft,
   ChevronRight,
+  Upload,
+  Trash2,
 } from "lucide-react";
 import SebaSymbol from "@/components/SebaSymbol";
 
@@ -25,6 +28,7 @@ const LS_BG_KEY = "seba_precall_bg";
 const LS_FILTER_KEY = "seba_precall_filter";
 const LS_MIRROR_KEY = "seba_precall_mirror";
 const LS_BLUR_INTENSITY_KEY = "seba_precall_blur_intensity";
+const LS_CUSTOM_BG_KEY = "seba_precall_custom_bg_url";
 
 // Blur intensity levels: 1 (subtle) → 5 (heavy)
 const BLUR_RADIUS_MAP = [4, 8, 12, 16, 24]; // px
@@ -176,10 +180,22 @@ export const VIDEO_FILTERS: VideoFilter[] = [
   { id: "dark", label: "Dark Mode", css: "brightness(70%) contrast(120%)" },
 ];
 
-// ─── Helpers ───────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function getSavedCustomBg(): VideoBackground | null {
+  try {
+    const url = localStorage.getItem(LS_CUSTOM_BG_KEY);
+    if (url) return { id: "custom", label: "My Background", url };
+  } catch (_) { /* ignore */ }
+  return null;
+}
+
 function getSavedBg(): VideoBackground {
   try {
     const id = localStorage.getItem(LS_BG_KEY);
+    if (id === "custom") {
+      const custom = getSavedCustomBg();
+      if (custom) return custom;
+    }
     if (id) {
       const found = VIDEO_BACKGROUNDS.find((b) => b.id === id);
       if (found) return found;
@@ -322,6 +338,21 @@ export default function PreCallScreen({
   const [blurIntensity, setBlurIntensity] = useState<number>(getSavedBlurIntensity);
   const [segmentationLoading, setSegmentationLoading] = useState(false);
   const [segmentationReady, setSegmentationReady] = useState(false);
+  const [customBgUrl, setCustomBgUrl] = useState<string | null>(() => {
+    try { return localStorage.getItem(LS_CUSTOM_BG_KEY); } catch (_) { return null; }
+  });
+  const [uploadingBg, setUploadingBg] = useState(false);
+  const bgFileInputRef = useRef<HTMLInputElement>(null);
+  const uploadBg = trpc.callBackground.upload.useMutation({
+    onSuccess: ({ url }) => {
+      try { localStorage.setItem(LS_CUSTOM_BG_KEY, url); } catch (_) { /* ignore */ }
+      setCustomBgUrl(url);
+      const customBg: VideoBackground = { id: "custom", label: "My Background", url };
+      setSelectedBg(customBg);
+      setUploadingBg(false);
+    },
+    onError: () => setUploadingBg(false),
+  });
 
   // ── Persist selections ─────────────────────────────────────────────────
   useEffect(() => {
@@ -686,7 +717,36 @@ export default function PreCallScreen({
   // Canvas is used for ALL non-none backgrounds (both blur and image replacement)
   const showCanvas = !!selectedBg.url && (segmentationLoading || segmentationReady);
 
-  // ── Join ───────────────────────────────────────────────────────────────
+  // ── Custom background upload ────────────────────────────────────────────────────
+  const handleBgFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image too large. Please choose a file under 5 MB.");
+      return;
+    }
+    setUploadingBg(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(",")[1];
+      uploadBg.mutate({
+        fileBase64: base64,
+        mimeType: file.type as "image/jpeg" | "image/png" | "image/webp" | "image/gif",
+        fileName: file.name,
+      });
+    };
+    reader.readAsDataURL(file);
+    // Reset input so same file can be re-selected
+    e.target.value = "";
+  }, [uploadBg]);
+
+  const handleRemoveCustomBg = useCallback(() => {
+    try { localStorage.removeItem(LS_CUSTOM_BG_KEY); } catch (_) { /* ignore */ }
+    setCustomBgUrl(null);
+    if (selectedBg.id === "custom") setSelectedBg(VIDEO_BACKGROUNDS[0]);
+  }, [selectedBg]);
+
+  // ── Join ───────────────────────────────────────────────────────────────────
   const handleJoin = () => {
     stopSegmentation();
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -1086,6 +1146,53 @@ export default function PreCallScreen({
                     )}
                   </button>
                 ))}
+
+                {/* Custom background tile */}
+                {customBgUrl && (
+                  <button
+                    onClick={() => setSelectedBg({ id: "custom", label: "My Background", url: customBgUrl })}
+                    className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all ${
+                      selectedBg.id === "custom"
+                        ? "border-blue-500 ring-2 ring-blue-500/30"
+                        : "border-gray-700 hover:border-gray-500"
+                    }`}
+                  >
+                    <img src={customBgUrl} alt="My Background" className="w-full h-full object-cover" />
+                    <div className="absolute bottom-0 inset-x-0 bg-black/60 text-xs text-center py-0.5 truncate px-1">My Background</div>
+                    {selectedBg.id === "custom" && (
+                      <div className="absolute top-1 right-1"><CheckCircle className="w-4 h-4 text-blue-400" /></div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); handleRemoveCustomBg(); }}
+                      className="absolute top-1 left-1 p-0.5 rounded bg-black/60 hover:bg-red-600/80 transition-colors"
+                      title="Remove custom background"
+                    >
+                      <Trash2 className="w-3 h-3 text-white" />
+                    </button>
+                  </button>
+                )}
+
+                {/* Upload your own tile */}
+                <button
+                  onClick={() => bgFileInputRef.current?.click()}
+                  disabled={uploadingBg}
+                  className="relative aspect-video rounded-lg overflow-hidden border-2 border-dashed border-gray-600 hover:border-blue-500 transition-all flex flex-col items-center justify-center gap-1 bg-gray-800/50 hover:bg-gray-700/50 disabled:opacity-60"
+                >
+                  {uploadingBg ? (
+                    <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
+                  ) : (
+                    <Upload className="w-5 h-5 text-gray-400" />
+                  )}
+                  <span className="text-[10px] text-gray-400">{uploadingBg ? "Uploading…" : "Upload your own"}</span>
+                </button>
+                <input
+                  ref={bgFileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={handleBgFileChange}
+                />
               </div>
               {/* Blur intensity slider — only shown when Smart Blur is selected */}
               {selectedBg.id === "blur" && (

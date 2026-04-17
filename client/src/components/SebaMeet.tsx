@@ -451,9 +451,26 @@ const SebaMeetInner = function SebaMeet({
       const pc = new RTCPeerConnection({ iceServers });
       const videoRef = { current: null } as unknown as React.RefObject<HTMLVideoElement>;
 
-      // Add local tracks
+      // Add local tracks and set encoding parameters for quality
       localStreamRef.current?.getTracks().forEach((track) => {
-        pc.addTrack(track, localStreamRef.current!);
+        const sender = pc.addTrack(track, localStreamRef.current!);
+        // Apply bitrate caps after the sender is created
+        // (setParameters requires an existing offer/answer, so we defer via setTimeout)
+        setTimeout(async () => {
+          try {
+            const params = sender.getParameters();
+            if (!params.encodings || params.encodings.length === 0) {
+              params.encodings = [{}];
+            }
+            if (track.kind === "video") {
+              params.encodings[0].maxBitrate = 2_500_000; // 2.5 Mbps
+              params.encodings[0].maxFramerate = 30;
+            } else if (track.kind === "audio") {
+              params.encodings[0].maxBitrate = 128_000; // 128 kbps
+            }
+            await sender.setParameters(params);
+          } catch { /* setParameters may fail before negotiation completes */ }
+        }, 2000);
       });
 
       // ICE candidates → targeted signal
@@ -612,8 +629,17 @@ const SebaMeetInner = function SebaMeet({
     (async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: !audioOnly,
-          audio: true,
+          video: audioOnly ? false : {
+            width:     { ideal: 1280, max: 1920 },
+            height:    { ideal: 720,  max: 1080 },
+            frameRate: { ideal: 30,   max: 30   },
+          },
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl:  true,
+            sampleRate:       { ideal: 48000 },
+          },
         });
         if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return; }
         localStreamRef.current = stream;
