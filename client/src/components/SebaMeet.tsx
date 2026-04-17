@@ -280,12 +280,10 @@ const SebaMeetInner = function SebaMeet({
   const resolvedBgUrl = (() => {
     if (!resolvedBgId || resolvedBgId === "none") return "";
     if (resolvedBgId === "blur") return "blur";
-    // If live override is set, look up from VIDEO_BACKGROUNDS catalogue
-    if (liveBgId) {
-      const found = VIDEO_BACKGROUNDS.find((b) => b.id === liveBgId);
-      if (found?.url) return found.url;
-    }
-    // Fall back to localStorage-persisted URL (set by PreCallScreen)
+    // 1. Always try the catalogue first (covers both live override and prop-passed id)
+    const catalogueEntry = VIDEO_BACKGROUNDS.find((b) => b.id === resolvedBgId);
+    if (catalogueEntry?.url && catalogueEntry.url !== "blur") return catalogueEntry.url;
+    // 2. Fall back to localStorage-persisted URL (set by PreCallScreen; covers custom uploads)
     try {
       const stored = localStorage.getItem("seba_precall_bg_url");
       if (stored) return stored;

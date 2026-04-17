@@ -3265,3 +3265,8 @@
 - [x] Create InviteCountdown component: shows relative time to expiry (e.g. "Expires in 6 h 12 m"), ticks every 60 s, turns amber when < 6 h remain, turns red when < 1 h remains
 - [x] Replace static "Pending" badge in DirectorUsers.tsx invite history table with InviteCountdown
 - [x] Add i18n keys for countdown labels (EN/ES/CA)
+
+## Bug: Virtual background image not showing on SEBA Connect video call
+
+- [x] Diagnose why the virtual background image is not rendered during a video call
+- [x] Fix the background image rendering so it appears correctly in the local video preview
