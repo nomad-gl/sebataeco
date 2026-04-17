@@ -46,10 +46,14 @@ import {
   Download,
   Trash2,
   Clock,
+  UserX,
+  UserCheck,
+  KeyRound,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 
-type EventType = "all" | "grade_override" | "bias_flag" | "learning_path" | "assessment";
+type EventType = "all" | "grade_override" | "bias_flag" | "learning_path" | "assessment" | "account_changes";
 
 const SEVERITY_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   info: { label: "Info", variant: "secondary" },
@@ -62,6 +66,9 @@ const TYPE_ICONS: Record<string, React.ReactNode> = {
   bias_flag: <AlertTriangle className="h-4 w-4 text-amber-500" />,
   learning_path: <BookOpen className="h-4 w-4 text-green-500" />,
   assessment: <Info className="h-4 w-4 text-purple-500" />,
+  deactivate_user: <UserX className="h-4 w-4 text-red-500" />,
+  reactivate_user: <UserCheck className="h-4 w-4 text-green-600" />,
+  admin_password_reset: <KeyRound className="h-4 w-4 text-orange-500" />,
 };
 
 export default function AuditDashboard() {
@@ -210,6 +217,7 @@ export default function AuditDashboard() {
               { label: t("audit_stat_unresolved"), value: stats.last30Days.unresolvedBiasFlags, icon: <AlertTriangle className="h-4 w-4 text-red-500" /> },
               { label: t("audit_stat_paths"), value: stats.last30Days.learningPaths, icon: <BookOpen className="h-4 w-4 text-green-500" /> },
               { label: t("audit_stat_assessments"), value: stats.last30Days.aiAssessments, icon: <Info className="h-4 w-4 text-purple-500" /> },
+              { label: t("audit_stat_account_changes"), value: stats.last30Days.accountChanges ?? 0, icon: <Users className="h-4 w-4 text-slate-500" /> },
             ].map((s) => (
               <Card key={s.label} className="p-3">
                 <div className="flex items-center gap-2 mb-1">{s.icon}<span className="text-xs text-muted-foreground">{s.label}</span></div>
@@ -239,6 +247,7 @@ export default function AuditDashboard() {
                   <SelectItem value="bias_flag">{t("audit_filter_bias")}</SelectItem>
                   <SelectItem value="learning_path">{t("audit_filter_path")}</SelectItem>
                   <SelectItem value="assessment">{t("audit_filter_assessment")}</SelectItem>
+                  <SelectItem value="account_changes">{t("audit_filter_account_changes")}</SelectItem>
                 </SelectContent>
               </Select>
               <span className="text-sm text-muted-foreground">

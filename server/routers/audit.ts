@@ -88,7 +88,7 @@ export const auditRouter = router({
         limit: z.number().min(1).max(200).default(50),
         offset: z.number().min(0).default(0),
         eventType: z
-          .enum(["all", "grade_override", "bias_flag", "learning_path", "assessment"])
+          .enum(["all", "grade_override", "bias_flag", "learning_path", "assessment", "account_changes"])
           .default("all"),
         since: z.number().nullish(), // Unix timestamp ms
       })
@@ -228,6 +228,49 @@ export const auditRouter = router({
         }
       }
 
+      // Account lifecycle events (deactivate_user, reactivate_user, admin_password_reset)
+      if (input.eventType === "all" || input.eventType === "account_changes") {
+        const accountActions = ["deactivate_user", "reactivate_user", "admin_password_reset"] as const;
+        const lifecycleRows = await db
+          .select()
+          .from(adminAuditLogs)
+          .where(
+            and(
+              sql`${adminAuditLogs.action} IN ('deactivate_user','reactivate_user','admin_password_reset')`,
+              sinceDate ? gte(adminAuditLogs.createdAt, sinceDate) : undefined
+            )
+          )
+          .orderBy(desc(adminAuditLogs.createdAt))
+          .limit(input.eventType === "all" ? 20 : input.limit);
+
+        for (const row of lifecycleRows) {
+          const details = (() => { try { return JSON.parse(row.details ?? "{}"); } catch { return {}; } })();
+          const actionLabels: Record<string, string> = {
+            deactivate_user: "Account Deactivated",
+            reactivate_user: "Account Reactivated",
+            admin_password_reset: "Admin Password Reset",
+          };
+          const targetId = row.resourceId ?? details.targetUserId ?? "?";
+          const targetEmail = details.email ?? `user #${targetId}`;
+          const summaryMap: Record<string, string> = {
+            deactivate_user: `Account deactivated — user #${targetId}`,
+            reactivate_user: `Account reactivated — user #${targetId}`,
+            admin_password_reset: `Password reset issued for ${targetEmail}`,
+          };
+          events.push({
+            id: `account-${row.id}`,
+            type: row.action,
+            typeLabel: actionLabels[row.action] ?? row.action,
+            severity: row.action === "deactivate_user" ? "warning" : "info",
+            summary: summaryMap[row.action] ?? row.action,
+            userId: row.userId,
+            createdAt: row.createdAt instanceof Date ? row.createdAt.getTime() : Number(row.createdAt),
+            resolved: true,
+            details: details,
+          });
+        }
+      }
+
       // Sort all events by createdAt desc
       events.sort((a, b) => b.createdAt - a.createdAt);
 
@@ -244,7 +287,7 @@ export const auditRouter = router({
     .input(
       z.object({
         eventType: z
-          .enum(["all", "grade_override", "bias_flag", "learning_path", "assessment"])
+          .enum(["all", "grade_override", "bias_flag", "learning_path", "assessment", "account_changes"])
           .default("all"),
       })
     )
@@ -343,6 +386,34 @@ export const auditRouter = router({
         }
       }
 
+      // Account lifecycle events in CSV export
+      if (input.eventType === "all" || input.eventType === "account_changes") {
+        const lifecycleRows = await db
+          .select()
+          .from(adminAuditLogs)
+          .where(sql`${adminAuditLogs.action} IN ('deactivate_user','reactivate_user','admin_password_reset')`)
+          .orderBy(desc(adminAuditLogs.createdAt))
+          .limit(1000);
+        for (const row of lifecycleRows) {
+          const details = (() => { try { return JSON.parse(row.details ?? "{}"); } catch { return {}; } })();
+          const actionLabels: Record<string, string> = {
+            deactivate_user: "Account Deactivated",
+            reactivate_user: "Account Reactivated",
+            admin_password_reset: "Admin Password Reset",
+          };
+          events.push({
+            id: `account-${row.id}`,
+            type: row.action,
+            typeLabel: actionLabels[row.action] ?? row.action,
+            severity: row.action === "deactivate_user" ? "warning" : "info",
+            summary: `${actionLabels[row.action] ?? row.action} — user #${row.resourceId ?? details.targetUserId ?? "?"}`,
+            userId: row.userId,
+            createdAt: row.createdAt instanceof Date ? row.createdAt.getTime() : Number(row.createdAt),
+            resolved: true,
+          });
+        }
+      }
+
       events.sort((a, b) => b.createdAt - a.createdAt);
 
       // Build CSV
@@ -414,6 +485,16 @@ export const auditRouter = router({
       .from(aiAssessments)
       .where(gte(aiAssessments.createdAt, thirtyDaysAgo));
 
+    const [accountChangesCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(adminAuditLogs)
+      .where(
+        and(
+          gte(adminAuditLogs.createdAt, thirtyDaysAgo),
+          sql`${adminAuditLogs.action} IN ('deactivate_user','reactivate_user','admin_password_reset')`
+        )
+      );
+
     return {
       last30Days: {
         gradeOverrides: Number(overrideCount?.count ?? 0),
@@ -421,6 +502,7 @@ export const auditRouter = router({
         unresolvedBiasFlags: Number(biasUnresolved?.count ?? 0),
         learningPaths: Number(pathCount?.count ?? 0),
         aiAssessments: Number(assessmentCount?.count ?? 0),
+        accountChanges: Number(accountChangesCount?.count ?? 0),
       },
     };
   }),

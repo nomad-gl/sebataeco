@@ -3195,3 +3195,10 @@
 - [x] Record adminRequestReset event in audit log (actor, target user, timestamp, action type)
 - [x] Record deactivate/reactivate events in audit log
 - [x] Add i18n keys for deactivate/reactivate UI (EN/ES/CA)
+
+## Feature: Audit Dashboard — account lifecycle events
+
+- [x] Extend audit.getLogs tRPC query to include deactivate_user, reactivate_user, admin_password_reset action types
+- [x] Add i18n labels for the three new action types in the Audit Dashboard (EN/ES/CA)
+- [x] Add "Account Changes" filter tab / action-type filter option in the Audit Dashboard UI
+- [x] Display actor name (Director who performed the action) and target user name in the audit row
