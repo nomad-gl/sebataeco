@@ -5,9 +5,10 @@
  * as the Manus OAuth path, so existing users are unaffected.
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +29,7 @@ export default function LocalLogin() {
   const { data: customBg } = trpc.director.getLoginBackground.useQuery();
   const bgImage = customBg ?? DEFAULT_BG;
   const [showLangMenu, setShowLangMenu] = useState(false);
+  const { isAuthenticated, loading: authLoading } = useAuth();
 
   // ── Return path — where to go after successful login ─────────────────────
   const returnPath = useMemo(() => {
@@ -39,6 +41,13 @@ export default function LocalLogin() {
     } catch { /* ignore */ }
     return "/";
   }, []);
+
+  // ── Redirect if already authenticated ─────────────────────────────────────
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      window.location.href = returnPath;
+    }
+  }, [authLoading, isAuthenticated, returnPath]);
 
   // ── Login state ──────────────────────────────────────────────────────────
   const [loginEmail, setLoginEmail] = useState("");

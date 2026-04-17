@@ -2488,6 +2488,9 @@ export const translations = {
     local_auth_resetting: "Resetting…",
     local_auth_reset_success: "Password reset! Signing you in…",
     local_auth_reset_invalid: "This reset link is invalid or has expired.",
+    // Offline / reconnecting banner
+    offline_banner_reconnecting: "Connection lost — reconnecting…",
+    offline_banner_back: "You're back online.",
     // Image generation confirmation phrases
     aina_image_confirm_1: "Of course! I'm generating that image for you right now — it will appear in just a moment! 🎨",
     aina_image_confirm_2: "On it! Creating your image now… 🖼️",
@@ -4948,6 +4951,9 @@ export const translations = {
     local_auth_resetting: "Restableciendo…",
     local_auth_reset_success: "¡Contraseña restablecida! Iniciando sesión…",
     local_auth_reset_invalid: "Este enlace de restablecimiento no es válido o ha caducado.",
+    // Offline / reconnecting banner
+    offline_banner_reconnecting: "Conexión perdida — reconectando…",
+    offline_banner_back: "Conexión restaurada.",
     // Image generation confirmation phrases
     aina_image_confirm_1: "¡Por supuesto! Estoy generando esa imagen ahora mismo — ¡aparecerá en un momento! 🎨",
     aina_image_confirm_2: "¡En ello! Creando tu imagen ahora… 🖼️",
@@ -7408,6 +7414,9 @@ export const translations = {
     local_auth_resetting: "Restablint…",
     local_auth_reset_success: "Contrasenya restablida! Iniciant sessió…",
     local_auth_reset_invalid: "Aquest enllaç de restabliment no és vàlid o ha caducat.",
+    // Offline / reconnecting banner
+    offline_banner_reconnecting: "Connexió perduda — reconnectant…",
+    offline_banner_back: "Connexió restaurada.",
     // Image generation confirmation phrases
     aina_image_confirm_1: "Per descomptat! Estic generant aquesta imatge ara mateix — apareixerà en un moment! 🎨",
     aina_image_confirm_2: "Ara mateix! Creant la teva imatge… 🖼️",

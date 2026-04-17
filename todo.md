@@ -3157,3 +3157,12 @@
 - [x] Add automatic retry with exponential backoff for cold-start "Failed to fetch" in tRPC client (main.tsx)
 - [x] Move @import font URL to top of index.css to fix PostCSS @import ordering warning
 - [x] Add retry-on-window-focus for auth.me query so it recovers silently after sandbox wake-up
+
+## Feature: Follow-ups (reset-password page, login redirect, offline banner)
+
+- [x] Add /reset-password route in App.tsx
+- [x] Create ResetPassword.tsx page: reads token from URL, calls localAuth.resetPassword, shows success/error, redirects to /login
+- [x] Add i18n keys for reset-password page (EN/ES/CA)
+- [x] LocalLogin: redirect to returnPath (or /) if user is already authenticated
+- [x] Create OfflineBanner component: shows "Reconnecting…" when navigator.onLine is false or all retries exhausted, auto-hides on recovery
+- [x] Add OfflineBanner to App.tsx layout
