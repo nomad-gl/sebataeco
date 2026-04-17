@@ -3119,3 +3119,9 @@
 - [x] Login background: upload custom background image in Settings
 - [x] Login background: persist URL in DB (app_settings table)
 - [x] Login background: load custom background on LocalLogin page
+
+## Bug Fix: Image generation — no loading indicator / image not shown
+
+- [x] Unify isImgReq regex in Chat.tsx to match AIChatBox isImageRequest (indirect/question forms)
+- [x] Use functional setMessages(prev => ...) in Chat.tsx __image__ token handler to prevent stale-closure overwrite
+- [x] Add isGeneratingImage prop to AIChatBox so Chat.tsx can pass its own generating state and show the loading bubble correctly

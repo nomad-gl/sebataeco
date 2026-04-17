@@ -196,14 +196,57 @@ export default function Chat() {
     // ── Skip LLM call for image generation requests ───────────────────────
     // AIChatBox intercepts image requests, generates the image, and sends back
     // a __image__<url> token when done. We only need to show the user bubble here.
+    // NOTE: This regex MUST stay in sync with AIChatBox.isImageRequest so both
+    // components agree on what counts as an image request.
     const isImgReq = (() => {
-      const lower = content.toLowerCase();
+      const lower = content.toLowerCase().trim();
       if (lower.startsWith("/image ") || lower.startsWith("/img ")) return true;
-      return /^(generate|create|draw|make|produce|design|paint|illustrate|crea|genera|dibuix|fes|pinta|il·lustra|diseña|dibuja|haz|ilustra)\s+(an?\s+)?(image|picture|photo|illustration|drawing|artwork|poster|diagram|imatge|foto|il·lustració|dibuix|pòster|diagrama|imagen|fotografía|ilustración|dibujo|cartel)/i.test(lower);
+      // Direct verb-prefix forms (EN / ES / CA)
+      const directPatterns = [
+        /^(generate|create|draw|make|produce|design|paint|illustrate)\s+(an?\s+)?(image|picture|photo|illustration|drawing|artwork|poster|diagram)/i,
+        /^(genera|crea|dibuixa|fes|pinta|il·lustra)\s+(una?\s+)?(imatge|foto|il·lustració|dibuix|pòster|diagrama)/i,
+        /^(genera|crea|dibuja|haz|pinta|ilustra)\s+(una?\s+)?(imagen|foto|ilustración|dibujo|póster|diagrama)/i,
+      ];
+      if (directPatterns.some((p) => p.test(lower))) return true;
+      // Indirect / question-form patterns (EN)
+      const indirectEN = [
+        /can\s+you\s+(draw|create|generate|make|paint|design|illustrate|show\s+me)\s+(an?\s+)?(image|picture|photo|illustration|drawing|artwork|poster|diagram)/i,
+        /i('d|\s+would)\s+like\s+(an?\s+)?(image|picture|photo|illustration|drawing)/i,
+        /i\s+want\s+(an?\s+)?(image|picture|photo|illustration|drawing)/i,
+        /i\s+need\s+(an?\s+)?(image|picture|photo|illustration|drawing)/i,
+        /(show|give)\s+me\s+(an?\s+)?(image|picture|photo|illustration|drawing)/i,
+        /make\s+me\s+(an?\s+)?(image|picture|photo|illustration|drawing)/i,
+        /please\s+(generate|draw|create|make|paint|design|illustrate)\s+(an?\s+)?(image|picture|photo|illustration|drawing)/i,
+        /^an?\s+(image|picture|photo|illustration|drawing|artwork|poster|diagram)\s+of\b/i,
+      ];
+      if (indirectEN.some((p) => p.test(lower))) return true;
+      // Indirect / question-form patterns (ES)
+      const indirectES = [
+        /\u00bfpuedes\s+(dibujar|crear|generar|hacer|pintar|dise\u00f1ar|ilustrar)\s+(una?\s+)?(imagen|foto|ilustraci\u00f3n|dibujo)/i,
+        /quiero\s+(una?\s+)?(imagen|foto|ilustraci\u00f3n|dibujo)/i,
+        /necesito\s+(una?\s+)?(imagen|foto|ilustraci\u00f3n|dibujo)/i,
+        /mu\u00e9strame\s+(una?\s+)?(imagen|foto|ilustraci\u00f3n|dibujo)/i,
+        /hazme\s+(una?\s+)?(imagen|foto|ilustraci\u00f3n|dibujo)/i,
+        /por\s+favor\s+(genera|crea|dibuja|haz|pinta)\s+(una?\s+)?(imagen|foto|ilustraci\u00f3n|dibujo)/i,
+      ];
+      if (indirectES.some((p) => p.test(lower))) return true;
+      // Indirect / question-form patterns (CA)
+      const indirectCA = [
+        /pots\s+(dibuixar|crear|generar|fer|pintar|dissenyar|il·lustrar)\s+(una?\s+)?(imatge|foto|il·lustraci\u00f3|dibuix)/i,
+        /vull\s+(una?\s+)?(imatge|foto|il·lustraci\u00f3|dibuix)/i,
+        /necessito\s+(una?\s+)?(imatge|foto|il·lustraci\u00f3|dibuix)/i,
+        /mostra'm\s+(una?\s+)?(imatge|foto|il·lustraci\u00f3|dibuix)/i,
+        /fes-me\s+(una?\s+)?(imatge|foto|il·lustraci\u00f3|dibuix)/i,
+        /si\s+us\s+plau\s+(genera|crea|dibuixa|fes|pinta)\s+(una?\s+)?(imatge|foto|il·lustraci\u00f3|dibuix)/i,
+      ];
+      if (indirectCA.some((p) => p.test(lower))) return true;
+      return false;
     })();
     const userMsg: Message = { role: "user", content, timestamp: Date.now() };
-    const newMessages = [...messages, userMsg];
-    setMessages(newMessages);
+    // Use functional update so we always append to the latest state snapshot.
+    // This prevents stale-closure overwrites when image generation and LLM calls
+    // race against each other.
+    setMessages((prev) => [...prev, userMsg]);
     if (isImgReq) {
       // Image generation is handled by AIChatBox — do not call the LLM
       return;
@@ -215,8 +258,12 @@ export default function Chat() {
     if (capturedDocContext) setPendingDocContext(null);
     if (capturedImageUrls.length > 0) setPendingImageUrls([]);
 
+    // Snapshot the current messages + the new user message for the LLM payload.
+    // We read from the state ref rather than the closure to get the latest value.
+    const snapshotForPayload = [...messages, userMsg];
+
     const buildPayload = () => ({
-      messages: newMessages
+      messages: snapshotForPayload
         .filter((m) => m.role !== "system")
         .map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
       competency,
@@ -242,8 +289,8 @@ export default function Chat() {
       } catch (err) {
         // Both attempts failed — show clean error bubble
         console.error("[AINA chat error]", err);
-        setMessages([
-          ...newMessages,
+        setMessages((prev) => [
+          ...prev,
           { role: "assistant", content: t("chat_error"), timestamp: Date.now() },
         ]);
         return;
@@ -254,8 +301,10 @@ export default function Chat() {
       typeof result.content === "string" ? result.content : String(result.content);
     // Generate a stable client-side ID for rating purposes
     const msgId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-    setMessages([
-      ...newMessages,
+    // Use functional update to append the assistant reply to whatever state is
+    // current at this point (image messages may have been inserted while we waited).
+    setMessages((prev) => [
+      ...prev,
       {
         role: "assistant",
         content: aiContent,
