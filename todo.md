@@ -3131,3 +3131,7 @@
 - [x] Add i18n keys: aina_image_slow_fallback (EN/ES/CA)
 - [x] Add elapsed-seconds counter in AIChatBox that increments while isGeneratingImage is true
 - [x] Show fallback reassurance line inside the loading bubble after 8 seconds
+
+## Bug Fix: OAuth callback — {"error":"OAuth callback failed"}
+
+- [x] Fix decodeState() in server/_core/sdk.ts to parse JSON state and extract redirectUri (with legacy plain-URL fallback)
