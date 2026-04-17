@@ -359,16 +359,24 @@ const SebaMeetInner = function SebaMeet({
           ctx.fillRect(0, 0, width, height);
         }
 
-        // Step 2: Draw the person on top, masked to the segmentation silhouette
-        // Reuse cached offscreen canvas (avoid GC pressure at 60fps)
+        // Step 2: Feather the segmentation mask edge (2px blur softens hair/edge artefacts)
+        // Use a dedicated mask canvas so the blur doesn't affect the person image
         if (!personCanvasRef.current) personCanvasRef.current = document.createElement("canvas");
         const personCanvas = personCanvasRef.current;
         if (personCanvas.width !== width) personCanvas.width = width;
         if (personCanvas.height !== height) personCanvas.height = height;
+
+        // 2a: Draw the raw mask with a small blur to feather edges
         const pCtx = personCanvas.getContext("2d")!;
-        pCtx.drawImage(results.image, 0, 0, width, height);
-        pCtx.globalCompositeOperation = "destination-in";
+        pCtx.clearRect(0, 0, width, height);
+        pCtx.filter = "blur(2px)";
         pCtx.drawImage(results.segmentationMask, 0, 0, width, height);
+        pCtx.filter = "none";
+
+        // 2b: Use the feathered mask to cut out the person from the live video
+        pCtx.globalCompositeOperation = "source-in";
+        pCtx.drawImage(results.image, 0, 0, width, height);
+        pCtx.globalCompositeOperation = "source-over";
 
         // Step 3: Composite the masked person over the background
         ctx.drawImage(personCanvas, 0, 0);

@@ -2942,3 +2942,9 @@
 - [x] Verify fix works in both SebaMeet (in-call) and PreCallScreen (pre-call preview)
 - [x] TypeScript 0 errors
 - [x] Save checkpoint
+
+## Session 47: Edge Feathering + Background Preview Thumbnails
+- [x] Edge feathering: 2px blur applied to segmentation mask before source-in composite in both SebaMeet and PreCallScreen; cached offscreen canvas reused per frame
+- [x] Live background preview thumbnails: BackgroundThumbnail component renders composited person+background at ~5fps in each tile; falls back to static image when segmentation not active
+- [x] TypeScript 0 errors
+- [x] Save checkpoint

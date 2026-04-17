@@ -199,6 +199,76 @@ function getSavedFilter(): VideoFilter {
   return VIDEO_FILTERS[0];
 }
 
+// ─── BackgroundThumbnail ──────────────────────────────────────────────────
+// Renders a small canvas showing the composited person + a specific background.
+// personFrame: the latest feathered person canvas from the segmentation loop.
+// bg: the background to preview.
+// blurRadius: blur radius in px (used when bg is "blur").
+function BackgroundThumbnail({
+  bg,
+  personFrame,
+  blurRadius,
+  tick,
+}: {
+  bg: VideoBackground;
+  personFrame: HTMLCanvasElement | null;
+  blurRadius: number;
+  tick: number;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const bgImgRef = useRef<HTMLImageElement | null>(null);
+
+  // Preload background image
+  useEffect(() => {
+    if (bg.url && bg.url !== "blur") {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = bg.url;
+      img.onload = () => { bgImgRef.current = img; };
+    } else {
+      bgImgRef.current = null;
+    }
+  }, [bg.url]);
+
+  // Re-composite whenever tick changes (throttled ~5fps from parent)
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !personFrame) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const { width, height } = canvas;
+    ctx.clearRect(0, 0, width, height);
+
+    // Draw background
+    const bgImg = bgImgRef.current;
+    if (bg.url === "blur") {
+      ctx.filter = `blur(${blurRadius}px)`;
+      ctx.drawImage(personFrame, 0, 0, width, height);
+      ctx.filter = "none";
+    } else if (bgImg) {
+      const scale = Math.max(width / bgImg.naturalWidth, height / bgImg.naturalHeight);
+      const sw = bgImg.naturalWidth * scale;
+      const sh = bgImg.naturalHeight * scale;
+      const sx = (width - sw) / 2;
+      const sy = (height - sh) / 2;
+      ctx.drawImage(bgImg, sx, sy, sw, sh);
+    } else if (!bg.url) {
+      // "None" — just show the raw person frame
+      ctx.drawImage(personFrame, 0, 0, width, height);
+      return;
+    } else {
+      ctx.fillStyle = "#111";
+      ctx.fillRect(0, 0, width, height);
+    }
+
+    // Composite person on top
+    ctx.drawImage(personFrame, 0, 0, width, height);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tick, bg.url, blurRadius]);
+
+  return <canvas ref={canvasRef} width={160} height={90} className="w-full h-full object-cover" />;
+}
+
 // ─── Props ─────────────────────────────────────────────────────────────────
 interface PreCallScreenProps {
   roomName: string;
@@ -225,6 +295,9 @@ export default function PreCallScreen({
   const segmentationRef = useRef<unknown>(null);
   const animFrameRef = useRef<number>(0);
   const bgImgRef = useRef<HTMLImageElement | null>(null);
+  // Holds the latest feathered person canvas (mask applied, no background) for thumbnail previews
+  const personFrameRef = useRef<HTMLCanvasElement | null>(null);
+  const [previewTick, setPreviewTick] = useState(0); // increments to trigger thumbnail re-renders
 
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [audioEnabled, setAudioEnabled] = useState(true);
@@ -453,16 +526,26 @@ export default function PreCallScreen({
           ctx.filter = "none";
         }
 
-        // Step 2: Mask person onto offscreen canvas then composite over background
-        const personCanvas = document.createElement("canvas");
-        personCanvas.width = width;
-        personCanvas.height = height;
+        // Step 2: Feather the mask edge (2px blur) then cut out person
+        // Reuse personFrameRef canvas to avoid GC pressure
+        if (!personFrameRef.current) personFrameRef.current = document.createElement("canvas");
+        const personCanvas = personFrameRef.current;
+        if (personCanvas.width !== width) personCanvas.width = width;
+        if (personCanvas.height !== height) personCanvas.height = height;
         const pCtx = personCanvas.getContext("2d")!;
-        pCtx.drawImage(results.image, 0, 0, width, height);
-        pCtx.globalCompositeOperation = "destination-in";
+        pCtx.clearRect(0, 0, width, height);
+        // 2a: Draw blurred mask to feather silhouette edges
+        pCtx.filter = "blur(2px)";
         pCtx.drawImage(results.segmentationMask, 0, 0, width, height);
+        pCtx.filter = "none";
+        // 2b: Stamp the live video through the feathered mask
+        pCtx.globalCompositeOperation = "source-in";
+        pCtx.drawImage(results.image, 0, 0, width, height);
+        pCtx.globalCompositeOperation = "source-over";
         ctx.drawImage(personCanvas, 0, 0);
         ctx.restore();
+        // Throttle thumbnail updates to ~5fps to avoid excessive re-renders
+        if (Date.now() % 200 < 20) setPreviewTick((t) => t + 1);
       });
 
       await seg.initialize();
@@ -974,7 +1057,15 @@ export default function PreCallScreen({
                         : "border-gray-700 hover:border-gray-500"
                     }`}
                   >
-                    {bg.url && bg.url !== "blur" ? (
+                    {segmentationReady && personFrameRef.current ? (
+                      // Live preview: composited person + this background
+                      <BackgroundThumbnail
+                        bg={bg}
+                        personFrame={personFrameRef.current}
+                        blurRadius={BLUR_RADIUS_MAP[blurIntensity - 1]}
+                        tick={previewTick}
+                      />
+                    ) : bg.url && bg.url !== "blur" ? (
                       <img src={bg.url} alt={bg.label} className="w-full h-full object-cover" loading="lazy" />
                     ) : bg.url === "blur" ? (
                       <div className="w-full h-full bg-gradient-to-br from-blue-900/60 to-gray-700/60 backdrop-blur-md flex items-center justify-center">
