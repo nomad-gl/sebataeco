@@ -671,12 +671,43 @@ export function AIChatBox({
     return () => { if (wakeToastTimerRef.current) clearTimeout(wakeToastTimerRef.current); };
   }, []);
 
-  const handleWakeTranscript = useCallback((text: string) => {
-    // Wake-word activation is triggered by microphone input, which counts as
-    // a user interaction — unlock speech synthesis here too.
+  /**
+   * Shared auto-submit helper used by both the wake-word path and the manual
+   * mic (MediaRecorder) path.  When the transcript is an image request it runs
+   * the full image-generation pipeline; otherwise it forwards the text to the
+   * parent via onSendMessage so Chat.tsx can call the LLM.
+   */
+  const autoSubmitTranscript = useCallback(async (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
     unlockSpeechSynthesis();
-    onSendMessage(text);
-  }, [onSendMessage, unlockSpeechSynthesis]);
+    if (isImageRequest(trimmed)) {
+      const prompt = extractImagePrompt(trimmed);
+      setIsGeneratingImage(true);
+      // Show the user's spoken request as a plain text bubble first
+      onSendMessage(trimmed);
+      try {
+        const { url } = await generateImageMutation.mutateAsync({ prompt });
+        onSendMessage(`__image__${url}`);
+        const variations = [
+          `${prompt} — ${t("aina_variation_more_detailed")}`,
+          `${prompt} — ${t("aina_variation_different_style")}`,
+          `${prompt} — ${t("aina_variation_wider_view")}`,
+        ];
+        onSendMessage(`__image_variations__${JSON.stringify(variations)}`);
+      } catch {
+        onSendMessage(`__image_fallback__${prompt}`);
+      } finally {
+        setIsGeneratingImage(false);
+      }
+    } else {
+      onSendMessage(trimmed);
+    }
+  }, [unlockSpeechSynthesis, isImageRequest, extractImagePrompt, generateImageMutation, onSendMessage, t]);
+
+  const handleWakeTranscript = useCallback((text: string) => {
+    autoSubmitTranscript(text);
+  }, [autoSubmitTranscript]);
 
   // Keep forceRestartRef in sync with the latest wakeForceRestart
   // (declared after useAinaWakeWord so the ref is always current)
@@ -743,8 +774,15 @@ export function AIChatBox({
           const whisperLang = (lang || "ca").split("-")[0];
           const { text } = await transcribeMutation.mutateAsync({ audioUrl: url, language: whisperLang });
           if (text.trim()) {
-            setInput(text.trim());
-            textareaRef.current?.focus();
+            // Auto-submit: if the transcript is an image request, generate the image
+            // immediately rather than just placing the text in the input box.
+            if (isImageRequest(text.trim())) {
+              await autoSubmitTranscript(text.trim());
+            } else {
+              // For normal text, populate the input so the user can review before sending
+              setInput(text.trim());
+              textareaRef.current?.focus();
+            }
           } else {
             setVoiceError("No speech detected. Please try again.");
           }

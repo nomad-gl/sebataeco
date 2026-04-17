@@ -3292,3 +3292,8 @@
 - [x] Add font preload hints and resource hints (dns-prefetch, preconnect) in index.html
 - [x] Add OG image meta tag pointing to the existing 512px icon as social share image
 - [x] Add <link rel="alternate"> hreflang tags for es/ca/en on all pages
+
+## Bug: Auto voice prompt image creation does nothing
+
+- [x] Diagnose why voice prompt image creation intent is detected but no image is generated/displayed
+- [x] Fix the image generation flow so voice-triggered image requests produce and display an image
