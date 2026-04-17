@@ -2921,3 +2921,11 @@
 - [x] Settings persistence across calls: mid-call bg/filter/blur changes already write to localStorage, picked up by pre-call screen on next call
 - [x] TypeScript 0 errors
 - [x] Save checkpoint
+
+## Session 44: Host Controls + Call Summary + Keyboard Shortcuts
+- [x] Mute-all for hosts: host (first joiner) gets an orange MicOff button that sends mute-request data-channel signal to all peers; recipients auto-mute on receipt
+- [x] Call quality summary on hang-up: 3.5s summary card showing call duration, participant count, avg quality bars before onEnd fires
+- [x] Keyboard shortcuts: M=mute, V=video, Space=raise/lower hand; hint shown for first 4s of connected call
+- [x] TypeScript 0 errors
+- [x] Save checkpoint
+- [x] Fix video flickering: stable ref callbacks + activePeer stream sync useEffect prevent srcObject re-assignment on every render

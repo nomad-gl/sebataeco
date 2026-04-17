@@ -181,12 +181,23 @@ const SebaMeetInner = function SebaMeet({
   const [showControls, setShowControls] = useState(true);
   const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // ── Host detection (first to join = host) ──
+  const [isHost, setIsHost] = useState(false);
+
+  // ── Call summary (shown briefly on hang-up) ──
+  interface CallSummary { durationSecs: number; participantCount: number; avgQuality: number; }
+  const [callSummary, setCallSummary] = useState<CallSummary | null>(null);
+
   // ── PiP draggable local tile (distance from bottom-right corner) ──
   const [pipPos, setPipPos] = useState({ x: 16, y: 80 });
   const [pipTransitioning, setPipTransitioning] = useState(false);
 
   // ── Pinned speaker (click-to-promote) ──
   const [pinnedPeerId, setPinnedPeerId] = useState<number | null>(null);
+
+  // ── Active peer video/audio DOM refs (stable, not recreated on re-render) ──
+  const activePeerVideoElRef = useRef<HTMLVideoElement | null>(null);
+  const activePeerAudioElRef = useRef<HTMLAudioElement | null>(null);
 
   // ── Participant popover ──
   const [participantPopoverOpen, setParticipantPopoverOpen] = useState(false);
@@ -408,27 +419,29 @@ const SebaMeetInner = function SebaMeet({
       // We create it on every peer connection; the remote side receives it via ondatachannel.
       const dc = pc.createDataChannel("chat", { ordered: true });
       dataChannelsRef.current.set(peerId, dc);
-      dc.onmessage = (e) => {
+      const handleDcMessage = (data: string) => {
         try {
-          const msg = JSON.parse(e.data) as { from: string; text: string };
+          const parsed = JSON.parse(data);
+          if (parsed.type === "mute-request") {
+            // Host requested mute — mute local audio
+            const stream = localStreamRef.current;
+            if (stream) stream.getAudioTracks().forEach((t) => { t.enabled = false; });
+            setAudioMuted(true);
+            return;
+          }
+          // Default: chat message
+          const msg = parsed as { from: string; text: string };
           setChatMessages((prev) => [
             ...prev,
             { id: ++chatIdRef.current, from: msg.from, text: msg.text, own: false, at: Date.now() },
           ]);
         } catch { /* ignore */ }
       };
+      dc.onmessage = (e) => handleDcMessage(e.data);
       pc.ondatachannel = (e) => {
         // Answerer side: replace the channel reference
         dataChannelsRef.current.set(peerId, e.channel);
-        e.channel.onmessage = (ev) => {
-          try {
-            const msg = JSON.parse(ev.data) as { from: string; text: string };
-            setChatMessages((prev) => [
-              ...prev,
-              { id: ++chatIdRef.current, from: msg.from, text: msg.text, own: false, at: Date.now() },
-            ]);
-          } catch { /* ignore */ }
-        };
+        e.channel.onmessage = (ev) => handleDcMessage(ev.data);
       };
 
       // Track connection state for the "Connected" badge and call timer
@@ -551,6 +564,8 @@ const SebaMeetInner = function SebaMeet({
         const result = await joinRoom.mutateAsync({ roomName });
         if (cancelled) return;
         myIdRef.current = result.myId;
+        // First to join (no existing peers) = host
+        if (result.peers.length === 0) setIsHost(true);
 
         // Connect to peers already in the room
         for (const remotePeer of result.peers.slice(0, MAX_PEERS)) {
@@ -752,7 +767,44 @@ const SebaMeetInner = function SebaMeet({
     controlsTimerRef.current = setTimeout(() => setShowControls(false), 4000);
   }, []);
 
-  // ── Media controls ────────────────────────────────────────────────────────
+  // ── Keyboard shortcuts (M = mute, V = video, Space = raise/lower hand) ────────────────
+
+  // Ref to the raise-hand button so the Space shortcut can trigger it
+  const raiseHandBtnRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "m" || e.key === "M") {
+        e.preventDefault();
+        const stream = localStreamRef.current;
+        if (!stream) return;
+        setAudioMuted((prev) => {
+          const next = !prev;
+          stream.getAudioTracks().forEach((t) => { t.enabled = !next; });
+          return next;
+        });
+      } else if (e.key === "v" || e.key === "V") {
+        e.preventDefault();
+        const stream = localStreamRef.current;
+        if (!stream) return;
+        setVideoMuted((prev) => {
+          const next = !prev;
+          stream.getVideoTracks().forEach((t) => { t.enabled = !next; });
+          return next;
+        });
+      } else if (e.key === " ") {
+        e.preventDefault();
+        raiseHandBtnRef.current?.click();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // ── Media controls ───────────────────────────────────────────────────────────────────────────────────
 
   const toggleAudio = useCallback(() => {
     const stream = localStreamRef.current;
@@ -848,14 +900,29 @@ const SebaMeetInner = function SebaMeet({
     setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
   }, [chatInput, callId, saveChatMsg]);
 
+  // Mute-all: host sends a data-channel signal to all peers requesting them to mute
+  const handleMuteAll = useCallback(() => {
+    const payload = JSON.stringify({ type: "mute-request" });
+    dataChannelsRef.current.forEach((dc) => {
+      if (dc.readyState === "open") dc.send(payload);
+    });
+  }, []);
+
   const handleEnd = useCallback(() => {
+    // Build call summary before tearing down
+    const durationSecs = callStartRef.current ? Math.floor((Date.now() - callStartRef.current) / 1000) : 0;
+    const participantCount = 1 + peersRef.current.length;
+    const qualities = peersRef.current.map((p) => p.quality).filter((q) => q > 0);
+    const avgQuality = qualities.length > 0 ? Math.round(qualities.reduce((a, b) => a + b, 0) / qualities.length) : 0;
+    // Show summary briefly, then call onEnd
+    setCallSummary({ durationSecs, participantCount, avgQuality });
     leaveRoom.mutate({ roomName });
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
     screenStreamRef.current?.getTracks().forEach((t) => t.stop());
     peersRef.current.forEach((p) => p.pc.close());
     dataChannelsRef.current.forEach((dc) => dc.close());
     dataChannelsRef.current.clear();
-    onEnd();
+    setTimeout(() => { setCallSummary(null); onEnd(); }, 3500);
   }, [leaveRoom, roomName, onEnd]);
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -980,6 +1047,24 @@ const SebaMeetInner = function SebaMeet({
     }
   }, [peers, pinnedPeerId]);
 
+  // Sync activePeer stream to the stable DOM elements when the active peer changes.
+  // This avoids re-mounting the <video> element (which causes flicker) while still
+  // updating the stream when the loudest speaker or pinned peer changes.
+  useEffect(() => {
+    const videoEl = activePeerVideoElRef.current;
+    const audioEl = activePeerAudioElRef.current;
+    if (!activePeer) return;
+    if (videoEl && activePeer.stream && videoEl.srcObject !== activePeer.stream) {
+      videoEl.srcObject = activePeer.stream;
+      videoEl.play().catch(() => {});
+    }
+    if (audioEl && activePeer.stream && audioEl.srcObject !== activePeer.stream) {
+      audioEl.srcObject = activePeer.stream;
+      audioEl.play().catch(() => {});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePeer?.id, activePeer?.stream]);
+
   const totalParticipants = 1 + peers.length;
 
   return (
@@ -1002,18 +1087,27 @@ const SebaMeetInner = function SebaMeet({
           /* Active peer fills the screen */
           activePeer ? (
             <>
-              {/* Hidden audio */}
+              {/* Hidden audio — stable DOM element, stream updated via useEffect */}
               <audio
                 ref={(el) => {
+                  activePeerAudioElRef.current = el;
                   (activePeer.audioRef as React.MutableRefObject<HTMLAudioElement | null>).current = el;
-                  if (el && activePeer.stream) { el.srcObject = activePeer.stream; el.play().catch(() => {}); }
+                  if (el && activePeer.stream && el.srcObject !== activePeer.stream) {
+                    el.srcObject = activePeer.stream;
+                    el.play().catch(() => {});
+                  }
                 }}
                 autoPlay playsInline className="hidden"
               />
+              {/* Video — stable DOM element, stream updated via useEffect to prevent flicker */}
               <video
                 ref={(el) => {
+                  activePeerVideoElRef.current = el;
                   (activePeer.videoRef as React.MutableRefObject<HTMLVideoElement | null>).current = el;
-                  if (el && activePeer.stream) { el.srcObject = activePeer.stream; el.play().catch(() => {}); }
+                  if (el && activePeer.stream && el.srcObject !== activePeer.stream) {
+                    el.srcObject = activePeer.stream;
+                    el.play().catch(() => {});
+                  }
                 }}
                 autoPlay playsInline muted
                 className="absolute inset-0 w-full h-full object-cover"
@@ -1048,15 +1142,19 @@ const SebaMeetInner = function SebaMeet({
             >
               <audio
                 ref={(el) => {
-                  (peer.audioRef as React.MutableRefObject<HTMLAudioElement | null>).current = el;
-                  if (el && peer.stream) { el.srcObject = peer.stream; el.play().catch(() => {}); }
+                  const ref = peer.audioRef as React.MutableRefObject<HTMLAudioElement | null>;
+                  if (ref.current === el) return;
+                  ref.current = el;
+                  if (el && peer.stream && el.srcObject !== peer.stream) { el.srcObject = peer.stream; el.play().catch(() => {}); }
                 }}
                 autoPlay playsInline className="hidden"
               />
               <video
                 ref={(el) => {
-                  (peer.videoRef as React.MutableRefObject<HTMLVideoElement | null>).current = el;
-                  if (el && peer.stream) { el.srcObject = peer.stream; el.play().catch(() => {}); }
+                  const ref = peer.videoRef as React.MutableRefObject<HTMLVideoElement | null>;
+                  if (ref.current === el) return;
+                  ref.current = el;
+                  if (el && peer.stream && el.srcObject !== peer.stream) { el.srcObject = peer.stream; el.play().catch(() => {}); }
                 }}
                 autoPlay playsInline muted
                 className="w-full h-full object-cover"
@@ -1324,11 +1422,12 @@ const SebaMeetInner = function SebaMeet({
 
           {/* Raise hand */}
           <button
+            ref={raiseHandBtnRef}
             onClick={toggleRaiseHand}
             className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
               handRaised ? "bg-yellow-500 text-white" : "bg-white/15 text-white hover:bg-white/25"
             }`}
-            title={handRaised ? "Lower hand" : "Raise hand"}
+            title={handRaised ? "Lower hand (Space)" : "Raise hand (Space)"}
           >
             <Hand className="w-5 h-5" />
           </button>
@@ -1406,6 +1505,17 @@ const SebaMeetInner = function SebaMeet({
               title="Background & filter settings"
             >
               <Settings className="w-5 h-5" />
+            </button>
+          )}
+
+          {/* Mute all (host only) */}
+          {isHost && peers.length > 0 && (
+            <button
+              onClick={handleMuteAll}
+              className="w-11 h-11 rounded-full bg-orange-600 hover:bg-orange-500 text-white flex items-center justify-center transition-colors"
+              title="Mute all participants"
+            >
+              <MicOff className="w-5 h-5" />
             </button>
           )}
 
@@ -1551,6 +1661,45 @@ const SebaMeetInner = function SebaMeet({
               ))}
             </div>
           )}
+        </div>
+      )}
+      {/* ── Call summary card (shown briefly on hang-up) ── */}
+      {callSummary && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl px-8 py-6 flex flex-col items-center gap-3 text-white">
+            <div className="w-12 h-12 rounded-full bg-green-600/20 flex items-center justify-center mb-1">
+              <PhoneOff className="w-6 h-6 text-green-400" />
+            </div>
+            <p className="text-lg font-semibold">Call ended</p>
+            <div className="flex gap-6 text-sm text-white/70">
+              <div className="flex flex-col items-center gap-0.5">
+                <Clock className="w-4 h-4 mb-0.5 text-white/40" />
+                <span className="font-medium text-white">{Math.floor(callSummary.durationSecs / 60)}m {callSummary.durationSecs % 60}s</span>
+                <span>Duration</span>
+              </div>
+              <div className="flex flex-col items-center gap-0.5">
+                <Users className="w-4 h-4 mb-0.5 text-white/40" />
+                <span className="font-medium text-white">{callSummary.participantCount}</span>
+                <span>Participants</span>
+              </div>
+              {callSummary.avgQuality > 0 && (
+                <div className="flex flex-col items-center gap-0.5">
+                  <Volume2 className="w-4 h-4 mb-0.5 text-white/40" />
+                  <QualityBars bars={callSummary.avgQuality} />
+                  <span>Avg quality</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Keyboard shortcut hint (shown for 4s when call starts) ── */}
+      {callConnected && callSeconds <= 4 && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 flex gap-2 text-[11px] text-white/50 pointer-events-none animate-fade-in">
+          <span className="bg-black/40 rounded px-1.5 py-0.5">M mute</span>
+          <span className="bg-black/40 rounded px-1.5 py-0.5">V video</span>
+          <span className="bg-black/40 rounded px-1.5 py-0.5">Space hand</span>
         </div>
       )}
     </div>
