@@ -752,11 +752,11 @@ export function AIChatBox({
         const { url } = await generateImageMutation.mutateAsync({ prompt });
         // Inject a synthetic assistant message carrying the image URL
         onSendMessage(`__image__${url}`);
-        // Generate 3 prompt variations as follow-up chips
+        // Generate 3 prompt variations as follow-up chips (localised suffixes)
         const variations = [
-          `${prompt} — more detailed`,
-          `${prompt} — different style`,
-          `${prompt} — wider view`,
+          `${prompt} — ${t("aina_variation_more_detailed")}`,
+          `${prompt} — ${t("aina_variation_different_style")}`,
+          `${prompt} — ${t("aina_variation_wider_view")}`,
         ];
         onSendMessage(`__image_variations__${JSON.stringify(variations)}`);
       } catch {

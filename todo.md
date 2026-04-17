@@ -3075,3 +3075,8 @@
 - [x] Feature 1: Pulsing loading placeholder assistant bubble while image is generating
 - [x] Feature 2: Regenerate button on generated image bubbles (re-runs same prompt)
 - [x] Feature 3: Prompt variation suggestions as follow-up chips after image generation
+
+## Session 57: Localised Image Variation Suffixes
+
+- [x] Add i18n keys for variation suffixes (more detailed, different style, wider view) to EN/ES/CA
+- [x] Use t() in AIChatBox for variation suffix strings
