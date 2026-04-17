@@ -7,6 +7,7 @@ import Footer from "./components/Footer";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import LocalLogin from "./pages/LocalLogin";
+import RegisterWithInvite from "./pages/RegisterWithInvite";
 import ResetPassword from "./pages/ResetPassword";
 import OfflineBanner from "./components/OfflineBanner";
 import Chat from "./pages/Chat";
@@ -104,6 +105,7 @@ function Router() {
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/login" component={LocalLogin} />
+        <Route path="/register" component={RegisterWithInvite} />
         <Route path="/reset-password" component={ResetPassword} />
         <Route path="/chat" component={Chat} />
         <Route path="/practice" component={Practice} />

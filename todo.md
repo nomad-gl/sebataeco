@@ -3234,3 +3234,11 @@
 - [x] Show status badge per invite (Pending / Used / Expired)
 - [x] Add Resend button for pending/expired invites (not used ones)
 - [x] Add i18n keys for invite history section (EN/ES/CA)
+
+## Feature: Server-side invite token validation on registration
+
+- [x] Add localAuth.verifyInviteToken public tRPC procedure: validates token exists, is not expired, is not used; returns { valid, email, error }
+- [x] Strengthen localAuth.register to require and validate inviteToken, mark invite as used on successful registration
+- [x] Create dedicated /register page (RegisterWithInvite.tsx) that reads ?invite= from URL, calls verifyInviteToken on mount, shows error screen for invalid/expired/used tokens, pre-fills email if invite has one
+- [x] Register /register route in App.tsx pointing to the new page
+- [x] Add i18n keys for invite validation states (EN/ES/CA)

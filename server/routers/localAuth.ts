@@ -16,7 +16,7 @@ import { sdk } from "../_core/sdk";
 import { getSessionCookieOptions } from "../_core/cookies";
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getDb } from "../db";
-import { users, passwordResetTokens } from "../../drizzle/schema";
+import { users, passwordResetTokens, teacherInvites } from "../../drizzle/schema";
 import { eq, and, gt, desc } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
 
@@ -33,8 +33,48 @@ function localOpenId(email: string): string {
 
 export const localAuthRouter = router({
   /**
+   * Verify a teacher invite token without consuming it.
+   * Returns { valid: true, email } on success, or throws with a descriptive message.
+   */
+  verifyInviteToken: publicProcedure
+    .input(z.object({ token: z.string().min(1) }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      const now = new Date();
+      const [invite] = await db
+        .select()
+        .from(teacherInvites)
+        .where(eq(teacherInvites.token, input.token))
+        .limit(1);
+
+      if (!invite) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "This invite link is invalid. Please ask your Director for a new one.",
+        });
+      }
+      if (invite.usedAt) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "This invite link has already been used. Please ask your Director for a new one.",
+        });
+      }
+      if (invite.expiresAt < now) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This invite link has expired. Please ask your Director to resend the invitation.",
+        });
+      }
+
+      return { valid: true as const, email: invite.email ?? null };
+    }),
+
+  /**
    * Register a new local account.
-   * Creates the user row and immediately issues a session cookie.
+   * Requires a valid, unused, non-expired invite token.
+   * Creates the user row, marks the invite as used, and immediately issues a session cookie.
    */
   register: publicProcedure
     .input(
@@ -42,11 +82,40 @@ export const localAuthRouter = router({
         email: z.string().email("Invalid email address"),
         password: z.string().min(8, "Password must be at least 8 characters"),
         displayName: z.string().min(1, "Display name is required").max(128),
+        inviteToken: z.string().min(1, "An invite token is required to register."),
       })
     )
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      // ── Validate invite token ─────────────────────────────────────────────
+      const now = new Date();
+      const [invite] = await db
+        .select()
+        .from(teacherInvites)
+        .where(eq(teacherInvites.token, input.inviteToken))
+        .limit(1);
+
+      if (!invite) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "This invite link is invalid. Please ask your Director for a new one.",
+        });
+      }
+      if (invite.usedAt) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "This invite link has already been used.",
+        });
+      }
+      if (invite.expiresAt < now) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "This invite link has expired. Please ask your Director to resend the invitation.",
+        });
+      }
+
       const normalised = input.email.toLowerCase().trim();
       const openId = localOpenId(normalised);
 
@@ -75,6 +144,12 @@ export const localAuthRouter = router({
         loginMethod: "local",
         lastSignedIn: new Date(),
       });
+
+      // Mark invite as used
+      await db
+        .update(teacherInvites)
+        .set({ usedAt: now })
+        .where(eq(teacherInvites.id, invite.id));
 
       // Issue session cookie
       const sessionToken = await sdk.createSessionToken(openId, {
