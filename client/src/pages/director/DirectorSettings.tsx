@@ -24,6 +24,7 @@ export default function DirectorSettings() {
   const { data: users, isLoading: usersLoading } = trpc.director.getUsersForAdmin.useQuery();
   const { data: settings, isLoading: settingsLoading } = trpc.director.getSchoolSettings.useQuery();
   const { data: branding, isLoading: brandingLoading } = trpc.director.getSchoolBranding.useQuery();
+  const { data: loginBg } = trpc.director.getLoginBackground.useQuery();
 
   const updateRoleMutation = trpc.director.updateUserRole.useMutation({
     onSuccess: () => { utils.director.getUsersForAdmin.invalidate(); toast.success(t("dir_settings_role_updated")); },
@@ -50,10 +51,21 @@ export default function DirectorSettings() {
     onError: () => toast.error(t("dir_logo_remove_error")),
   });
 
+  const uploadLoginBgMutation = trpc.director.uploadLoginBackground.useMutation({
+    onSuccess: () => { utils.director.getLoginBackground.invalidate(); toast.success(t("dir_login_bg_uploaded")); },
+    onError: () => toast.error(t("dir_login_bg_upload_error")),
+  });
+
+  const removeLoginBgMutation = trpc.director.removeLoginBackground.useMutation({
+    onSuccess: () => { utils.director.getLoginBackground.invalidate(); toast.success(t("dir_login_bg_removed")); },
+    onError: () => toast.error(t("dir_login_bg_upload_error")),
+  });
+
   const [pendingRoles, setPendingRoles] = useState<Record<string, "user" | "admin" | "head_of_study">>({});
   const [schoolNameInput, setSchoolNameInput] = useState<string>("");
   const [schoolNameEditing, setSchoolNameEditing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const loginBgFileInputRef = useRef<HTMLInputElement>(null);
 
   // Pre-fill school name when branding loads
   useEffect(() => {
@@ -84,6 +96,20 @@ export default function DirectorSettings() {
     };
     reader.readAsDataURL(file);
     // Reset file input so same file can be re-selected
+    e.target.value = "";
+  }
+
+  function handleLoginBgFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error(t("dir_login_bg_too_large")); return; }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      const base64 = dataUrl.split(",")[1];
+      uploadLoginBgMutation.mutate({ base64, mimeType: file.type });
+    };
+    reader.readAsDataURL(file);
     e.target.value = "";
   }
 
@@ -192,6 +218,68 @@ export default function DirectorSettings() {
                 </div>
               </>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Login Page Background */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <ImageIcon className="w-4 h-4 text-primary" />
+              <CardTitle className="text-base">{t("dir_login_bg_title")}</CardTitle>
+            </div>
+            <CardDescription>{t("dir_login_bg_desc")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-start gap-6">
+              {/* Preview */}
+              <div className="flex-shrink-0 w-32 h-20 rounded-xl border-2 border-dashed border-border flex items-center justify-center bg-muted/30 overflow-hidden">
+                {loginBg ? (
+                  <img src={loginBg} alt="Login background" className="w-full h-full object-cover" />
+                ) : (
+                  <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                )}
+              </div>
+              <div className="flex-1 space-y-2">
+                <p className="text-sm font-medium">{t("dir_login_bg_label")}</p>
+                <p className="text-xs text-muted-foreground">PNG, JPG, WebP. Max 5 MB. Recommended: 1920 × 1080 px.</p>
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5"
+                    onClick={() => loginBgFileInputRef.current?.click()}
+                    disabled={uploadLoginBgMutation.isPending}
+                  >
+                    {uploadLoginBgMutation.isPending
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      : <Upload className="w-3.5 h-3.5" />}
+                    {t("dir_login_bg_upload")}
+                  </Button>
+                  {loginBg && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5 text-destructive hover:text-destructive"
+                      onClick={() => removeLoginBgMutation.mutate()}
+                      disabled={removeLoginBgMutation.isPending}
+                    >
+                      {removeLoginBgMutation.isPending
+                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        : <Trash2 className="w-3.5 h-3.5" />}
+                      {t("dir_login_bg_remove")}
+                    </Button>
+                  )}
+                </div>
+                <input
+                  ref={loginBgFileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={handleLoginBgFileChange}
+                />
+              </div>
+            </div>
           </CardContent>
         </Card>
 

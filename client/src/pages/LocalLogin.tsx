@@ -12,9 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Globe, Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
+import { Globe, Eye, EyeOff, Loader2, ShieldCheck, CheckCircle2 } from "lucide-react";
 
-const BG_IMAGE =
+const DEFAULT_BG =
   "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/hero-bg-UMuQESLM5HrV2VsrndDo2h.webp";
 
 const LANG_OPTIONS = [
@@ -25,6 +25,8 @@ const LANG_OPTIONS = [
 
 export default function LocalLogin() {
   const { t, lang, setLang } = useI18n();
+  const { data: customBg } = trpc.director.getLoginBackground.useQuery();
+  const bgImage = customBg ?? DEFAULT_BG;
   const [showLangMenu, setShowLangMenu] = useState(false);
 
   // ── Login state ──────────────────────────────────────────────────────────
@@ -40,6 +42,23 @@ export default function LocalLogin() {
   const [regName, setRegName] = useState("");
   const [showRegPw, setShowRegPw] = useState(false);
   const [regError, setRegError] = useState("");
+
+  // ── Forgot password state ─────────────────────────────────────────────────
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSent, setForgotSent] = useState(false);
+  const [forgotError, setForgotError] = useState("");
+
+  const requestResetMutation = trpc.localAuth.requestReset.useMutation({
+    onSuccess: () => setForgotSent(true),
+    onError: (err) => setForgotError(err.message),
+  });
+
+  const handleForgot = (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotError("");
+    requestResetMutation.mutate({ email: forgotEmail, origin: window.location.origin });
+  };
 
   // ── Mutations ────────────────────────────────────────────────────────────
   const loginMutation = trpc.localAuth.login.useMutation({
@@ -81,7 +100,7 @@ export default function LocalLogin() {
       {/* Full-screen background */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${BG_IMAGE})` }}
+        style={{ backgroundImage: `url(${bgImage})` }}
       />
       {/* Dark overlay */}
       <div className="absolute inset-0 bg-black/55" />
@@ -201,7 +220,75 @@ export default function LocalLogin() {
                   ) : null}
                   {loginMutation.isPending ? t("local_auth_signing_in") : t("local_auth_sign_in")}
                 </Button>
+
+                <div className="text-center mt-2">
+                  <button
+                    type="button"
+                    className="text-white/50 hover:text-white/80 text-xs underline underline-offset-2 transition-colors"
+                    onClick={() => { setShowForgot(true); setForgotSent(false); setForgotError(""); setForgotEmail(""); }}
+                  >
+                    {t("local_auth_forgot_password")}
+                  </button>
+                </div>
               </form>
+
+              {/* Forgot password overlay */}
+              {showForgot && (
+                <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 rounded-2xl">
+                  <div className="bg-gray-900/95 border border-white/20 rounded-xl p-6 w-full max-w-sm mx-4 shadow-2xl">
+                    {forgotSent ? (
+                      <div className="text-center space-y-3">
+                        <CheckCircle2 className="w-10 h-10 text-green-400 mx-auto" />
+                        <p className="text-white font-semibold">{t("local_auth_reset_sent_title")}</p>
+                        <p className="text-white/60 text-sm">{t("local_auth_reset_sent_body")}</p>
+                        <Button
+                          variant="ghost"
+                          className="text-white/60 hover:text-white mt-2"
+                          onClick={() => setShowForgot(false)}
+                        >
+                          {t("local_auth_back_to_login")}
+                        </Button>
+                      </div>
+                    ) : (
+                      <form onSubmit={handleForgot} className="space-y-4">
+                        <h3 className="text-white font-semibold text-lg">{t("local_auth_forgot_password")}</h3>
+                        <p className="text-white/60 text-sm">{t("local_auth_forgot_body")}</p>
+                        <div className="space-y-1.5">
+                          <Label className="text-white/80 text-sm">{t("local_auth_email")}</Label>
+                          <Input
+                            type="email"
+                            value={forgotEmail}
+                            onChange={(e) => setForgotEmail(e.target.value)}
+                            required
+                            className="bg-white/10 border-white/25 text-white placeholder:text-white/40 focus:border-white/60"
+                            placeholder="teacher@escola.cat"
+                          />
+                        </div>
+                        {forgotError && (
+                          <p className="text-red-300 text-sm">{forgotError}</p>
+                        )}
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="flex-1 text-white/60 hover:text-white"
+                            onClick={() => setShowForgot(false)}
+                          >
+                            {t("local_auth_cancel")}
+                          </Button>
+                          <Button
+                            type="submit"
+                            disabled={requestResetMutation.isPending}
+                            className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                          >
+                            {requestResetMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : t("local_auth_send_reset")}
+                          </Button>
+                        </div>
+                      </form>
+                    )}
+                  </div>
+                </div>
+              )}
             </TabsContent>
 
             {/* ── Register tab ── */}

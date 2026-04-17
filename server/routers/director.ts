@@ -2,7 +2,7 @@
  * Director router — admin-only procedures for school-level oversight.
  * All procedures use adminProcedure (requires role === 'admin').
  */
-import { router, adminProcedure } from "../_core/trpc";
+import { router, adminProcedure, publicProcedure } from "../_core/trpc";
 import { z } from "zod";
 import { getDb } from "../db";
 import {
@@ -610,4 +610,36 @@ export const directorRouter = router({
         .where(eq(users.id, input.userId));
       return { success: true };
     }),
+
+  /** Public: fetch the custom login background URL (null if not set) */
+  getLoginBackground: publicProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) return null;
+    const [row] = await db.select().from(appSettings).where(eq(appSettings.key, "login_bg_url"));
+    return row?.value ?? null;
+  }),
+
+  /** Admin: upload a custom login background image to S3 and persist the URL */
+  uploadLoginBackground: adminProcedure
+    .input(z.object({ base64: z.string(), mimeType: z.string() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const buffer = Buffer.from(input.base64, "base64");
+      const ext = input.mimeType.split("/")[1] ?? "jpg";
+      const key = `login-bg/background-${Date.now()}.${ext}`;
+      const { url } = await storagePut(key, buffer, input.mimeType);
+      await db.insert(appSettings).values({ key: "login_bg_url", value: url })
+        // @ts-ignore
+        .onDuplicateKeyUpdate({ set: { value: url } });
+      return { url };
+    }),
+
+  /** Admin: remove the custom login background (revert to default) */
+  removeLoginBackground: adminProcedure.mutation(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+    await db.delete(appSettings).where(eq(appSettings.key, "login_bg_url"));
+    return { success: true };
+  }),
 });

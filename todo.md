@@ -3102,8 +3102,20 @@
 
 ## Session 62: Sovereign Login + Image Confirmation i18n
 
-- [ ] Extend DB schema with email, password_hash, display_name for local auth
-- [ ] Add register/login tRPC procedures with bcrypt
-- [ ] Build sovereign login/register UI page (no Google/Meta)
-- [ ] Update App.tsx routing to use new login page
-- [ ] Add image confirmation i18n keys (EN/ES/CA)
+- [x] Extend DB schema with email, password_hash, display_name for local auth
+- [x] Add register/login tRPC procedures with bcrypt
+- [x] Build sovereign login/register UI page (no Google/Meta)
+- [x] Update App.tsx routing to use new login page
+- [x] Add image confirmation i18n keys (EN/ES/CA)
+
+## Session 63: Auth Follow-ups
+
+- [x] Password reset: DB table for reset tokens
+- [x] Password reset: requestReset + resetPassword tRPC procedures
+- [x] Password reset: email notification with reset link
+- [x] Password reset: Forgot Password UI on LocalLogin page
+- [x] Admin promotion UI: Users management page (admin only)
+- [x] Admin promotion UI: role toggle button per user
+- [x] Login background: upload custom background image in Settings
+- [x] Login background: persist URL in DB (app_settings table)
+- [x] Login background: load custom background on LocalLogin page
