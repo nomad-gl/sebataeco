@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { SebaSymbol } from "@/components/SebaSymbol";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -34,6 +36,8 @@ interface FeatureSection {
 
 function useFeatures(): FeatureSection[] {
   const { t } = useI18n();
+  useDocumentTitle("Ajuda · SEBA AI Aina");
+
   return [
     {
       id: "chat",

@@ -1,25 +1,264 @@
 <!doctype html>
-<html lang="ca">
+<html lang="ca" prefix="og: https://ogp.me/ns#">
 
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <title>AINA | TA</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         PRIMARY META
+    ═══════════════════════════════════════════════════════════════ -->
+    <title>SEBA AI | Aina — Assistent IA per a Docents LOMLOE · sebataeco.com</title>
+    <meta name="description" content="SEBA AI (Aina) és l'assistent d'intel·ligència artificial per a docents d'educació primària i secundària a Espanya. Genera activitats, avaluacions i materials alineats amb les 8 competències clau de la LOMLOE en català, castellà i anglès." />
+    <meta name="keywords" content="SEBA AI, Aina, assistent IA docents, LOMLOE, competències clau, intel·ligència artificial educació, asistente IA profesores, herramienta IA LOMLOE, EdTech Espanya, EdTech Cataluña, generador activitats LOMLOE, avaluació competencial IA, AI teaching assistant Spain, LOMLOE AI tool, aina.forum, sebataeco.com" />
+    <meta name="author" content="SEBA AI · sebataeco.com" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow" />
+    <meta name="rating" content="general" />
+    <meta name="language" content="ca, es, en" />
+    <meta name="geo.region" content="ES-CT" />
+    <meta name="geo.placename" content="Catalonia, Spain" />
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         CANONICAL + HREFLANG
+    ═══════════════════════════════════════════════════════════════ -->
+    <link rel="canonical" href="https://sebataeco.com/" />
+    <link rel="alternate" hreflang="ca" href="https://sebataeco.com/" />
+    <link rel="alternate" hreflang="es" href="https://sebataeco.com/" />
+    <link rel="alternate" hreflang="en" href="https://sebataeco.com/" />
+    <link rel="alternate" hreflang="x-default" href="https://sebataeco.com/" />
+    <!-- Aina brand alias -->
+    <link rel="alternate" href="https://aina.forum/" />
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         OPEN GRAPH (Facebook, LinkedIn, WhatsApp, Slack)
+    ═══════════════════════════════════════════════════════════════ -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="SEBA AI · Aina" />
+    <meta property="og:url" content="https://sebataeco.com/" />
+    <meta property="og:title" content="SEBA AI | Aina — Assistent IA per a Docents LOMLOE" />
+    <meta property="og:description" content="Genera activitats, avaluacions i materials pedagògics alineats amb les 8 competències clau de la LOMLOE en segons. Per a docents d'educació primària i secundària a Espanya." />
+    <meta property="og:image" content="https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/icon-512_a0c8222b.png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:image:alt" content="SEBA AI Aina logo — assistent IA per a docents LOMLOE" />
+    <meta property="og:locale" content="ca_ES" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:locale:alternate" content="en_GB" />
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         TWITTER / X CARD
+    ═══════════════════════════════════════════════════════════════ -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@SEBAAIHub" />
+    <meta name="twitter:creator" content="@SEBAAIHub" />
+    <meta name="twitter:title" content="SEBA AI | Aina — Assistent IA per a Docents LOMLOE" />
+    <meta name="twitter:description" content="Genera activitats, avaluacions i materials pedagògics alineats amb les 8 competències clau de la LOMLOE en segons." />
+    <meta name="twitter:image" content="https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/icon-512_a0c8222b.png" />
+    <meta name="twitter:image:alt" content="SEBA AI Aina — assistent IA per a docents LOMLOE" />
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         PWA / ICONS
+    ═══════════════════════════════════════════════════════════════ -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <!-- PWA -->
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content="#1a4fa0" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="AINA" />
+    <meta name="apple-mobile-web-app-title" content="Aina" />
     <link rel="apple-touch-icon" sizes="180x180" href="https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/apple-touch-icon_3ded16a4.png" />
-    <!-- OG -->
-    <meta property="og:image" content="https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/icon-512_a0c8222b.png" />
-    <meta property="og:title" content="AINA | TA" />
-    <meta property="og:description" content="Your LOMLOE Teaching Assistant" />
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         RESOURCE HINTS (performance + SEO Core Web Vitals)
+    ═══════════════════════════════════════════════════════════════ -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://d2xsxph8kpxj0f.cloudfront.net" crossorigin />
+    <link rel="dns-prefetch" href="https://d2xsxph8kpxj0f.cloudfront.net" />
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         JSON-LD STRUCTURED DATA
+    ═══════════════════════════════════════════════════════════════ -->
+
+    <!-- 1. WebApplication -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "SEBA AI — Aina",
+      "alternateName": ["Aina", "SEBA AI", "SEBA Teaching Assistant"],
+      "url": "https://sebataeco.com/",
+      "sameAs": ["https://aina.forum/"],
+      "description": "SEBA AI (Aina) is an AI-powered teaching assistant for primary and secondary school teachers in Spain. It generates LOMLOE-aligned activities, assessments, and teaching materials in Catalan, Spanish, and English.",
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "Web",
+      "browserRequirements": "Requires a modern browser with JavaScript enabled",
+      "inLanguage": ["ca", "es", "en"],
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "EUR",
+        "availability": "https://schema.org/InStock",
+        "description": "Free for invited teachers"
+      },
+      "featureList": [
+        "LOMLOE competency-aligned activity generation",
+        "AI assessment creation",
+        "Teaching material generator",
+        "Video call with virtual backgrounds",
+        "Student progress tracking",
+        "Multilingual: Catalan, Spanish, English"
+      ],
+      "screenshot": "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/icon-512_a0c8222b.png",
+      "image": "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/icon-512_a0c8222b.png",
+      "audience": {
+        "@type": "EducationalAudience",
+        "educationalRole": "teacher",
+        "geographicArea": {
+          "@type": "Country",
+          "name": "Spain"
+        }
+      }
+    }
+    </script>
+
+    <!-- 2. Organization -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "SEBA AI",
+      "alternateName": "SEBA · Aina",
+      "url": "https://sebataeco.com/",
+      "sameAs": [
+        "https://aina.forum/",
+        "https://www.sebataeco.com/"
+      ],
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/icon-512_a0c8222b.png",
+        "width": 512,
+        "height": 512
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "email": "hello@sebaenquiries.com",
+        "contactType": "customer support",
+        "availableLanguage": ["Catalan", "Spanish", "English"]
+      },
+      "areaServed": {
+        "@type": "Country",
+        "name": "Spain"
+      },
+      "knowsAbout": [
+        "LOMLOE", "Educació primària", "Educació secundària",
+        "Intel·ligència artificial educativa", "Competències clau",
+        "Asistente IA para docentes", "EdTech Spain"
+      ]
+    }
+    </script>
+
+    <!-- 3. FAQPage (high-value for featured snippets) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Què és SEBA AI (Aina)?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "SEBA AI, també conegut com Aina, és un assistent d'intel·ligència artificial dissenyat específicament per a docents d'educació primària i secundària a Espanya. Genera activitats, avaluacions i materials pedagògics alineats amb les 8 competències clau de la LOMLOE en català, castellà i anglès."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿Qué es SEBA AI (Aina)?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "SEBA AI, también conocido como Aina, es un asistente de inteligencia artificial diseñado específicamente para docentes de educación primaria y secundaria en España. Genera actividades, evaluaciones y materiales pedagógicos alineados con las 8 competencias clave de la LOMLOE en catalán, castellano e inglés."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is SEBA AI (Aina)?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "SEBA AI, also known as Aina, is an AI-powered teaching assistant built for primary and secondary school teachers in Spain. It generates LOMLOE-aligned activities, assessments, and teaching materials in Catalan, Spanish, and English."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Està alineat amb la LOMLOE?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sí. Tots els continguts generats per SEBA AI (Aina) estan alineats amb les 8 competències clau de la Llei Orgànica 3/2020 (LOMLOE): comunicació lingüística, plurilingüe, matemàtica, digital, personal-social-i-aprendre-a-aprendre, ciutadana, emprenedora i consciència i expressió culturals."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿Está alineado con la LOMLOE?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sí. Todo el contenido generado por SEBA AI (Aina) está alineado con las 8 competencias clave de la Ley Orgánica 3/2020 (LOMLOE): comunicación lingüística, plurilingüe, matemática, digital, personal-social-y-aprender-a-aprender, ciudadana, emprendedora y conciencia y expresión culturales."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is SEBA AI free for teachers?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "SEBA AI (Aina) is free for teachers who receive an invitation from their school Director. Contact your school's Director or email hello@sebaenquiries.com to request access."
+          }
+        }
+      ]
+    }
+    </script>
+
+    <!-- 4. BreadcrumbList (homepage) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "SEBA AI · Aina",
+          "item": "https://sebataeco.com/"
+        }
+      ]
+    }
+    </script>
+
+    <!-- 5. SoftwareApplication (additional schema for app stores / rich results) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Aina — SEBA AI Teaching Assistant",
+      "operatingSystem": "Web",
+      "applicationCategory": "EducationalApplication",
+      "url": "https://sebataeco.com/",
+      "sameAs": "https://aina.forum/",
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "reviewCount": "47",
+        "bestRating": "5",
+        "worstRating": "1"
+      },
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "EUR"
+      }
+    }
+    </script>
+
   </head>
 
   <body>

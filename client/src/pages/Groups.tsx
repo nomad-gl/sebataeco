@@ -18,6 +18,8 @@ import {
 import { toast } from "sonner";
 import { useI18n } from "@/contexts/I18nContext";
 import { Link } from "wouter";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+
 
 // ── Competency colour map ────────────────────────────────────────────────────
 const COMP_COLORS: Record<string, string> = {
@@ -50,6 +52,8 @@ function CreateGroupDialog({
   onCreated: () => void;
 }) {
   const { t } = useI18n();
+  useDocumentTitle("Grups · SEBA AI");
+
   const [className, setClassName] = useState("");
   const [level, setLevel] = useState("");
   const [assessmentTitle, setAssessmentTitle] = useState("");

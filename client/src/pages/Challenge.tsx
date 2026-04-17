@@ -22,6 +22,8 @@ import { exportToCsv, exportToXml } from "@/lib/exportUtils";
 import ExportDropdown, { PrintIcon, CsvIcon, XmlIcon } from "@/components/ExportDropdown";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
 type YearGroup = "junior" | "primary" | "secondary";
@@ -40,6 +42,8 @@ const TYPE_ICONS: Record<string, string> = {
 
 export default function Challenge() {
   const { t } = useI18n();
+  useDocumentTitle("Repte LOMLOE · SEBA AI");
+
   const { user, loading, isAuthenticated } = useAuth();
 
   // Read query params for deep-linking from MyMaterials / MaterialView

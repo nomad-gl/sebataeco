@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import Footer from "@/components/Footer";
 import { useI18n } from "@/contexts/I18nContext";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+
 
 // ─── Section wrapper ──────────────────────────────────────────────────────────
 function Section({
@@ -80,6 +82,8 @@ function DpaTable({
 
 export default function Dpa() {
   const { t } = useI18n();
+  useDocumentTitle("Acord de Protecció de Dades · SEBA AI");
+
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

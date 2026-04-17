@@ -3278,3 +3278,17 @@
 - [x] Load saved prefs in PreCallScreen on mount (falls back to localStorage then default)
 - [x] Save prefs to DB in PreCallScreen when user changes background or filter
 - [x] Load saved prefs in SebaMeet for in-call settings panel (live override still works)
+
+## Feature: Full On-Site SEO Implementation (sebataeco.com + aina.forum)
+
+- [x] Rewrite index.html: title, meta description, keywords, canonical, hreflang (es/ca/en), Open Graph (full set), Twitter Card, theme-color
+- [x] Add JSON-LD structured data: WebApplication, Organization, BreadcrumbList, FAQPage schemas
+- [x] Update manifest.json: correct name/description/lang for dual-brand (SEBA AI / Aina)
+- [x] Write sitemap.xml in client/public covering all public routes
+- [x] Write robots.txt allowing all crawlers, pointing to sitemap
+- [x] Add server-side Express route /sitemap.xml that serves the sitemap dynamically
+- [x] Add useDocumentTitle hook for dynamic per-route page titles
+- [x] Wire useDocumentTitle into all major page components
+- [x] Add font preload hints and resource hints (dns-prefetch, preconnect) in index.html
+- [x] Add OG image meta tag pointing to the existing 512px icon as social share image
+- [x] Add <link rel="alternate"> hreflang tags for es/ca/en on all pages

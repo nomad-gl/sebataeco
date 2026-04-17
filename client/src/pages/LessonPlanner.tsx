@@ -22,6 +22,8 @@ import { useI18n } from "@/contexts/I18nContext";
 import { useIsMobile } from "@/hooks/useMobile";
 import { exportToCsv, exportToXml } from "@/lib/exportUtils";
 import ExportDropdown, { PrintIcon, CsvIcon, XmlIcon } from "@/components/ExportDropdown";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+
 
 const COMPETENCIES = ["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"];
 const YEAR_GROUPS = ["1st Primary", "2nd Primary", "3rd Primary", "4th Primary", "5th Primary", "6th Primary", "1st Secondary", "2nd Secondary", "3rd Secondary", "4th Secondary"];
@@ -411,6 +413,8 @@ function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplic
 // ─── Main Component ────────────────────────────────────────────────────────────
 export default function LessonPlanner() {
   const { t } = useI18n();
+  useDocumentTitle("Planificador de Lliçons LOMLOE");
+
   const isMobile = useIsMobile();
   const [, navigate] = useLocation();
   const [selectedId, setSelectedId] = useState<number | null>(null);

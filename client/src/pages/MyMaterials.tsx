@@ -25,6 +25,8 @@ import { useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
 import { useI18n } from "@/contexts/I18nContext";
 import { useState, useRef } from "react";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+
 
 const TYPE_ICONS: Record<string, React.ElementType> = {
   quiz: BookOpen,
@@ -95,6 +97,8 @@ interface SebasnapItem {
 
 export default function MyMaterials() {
   const { t } = useI18n();
+  useDocumentTitle("Els Meus Materials · SEBA AI");
+
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
   const utils = trpc.useUtils();

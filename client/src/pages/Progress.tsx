@@ -11,6 +11,8 @@ import {
 import { getLoginUrl } from "@/const";
 import { useLocation, Link } from "wouter";
 import { useI18n } from "@/contexts/I18nContext";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+
 
 const GRADE_COLORS: Record<string, string> = {
   Sobresaliente: "bg-emerald-500 text-white",
@@ -64,6 +66,8 @@ function ScoreRing({ value }: { value: number | null }) {
 
 export default function Progress() {
   const { t } = useI18n();
+  useDocumentTitle("El Meu Progrés · LOMLOE");
+
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
 

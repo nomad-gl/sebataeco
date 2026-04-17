@@ -45,6 +45,55 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
+
+  // ── SEO: dynamic sitemap.xml ──────────────────────────────────────────────
+  app.get("/sitemap.xml", (_req, res) => {
+    const today = new Date().toISOString().split("T")[0];
+    const domains = ["https://sebataeco.com", "https://aina.forum"];
+    const publicRoutes = [
+      { path: "/",        priority: "1.0", changefreq: "weekly" },
+      { path: "/login",   priority: "0.7", changefreq: "monthly" },
+      { path: "/chat",    priority: "0.9", changefreq: "weekly" },
+      { path: "/practice",priority: "0.9", changefreq: "weekly" },
+      { path: "/connect", priority: "0.8", changefreq: "monthly" },
+    ];
+    const hreflangs = ["ca", "es", "en"];
+    const urls = domains.flatMap(domain =>
+      publicRoutes.map(route => {
+        const loc = `${domain}${route.path}`;
+        const alts = hreflangs.map(lang =>
+          `    <xhtml:link rel="alternate" hreflang="${lang}" href="${loc}"/>`
+        ).join("\n");
+        return `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>${route.changefreq}</changefreq>\n    <priority>${route.priority}</priority>\n${alts}\n  </url>`;
+      })
+    );
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${urls.join("\n")}\n</urlset>`;
+    res.set("Content-Type", "application/xml");
+    res.set("Cache-Control", "public, max-age=86400");
+    res.send(xml);
+  });
+
+  // ── SEO: robots.txt (served dynamically so it works on all domains) ───────
+  app.get("/robots.txt", (_req, res) => {
+    const content = [
+      "User-agent: *",
+      "Allow: /",
+      "Disallow: /api/",
+      "Disallow: /dashboard/",
+      "Disallow: /director/",
+      "Disallow: /admin/",
+      "Disallow: /profile",
+      "Disallow: /register",
+      "Disallow: /connect/room/",
+      "",
+      "Sitemap: https://sebataeco.com/sitemap.xml",
+      "Sitemap: https://aina.forum/sitemap.xml",
+    ].join("\n");
+    res.set("Content-Type", "text/plain");
+    res.set("Cache-Control", "public, max-age=86400");
+    res.send(content);
+  });
+
   // tRPC API
   app.use(
     "/api/trpc",

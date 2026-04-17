@@ -31,6 +31,8 @@ import { useI18n, type TranslationKey } from "@/contexts/I18nContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+
 
 const LOGO_KEY = "seba_school_logo";
 const PROFILE_KEY = "seba_school_profile";
@@ -250,6 +252,8 @@ function SchoolProfileCard({ t }: { t: (k: TranslationKey) => string }) {
 // ── Main page ────────────────────────────────────────────────────────────────
 export default function Settings() {
   const { t } = useI18n();
+  useDocumentTitle("Configuració · SEBA AI Aina");
+
   const { user, loading } = useAuth();
 
   return (

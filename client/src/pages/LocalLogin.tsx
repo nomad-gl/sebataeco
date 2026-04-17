@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Globe, Eye, EyeOff, Loader2, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+
 
 const DEFAULT_BG =
   "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/hero-bg-UMuQESLM5HrV2VsrndDo2h.webp";
@@ -29,6 +31,7 @@ export default function LocalLogin() {
   const { data: customBg } = trpc.director.getLoginBackground.useQuery();
   const bgImage = customBg ?? DEFAULT_BG;
   const [showLangMenu, setShowLangMenu] = useState(false);
+  useDocumentTitle("Accés · SEBA AI Aina");
   const { isAuthenticated, loading: authLoading } = useAuth();
 
   // ── Return path — where to go after successful login ─────────────────────

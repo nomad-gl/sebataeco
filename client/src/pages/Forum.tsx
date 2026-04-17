@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Link } from "wouter";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+
 
 const HERO_BG =
   "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/hero-bg-UMuQESLM5HrV2VsrndDo2h.webp";
@@ -60,6 +62,8 @@ function Avatar({ name, size = "md", online }: { name: string; size?: "sm" | "md
 
 function useFormatTime() {
   const { t } = useI18n();
+  useDocumentTitle("Fòrum · SEBA AI Aina");
+
   return function formatTime(date: Date | string) {
     const d = new Date(date);
     const now = new Date();

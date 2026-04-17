@@ -70,6 +70,8 @@ import { SebaSymbol } from "@/components/SebaSymbol";
 import { MeetingInvitationBanner } from "@/components/MeetingInvitationBanner";
 import { SendMeetingInvitationModal } from "@/components/SendMeetingInvitationModal";
 import { MeetingHistoryPanel } from "@/components/MeetingHistoryPanel";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -280,6 +282,8 @@ function MessageBubble({
 
 export default function SebaConnect() {
   const { user } = useAuth();
+  useDocumentTitle("SEBA Connect · Videotrucada Educativa");
+
   const { t, lang: currentLang } = useI18n();
   const lang = (currentLang === "ca" ? "ca" : currentLang === "es" ? "es" : "en") as "en" | "es" | "ca";
   const [, navigate] = useLocation();

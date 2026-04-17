@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+
 import {
   ShieldCheck,
   Trash2,
@@ -36,6 +38,8 @@ import {
 
 function DpaStatusBadge() {
   const { t } = useI18n();
+  useDocumentTitle("Política de Privacitat · SEBA AI");
+
   const { data: dpaStatus } = trpc.dpa.getStatus.useQuery(undefined, {
     refetchOnWindowFocus: false,
   });

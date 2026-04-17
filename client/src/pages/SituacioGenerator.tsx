@@ -12,6 +12,8 @@ import { Loader2, Copy, Check, BookOpen, Target, ClipboardList, Zap, BookMarked,
 import { SebaSymbol } from "@/components/SebaSymbol";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
 
@@ -49,6 +51,7 @@ function EditableField({
   className?: string;
 }) {
   const [editing, setEditing] = useState(false);
+  useDocumentTitle("Generador de Situacions d'Aprenentatge LOMLOE");
   const ref = useRef<HTMLTextAreaElement | HTMLInputElement>(null);
 
   useEffect(() => {

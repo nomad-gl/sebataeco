@@ -10,6 +10,8 @@ import CompetencySelector from "@/components/CompetencySelector";
 import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
 import { useI18n } from "@/contexts/I18nContext";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+
 
 const HERO_BG =
   "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/hero-bg-UMuQESLM5HrV2VsrndDo2h.webp";
@@ -24,6 +26,7 @@ export default function Practice() {
   const initialCompetency = (urlParams.get("competency") as CompetencyCode) || undefined;
 
   const [competency, setCompetency] = useState<CompetencyCode | undefined>(initialCompetency);
+  useDocumentTitle("Pràctica LOMLOE · Competències Clau");
   const [yearGroup, setYearGroup] = useState<YearGroup | undefined>();
   const [sessionStarted, setSessionStarted] = useState(false);
   const [answeredIds, setAnsweredIds] = useState<string[]>([]);

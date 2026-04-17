@@ -17,6 +17,8 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+
 import {
   AlertCircle,
   CheckCircle2,
@@ -43,6 +45,7 @@ export default function RegisterWithInvite() {
   const { data: customBg } = trpc.director.getLoginBackground.useQuery();
   const bgImage = customBg ?? DEFAULT_BG;
   const [showLangMenu, setShowLangMenu] = useState(false);
+  useDocumentTitle("Registre · SEBA AI Aina");
   const { isAuthenticated, loading: authLoading } = useAuth();
 
   // ── Extract invite token from URL ─────────────────────────────────────────

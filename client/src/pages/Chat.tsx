@@ -12,6 +12,8 @@ import { Loader2, ArrowLeft } from "lucide-react";
 import { AinaProfilePanel } from "@/components/AinaProfilePanel";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
 type YearGroup = "junior" | "primary" | "secondary";
@@ -24,6 +26,8 @@ const SUGGESTED_KEYS: TranslationKey[] = [
 export default function Chat() {
   const { t, lang, dialect } = useI18n();
   const { user } = useAuth();
+  useDocumentTitle("Parla amb Aina · IA per a Docents");
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [competency, setCompetency] = useState<CompetencyCode | undefined>();
   const [yearGroup, setYearGroup] = useState<YearGroup | undefined>();

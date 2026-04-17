@@ -8,6 +8,8 @@ import NavBar from "@/components/NavBar";
 import ParallaxSection from "@/components/ParallaxSection";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/contexts/I18nContext";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+
 
 const LOMLOE_LOGO =
   "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/lomloe_23170104.png";
@@ -28,6 +30,8 @@ const COMP_COLORS: Record<string, string> = {
 
 export default function Home() {
   const { t } = useI18n();
+  useDocumentTitle("Inici · Assistent IA LOMLOE");
+
   const { data: competencies } = trpc.lomloe.getCompetencies.useQuery();
   const { data: stats } = trpc.lomloe.getStats.useQuery();
   const { state: pwaState, install: pwaInstall } = usePwaInstall();
@@ -193,6 +197,62 @@ export default function Home() {
         </div>
         </div>
       </ParallaxSection>
+
+      {/* ── SEO: keyword-rich FAQ section (visible, accessible, schema-backed) ── */}
+      <section
+        aria-label="Preguntes freqüents sobre SEBA AI i Aina"
+        className="container py-16 max-w-3xl mx-auto"
+        itemScope
+        itemType="https://schema.org/FAQPage"
+      >
+        <h2 className="text-2xl font-bold mb-8 text-center">
+          {t("faq_title" as Parameters<typeof t>[0]) || "Preguntes freqüents"}
+        </h2>
+        {([
+          {
+            q: "Què és SEBA AI (Aina)?",
+            a: "SEBA AI, també conegut com Aina, és un assistent d'intel·ligència artificial per a docents d'educació primària i secundària a Espanya. Genera activitats, avaluacions i materials pedagògics alineats amb les 8 competències clau de la LOMLOE en català, castellà i anglès.",
+          },
+          {
+            q: "Està alineat amb la LOMLOE?",
+            a: "Sí. Tot el contingut generat per SEBA AI (Aina) segueix les 8 competències clau de la Llei Orgànica 3/2020 (LOMLOE): comunicació lingüística, plurilingüe, matemàtica, digital, personal-social-i-aprendre-a-aprendre, ciutadana, emprenedora i consciència i expressió culturals.",
+          },
+          {
+            q: "¿Está disponible en castellano?",
+            a: "Sí. SEBA AI (Aina) está disponible en catalán, castellano e inglés. Puedes cambiar el idioma en cualquier momento desde la configuración.",
+          },
+          {
+            q: "Is SEBA AI free for teachers?",
+            a: "SEBA AI (Aina) is free for teachers who receive an invitation from their school Director. Contact your Director or email hello@sebaenquiries.com to request access.",
+          },
+          {
+            q: "Com puc accedir a SEBA AI (Aina)?",
+            a: "Els docents necessiten una invitació del Director del centre. Un cop rebuda, podeu registrar-vos a sebataeco.com o aina.forum i accedir a totes les funcionalitats gratuïtament.",
+          },
+        ] as { q: string; a: string }[]).map(({ q, a }) => (
+          <div
+            key={q}
+            className="mb-6 border-b border-border pb-6 last:border-0"
+            itemScope
+            itemProp="mainEntity"
+            itemType="https://schema.org/Question"
+          >
+            <h3 className="font-semibold text-base mb-2" itemProp="name">{q}</h3>
+            <div itemScope itemProp="acceptedAnswer" itemType="https://schema.org/Answer">
+              <p className="text-sm text-muted-foreground leading-relaxed" itemProp="text">{a}</p>
+            </div>
+          </div>
+        ))}
+      </section>
+
+      {/* ── SEO: keyword cloud (visually subtle, semantically rich) ── */}
+      <div className="sr-only" aria-hidden="true">
+        SEBA AI, Aina, assistent IA docents, LOMLOE, competències clau, intel·ligència artificial educació,
+        asistente IA profesores, herramienta IA LOMLOE, EdTech Espanya, EdTech Cataluña,
+        generador activitats LOMLOE, avaluació competencial IA, AI teaching assistant Spain,
+        LOMLOE AI tool, aina.forum, sebataeco.com, educació primària, educació secundària,
+        situació d'aprenentatge, planificador lliçons, competència digital, competència lingüística
+      </div>
     </div>
   );
 }

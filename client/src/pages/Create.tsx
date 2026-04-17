@@ -19,6 +19,8 @@ import { useLocation } from "wouter";
 import { useI18n } from "@/contexts/I18nContext";
 import { SebaSymbol } from "@/components/SebaSymbol";
 import type { TranslationKey } from "@/contexts/I18nContext";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
 type YearGroup = "junior" | "primary" | "secondary";
@@ -123,6 +125,8 @@ function FlashcardsPreview({ content, onChange }: { content: Record<string, unkn
 
 function SlidesPreview({ content, onChange }: { content: Record<string, unknown>; onChange: (c: Record<string, unknown>) => void }) {
   const { t } = useI18n();
+  useDocumentTitle("Crea Materials · SEBA AI");
+
   const slides = (content.slides as Array<Record<string, unknown>>) ?? [];
   const [generatingIdx, setGeneratingIdx] = React.useState<number | null>(null);
   const [generatingAll, setGeneratingAll] = React.useState(false);
