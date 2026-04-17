@@ -3008,31 +3008,31 @@
 
 ## Session 53: Aina Follow-ups (Image Analysis, Save to Library, Document Context)
 
-- [ ] Feature 1: Pass uploaded image URL as image_url content block to LLM in lomloe.chat
-- [ ] Feature 1: AIChatBox sends imageUrl with next user message when pendingImageUrl is set
-- [ ] Feature 1: Chat.tsx passes imageUrl through to chatMutation payload
-- [ ] Feature 2: Add saveGeneratedImage tRPC procedure to aina router
-- [ ] Feature 2: Add "Save to library" button below generated image bubbles in AIChatBox
-- [ ] Feature 2: Show toast confirmation when image saved to My Materials
-- [ ] Feature 3: Install pdf-parse, add extractDocumentText tRPC procedure to aina router
-- [ ] Feature 3: AIChatBox calls extractDocumentText after PDF/text file upload
-- [ ] Feature 3: Inject extracted document text as system context in next Aina chat message
-- [ ] Feature 3: Show document context indicator in chat (e.g. "Analysing: filename.pdf")
-- [ ] Write unit tests for new procedures
+- [x] Feature 1: Pass uploaded image URL as image_url content block to LLM in lomloe.chat
+- [x] Feature 1: AIChatBox sends imageUrl with next user message when pendingImageUrl is set
+- [x] Feature 1: Chat.tsx passes imageUrl through to chatMutation payload
+- [x] Feature 2: Add saveGeneratedImage tRPC procedure to aina router
+- [x] Feature 2: Add "Save to library" button below generated image bubbles in AIChatBox
+- [x] Feature 2: Show toast confirmation when image saved to My Materials
+- [x] Feature 3: Install pdf-parse, add extractDocumentText tRPC procedure to aina router
+- [x] Feature 3: AIChatBox calls extractDocumentText after PDF/text file upload
+- [x] Feature 3: Inject extracted document text as system context in next Aina chat message
+- [x] Feature 3: Show document context indicator in chat
+- [x] Write unit tests for new procedures
 
 ## Session 53: Aina Follow-ups
 
-- [ ] Feature 1: Pass uploaded image URL as image_url content block to LLM in lomloe.chat
-- [ ] Feature 1: AIChatBox sends imageUrl with next user message when pendingImageUrl is set
-- [ ] Feature 1: Chat.tsx passes imageUrl through to chatMutation payload
-- [ ] Feature 2: Add saveGeneratedImage tRPC procedure to aina router
-- [ ] Feature 2: Add "Save to library" button below generated image bubbles in AIChatBox
-- [ ] Feature 2: Show toast confirmation when image saved to My Materials
-- [ ] Feature 3: Install pdf-parse, add extractDocumentText tRPC procedure to aina router
-- [ ] Feature 3: AIChatBox calls extractDocumentText after PDF/text file upload
-- [ ] Feature 3: Inject extracted document text as system context in next Aina chat message
-- [ ] Feature 3: Show document context indicator in chat
-- [ ] Write unit tests for new procedures
+- [x] Feature 1: Pass uploaded image URL as image_url content block to LLM in lomloe.chat
+- [x] Feature 1: AIChatBox sends imageUrl with next user message when pendingImageUrl is set
+- [x] Feature 1: Chat.tsx passes imageUrl through to chatMutation payload
+- [x] Feature 2: Add saveGeneratedImage tRPC procedure to aina router
+- [x] Feature 2: Add "Save to library" button below generated image bubbles in AIChatBox
+- [x] Feature 2: Show toast confirmation when image saved to My Materials
+- [x] Feature 3: Install pdf-parse, add extractDocumentText tRPC procedure to aina router
+- [x] Feature 3: AIChatBox calls extractDocumentText after PDF/text file upload
+- [x] Feature 3: Inject extracted document text as system context in next Aina chat message
+- [x] Feature 3: Show document context indicator in chat
+- [x] Write unit tests for new procedures
 
 ## Session 53: Aina Follow-ups
 
@@ -3049,3 +3049,19 @@
 - [x] Feature 3: Document context — extractDocumentText procedure (PDF/txt/csv) + inject into LLM payload
 - [x] DB migration: add image to teaching_materials type enum
 - [x] 11 unit tests passing for aina router
+
+## Session 54: Aina Follow-ups II
+
+- [ ] Feature 1: Document context indicator strip — persistent pill above chat input with filename and Clear button
+- [ ] Feature 2: Multi-image comparison — accumulate pendingImageUrls array, pass all as vision blocks to LLM
+- [ ] Feature 3: AI Images tab in My Materials — filter type=image, thumbnail grid gallery
+
+## Session 54: Aina Follow-ups (Image Analysis, Multi-Image, AI Gallery)
+
+- [x] Document context indicator strip with filename and Clear button above chat input
+- [x] Multi-image comparison: accumulate up to 4 pending image URLs, pass all as vision blocks to LLM
+- [x] Update lomloe.chat to accept imageUrls array (alongside single imageUrl)
+- [x] AI Images tab in My Materials: thumbnail grid gallery with hover overlay, open full-size, delete
+- [x] Add ImageIcon to TYPE_ICONS/TYPE_COLORS for image type in MyMaterials
+- [x] Add content field to getMaterialsByUser select so gallery can read image URLs
+- [x] TypeScript: 0 errors | 112 unit tests passing

@@ -19,7 +19,7 @@ import {
   Loader2, Plus, Trash2, ExternalLink, BookOpen, Presentation,
   Grid3X3, AlignLeft, Search, CreditCard, Lock, Zap, Download,
   FileText, RefreshCw, ArrowLeft, ArrowUpDown, CheckSquare, Square,
-  Share2, Copy, Check, SortAsc, SortDesc,
+  Share2, Copy, Check, SortAsc, SortDesc, ImageIcon,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
@@ -33,6 +33,7 @@ const TYPE_ICONS: Record<string, React.ElementType> = {
   missing_words: AlignLeft,
   wordsearch: Search,
   flashcards: CreditCard,
+  image: ImageIcon,
 };
 
 const TYPE_COLORS: Record<string, string> = {
@@ -42,6 +43,7 @@ const TYPE_COLORS: Record<string, string> = {
   missing_words: "from-amber-500 to-amber-600",
   wordsearch:    "from-rose-500 to-rose-600",
   flashcards:    "from-teal-500 to-teal-600",
+  image:         "from-pink-500 to-rose-500",
 };
 
 // Map a sebasnap presentation to a SEBA | Teach slides content object
@@ -404,6 +406,53 @@ export default function MyMaterials() {
           <div className="text-center py-12 text-white/60">
             <Search className="w-8 h-8 mx-auto mb-3 opacity-50" />
             <p className="text-sm">No materials found</p>
+          </div>
+        ) : activeFilter === "image" && filteredMaterials.length > 0 ? (
+          /* AI Images gallery — thumbnail grid */
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {filteredMaterials.map((m) => {
+              const contentObj = typeof m.content === "string" ? (() => { try { return JSON.parse(m.content); } catch { return {}; } })() : (m.content ?? {});
+              const imgUrl: string = (contentObj as Record<string, string>)?.url ?? (contentObj as Record<string, string>)?.imageUrl ?? "";
+              return (
+                <div key={m.id} className="group relative rounded-xl overflow-hidden bg-white/10 border border-white/15 aspect-square">
+                  {imgUrl ? (
+                    <img
+                      src={imgUrl}
+                      alt={m.title}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <ImageIcon className="w-10 h-10 text-white/30" />
+                    </div>
+                  )}
+                  {/* Hover overlay */}
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-3">
+                    <p className="text-white text-xs font-medium text-center line-clamp-2">{m.title}</p>
+                    <div className="flex gap-1.5">
+                      {imgUrl && (
+                        <a
+                          href={imgUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors"
+                          title="Open full size"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                      <button
+                        className="p-1.5 rounded-lg bg-red-500/60 hover:bg-red-500/80 text-white transition-colors"
+                        title="Delete"
+                        onClick={() => { if (confirm(t("my_materials_delete") + "?")) deleteMutation.mutate({ id: m.id }); }}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         ) : (
           <div className="flex flex-col gap-3">

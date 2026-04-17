@@ -31,8 +31,8 @@ export default function Chat() {
   const [isTranslating, setIsTranslating] = useState(false);
   /** Text extracted from the last uploaded document — injected into the next LLM call then cleared */
   const [pendingDocContext, setPendingDocContext] = useState<{ text: string; fileName: string } | null>(null);
-  /** URL of the last uploaded image — injected into the next LLM call as a vision block then cleared */
-  const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
+  /** URLs of uploaded images — accumulated (up to 4) and injected as vision blocks in the next LLM call then cleared */
+  const [pendingImageUrls, setPendingImageUrls] = useState<string[]>([]);
 
   // Track previous lang to detect real changes
   const prevLangRef = useRef<Lang>(lang);
@@ -103,8 +103,8 @@ export default function Chat() {
         ...prev,
         { role: "user", content: captionPart || "", imageUrl: url, timestamp: Date.now() },
       ]);
-      // Store the image URL so the next user message sends it as a vision block
-      setPendingImageUrl(url);
+      // Accumulate image URLs (max 4) so the next user message sends them all as vision blocks
+      setPendingImageUrls((prev) => [...prev.slice(-3), url]);
       return;
     }
     if (content.startsWith("__upload_file__")) {
@@ -150,9 +150,9 @@ export default function Chat() {
 
     // Capture and clear pending context before building the payload
     const capturedDocContext = pendingDocContext;
-    const capturedImageUrl = pendingImageUrl;
+    const capturedImageUrls = pendingImageUrls;
     if (capturedDocContext) setPendingDocContext(null);
-    if (capturedImageUrl) setPendingImageUrl(null);
+    if (capturedImageUrls.length > 0) setPendingImageUrls([]);
 
     const buildPayload = () => ({
       messages: newMessages
@@ -163,8 +163,8 @@ export default function Chat() {
       uiLang: lang as "en" | "es" | "ca",
       caDialect: lang === "ca" ? (dialect as "central" | "valencian" | "balearic" | "northern" | "alguerese" | "standard") : undefined,
       userId: user?.id ?? undefined,
-      // Vision: attach uploaded image URL as a vision block
-      imageUrl: capturedImageUrl ?? undefined,
+      // Vision: attach all accumulated image URLs as vision blocks (supports multi-image comparison)
+      imageUrls: capturedImageUrls.length > 0 ? capturedImageUrls : undefined,
       // Document context: inject extracted text into the LLM prompt
       documentContext: capturedDocContext?.text ?? undefined,
     });

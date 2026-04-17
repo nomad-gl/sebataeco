@@ -486,6 +486,11 @@ export const lomloeRouter = router({
          */
         imageUrl: z.string().url().nullish(),
         /**
+         * Optional array of image URLs for multi-image comparison.
+         * When provided, all images are included as vision blocks alongside the text.
+         */
+        imageUrls: z.array(z.string().url()).max(4).nullish(),
+        /**
          * Optional extracted document text to inject as additional context.
          * Populated when the user uploads a PDF or text file.
          */
@@ -615,16 +620,24 @@ Structure your responses clearly. Use these patterns depending on the question t
           const isLast = idx === recentMessages.length - 1;
           const isUser = m.role === "user";
 
-          // For the last user message, optionally attach image and/or document context
-          if (isLast && isUser && (input.imageUrl || input.documentContext)) {
+          // For the last user message, optionally attach image(s) and/or document context
+          const allImageUrls: string[] = input.imageUrls?.length
+            ? input.imageUrls
+            : input.imageUrl
+            ? [input.imageUrl]
+            : [];
+          if (isLast && isUser && (allImageUrls.length > 0 || input.documentContext)) {
             const textContent = docContextPrefix + m.content;
-            if (input.imageUrl) {
-              // Vision: multi-part content with text + image_url
+            if (allImageUrls.length > 0) {
+              // Vision: multi-part content with text + one or more image_url blocks
               const textPart: TextContent = { type: "text", text: textContent };
-              const imagePart: ImageContent = { type: "image_url", image_url: { url: input.imageUrl, detail: "auto" } };
+              const imageParts: ImageContent[] = allImageUrls.map((url) => ({
+                type: "image_url",
+                image_url: { url, detail: "auto" },
+              }));
               return {
                 role: "user" as const,
-                content: [textPart, imagePart],
+                content: [textPart, ...imageParts],
               };
             }
             // Document context only — plain text with prefix

@@ -136,6 +136,7 @@ export async function getMaterialsByUser(userId: number) {
       topic: teachingMaterials.topic,
       competency: teachingMaterials.competency,
       yearGroup: teachingMaterials.yearGroup,
+      content: teachingMaterials.content,
       createdAt: teachingMaterials.createdAt,
       updatedAt: teachingMaterials.updatedAt,
     })

@@ -302,8 +302,8 @@ export function AIChatBox({
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   /** Extracted text from the last uploaded document — cleared after it is sent to the LLM */
   const [pendingDocContext, setPendingDocContext] = useState<{ text: string; fileName: string } | null>(null);
-  /** URL of the last uploaded image — cleared after it is sent to the LLM */
-  const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
+  /** URLs of uploaded images — accumulated (max 4) and cleared after they are sent to the LLM */
+  const [pendingImageUrls, setPendingImageUrls] = useState<string[]>([]);
 
   /** Detect whether the user's message is an image generation request */
   const isImageRequest = useCallback((text: string): boolean => {
@@ -774,8 +774,8 @@ export function AIChatBox({
         const caption = trimmedInput || file.name;
         const isImage = mimeType.startsWith("image/");
         if (isImage) {
-          // Store the uploaded image URL so the next chat turn can send it as a vision block
-          setPendingImageUrl(url);
+          // Accumulate uploaded image URLs (max 4) so the next chat turn can send them all as vision blocks
+          setPendingImageUrls((prev) => [...prev.slice(-3), url]);
           onSendMessage(`__upload_image__${url}__caption__${caption}`);
         } else {
           // For documents/text files: extract text in the background for context injection
@@ -1121,14 +1121,58 @@ export function AIChatBox({
         </div>
       )}
 
-      {/* File uploading status bar */}
+       {/* File uploading status bar */}
       {uploadFileMutation.isPending && (
         <div className="px-4 py-1 text-xs flex items-center gap-1.5 border-t border-white/10 text-blue-300 bg-blue-500/10">
           <Loader2 className="size-3 animate-spin" />
           {t("aina_uploading_file")}
         </div>
       )}
-
+      {/* Document context indicator strip */}
+      {pendingDocContext && (
+        <div className="px-4 py-1.5 flex items-center gap-2 border-t border-white/10 bg-emerald-500/10">
+          <div className="flex items-center gap-1.5 text-xs text-emerald-300 flex-1 min-w-0">
+            <svg className="size-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span className="truncate max-w-[200px]">{pendingDocContext.fileName}</span>
+            <span className="text-emerald-400/60 shrink-0">· ready for context</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPendingDocContext(null)}
+            className="text-emerald-400/60 hover:text-emerald-300 transition-colors shrink-0"
+            aria-label="Clear document context"
+          >
+            <XIcon className="size-3" />
+          </button>
+        </div>
+      )}
+      {/* Pending image context indicator strip */}
+      {pendingImageUrls.length > 0 && (
+        <div className="px-4 py-1.5 flex items-center gap-2 border-t border-white/10 bg-violet-500/10">
+          <div className="flex items-center gap-1.5 text-xs text-violet-300 flex-1 min-w-0">
+            <div className="flex gap-1">
+              {pendingImageUrls.map((url, i) => (
+                <img key={i} src={url} alt={`pending ${i + 1}`} className="size-5 rounded object-cover shrink-0" />
+              ))}
+            </div>
+            <span className="text-violet-400/60 shrink-0">
+              {pendingImageUrls.length === 1
+                ? "Image attached · will be analysed with your next message"
+                : `${pendingImageUrls.length} images attached · ask Aina to compare them`}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPendingImageUrls([])}
+            className="text-violet-400/60 hover:text-violet-300 transition-colors shrink-0"
+            aria-label="Clear image context"
+          >
+            <XIcon className="size-3" />
+          </button>
+        </div>
+      )}
       {/* Input Area */}
       <form
         ref={inputAreaRef}
