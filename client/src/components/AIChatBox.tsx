@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import {
   Loader2, Send, User, Mic, MicOff, Radio,
   ThumbsUp, ThumbsDown, Volume2, VolumeX, Play, Square,
-  Paperclip, ImageIcon, X as XIcon,
+  Paperclip, ImageIcon, X as XIcon, RefreshCw,
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Streamdown } from "streamdown";
@@ -752,6 +752,13 @@ export function AIChatBox({
         const { url } = await generateImageMutation.mutateAsync({ prompt });
         // Inject a synthetic assistant message carrying the image URL
         onSendMessage(`__image__${url}`);
+        // Generate 3 prompt variations as follow-up chips
+        const variations = [
+          `${prompt} — more detailed`,
+          `${prompt} — different style`,
+          `${prompt} — wider view`,
+        ];
+        onSendMessage(`__image_variations__${JSON.stringify(variations)}`);
       } catch {
         onSendMessage("__image_error__");
       } finally {
@@ -925,26 +932,56 @@ export function AIChatBox({
                               <p className="text-xs text-white/60">{message.content}</p>
                             )}
                             {message.role === "assistant" && (
-                              <button
-                                onClick={() => {
-                                  saveGeneratedImageMutation.mutate(
-                                    { imageUrl: message.imageUrl!, prompt: message.content || "Generated image", title: message.content || undefined },
-                                    {
-                                      onSuccess: () => { toast("Saved to My Materials"); },
-                                      onError: () => { toast.error("Failed to save image"); },
-                                    }
-                                  );
-                                }}
-                                disabled={saveGeneratedImageMutation.isPending}
-                                className="flex items-center gap-1.5 text-xs text-white/60 hover:text-white/90 transition-colors self-start"
-                              >
-                                {saveGeneratedImageMutation.isPending ? (
-                                  <Loader2 className="size-3 animate-spin" />
-                                ) : (
-                                  <ImageIcon className="size-3" />
+                              <div className="flex items-center gap-3 flex-wrap">
+                                {/* Save to library */}
+                                <button
+                                  onClick={() => {
+                                    saveGeneratedImageMutation.mutate(
+                                      { imageUrl: message.imageUrl!, prompt: message.content || "Generated image", title: message.content || undefined },
+                                      {
+                                        onSuccess: () => { toast("Saved to My Materials"); },
+                                        onError: () => { toast.error("Failed to save image"); },
+                                      }
+                                    );
+                                  }}
+                                  disabled={saveGeneratedImageMutation.isPending}
+                                  className="flex items-center gap-1.5 text-xs text-white/60 hover:text-white/90 transition-colors"
+                                >
+                                  {saveGeneratedImageMutation.isPending ? (
+                                    <Loader2 className="size-3 animate-spin" />
+                                  ) : (
+                                    <ImageIcon className="size-3" />
+                                  )}
+                                  {t("aina_save_to_library" as Parameters<typeof t>[0]) || "Save to library"}
+                                </button>
+                                {/* Regenerate */}
+                                {message.content && (
+                                  <button
+                                    onClick={() => {
+                                      const prompt = message.content!;
+                                      setInput(prompt);
+                                      // Trigger submit on next tick so input state is set
+                                      setTimeout(() => {
+                                        onSendMessage(prompt);
+                                        setIsGeneratingImage(true);
+                                        generateImageMutation.mutateAsync({ prompt: extractImagePrompt(prompt) })
+                                          .then(({ url }) => { onSendMessage(`__image__${url}`); })
+                                          .catch(() => { onSendMessage("__image_error__"); })
+                                          .finally(() => { setIsGeneratingImage(false); setInput(""); });
+                                      }, 0);
+                                    }}
+                                    disabled={isGeneratingImage}
+                                    className="flex items-center gap-1.5 text-xs text-white/60 hover:text-white/90 transition-colors"
+                                  >
+                                    {isGeneratingImage ? (
+                                      <Loader2 className="size-3 animate-spin" />
+                                    ) : (
+                                      <RefreshCw className="size-3" />
+                                    )}
+                                    {t("aina_regenerate_image")}
+                                  </button>
                                 )}
-                                {t("aina_save_to_library" as Parameters<typeof t>[0]) || "Save to library"}
-                              </button>
+                              </div>
                             )}
                           </div>
                         ) : message.attachmentUrl ? (
@@ -1036,6 +1073,22 @@ export function AIChatBox({
                 );
               })}
               {isLoading && <TypingIndicator />}
+              {/* Image generation loading placeholder bubble */}
+              {isGeneratingImage && (
+                <div className="flex gap-3 justify-start items-start">
+                  <div className="size-8 shrink-0 mt-1 rounded-full bg-primary/10 flex items-center justify-center">
+                    <SebaSymbol className="size-4 text-primary animate-pulse" />
+                  </div>
+                  <div className="rounded-lg px-4 py-3 bg-white/15 text-white flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-32 h-32 rounded-lg bg-white/10 animate-pulse flex items-center justify-center">
+                        <ImageIcon className="size-8 text-white/20" />
+                      </div>
+                    </div>
+                    <span className="text-xs text-white/60 animate-pulse">{t("aina_image_loading_placeholder")}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </ScrollArea>
         )}

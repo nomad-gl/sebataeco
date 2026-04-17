@@ -3069,3 +3069,9 @@
 ## Session 55: Bug Fix — Aina Image Gen Sync
 
 - [x] Fix: when image generation is triggered, skip the LLM chat call entirely and show a synthetic assistant message with the generated image instead of a conflicting 'I cannot generate images' response
+
+## Session 56: Aina Image UX Follow-ups
+
+- [x] Feature 1: Pulsing loading placeholder assistant bubble while image is generating
+- [x] Feature 2: Regenerate button on generated image bubbles (re-runs same prompt)
+- [x] Feature 3: Prompt variation suggestions as follow-up chips after image generation

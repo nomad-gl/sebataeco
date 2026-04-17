@@ -89,6 +89,24 @@ export default function Chat() {
       ]);
       return;
     }
+    if (content.startsWith("__image_variations__")) {
+      const variationsJson = content.slice("__image_variations__".length);
+      try {
+        const variations: string[] = JSON.parse(variationsJson);
+        if (variations.length > 0) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content: "",
+              followUpQuestions: variations,
+              timestamp: Date.now(),
+            },
+          ]);
+        }
+      } catch { /* ignore malformed */ }
+      return;
+    }
     if (content === "__image_error__") {
       setMessages((prev) => [
         ...prev,
