@@ -296,8 +296,9 @@ export default function SebaConnect() {
   const [assignTitle, setAssignTitle] = useState("");
   const [assignDesc, setAssignDesc] = useState("");
   const [assignDue, setAssignDue] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [membersOpen, setMembersOpen] = useState(true);
+  // On mobile (< md) default both panels closed to avoid overflow
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768);
+  const [membersOpen, setMembersOpen] = useState(false);
   const [videoCallActive, setVideoCallActive] = useState(false);
   const [preCallActive, setPreCallActive] = useState(false);
   const [callOpts, setCallOpts] = useState<{ videoEnabled: boolean; audioEnabled: boolean; background: VideoBackground; filter: VideoFilter } | null>(null);
@@ -593,11 +594,11 @@ export default function SebaConnect() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-background">
+    <div className="flex flex-col md:flex-row h-auto md:h-[calc(100vh-64px)] overflow-visible md:overflow-hidden bg-background">
       {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
       <aside
         className={`${
-          sidebarOpen ? "w-64" : "w-0"
+          sidebarOpen ? "w-full md:w-64 max-h-[50vh] md:max-h-none" : "w-0 max-h-0 md:max-h-none"
         } transition-all duration-200 overflow-hidden shrink-0 border-r border-border flex flex-col bg-card`}
       >
         {/* Sidebar header */}
@@ -687,9 +688,9 @@ export default function SebaConnect() {
       </aside>
 
       {/* ── Main area ───────────────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-visible md:overflow-hidden min-h-0">
         {/* Channel header */}
-        <div className="h-14 border-b border-border flex items-center gap-3 px-4 shrink-0 bg-card">
+        <div className="min-h-14 border-b border-border flex flex-wrap items-center gap-2 px-3 py-2 shrink-0 bg-card">
           <Button
             size="icon"
             variant="ghost"
@@ -716,7 +717,7 @@ export default function SebaConnect() {
           )}
 
           {/* Tab bar + Video Call + Members toggle */}
-          <div className="ml-auto flex items-center gap-1">
+          <div className="ml-auto flex flex-wrap items-center gap-1">
             {(["messages", "assignments", "files"] as Tab[]).map((tabItem) => (
               <Button
                 key={tabItem}
@@ -761,7 +762,7 @@ export default function SebaConnect() {
         {/* ── Messages tab ──────────────────────────────────────────────────── */}
         {tab === "messages" && (
           <>
-            <div className="flex-1 overflow-y-auto px-4 py-4">
+            <div className="flex-1 overflow-y-auto px-4 py-4 min-h-[40vh] md:min-h-0">
               {messagesQuery.isLoading ? (
                 <div className="text-center text-muted-foreground text-sm py-8">Carregant missatges…</div>
               ) : messages.length === 0 ? (
@@ -877,7 +878,7 @@ export default function SebaConnect() {
 
         {/* ── Assignments tab ───────────────────────────────────────────────── */}
         {tab === "assignments" && (
-          <div className="flex-1 overflow-y-auto px-4 py-4">
+          <div className="flex-1 overflow-y-auto px-4 py-4 min-h-[40vh] md:min-h-0">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-base">{t("connect_tasks_heading")}</h2>
               {canManage && (
@@ -936,7 +937,7 @@ export default function SebaConnect() {
 
         {/* ── Files tab ─────────────────────────────────────────────────────── */}
         {tab === "files" && (
-          <div className="flex-1 overflow-y-auto px-4 py-4">
+          <div className="flex-1 overflow-y-auto px-4 py-4 min-h-[40vh] md:min-h-0">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-base">{t("connect_files_heading")}</h2>
               <div>
@@ -1010,7 +1011,7 @@ export default function SebaConnect() {
       {/* ── Members right sidebar ───────────────────────────────────────────── */}
       <aside
         className={`${
-          membersOpen ? "w-56" : "w-0"
+          membersOpen ? "w-full md:w-56 max-h-[40vh] md:max-h-none" : "w-0 max-h-0 md:max-h-none"
         } transition-all duration-200 overflow-hidden shrink-0 border-l border-border flex flex-col bg-card`}
       >
         {/* Members header */}

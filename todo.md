@@ -2972,3 +2972,12 @@
 - [x] Replaced all hardcoded strings with t() calls in SebaConnect.tsx (MessageBubble, formatDateRaw, buttons, placeholders, headings, dialogs)
 - [x] TypeScript 0 errors
 - [x] Save checkpoint
+
+## Session 50: SebaConnect Mobile Scroll Fix
+- [x] Fixed root cause: outer container was h-[calc(100vh-64px)] overflow-hidden, locking all content to viewport height
+- [x] Outer container now flex-col on mobile, flex-row on md+; overflow-visible on mobile, overflow-hidden on desktop
+- [x] Sidebar and members panel: w-full/max-h-[50vh] on mobile (open), w-0/max-h-0 (closed); default closed on mobile
+- [x] All three tab panels (messages, assignments, files) have min-h-[40vh] on mobile so content is reachable
+- [x] Header wraps on mobile (flex-wrap) so tab buttons don't overflow
+- [x] TypeScript 0 errors
+- [x] Save checkpoint
