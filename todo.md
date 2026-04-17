@@ -3253,3 +3253,9 @@
 
 - [x] Add director.getPendingInviteCount tRPC query: counts invites where usedAt IS NULL and expiresAt > now
 - [x] Wire badge into the Director nav item in DashboardLayout: show count when > 0, auto-refresh every 60s
+
+## Feature: Auto-cleanup of expired teacher invite rows
+
+- [x] Add purgeExpiredInvites() helper in director.ts: deletes rows where expiresAt < (now - 30 days) AND usedAt IS NULL
+- [x] Call purgeExpiredInvites() lazily (fire-and-forget) inside listTeacherInvites and getPendingInviteCount
+- [x] Schedule purgeExpiredInvites() at server startup via a daily setInterval (every 24 h) as a safety net

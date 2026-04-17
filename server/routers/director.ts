@@ -38,6 +38,37 @@ const LOMLOE_COMPETENCIES = [
 
 const ALL_COMPETENCY_CODES = LOMLOE_COMPETENCIES.map(c => c.code);
 
+// ─── Invite cleanup helper ────────────────────────────────────────────────────
+/**
+ * Deletes teacher invite rows that:
+ *   - have never been used (usedAt IS NULL), AND
+ *   - expired more than INVITE_PURGE_AFTER_DAYS days ago.
+ *
+ * Called lazily (fire-and-forget) from listTeacherInvites and
+ * getPendingInviteCount, and also on a daily schedule at server startup.
+ */
+const INVITE_PURGE_AFTER_DAYS = 30;
+
+async function purgeExpiredInvites(): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const { teacherInvites } = await import("../../drizzle/schema");
+  const cutoff = new Date(Date.now() - INVITE_PURGE_AFTER_DAYS * 24 * 60 * 60 * 1000);
+  await db
+    .delete(teacherInvites)
+    .where(
+      and(
+        isNull(teacherInvites.usedAt),
+        lt(teacherInvites.expiresAt, cutoff)
+      )
+    );
+}
+
+/** Schedule a daily purge run at server startup (fire-and-forget). */
+const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+purgeExpiredInvites().catch(() => {});
+setInterval(() => purgeExpiredInvites().catch(() => {}), TWENTY_FOUR_HOURS_MS).unref();
+
 export const directorRouter = router({
   /** School-wide overview stats */
   getStats: adminProcedure.query(async () => {
@@ -822,6 +853,8 @@ export const directorRouter = router({
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       const { teacherInvites } = await import("../../drizzle/schema");
+      // Lazy cleanup: fire-and-forget, never blocks the response
+      purgeExpiredInvites().catch(() => {});
       const now = new Date();
       const rows = await db
         .select()
@@ -848,6 +881,8 @@ export const directorRouter = router({
       const db = await getDb();
       if (!db) return { count: 0 };
       const { teacherInvites } = await import("../../drizzle/schema");
+      // Lazy cleanup: fire-and-forget
+      purgeExpiredInvites().catch(() => {});
       const now = new Date();
       const rows = await db
         .select({ id: teacherInvites.id })
