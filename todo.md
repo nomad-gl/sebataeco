@@ -2965,3 +2965,10 @@
 - [x] RSVP status badges already shown in MeetingHistoryPanel list + calendar views (STATUS_STYLES map)
 - [x] TypeScript 0 errors
 - [x] Save checkpoint
+
+## Session 49b: SebaConnect Translation Fix
+- [x] Audited SebaConnect.tsx for hardcoded Catalan/English strings
+- [x] Added 11 new connect_ i18n keys (edited label, save, create channel/task btn, no messages/tasks/files, tasks/files headings, today/yesterday) to EN/ES/CA blocks
+- [x] Replaced all hardcoded strings with t() calls in SebaConnect.tsx (MessageBubble, formatDateRaw, buttons, placeholders, headings, dialogs)
+- [x] TypeScript 0 errors
+- [x] Save checkpoint

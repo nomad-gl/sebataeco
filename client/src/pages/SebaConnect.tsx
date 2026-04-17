@@ -169,14 +169,14 @@ function formatTime(date: Date | string) {
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-function formatDate(date: Date | string) {
+function formatDateRaw(date: Date | string) {
   const d = typeof date === "string" ? new Date(date) : date;
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
-  if (d.toDateString() === today.toDateString()) return "Avui";
-  if (d.toDateString() === yesterday.toDateString()) return "Ahir";
-  return d.toLocaleDateString("ca-ES", { day: "numeric", month: "long" });
+  if (d.toDateString() === today.toDateString()) return "__today__";
+  if (d.toDateString() === yesterday.toDateString()) return "__yesterday__";
+  return d.toLocaleDateString(undefined, { day: "numeric", month: "long" });
 }
 
 function fileIcon(mime: string | null) {
@@ -196,12 +196,15 @@ function MessageBubble({
   canDelete,
   onDelete,
   onEdit,
+  t,
 }: {
   msg: Message;
   isOwn: boolean;
   canDelete: boolean;
   onDelete: (id: number) => void;
   onEdit: (msg: Message) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  t: (key: any) => string;
 }) {
   return (
     <div className={`group flex gap-2 ${isOwn ? "flex-row-reverse" : "flex-row"} items-start mb-3`}>
@@ -218,7 +221,7 @@ function MessageBubble({
         <div className="flex items-center gap-1.5 mb-0.5">
           <span className="text-xs text-muted-foreground font-medium">{msg.senderName}</span>
           <span className="text-xs text-muted-foreground">{formatTime(msg.createdAt)}</span>
-          {msg.editedAt && <span className="text-xs text-muted-foreground italic">(editat)</span>}
+          {msg.editedAt && <span className="text-xs text-muted-foreground italic">{t("connect_edited_label")}</span>}
         </div>
 
         <div
@@ -631,7 +634,7 @@ export default function SebaConnect() {
                 variant="ghost"
                 className="w-5 h-5"
                 onClick={() => setShowCreateChannel(true)}
-                title="Crear canal"
+                title={t("connect_create_channel")}
               >
                 <Plus className="w-3.5 h-3.5" />
               </Button>
@@ -764,7 +767,7 @@ export default function SebaConnect() {
               ) : messages.length === 0 ? (
                 <div className="text-center text-muted-foreground text-sm py-16">
                   <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                  <p>Encara no hi ha missatges en aquest canal.</p>
+                  <p>{t("connect_no_messages")}</p>
                   <p className="text-xs mt-1">Sigues el primer a escriure!</p>
                 </div>
               ) : (
@@ -773,14 +776,14 @@ export default function SebaConnect() {
                     const prevMsg = i > 0 ? messages[i - 1] : null;
                     const showDate =
                       !prevMsg ||
-                      formatDate(msg.createdAt) !== formatDate(prevMsg.createdAt);
+                      formatDateRaw(msg.createdAt) !== formatDateRaw(prevMsg.createdAt);
                     return (
                       <div key={msg.id}>
                         {showDate && (
                           <div className="flex items-center gap-2 my-4">
                             <div className="flex-1 h-px bg-border" />
                             <span className="text-xs text-muted-foreground px-2">
-                              {formatDate(msg.createdAt)}
+                              {formatDateRaw(msg.createdAt) === "__today__" ? t("connect_today") : formatDateRaw(msg.createdAt) === "__yesterday__" ? t("connect_yesterday") : formatDateRaw(msg.createdAt)}
                             </span>
                             <div className="flex-1 h-px bg-border" />
                           </div>
@@ -803,7 +806,7 @@ export default function SebaConnect() {
                               className="bg-[#AE0001] hover:bg-[#8a0001]"
                               onClick={() => editMutation.mutate({ messageId: msg.id, content: editText })}
                             >
-                              Desar
+                              {t("connect_save")}
                             </Button>
                             <Button size="sm" variant="ghost" onClick={() => setEditingMsg(null)}>
                               <X className="w-4 h-4" />
@@ -816,6 +819,7 @@ export default function SebaConnect() {
                             canDelete={canDeleteOthers || msg.userId === user?.openId}
                             onDelete={(id) => deleteMutation.mutate({ messageId: id })}
                             onEdit={(m) => { setEditingMsg(m); setEditText(m.content); }}
+                            t={t}
                           />
                         )}
                       </div>
@@ -833,7 +837,7 @@ export default function SebaConnect() {
                   value={messageText}
                   onChange={(e) => setMessageText(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={`Escriu un missatge a #${selectedChannel?.name ?? "canal"}…`}
+                  placeholder={`${t("connect_write_message")} #${selectedChannel?.name ?? ""}…`}
                   className="flex-1 resize-none min-h-[40px] max-h-32 text-sm"
                   rows={1}
                 />
@@ -875,7 +879,7 @@ export default function SebaConnect() {
         {tab === "assignments" && (
           <div className="flex-1 overflow-y-auto px-4 py-4">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-base">Tasques del canal</h2>
+              <h2 className="font-semibold text-base">{t("connect_tasks_heading")}</h2>
               {canManage && (
                 <Button
                   size="sm"
@@ -893,7 +897,7 @@ export default function SebaConnect() {
             ) : (assignmentsQuery.data ?? []).length === 0 ? (
               <div className="text-center text-muted-foreground py-16">
                 <ClipboardList className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                <p className="text-sm">Cap tasca en aquest canal.</p>
+                <p className="text-sm">{t("connect_no_tasks")}</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -934,7 +938,7 @@ export default function SebaConnect() {
         {tab === "files" && (
           <div className="flex-1 overflow-y-auto px-4 py-4">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-base">Fitxers del canal</h2>
+              <h2 className="font-semibold text-base">{t("connect_files_heading")}</h2>
               <div>
                 <input
                   type="file"
@@ -960,7 +964,7 @@ export default function SebaConnect() {
             ) : (filesQuery.data ?? []).length === 0 ? (
               <div className="text-center text-muted-foreground py-16">
                 <FolderOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                <p className="text-sm">Cap fitxer en aquest canal.</p>
+                <p className="text-sm">{t("connect_no_files")}</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -979,7 +983,7 @@ export default function SebaConnect() {
                     </div>
                     <div className="flex gap-1 shrink-0">
                       <a href={f.fileUrl} target="_blank" rel="noopener noreferrer">
-                        <Button size="icon" variant="ghost" className="w-8 h-8" title="Descarregar">
+                        <Button size="icon" variant="ghost" className="w-8 h-8" title={t("connect_download")}>
                           <Download className="w-3.5 h-3.5" />
                         </Button>
                       </a>
@@ -1335,7 +1339,7 @@ export default function SebaConnect() {
               }
               disabled={!newChannelName.trim() || createChannelMutation.isPending}
             >
-              Crear canal
+              {t("connect_create_channel_btn")}
             </Button>
           </div>
         </DialogContent>
@@ -1379,7 +1383,7 @@ export default function SebaConnect() {
               }
               disabled={!assignTitle.trim() || createAssignmentMutation.isPending}
             >
-              Crear tasca
+              {t("connect_create_task_btn")}
             </Button>
           </div>
         </DialogContent>
