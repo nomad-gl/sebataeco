@@ -2488,6 +2488,10 @@ export const translations = {
     local_auth_resetting: "Resetting…",
     local_auth_reset_success: "Password reset! Signing you in…",
     local_auth_reset_invalid: "This reset link is invalid or has expired.",
+    local_auth_reset_expired: "This reset link has expired. Please request a new one.",
+    local_auth_reset_expires_in: "Link expires in",
+    local_auth_password_too_short: "Password must be at least 8 characters.",
+    local_auth_reset_rate_limit: "Please wait a few minutes before requesting another reset link.",
     // Offline / reconnecting banner
     offline_banner_reconnecting: "Connection lost — reconnecting…",
     offline_banner_back: "You're back online.",
@@ -4951,6 +4955,10 @@ export const translations = {
     local_auth_resetting: "Restableciendo…",
     local_auth_reset_success: "¡Contraseña restablecida! Iniciando sesión…",
     local_auth_reset_invalid: "Este enlace de restablecimiento no es válido o ha caducado.",
+    local_auth_reset_expired: "Este enlace de restablecimiento ha caducado. Por favor, solicita uno nuevo.",
+    local_auth_reset_expires_in: "El enlace caduca en",
+    local_auth_password_too_short: "La contraseña debe tener al menos 8 caracteres.",
+    local_auth_reset_rate_limit: "Por favor, espera unos minutos antes de solicitar otro enlace de restablecimiento.",
     // Offline / reconnecting banner
     offline_banner_reconnecting: "Conexión perdida — reconectando…",
     offline_banner_back: "Conexión restaurada.",
@@ -7414,6 +7422,10 @@ export const translations = {
     local_auth_resetting: "Restablint…",
     local_auth_reset_success: "Contrasenya restablida! Iniciant sessió…",
     local_auth_reset_invalid: "Aquest enllaç de restabliment no és vàlid o ha caducat.",
+    local_auth_reset_expired: "Aquest enllaç de restabliment ha caducat. Si us plau, sol·licita'n un de nou.",
+    local_auth_reset_expires_in: "L'enllaç caduca en",
+    local_auth_password_too_short: "La contrasenya ha de tenir almenys 8 caràcters.",
+    local_auth_reset_rate_limit: "Si us plau, espera uns minuts abans de sol·licitar un altre enllaç de restabliment.",
     // Offline / reconnecting banner
     offline_banner_reconnecting: "Connexió perduda — reconnectant…",
     offline_banner_back: "Connexió restaurada.",

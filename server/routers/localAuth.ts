@@ -17,7 +17,7 @@ import { getSessionCookieOptions } from "../_core/cookies";
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getDb } from "../db";
 import { users, passwordResetTokens } from "../../drizzle/schema";
-import { eq, and, gt } from "drizzle-orm";
+import { eq, and, gt, desc } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
 
 const BCRYPT_ROUNDS = 12;
@@ -99,7 +99,7 @@ export const localAuthRouter = router({
     .input(z.object({ email: z.string().email(), origin: z.string().url() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) return { success: true }; // silent fail
+      if (!db) return { success: true, expiresAt: new Date(Date.now() + 60 * 60 * 1000) }; // silent fail
 
       const normalised = input.email.toLowerCase().trim();
       const openId = localOpenId(normalised);
@@ -110,8 +110,29 @@ export const localAuthRouter = router({
         .where(eq(users.openId, openId))
         .limit(1);
 
-      // Only issue token for local accounts that have a password
-      if (!user || !user.passwordHash) return { success: true };
+      // Only issue token for local accounts that have a password.
+      // Return success silently even for unknown emails to prevent user enumeration.
+      if (!user || !user.passwordHash) {
+        return { success: true, expiresAt: new Date(Date.now() + 60 * 60 * 1000) };
+      }
+
+      // ── Rate-limit: one reset request per email per 5 minutes ─────────────
+      const RATE_LIMIT_MS = 5 * 60 * 1000;
+      const [latest] = await db
+        .select({ createdAt: passwordResetTokens.createdAt })
+        .from(passwordResetTokens)
+        .where(eq(passwordResetTokens.userId, user.id))
+        .orderBy(desc(passwordResetTokens.createdAt))
+        .limit(1);
+
+      if (latest && Date.now() - latest.createdAt.getTime() < RATE_LIMIT_MS) {
+        const retryAfterMs = RATE_LIMIT_MS - (Date.now() - latest.createdAt.getTime());
+        const retryAfterSec = Math.ceil(retryAfterMs / 1000);
+        throw new TRPCError({
+          code: "TOO_MANY_REQUESTS",
+          message: `Please wait ${retryAfterSec} seconds before requesting another reset link.`,
+        });
+      }
 
       // Invalidate old tokens for this user
       await db
@@ -130,13 +151,15 @@ export const localAuthRouter = router({
 
       const resetUrl = `${input.origin}/reset-password?token=${token}`;
 
-      // Notify the platform owner so the link can be forwarded to the user
+      // Notify the platform owner so the link can be forwarded to the user.
+      // The owner receives this in their Manus notification inbox and can
+      // forward the link to the teacher — no SMTP setup required.
       await notifyOwner({
         title: `Password reset requested for ${normalised}`,
         content: `User ${user.name ?? normalised} requested a password reset.\n\nReset link (expires in 1 hour):\n${resetUrl}`,
       });
 
-      return { success: true };
+      return { success: true, expiresAt };
     }),
 
   /**

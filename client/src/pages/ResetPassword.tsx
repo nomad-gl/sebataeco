@@ -4,17 +4,35 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useI18n } from "@/contexts/I18nContext";
 import { trpc } from "@/lib/trpc";
-import { CheckCircle, Eye, EyeOff, KeyRound, XCircle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { CheckCircle, Clock, Eye, EyeOff, KeyRound, XCircle } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
+
+/** Format remaining seconds as "mm:ss" */
+function formatCountdown(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
 
 export default function ResetPassword() {
   const { t } = useI18n();
   const [, navigate] = useLocation();
 
-  // Read token from URL query string
-  const params = new URLSearchParams(window.location.search);
-  const token = params.get("token") ?? "";
+  // Read token from URL query string — stable across renders
+  const token = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("token") ?? "";
+  }, []);
+
+  // Read optional expiresAt passed as a query param (set by LocalLogin after requestReset)
+  const expiresAtParam = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    const raw = params.get("expiresAt");
+    if (!raw) return null;
+    const ts = parseInt(raw, 10);
+    return isNaN(ts) ? null : new Date(ts);
+  }, []);
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -23,37 +41,56 @@ export default function ResetPassword() {
   const [done, setDone] = useState(false);
   const [clientError, setClientError] = useState("");
 
+  // ── Expiry countdown ──────────────────────────────────────────────────────
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(() => {
+    if (!expiresAtParam) return null;
+    return Math.max(0, Math.floor((expiresAtParam.getTime() - Date.now()) / 1000));
+  });
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (secondsLeft === null) return;
+    if (secondsLeft <= 0) return;
+    timerRef.current = setInterval(() => {
+      setSecondsLeft((prev) => {
+        if (prev === null || prev <= 1) {
+          if (timerRef.current) clearInterval(timerRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []); // run once on mount
+
+  const isExpired = secondsLeft !== null && secondsLeft <= 0;
+
+  // ── Mutation ──────────────────────────────────────────────────────────────
   const resetMutation = trpc.localAuth.resetPassword.useMutation({
     onSuccess: () => {
       setDone(true);
-      // Redirect to login after 2 seconds
       setTimeout(() => navigate("/login"), 2000);
     },
   });
-
-  // If no token in URL, show invalid link immediately
-  const isInvalidToken = !token;
-
-  useEffect(() => {
-    if (isInvalidToken) return;
-  }, [isInvalidToken]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setClientError("");
     if (password.length < 8) {
-      setClientError("Password must be at least 8 characters.");
+      setClientError(t("local_auth_password_too_short"));
       return;
     }
     if (password !== confirm) {
-      setClientError("Passwords do not match.");
+      setClientError(t("local_auth_passwords_no_match"));
       return;
     }
     resetMutation.mutate({ token, password });
   };
 
-  // --- Invalid / expired token state ---
-  if (isInvalidToken || resetMutation.error) {
+  // ── Invalid / expired / no-token state ───────────────────────────────────
+  if (!token || resetMutation.error || isExpired) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <Card className="w-full max-w-md">
@@ -63,7 +100,9 @@ export default function ResetPassword() {
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <p className="text-muted-foreground text-sm">
-              {t("local_auth_reset_invalid")}
+              {isExpired && !resetMutation.error
+                ? t("local_auth_reset_expired")
+                : t("local_auth_reset_invalid")}
             </p>
             <Button variant="outline" onClick={() => navigate("/login")}>
               {t("local_auth_back_to_login")}
@@ -74,7 +113,7 @@ export default function ResetPassword() {
     );
   }
 
-  // --- Success state ---
+  // ── Success state ─────────────────────────────────────────────────────────
   if (done) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-4">
@@ -93,13 +132,22 @@ export default function ResetPassword() {
     );
   }
 
-  // --- Form state ---
+  // ── Form state ────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <KeyRound className="mx-auto mb-2 h-10 w-10 text-primary" />
           <CardTitle>{t("local_auth_reset_password")}</CardTitle>
+          {/* Expiry countdown badge */}
+          {secondsLeft !== null && secondsLeft > 0 && (
+            <div className="mt-2 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+              <Clock className="h-3.5 w-3.5" />
+              <span>
+                {t("local_auth_reset_expires_in")} {formatCountdown(secondsLeft)}
+              </span>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

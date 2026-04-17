@@ -3166,3 +3166,11 @@
 - [x] LocalLogin: redirect to returnPath (or /) if user is already authenticated
 - [x] Create OfflineBanner component: shows "Reconnecting…" when navigator.onLine is false or all retries exhausted, auto-hides on recovery
 - [x] Add OfflineBanner to App.tsx layout
+
+## Feature: Password reset follow-ups
+
+- [x] Wire reset-password email: send reset link to school owner via notifyOwner when requestReset is called
+- [x] Add expiresAt to requestReset response so the client knows the token lifetime
+- [x] Show token expiry countdown on ResetPassword.tsx page
+- [x] Add per-email rate-limit (1 request per 5 min) to requestReset endpoint with i18n error message
+- [x] Add i18n keys for rate-limit error and expiry countdown (EN/ES/CA)
