@@ -307,26 +307,92 @@ export function AIChatBox({
 
   /** Detect whether the user's message is an image generation request */
   const isImageRequest = useCallback((text: string): boolean => {
-    const lower = text.toLowerCase();
-    // /image command
+    const lower = text.toLowerCase().trim();
+    // /image or /img command
     if (lower.startsWith("/image ") || lower.startsWith("/img ")) return true;
-    // Natural language patterns (EN/ES/CA)
-    const patterns = [
+    // Natural language patterns (EN/ES/CA) — direct verb-prefix forms
+    const directPatterns = [
       /^(generate|create|draw|make|produce|design|paint|illustrate)\s+(an?\s+)?(image|picture|photo|illustration|drawing|artwork|poster|diagram)/i,
       /^(genera|crea|dibuixa|fes|pinta|il·lustra)\s+(una?\s+)?(imatge|foto|il·lustració|dibuix|pòster|diagrama)/i,
       /^(genera|crea|dibuja|haz|pinta|ilustra)\s+(una?\s+)?(imagen|foto|ilustración|dibujo|póster|diagrama)/i,
     ];
-    return patterns.some((p) => p.test(lower.trim()));
+    if (directPatterns.some((p) => p.test(lower))) return true;
+    // Indirect / question-form patterns (EN)
+    const indirectPatterns = [
+      // "can you draw/create/generate/make/show me an image of…"
+      /can\s+you\s+(draw|create|generate|make|paint|design|illustrate|show\s+me)\s+(an?\s+)?(image|picture|photo|illustration|drawing|artwork|poster|diagram)/i,
+      // "I'd like / I want / I need an image of…"
+      /i('d|\s+would)\s+like\s+(an?\s+)?(image|picture|photo|illustration|drawing)/i,
+      /i\s+want\s+(an?\s+)?(image|picture|photo|illustration|drawing)/i,
+      /i\s+need\s+(an?\s+)?(image|picture|photo|illustration|drawing)/i,
+      // "show me an image of…" / "give me a picture of…"
+      /(show|give)\s+me\s+(an?\s+)?(image|picture|photo|illustration|drawing)/i,
+      // "make me a picture of…"
+      /make\s+me\s+(an?\s+)?(image|picture|photo|illustration|drawing)/i,
+      // "please (generate|draw|create)…"
+      /please\s+(generate|draw|create|make|paint|design|illustrate)\s+(an?\s+)?(image|picture|photo|illustration|drawing)/i,
+      // "an image of…" / "a picture of…" at start
+      /^an?\s+(image|picture|photo|illustration|drawing|artwork|poster|diagram)\s+of\b/i,
+    ];
+    if (indirectPatterns.some((p) => p.test(lower))) return true;
+    // Indirect / question-form patterns (ES)
+    const indirectES = [
+      /\u00bfpuedes\s+(dibujar|crear|generar|hacer|pintar|dise\u00f1ar|ilustrar)\s+(una?\s+)?(imagen|foto|ilustraci\u00f3n|dibujo)/i,
+      /quiero\s+(una?\s+)?(imagen|foto|ilustraci\u00f3n|dibujo)/i,
+      /necesito\s+(una?\s+)?(imagen|foto|ilustraci\u00f3n|dibujo)/i,
+      /mu\u00e9strame\s+(una?\s+)?(imagen|foto|ilustraci\u00f3n|dibujo)/i,
+      /hazme\s+(una?\s+)?(imagen|foto|ilustraci\u00f3n|dibujo)/i,
+      /por\s+favor\s+(genera|crea|dibuja|haz|pinta)\s+(una?\s+)?(imagen|foto|ilustraci\u00f3n|dibujo)/i,
+    ];
+    if (indirectES.some((p) => p.test(lower))) return true;
+    // Indirect / question-form patterns (CA)
+    const indirectCA = [
+      /pots\s+(dibuixar|crear|generar|fer|pintar|dissenyar|il·lustrar)\s+(una?\s+)?(imatge|foto|il·lustraci\u00f3|dibuix)/i,
+      /vull\s+(una?\s+)?(imatge|foto|il·lustraci\u00f3|dibuix)/i,
+      /necessito\s+(una?\s+)?(imatge|foto|il·lustraci\u00f3|dibuix)/i,
+      /mostra'm\s+(una?\s+)?(imatge|foto|il·lustraci\u00f3|dibuix)/i,
+      /fes-me\s+(una?\s+)?(imatge|foto|il·lustraci\u00f3|dibuix)/i,
+      /si\s+us\s+plau\s+(genera|crea|dibuixa|fes|pinta)\s+(una?\s+)?(imatge|foto|il·lustraci\u00f3|dibuix)/i,
+    ];
+    if (indirectCA.some((p) => p.test(lower))) return true;
+    return false;
   }, []);
 
-  /** Strip the command prefix or verb from an image prompt */
+  /** Strip the command prefix or verb from an image prompt, including indirect forms */
   const extractImagePrompt = useCallback((text: string): string => {
     return text
+      // /image /img commands
       .replace(/^\/image\s+/i, "")
       .replace(/^\/img\s+/i, "")
+      // Direct EN verb-prefix
       .replace(/^(generate|create|draw|make|produce|design|paint|illustrate)\s+(an?\s+)?(image|picture|photo|illustration|drawing|artwork|poster|diagram)\s+(of\s+)?/i, "")
+      // Direct CA verb-prefix
       .replace(/^(genera|crea|dibuixa|fes|pinta|il·lustra)\s+(una?\s+)?(imatge|foto|il·lustració|dibuix|pòster|diagrama)\s+(de\s+)?/i, "")
+      // Direct ES verb-prefix
       .replace(/^(genera|crea|dibuja|haz|pinta|ilustra)\s+(una?\s+)?(imagen|foto|ilustración|dibujo|póster|diagrama)\s+(de\s+)?/i, "")
+      // Indirect EN forms
+      .replace(/^can\s+you\s+(draw|create|generate|make|paint|design|illustrate|show\s+me)\s+(an?\s+)?(image|picture|photo|illustration|drawing|artwork|poster|diagram)\s+(of\s+)?/i, "")
+      .replace(/^i('d|\s+would)\s+like\s+(an?\s+)?(image|picture|photo|illustration|drawing)\s+(of\s+)?/i, "")
+      .replace(/^i\s+want\s+(an?\s+)?(image|picture|photo|illustration|drawing)\s+(of\s+)?/i, "")
+      .replace(/^i\s+need\s+(an?\s+)?(image|picture|photo|illustration|drawing)\s+(of\s+)?/i, "")
+      .replace(/^(show|give)\s+me\s+(an?\s+)?(image|picture|photo|illustration|drawing)\s+(of\s+)?/i, "")
+      .replace(/^make\s+me\s+(an?\s+)?(image|picture|photo|illustration|drawing)\s+(of\s+)?/i, "")
+      .replace(/^please\s+(generate|draw|create|make|paint|design|illustrate)\s+(an?\s+)?(image|picture|photo|illustration|drawing)\s+(of\s+)?/i, "")
+      .replace(/^an?\s+(image|picture|photo|illustration|drawing|artwork|poster|diagram)\s+of\s+/i, "")
+      // Indirect ES forms
+      .replace(/^\u00bfpuedes\s+(dibujar|crear|generar|hacer|pintar|dise\u00f1ar|ilustrar)\s+(una?\s+)?(imagen|foto|ilustraci\u00f3n|dibujo)\s+(de\s+)?/i, "")
+      .replace(/^quiero\s+(una?\s+)?(imagen|foto|ilustraci\u00f3n|dibujo)\s+(de\s+)?/i, "")
+      .replace(/^necesito\s+(una?\s+)?(imagen|foto|ilustraci\u00f3n|dibujo)\s+(de\s+)?/i, "")
+      .replace(/^mu\u00e9strame\s+(una?\s+)?(imagen|foto|ilustraci\u00f3n|dibujo)\s+(de\s+)?/i, "")
+      .replace(/^hazme\s+(una?\s+)?(imagen|foto|ilustraci\u00f3n|dibujo)\s+(de\s+)?/i, "")
+      .replace(/^por\s+favor\s+(genera|crea|dibuja|haz|pinta)\s+(una?\s+)?(imagen|foto|ilustraci\u00f3n|dibujo)\s+(de\s+)?/i, "")
+      // Indirect CA forms
+      .replace(/^pots\s+(dibuixar|crear|generar|fer|pintar|dissenyar|il·lustrar)\s+(una?\s+)?(imatge|foto|il·lustraci\u00f3|dibuix)\s+(de\s+)?/i, "")
+      .replace(/^vull\s+(una?\s+)?(imatge|foto|il·lustraci\u00f3|dibuix)\s+(de\s+)?/i, "")
+      .replace(/^necessito\s+(una?\s+)?(imatge|foto|il·lustraci\u00f3|dibuix)\s+(de\s+)?/i, "")
+      .replace(/^mostra'm\s+(una?\s+)?(imatge|foto|il·lustraci\u00f3|dibuix)\s+(de\s+)?/i, "")
+      .replace(/^fes-me\s+(una?\s+)?(imatge|foto|il·lustraci\u00f3|dibuix)\s+(de\s+)?/i, "")
+      .replace(/^si\s+us\s+plau\s+(genera|crea|dibuixa|fes|pinta)\s+(una?\s+)?(imatge|foto|il·lustraci\u00f3|dibuix)\s+(de\s+)?/i, "")
       .trim() || text;
   }, []);
 

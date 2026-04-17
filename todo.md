@@ -3084,3 +3084,8 @@
 ## Session 58: Strip Variation Suffix on Regenerate
 
 - [x] Add stripVariationSuffix helper and apply it in the Regenerate button handler in AIChatBox
+
+## Session 59: Auto Image Generation from Natural Language
+
+- [x] Expand isImageRequest regex to cover mid-sentence and indirect image requests (EN/ES/CA)
+- [x] Ensure plain-text send triggers image generation without toolbar button
