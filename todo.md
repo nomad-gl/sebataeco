@@ -3052,9 +3052,9 @@
 
 ## Session 54: Aina Follow-ups II
 
-- [ ] Feature 1: Document context indicator strip — persistent pill above chat input with filename and Clear button
-- [ ] Feature 2: Multi-image comparison — accumulate pendingImageUrls array, pass all as vision blocks to LLM
-- [ ] Feature 3: AI Images tab in My Materials — filter type=image, thumbnail grid gallery
+- [x] Feature 1: Document context indicator strip — persistent pill above chat input with filename and Clear button
+- [x] Feature 2: Multi-image comparison — accumulate pendingImageUrls array, pass all as vision blocks to LLM
+- [x] Feature 3: AI Images tab in My Materials — filter type=image, thumbnail grid gallery
 
 ## Session 54: Aina Follow-ups (Image Analysis, Multi-Image, AI Gallery)
 
@@ -3065,3 +3065,7 @@
 - [x] Add ImageIcon to TYPE_ICONS/TYPE_COLORS for image type in MyMaterials
 - [x] Add content field to getMaterialsByUser select so gallery can read image URLs
 - [x] TypeScript: 0 errors | 112 unit tests passing
+
+## Session 55: Bug Fix — Aina Image Gen Sync
+
+- [x] Fix: when image generation is triggered, skip the LLM chat call entirely and show a synthetic assistant message with the generated image instead of a conflicting 'I cannot generate images' response

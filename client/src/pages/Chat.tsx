@@ -144,9 +144,21 @@ export default function Chat() {
       toast(`Document context ready: ${fileName}`);
       return;
     }
+    // ── Skip LLM call for image generation requests ───────────────────────
+    // AIChatBox intercepts image requests, generates the image, and sends back
+    // a __image__<url> token when done. We only need to show the user bubble here.
+    const isImgReq = (() => {
+      const lower = content.toLowerCase();
+      if (lower.startsWith("/image ") || lower.startsWith("/img ")) return true;
+      return /^(generate|create|draw|make|produce|design|paint|illustrate|crea|genera|dibuix|fes|pinta|il·lustra|diseña|dibuja|haz|ilustra)\s+(an?\s+)?(image|picture|photo|illustration|drawing|artwork|poster|diagram|imatge|foto|il·lustració|dibuix|pòster|diagrama|imagen|fotografía|ilustración|dibujo|cartel)/i.test(lower);
+    })();
     const userMsg: Message = { role: "user", content, timestamp: Date.now() };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
+    if (isImgReq) {
+      // Image generation is handled by AIChatBox — do not call the LLM
+      return;
+    }
 
     // Capture and clear pending context before building the payload
     const capturedDocContext = pendingDocContext;
