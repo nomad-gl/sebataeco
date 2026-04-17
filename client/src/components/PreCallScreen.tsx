@@ -336,6 +336,43 @@ export default function PreCallScreen({
   const [selectedBg, setSelectedBg] = useState<VideoBackground>(getSavedBg);
   const [selectedFilter, setSelectedFilter] = useState<VideoFilter>(getSavedFilter);
   const [blurIntensity, setBlurIntensity] = useState<number>(getSavedBlurIntensity);
+
+  // ── DB-backed call preferences ─────────────────────────────────────────
+  // Load once on mount; overwrite localStorage so the rest of the component
+  // continues to work exactly as before (localStorage is still the hot path).
+  const { data: savedCallPrefs } = trpc.callBackground.getCallPrefs.useQuery(undefined, {
+    staleTime: Infinity,
+    retry: false,
+  });
+  const saveCallPrefsMut = trpc.callBackground.saveCallPrefs.useMutation();
+
+  // Hydrate state from DB prefs once they arrive (only on first load)
+  const dbPrefsApplied = useRef(false);
+  useEffect(() => {
+    if (!savedCallPrefs || dbPrefsApplied.current) return;
+    dbPrefsApplied.current = true;
+    // Background
+    if (savedCallPrefs.backgroundId && savedCallPrefs.backgroundId !== "none") {
+      if (savedCallPrefs.backgroundId === "custom" && savedCallPrefs.customBgUrl) {
+        const customBg: VideoBackground = { id: "custom", label: "My Background", url: savedCallPrefs.customBgUrl };
+        setSelectedBg(customBg);
+        setCustomBgUrl(savedCallPrefs.customBgUrl);
+        try { localStorage.setItem(LS_CUSTOM_BG_KEY, savedCallPrefs.customBgUrl); } catch (_) { /* ignore */ }
+      } else {
+        const found = VIDEO_BACKGROUNDS.find((b) => b.id === savedCallPrefs.backgroundId);
+        if (found) setSelectedBg(found);
+      }
+    }
+    // Filter
+    if (savedCallPrefs.filterId) {
+      const foundFilter = VIDEO_FILTERS.find((f) => f.id === savedCallPrefs.filterId);
+      if (foundFilter) setSelectedFilter(foundFilter);
+    }
+    // Blur intensity
+    if (savedCallPrefs.blurIntensity >= 1 && savedCallPrefs.blurIntensity <= 5) {
+      setBlurIntensity(savedCallPrefs.blurIntensity);
+    }
+  }, [savedCallPrefs]);
   const [segmentationLoading, setSegmentationLoading] = useState(false);
   const [segmentationReady, setSegmentationReady] = useState(false);
   const [customBgUrl, setCustomBgUrl] = useState<string | null>(() => {
@@ -354,7 +391,7 @@ export default function PreCallScreen({
     onError: () => setUploadingBg(false),
   });
 
-  // ── Persist selections ─────────────────────────────────────────────────
+  // ── Persist selections (localStorage + DB) ────────────────────────────────
   useEffect(() => {
     try {
       localStorage.setItem(LS_BG_KEY, selectedBg.id);
@@ -365,14 +402,42 @@ export default function PreCallScreen({
         localStorage.removeItem("seba_precall_bg_url");
       }
     } catch (_) { /* ignore */ }
+    // Persist to DB (fire-and-forget; only after initial DB prefs have been applied)
+    if (dbPrefsApplied.current) {
+      saveCallPrefsMut.mutate({
+        backgroundId: selectedBg.id,
+        filterId: selectedFilter.id,
+        blurIntensity,
+        ...(selectedBg.id === "custom" && selectedBg.url ? { customBgUrl: selectedBg.url } : {}),
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBg]);
 
   useEffect(() => {
     try { localStorage.setItem(LS_FILTER_KEY, selectedFilter.id); } catch (_) { /* ignore */ }
+    if (dbPrefsApplied.current) {
+      saveCallPrefsMut.mutate({
+        backgroundId: selectedBg.id,
+        filterId: selectedFilter.id,
+        blurIntensity,
+        ...(selectedBg.id === "custom" && selectedBg.url ? { customBgUrl: selectedBg.url } : {}),
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFilter]);
 
   useEffect(() => {
     try { localStorage.setItem(LS_BLUR_INTENSITY_KEY, String(blurIntensity)); } catch (_) { /* ignore */ }
+    if (dbPrefsApplied.current) {
+      saveCallPrefsMut.mutate({
+        backgroundId: selectedBg.id,
+        filterId: selectedFilter.id,
+        blurIntensity,
+        ...(selectedBg.id === "custom" && selectedBg.url ? { customBgUrl: selectedBg.url } : {}),
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blurIntensity]);
   // ── Enumerate available cameras ──────────────────────────────────────────
   const enumerateCameras = useCallback(async () => {

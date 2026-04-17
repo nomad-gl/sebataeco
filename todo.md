@@ -3270,3 +3270,11 @@
 
 - [x] Diagnose why the virtual background image is not rendered during a video call
 - [x] Fix the background image rendering so it appears correctly in the local video preview
+
+## Feature: Persist video call background/filter in user profile
+
+- [x] Add call_prefs JSON column to users table in drizzle/schema.ts, generate migration, apply SQL
+- [x] Add profile.getCallPrefs and profile.saveCallPrefs tRPC procedures
+- [x] Load saved prefs in PreCallScreen on mount (falls back to localStorage then default)
+- [x] Save prefs to DB in PreCallScreen when user changes background or filter
+- [x] Load saved prefs in SebaMeet for in-call settings panel (live override still works)

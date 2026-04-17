@@ -22,6 +22,12 @@ export const users = mysqlTable("users", {
   displayName: varchar("displayName", { length: 128 }),
   /** Set by a Director to prevent login without deleting data. NULL = active. */
   deactivatedAt: timestamp("deactivatedAt"),
+  /**
+   * JSON blob persisting the user's video-call preferences.
+   * Shape: { backgroundId: string; filterId: string; blurIntensity: number }
+   * Stored as TEXT so it works on all MySQL/TiDB versions without JSON column type.
+   */
+  callPrefs: text("callPrefs"),
 });
 
 export type User = typeof users.$inferSelect;
