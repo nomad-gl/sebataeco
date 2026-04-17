@@ -3125,3 +3125,9 @@
 - [x] Unify isImgReq regex in Chat.tsx to match AIChatBox isImageRequest (indirect/question forms)
 - [x] Use functional setMessages(prev => ...) in Chat.tsx __image__ token handler to prevent stale-closure overwrite
 - [x] Add isGeneratingImage prop to AIChatBox so Chat.tsx can pass its own generating state and show the loading bubble correctly
+
+## Feature: Slow image generation fallback message
+
+- [x] Add i18n keys: aina_image_slow_fallback (EN/ES/CA)
+- [x] Add elapsed-seconds counter in AIChatBox that increments while isGeneratingImage is true
+- [x] Show fallback reassurance line inside the loading bubble after 8 seconds

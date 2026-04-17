@@ -300,6 +300,8 @@ export function AIChatBox({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingFile, setPendingFile] = useState<{ name: string; base64: string; mimeType: string; previewUrl?: string } | null>(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  /** Elapsed seconds since image generation started — used to show the slow-generation fallback message */
+  const [imageGenSeconds, setImageGenSeconds] = useState(0);
   /** Extracted text from the last uploaded document — cleared after it is sent to the LLM */
   const [pendingDocContext, setPendingDocContext] = useState<{ text: string; fileName: string } | null>(null);
   /** URLs of uploaded images — accumulated (max 4) and cleared after they are sent to the LLM */
@@ -777,6 +779,15 @@ export function AIChatBox({
     return () => clearInterval(interval);
   }, [isLoading]);
 
+  // Track elapsed seconds during image generation to show the slow-generation
+  // fallback message after 8 seconds.
+  useEffect(() => {
+    if (!isGeneratingImage) { setImageGenSeconds(0); return; }
+    setImageGenSeconds(0);
+    const interval = setInterval(() => setImageGenSeconds((s) => s + 1), 1000);
+    return () => clearInterval(interval);
+  }, [isGeneratingImage]);
+
   const TypingIndicator = () => (
     <div className="flex gap-3 justify-start items-start">
       <div className="size-8 shrink-0 mt-1 rounded-full bg-primary/10 flex items-center justify-center">
@@ -1179,6 +1190,11 @@ export function AIChatBox({
                       </div>
                     </div>
                     <span className="text-xs text-white/60 animate-pulse">{t("aina_image_loading_placeholder")}</span>
+                    {imageGenSeconds >= 8 && (
+                      <span className="text-xs text-amber-300/80 animate-pulse">
+                        {t("aina_image_slow_fallback" as Parameters<typeof t>[0])}
+                      </span>
+                    )}
                   </div>
                 </div>
               )}
