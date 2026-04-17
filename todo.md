@@ -2957,3 +2957,11 @@
 - [x] Custom background upload: callBackground tRPC router, S3 upload, "Upload your own" tile + custom bg tile with remove button in PreCallScreen; URL persisted to localStorage
 - [x] Add a back button to the SebaConnect page header (navigates back to previous page)
 - [x] Add SebaConnect link to Director and Head of Studies dropdown menus
+
+## Session 49: Meeting Invite Notifications + RSVP
+- [x] Real-time invite notifications: createNotification called per invitee in meetingInvitation.send; also notifies sender on accept/decline
+- [x] Schema already has status field (pending/accepted/declined/cancelled) — no migration needed
+- [x] Accept/Decline buttons added to meeting_invite notification items in NavBar bell dropdown (MeetingInviteActions component)
+- [x] RSVP status badges already shown in MeetingHistoryPanel list + calendar views (STATUS_STYLES map)
+- [x] TypeScript 0 errors
+- [x] Save checkpoint

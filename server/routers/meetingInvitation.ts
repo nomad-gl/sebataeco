@@ -11,6 +11,7 @@ import { getDb } from "../db";
 import { meetingInvitations, users } from "../../drizzle/schema";
 import { and, eq, or, desc, lte, isNull } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
+import { createNotification } from "./notifications";
 
 export const meetingInvitationRouter = router({
   /** Send a meeting invitation to one or more users (all share the same room). */
@@ -80,6 +81,32 @@ export const meetingInvitationRouter = router({
         title: `📅 New meeting invitation: ${input.title}`,
         content: `${senderName} invited ${recipientCount} participant${recipientCount > 1 ? "s" : ""} to "${input.title}" on ${proposedStr} (${input.durationMinutes} min).${input.message ? ` Message: ${input.message}` : ""}`,
       }).catch(() => { /* non-critical */ });
+
+      // Push in-app bell notification to each invitee
+      const inviteeRows = await db
+        .select({ id: users.id, openId: users.openId })
+        .from(users)
+        .where(
+          recipientIds.length === 1
+            ? eq(users.id, recipientIds[0])
+            : eq(users.id, recipientIds[0]) // fallback; loop below handles all
+        );
+      // Fetch all invitee openIds in one query
+      const allInviteeRows = await db
+        .select({ id: users.id, openId: users.openId })
+        .from(users);
+      const inviteeOpenIds = allInviteeRows
+        .filter((r) => recipientIds.includes(r.id))
+        .map((r) => r.openId);
+      for (const openId of inviteeOpenIds) {
+        await createNotification({
+          userId: openId,
+          type: "meeting_invite",
+          title: `📅 Meeting invite: ${input.title}`,
+          body: `${senderName} invited you to "${input.title}" on ${proposedStr} (${input.durationMinutes} min).${input.message ? ` "${input.message}"` : ""}`,
+          link: "/connect",
+        });
+      }
 
       return { invitationIds: insertedIds, roomName };
     }),
@@ -221,6 +248,22 @@ export const meetingInvitationRouter = router({
         content: `${acceptorName} accepted your meeting invitation "${rows[0].title}" scheduled for ${proposedStr}.`,
       }).catch(() => { /* non-critical */ });
 
+      // Notify the sender via in-app bell
+      const senderOpenIdRows = await db
+        .select({ openId: users.openId })
+        .from(users)
+        .where(eq(users.id, rows[0].fromUserId))
+        .limit(1);
+      if (senderOpenIdRows[0]) {
+        await createNotification({
+          userId: senderOpenIdRows[0].openId,
+          type: "meeting_accepted",
+          title: `✅ ${acceptorName} accepted: ${rows[0].title}`,
+          body: `${acceptorName} accepted your meeting invitation "${rows[0].title}" on ${proposedStr}.`,
+          link: "/connect",
+        });
+      }
+
       return { roomName: rows[0].roomName };
     }),
 
@@ -269,6 +312,22 @@ export const meetingInvitationRouter = router({
           title: `❌ Meeting declined: ${rows[0].title}`,
           content: `${declinerName} declined your meeting invitation "${rows[0].title}" proposed for ${proposedStr}. You may want to suggest a new time.`,
         }).catch(() => { /* non-critical */ });
+
+        // Notify the sender via in-app bell
+        const senderOpenIdRows2 = await db
+          .select({ openId: users.openId })
+          .from(users)
+          .where(eq(users.id, rows[0].fromUserId))
+          .limit(1);
+        if (senderOpenIdRows2[0]) {
+          await createNotification({
+            userId: senderOpenIdRows2[0].openId,
+            type: "meeting_declined",
+            title: `❌ ${declinerName} declined: ${rows[0].title}`,
+            body: `${declinerName} declined your meeting invitation "${rows[0].title}" proposed for ${proposedStr}.`,
+            link: "/connect",
+          });
+        }
       }
 
       return { ok: true };

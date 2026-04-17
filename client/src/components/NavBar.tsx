@@ -24,6 +24,49 @@ const LANG_OPTIONS: { code: Lang; label: string; flag: string }[] = [
   { code: "en", label: "EN", flag: "🇬🇧" },
 ];
 
+/** Inline Accept/Decline buttons for meeting_invite notifications in the bell dropdown */
+function MeetingInviteActions({ notificationId, onDone }: { notificationId: number; onDone: () => void }) {
+  const utils = trpc.useUtils();
+  const markRead = trpc.notifications.markRead.useMutation();
+  const getPending = trpc.meetingInvitation.getPending.useQuery(undefined, { enabled: true });
+  const accept = trpc.meetingInvitation.accept.useMutation({
+    onSuccess: () => {
+      markRead.mutate({ id: notificationId });
+      onDone();
+    },
+  });
+  const decline = trpc.meetingInvitation.decline.useMutation({
+    onSuccess: () => {
+      markRead.mutate({ id: notificationId });
+      onDone();
+    },
+  });
+  // Find the matching pending invitation — match by notification id is not direct;
+  // we use the first pending invite as a best-effort match (notifications are per-invite)
+  const pending = getPending.data ?? [];
+  const inv = pending[0]; // simplest heuristic: act on the oldest pending invite
+  if (!inv) return null;
+  const busy = accept.isPending || decline.isPending;
+  return (
+    <div className="flex gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
+      <button
+        disabled={busy}
+        onClick={() => accept.mutate({ invitationId: inv.id })}
+        className="flex-1 text-xs font-medium py-1 rounded-md bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
+      >
+        ✓ Accept
+      </button>
+      <button
+        disabled={busy}
+        onClick={() => decline.mutate({ invitationId: inv.id })}
+        className="flex-1 text-xs font-medium py-1 rounded-md bg-red-500 text-white hover:bg-red-600 disabled:opacity-50 transition-colors"
+      >
+        ✗ Decline
+      </button>
+    </div>
+  );
+}
+
 export default function NavBar() {
   const [location] = useLocation();
   const { t, lang, setLang } = useI18n();
@@ -638,10 +681,12 @@ export default function NavBar() {
                           <div
                             key={n.id}
                             className={cn(
-                              "flex items-start gap-3 px-4 py-3 border-b border-border last:border-0 cursor-pointer hover:bg-secondary/40 transition-colors",
-                              !n.isRead && "bg-primary/5"
+                              "flex items-start gap-3 px-4 py-3 border-b border-border last:border-0 transition-colors",
+                              !n.isRead && "bg-primary/5",
+                              n.type !== "meeting_invite" && "cursor-pointer hover:bg-secondary/40"
                             )}
                             onClick={() => {
+                              if (n.type === "meeting_invite") return;
                               if (!n.isRead) {
                                 markRead.mutate({ id: n.id });
                                 utils.notifications.getUnreadCount.invalidate();
@@ -656,8 +701,18 @@ export default function NavBar() {
                               <p className={cn("text-sm font-medium truncate", n.isRead ? "text-muted-foreground" : "text-foreground")}>{n.title}</p>
                               <p className="text-xs text-muted-foreground line-clamp-2">{n.body}</p>
                               <p className="text-[10px] text-muted-foreground mt-0.5">{new Date(n.createdAt).toLocaleString()}</p>
+                              {n.type === "meeting_invite" && !n.isRead && (
+                                <MeetingInviteActions
+                                  notificationId={n.id}
+                                  onDone={() => {
+                                    utils.notifications.getMyNotifications.invalidate();
+                                    utils.notifications.getUnreadCount.invalidate();
+                                    utils.meetingInvitation.getPendingCount.invalidate();
+                                  }}
+                                />
+                              )}
                             </div>
-                            {!n.isRead && <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1" />}
+                            {!n.isRead && n.type !== "meeting_invite" && <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1" />}
                           </div>
                         ))
                       )}
