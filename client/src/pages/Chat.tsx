@@ -29,6 +29,10 @@ export default function Chat() {
   const [yearGroup, setYearGroup] = useState<YearGroup | undefined>();
   const [showFilters, setShowFilters] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+  /** Text extracted from the last uploaded document — injected into the next LLM call then cleared */
+  const [pendingDocContext, setPendingDocContext] = useState<{ text: string; fileName: string } | null>(null);
+  /** URL of the last uploaded image — injected into the next LLM call as a vision block then cleared */
+  const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
 
   // Track previous lang to detect real changes
   const prevLangRef = useRef<Lang>(lang);
@@ -99,6 +103,8 @@ export default function Chat() {
         ...prev,
         { role: "user", content: captionPart || "", imageUrl: url, timestamp: Date.now() },
       ]);
+      // Store the image URL so the next user message sends it as a vision block
+      setPendingImageUrl(url);
       return;
     }
     if (content.startsWith("__upload_file__")) {
@@ -127,10 +133,26 @@ export default function Chat() {
       ]);
       return;
     }
-
+    // ── Handle document context extraction result ─────────────────────────────
+    if (content.startsWith("__doc_context__")) {
+      const rest = content.slice("__doc_context__".length);
+      const fileMatch = rest.match(/__file__(.+)$/);
+      const text = rest.replace(/__file__.+$/, "");
+      const fileName = fileMatch?.[1] || "document";
+      setPendingDocContext({ text, fileName });
+      // Show a subtle indicator in the chat that context is ready
+      toast(`Document context ready: ${fileName}`);
+      return;
+    }
     const userMsg: Message = { role: "user", content, timestamp: Date.now() };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
+
+    // Capture and clear pending context before building the payload
+    const capturedDocContext = pendingDocContext;
+    const capturedImageUrl = pendingImageUrl;
+    if (capturedDocContext) setPendingDocContext(null);
+    if (capturedImageUrl) setPendingImageUrl(null);
 
     const buildPayload = () => ({
       messages: newMessages
@@ -141,6 +163,10 @@ export default function Chat() {
       uiLang: lang as "en" | "es" | "ca",
       caDialect: lang === "ca" ? (dialect as "central" | "valencian" | "balearic" | "northern" | "alguerese" | "standard") : undefined,
       userId: user?.id ?? undefined,
+      // Vision: attach uploaded image URL as a vision block
+      imageUrl: capturedImageUrl ?? undefined,
+      // Document context: inject extracted text into the LLM prompt
+      documentContext: capturedDocContext?.text ?? undefined,
     });
 
     let result;

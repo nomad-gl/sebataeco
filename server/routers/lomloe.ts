@@ -10,7 +10,7 @@ import {
   type CompetencyCode,
   type YearGroup,
 } from "../knowledge/lomloeKnowledgeBank";
-import { invokeLLM } from "../_core/llm";
+import { invokeLLM, type Message, type TextContent, type ImageContent } from "../_core/llm";
 import { ainaTranslateBatch } from "../ainaTranslation";
 import { getAinaProfile, upsertAinaProfile, rateMessage, getUserRatings, saveQuestionAnswer, getQuestionAnalytics, getPendingQuestions, reviewQuestion } from "../db";
 import { getDb } from "../db";
@@ -480,6 +480,16 @@ export const lomloeRouter = router({
         caDialect: z.enum(["central", "valencian", "balearic", "northern", "alguerese", "standard"]).nullish(),
         /** Authenticated user ID — used to load/update the adaptive profile */
         userId: z.number().nullish(),
+        /**
+         * Optional image URL to include as a vision content block in the last user message.
+         * When set, the LLM receives the image alongside the text so it can analyse it.
+         */
+        imageUrl: z.string().url().nullish(),
+        /**
+         * Optional extracted document text to inject as additional context.
+         * Populated when the user uploads a PDF or text file.
+         */
+        documentContext: z.string().max(8000).nullish(),
       })
     )
     .mutation(async ({ input }) => {
@@ -592,12 +602,36 @@ Structure your responses clearly. Use these patterns depending on the question t
       // Limit context to the last 8 messages (4 turns) to reduce token count and latency
       // while preserving enough context for coherent follow-up responses
       const recentMessages = input.messages.slice(-8);
-      const llmMessages = [
+
+      // Build the document context injection (prepended to the last user message)
+      const docContextPrefix = input.documentContext
+        ? `[Uploaded document context — use this to answer the user's question]:\n${input.documentContext}\n\n[User's question]: `
+        : "";
+
+      // Build LLM messages, injecting image vision block and/or document context into the last user message
+      const llmMessages: Message[] = [
         { role: "system" as const, content: systemPrompt },
-        ...recentMessages.map((m) => ({
-          role: m.role as "user" | "assistant",
-          content: m.content,
-        })),
+        ...recentMessages.map((m, idx) => {
+          const isLast = idx === recentMessages.length - 1;
+          const isUser = m.role === "user";
+
+          // For the last user message, optionally attach image and/or document context
+          if (isLast && isUser && (input.imageUrl || input.documentContext)) {
+            const textContent = docContextPrefix + m.content;
+            if (input.imageUrl) {
+              // Vision: multi-part content with text + image_url
+              const textPart: TextContent = { type: "text", text: textContent };
+              const imagePart: ImageContent = { type: "image_url", image_url: { url: input.imageUrl, detail: "auto" } };
+              return {
+                role: "user" as const,
+                content: [textPart, imagePart],
+              };
+            }
+            // Document context only — plain text with prefix
+            return { role: "user" as const, content: textContent };
+          }
+          return { role: m.role as "user" | "assistant", content: m.content };
+        }),
       ];
 
       // Fire main LLM call and follow-up question generation in parallel

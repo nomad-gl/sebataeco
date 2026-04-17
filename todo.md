@@ -3005,3 +3005,47 @@
 - [x] Update Chat.tsx handleSendMessage to parse all synthetic tokens
 - [x] Add aina_image_gen_error, aina_upload_error, aina_generating_image, aina_uploading_file, aina_attach_file, aina_generate_image i18n keys (EN/ES/CA)
 - [x] Write and pass 6 unit tests for aina router (server/aina.test.ts)
+
+## Session 53: Aina Follow-ups (Image Analysis, Save to Library, Document Context)
+
+- [ ] Feature 1: Pass uploaded image URL as image_url content block to LLM in lomloe.chat
+- [ ] Feature 1: AIChatBox sends imageUrl with next user message when pendingImageUrl is set
+- [ ] Feature 1: Chat.tsx passes imageUrl through to chatMutation payload
+- [ ] Feature 2: Add saveGeneratedImage tRPC procedure to aina router
+- [ ] Feature 2: Add "Save to library" button below generated image bubbles in AIChatBox
+- [ ] Feature 2: Show toast confirmation when image saved to My Materials
+- [ ] Feature 3: Install pdf-parse, add extractDocumentText tRPC procedure to aina router
+- [ ] Feature 3: AIChatBox calls extractDocumentText after PDF/text file upload
+- [ ] Feature 3: Inject extracted document text as system context in next Aina chat message
+- [ ] Feature 3: Show document context indicator in chat (e.g. "Analysing: filename.pdf")
+- [ ] Write unit tests for new procedures
+
+## Session 53: Aina Follow-ups
+
+- [ ] Feature 1: Pass uploaded image URL as image_url content block to LLM in lomloe.chat
+- [ ] Feature 1: AIChatBox sends imageUrl with next user message when pendingImageUrl is set
+- [ ] Feature 1: Chat.tsx passes imageUrl through to chatMutation payload
+- [ ] Feature 2: Add saveGeneratedImage tRPC procedure to aina router
+- [ ] Feature 2: Add "Save to library" button below generated image bubbles in AIChatBox
+- [ ] Feature 2: Show toast confirmation when image saved to My Materials
+- [ ] Feature 3: Install pdf-parse, add extractDocumentText tRPC procedure to aina router
+- [ ] Feature 3: AIChatBox calls extractDocumentText after PDF/text file upload
+- [ ] Feature 3: Inject extracted document text as system context in next Aina chat message
+- [ ] Feature 3: Show document context indicator in chat
+- [ ] Write unit tests for new procedures
+
+## Session 53: Aina Follow-ups
+
+- [x] Feature 1: Image analysis — pass uploaded image URL as vision block to LLM
+- [x] Feature 2: Save generated image to My Materials — saveGeneratedImage procedure + Save to library button
+- [x] Feature 3: Document context — extractDocumentText procedure (PDF/txt/csv) + inject into LLM payload
+- [x] DB migration: add 'image' to teaching_materials type enum
+- [x] 11 unit tests passing for aina router (generateImage, uploadFile, saveGeneratedImage, extractDocumentText)
+
+## Session 53: Aina Follow-ups
+
+- [x] Feature 1: Image analysis — pass uploaded image URL as vision block to LLM
+- [x] Feature 2: Save generated image to My Materials — saveGeneratedImage procedure + Save to library button
+- [x] Feature 3: Document context — extractDocumentText procedure (PDF/txt/csv) + inject into LLM payload
+- [x] DB migration: add image to teaching_materials type enum
+- [x] 11 unit tests passing for aina router

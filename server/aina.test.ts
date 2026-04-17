@@ -1,12 +1,12 @@
 /**
- * Tests for the aina router — image generation and file upload procedures.
+ * Tests for the aina router — image generation, file upload, save-to-library,
+ * and document text extraction procedures.
  *
- * These tests mock the external helpers (generateImage, storagePut) so they
- * run fully offline without real S3 or Forge API calls.
+ * External helpers (generateImage, storagePut, db) are mocked so tests run
+ * fully offline without real S3, Forge API, or database calls.
  */
 
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { TRPCError } from "@trpc/server";
 
 // ─── Mock external dependencies before importing the router ──────────────────
 
@@ -18,8 +18,13 @@ vi.mock("./storage", () => ({
   storagePut: vi.fn(),
 }));
 
+vi.mock("./db", () => ({
+  saveMaterial: vi.fn(),
+}));
+
 import { generateImage } from "./_core/imageGeneration";
 import { storagePut } from "./storage";
+import { saveMaterial } from "./db";
 import { ainaRouter } from "./routers/aina";
 import type { TrpcContext } from "./_core/context";
 
@@ -33,7 +38,15 @@ function createPublicContext(): TrpcContext {
   };
 }
 
-// ─── Tests ───────────────────────────────────────────────────────────────────
+function createAuthContext(userId = "user-1"): TrpcContext {
+  return {
+    user: { id: userId, name: "Test User", email: "test@example.com", role: "user", openId: "oid-1", avatarUrl: null, ttsVoice: null, position: null },
+    req: { protocol: "https", headers: {} } as TrpcContext["req"],
+    res: {} as TrpcContext["res"],
+  };
+}
+
+// ─── generateImage ────────────────────────────────────────────────────────────
 
 describe("aina.generateImage", () => {
   beforeEach(() => {
@@ -66,6 +79,8 @@ describe("aina.generateImage", () => {
     await expect(caller.generateImage({ prompt: "" })).rejects.toThrow();
   });
 });
+
+// ─── uploadFile ───────────────────────────────────────────────────────────────
 
 describe("aina.uploadFile", () => {
   beforeEach(() => {
@@ -102,8 +117,6 @@ describe("aina.uploadFile", () => {
       mimeType: "image/png",
     });
 
-    // The returned fileName is the original (for display), but storagePut
-    // receives a sanitised key — verify storagePut was called with a safe key
     expect(result.fileName).toBe("../../etc/passwd.png");
     const storagePutCall = vi.mocked(storagePut).mock.calls[0];
     expect(storagePutCall?.[0]).not.toContain("..");
@@ -121,5 +134,90 @@ describe("aina.uploadFile", () => {
         fileSize: 17 * 1024 * 1024, // 17 MB
       })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+});
+
+// ─── saveGeneratedImage ───────────────────────────────────────────────────────
+
+describe("aina.saveGeneratedImage", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("requires authentication", async () => {
+    const caller = ainaRouter.createCaller(createPublicContext());
+
+    await expect(
+      caller.saveGeneratedImage({
+        imageUrl: "https://cdn.example.com/img.png",
+        prompt: "A classroom",
+      })
+    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
+
+  it("saves the image to My Materials and returns id + title", async () => {
+    vi.mocked(saveMaterial).mockResolvedValueOnce(42);
+
+    const caller = ainaRouter.createCaller(createAuthContext());
+    const result = await caller.saveGeneratedImage({
+      imageUrl: "https://cdn.example.com/img.png",
+      prompt: "A sunny classroom",
+      title: "My classroom image",
+    });
+
+    expect(result.id).toBe(42);
+    expect(result.title).toBe("My classroom image");
+    expect(saveMaterial).toHaveBeenCalledOnce();
+  });
+
+  it("uses prompt as title when no title is provided", async () => {
+    vi.mocked(saveMaterial).mockResolvedValueOnce(99);
+
+    const caller = ainaRouter.createCaller(createAuthContext());
+    const result = await caller.saveGeneratedImage({
+      imageUrl: "https://cdn.example.com/img.png",
+      prompt: "A very long prompt that should be truncated to 60 characters maximum",
+    });
+
+    expect(result.title).toContain("Generated image:");
+  });
+});
+
+// ─── extractDocumentText ──────────────────────────────────────────────────────
+
+describe("aina.extractDocumentText", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("extracts plain text from a .txt file", async () => {
+    const caller = ainaRouter.createCaller(createPublicContext());
+    const text = "Hello, this is a test document.";
+    const base64 = Buffer.from(text).toString("base64");
+
+    const result = await caller.extractDocumentText({
+      fileBase64: base64,
+      mimeType: "text/plain",
+      fileName: "test.txt",
+    });
+
+    expect(result.text).toBe(text);
+    expect(result.truncated).toBe(false);
+    expect(result.error).toBeNull();
+  });
+
+  it("returns empty text for unsupported binary types (no error, just no context)", async () => {
+    const caller = ainaRouter.createCaller(createPublicContext());
+    const base64 = Buffer.from("binary data").toString("base64");
+
+    const result = await caller.extractDocumentText({
+      fileBase64: base64,
+      mimeType: "application/zip",
+      fileName: "archive.zip",
+    });
+
+    expect(result.text).toBe("");
+    // Unsupported types return null error (graceful degradation, not an error state)
+    expect(result.error).toBeNull();
   });
 });

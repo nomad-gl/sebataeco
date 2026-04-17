@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import {
   Loader2, Send, User, Mic, MicOff, Radio,
   ThumbsUp, ThumbsDown, Volume2, VolumeX, Play, Square,
@@ -294,9 +295,15 @@ export function AIChatBox({
   // ─── Image generation + file upload ─────────────────────────────────────────
   const generateImageMutation = trpc.aina.generateImage.useMutation();
   const uploadFileMutation = trpc.aina.uploadFile.useMutation();
+  const saveGeneratedImageMutation = trpc.aina.saveGeneratedImage.useMutation();
+  const extractDocumentTextMutation = trpc.aina.extractDocumentText.useMutation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingFile, setPendingFile] = useState<{ name: string; base64: string; mimeType: string; previewUrl?: string } | null>(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  /** Extracted text from the last uploaded document — cleared after it is sent to the LLM */
+  const [pendingDocContext, setPendingDocContext] = useState<{ text: string; fileName: string } | null>(null);
+  /** URL of the last uploaded image — cleared after it is sent to the LLM */
+  const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
 
   /** Detect whether the user's message is an image generation request */
   const isImageRequest = useCallback((text: string): boolean => {
@@ -752,9 +759,7 @@ export function AIChatBox({
       }
       textareaRef.current?.focus();
       return;
-    }
-
-    // ── Case 2: file attached ─────────────────────────────────────────────────
+    }    // ── Case 2: file attached ────────────────────────────────────────────────────
     if (pendingFile) {
       const file = pendingFile;
       setPendingFile(null);
@@ -768,7 +773,26 @@ export function AIChatBox({
         // Encode attachment info into the message so Chat.tsx can parse it
         const caption = trimmedInput || file.name;
         const isImage = mimeType.startsWith("image/");
-        onSendMessage(isImage ? `__upload_image__${url}__caption__${caption}` : `__upload_file__${url}__name__${file.name}__mime__${mimeType}__caption__${caption}`);
+        if (isImage) {
+          // Store the uploaded image URL so the next chat turn can send it as a vision block
+          setPendingImageUrl(url);
+          onSendMessage(`__upload_image__${url}__caption__${caption}`);
+        } else {
+          // For documents/text files: extract text in the background for context injection
+          onSendMessage(`__upload_file__${url}__name__${file.name}__mime__${mimeType}__caption__${caption}`);
+          // Fire-and-forget text extraction — result stored in pendingDocContext
+          extractDocumentTextMutation.mutateAsync({
+            fileBase64: file.base64,
+            mimeType: file.mimeType,
+            fileName: file.name,
+          }).then((result) => {
+            if (result.text) {
+              setPendingDocContext({ text: result.text, fileName: file.name });
+              // Notify Chat.tsx so it can show the context indicator
+              onSendMessage(`__doc_context__${result.text}__file__${file.name}`);
+            }
+          }).catch(() => { /* non-fatal */ });
+        }
       } catch {
         onSendMessage("__upload_error__");
       }
@@ -776,7 +800,6 @@ export function AIChatBox({
       textareaRef.current?.focus();
       return;
     }
-
     // ── Case 3: normal text message ───────────────────────────────────────────
     onSendMessage(trimmedInput);
     setInput("");
@@ -900,6 +923,28 @@ export function AIChatBox({
                             />
                             {message.content && message.content !== message.imageUrl && (
                               <p className="text-xs text-white/60">{message.content}</p>
+                            )}
+                            {message.role === "assistant" && (
+                              <button
+                                onClick={() => {
+                                  saveGeneratedImageMutation.mutate(
+                                    { imageUrl: message.imageUrl!, prompt: message.content || "Generated image", title: message.content || undefined },
+                                    {
+                                      onSuccess: () => { toast("Saved to My Materials"); },
+                                      onError: () => { toast.error("Failed to save image"); },
+                                    }
+                                  );
+                                }}
+                                disabled={saveGeneratedImageMutation.isPending}
+                                className="flex items-center gap-1.5 text-xs text-white/60 hover:text-white/90 transition-colors self-start"
+                              >
+                                {saveGeneratedImageMutation.isPending ? (
+                                  <Loader2 className="size-3 animate-spin" />
+                                ) : (
+                                  <ImageIcon className="size-3" />
+                                )}
+                                {t("aina_save_to_library" as Parameters<typeof t>[0]) || "Save to library"}
+                              </button>
                             )}
                           </div>
                         ) : message.attachmentUrl ? (
