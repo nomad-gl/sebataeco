@@ -1370,7 +1370,7 @@ const SebaMeetInner = function SebaMeet({
       <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/70 to-transparent">
         <div className="flex items-center gap-2">
           <SebaSymbol className="w-7 h-7 text-white" />
-          <span className="text-white font-bold text-sm tracking-wide">SebaMeet</span>
+          <span className="text-white font-bold text-sm tracking-wide">AINA</span>
           {channelName && <span className="text-white/60 text-xs ml-1">· {channelName}</span>}
         </div>
 
@@ -1495,9 +1495,7 @@ const SebaMeetInner = function SebaMeet({
               </div>
             )}
           </div>
-          {schoolLogoUrl && (
-            <img src={schoolLogoUrl} alt="School logo" className="h-7 w-auto object-contain opacity-90" />
-          )}
+          {/* School logo removed from call header per design update */}
         </div>
       </div>
 

@@ -3377,3 +3377,8 @@
 ## Bug: Mobile video call shows stretched/distorted image
 - [x] Diagnose why local video feed is horizontally stretched on mobile — root cause: PiP container had fixed 3:2 ratio (w-36 h-24) mismatched with 16:9 camera output; Tailwind object-cover not always honoured on mobile
 - [x] Fix video element aspect ratio and object-fit — all video containers now use aspectRatio:"16/9" + inline objectFit:"cover" style for mobile compatibility
+
+## Feature: SebaMeet call header update
+- [x] Remove all logos from the call header except the 'S' SebaSymbol
+- [x] Replace "SebaMeet" text label with "AINA"
+- [x] Remove school logo from the call header right side
