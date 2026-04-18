@@ -250,7 +250,7 @@ function SlidePreviewModal({
 // ── Main page ────────────────────────────────────────────────────────────────
 export default function Presentation() {
   const { t } = useI18n();
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
   const [, navigate] = useLocation();
 
   // Single generate form state
@@ -319,7 +319,25 @@ export default function Presentation() {
         const content = typeof data.content === "string" ? JSON.parse(data.content) : data.content;
         const pres = content as PresentationData;
         setGenerated(pres);
-        setSlides(pres.slides ?? []);
+        // Pre-fill teacher name on the front page (slide 1) if the user is logged in.
+        // The raw LLM response uses heading/bullets; cast to access them safely.
+        const teacherName = user?.name ?? user?.email ?? null;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const rawSlides = (pres.slides ?? []) as any[];
+        const hydratedSlides: typeof pres.slides = rawSlides.map((s, idx) => {
+          if (idx === 0 && teacherName && Array.isArray(s.bullets)) {
+            return {
+              ...s,
+              bullets: (s.bullets as string[]).map((b: string) =>
+                /teacher|Teacher:|Prepared by|teacher name/i.test(b)
+                  ? b.replace(/teacher name placeholder|teacher name|Teacher:|Prepared by[^,]*/i, `Prepared by: ${teacherName}`)
+                  : b
+              ),
+            };
+          }
+          return s;
+        });
+        setSlides(hydratedSlides);
         setCurrentSlide(0);
         setSaved(false);
         toast.success(t("presentation_generated"));

@@ -3608,3 +3608,6 @@
 ## Feature: Slides structural pages
 - [x] Update slides LLM prompt to always include: slide 1 = front/title page (topic, subject, year group, competency), second-to-last slide = summary/recap page (key takeaways), last slide = Thank You / Credits / Resources page (acknowledgements, suggested further reading, image credits)
 - [x] Update the slideCount override logic so the count refers to content slides only, and the 3 structural slides are always added on top
+
+## Feature: Front page teacher name pre-fill
+- [x] In Presentation.tsx createMutation onSuccess, replace any bullet on slide 1 that matches "teacher" or "Teacher:" placeholder with the logged-in user's display name (from useAuth())
