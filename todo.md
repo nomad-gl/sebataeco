@@ -3344,3 +3344,8 @@
 
 - [x] Diagnose why the sign-in page is not visible (logout redirect bounced back due to stale tRPC cache)
 - [x] Fix the sign-in page so it renders correctly (use window.location.replace and clear cache synchronously before redirect)
+
+## Feature: User avatar in NavBar
+
+- [x] Add user avatar with initials and name tooltip next to Sign Out button in NavBar (desktop)
+- [x] Add user name display in mobile nav menu

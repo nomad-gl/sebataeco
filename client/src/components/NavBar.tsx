@@ -797,21 +797,36 @@ export default function NavBar() {
               )}
             </div>
 
-            {/* Sign Out — desktop */}
+            {/* User avatar + Sign Out — desktop */}
             {user && (
-              <button
-                onClick={logout}
-                className={cn(
-                  "flex items-center justify-center w-9 h-9 rounded-lg transition-all",
-                  isClassroomPage
-                    ? "text-white/80 hover:text-white hover:bg-white/15"
-                    : "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                )}
-                aria-label={t("nav_sign_out")}
-                title={t("nav_sign_out")}
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-1.5">
+                {/* Avatar circle with initials */}
+                <div
+                  className={cn(
+                    "flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold select-none shrink-0",
+                    isClassroomPage
+                      ? "bg-white/20 text-white"
+                      : "bg-primary/15 text-primary"
+                  )}
+                  title={user.name ?? user.email ?? ""}
+                >
+                  {(user.name ?? user.email ?? "?").slice(0, 2).toUpperCase()}
+                </div>
+                {/* Sign Out button */}
+                <button
+                  onClick={logout}
+                  className={cn(
+                    "flex items-center justify-center w-9 h-9 rounded-lg transition-all",
+                    isClassroomPage
+                      ? "text-white/80 hover:text-white hover:bg-white/15"
+                      : "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                  )}
+                  aria-label={t("nav_sign_out")}
+                  title={t("nav_sign_out")}
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
             )}
           </nav>
 
@@ -1168,9 +1183,38 @@ export default function NavBar() {
             </div>
             )}
 
-            {/* Sign Out — mobile */}
+            {/* User info + Sign Out — mobile */}
             {user && (
-              <div className="px-4 py-3 border-t border-border mt-1">
+              <div className="px-4 py-3 border-t border-border mt-1 space-y-1">
+                {/* User identity row */}
+                <div className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-xl",
+                  isClassroomPage ? "bg-white/10" : "bg-muted/50"
+                )}>
+                  <div className={cn(
+                    "flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold select-none shrink-0",
+                    isClassroomPage ? "bg-white/20 text-white" : "bg-primary/15 text-primary"
+                  )}>
+                    {(user.name ?? user.email ?? "?").slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <p className={cn(
+                      "text-sm font-semibold truncate",
+                      isClassroomPage ? "text-white" : "text-foreground"
+                    )}>
+                      {user.name ?? user.email ?? ""}
+                    </p>
+                    {user.name && user.email && (
+                      <p className={cn(
+                        "text-xs truncate",
+                        isClassroomPage ? "text-white/60" : "text-muted-foreground"
+                      )}>
+                        {user.email}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {/* Sign Out button */}
                 <button
                   onClick={() => { setMobileOpen(false); logout(); }}
                   className={cn(
