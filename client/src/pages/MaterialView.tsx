@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import {
   Loader2, Trash2, ArrowLeft, Printer, FileText,
   FileDown, Image, CheckCircle2, XCircle, ChevronLeft, ChevronRight, Zap, RefreshCw, Wand2,
+  Pencil, Save, Eye, Plus, AlertCircle, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/contexts/I18nContext";
@@ -24,6 +25,7 @@ import {
 import ExportDropdown, { PrintIcon, PdfIcon, WordIcon, PngIcon, CsvIcon, XmlIcon } from "@/components/ExportDropdown";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 // ─── Crossword grid renderer ──────────────────────────────────────────────────
 
@@ -339,12 +341,29 @@ function QuizViewer({ content, showAnswers }: { content: QuizContent; showAnswer
 
 // ─── Slides viewer ────────────────────────────────────────────────────────────
 
-function SlidesViewer({ content }: { content: SlidesContent }) {
+function SlidesViewer({ content, materialId, onSaved }: {
+  content: SlidesContent;
+  materialId?: number;
+  onSaved?: () => void;
+}) {
   const { t } = useI18n();
   const [current, setCurrent] = useState(0);
   const [localImages, setLocalImages] = useState<Partial<Record<number, string>>>({});
   const [regeneratingIdx, setRegeneratingIdx] = useState<number | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [slides, setSlides] = useState(content.slides.map(s => ({ ...s })));
+  const [dirty, setDirty] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewIdx, setReviewIdx] = useState(0);
   const generateImageMut = trpc.materials.generateSlideImage.useMutation();
+  const updateMut = trpc.materials.update.useMutation({
+    onSuccess: () => {
+      setDirty(false);
+      toast.success("Presentation saved");
+      onSaved?.();
+    },
+    onError: () => toast.error("Save failed — please try again"),
+  });
 
   const handleRegenerate = async (idx: number, prompt: string) => {
     setRegeneratingIdx(idx);
@@ -359,12 +378,79 @@ function SlidesViewer({ content }: { content: SlidesContent }) {
     }
   };
 
-  const slide = content.slides[current];
-  if (!slide) return null;
+  const updateSlide = (idx: number, patch: Partial<typeof slides[number]>) => {
+    setSlides(prev => prev.map((s, i) => i === idx ? { ...s, ...patch } : s));
+    setDirty(true);
+  };
+
+  const updateBullet = (slideIdx: number, bulletIdx: number, val: string) => {
+    setSlides(prev => prev.map((s, i) => {
+      if (i !== slideIdx) return s;
+      const bullets = [...s.bullets];
+      bullets[bulletIdx] = val;
+      return { ...s, bullets };
+    }));
+    setDirty(true);
+  };
+
+  const addBullet = (slideIdx: number) => {
+    setSlides(prev => prev.map((s, i) => i === slideIdx ? { ...s, bullets: [...s.bullets, "New point"] } : s));
+    setDirty(true);
+  };
+
+  const removeBullet = (slideIdx: number, bulletIdx: number) => {
+    setSlides(prev => prev.map((s, i) => {
+      if (i !== slideIdx) return s;
+      return { ...s, bullets: s.bullets.filter((_, bi) => bi !== bulletIdx) };
+    }));
+    setDirty(true);
+  };
+
+  const deleteSlide = (idx: number) => {
+    if (!confirm(`Delete slide ${idx + 1}? This cannot be undone until you save.`)) return;
+    setSlides(prev => prev.filter((_, i) => i !== idx));
+    setCurrent(c => Math.min(c, Math.max(0, slides.length - 2)));
+    setDirty(true);
+  };
+
+  const handleSave = () => {
+    if (!materialId) return;
+    const updatedContent = { ...content, slides };
+    updateMut.mutate({ id: materialId, content: JSON.stringify(updatedContent) });
+  };
+
+  const slide = slides[current];
+  if (!slide) return <p className="text-muted-foreground text-sm">No slides.</p>;
   const effectiveImageUrl = localImages[current] ?? (slide as Record<string, unknown>).imageUrl as string | undefined;
   const imagePrompt = (slide as Record<string, unknown>).imagePrompt as string | undefined;
+
   return (
     <div className="flex flex-col gap-4">
+      {/* Toolbar */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <Button size="sm" variant={editMode ? "default" : "outline"} className="gap-1.5"
+          onClick={() => setEditMode(v => !v)}>
+          <Pencil className="w-3.5 h-3.5" /> {editMode ? "Editing" : "Edit Slides"}
+        </Button>
+        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => { setReviewIdx(0); setReviewOpen(true); }}>
+          <Eye className="w-3.5 h-3.5" /> Full Review
+        </Button>
+        {materialId && (
+          <Button size="sm" className="gap-1.5 bg-green-600 hover:bg-green-500 text-white"
+            disabled={!dirty || updateMut.isPending}
+            onClick={handleSave}>
+            {updateMut.isPending
+              ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…</>
+              : <><Save className="w-3.5 h-3.5" /> Save Edited Version</>}
+          </Button>
+        )}
+        {dirty && (
+          <span className="flex items-center gap-1 text-xs text-amber-600 font-medium">
+            <AlertCircle className="w-3.5 h-3.5" /> Unsaved changes
+          </span>
+        )}
+      </div>
+
       {content.keyVocabulary && content.keyVocabulary.length > 0 && (
         <Card className="bg-blue-50 border-blue-200">
           <CardContent className="p-4">
@@ -379,32 +465,69 @@ function SlidesViewer({ content }: { content: SlidesContent }) {
           </CardContent>
         </Card>
       )}
+
       <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <span>Slide {current + 1} of {content.slides.length}</span>
+        <span>Slide {current + 1} of {slides.length}</span>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" disabled={current === 0} onClick={() => setCurrent(c => c - 1)}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <Button size="sm" variant="outline" disabled={current === content.slides.length - 1} onClick={() => setCurrent(c => c + 1)}>
+          <Button size="sm" variant="outline" disabled={current === slides.length - 1} onClick={() => setCurrent(c => c + 1)}>
             <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
       </div>
+
       <Card className="min-h-[300px] sm:min-h-[360px] border-2 border-primary/20">
         <CardHeader className="bg-primary/5 border-b border-primary/10 pb-3">
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">{slide.slideNumber}</Badge>
-            <CardTitle className="text-lg sm:text-xl">{slide.heading}</CardTitle>
+            <Badge variant="outline" className="text-xs">{current + 1}</Badge>
+            {editMode ? (
+              <Input
+                value={slide.heading}
+                onChange={e => updateSlide(current, { heading: e.target.value })}
+                className="text-lg font-bold border-dashed focus:border-primary h-8"
+              />
+            ) : (
+              <CardTitle className="text-lg sm:text-xl">{slide.heading}</CardTitle>
+            )}
+            {editMode && (
+              <Button size="icon" variant="ghost"
+                className="ml-auto text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
+                title="Delete this slide"
+                onClick={() => deleteSlide(current)}>
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-5 sm:p-8 flex flex-col gap-3">
           <ul className="flex flex-col gap-2.5">
             {slide.bullets.map((b, i) => (
               <li key={i} className="flex items-start gap-2.5 text-sm sm:text-base text-foreground">
-                <span className="text-primary mt-1 flex-shrink-0">▸</span>{b}
+                <span className="text-primary mt-1 flex-shrink-0">▸</span>
+                {editMode ? (
+                  <div className="flex-1 flex items-center gap-1.5">
+                    <Input
+                      value={b}
+                      onChange={e => updateBullet(current, i, e.target.value)}
+                      className="flex-1 h-7 text-sm border-dashed focus:border-primary"
+                    />
+                    <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive hover:bg-destructive/10 flex-shrink-0"
+                      onClick={() => removeBullet(current, i)}>
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ) : b}
               </li>
             ))}
           </ul>
+          {editMode && (
+            <Button size="sm" variant="outline" className="self-start gap-1.5 text-xs mt-1"
+              onClick={() => addBullet(current)}>
+              <Plus className="w-3 h-3" /> Add bullet
+            </Button>
+          )}
           {effectiveImageUrl ? (
             <div className="mt-2 border-t border-border pt-3 flex flex-col gap-2">
               <img
@@ -414,12 +537,9 @@ function SlidesViewer({ content }: { content: SlidesContent }) {
                 crossOrigin="anonymous"
               />
               {imagePrompt && (
-                <Button
-                  size="sm" variant="outline"
-                  className="self-end h-7 text-xs gap-1"
+                <Button size="sm" variant="outline" className="self-end h-7 text-xs gap-1"
                   disabled={regeneratingIdx === current}
-                  onClick={() => handleRegenerate(current, imagePrompt)}
-                >
+                  onClick={() => handleRegenerate(current, imagePrompt)}>
                   {regeneratingIdx === current
                     ? <><Loader2 className="w-3 h-3 animate-spin" /> Regenerating…</>
                     : <><RefreshCw className="w-3 h-3" /> Regenerate image</>}
@@ -431,12 +551,9 @@ function SlidesViewer({ content }: { content: SlidesContent }) {
               <p className="text-xs text-muted-foreground italic flex-1">
                 🖼 Illustration suggestion: {imagePrompt}
               </p>
-              <Button
-                size="sm" variant="outline"
-                className="shrink-0 h-7 text-xs gap-1"
+              <Button size="sm" variant="outline" className="shrink-0 h-7 text-xs gap-1"
                 disabled={regeneratingIdx === current}
-                onClick={() => handleRegenerate(current, imagePrompt)}
-              >
+                onClick={() => handleRegenerate(current, imagePrompt)}>
                 {regeneratingIdx === current
                   ? <><Loader2 className="w-3 h-3 animate-spin" /> Generating…</>
                   : <><Wand2 className="w-3 h-3" /> Generate image</>}
@@ -445,16 +562,30 @@ function SlidesViewer({ content }: { content: SlidesContent }) {
           ) : null}
         </CardContent>
       </Card>
-      {slide.speakerNote && (
+
+      {/* Speaker notes */}
+      {(slide.speakerNote || editMode) && (
         <Card className="bg-amber-50 border-amber-200">
           <CardContent className="p-4">
             <p className="text-xs font-bold text-amber-700 uppercase tracking-wide mb-1">Teacher Note</p>
-            <p className="text-sm text-amber-900">{slide.speakerNote}</p>
+            {editMode ? (
+              <Textarea
+                value={slide.speakerNote ?? ""}
+                onChange={e => updateSlide(current, { speakerNote: e.target.value })}
+                rows={3}
+                className="text-sm bg-amber-50 border-amber-300 focus:border-amber-500 resize-none"
+                placeholder="Add teacher notes…"
+              />
+            ) : (
+              <p className="text-sm text-amber-900">{slide.speakerNote}</p>
+            )}
           </CardContent>
         </Card>
       )}
+
+      {/* Thumbnail strip */}
       <div className="flex gap-1.5 flex-wrap">
-        {content.slides.map((s, i) => (
+        {slides.map((s, i) => (
           <button key={i} onClick={() => setCurrent(i)}
             className={cn("px-2.5 py-1 rounded-lg text-xs font-medium border transition-all",
               i === current ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/40")}>
@@ -462,6 +593,66 @@ function SlidesViewer({ content }: { content: SlidesContent }) {
           </button>
         ))}
       </div>
+
+      {/* Full Review Modal */}
+      <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
+        <DialogContent className="max-w-3xl w-full max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="w-5 h-5 text-primary" /> Full Review — {content.title}
+            </DialogTitle>
+            <DialogDescription>
+              Slide {reviewIdx + 1} of {slides.length}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto flex flex-col gap-4 py-2">
+            {slides[reviewIdx] && (
+              <>
+                <div className="rounded-xl border-2 border-primary/20 bg-primary/5 p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Badge variant="outline">{reviewIdx + 1}</Badge>
+                    <h3 className="text-xl font-bold">{slides[reviewIdx]!.heading}</h3>
+                  </div>
+                  <ul className="flex flex-col gap-2">
+                    {slides[reviewIdx]!.bullets.map((b, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm">
+                        <span className="text-primary mt-0.5 flex-shrink-0">▸</span>{b}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                {slides[reviewIdx]!.speakerNote && (
+                  <Card className="bg-amber-50 border-amber-200">
+                    <CardContent className="p-3">
+                      <p className="text-xs font-bold text-amber-700 uppercase tracking-wide mb-1">Teacher Note</p>
+                      <p className="text-sm text-amber-900">{slides[reviewIdx]!.speakerNote}</p>
+                    </CardContent>
+                  </Card>
+                )}
+                {/* Thumbnail strip */}
+                <div className="flex gap-1.5 flex-wrap pt-2 border-t border-border">
+                  {slides.map((_, i) => (
+                    <button key={i} onClick={() => setReviewIdx(i)}
+                      className={cn("px-2.5 py-1 rounded-lg text-xs font-medium border transition-all",
+                        i === reviewIdx ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/40")}>
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+          <DialogFooter className="flex items-center gap-2">
+            <Button variant="outline" disabled={reviewIdx === 0} onClick={() => setReviewIdx(i => i - 1)}>
+              <ChevronLeft className="w-4 h-4" /> Prev
+            </Button>
+            <Button variant="outline" disabled={reviewIdx === slides.length - 1} onClick={() => setReviewIdx(i => i + 1)}>
+              Next <ChevronRight className="w-4 h-4" />
+            </Button>
+            <Button variant="ghost" onClick={() => setReviewOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -1079,7 +1270,7 @@ export default function MaterialView() {
   function renderContent() {
     switch (type) {
       case "quiz":          return <QuizViewer content={content as unknown as QuizContent} showAnswers={showAnswers} />;
-      case "slides":        return <SlidesViewer content={content as unknown as SlidesContent} />;
+      case "slides":        return <SlidesViewer content={content as unknown as SlidesContent} materialId={material?.id} onSaved={() => { /* invalidation handled by trpc */ }} />;
       case "crossword":     return <CrosswordViewer content={content as unknown as CrosswordContent} showAnswers={showAnswers} />;
       case "missing_words": return <MissingWordsViewer content={content as unknown as MissingWordsContent} showAnswers={showAnswers} />;
       case "wordsearch":    return <WordsearchViewer content={content as unknown as WordsearchContent} />;

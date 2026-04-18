@@ -3574,3 +3574,10 @@
 ## Follow-up 1 & 3: Presentation page enhancements
 - [x] Follow-up 1: My Materials — add "Edit in Presentation" button on saved slides items; clicking it navigates to /presentation?id=<materialId> and loads the saved slides into the edit/review view
 - [x] Follow-up 3: Slide count control — add a number input (default 6, range 3–12) to the generator form; pass slideCount through the tRPC create mutation so the LLM generates the requested number of slides
+
+## Feature: MaterialView — inline editing, per-slide delete, full review, save
+- [x] SlidesViewer: make slide title, bullet points, and speaker notes inline-editable (click to edit)
+- [x] SlidesViewer: add per-slide delete button (trash icon) with confirmation
+- [x] SlidesViewer: add full review modal (lightbox) showing all slides with navigation
+- [x] SlidesViewer: add "Save Edited Version" button that calls materials.update to persist changes back to the database
+- [x] SlidesViewer: show unsaved-changes indicator when edits have been made but not saved
