@@ -260,6 +260,7 @@ export default function Presentation() {
   const [yearGroup, setYearGroup] = useState<string | undefined>(undefined);
   const [competency, setCompetency] = useState<string | undefined>(undefined);
   const [slideCount, setSlideCount] = useState(6);
+  const [includeTalkingPoints, setIncludeTalkingPoints] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [generated, setGenerated] = useState<PresentationData | null>(null);
   const [slides, setSlides] = useState<Slide[]>([]);
@@ -382,6 +383,7 @@ export default function Presentation() {
       competency: (competency && competency !== "any" ? competency : undefined) as "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC" | undefined,
       yearGroup: yearGroup as "junior" | "primary" | "secondary",
       slideCount,
+      includeTalkingPoints,
     });
   };
 
@@ -461,7 +463,7 @@ export default function Presentation() {
     });
   };
 
-  const updateSlideField = (idx: number, field: keyof Slide, value: string) => {
+  const updateSlideField = (idx: number, field: keyof Slide, value: string | string[]) => {
     setSlides(prev => prev.map((s, i) => i === idx ? { ...s, [field]: value } : s));
   };
 
@@ -618,6 +620,18 @@ export default function Presentation() {
                 onChange={(e) => setSlideCount(Math.min(12, Math.max(3, parseInt(e.target.value) || 6)))}
                 className="bg-white/10 border-white/30 text-white placeholder:text-white/40 focus:border-blue-400"
               />
+            </div>
+            <div className="space-y-1.5 flex flex-col justify-end">
+              <Label className="text-white/90 font-medium">Options</Label>
+              <label className="flex items-center gap-2 cursor-pointer select-none h-10 px-3 rounded-md bg-white/10 border border-white/30 hover:bg-white/15 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={includeTalkingPoints}
+                  onChange={e => setIncludeTalkingPoints(e.target.checked)}
+                  className="w-4 h-4 accent-blue-400"
+                />
+                <span className="text-white/90 text-sm">Discussion talking points</span>
+              </label>
             </div>
             <div className="flex items-end">
               <Button
@@ -818,11 +832,35 @@ export default function Presentation() {
                         <p className="text-blue-200 text-xs font-semibold uppercase tracking-wide mb-2 flex items-center gap-1.5">
                           <MessageSquare className="w-3.5 h-3.5" /> Discussion Talking Points
                         </p>
-                        <ol className="flex flex-col gap-1.5 list-decimal list-inside">
+                        <div className="flex flex-col gap-1.5">
                           {slide.talkingPoints.map((tp, i) => (
-                            <li key={i} className="text-blue-100/80 text-xs leading-relaxed">{tp}</li>
+                            <div key={i} className="flex items-start gap-1.5">
+                              <span className="text-blue-300 text-xs mt-1.5 shrink-0">{i + 1}.</span>
+                              <Input
+                                value={tp}
+                                onChange={e => {
+                                  const updated = [...slide.talkingPoints!];
+                                  updated[i] = e.target.value;
+                                  updateSlideField(currentSlide, "talkingPoints", updated);
+                                }}
+                                className="flex-1 h-7 text-xs bg-blue-500/10 border-blue-400/30 text-blue-100 placeholder:text-blue-300/40 focus:border-blue-400"
+                              />
+                              <Button size="icon" variant="ghost"
+                                className="h-7 w-7 text-blue-300/60 hover:text-red-400 shrink-0"
+                                onClick={() => {
+                                  const updated = slide.talkingPoints!.filter((_, bi) => bi !== i);
+                                  updateSlideField(currentSlide, "talkingPoints", updated);
+                                }}>
+                                <X className="w-3 h-3" />
+                              </Button>
+                            </div>
                           ))}
-                        </ol>
+                          <Button size="sm" variant="ghost"
+                            className="self-start text-xs text-blue-300 hover:text-blue-200 h-6 px-2 gap-1 mt-0.5"
+                            onClick={() => updateSlideField(currentSlide, "talkingPoints", [...(slide.talkingPoints ?? []), ""])}>
+                            + Add talking point
+                          </Button>
+                        </div>
                       </div>
                     )}
 

@@ -3599,3 +3599,8 @@
 - [x] Render talking points in the slide card (editable, collapsible section with a speech-bubble icon)
 - [x] Render talking points in the Full Preview modal
 - [x] Move Bulk Generate card to below the slide review/image card (currently it sits above the slide viewer)
+
+## Follow-ups: Talking Points improvements
+- [x] Follow-up 1: Export talking points in Word and PDF exports (buildSlidesDoc in exportUtils.ts) — render them as a numbered list after the bullets and before the teacher note
+- [x] Follow-up 2: Make talking points editable in the Presentation.tsx slide card (Create view) — add/edit/delete individual points inline, matching the MaterialView edit UX
+- [x] Follow-up 3: Add "Include discussion talking points" checkbox to the generator form; when unchecked, omit talkingPoints from the LLM prompt instruction

@@ -1029,7 +1029,7 @@ export default function Forum() {
               <ChevronDown className="w-5 h-5" />
             </button>
           )}
-          </div>
+          </div>{/* end relative messages wrapper */}
 
           {/* Thread panel */}
           {threadMsgId !== null && (

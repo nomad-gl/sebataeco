@@ -292,6 +292,18 @@ async function buildSlidesDoc(content: SlidesContent): Promise<Document> {
     s.bullets.forEach(b => {
       children.push(new Paragraph({ children: [new TextRun({ text: `• ${b}` })], indent: { left: 360 } }));
     });
+    if (s.talkingPoints && s.talkingPoints.length > 0) {
+      children.push(new Paragraph({
+        children: [new TextRun({ text: "Discussion Talking Points:", bold: true, color: "1d4ed8", size: 20 })],
+        spacing: { before: 80 },
+      }));
+      s.talkingPoints.forEach((tp, ti) => {
+        children.push(new Paragraph({
+          children: [new TextRun({ text: `${ti + 1}. ${tp}`, italics: true, color: "1e40af", size: 20 })],
+          indent: { left: 360 },
+        }));
+      });
+    }
     if (s.speakerNote) {
       children.push(new Paragraph({
         children: [new TextRun({ text: `Teacher note: ${s.speakerNote}`, italics: true, color: "6b7280", size: 20 })],

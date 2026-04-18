@@ -446,6 +446,7 @@ export const materialsRouter = router({
       competency: CompetencyCodeSchema.nullish(),
       yearGroup: YearGroupSchema.nullish(),
       slideCount: z.number().int().min(3).max(12).nullish(),
+      includeTalkingPoints: z.boolean().nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
       // For slides, override the default count instruction if the user specified one
@@ -454,6 +455,16 @@ export const materialsRouter = router({
         systemPrompt = systemPrompt.replace(
           /Generate \d+-\d+ slides:[^.]+\./,
           `Generate exactly ${input.slideCount} slides: slide 1 = title/overview, slides 2-${input.slideCount - 1} = content, last slide = summary/review questions.`
+        );
+      }
+      // Conditionally strip talking points instruction from the prompt
+      if (input.type === "slides" && input.includeTalkingPoints === false) {
+        systemPrompt = systemPrompt.replace(
+          /"talkingPoints"[^\n]*\n?[^\n]*\n?/g,
+          ""
+        ).replace(
+          /talkingPoints: \["[^"]+"[^\]]*\]/g,
+          "talkingPoints: []"
         );
       }
 
