@@ -23,6 +23,12 @@ export const users = mysqlTable("users", {
   /** Set by a Director to prevent login without deleting data. NULL = active. */
   deactivatedAt: timestamp("deactivatedAt"),
   /**
+   * Incremented on every "sign out from all devices" action.
+   * The current value is embedded in the JWT; any token carrying an older
+   * version is rejected, instantly invalidating all other active sessions.
+   */
+  sessionVersion: int("sessionVersion").default(1).notNull(),
+  /**
    * JSON blob persisting the user's video-call preferences.
    * Shape: { backgroundId: string; filterId: string; blurIntensity: number }
    * Stored as TEXT so it works on all MySQL/TiDB versions without JSON column type.

@@ -19,7 +19,21 @@ import {
   Trash2,
   Cpu,
   ExternalLink,
+  ShieldAlert,
+  LogOut,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { trpc } from "@/lib/trpc";
 import { Link } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -249,6 +263,68 @@ function SchoolProfileCard({ t }: { t: (k: TranslationKey) => string }) {
   );
 }
 
+// ── Account Security card ──────────────────────────────────────────────────
+function AccountSecurityCard({ t }: { t: (k: TranslationKey) => string }) {
+  const { logout } = useAuth();
+
+  const logoutAll = trpc.localAuth.logoutAllDevices.useMutation({
+    onSuccess: () => {
+      toast.success(t("settings_logout_all_success"));
+      // Clear local state and redirect to login
+      setTimeout(() => logout(), 800);
+    },
+    onError: (err) => {
+      toast.error(err.message || t("settings_logout_all_error"));
+    },
+  });
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <ShieldAlert className="w-4 h-4 text-destructive" />
+          <CardTitle className="text-base">{t("settings_security_title")}</CardTitle>
+        </div>
+        <CardDescription className="text-sm leading-relaxed">
+          {t("settings_security_desc")}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 border-destructive/50 text-destructive hover:bg-destructive/10"
+              disabled={logoutAll.isPending}
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              {logoutAll.isPending ? t("settings_logout_all_loading") : t("settings_logout_all_btn")}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t("settings_logout_all_confirm_title")}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {t("settings_logout_all_confirm_desc")}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => logoutAll.mutate()}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {t("settings_logout_all_btn")}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Main page ────────────────────────────────────────────────────────────────
 export default function Settings() {
   const { t } = useI18n();
@@ -332,6 +408,9 @@ export default function Settings() {
                 </p>
               </CardContent>
             </Card>
+
+            {/* ── Account Security card ── */}
+            <AccountSecurityCard t={t} />
 
             {/* ── Branding card ── */}
             <Card>

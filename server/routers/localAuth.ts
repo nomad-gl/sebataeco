@@ -10,7 +10,7 @@
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { publicProcedure, router } from "../_core/trpc";
+import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { sdk } from "../_core/sdk";
 import { getSessionCookieOptions } from "../_core/cookies";
@@ -191,9 +191,11 @@ export const localAuthRouter = router({
         content: `A new teacher account has been created via invite.\n\nName: ${input.displayName}\nEmail: ${normalised}\nRegistered at: ${now.toISOString()}`,
       }).catch(() => { /* silent — notification failure should not block registration */ });
 
-      // Issue session cookie
+      // Issue session cookie — embed sessionVersion (defaults to 1 for new accounts)
+      const [newUser] = await db.select({ sessionVersion: users.sessionVersion }).from(users).where(eq(users.openId, openId)).limit(1);
       const sessionToken = await sdk.createSessionToken(openId, {
         name: input.displayName,
+        sv: newUser?.sessionVersion ?? 1,
         expiresInMs: ONE_YEAR_MS,
       });
       const cookieOptions = getSessionCookieOptions(ctx.req);
@@ -399,6 +401,7 @@ export const localAuthRouter = router({
 
       const sessionToken = await sdk.createSessionToken(openId, {
         name: user.displayName ?? user.name ?? normalised,
+        sv: user.sessionVersion ?? 1,
         expiresInMs: ONE_YEAR_MS,
       });
       const cookieOptions = getSessionCookieOptions(ctx.req);
@@ -406,6 +409,29 @@ export const localAuthRouter = router({
         ...cookieOptions,
         maxAge: ONE_YEAR_MS,
       });
+
+      return { success: true };
+    }),
+
+  /**
+   * Sign out from all devices by incrementing the sessionVersion.
+   * Any existing session tokens with an older version will be rejected
+   * on the next request, effectively invalidating all other sessions.
+   */
+  logoutAllDevices: protectedProcedure
+    .mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      // Increment the session version — all tokens with sv < new value are now stale
+      await db
+        .update(users)
+        .set({ sessionVersion: (ctx.user.sessionVersion ?? 1) + 1 })
+        .where(eq(users.id, ctx.user.id));
+
+      // Clear the current session cookie too
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
 
       return { success: true };
     }),

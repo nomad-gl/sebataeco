@@ -1585,6 +1585,16 @@ export const translations = {
     settings_save_profile: "Save Defaults",
     settings_clear_profile: "Clear",
 
+    // Account security
+    settings_security_title: "Account Security",
+    settings_security_desc: "Sign out of all browsers and devices simultaneously. Use this if you suspect your account has been accessed without your permission.",
+    settings_logout_all_btn: "Sign out from all devices",
+    settings_logout_all_loading: "Signing out…",
+    settings_logout_all_confirm_title: "Sign out from all devices?",
+    settings_logout_all_confirm_desc: "This will immediately invalidate all active sessions on every browser and device, including this one. You will need to sign in again.",
+    settings_logout_all_success: "Signed out from all devices. Please sign in again.",
+    settings_logout_all_error: "Something went wrong. Please try again.",
+
     // Calendar progress
     cal_progress_days: "school days planned",
     cal_progress_label: "Topic Progress",
@@ -4177,6 +4187,16 @@ export const translations = {
     settings_save_profile: "Guardar Valores",
     settings_clear_profile: "Borrar",
 
+    // Account security
+    settings_security_title: "Seguridad de la cuenta",
+    settings_security_desc: "Cierra sesión en todos los navegadores y dispositivos a la vez. Úsalo si sospechas que alguien ha accedido a tu cuenta sin permiso.",
+    settings_logout_all_btn: "Cerrar sesión en todos los dispositivos",
+    settings_logout_all_loading: "Cerrando sesión…",
+    settings_logout_all_confirm_title: "¿Cerrar sesión en todos los dispositivos?",
+    settings_logout_all_confirm_desc: "Esto invalidará inmediatamente todas las sesiones activas en todos los navegadores y dispositivos, incluido este. Tendrás que volver a iniciar sesión.",
+    settings_logout_all_success: "Sesión cerrada en todos los dispositivos. Por favor, vuelve a iniciar sesión.",
+    settings_logout_all_error: "Algo salió mal. Por favor, inténtalo de nuevo.",
+
     // Calendar progress
     cal_progress_days: "días lectivos planificados",
     cal_progress_label: "Progreso del Tema",
@@ -6744,6 +6764,16 @@ export const translations = {
     settings_profile_cleared: "Perfil del centre esborrat",
     settings_save_profile: "Desar Valors",
     settings_clear_profile: "Esborrar",
+
+    // Account security
+    settings_security_title: "Seguretat del compte",
+    settings_security_desc: "Tanca la sessió a tots els navegadors i dispositius alhora. Utilitza-ho si sospites que algú ha accedit al teu compte sense permís.",
+    settings_logout_all_btn: "Tancar sessió a tots els dispositius",
+    settings_logout_all_loading: "Tancant sessió…",
+    settings_logout_all_confirm_title: "Tancar sessió a tots els dispositius?",
+    settings_logout_all_confirm_desc: "Això invalidarà immediatament totes les sessions actives a tots els navegadors i dispositius, inclòs aquest. Hauràs de tornar a iniciar sessió.",
+    settings_logout_all_success: "Sessió tancada a tots els dispositius. Si us plau, torna a iniciar sessió.",
+    settings_logout_all_error: "Alguna cosa ha anat malament. Si us plau, torna-ho a intentar.",
 
        // Calendar progress
     cal_progress_days: "dies lectius planificats",

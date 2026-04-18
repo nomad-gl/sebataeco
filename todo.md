@@ -3308,3 +3308,14 @@
 - [x] Fix: no redirect after logout — now redirects to login page via getLoginUrl("/")
 - [x] Fix: UNAUTHORIZED error on logout (already-expired session) now falls through to cleanup instead of throwing
 - [x] Tests: extended auth.logout.test.ts with 3 new cases (unauthenticated, HTTP, single-cookie-only)
+
+## Feature: Sign out from all devices (session version)
+
+- [x] Add sessionVersion integer column (default 1) to users table in drizzle/schema.ts
+- [x] Generate and apply migration SQL for sessionVersion column
+- [x] Embed sessionVersion in JWT payload when issuing session cookies (login, register, reset)
+- [x] Validate sessionVersion in session context: reject tokens where version < DB value
+- [x] Add auth.logoutAllDevices protectedProcedure: increments sessionVersion, clears current cookie
+- [x] Add "Sign out from all devices" button in Settings page
+- [x] Add i18n keys for the new button and confirmation dialog (EN/ES/CA)
+- [x] Write vitest tests for logoutAllDevices and stale-version rejection

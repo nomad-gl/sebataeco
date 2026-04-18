@@ -36,8 +36,11 @@ export function registerOAuthRoutes(app: Express) {
         lastSignedIn: new Date(),
       });
 
+      // Fetch the current sessionVersion so it can be embedded in the JWT.
+      const freshUser = await db.getUserByOpenId(userInfo.openId);
       const sessionToken = await sdk.createSessionToken(userInfo.openId, {
         name: userInfo.name || "",
+        sv: freshUser?.sessionVersion ?? 1,
         expiresInMs: ONE_YEAR_MS,
       });
 
