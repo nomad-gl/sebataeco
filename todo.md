@@ -3319,3 +3319,10 @@
 - [x] Add "Sign out from all devices" button in Settings page
 - [x] Add i18n keys for the new button and confirmation dialog (EN/ES/CA)
 - [x] Write vitest tests for logoutAllDevices and stale-version rejection
+
+## Feature: AI items in Director dropdown
+
+- [x] Add AI Audit Dashboard link to Director dropdown (desktop + mobile)
+- [x] Add AI Models link to Director dropdown (desktop + mobile)
+- [x] Add AI Accountability link to Director dropdown (desktop + mobile)
+- [x] i18n keys reuse existing nav_audit, nav_ai_models, nav_accountability keys (already present in all languages)

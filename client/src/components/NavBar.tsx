@@ -222,6 +222,9 @@ export default function NavBar() {
     { href: "/attendance",           label: t("nav_attendance"),       icon: ClipboardList },
     { href: "/school-calendar",      label: t("nav_school_calendar"),  icon: CalendarDays },
     { href: "/connect",             label: t("nav_connect"),          icon: Wifi },
+    { href: "/audit",               label: t("nav_audit"),            icon: BarChart3 },
+    { href: "/ai-models",           label: t("nav_ai_models"),        icon: SebaSymbol },
+    { href: "/accountability",      label: t("nav_accountability"),   icon: Lock },
   ];
 
   const isDirectorActive = directorItems.some(
