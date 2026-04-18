@@ -116,6 +116,7 @@ export default function Forum() {
   const [fileUploadRef] = useState(() => ({ current: null as HTMLInputElement | null }));
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // ─── queries ───────────────────────────────────────────────────────────────
@@ -201,9 +202,13 @@ export default function Forum() {
     }
   }, [channelsQ.data, activeChannelId]);
 
-  // Scroll to bottom on new messages
+  // Scroll to bottom on new messages — use scrollTop on the container (not
+  // scrollIntoView) to prevent the scroll from propagating up to the page body
+  // and hijacking the user's window scroll position.
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    container.scrollTop = container.scrollHeight;
   }, [channelMessagesQ.data, dmMessagesQ.data]);
 
   // Heartbeat ping every 30s
@@ -822,7 +827,7 @@ export default function Forum() {
           )}
 
           {/* Messages */}
-          <div className={cn("flex-1 overflow-y-auto px-4 py-4 space-y-1 bg-black/20 backdrop-blur-sm", view === "channel" && channelTab === "files" && "hidden")}>
+          <div ref={messagesContainerRef} className={cn("flex-1 overflow-y-auto px-4 py-4 space-y-1 bg-black/20 backdrop-blur-sm", view === "channel" && channelTab === "files" && "hidden")}>
             {(view === "channel" ? channelMessages : dmMessages).length === 0 && (
               <div className="flex flex-col items-center justify-center h-full text-center text-white/60 py-16">
                 {view === "channel" ? (

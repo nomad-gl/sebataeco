@@ -3550,3 +3550,7 @@
 - [x] Root cause: messagesEndRef.scrollIntoView() propagated up to window body on mobile (h-auto layout)
 - [x] Fix: replaced scrollIntoView with container.scrollTop = container.scrollHeight (same pattern as DMPanel.tsx)
 - [x] Added messagesContainerRef to the overflow-y-auto messages div and wired it in the useEffect
+
+## Bug: Forum.tsx scrollIntoView page-hijack (same as SebaConnect)
+- [x] Replaced messagesEndRef.scrollIntoView() with messagesContainerRef + container.scrollTop = container.scrollHeight
+- [x] Attached messagesContainerRef to the overflow-y-auto messages container div at line 830
