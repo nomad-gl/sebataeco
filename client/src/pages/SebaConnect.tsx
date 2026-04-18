@@ -1214,7 +1214,7 @@ export default function SebaConnect() {
           <PreCallScreen
             roomName={dmCallRoom ? dmCallRoom.roomName : `seba-connect-${selectedChannelId}`}
             channelName={dmCallRoom ? dmCallRoom.partnerName : (selectedChannel?.name ?? t("connect_video_call"))}
-            sebaLogoUrl="/manus-storage/SEBA_hd_4ec811c2_1635a68c.png"
+            sebaLogoUrl="/manus-storage/SEBA_hd_4ec811c2_903a1620.png"
             schoolLogoUrl={schoolLogo ?? undefined}
             onJoin={(opts) => {
               setCallOpts(opts);
@@ -1250,7 +1250,7 @@ export default function SebaConnect() {
             <div className="flex items-center gap-2 min-w-[140px]">
               <SebaSymbol size={28} color="white" bg="#1a4fa0" className="shrink-0" />
               <img
-                src="/manus-storage/SEBA_hd_4ec811c2_1635a68c.png"
+                src="/manus-storage/SEBA_hd_4ec811c2_903a1620.png"
                 alt="SEBA"
                 className="h-6 object-contain brightness-0 invert"
               />

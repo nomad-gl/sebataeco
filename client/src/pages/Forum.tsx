@@ -16,7 +16,7 @@ import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 
 const HERO_BG =
-  "/manus-storage/hero-bg-UMuQESLM5HrV2VsrndDo2h_10addc2d.webp";
+  "/manus-storage/hero-bg_a68af405.jpg";
 
 // ─── types ────────────────────────────────────────────────────────────────────
 

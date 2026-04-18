@@ -3483,3 +3483,10 @@
 - [x] Add Strict-Transport-Security header (max-age=31536000; includeSubDomains) to Express server
 - [x] Add GET /api/ping health endpoint returning {status:"ok", ts:<timestamp>}
 - [x] Document nonce-based CSP production upgrade path in server/_core/index.ts comment
+
+## Feature: Regenerate all images as fresh secure assets
+- [x] Regenerate all 20 background images (bg-01 through bg-20) as new AI-generated assets
+- [x] Regenerate hero-bg and seba-logo-dark-bg as new AI-generated assets
+- [x] Re-upload SEBA_hd, SEBA1, and lomloe badge to get fresh /manus-storage/ keys
+- [x] Upload all 22 regenerated images to Manus storage CDN
+- [x] Replace all /manus-storage/ references in 10 client files with new CDN paths (0 old paths remaining)
