@@ -47,14 +47,15 @@ export function useAuth(options?: UseAuthOptions) {
         throw error;
       }
     } finally {
-      // Clear the cached user from tRPC and localStorage so no stale data
-      // remains after the session cookie is gone.
+      // Synchronously clear the cached user from tRPC and localStorage BEFORE
+      // redirecting, so the login page does not see a stale authenticated state
+      // and immediately bounce back to home.
       utils.auth.me.setData(undefined, null);
       localStorage.removeItem("manus-runtime-user-info");
-      await utils.auth.me.invalidate();
-      // Redirect to the login page after logout
+      // Redirect to the login page — use replace so the back button doesn't
+      // return to a protected page after logout.
       if (typeof window !== "undefined") {
-        window.location.href = getLoginUrl("/");
+        window.location.replace("/login");
       }
     }
   }, [logoutMutation, utils]);

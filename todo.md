@@ -3339,3 +3339,8 @@
 ## Feature: RegisterWithInvite logo update
 
 - [x] Replace logo on RegisterWithInvite page with SEBA logo to match login page
+
+## Bug: Sign-in page not visible
+
+- [x] Diagnose why the sign-in page is not visible (logout redirect bounced back due to stale tRPC cache)
+- [x] Fix the sign-in page so it renders correctly (use window.location.replace and clear cache synchronously before redirect)
