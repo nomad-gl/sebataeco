@@ -3412,3 +3412,12 @@
 - [x] SebaMeet: use full viewport height on mobile (100dvh, no browser chrome clipping) — Dialog now h-[100dvh] on mobile, flex-col so SebaMeet fills remaining height
 - [x] SebaMeet: add Fill/Fit ratio toggle button in call controls (Shrink icon = Fill/cover, Expand icon = Fit/contain)
 - [x] SebaMeet: ratio toggle defaults to Fill (cover) on mobile < 640px, Fit (contain) on desktop
+
+## Feature: Direct Messages in SEBA Connect
+- [x] Add `direct_messages` table to schema — already existed as forum_direct_messages
+- [x] Add db helpers — already existed in forum router (getDirectMessages, sendDirectMessage, getConversations, getUnreadCount)
+- [x] Add tRPC procedures — already existed (forum.getDirectMessages, forum.sendDirectMessage)
+- [x] Add DM thread panel in SebaConnect — created DMPanel component (slide-in overlay, full-screen on mobile)
+- [x] Add MessageCircle DM button to each online member list item in Members panel
+- [x] Auto-translate messages based on current app language (CA/ES/EN) — handled by forum.getDirectMessages lang param
+- [x] Add DMs tab to mobile bottom nav bar (purple active state)

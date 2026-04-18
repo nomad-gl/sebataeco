@@ -51,6 +51,7 @@ import {
   ClipboardList,
   FolderOpen,
   MessageSquare,
+  MessageCircle,
   CheckCircle,
   Clock,
   Download,
@@ -70,6 +71,7 @@ import { SebaSymbol } from "@/components/SebaSymbol";
 import { MeetingInvitationBanner } from "@/components/MeetingInvitationBanner";
 import { SendMeetingInvitationModal } from "@/components/SendMeetingInvitationModal";
 import { MeetingHistoryPanel } from "@/components/MeetingHistoryPanel";
+import { DMPanel } from "@/components/DMPanel";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 
@@ -330,6 +332,8 @@ export default function SebaConnect() {
   const [activeCallId, setActiveCallId] = useState<number | null>(null);
   // Meeting invitation modal state
   const [meetInviteTarget, setMeetInviteTarget] = useState<{ id: number; name: string } | null>(null);
+  // Direct message panel state
+  const [dmPartner, setDmPartner] = useState<{ id: number; name: string } | null>(null);
   const [reschedulePrefill, setReschedulePrefill] = useState<{ title?: string; agenda?: string | null; recurrence?: string | null } | null>(null);
 
   // ── Swipe gesture state ──────────────────────────────────────────────────
@@ -1111,6 +1115,13 @@ export default function SebaConnect() {
                           <Phone className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                         </button>
                         <button
+                          onClick={() => { setDmPartner({ id: m.id, name: m.name }); setMembersOpen(false); }}
+                          title="Send direct message"
+                          className="p-2 sm:p-1 rounded hover:bg-blue-700 active:bg-blue-700 text-purple-300 hover:text-white transition-colors min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
+                        >
+                          <MessageCircle className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+                        </button>
+                        <button
                           onClick={() => setMeetInviteTarget({ id: m.id, name: m.name })}
                           title="Schedule a meeting"
                           className="p-2 sm:p-1 rounded hover:bg-blue-700 active:bg-blue-700 text-blue-300 hover:text-white transition-colors min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
@@ -1122,7 +1133,6 @@ export default function SebaConnect() {
                   ))}
                 </div>
               )}
-
               {/* Offline members */}
               {members.filter((m) => !m.online).length > 0 && (
                 <div className="mt-2">
@@ -1179,7 +1189,25 @@ export default function SebaConnect() {
           }}
         />
       </aside>
-
+      {/* ── DM Panel overlay ─────────────────────────────────────────────── */}
+      {dmPartner && myDbId && (
+        <div className="fixed inset-0 z-[60] flex items-stretch md:items-end md:justify-end pointer-events-none">
+          {/* Backdrop (mobile only) */}
+          <div
+            className="absolute inset-0 bg-black/40 md:hidden pointer-events-auto"
+            onClick={() => setDmPartner(null)}
+          />
+          {/* Panel */}
+          <div className="relative pointer-events-auto w-full md:w-96 h-full md:h-[calc(100dvh-4rem)] md:rounded-tl-2xl md:rounded-bl-2xl shadow-2xl overflow-hidden flex flex-col">
+            <DMPanel
+              partnerId={dmPartner.id}
+              partnerName={dmPartner.name}
+              myId={myDbId}
+              onClose={() => setDmPartner(null)}
+            />
+          </div>
+        </div>
+      )}
       {/* ── Pre-Call Setup Dialog ─────────────────────────────────────────── */}
       <Dialog open={preCallActive} onOpenChange={(open) => { if (!open) { setPreCallActive(false); if (!open) setDmCallRoom(null); } }}>
         <DialogContent className="max-w-4xl w-full p-0 overflow-hidden rounded-xl" style={{ height: "560px" }}>
@@ -1509,6 +1537,18 @@ export default function SebaConnect() {
         >
           <FolderOpen className="w-5 h-5" />
           <span className="text-[10px] font-medium leading-none">{t("connect_files")}</span>
+        </button>
+
+        {/* DMs */}
+        <button
+          type="button"
+          onClick={() => { setSidebarOpen(false); setMembersOpen(true); }}
+          className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors relative ${
+            dmPartner ? "text-purple-600 bg-purple-600/10" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <MessageCircle className="w-5 h-5" />
+          <span className="text-[10px] font-medium leading-none">DMs</span>
         </button>
 
         {/* Members (right panel toggle) */}
