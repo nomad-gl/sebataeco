@@ -1255,7 +1255,8 @@ const SebaMeetInner = function SebaMeet({
                   }
                 }}
                 autoPlay playsInline muted
-                className="absolute inset-0 w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full"
+                style={{ objectFit: "cover" }}
               />
               {/* Active peer name label */}
               <div className="absolute bottom-24 left-4 flex items-center gap-1.5 bg-black/50 text-white text-sm px-3 py-1 rounded-full">
@@ -1280,7 +1281,8 @@ const SebaMeetInner = function SebaMeet({
               key={peer.id}
               onClick={() => setPinnedPeerId((prev) => prev === peer.id ? null : peer.id)}
               title={pinnedPeerId === peer.id ? "Unpin" : "Pin as main speaker"}
-              className={`relative flex-shrink-0 w-28 h-20 rounded-xl overflow-hidden bg-gray-800 border-2 transition-all duration-200 cursor-pointer hover:scale-105 ${
+              style={{ aspectRatio: "16/9" }}
+              className={`relative flex-shrink-0 w-28 rounded-xl overflow-hidden bg-gray-800 border-2 transition-all duration-200 cursor-pointer hover:scale-105 ${
                 pinnedPeerId === peer.id ? "border-blue-400 ring-2 ring-blue-400/40" :
                 peer.speaking ? "border-green-400" : "border-white/20"
               }`}
@@ -1302,7 +1304,8 @@ const SebaMeetInner = function SebaMeet({
                   if (el && peer.stream && el.srcObject !== peer.stream) { el.srcObject = peer.stream; el.play().catch(() => {}); }
                 }}
                 autoPlay playsInline muted
-                className="w-full h-full object-cover"
+                className="w-full h-full"
+                style={{ objectFit: "cover" }}
               />
               <div className="absolute bottom-1 left-1 right-1 flex items-center gap-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded-full truncate">
                 {pinnedPeerId === peer.id && <Pin className="w-2.5 h-2.5 text-blue-400 flex-shrink-0" />}
@@ -1318,8 +1321,9 @@ const SebaMeetInner = function SebaMeet({
 
       {/* ── Local PiP tile (draggable, corner-snapping, double-tap to swap) ── */}
       <div
-        className="absolute z-20 w-36 h-24 sm:w-40 sm:h-28 rounded-xl overflow-hidden bg-gray-800 border-2 border-white/30 shadow-2xl cursor-grab active:cursor-grabbing group"
+        className="absolute z-20 w-36 sm:w-40 rounded-xl overflow-hidden bg-gray-800 border-2 border-white/30 shadow-2xl cursor-grab active:cursor-grabbing group"
         style={{
+          aspectRatio: "16/9",
           right: pipPos.x,
           bottom: pipPos.y,
           transition: pipTransitioning ? "right 0.3s cubic-bezier(0.34,1.56,0.64,1), bottom 0.3s cubic-bezier(0.34,1.56,0.64,1)" : undefined,
@@ -1339,15 +1343,15 @@ const SebaMeetInner = function SebaMeet({
             <video
               ref={localVideoRef}
               autoPlay muted playsInline
-              className="absolute inset-0 w-full h-full object-cover scale-x-[-1]"
-              style={{ display: bgReady ? "none" : "block", ...(resolvedFilter ? { filter: resolvedFilter } : {}) }}
+              className="absolute inset-0 w-full h-full scale-x-[-1]"
+              style={{ display: bgReady ? "none" : "block", objectFit: "cover", ...(resolvedFilter ? { filter: resolvedFilter } : {}) }}
             />
             {/* Canvas — shown when background compositing is active */}
             <canvas
               ref={localCanvasRef}
               width={640} height={360}
-              className="absolute inset-0 w-full h-full object-cover scale-x-[-1]"
-              style={{ display: bgReady ? "block" : "none", ...(resolvedFilter ? { filter: resolvedFilter } : {}) }}
+              className="absolute inset-0 w-full h-full scale-x-[-1]"
+              style={{ display: bgReady ? "block" : "none", objectFit: "cover", ...(resolvedFilter ? { filter: resolvedFilter } : {}) }}
             />
           </>
         )}

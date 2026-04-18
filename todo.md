@@ -3373,3 +3373,7 @@
 - [x] Diagnose why member list items are not tappable/selectable on mobile in SebaConnect — root cause: buttons hidden with opacity-0 (hover-only), no touch state
 - [x] Fix touch target size and tap handling for member list on mobile — buttons now always visible on mobile (opacity-100), 36px min touch target, active:bg feedback
 - [x] Ensure call, video, and message buttons are accessible after selecting a member on mobile
+
+## Bug: Mobile video call shows stretched/distorted image
+- [x] Diagnose why local video feed is horizontally stretched on mobile — root cause: PiP container had fixed 3:2 ratio (w-36 h-24) mismatched with 16:9 camera output; Tailwind object-cover not always honoured on mobile
+- [x] Fix video element aspect ratio and object-fit — all video containers now use aspectRatio:"16/9" + inline objectFit:"cover" style for mobile compatibility
