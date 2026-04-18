@@ -405,7 +405,7 @@ export default function DirectorSettings() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="en">English</SelectItem>
+                      <SelectItem value="en">English (UK)</SelectItem>
                       <SelectItem value="es">Español</SelectItem>
                       <SelectItem value="ca">Català</SelectItem>
                     </SelectContent>

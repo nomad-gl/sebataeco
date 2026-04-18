@@ -53,14 +53,14 @@ function isMobileBrowser(): boolean {
 }
 
 function toBCP47(lang: string | undefined): string {
-  if (!lang) return "en-US";
+  if (!lang) return "en-GB";
   const map: Record<string, string> = {
-    en: "en-US",
+    en: "en-GB",
     es: "es-ES",
     ca: "ca-ES",
   };
   if (lang.includes("-")) return lang;
-  return map[lang.toLowerCase()] ?? "en-US";
+  return map[lang.toLowerCase()] ?? "en-GB";
 }
 
 function containsWakeWord(transcript: string): boolean {

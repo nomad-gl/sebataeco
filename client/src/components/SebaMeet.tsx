@@ -19,7 +19,7 @@ import { VIDEO_BACKGROUNDS, VIDEO_FILTERS } from "@/components/PreCallScreen";
 import {
   Mic, MicOff, Video, VideoOff, PhoneOff, Monitor, MonitorOff,
   Circle, Volume2, Users, Hand, PhoneCall, Clock, MessageSquare, Send as SendIcon, X, Pin,
-  Settings, Sliders, CheckCircle,
+  Settings, Sliders, CheckCircle, Captions, CaptionsOff, ChevronDown,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -230,6 +230,17 @@ const SebaMeetInner = function SebaMeet({
 
   // ── Noise suppression toggle ──
   const [noiseSuppression, setNoiseSuppression] = useState(true);
+
+  // ── Live subtitles (Web Speech API) ──
+  const [subtitlesOn,      setSubtitlesOn]      = useState(false);
+  const [subtitleLang,     setSubtitleLang]     = useState<"ca-ES" | "es-ES" | "en-GB">("ca-ES");
+  const [subtitleText,     setSubtitleText]     = useState("");
+  const [subtitleFinal,    setSubtitleFinal]    = useState("");
+  const [subtitleLangOpen, setSubtitleLangOpen] = useState(false);
+  const srRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const getSR = (): (new () => any) | null =>
+    (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition || null;
 
   // ── MediaRecorder for canvas-stream recording ──
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -838,6 +849,7 @@ const SebaMeetInner = function SebaMeet({
       if (qualityTimerRef.current)  clearInterval(qualityTimerRef.current);
       if (callTimerRef.current)     clearInterval(callTimerRef.current);
       if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+      if (srRef.current) { srRef.current.onend = null; srRef.current.stop(); srRef.current = null; }
     };
   }, []);
 
@@ -1270,6 +1282,18 @@ const SebaMeetInner = function SebaMeet({
         )}
       </div>
 
+      {/* ── Live subtitle overlay ── */}
+      {subtitlesOn && (subtitleText || subtitleFinal) && (
+        <div className="absolute bottom-24 left-0 right-0 z-30 flex justify-center px-4 pointer-events-none">
+          <div className="max-w-2xl w-full">
+            <p className="bg-black/75 text-white text-base sm:text-lg font-medium px-4 py-2 rounded-xl text-center leading-snug">
+              {subtitleFinal && <span>{subtitleFinal} </span>}
+              {subtitleText && <span className="text-white/70 italic">{subtitleText}</span>}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ── Secondary peers strip (bottom, above controls) ── */}
       {secondaryPeers.length > 0 && (
         <div
@@ -1697,6 +1721,71 @@ const SebaMeetInner = function SebaMeet({
               <MicOff className="w-5 h-5" />
             </button>
           )}
+
+          {/* Live subtitles toggle + language selector */}
+          <div className="relative flex items-center">
+            <button
+              onClick={() => {
+                const SR = getSR();
+                if (!subtitlesOn) {
+                  if (!SR) { alert("Live subtitles require Chrome, Edge, or Safari."); return; }
+                  const sr = new SR();
+                  sr.lang = subtitleLang;
+                  sr.continuous = true;
+                  sr.interimResults = true;
+                  sr.onresult = (e: any) => {
+                    let interim = "";
+                    let final = "";
+                    for (let i = e.resultIndex; i < e.results.length; i++) {
+                      if (e.results[i].isFinal) final += e.results[i][0].transcript;
+                      else interim += e.results[i][0].transcript;
+                    }
+                    if (final) setSubtitleFinal((prev) => (prev + " " + final).trim().split(" ").slice(-40).join(" "));
+                    setSubtitleText(interim);
+                  };
+                  sr.onerror = () => { setSubtitlesOn(false); };
+                  sr.onend = () => { if (srRef.current === sr) sr.start(); };
+                  srRef.current = sr;
+                  sr.start();
+                  setSubtitlesOn(true);
+                } else {
+                  if (srRef.current) { srRef.current.onend = null; srRef.current.stop(); srRef.current = null; }
+                  setSubtitlesOn(false);
+                  setSubtitleText("");
+                  setSubtitleFinal("");
+                }
+              }}
+              className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
+                subtitlesOn ? "bg-purple-600 text-white" : "bg-white/15 text-white hover:bg-white/25"
+              }`}
+              title={subtitlesOn ? "Turn off subtitles" : "Turn on live subtitles"}
+            >
+              {subtitlesOn ? <Captions className="w-5 h-5" /> : <CaptionsOff className="w-5 h-5" />}
+            </button>
+            {/* Language picker chevron */}
+            <button
+              onClick={() => setSubtitleLangOpen((o) => !o)}
+              className="w-5 h-5 flex items-center justify-center text-white/60 hover:text-white transition-colors"
+              title="Subtitle language"
+            >
+              <ChevronDown className="w-3.5 h-3.5" />
+            </button>
+            {subtitleLangOpen && (
+              <div className="absolute bottom-14 left-0 bg-gray-900/95 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 min-w-[120px]">
+                {(["ca-ES", "es-ES", "en-GB"] as const).map((lang) => (
+                  <button
+                    key={lang}
+                    onClick={() => { setSubtitleLang(lang); setSubtitleLangOpen(false); if (subtitlesOn && srRef.current) { srRef.current.lang = lang; } }}
+                    className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                      subtitleLang === lang ? "bg-purple-600 text-white" : "text-white/80 hover:bg-white/10"
+                    }`}
+                  >
+                    {lang === "ca-ES" ? "🇨🇦 Català" : lang === "es-ES" ? "🇪🇸 Español" : "🇬🇧 English (UK)"}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* End call */}
           <button

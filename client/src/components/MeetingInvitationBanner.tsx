@@ -69,7 +69,7 @@ export function MeetingInvitationBanner({ onAccept }: Props) {
             <div className="flex items-center gap-2">
               <SebaSymbol className="w-5 h-5 text-white/80 flex-shrink-0" />
               <div>
-                <p className="text-xs text-white/60 font-medium uppercase tracking-wide">Meeting Invitation</p>
+                <p className="text-xs text-white/60 font-medium uppercase tracking-wide">AINA | Meet invitation</p>
                 <p className="text-sm font-bold leading-tight">{inv.title}</p>
               </div>
             </div>

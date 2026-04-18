@@ -21,10 +21,10 @@ const LANGUAGES: { code: Lang; label: string; nativeLabel: string; flag: string;
   },
   {
     code: "en",
-    label: "English",
-    nativeLabel: "English",
+    label: "English (UK)",
+    nativeLabel: "English (UK)",
     flag: "🇬🇧",
-    desc: "Continue in English",
+    desc: "Continue in English (UK)",
   },
 ];
 
