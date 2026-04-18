@@ -32,7 +32,7 @@ function downloadIcs(inv: {
   ].filter(Boolean).join("\n").replace(/\n/g, "\\n");
   const ics = [
     "BEGIN:VCALENDAR", "VERSION:2.0",
-    "PRODID:-//SEBA AI Studio//SebaMeet//EN",
+    "PRODID:-//SEBA AI Studio//AINA Meet//EN",
     "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "BEGIN:VEVENT",
     `DTSTART:${fmt(start)}`, `DTEND:${fmt(end)}`,
     `SUMMARY:${inv.title}`, `DESCRIPTION:${description}`,

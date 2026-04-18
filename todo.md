@@ -3382,3 +3382,6 @@
 - [x] Remove all logos from the call header except the 'S' SebaSymbol
 - [x] Replace "SebaMeet" text label with "AINA"
 - [x] Remove school logo from the call header right side
+
+## Feature: Rename SebaMeet to AINA | Meet
+- [x] Replace all "SebaMeet" user-facing text with "AINA | Meet" across components, i18n strings, and page titles

@@ -826,9 +826,7 @@ export default function PreCallScreen({
       <div className="flex items-center justify-between px-6 py-3 bg-gray-900 border-b border-gray-800">
         <div className="flex items-center gap-3">
           <SebaSymbol size={28} color="white" bg="#1a4fa0" className="shrink-0" />
-          {sebaLogoUrl && (
-            <img src={sebaLogoUrl} alt="SEBA" className="h-6 w-auto object-contain brightness-0 invert" />
-          )}
+          <span className="text-sm font-bold text-white">AINA <span className="text-white/50 font-light">|</span> Meet</span>
           <div>
             <p className="text-sm font-semibold leading-none">{channelName}</p>
             <p className="text-xs text-gray-400 mt-0.5">Pre-call setup</p>
@@ -1310,7 +1308,7 @@ export default function PreCallScreen({
 
       {/* Footer */}
       <div className="px-6 py-2 bg-gray-900 border-t border-gray-800 text-center text-xs text-gray-600">
-        Powered by SEBA
+        Powered by AINA | Meet
       </div>
     </div>
   );

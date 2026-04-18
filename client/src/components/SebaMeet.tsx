@@ -934,7 +934,7 @@ const SebaMeetInner = function SebaMeet({
     setRecording(next);
     if (next) {
       // Start recording the local canvas stream (or raw video if no canvas)
-      notifyOwner.mutate({ title: "SebaMeet — Recording started", content: `Room: ${roomName}` });
+      notifyOwner.mutate({ title: "AINA | Meet — Recording started", content: `Room: ${roomName}` });
       const canvas = localCanvasRef.current;
       const captureStream: MediaStream | null = canvas
         ? (canvas as HTMLCanvasElement & { captureStream?: (fps?: number) => MediaStream }).captureStream?.(25) ?? null
@@ -1370,7 +1370,7 @@ const SebaMeetInner = function SebaMeet({
       <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/70 to-transparent">
         <div className="flex items-center gap-2">
           <SebaSymbol className="w-7 h-7 text-white" />
-          <span className="text-white font-bold text-sm tracking-wide">AINA</span>
+          <span className="text-white font-bold text-sm tracking-wide">AINA <span className="text-white/50 font-light">|</span> Meet</span>
           {channelName && <span className="text-white/60 text-xs ml-1">· {channelName}</span>}
         </div>
 
