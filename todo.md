@@ -3421,3 +3421,7 @@
 - [x] Add MessageCircle DM button to each online member list item in Members panel
 - [x] Auto-translate messages based on current app language (CA/ES/EN) — handled by forum.getDirectMessages lang param
 - [x] Add DMs tab to mobile bottom nav bar (purple active state)
+
+## Bug: DM panel causes page to scroll to bottom and hide footer
+- [x] Fix DMPanel scroll containment — replaced scrollIntoView (which propagated to page body) with scrollTop on the message container ref; page no longer scrolls when DM panel opens
+- [x] Ensure the message thread scroll is contained within the DMPanel, not the page

@@ -27,7 +27,7 @@ export function DMPanel({ partnerId, partnerName, myId, onClose }: DMPanelProps)
 
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const utils = trpc.useUtils();
 
@@ -44,9 +44,12 @@ export function DMPanel({ partnerId, partnerName, myId, onClose }: DMPanelProps)
     },
   });
 
-  // Scroll to bottom on new messages
+  // Scroll to bottom on new messages — use scrollTop on the container to avoid
+  // scrollIntoView propagating up to the page body and hiding the footer.
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    container.scrollTop = container.scrollHeight;
   }, [messagesQ.data]);
 
   const handleSend = useCallback(async () => {
@@ -106,7 +109,7 @@ export function DMPanel({ partnerId, partnerName, myId, onClose }: DMPanelProps)
       </div>
 
       {/* Message thread */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
         {messages.length === 0 && !messagesQ.isLoading && (
           <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground py-16">
             <div
@@ -162,7 +165,6 @@ export function DMPanel({ partnerId, partnerName, myId, onClose }: DMPanelProps)
             </div>
           );
         })}
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Input bar */}
