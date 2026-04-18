@@ -3478,3 +3478,8 @@
 - [x] Download all CloudFront background images and self-host in client/public/images/
 - [x] Update index.css bg classes to use local /manus-storage/ paths instead of CloudFront URLs
 - [x] Replace all remaining CloudFront references across 10 client files (NavBar, Footer, PreCallScreen, Home, Practice, Forum, LocalLogin, RegisterWithInvite, SebaConnect, index.css)
+
+## Feature: HSTS + health endpoint + nonce-CSP roadmap
+- [x] Add Strict-Transport-Security header (max-age=31536000; includeSubDomains) to Express server
+- [x] Add GET /api/ping health endpoint returning {status:"ok", ts:<timestamp>}
+- [x] Document nonce-based CSP production upgrade path in server/_core/index.ts comment

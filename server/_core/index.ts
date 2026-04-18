@@ -57,6 +57,16 @@ async function startServer() {
       "Permissions-Policy",
       "geolocation=(), payment=(), usb=(), interest-cohort=()"
     );
+    // Strict-Transport-Security: enforce HTTPS for 1 year, include subdomains
+    // NOTE: Only effective over HTTPS — ignored by browsers on plain HTTP.
+    // Production upgrade path for CSP: replace 'unsafe-inline' in script-src
+    // with a per-request nonce (crypto.randomUUID()) injected into both this
+    // header and the <script> tags via SSR or a Vite plugin. This eliminates
+    // the last remaining inline-script attack surface.
+    res.setHeader(
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains"
+    );
     // Content-Security-Policy: restrict all resource origins to self
     // - script-src: only same-origin scripts (no inline eval, no CDN)
     // - style-src: same-origin + unsafe-inline (required by Tailwind CSS-in-JS)
@@ -87,6 +97,11 @@ async function startServer() {
   app.use("/api", (_req, res, next) => {
     res.setHeader("X-Robots-Tag", "noindex, nofollow");
     next();
+  });
+
+  // ── Health check: lightweight uptime probe (no auth, no logging) ─────────
+  app.get("/api/ping", (_req, res) => {
+    res.json({ status: "ok", ts: Date.now() });
   });
 
   // OAuth callback under /api/oauth/callback
