@@ -1215,7 +1215,7 @@ export default function SebaConnect() {
           }
           setVideoCallActive(open);
         }}>
-        <DialogContent className="max-w-5xl w-full p-0 overflow-hidden rounded-xl bg-[#003082] mx-2 sm:mx-4">
+        <DialogContent className="max-w-5xl w-full p-0 overflow-hidden rounded-none sm:rounded-xl bg-[#003082] mx-0 sm:mx-4 h-[100dvh] sm:h-auto flex flex-col">
           {/* Branded header: SEBA S + logo left, channel name centre, school logo right */}
           <div className="flex items-center justify-between px-4 py-2.5 bg-[#003082] text-white">
             {/* Left: S symbol + SEBA wordmark */}
@@ -1322,7 +1322,7 @@ export default function SebaConnect() {
           {/* SebaMeet — sovereign WebRTC video engine.
                Props are stabilised with useMemo/useCallback so React.memo
                on SebaMeet can bail out and prevent flicker on parent re-renders. */}
-          <div className="relative w-full" style={{ height: "min(520px, calc(100dvh - 180px))" }}>
+          <div className="relative w-full flex-1 sm:flex-none" style={{ height: "min(520px, calc(100dvh - 180px))", minHeight: 0 }}>
             <SebaMeetStable
               dmCallRoom={dmCallRoom}
               selectedChannelId={selectedChannelId}

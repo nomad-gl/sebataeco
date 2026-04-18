@@ -3407,3 +3407,8 @@
 ## Bug: Video ratio needs adjusting to standard 16:9
 - [x] Audit all video container sizing in SebaMeet (main feed, PiP self-view, secondary peer thumbnails)
 - [x] Apply correct standard 16:9 ratio — main remote video changed to objectFit:contain (shows full 16:9 frame, no cropping/stretching on portrait mobile); PiP and thumbnails retain objectFit:cover
+
+## Feature: Mobile video full-height + ratio toggle
+- [x] SebaMeet: use full viewport height on mobile (100dvh, no browser chrome clipping) — Dialog now h-[100dvh] on mobile, flex-col so SebaMeet fills remaining height
+- [x] SebaMeet: add Fill/Fit ratio toggle button in call controls (Shrink icon = Fill/cover, Expand icon = Fit/contain)
+- [x] SebaMeet: ratio toggle defaults to Fill (cover) on mobile < 640px, Fit (contain) on desktop

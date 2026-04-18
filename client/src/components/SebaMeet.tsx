@@ -19,7 +19,7 @@ import { VIDEO_BACKGROUNDS, VIDEO_FILTERS } from "@/components/PreCallScreen";
 import {
   Mic, MicOff, Video, VideoOff, PhoneOff, Monitor, MonitorOff,
   Circle, Volume2, Users, Hand, PhoneCall, Clock, MessageSquare, Send as SendIcon, X, Pin,
-  Settings, Sliders, CheckCircle, Captions, CaptionsOff, ChevronDown,
+  Settings, Sliders, CheckCircle, Captions, CaptionsOff, ChevronDown, Expand, Shrink,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -233,6 +233,11 @@ const SebaMeetInner = function SebaMeet({
 
   // ── Live subtitles (Web Speech API) ──
   const [subtitlesOn,      setSubtitlesOn]      = useState(false);
+  // Fill = cover (crops to fill screen), Fit = contain (shows full 16:9 frame)
+  // Default: Fill on mobile (< 640px), Fit on desktop
+  const [videoFit, setVideoFit] = useState<"cover" | "contain">(
+    () => window.innerWidth < 640 ? "cover" : "contain"
+  );
   const [subtitleLang,     setSubtitleLang]     = useState<"ca-ES" | "es-ES" | "en-GB">("ca-ES");
   const [subtitleText,     setSubtitleText]     = useState("");
   const [subtitleFinal,    setSubtitleFinal]    = useState("");
@@ -1268,7 +1273,7 @@ const SebaMeetInner = function SebaMeet({
                 }}
                 autoPlay playsInline muted
                 className="absolute inset-0 w-full h-full"
-                style={{ objectFit: "contain", background: "#111" }}
+                style={{ objectFit: videoFit, background: "#111" }}
               />
               {/* Active peer name label */}
               <div className="absolute bottom-24 left-4 flex items-center gap-1.5 bg-black/50 text-white text-sm px-3 py-1 rounded-full">
@@ -1786,6 +1791,17 @@ const SebaMeetInner = function SebaMeet({
               </div>
             )}
           </div>
+
+          {/* Fill / Fit ratio toggle */}
+          <button
+            onClick={() => setVideoFit((f) => f === "cover" ? "contain" : "cover")}
+            className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
+              videoFit === "cover" ? "bg-blue-600 text-white" : "bg-white/15 text-white hover:bg-white/25"
+            }`}
+            title={videoFit === "cover" ? "Switch to Fit (show full frame)" : "Switch to Fill (crop to fill screen)"}
+          >
+            {videoFit === "cover" ? <Shrink className="w-5 h-5" /> : <Expand className="w-5 h-5" />}
+          </button>
 
           {/* End call */}
           <button
