@@ -82,7 +82,7 @@ export const auditRouter = router({
   /**
    * Get a paginated audit log of all significant events.
    */
-  getAuditLog: publicProcedure
+  getAuditLog: protectedProcedure
     .input(
       z.object({
         limit: z.number().min(1).max(200).default(50),
@@ -444,7 +444,7 @@ export const auditRouter = router({
   /**
    * Return the in-memory status of the last audit retention purge run.
    */
-  getRetentionStatus: publicProcedure.query(() => ({
+  getRetentionStatus: protectedProcedure.query(() => ({
     lastRunAt: auditRetentionStatus.lastRunAt,
     lastDeletedCount: auditRetentionStatus.lastDeletedCount,
     lastError: auditRetentionStatus.lastError,
@@ -454,7 +454,7 @@ export const auditRouter = router({
   /**
    * Get aggregate statistics for the audit dashboard.
    */
-  getStats: publicProcedure.query(async () => {
+  getStats: protectedProcedure.query(async () => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 

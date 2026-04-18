@@ -23,7 +23,7 @@ export const ainaRouter = router({
    * Called when the user asks Aina to create/draw/generate an image.
    * Returns a public S3 URL for the generated image.
    */
-  generateImage: publicProcedure
+  generateImage: protectedProcedure
     .input(
       z.object({
         prompt: z.string().min(1).max(1000),
@@ -47,7 +47,7 @@ export const ainaRouter = router({
    * Accepts a base64-encoded file blob, stores it in S3, and returns
    * the public URL along with metadata so the chat can render/link it.
    */
-  uploadFile: publicProcedure
+  uploadFile: protectedProcedure
     .input(
       z.object({
         fileBase64: z.string(),
@@ -127,7 +127,7 @@ export const ainaRouter = router({
    * The extracted text is truncated to 8 000 characters to stay within
    * the LLM context window budget.
    */
-  extractDocumentText: publicProcedure
+  extractDocumentText: protectedProcedure
     .input(
       z.object({
         fileBase64: z.string(),

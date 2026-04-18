@@ -3507,3 +3507,26 @@
 - [x] Audit rate limiting and abuse prevention
 - [x] Audit CORS configuration
 - [x] Produced prioritised security report (delivered to user)
+
+## Security: Critical/High fixes
+- [x] Add brute-force lockout to login procedure (5 attempts / 15 min per email)
+- [x] Move aina.generateImage, aina.uploadFile, aina.extractDocumentText to protectedProcedure
+- [x] Move audit.getAuditLog, audit.getStats, audit.getRetentionStatus to protectedProcedure
+- [x] Reduce Express body limit from 50mb to 1mb globally; add 22mb override on aina.uploadFile route only
+
+## Feature: Correct image placement across all pages
+- [x] Verify SEBA_hd (full wordmark) appears in NavBar, SebaConnect header, and login pages
+- [x] Verify SEBA1 (compact S icon) appears in mobile NavBar and compact contexts
+- [x] Verify all 20 bg thumbnails render correctly in PreCallScreen virtual background picker
+- [x] Verify hero-bg renders on Home, Forum, LocalLogin, Practice, RegisterWithInvite
+- [x] seba-logo-dark-bg generated and available; not yet referenced in any component (future use)
+
+## Feature: Individual Learning Plans (ILP) and Individual Lesson Plans
+- [ ] Add DB tables: individual_learning_plans, individual_lesson_plans in drizzle/schema.ts
+- [ ] Add tRPC procedures: ilp.create, ilp.list, ilp.get, ilp.update, ilp.delete, ilp.generateAI
+- [ ] Add tRPC procedures: lessonPlan.create, lessonPlan.list, lessonPlan.get, lessonPlan.update, lessonPlan.delete, lessonPlan.generateAI
+- [ ] Build IndividualLearningPlan.tsx page: student selector, AI generation form, plan viewer/editor, PDF export
+- [ ] Build IndividualLessonPlan.tsx page: student selector, subject/competency inputs, AI generation, lesson viewer/editor, PDF export
+- [ ] Add navigation entries for both pages in App.tsx and NavBar
+- [ ] Wire AI generation using invokeLLM with LOMLOE competency context and student profile data
+- [ ] Add print/PDF export for both plan types

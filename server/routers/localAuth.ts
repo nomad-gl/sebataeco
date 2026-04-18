@@ -34,7 +34,6 @@ function checkVerifyRateLimit(ip: string): void {
   const now = Date.now();
   const entry = verifyRateLimitStore.get(ip);
   if (!entry || now - entry.windowStart >= RATE_WINDOW_MS) {
-    // New window
     verifyRateLimitStore.set(ip, { count: 1, windowStart: now });
     return;
   }
@@ -46,6 +45,36 @@ function checkVerifyRateLimit(ip: string): void {
       message: `Too many verification attempts. Please wait ${retryAfterSec} seconds before trying again.`,
     });
   }
+}
+
+// ─── Brute-force lockout for login ────────────────────────────────────────────
+// Keyed by normalised email (not IP) so distributed attacks from multiple IPs
+// against a single account are still caught.
+const LOGIN_MAX_ATTEMPTS = 5;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+
+const loginAttemptStore = new Map<string, { count: number; windowStart: number }>();
+
+function checkLoginRateLimit(email: string): void {
+  const now = Date.now();
+  const key = email.toLowerCase().trim();
+  const entry = loginAttemptStore.get(key);
+  if (!entry || now - entry.windowStart >= LOGIN_WINDOW_MS) {
+    loginAttemptStore.set(key, { count: 1, windowStart: now });
+    return;
+  }
+  entry.count++;
+  if (entry.count > LOGIN_MAX_ATTEMPTS) {
+    const retryAfterMin = Math.ceil((LOGIN_WINDOW_MS - (now - entry.windowStart)) / 60000);
+    throw new TRPCError({
+      code: "TOO_MANY_REQUESTS",
+      message: `Too many failed login attempts. Please wait ${retryAfterMin} minute${retryAfterMin !== 1 ? "s" : ""} before trying again.`,
+    });
+  }
+}
+
+function resetLoginRateLimit(email: string): void {
+  loginAttemptStore.delete(email.toLowerCase().trim());
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -361,6 +390,8 @@ export const localAuthRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       const normalised = input.email.toLowerCase().trim();
+      // Check brute-force lockout before any DB work
+      checkLoginRateLimit(normalised);
       const openId = localOpenId(normalised);
 
       // Primary lookup: local:<email> openId (standard local accounts)
@@ -390,11 +421,16 @@ export const localAuthRouter = router({
 
       const valid = await bcrypt.compare(input.password, user.passwordHash);
       if (!valid) {
+        // Count this as a failed attempt
+        checkLoginRateLimit(normalised);
         throw new TRPCError({
           code: "UNAUTHORIZED",
           message: "Invalid email or password.",
         });
       }
+
+      // Successful login — clear the lockout counter
+      resetLoginRateLimit(normalised);
 
       // Block deactivated accounts
       if (user.deactivatedAt) {
