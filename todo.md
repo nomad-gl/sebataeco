@@ -3331,3 +3331,7 @@
 
 - [x] Diagnose why Sign Out button is not visible in the NavBar
 - [x] Fix Sign Out button so it is always accessible to logged-in users
+
+## Bug: Login page logo replacement
+
+- [x] Replace existing logo on login/sign-out page with the SEBA logo
