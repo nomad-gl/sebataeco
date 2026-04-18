@@ -3403,3 +3403,7 @@
 - [ ] Change all en-US locale references to en-GB (SpeechRecognition, date formatting, i18n)
 - [ ] English subtitle option must use en-GB not en-US
 - [ ] Review i18n English translation strings for US spellings (color→colour, organize→organise, etc.)
+
+## Bug: Video ratio needs adjusting to standard 16:9
+- [x] Audit all video container sizing in SebaMeet (main feed, PiP self-view, secondary peer thumbnails)
+- [x] Apply correct standard 16:9 ratio — main remote video changed to objectFit:contain (shows full 16:9 frame, no cropping/stretching on portrait mobile); PiP and thumbnails retain objectFit:cover

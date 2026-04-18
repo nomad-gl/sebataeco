@@ -1268,7 +1268,7 @@ const SebaMeetInner = function SebaMeet({
                 }}
                 autoPlay playsInline muted
                 className="absolute inset-0 w-full h-full"
-                style={{ objectFit: "cover" }}
+                style={{ objectFit: "contain", background: "#111" }}
               />
               {/* Active peer name label */}
               <div className="absolute bottom-24 left-4 flex items-center gap-1.5 bg-black/50 text-white text-sm px-3 py-1 rounded-full">
