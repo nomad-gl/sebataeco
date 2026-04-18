@@ -477,6 +477,7 @@ export default function SebaConnect() {
     } catch { /* malformed — ignore */ }
   }, []);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const pos = (user as { position?: string } | null)?.position ?? "unassigned";
@@ -574,8 +575,13 @@ export default function SebaConnect() {
 
   // ── effects ────────────────────────────────────────────────────────────────
 
+  // Scroll to bottom on new messages — use scrollTop on the container (not
+  // scrollIntoView) to prevent the scroll from propagating up to the page body
+  // and hijacking the user's window scroll position.
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    container.scrollTop = container.scrollHeight;
   }, [messagesQuery.data]);
 
   // ── handlers ──────────────────────────────────────────────────────────────
@@ -803,7 +809,7 @@ export default function SebaConnect() {
         {/* ── Messages tab ──────────────────────────────────────────────────── */}
         {tab === "messages" && (
           <>
-            <div className="flex-1 overflow-y-auto px-4 py-4 min-h-[40vh] md:min-h-0">
+            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-4 min-h-[40vh] md:min-h-0">
               {messagesQuery.isLoading ? (
                 <div className="text-center text-muted-foreground text-sm py-8">{t("connect_loading_messages")}</div>
               ) : messages.length === 0 ? (

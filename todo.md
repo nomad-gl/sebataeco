@@ -3545,3 +3545,8 @@
 - [x] Added https://*.cloudfront.net to img-src, connect-src, and media-src in the CSP
 - [x] ParallaxSection component confirmed correct — uses backgroundImage inline style
 - [x] Storage proxy confirmed working — 307 → 200 from CloudFront CDN
+
+## Bug: SebaConnect (/connect) auto-scrolls to bottom and fights user scroll
+- [x] Root cause: messagesEndRef.scrollIntoView() propagated up to window body on mobile (h-auto layout)
+- [x] Fix: replaced scrollIntoView with container.scrollTop = container.scrollHeight (same pattern as DMPanel.tsx)
+- [x] Added messagesContainerRef to the overflow-y-auto messages div and wired it in the useEffect
