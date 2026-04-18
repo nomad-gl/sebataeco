@@ -3539,3 +3539,9 @@
 - [x] Re-uploaded hero-bg.jpg to get a valid storage key (hero-bg_a767782c.jpg)
 - [x] Updated all 13 references across Home.tsx, Forum.tsx, LocalLogin.tsx, Practice.tsx, RegisterWithInvite.tsx, and index.css (8 CSS bg classes)
 - [x] Storage proxy confirmed working: /manus-storage/* returns 307 redirect to signed CDN URL
+
+## Bug: Hero background still not rendering (deep fix)
+- [x] Root cause: CSP img-src directive blocked the CloudFront redirect from /manus-storage/ proxy
+- [x] Added https://*.cloudfront.net to img-src, connect-src, and media-src in the CSP
+- [x] ParallaxSection component confirmed correct — uses backgroundImage inline style
+- [x] Storage proxy confirmed working — 307 → 200 from CloudFront CDN

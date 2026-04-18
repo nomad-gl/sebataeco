@@ -87,10 +87,13 @@ async function startServer() {
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline'",   // unsafe-inline needed for Vite HMR in dev
       "style-src 'self' 'unsafe-inline'",    // Tailwind injects styles at runtime
-      "img-src 'self' data: blob:",
+      // Manus storage CDN: the /manus-storage/ proxy redirects to a signed
+      // CloudFront URL. The browser follows the 307 redirect and loads the image
+      // directly from CloudFront, so the CDN domain must be in img-src.
+      "img-src 'self' data: blob: https://*.cloudfront.net https://forge.manus.ai",
       "font-src 'self'",
-      `connect-src 'self' ${process.env.OAUTH_SERVER_URL ?? ''} ${process.env.BUILT_IN_FORGE_API_URL ?? ''} ${process.env.VITE_ANALYTICS_ENDPOINT ?? ''}`.trim(),
-      "media-src 'self' blob:",
+      `connect-src 'self' ${process.env.OAUTH_SERVER_URL ?? ''} ${process.env.BUILT_IN_FORGE_API_URL ?? ''} ${process.env.VITE_ANALYTICS_ENDPOINT ?? ''} https://*.cloudfront.net`.trim(),
+      "media-src 'self' blob: https://*.cloudfront.net",
       "worker-src 'self' blob:",
       "frame-src 'none'",
       "frame-ancestors 'none'",
