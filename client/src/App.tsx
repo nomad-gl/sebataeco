@@ -73,6 +73,7 @@ import AdminFacilities from "./pages/admin/AdminFacilities";
 import AdminWakeWords from "./pages/admin/AdminWakeWords";
 import AdminAudioResponses from "./pages/admin/AdminAudioResponses";
 import AttendanceRegister from "./pages/AttendanceRegister";
+import IndividualPlans from "./pages/IndividualPlans";
 import { useAuth } from "./_core/hooks/useAuth";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
@@ -163,6 +164,7 @@ function Router() {
         <Route path="/situacio">
           <HosOrAdminRoute component={SituacioGenerator} />
         </Route>
+        <Route path="/individual-plans" component={IndividualPlans} />
         <Route path="/my-situacions">
           <HosOrAdminRoute component={MySituacions} />
         </Route>

@@ -1477,3 +1477,75 @@ export const teacherInvites = mysqlTable("teacher_invites", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 export type TeacherInvite = typeof teacherInvites.$inferSelect;
+
+/**
+ * individual_learning_plans: AI-generated personalised learning plans for individual students.
+ * Each plan targets one student and is authored by a teacher.
+ */
+export const individualLearningPlans = mysqlTable("individual_learning_plans", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Teacher who created the plan */
+  teacherId: int("teacherId").notNull(),
+  /** Student name (free text — no user account required) */
+  studentName: varchar("studentName", { length: 256 }).notNull(),
+  /** Year group / age range */
+  yearGroup: varchar("yearGroup", { length: 32 }),
+  /** Subject or area of focus */
+  subject: varchar("subject", { length: 128 }),
+  /** LOMLOE competency codes targeted (comma-separated) */
+  competencies: varchar("competencies", { length: 512 }),
+  /** Duration of the plan (e.g. "4 weeks", "1 term") */
+  duration: varchar("duration", { length: 64 }),
+  /** Student's current level / context provided by teacher */
+  studentContext: text("studentContext"),
+  /** Learning goals set by the teacher */
+  learningGoals: text("learningGoals"),
+  /** Full AI-generated plan content (markdown) */
+  planContent: text("planContent"),
+  /** Language the plan was generated in: en | es | ca */
+  language: varchar("language", { length: 8 }).default("en").notNull(),
+  /** Status: draft | active | completed | archived */
+  status: mysqlEnum("status", ["draft", "active", "completed", "archived"]).default("draft").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type IndividualLearningPlan = typeof individualLearningPlans.$inferSelect;
+export type InsertIndividualLearningPlan = typeof individualLearningPlans.$inferInsert;
+
+/**
+ * individual_lesson_plans: AI-generated lesson plans tailored to an individual student.
+ * Linked to a learning plan or standalone.
+ */
+export const individualLessonPlans = mysqlTable("individual_lesson_plans", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Teacher who created the plan */
+  teacherId: int("teacherId").notNull(),
+  /** Optional link to a parent learning plan */
+  learningPlanId: int("learningPlanId"),
+  /** Student name */
+  studentName: varchar("studentName", { length: 256 }).notNull(),
+  /** Year group */
+  yearGroup: varchar("yearGroup", { length: 32 }),
+  /** Subject */
+  subject: varchar("subject", { length: 128 }),
+  /** Topic / lesson title */
+  topic: varchar("topic", { length: 256 }),
+  /** LOMLOE competency codes (comma-separated) */
+  competencies: varchar("competencies", { length: 512 }),
+  /** Lesson duration in minutes */
+  durationMinutes: int("durationMinutes").default(60),
+  /** Student context / differentiation notes */
+  studentContext: text("studentContext"),
+  /** Learning objectives */
+  objectives: text("objectives"),
+  /** Full AI-generated lesson plan content (markdown) */
+  planContent: text("planContent"),
+  /** Language: en | es | ca */
+  language: varchar("language", { length: 8 }).default("en").notNull(),
+  /** Status: draft | ready | delivered */
+  status: mysqlEnum("status", ["draft", "ready", "delivered"]).default("draft").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type IndividualLessonPlan = typeof individualLessonPlans.$inferSelect;
+export type InsertIndividualLessonPlan = typeof individualLessonPlans.$inferInsert;

@@ -4,6 +4,10 @@
  *
  * External helpers (generateImage, storagePut, db) are mocked so tests run
  * fully offline without real S3, Forge API, or database calls.
+ *
+ * NOTE: generateImage, uploadFile, and extractDocumentText were moved from
+ * publicProcedure to protectedProcedure as part of the security hardening
+ * (security audit — high priority fix). Tests updated accordingly.
  */
 
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -53,10 +57,15 @@ describe("aina.generateImage", () => {
     vi.clearAllMocks();
   });
 
+  it("requires authentication", async () => {
+    const caller = ainaRouter.createCaller(createPublicContext());
+    await expect(caller.generateImage({ prompt: "A classroom" })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
+
   it("returns a URL when image generation succeeds", async () => {
     vi.mocked(generateImage).mockResolvedValueOnce({ url: "https://cdn.example.com/generated.png" });
 
-    const caller = ainaRouter.createCaller(createPublicContext());
+    const caller = ainaRouter.createCaller(createAuthContext());
     const result = await caller.generateImage({ prompt: "A sunny classroom" });
 
     expect(result).toEqual({ url: "https://cdn.example.com/generated.png" });
@@ -66,7 +75,7 @@ describe("aina.generateImage", () => {
   it("throws INTERNAL_SERVER_ERROR when image generation fails", async () => {
     vi.mocked(generateImage).mockRejectedValueOnce(new Error("Forge API timeout"));
 
-    const caller = ainaRouter.createCaller(createPublicContext());
+    const caller = ainaRouter.createCaller(createAuthContext());
 
     await expect(caller.generateImage({ prompt: "A map of Spain" })).rejects.toMatchObject({
       code: "INTERNAL_SERVER_ERROR",
@@ -74,7 +83,7 @@ describe("aina.generateImage", () => {
   });
 
   it("rejects empty prompts", async () => {
-    const caller = ainaRouter.createCaller(createPublicContext());
+    const caller = ainaRouter.createCaller(createAuthContext());
 
     await expect(caller.generateImage({ prompt: "" })).rejects.toThrow();
   });
@@ -87,10 +96,16 @@ describe("aina.uploadFile", () => {
     vi.clearAllMocks();
   });
 
+  it("requires authentication", async () => {
+    const caller = ainaRouter.createCaller(createPublicContext());
+    const base64 = Buffer.from("hello world").toString("base64");
+    await expect(caller.uploadFile({ fileBase64: base64, fileName: "test.pdf", mimeType: "application/pdf" })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
+
   it("uploads a file and returns its URL and metadata", async () => {
     vi.mocked(storagePut).mockResolvedValueOnce({ url: "https://cdn.example.com/aina-uploads/test.pdf", key: "aina-uploads/test.pdf" });
 
-    const caller = ainaRouter.createCaller(createPublicContext());
+    const caller = ainaRouter.createCaller(createAuthContext());
     const base64 = Buffer.from("hello world").toString("base64");
 
     const result = await caller.uploadFile({
@@ -108,7 +123,7 @@ describe("aina.uploadFile", () => {
   it("sanitises dangerous characters in the file name", async () => {
     vi.mocked(storagePut).mockResolvedValueOnce({ url: "https://cdn.example.com/aina-uploads/safe.png", key: "aina-uploads/safe.png" });
 
-    const caller = ainaRouter.createCaller(createPublicContext());
+    const caller = ainaRouter.createCaller(createAuthContext());
     const base64 = Buffer.from("img").toString("base64");
 
     const result = await caller.uploadFile({
@@ -124,7 +139,7 @@ describe("aina.uploadFile", () => {
   });
 
   it("rejects files exceeding the 16 MB limit", async () => {
-    const caller = ainaRouter.createCaller(createPublicContext());
+    const caller = ainaRouter.createCaller(createAuthContext());
 
     await expect(
       caller.uploadFile({
@@ -190,8 +205,14 @@ describe("aina.extractDocumentText", () => {
     vi.clearAllMocks();
   });
 
-  it("extracts plain text from a .txt file", async () => {
+  it("requires authentication", async () => {
     const caller = ainaRouter.createCaller(createPublicContext());
+    const base64 = Buffer.from("hello").toString("base64");
+    await expect(caller.extractDocumentText({ fileBase64: base64, mimeType: "text/plain", fileName: "test.txt" })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
+
+  it("extracts plain text from a .txt file", async () => {
+    const caller = ainaRouter.createCaller(createAuthContext());
     const text = "Hello, this is a test document.";
     const base64 = Buffer.from(text).toString("base64");
 
@@ -207,7 +228,7 @@ describe("aina.extractDocumentText", () => {
   });
 
   it("returns empty text for unsupported binary types (no error, just no context)", async () => {
-    const caller = ainaRouter.createCaller(createPublicContext());
+    const caller = ainaRouter.createCaller(createAuthContext());
     const base64 = Buffer.from("binary data").toString("base64");
 
     const result = await caller.extractDocumentText({

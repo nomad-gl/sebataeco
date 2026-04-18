@@ -243,6 +243,7 @@ export default function NavBar() {
     { href: "/forum",         label: t("nav_forum"),         icon: MessagesSquare },
     { href: "/connect",       label: t("nav_connect"),       icon: Wifi },
     { href: "/lesson-planner",  label: t("nav_lesson_planner"),  icon: FileText },
+    { href: "/individual-plans",  label: t("nav_individual_plans"),  icon: GraduationCap },
     { href: "/help",             label: t("nav_help"),            icon: HelpCircle },
     { href: "/privacy",           label: t("nav_privacy"),          icon: Lock },
   ];
