@@ -1,10 +1,14 @@
 # robots.txt — sebataeco.com / aina.forum
 # SEBA AI · Aina — Assistent IA per a Docents LOMLOE
+# Last updated: 2026-04-18
 
-User-agent: *
-Allow: /
-
-# Block private/authenticated routes from indexing
+# ── Legitimate search engine crawlers ──────────────────────────────────────
+User-agent: Googlebot
+Allow: /$
+Allow: /login
+Allow: /chat
+Allow: /practice
+Allow: /connect
 Disallow: /api/
 Disallow: /dashboard/
 Disallow: /director/
@@ -12,16 +16,105 @@ Disallow: /admin/
 Disallow: /profile
 Disallow: /register
 Disallow: /connect/room/
+Crawl-delay: 2
 
-# Allow important public routes explicitly
+User-agent: Bingbot
 Allow: /$
 Allow: /login
 Allow: /chat
 Allow: /practice
 Allow: /connect
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /director/
+Disallow: /admin/
+Disallow: /profile
+Disallow: /register
+Disallow: /connect/room/
+Crawl-delay: 2
 
-# Crawl-delay for polite crawlers
-Crawl-delay: 1
+# ── AI training / data harvesting bots — fully blocked ─────────────────────
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: PerplexityBot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: PetalBot
+Disallow: /
+
+User-agent: Amazonbot
+Disallow: /
+
+User-agent: Applebot-Extended
+Disallow: /
+
+User-agent: cohere-ai
+Disallow: /
+
+User-agent: omgili
+Disallow: /
+
+User-agent: omgilibot
+Disallow: /
+
+User-agent: FacebookBot
+Disallow: /
+
+User-agent: ia_archiver
+Disallow: /
+
+User-agent: DataForSeoBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: BLEXBot
+Disallow: /
+
+# ── All other bots: allow public pages only ─────────────────────────────────
+User-agent: *
+Allow: /$
+Allow: /login
+Allow: /chat
+Allow: /practice
+Allow: /connect
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /director/
+Disallow: /admin/
+Disallow: /profile
+Disallow: /register
+Disallow: /connect/room/
+Crawl-delay: 5
 
 # Sitemap locations
 Sitemap: https://sebataeco.com/sitemap.xml

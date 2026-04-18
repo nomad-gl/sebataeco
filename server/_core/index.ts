@@ -43,6 +43,28 @@ async function startServer() {
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+  // ── Sovereignty: security & privacy headers ───────────────────────────────
+  app.use((_req, res, next) => {
+    // Prevent clickjacking
+    res.setHeader("X-Frame-Options", "SAMEORIGIN");
+    // Prevent MIME-type sniffing
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    // Restrict referrer information sent to external sites
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    // Permissions policy: disable sensors/tracking APIs not used by the app
+    res.setHeader(
+      "Permissions-Policy",
+      "geolocation=(), payment=(), usb=(), interest-cohort=()"
+    );
+    next();
+  });
+  // Block robots from indexing API endpoints
+  app.use("/api", (_req, res, next) => {
+    res.setHeader("X-Robots-Tag", "noindex, nofollow");
+    next();
+  });
+
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
 
@@ -75,9 +97,7 @@ async function startServer() {
 
   // ── SEO: robots.txt (served dynamically so it works on all domains) ───────
   app.get("/robots.txt", (_req, res) => {
-    const content = [
-      "User-agent: *",
-      "Allow: /",
+    const privateRoutes = [
       "Disallow: /api/",
       "Disallow: /dashboard/",
       "Disallow: /director/",
@@ -85,13 +105,44 @@ async function startServer() {
       "Disallow: /profile",
       "Disallow: /register",
       "Disallow: /connect/room/",
+    ];
+    const publicAllow = [
+      "Allow: /",
+      "Allow: /login",
+      "Allow: /chat",
+      "Allow: /practice",
+      "Allow: /connect",
+    ];
+    const aiTrainingBots = [
+      "GPTBot", "ChatGPT-User", "CCBot", "anthropic-ai", "Claude-Web",
+      "Google-Extended", "PerplexityBot", "Bytespider", "PetalBot",
+      "Amazonbot", "Applebot-Extended", "cohere-ai", "omgili", "omgilibot",
+      "FacebookBot", "ia_archiver", "DataForSeoBot", "SemrushBot",
+      "AhrefsBot", "MJ12bot", "DotBot", "BLEXBot",
+    ];
+    const lines: string[] = [
+      "# robots.txt — sebataeco.com / aina.forum",
+      "# SEBA AI · Aina — Assistent IA per a Docents LOMLOE",
+      "",
+      "# Legitimate search engine crawlers",
+      "User-agent: Googlebot",
+      ...publicAllow, ...privateRoutes, "Crawl-delay: 2",
+      "",
+      "User-agent: Bingbot",
+      ...publicAllow, ...privateRoutes, "Crawl-delay: 2",
+      "",
+      "# AI training / data harvesting bots — fully blocked",
+      ...aiTrainingBots.flatMap(bot => [`User-agent: ${bot}`, "Disallow: /", ""]),
+      "# All other bots: public pages only",
+      "User-agent: *",
+      ...publicAllow, ...privateRoutes, "Crawl-delay: 5",
       "",
       "Sitemap: https://sebataeco.com/sitemap.xml",
       "Sitemap: https://aina.forum/sitemap.xml",
-    ].join("\n");
+    ];
     res.set("Content-Type", "text/plain");
-    res.set("Cache-Control", "public, max-age=86400");
-    res.send(content);
+    res.set("Cache-Control", "public, max-age=3600");
+    res.send(lines.join("\n"));
   });
 
   // tRPC API

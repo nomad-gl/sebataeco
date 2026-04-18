@@ -1,26 +1,26 @@
 {
-  "name": "SEBA AI · Aina — Assistent IA per a Docents LOMLOE",
-  "short_name": "Aina",
+  "name": "Seba | AINA",
+  "short_name": "AINA",
   "description": "Assistent d'intel·ligència artificial per a docents d'educació primària i secundària a Espanya. Genera activitats, avaluacions i materials alineats amb les 8 competències clau de la LOMLOE en català, castellà i anglès.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#0f172a",
-  "theme_color": "#1a4fa0",
+  "background_color": "#1e3a5f",
+  "theme_color": "#1e3a5f",
   "lang": "ca",
   "dir": "ltr",
   "categories": ["education", "productivity", "utilities"],
   "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
   "icons": [
     {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/icon-192_612f7bdd.png",
+      "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/icon-512_a0c8222b.png",
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -28,10 +28,10 @@
   ],
   "screenshots": [
     {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/icon-512_a0c8222b.png",
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "label": "SEBA AI Aina — Assistent IA per a Docents LOMLOE"
+      "label": "Seba | AINA — Assistent IA per a Docents LOMLOE"
     }
   ],
   "shortcuts": [
@@ -40,36 +40,21 @@
       "short_name": "Aina",
       "description": "Obre l'assistent d'IA Aina per a docents LOMLOE",
       "url": "/chat",
-      "icons": [
-        {
-          "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/icon-192_612f7bdd.png",
-          "sizes": "192x192"
-        }
-      ]
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Pràctica LOMLOE",
       "short_name": "Pràctica",
       "description": "Practica les competències clau de la LOMLOE",
       "url": "/practice",
-      "icons": [
-        {
-          "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/icon-192_612f7bdd.png",
-          "sizes": "192x192"
-        }
-      ]
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "SEBA Connect",
       "short_name": "Connect",
       "description": "Videotrucada educativa amb fons virtuals",
       "url": "/connect",
-      "icons": [
-        {
-          "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/icon-192_612f7bdd.png",
-          "sizes": "192x192"
-        }
-      ]
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ],
   "related_applications": [],

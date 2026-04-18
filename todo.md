@@ -3451,3 +3451,19 @@
 ## Feature: Windows tile meta tags
 - [x] Generate 144px SebaSymbol PNG for Windows tile
 - [x] Add msapplication-TileImage, msapplication-TileColor, and msapplication-config meta tags to index.html
+
+## Feature: Apple touch icon + PWA manifest icons (SebaSymbol)
+- [x] Generate 180px PNG for apple-touch-icon
+- [x] Generate 192px and 512px PNGs for PWA manifest
+- [x] Update apple-touch-icon link in index.html to use new local PNG
+- [x] Update manifest.json icons array with 192px and 512px SebaSymbol PNGs
+
+## Feature: Website sovereignty hardening
+- [x] Audit robots.txt — ensure Disallow: / for all non-essential bots, allow only legitimate crawlers
+- [x] Audit index.html for third-party script/font/resource leaks (Google Fonts, CloudFront, CDN)
+- [x] Remove or self-host any external font/CDN dependencies that phone home
+- [x] Audit analytics script — confirmed self-hosted Umami via VITE_ANALYTICS_ENDPOINT env var
+- [x] Audit Open Graph / Twitter card image URLs — replaced CloudFront references with sebataeco.com/icon-512.png
+- [x] Review server headers — added X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, X-Robots-Tag on /api
+- [x] Confirmed no external API keys or tracking pixels exposed in client-side code
+- [x] Verified sw.js service worker uses network-first with same-origin cache only — no third-party forwarding
