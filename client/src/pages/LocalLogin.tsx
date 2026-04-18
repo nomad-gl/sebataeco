@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Globe, Eye, EyeOff, Loader2, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { SebaSymbol } from "@/components/SebaSymbol";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 
@@ -140,11 +141,7 @@ export default function LocalLogin() {
         {/* SEBA logo / title */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-3">
-            <img
-              src="https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/seba-logo-dark-Bxgq2SHvBzBLRLJPNdvmwf.png"
-              alt="SEBA"
-              className="h-16 w-auto object-contain drop-shadow-lg"
-            />
+            <SebaSymbol size={64} color="white" className="drop-shadow-lg" />
           </div>
           <p className="text-white/70 text-sm">{t("local_auth_subtitle")}</p>
         </div>

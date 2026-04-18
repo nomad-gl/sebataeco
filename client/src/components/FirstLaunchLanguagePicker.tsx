@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useI18n, Lang } from "@/contexts/I18nContext";
+import { SebaSymbol } from "@/components/SebaSymbol";
 
 const STORAGE_KEY = "seba_lang_chosen";
 
@@ -27,8 +28,6 @@ const LANGUAGES: { code: Lang; label: string; nativeLabel: string; flag: string;
   },
 ];
 
-const SEBA_LOGO =
-  "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/seba-logo-dark-Bxgq2SHvBzBLRLJPNdvmwf.png";
 
 export default function FirstLaunchLanguagePicker() {
   const { setLang } = useI18n();
@@ -71,14 +70,7 @@ export default function FirstLaunchLanguagePicker() {
 
       <div className="relative z-10 flex flex-col items-center w-full max-w-sm">
         {/* Logo */}
-        <img
-          src={SEBA_LOGO}
-          alt="SEBA"
-          className="h-12 w-auto object-contain mb-6 drop-shadow-lg"
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.display = "none";
-          }}
-        />
+        <SebaSymbol size={48} color="white" className="mb-6 drop-shadow-lg" />
 
         <h1 className="text-2xl font-bold text-white mb-1 text-center">
           Welcome to AINA

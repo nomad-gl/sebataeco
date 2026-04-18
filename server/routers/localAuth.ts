@@ -363,11 +363,22 @@ export const localAuthRouter = router({
       const normalised = input.email.toLowerCase().trim();
       const openId = localOpenId(normalised);
 
-      const [user] = await db
+      // Primary lookup: local:<email> openId (standard local accounts)
+      let [user] = await db
         .select()
         .from(users)
         .where(eq(users.openId, openId))
         .limit(1);
+
+      // Fallback: look up by email field for OAuth accounts that have set a password
+      if (!user) {
+        const [byEmail] = await db
+          .select()
+          .from(users)
+          .where(eq(users.email, normalised))
+          .limit(1);
+        if (byEmail) user = byEmail;
+      }
 
       if (!user || !user.passwordHash) {
         // Generic message to avoid user enumeration
@@ -399,7 +410,8 @@ export const localAuthRouter = router({
         .set({ lastSignedIn: new Date() })
         .where(eq(users.id, user.id));
 
-      const sessionToken = await sdk.createSessionToken(openId, {
+      // Use the user's actual openId (may differ from local:email for OAuth accounts)
+      const sessionToken = await sdk.createSessionToken(user.openId, {
         name: user.displayName ?? user.name ?? normalised,
         sv: user.sessionVersion ?? 1,
         expiresInMs: ONE_YEAR_MS,
@@ -409,6 +421,57 @@ export const localAuthRouter = router({
         ...cookieOptions,
         maxAge: ONE_YEAR_MS,
       });
+
+      return { success: true };
+    }),
+
+  /**
+   * Set or change the local password for the currently authenticated user.
+   * Works for both local accounts and OAuth accounts (e.g. owner via Manus OAuth).
+   * Once set, the user can log in with email + password on any device.
+   */
+  setPassword: protectedProcedure
+    .input(
+      z.object({
+        newPassword: z.string().min(8, "Password must be at least 8 characters"),
+        currentPassword: z.string().optional(), // required only if account already has a password
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, ctx.user.id))
+        .limit(1);
+
+      if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found." });
+
+      // If the account already has a password, require the current password for verification
+      if (user.passwordHash) {
+        if (!input.currentPassword) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Current password is required to change your password.",
+          });
+        }
+        const valid = await bcrypt.compare(input.currentPassword, user.passwordHash);
+        if (!valid) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Current password is incorrect.",
+          });
+        }
+      }
+
+      const passwordHash = await bcrypt.hash(input.newPassword, BCRYPT_ROUNDS);
+
+      await db
+        .update(users)
+        .set({ passwordHash })
+        .where(eq(users.id, user.id));
 
       return { success: true };
     }),

@@ -30,6 +30,7 @@ import {
   ShieldCheck,
   XCircle,
 } from "lucide-react";
+import { SebaSymbol } from "@/components/SebaSymbol";
 
 const DEFAULT_BG =
   "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/hero-bg-UMuQESLM5HrV2VsrndDo2h.webp";
@@ -229,11 +230,7 @@ export default function RegisterWithInvite() {
         {/* SEBA logo / title */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-3">
-            <img
-              src="https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/seba-logo-dark-Bxgq2SHvBzBLRLJPNdvmwf.png"
-              alt="SEBA"
-              className="h-16 w-auto object-contain drop-shadow-lg"
-            />
+            <SebaSymbol size={64} color="white" className="drop-shadow-lg" />
           </div>
           <p className="text-white/70 text-sm">{t("reg_invite_page_subtitle")}</p>
         </div>

@@ -3361,3 +3361,10 @@
 
 - [x] Add Sign In button to desktop NavBar (visible only when not authenticated)
 - [x] Add Sign In button to mobile slide-out menu (visible only when not authenticated)
+
+## Bug: Sign-in page logo missing + login not working
+
+- [x] Fix missing logo on sign-in page — replaced broken CDN img with SebaSymbol SVG on LocalLogin, RegisterWithInvite, FirstLaunchLanguagePicker
+- [x] Fix login for owner: added email-field fallback in login mutation so OAuth accounts with a passwordHash can log in
+- [x] Add setPassword mutation so owner/any user can add a local password to their existing account (Settings → Account Security)
+- [x] Show helpful error on login page when email exists but has no password set (generic UNAUTHORIZED message preserved)

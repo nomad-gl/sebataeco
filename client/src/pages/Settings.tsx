@@ -21,6 +21,9 @@ import {
   ExternalLink,
   ShieldAlert,
   LogOut,
+  KeyRound,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -265,7 +268,32 @@ function SchoolProfileCard({ t }: { t: (k: TranslationKey) => string }) {
 
 // ── Account Security card ──────────────────────────────────────────────────
 function AccountSecurityCard({ t }: { t: (k: TranslationKey) => string }) {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+
+  // ── Set / Change password ──────────────────────────────────────────────────
+  const [showSetPw, setShowSetPw] = useState(false);
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [showNewPw, setShowNewPw] = useState(false);
+  const [pwError, setPwError] = useState("");
+
+  const setPasswordMutation = trpc.localAuth.setPassword.useMutation({
+    onSuccess: () => {
+      toast.success("Password set successfully. You can now log in with email + password.");
+      setShowSetPw(false);
+      setCurrentPw(""); setNewPw(""); setConfirmPw(""); setPwError("");
+    },
+    onError: (err) => setPwError(err.message),
+  });
+
+  const handleSetPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPwError("");
+    if (newPw.length < 8) { setPwError("Password must be at least 8 characters."); return; }
+    if (newPw !== confirmPw) { setPwError("Passwords do not match."); return; }
+    setPasswordMutation.mutate({ newPassword: newPw, currentPassword: currentPw || undefined });
+  };
 
   const logoutAll = trpc.localAuth.logoutAllDevices.useMutation({
     onSuccess: () => {
@@ -289,7 +317,95 @@ function AccountSecurityCard({ t }: { t: (k: TranslationKey) => string }) {
           {t("settings_security_desc")}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        {/* ── Set / Change password ── */}
+        {!showSetPw ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => setShowSetPw(true)}
+          >
+            <KeyRound className="w-3.5 h-3.5" />
+            {user?.loginMethod === "local" ? "Change Password" : "Set Login Password"}
+          </Button>
+        ) : (
+          <form onSubmit={handleSetPassword} className="space-y-3 border rounded-lg p-4 bg-muted/30">
+            <p className="text-sm font-medium">Set Login Password</p>
+            <p className="text-xs text-muted-foreground">
+              Once set, you can log in with your email and this password on any device.
+            </p>
+            {user?.loginMethod !== "local" && (
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                Your account was created via OAuth. Setting a password lets you also log in with email + password.
+              </p>
+            )}
+            {/* Current password — only needed if account already has one */}
+            {user?.loginMethod === "local" && (
+              <div className="space-y-1">
+                <Label className="text-xs">Current Password</Label>
+                <Input
+                  type="password"
+                  value={currentPw}
+                  onChange={(e) => setCurrentPw(e.target.value)}
+                  placeholder="Enter current password"
+                  autoComplete="current-password"
+                />
+              </div>
+            )}
+            <div className="space-y-1">
+              <Label className="text-xs">New Password</Label>
+              <div className="relative">
+                <Input
+                  type={showNewPw ? "text" : "password"}
+                  value={newPw}
+                  onChange={(e) => setNewPw(e.target.value)}
+                  placeholder="At least 8 characters"
+                  autoComplete="new-password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowNewPw((v) => !v)}
+                >
+                  {showNewPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Confirm New Password</Label>
+              <Input
+                type="password"
+                value={confirmPw}
+                onChange={(e) => setConfirmPw(e.target.value)}
+                placeholder="Repeat new password"
+                autoComplete="new-password"
+              />
+            </div>
+            {pwError && (
+              <p className="text-destructive text-xs">{pwError}</p>
+            )}
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => { setShowSetPw(false); setCurrentPw(""); setNewPw(""); setConfirmPw(""); setPwError(""); }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={setPasswordMutation.isPending}
+              >
+                {setPasswordMutation.isPending ? "Saving…" : "Save Password"}
+              </Button>
+            </div>
+          </form>
+        )}
+
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button

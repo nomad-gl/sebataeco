@@ -337,8 +337,9 @@ describe("localAuth.login", () => {
     ).rejects.toThrow(TRPCError);
   });
 
-  it("throws UNAUTHORIZED for non-existent email", async () => {
-    const db = makeDb({ selectResults: [[]] });
+  it("throws UNAUTHORIZED for non-existent email (both local and email lookups return empty)", async () => {
+    // Both the local:email openId lookup and the email fallback return nothing
+    const db = makeDb({ selectResults: [[], []] });
     vi.mocked(getDb).mockResolvedValue(db as any);
 
     const { localAuthRouter } = await import("../server/routers/localAuth");
@@ -349,16 +350,18 @@ describe("localAuth.login", () => {
     ).rejects.toThrow(TRPCError);
   });
 
-  it("throws UNAUTHORIZED for users without a local password (OAuth-only accounts)", async () => {
-    const mockUser = {
+  it("throws UNAUTHORIZED for OAuth-only accounts without a password (no passwordHash)", async () => {
+    // local:email lookup returns nothing; email fallback returns OAuth user with no passwordHash
+    const oauthUser = {
       id: 2,
       openId: "manus:abc123",
       email: "oauth@escola.cat",
       passwordHash: null,
       displayName: "OAuth User",
       name: "OAuth User",
+      sessionVersion: 1,
     };
-    const db = makeDb({ selectResults: [[mockUser]] });
+    const db = makeDb({ selectResults: [[], [oauthUser]] });
     vi.mocked(getDb).mockResolvedValue(db as any);
 
     const { localAuthRouter } = await import("../server/routers/localAuth");
@@ -367,5 +370,124 @@ describe("localAuth.login", () => {
     await expect(
       caller.login({ email: "oauth@escola.cat", password: "anypassword" })
     ).rejects.toThrow(TRPCError);
+  });
+
+  it("allows OAuth account to log in via email fallback when passwordHash is set", async () => {
+    // local:email lookup returns nothing; email fallback finds the OAuth user who has set a password
+    const oauthUserWithPw = {
+      id: 3,
+      openId: "manus:owner123",
+      email: "owner@escola.cat",
+      passwordHash: "hashed-password",
+      displayName: "Paul Director",
+      name: "Paul Director",
+      sessionVersion: 1,
+      deactivatedAt: null,
+    };
+    const db = makeDb({ selectResults: [[], [oauthUserWithPw]] });
+    vi.mocked(getDb).mockResolvedValue(db as any);
+    vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
+
+    const { localAuthRouter } = await import("../server/routers/localAuth");
+    const ctx = makeCtx();
+    const caller = localAuthRouter.createCaller(ctx as any);
+
+    const result = await caller.login({
+      email: "owner@escola.cat",
+      password: "securepass123",
+    });
+
+    expect(result).toEqual({ success: true });
+    // Session token should use the user's actual openId (manus:owner123), not local:email
+    const { sdk } = await import("../server/_core/sdk");
+    expect(sdk.createSessionToken).toHaveBeenCalledWith(
+      "manus:owner123",
+      expect.objectContaining({ name: "Paul Director" })
+    );
+  });
+});
+
+// ── setPassword tests ──────────────────────────────────────────────────
+
+describe("localAuth.setPassword", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("allows an OAuth user to set a password for the first time", async () => {
+    const oauthUser = {
+      id: 3,
+      openId: "manus:owner123",
+      email: "owner@escola.cat",
+      passwordHash: null, // no password yet
+      displayName: "Paul Director",
+    };
+    const db = makeDb({ selectResults: [[oauthUser]] });
+    vi.mocked(getDb).mockResolvedValue(db as any);
+
+    const { localAuthRouter } = await import("../server/routers/localAuth");
+    const ctx = { ...makeCtx(), user: { id: 3, openId: "manus:owner123" } };
+    const caller = localAuthRouter.createCaller(ctx as any);
+
+    const result = await caller.setPassword({ newPassword: "newsecurepass123" });
+    expect(result).toEqual({ success: true });
+    expect(db.update).toHaveBeenCalled();
+    expect(bcrypt.hash).toHaveBeenCalledWith("newsecurepass123", 12);
+  });
+
+  it("requires current password when account already has one", async () => {
+    const localUser = {
+      id: 1,
+      openId: "local:teacher@escola.cat",
+      email: "teacher@escola.cat",
+      passwordHash: "existing-hash",
+      displayName: "Maria",
+    };
+    const db = makeDb({ selectResults: [[localUser]] });
+    vi.mocked(getDb).mockResolvedValue(db as any);
+    vi.mocked(bcrypt.compare).mockResolvedValue(false as never);
+
+    const { localAuthRouter } = await import("../server/routers/localAuth");
+    const ctx = { ...makeCtx(), user: { id: 1, openId: "local:teacher@escola.cat" } };
+    const caller = localAuthRouter.createCaller(ctx as any);
+
+    // No currentPassword provided — should throw BAD_REQUEST
+    await expect(
+      caller.setPassword({ newPassword: "newsecurepass123" })
+    ).rejects.toThrow(TRPCError);
+  });
+
+  it("rejects wrong current password", async () => {
+    const localUser = {
+      id: 1,
+      openId: "local:teacher@escola.cat",
+      email: "teacher@escola.cat",
+      passwordHash: "existing-hash",
+      displayName: "Maria",
+    };
+    const db = makeDb({ selectResults: [[localUser]] });
+    vi.mocked(getDb).mockResolvedValue(db as any);
+    vi.mocked(bcrypt.compare).mockResolvedValue(false as never);
+
+    const { localAuthRouter } = await import("../server/routers/localAuth");
+    const ctx = { ...makeCtx(), user: { id: 1, openId: "local:teacher@escola.cat" } };
+    const caller = localAuthRouter.createCaller(ctx as any);
+
+    await expect(
+      caller.setPassword({ newPassword: "newsecurepass123", currentPassword: "wrongcurrent" })
+    ).rejects.toThrow(TRPCError);
+  });
+
+  it("rejects passwords shorter than 8 characters", async () => {
+    const db = makeDb({ selectResults: [[]] });
+    vi.mocked(getDb).mockResolvedValue(db as any);
+
+    const { localAuthRouter } = await import("../server/routers/localAuth");
+    const ctx = { ...makeCtx(), user: { id: 1, openId: "local:teacher@escola.cat" } };
+    const caller = localAuthRouter.createCaller(ctx as any);
+
+    await expect(
+      caller.setPassword({ newPassword: "short" })
+    ).rejects.toThrow();
   });
 });
