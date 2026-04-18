@@ -3467,3 +3467,7 @@
 - [x] Review server headers — added X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, X-Robots-Tag on /api
 - [x] Confirmed no external API keys or tracking pixels exposed in client-side code
 - [x] Verified sw.js service worker uses network-first with same-origin cache only — no third-party forwarding
+
+## Feature: Full crawler lockdown (all bots blocked)
+- [x] Update static robots.txt: block ALL bots including Googlebot and Bingbot with Disallow: /
+- [x] Update dynamic server robots.txt route to match — single User-agent: * Disallow: /

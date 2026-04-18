@@ -97,52 +97,22 @@ async function startServer() {
 
   // ── SEO: robots.txt (served dynamically so it works on all domains) ───────
   app.get("/robots.txt", (_req, res) => {
-    const privateRoutes = [
-      "Disallow: /api/",
-      "Disallow: /dashboard/",
-      "Disallow: /director/",
-      "Disallow: /admin/",
-      "Disallow: /profile",
-      "Disallow: /register",
-      "Disallow: /connect/room/",
-    ];
-    const publicAllow = [
-      "Allow: /",
-      "Allow: /login",
-      "Allow: /chat",
-      "Allow: /practice",
-      "Allow: /connect",
-    ];
-    const aiTrainingBots = [
-      "GPTBot", "ChatGPT-User", "CCBot", "anthropic-ai", "Claude-Web",
-      "Google-Extended", "PerplexityBot", "Bytespider", "PetalBot",
-      "Amazonbot", "Applebot-Extended", "cohere-ai", "omgili", "omgilibot",
-      "FacebookBot", "ia_archiver", "DataForSeoBot", "SemrushBot",
-      "AhrefsBot", "MJ12bot", "DotBot", "BLEXBot",
-    ];
-    const lines: string[] = [
+    // Full lockdown: no automated crawling, scraping, indexing, or AI training
+    const content = [
       "# robots.txt — sebataeco.com / aina.forum",
       "# SEBA AI · Aina — Assistent IA per a Docents LOMLOE",
+      "# This site is a private educational tool.",
+      "# All automated access is prohibited.",
       "",
-      "# Legitimate search engine crawlers",
-      "User-agent: Googlebot",
-      ...publicAllow, ...privateRoutes, "Crawl-delay: 2",
-      "",
-      "User-agent: Bingbot",
-      ...publicAllow, ...privateRoutes, "Crawl-delay: 2",
-      "",
-      "# AI training / data harvesting bots — fully blocked",
-      ...aiTrainingBots.flatMap(bot => [`User-agent: ${bot}`, "Disallow: /", ""]),
-      "# All other bots: public pages only",
       "User-agent: *",
-      ...publicAllow, ...privateRoutes, "Crawl-delay: 5",
+      "Disallow: /",
       "",
       "Sitemap: https://sebataeco.com/sitemap.xml",
       "Sitemap: https://aina.forum/sitemap.xml",
-    ];
+    ].join("\n");
     res.set("Content-Type", "text/plain");
     res.set("Cache-Control", "public, max-age=3600");
-    res.send(lines.join("\n"));
+    res.send(content);
   });
 
   // tRPC API
