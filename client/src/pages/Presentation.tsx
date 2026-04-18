@@ -8,10 +8,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
 import NavBar from "@/components/NavBar";
 import {
   Loader2, Presentation as PresentationIcon, ChevronLeft, ChevronRight,
-  Download, Printer, BookOpen, Lightbulb, Pencil, Check, X, FileQuestion, AlignLeft, ImagePlus, ArrowLeft,
+  Download, Printer, BookOpen, Lightbulb, Pencil, Check, X, FileQuestion,
+  AlignLeft, ImagePlus, ArrowLeft, Save, Layers, Maximize2, ChevronDown,
 } from "lucide-react";
 import { getLoginUrl } from "@/const";
 import { exportPDF, exportWord, exportPNG, exportToCsv, exportToXml } from "@/lib/exportUtils";
@@ -50,7 +52,7 @@ type PresentationData = {
   slides: Slide[];
 };
 
-// Inline editable field component
+// ── Inline editable field ────────────────────────────────────────────────────
 function EditableField({
   value, onChange, multiline, className,
 }: { value: string; onChange: (v: string) => void; multiline?: boolean; className?: string }) {
@@ -65,24 +67,19 @@ function EditableField({
     return (
       <div className="flex flex-col gap-1 w-full">
         {multiline ? (
-          <Textarea
-            autoFocus
-            value={draft}
-            onChange={e => setDraft(e.target.value)}
-            rows={4}
-            className={`bg-white/10 border-blue-400/60 text-white resize-none text-sm ${className ?? ""}`}
-          />
+          <Textarea autoFocus value={draft} onChange={e => setDraft(e.target.value)} rows={4}
+            className="bg-white/10 border-blue-400/60 text-white resize-none text-sm" />
         ) : (
-          <Input
-            autoFocus
-            value={draft}
-            onChange={e => setDraft(e.target.value)}
-            className={`bg-white/10 border-blue-400/60 text-white text-sm ${className ?? ""}`}
-          />
+          <Input autoFocus value={draft} onChange={e => setDraft(e.target.value)}
+            className="bg-white/10 border-blue-400/60 text-white text-sm" />
         )}
         <div className="flex gap-1.5">
-          <Button size="sm" className="h-6 px-2 text-xs bg-blue-500 hover:bg-blue-400" onClick={commit}><Check className="w-3 h-3 mr-1" />{t("save")}</Button>
-          <Button size="sm" variant="ghost" className="h-6 px-2 text-xs text-white/60 hover:text-white" onClick={cancel}><X className="w-3 h-3 mr-1" />{t("cancel")}</Button>
+          <Button size="sm" className="h-6 px-2 text-xs bg-blue-500 hover:bg-blue-400" onClick={commit}>
+            <Check className="w-3 h-3 mr-1" />{t("save")}
+          </Button>
+          <Button size="sm" variant="ghost" className="h-6 px-2 text-xs text-white/60 hover:text-white" onClick={cancel}>
+            <X className="w-3 h-3 mr-1" />{t("cancel")}
+          </Button>
         </div>
       </div>
     );
@@ -96,10 +93,120 @@ function EditableField({
   );
 }
 
+// ── Full-slide preview modal ─────────────────────────────────────────────────
+function SlidePreviewModal({
+  slides,
+  initialIndex,
+  onClose,
+}: {
+  slides: Slide[];
+  initialIndex: number;
+  onClose: () => void;
+}) {
+  const { t } = useI18n();
+  const [idx, setIdx] = useState(initialIndex);
+  const slide = slides[idx];
+  if (!slide) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl bg-gradient-to-br from-[#0d1f4a] to-[#1a1060] border border-blue-400/30 shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-blue-400/20">
+          <span className="text-white/60 text-sm font-medium">
+            Slide {idx + 1} / {slides.length}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button size="icon" variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10 h-8 w-8"
+              disabled={idx === 0} onClick={() => setIdx(i => i - 1)}>
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <Button size="icon" variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10 h-8 w-8"
+              disabled={idx === slides.length - 1} onClick={() => setIdx(i => i + 1)}>
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+            <Button size="icon" variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10 h-8 w-8"
+              onClick={onClose}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Slide content */}
+        <div className="px-6 py-6 space-y-5">
+          <div className="flex items-start justify-between gap-3">
+            <h2 className="text-2xl sm:text-3xl font-heading font-bold text-white leading-snug flex-1">
+              {slide.title}
+            </h2>
+            {slide.competencyTag && (
+              <Badge className="bg-blue-400/20 text-blue-200 border-blue-400/40 shrink-0">{slide.competencyTag}</Badge>
+            )}
+          </div>
+
+          <p className="text-white/90 leading-relaxed text-base whitespace-pre-line">{slide.content}</p>
+
+          {slide.keyVocabulary && slide.keyVocabulary.length > 0 && (
+            <div className="bg-blue-400/10 border border-blue-400/20 rounded-xl p-4 space-y-2">
+              <p className="text-blue-200 text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5">
+                <BookOpen className="w-3.5 h-3.5" /> {t("material_key_vocab")}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {slide.keyVocabulary.map((v, i) => (
+                  <Badge key={i} className="bg-blue-500/30 text-blue-100 border-blue-400/30">{v}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {slide.imagePrompt && (
+            <div className="bg-yellow-400/10 border border-yellow-400/20 rounded-xl p-4">
+              <p className="text-yellow-200 text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5 mb-1">
+                <Lightbulb className="w-3.5 h-3.5" /> {t("pres_image_suggestion")}
+              </p>
+              <p className="text-yellow-100/80 text-sm italic">{slide.imagePrompt}</p>
+            </div>
+          )}
+
+          {slide.speakerNotes && (
+            <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+              <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">{t("pres_speaker_notes")}</p>
+              <p className="text-white/75 text-sm leading-relaxed whitespace-pre-line">{slide.speakerNotes}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Thumbnail strip */}
+        <div className="px-6 pb-5 flex gap-2 overflow-x-auto">
+          {slides.map((s, i) => (
+            <button
+              key={i}
+              onClick={() => setIdx(i)}
+              className={`shrink-0 w-24 rounded-lg border p-2 text-left transition-all ${
+                i === idx ? "border-blue-400 bg-blue-400/20" : "border-white/10 bg-white/5 hover:bg-white/10"
+              }`}
+            >
+              <p className="text-white text-[10px] font-medium truncate">{i + 1}. {s.title}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main page ────────────────────────────────────────────────────────────────
 export default function Presentation() {
   const { t } = useI18n();
   const { isAuthenticated, loading } = useAuth();
   const [, navigate] = useLocation();
+
+  // Single generate form state
   const [topic, setTopic] = useState("");
   const [heading, setHeading] = useState("");
   const [subject, setSubject] = useState<string | undefined>(undefined);
@@ -110,8 +217,20 @@ export default function Presentation() {
   const [slides, setSlides] = useState<Slide[]>([]);
   const [slideImages, setSlideImages] = useState<Record<number, string>>({});
   const [generatingImageFor, setGeneratingImageFor] = useState<number | null>(null);
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const [saved, setSaved] = useState(false);
   const exportId = "presentation-export-area";
 
+  // Bulk generate state
+  const [showBulk, setShowBulk] = useState(false);
+  const [bulkTopics, setBulkTopics] = useState("");
+  const [bulkSubject, setBulkSubject] = useState<string | undefined>(undefined);
+  const [bulkYearGroup, setBulkYearGroup] = useState<string | undefined>(undefined);
+  const [bulkCompetency, setBulkCompetency] = useState<string | undefined>(undefined);
+  const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number; current: string } | null>(null);
+  const bulkAbortRef = useRef(false);
+
+  // ── mutations ──────────────────────────────────────────────────────────────
   const createMutation = trpc.materials.create.useMutation({
     onSuccess: (data) => {
       try {
@@ -120,6 +239,7 @@ export default function Presentation() {
         setGenerated(pres);
         setSlides(pres.slides ?? []);
         setCurrentSlide(0);
+        setSaved(false);
         toast.success(t("presentation_generated"));
       } catch {
         toast.error(t("presentation_parse_error"));
@@ -128,7 +248,14 @@ export default function Presentation() {
     onError: () => toast.error(t("presentation_gen_failed")),
   });
 
-  // Server-side PDF export
+  const saveMutation = trpc.materials.save.useMutation({
+    onSuccess: () => {
+      setSaved(true);
+      toast.success(t("lp_saved_toast"));
+    },
+    onError: () => toast.error(t("presentation_gen_failed")),
+  });
+
   const exportPdfMut = trpc.presentations.exportPdf.useMutation({
     onSuccess: (data) => {
       const a = document.createElement("a");
@@ -140,6 +267,53 @@ export default function Presentation() {
     },
     onError: () => toast.error(t("presentation_export_pdf_failed")),
   });
+
+  const generateSlideImageMut = trpc.presentations.generateSlideImage.useMutation({
+    onSuccess: (data, _vars, context) => {
+      const idx = context as number;
+      setSlideImages(prev => ({ ...prev, [idx]: data.url ?? "" }));
+      setGeneratingImageFor(null);
+      toast.success(t("pres_image_generated"));
+    },
+    onError: () => {
+      setGeneratingImageFor(null);
+      toast.error(t("pres_image_gen_failed"));
+    },
+  });
+
+  const deriveMutation = trpc.materials.create.useMutation({
+    onSuccess: (data) => {
+      toast.success(t("presentation_activity_created"));
+      navigate(`/materials/${data.id}`);
+    },
+    onError: () => toast.error(t("presentation_activity_failed")),
+  });
+
+  // tRPC utils for bulk (calls createMutation directly via mutateAsync)
+  const utils = trpc.useUtils();
+
+  // ── handlers ──────────────────────────────────────────────────────────────
+  const handleGenerate = () => {
+    if (!topic || !subject || !yearGroup) return;
+    createMutation.mutate({
+      type: "slides",
+      topic: heading ? `${heading}: ${topic}` : topic,
+      competency: (competency && competency !== "any" ? competency : undefined) as "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC" | undefined,
+      yearGroup: yearGroup as "junior" | "primary" | "secondary",
+    });
+  };
+
+  const handleSave = () => {
+    if (!generated) return;
+    saveMutation.mutate({
+      type: "slides",
+      topic: topic || generated.title,
+      competency: (generated.competency || undefined) as "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC" | undefined,
+      yearGroup: (generated.yearGroup || undefined) as "junior" | "primary" | "secondary" | undefined,
+      title: generated.title,
+      content: JSON.stringify({ ...generated, slides }),
+    });
+  };
 
   const handleExportPdf = () => {
     if (!generated) return;
@@ -158,42 +332,9 @@ export default function Presentation() {
     });
   };
 
-  // Generate image for a slide
-  const generateSlideImageMut = trpc.presentations.generateSlideImage.useMutation({
-    onSuccess: (data, _vars, context) => {
-      const idx = context as number;
-      setSlideImages(prev => ({ ...prev, [idx]: data.url ?? "" }));
-      setGeneratingImageFor(null);
-      toast.success(t("pres_image_generated"));
-    },
-    onError: () => {
-      setGeneratingImageFor(null);
-      toast.error(t("pres_image_gen_failed"));
-    },
-  });
-
   const handleGenerateImage = (idx: number, prompt: string) => {
     setGeneratingImageFor(idx);
     generateSlideImageMut.mutate({ prompt }, { onSettled: () => setGeneratingImageFor(null) });
-  };
-
-  // Derive activity mutation (creates a quiz or fill-in-the-blank from slide text)
-  const deriveMutation = trpc.materials.create.useMutation({
-    onSuccess: (data) => {
-      toast.success(t("presentation_activity_created"));
-      navigate(`/materials/${data.id}`);
-    },
-    onError: () => toast.error(t("presentation_activity_failed")),
-  });
-
-  const handleGenerate = () => {
-    if (!topic || !subject || !yearGroup) return;
-    createMutation.mutate({
-      type: "slides",
-      topic: heading ? `${heading}: ${topic}` : topic,
-      competency: (competency && competency !== "any" ? competency : undefined) as "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC" | undefined,
-      yearGroup: yearGroup as "junior" | "primary" | "secondary",
-    });
   };
 
   const handleDerive = (type: "quiz" | "missing_words") => {
@@ -207,73 +348,145 @@ export default function Presentation() {
     });
   };
 
-  // Slide field editors
   const updateSlideField = (idx: number, field: keyof Slide, value: string) => {
     setSlides(prev => prev.map((s, i) => i === idx ? { ...s, [field]: value } : s));
   };
 
-  if (loading) return <div className="presentation-bg min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-white" /></div>;
+  // Bulk generate: iterate topics sequentially, save each
+  const handleBulkGenerate = async () => {
+    const topicList = bulkTopics.split("\n").map(t => t.trim()).filter(Boolean);
+    if (topicList.length === 0 || !bulkSubject || !bulkYearGroup) return;
+    bulkAbortRef.current = false;
+    setBulkProgress({ done: 0, total: topicList.length, current: topicList[0]! });
+
+    for (let i = 0; i < topicList.length; i++) {
+      if (bulkAbortRef.current) break;
+      const t = topicList[i]!;
+      setBulkProgress({ done: i, total: topicList.length, current: t });
+      try {
+        await utils.client.materials.create.mutate({
+          type: "slides",
+          topic: t,
+          competency: (bulkCompetency && bulkCompetency !== "any" ? bulkCompetency : undefined) as "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC" | undefined,
+          yearGroup: bulkYearGroup as "junior" | "primary" | "secondary",
+        });
+      } catch {
+        toast.error(`Failed: ${t}`);
+      }
+    }
+
+    setBulkProgress(null);
+    if (!bulkAbortRef.current) {
+      toast.success(`${topicList.length} presentations saved to My Materials`);
+      utils.materials.list.invalidate();
+    }
+  };
+
+  const slide = slides[currentSlide];
+
+  if (loading) return (
+    <div className="presentation-bg min-h-screen flex items-center justify-center">
+      <Loader2 className="w-8 h-8 animate-spin text-white" />
+    </div>
+  );
 
   if (!isAuthenticated) {
     return (
       <div className="presentation-bg min-h-screen flex flex-col">
         <NavBar />
         <div className="flex-1 flex items-center justify-center p-4">
-          <Card className="max-w-sm w-full bg-white/10 border-white/20 text-white text-center p-6 space-y-4">
+          <Card className="max-w-sm w-full bg-[#0d1f4a]/90 border-white/20 text-white text-center p-6 space-y-4">
             <PresentationIcon className="w-12 h-12 mx-auto text-blue-300" />
             <h2 className="text-xl font-heading font-bold">{t("pres_signin_title")}</h2>
-            <Button className="w-full bg-blue-500 hover:bg-blue-400" onClick={() => window.location.href = getLoginUrl(window.location.pathname + window.location.search)}>{t("nav_sign_in")}</Button>
+            <Button className="w-full bg-blue-500 hover:bg-blue-400"
+              onClick={() => window.location.href = getLoginUrl(window.location.pathname + window.location.search)}>
+              {t("nav_sign_in")}
+            </Button>
           </Card>
         </div>
       </div>
     );
   }
 
-  const slide = slides[currentSlide];
-
   return (
     <div className="presentation-bg min-h-screen flex flex-col">
       <NavBar />
+
+      {/* Full-slide preview modal */}
+      {previewIndex !== null && (
+        <SlidePreviewModal
+          slides={slides}
+          initialIndex={previewIndex}
+          onClose={() => setPreviewIndex(null)}
+        />
+      )}
+
       <main className="flex-1 container py-6 sm:py-8 space-y-6">
+        {/* Page header */}
         <div className="text-white flex flex-col gap-1">
-          <Button variant="ghost" size="sm" onClick={() => window.history.back()} className="self-start flex items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/10 -ml-2">
+          <Button variant="ghost" size="sm" onClick={() => window.history.back()}
+            className="self-start flex items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/10 -ml-2">
             <ArrowLeft className="size-4" />{t("btn_back")}
           </Button>
           <h1 className="text-2xl sm:text-3xl font-heading font-bold flex items-center gap-2">
             <PresentationIcon className="w-7 h-7 text-blue-300" /> {t("pres_title")}
           </h1>
-          <p className="text-white/60 mt-1 text-sm">{t("pres_subtitle")}</p>
+          <p className="text-white/70 mt-1 text-sm">{t("pres_subtitle")}</p>
         </div>
 
-        {/* Generator form */}
-        <Card className="bg-white/10 border-white/20 text-white">
+        {/* ── Generator form ─────────────────────────────────────────────────── */}
+        <Card className="bg-[#0d1f4a]/90 border-blue-400/30 text-white shadow-xl">
           <CardContent className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2 space-y-1.5">
-              <Label className="text-white/80">{t("pres_heading_label")} <span className="text-white/40">({t("optional")})</span></Label>
-              <Input value={heading} onChange={(e) => setHeading(e.target.value)} placeholder={t("pres_heading_placeholder")} className="bg-white/10 border-white/20 text-white placeholder:text-white/40" />
+              <Label className="text-white/90 font-medium">
+                {t("pres_heading_label")} <span className="text-white/50 font-normal">({t("optional")})</span>
+              </Label>
+              <Input value={heading} onChange={(e) => setHeading(e.target.value)}
+                placeholder={t("pres_heading_placeholder")}
+                className="bg-white/10 border-white/30 text-white placeholder:text-white/40 focus:border-blue-400" />
             </div>
             <div className="sm:col-span-2 space-y-1.5">
-              <Label className="text-white/80">{t("pres_topic_label")} <span className="text-red-400">*</span></Label>
-              <Textarea value={topic} onChange={(e) => setTopic(e.target.value)} placeholder={t("pres_topic_placeholder")} rows={2} className="bg-white/10 border-white/20 text-white placeholder:text-white/40 resize-none" />
+              <Label className="text-white/90 font-medium">
+                {t("pres_topic_label")} <span className="text-red-400">*</span>
+              </Label>
+              <Textarea value={topic} onChange={(e) => setTopic(e.target.value)}
+                placeholder={t("pres_topic_placeholder")} rows={2}
+                className="bg-white/10 border-white/30 text-white placeholder:text-white/40 resize-none focus:border-blue-400" />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/80">{t("pres_subject_label")} <span className="text-red-400">*</span></Label>
+              <Label className="text-white/90 font-medium">
+                {t("pres_subject_label")} <span className="text-red-400">*</span>
+              </Label>
               <Select value={subject ?? undefined} onValueChange={setSubject}>
-                <SelectTrigger className="bg-white/10 border-white/20 text-white"><SelectValue placeholder={t("pres_select_subject")} /></SelectTrigger>
-                <SelectContent>{SUBJECT_KEYS.map((k, i) => <SelectItem key={k} value={SUBJECT_VALUES[i]!}>{t(k)}</SelectItem>)}</SelectContent>
+                <SelectTrigger className="bg-white/10 border-white/30 text-white focus:border-blue-400">
+                  <SelectValue placeholder={t("pres_select_subject")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {SUBJECT_KEYS.map((k, i) => <SelectItem key={k} value={SUBJECT_VALUES[i]!}>{t(k)}</SelectItem>)}
+                </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/80">{t("comp_year_group_label")} <span className="text-red-400">*</span></Label>
+              <Label className="text-white/90 font-medium">
+                {t("comp_year_group_label")} <span className="text-red-400">*</span>
+              </Label>
               <Select value={yearGroup ?? undefined} onValueChange={setYearGroup}>
-                <SelectTrigger className="bg-white/10 border-white/20 text-white"><SelectValue placeholder={t("pres_select_year")} /></SelectTrigger>
-                <SelectContent>{YEAR_GROUP_VALUES.map(y => <SelectItem key={y.value} value={y.value}>{t(y.labelKey)}</SelectItem>)}</SelectContent>
+                <SelectTrigger className="bg-white/10 border-white/30 text-white focus:border-blue-400">
+                  <SelectValue placeholder={t("pres_select_year")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {YEAR_GROUP_VALUES.map(y => <SelectItem key={y.value} value={y.value}>{t(y.labelKey)}</SelectItem>)}
+                </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/80">{t("pres_competency_label")} <span className="text-white/40">({t("optional")})</span></Label>
+              <Label className="text-white/90 font-medium">
+                {t("pres_competency_label")} <span className="text-white/50 font-normal">({t("optional")})</span>
+              </Label>
               <Select value={competency ?? undefined} onValueChange={setCompetency}>
-                <SelectTrigger className="bg-white/10 border-white/20 text-white"><SelectValue placeholder={t("presentation_any_competency")} /></SelectTrigger>
+                <SelectTrigger className="bg-white/10 border-white/30 text-white focus:border-blue-400">
+                  <SelectValue placeholder={t("presentation_any_competency")} />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="any">{t("presentation_any_competency")}</SelectItem>
                   {COMPETENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
@@ -282,7 +495,7 @@ export default function Presentation() {
             </div>
             <div className="flex items-end">
               <Button
-                className="w-full bg-blue-500 hover:bg-blue-400 text-white font-bold"
+                className="w-full bg-blue-500 hover:bg-blue-400 text-white font-bold shadow-md"
                 disabled={!topic || !subject || !yearGroup || createMutation.isPending}
                 onClick={handleGenerate}
               >
@@ -294,29 +507,131 @@ export default function Presentation() {
           </CardContent>
         </Card>
 
-        {/* Slide viewer */}
+        {/* ── Bulk Generate section ──────────────────────────────────────────── */}
+        <Card className="bg-[#0d1f4a]/90 border-blue-400/30 text-white shadow-xl">
+          <button
+            className="w-full flex items-center justify-between px-5 py-4 text-left"
+            onClick={() => setShowBulk(v => !v)}
+          >
+            <div className="flex items-center gap-2">
+              <Layers className="w-5 h-5 text-blue-300" />
+              <span className="font-semibold text-white">Bulk Generate</span>
+              <Badge className="bg-blue-400/20 text-blue-200 border-blue-400/30 text-xs ml-1">New</Badge>
+            </div>
+            <ChevronDown className={`w-4 h-4 text-white/60 transition-transform ${showBulk ? "rotate-180" : ""}`} />
+          </button>
+
+          {showBulk && (
+            <CardContent className="px-5 pb-5 pt-0 space-y-4 border-t border-blue-400/20">
+              <p className="text-white/70 text-sm">
+                Enter one topic per line. Each will be generated as a separate presentation and saved to My Materials automatically.
+              </p>
+              <Textarea
+                value={bulkTopics}
+                onChange={e => setBulkTopics(e.target.value)}
+                placeholder={"The Water Cycle\nPhotosynthesis\nThe Roman Empire\nFractions and Decimals"}
+                rows={6}
+                className="bg-white/10 border-white/30 text-white placeholder:text-white/30 resize-none focus:border-blue-400 font-mono text-sm"
+              />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-white/90 font-medium text-sm">Subject <span className="text-red-400">*</span></Label>
+                  <Select value={bulkSubject} onValueChange={setBulkSubject}>
+                    <SelectTrigger className="bg-white/10 border-white/30 text-white focus:border-blue-400">
+                      <SelectValue placeholder="Select subject" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SUBJECT_KEYS.map((k, i) => <SelectItem key={k} value={SUBJECT_VALUES[i]!}>{t(k)}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-white/90 font-medium text-sm">Year Group <span className="text-red-400">*</span></Label>
+                  <Select value={bulkYearGroup} onValueChange={setBulkYearGroup}>
+                    <SelectTrigger className="bg-white/10 border-white/30 text-white focus:border-blue-400">
+                      <SelectValue placeholder="Select year group" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {YEAR_GROUP_VALUES.map(y => <SelectItem key={y.value} value={y.value}>{t(y.labelKey)}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-white/90 font-medium text-sm">Competency</Label>
+                  <Select value={bulkCompetency} onValueChange={setBulkCompetency}>
+                    <SelectTrigger className="bg-white/10 border-white/30 text-white focus:border-blue-400">
+                      <SelectValue placeholder="Any" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">Any</SelectItem>
+                      {COMPETENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {bulkProgress && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm text-white/70">
+                    <span>Generating: <span className="text-white font-medium">{bulkProgress.current}</span></span>
+                    <span>{bulkProgress.done} / {bulkProgress.total}</span>
+                  </div>
+                  <Progress value={(bulkProgress.done / bulkProgress.total) * 100} className="h-2 bg-white/10" />
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <Button
+                  className="bg-blue-500 hover:bg-blue-400 text-white font-bold shadow-md flex-1"
+                  disabled={
+                    !bulkTopics.trim() || !bulkSubject || !bulkYearGroup || bulkProgress !== null
+                  }
+                  onClick={handleBulkGenerate}
+                >
+                  {bulkProgress
+                    ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Generating…</>
+                    : <><Layers className="w-4 h-4 mr-2" /> Bulk Generate & Save</>}
+                </Button>
+                {bulkProgress && (
+                  <Button variant="outline" className="border-white/30 text-white hover:bg-white/10"
+                    onClick={() => { bulkAbortRef.current = true; }}>
+                    Cancel
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          )}
+        </Card>
+
+        {/* ── Slide viewer ───────────────────────────────────────────────────── */}
         {generated && slides.length > 0 && (
           <div className="space-y-4">
-            {/* Export + derive toolbar */}
+            {/* Toolbar */}
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-white/60 text-sm">{slides.length} {t("pres_slides_hint")}</span>
+              <span className="text-white/70 text-sm">{slides.length} {t("pres_slides_hint")}</span>
               <div className="ml-auto flex flex-wrap gap-2">
-                {/* Derive activity buttons */}
+                {/* Save button */}
                 <Button
                   size="sm"
-                  className="bg-amber-500/80 hover:bg-amber-500 text-white text-xs"
-                  disabled={deriveMutation.isPending}
-                  onClick={() => handleDerive("quiz")}
+                  className={saved
+                    ? "bg-green-600/80 hover:bg-green-600 text-white text-xs"
+                    : "bg-[#003082] hover:bg-[#002060] text-white text-xs"}
+                  disabled={saveMutation.isPending || saved}
+                  onClick={handleSave}
                 >
+                  {saveMutation.isPending
+                    ? <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                    : <Save className="w-3 h-3 mr-1" />}
+                  {saved ? t("sa_saved") : t("btn_save")}
+                </Button>
+                {/* Derive activity buttons */}
+                <Button size="sm" className="bg-amber-500/80 hover:bg-amber-500 text-white text-xs"
+                  disabled={deriveMutation.isPending} onClick={() => handleDerive("quiz")}>
                   {deriveMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <FileQuestion className="w-3 h-3 mr-1" />}
                   {t("pres_gen_quiz")}
                 </Button>
-                <Button
-                  size="sm"
-                  className="bg-purple-500/80 hover:bg-purple-500 text-white text-xs"
-                  disabled={deriveMutation.isPending}
-                  onClick={() => handleDerive("missing_words")}
-                >
+                <Button size="sm" className="bg-purple-500/80 hover:bg-purple-500 text-white text-xs"
+                  disabled={deriveMutation.isPending} onClick={() => handleDerive("missing_words")}>
                   {deriveMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <AlignLeft className="w-3 h-3 mr-1" />}
                   {t("pres_fill_blank")}
                 </Button>
@@ -347,19 +662,27 @@ export default function Presentation() {
 
             {/* Slide navigation */}
             <div className="flex items-center gap-3 justify-center">
-              <Button size="icon" variant="outline" className="border-white/30 text-white hover:bg-white/10" disabled={currentSlide === 0} onClick={() => setCurrentSlide(s => s - 1)}>
+              <Button size="icon" variant="outline" className="border-white/30 text-white hover:bg-white/10"
+                disabled={currentSlide === 0} onClick={() => setCurrentSlide(s => s - 1)}>
                 <ChevronLeft className="w-4 h-4" />
               </Button>
-              <span className="text-white/70 text-sm font-medium">{currentSlide + 1} / {slides.length}</span>
-              <Button size="icon" variant="outline" className="border-white/30 text-white hover:bg-white/10" disabled={currentSlide === slides.length - 1} onClick={() => setCurrentSlide(s => s + 1)}>
+              <span className="text-white/80 text-sm font-medium">{currentSlide + 1} / {slides.length}</span>
+              <Button size="icon" variant="outline" className="border-white/30 text-white hover:bg-white/10"
+                disabled={currentSlide === slides.length - 1} onClick={() => setCurrentSlide(s => s + 1)}>
                 <ChevronRight className="w-4 h-4" />
+              </Button>
+              <Button size="sm" variant="outline"
+                className="border-white/30 text-white hover:bg-white/10 gap-1.5 ml-2"
+                onClick={() => setPreviewIndex(currentSlide)}
+              >
+                <Maximize2 className="w-3.5 h-3.5" /> Full Preview
               </Button>
             </div>
 
             {/* Editable slide card */}
             {slide && (
               <div id={exportId}>
-                <Card className="bg-gradient-to-br from-blue-900/80 to-indigo-900/80 border-blue-400/30 text-white min-h-[320px]">
+                <Card className="bg-[#0d1f4a]/95 border-blue-400/40 text-white min-h-[320px] shadow-xl">
                   <CardHeader className="border-b border-blue-400/20 pb-4">
                     <div className="flex items-start justify-between gap-3">
                       <CardTitle className="text-xl sm:text-2xl font-heading leading-snug flex-1">
@@ -369,11 +692,15 @@ export default function Presentation() {
                           className="font-heading text-xl sm:text-2xl font-bold"
                         />
                       </CardTitle>
-                      {slide.competencyTag && <Badge className="bg-blue-400/20 text-blue-200 border-blue-400/40 shrink-0 text-xs">{slide.competencyTag}</Badge>}
+                      {slide.competencyTag && (
+                        <Badge className="bg-blue-400/20 text-blue-200 border-blue-400/40 shrink-0 text-xs">
+                          {slide.competencyTag}
+                        </Badge>
+                      )}
                     </div>
                   </CardHeader>
                   <CardContent className="p-5 space-y-4">
-                    <div className="text-white/90 leading-relaxed text-sm sm:text-base">
+                    <div className="text-white/95 leading-relaxed text-sm sm:text-base">
                       <EditableField
                         value={slide.content}
                         onChange={v => updateSlideField(currentSlide, "content", v)}
@@ -383,10 +710,14 @@ export default function Presentation() {
                     </div>
 
                     {slide.keyVocabulary && slide.keyVocabulary.length > 0 && (
-                      <div className="bg-blue-400/10 border border-blue-400/20 rounded-lg p-3 space-y-1.5">
-                        <p className="text-blue-200 text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5"><BookOpen className="w-3 h-3" /> {t("material_key_vocab")}</p>
+                      <div className="bg-blue-400/15 border border-blue-400/25 rounded-lg p-3 space-y-1.5">
+                        <p className="text-blue-200 text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5">
+                          <BookOpen className="w-3 h-3" /> {t("material_key_vocab")}
+                        </p>
                         <div className="flex flex-wrap gap-1.5">
-                          {slide.keyVocabulary.map((v, i) => <Badge key={i} className="bg-blue-500/30 text-blue-100 border-blue-400/30 text-xs">{v}</Badge>)}
+                          {slide.keyVocabulary.map((v, i) => (
+                            <Badge key={i} className="bg-blue-500/40 text-blue-100 border-blue-400/30 text-xs">{v}</Badge>
+                          ))}
                         </div>
                       </div>
                     )}
@@ -395,39 +726,38 @@ export default function Presentation() {
                       <div className="bg-yellow-400/10 border border-yellow-400/20 rounded-lg p-3 space-y-2">
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <p className="text-yellow-200 text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5 mb-1"><Lightbulb className="w-3 h-3" /> {t("pres_image_suggestion")}</p>
+                            <p className="text-yellow-200 text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5 mb-1">
+                              <Lightbulb className="w-3 h-3" /> {t("pres_image_suggestion")}
+                            </p>
                             <p className="text-yellow-100/80 text-xs italic">{slide.imagePrompt}</p>
                           </div>
-                          <Button
-                            size="sm"
+                          <Button size="sm"
                             className="shrink-0 bg-yellow-500/80 hover:bg-yellow-500 text-white text-xs px-2 py-1 h-auto"
                             disabled={generatingImageFor === currentSlide}
-                            onClick={() => handleGenerateImage(currentSlide, slide.imagePrompt!)}
-                          >
+                            onClick={() => handleGenerateImage(currentSlide, slide.imagePrompt!)}>
                             {generatingImageFor === currentSlide
                               ? <Loader2 className="w-3 h-3 animate-spin" />
                               : <><ImagePlus className="w-3 h-3 mr-1" /> {t("pres_generate_image_btn")}</>}
                           </Button>
                         </div>
                         {slideImages[currentSlide] && (
-                          <img
-                            src={slideImages[currentSlide]}
-                            alt={slide.imagePrompt}
+                          <img src={slideImages[currentSlide]} alt={slide.imagePrompt}
                             className="w-full rounded-lg object-cover max-h-48 border border-yellow-400/20"
-                            crossOrigin="anonymous"
-                          />
+                            crossOrigin="anonymous" />
                         )}
                       </div>
                     )}
 
                     {slide.speakerNotes !== undefined && (
-                      <div className="bg-white/5 border border-white/10 rounded-lg p-3">
-                        <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-1">{t("pres_speaker_notes")}</p>
+                      <div className="bg-white/8 border border-white/15 rounded-lg p-3">
+                        <p className="text-white/60 text-xs font-semibold uppercase tracking-wide mb-1">
+                          {t("pres_speaker_notes")}
+                        </p>
                         <EditableField
                           value={slide.speakerNotes ?? ""}
                           onChange={v => updateSlideField(currentSlide, "speakerNotes", v)}
                           multiline
-                          className="text-white/70 text-xs leading-relaxed"
+                          className="text-white/80 text-xs leading-relaxed"
                         />
                       </div>
                     )}
@@ -442,7 +772,11 @@ export default function Presentation() {
                 <button
                   key={i}
                   onClick={() => setCurrentSlide(i)}
-                  className={`shrink-0 w-28 rounded-lg border p-2 text-left transition-all ${i === currentSlide ? "border-blue-400 bg-blue-400/20" : "border-white/10 bg-white/5 hover:bg-white/10"}`}
+                  className={`shrink-0 w-28 rounded-lg border p-2 text-left transition-all ${
+                    i === currentSlide
+                      ? "border-blue-400 bg-blue-400/25"
+                      : "border-white/15 bg-white/8 hover:bg-white/15"
+                  }`}
                 >
                   <p className="text-white text-xs font-medium truncate">{i + 1}. {s.title}</p>
                 </button>

@@ -3564,3 +3564,9 @@
 - [x] SebaConnect.tsx: add isScrolledUp state + onScroll handler; render floating ChevronDown button when scrolled up > 100px; clicking scrolls to bottom and hides button
 - [x] Forum.tsx: same floating button pattern applied to the messages container
 - [x] DMPanel.tsx: same floating button pattern applied to the messages container
+
+## Feature: Presentation page — full preview, save, and bulk generate
+- [x] Add full-slide preview modal (lightbox): clicking a slide thumbnail opens a full-screen overlay showing the complete slide content (title, body, speaker notes, key vocab)
+- [x] Add Save to My Materials button on the Presentation page after generation (currently only export options exist, no explicit save)
+- [x] Add Bulk Generate section: textarea for multiple topics (one per line), generates all presentations sequentially and saves each to My Materials, shows progress bar
+- [x] Fix Presentation page: generator form card and slide card are too transparent — increase opacity/background so text is clearly readable
