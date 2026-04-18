@@ -57,6 +57,30 @@ async function startServer() {
       "Permissions-Policy",
       "geolocation=(), payment=(), usb=(), interest-cohort=()"
     );
+    // Content-Security-Policy: restrict all resource origins to self
+    // - script-src: only same-origin scripts (no inline eval, no CDN)
+    // - style-src: same-origin + unsafe-inline (required by Tailwind CSS-in-JS)
+    // - img-src: same-origin + data URIs (canvas blobs, base64 avatars)
+    // - font-src: same-origin (fonts are now self-hosted)
+    // - connect-src: same-origin + Manus OAuth/API endpoints
+    // - media-src: same-origin + blob (WebRTC local streams)
+    // - worker-src: blob (service worker)
+    // - frame-ancestors: none (belt-and-braces clickjack protection)
+    const csp = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline'",   // unsafe-inline needed for Vite HMR in dev
+      "style-src 'self' 'unsafe-inline'",    // Tailwind injects styles at runtime
+      "img-src 'self' data: blob:",
+      "font-src 'self'",
+      `connect-src 'self' ${process.env.OAUTH_SERVER_URL ?? ''} ${process.env.BUILT_IN_FORGE_API_URL ?? ''} ${process.env.VITE_ANALYTICS_ENDPOINT ?? ''}`.trim(),
+      "media-src 'self' blob:",
+      "worker-src 'self' blob:",
+      "frame-src 'none'",
+      "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+    ].join("; ");
+    res.setHeader("Content-Security-Policy", csp);
     next();
   });
   // Block robots from indexing API endpoints

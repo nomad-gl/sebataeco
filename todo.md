@@ -3471,3 +3471,10 @@
 ## Feature: Full crawler lockdown (all bots blocked)
 - [x] Update static robots.txt: block ALL bots including Googlebot and Bingbot with Disallow: /
 - [x] Update dynamic server robots.txt route to match — single User-agent: * Disallow: /
+
+## Feature: Sovereignty follow-up steps (CSP + self-hosted BGs + robots meta)
+- [x] Add robots noindex/nofollow/noarchive/nosnippet meta tag to index.html
+- [x] Add Content-Security-Policy header to Express server middleware
+- [x] Download all CloudFront background images and self-host in client/public/images/
+- [x] Update index.css bg classes to use local /manus-storage/ paths instead of CloudFront URLs
+- [x] Replace all remaining CloudFront references across 10 client files (NavBar, Footer, PreCallScreen, Home, Practice, Forum, LocalLogin, RegisterWithInvite, SebaConnect, index.css)

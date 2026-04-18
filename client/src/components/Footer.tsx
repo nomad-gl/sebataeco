@@ -2,7 +2,7 @@ import { useI18n } from "@/contexts/I18nContext";
 import { Link } from "wouter";
 
 const LOMLOE_LOGO =
-  "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/lomloe_23170104.png";
+  "/manus-storage/lomloe_23170104_ee7c6f56.png";
 
 export default function Footer() {
   const { t } = useI18n();

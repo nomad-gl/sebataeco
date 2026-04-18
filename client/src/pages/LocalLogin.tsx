@@ -19,7 +19,7 @@ import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 
 const DEFAULT_BG =
-  "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/hero-bg-UMuQESLM5HrV2VsrndDo2h.webp";
+  "/manus-storage/hero-bg-UMuQESLM5HrV2VsrndDo2h_10addc2d.webp";
 
 const LANG_OPTIONS = [
   { code: "en", label: "English (UK)" },

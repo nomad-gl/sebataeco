@@ -12,10 +12,10 @@ import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 
 const LOMLOE_LOGO =
-  "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/lomloe_23170104.png";
+  "/manus-storage/lomloe_23170104_ee7c6f56.png";
 
 const HERO_BG =
-  "https://d2xsxph8kpxj0f.cloudfront.net/310419663032477713/ZdUr4NNhMJ6HJrxx9nW6jZ/hero-bg-UMuQESLM5HrV2VsrndDo2h.webp";
+  "/manus-storage/hero-bg-UMuQESLM5HrV2VsrndDo2h_10addc2d.webp";
 
 const COMP_COLORS: Record<string, string> = {
   CCL: "var(--comp-ccl)",
