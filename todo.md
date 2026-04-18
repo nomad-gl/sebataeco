@@ -3490,3 +3490,20 @@
 - [x] Re-upload SEBA_hd, SEBA1, and lomloe badge to get fresh /manus-storage/ keys
 - [x] Upload all 22 regenerated images to Manus storage CDN
 - [x] Replace all /manus-storage/ references in 10 client files with new CDN paths (0 old paths remaining)
+
+## Feature: SEBA logo regeneration + image optimisation
+- [x] Regenerate SEBA_hd logo as fresh AI-designed vector-style PNG
+- [x] Regenerate SEBA1 (compact) logo as fresh AI-designed PNG
+- [x] Upload new logos to /manus-storage/ and update all references
+- [x] lazy loading on PreCallScreen thumbnails already confirmed in place (line 1193)
+- [x] Hero background in Home.tsx/Forum.tsx is CSS background-image (not img tag) — srcSet N/A; added preload hint instead
+
+## Task: Full security audit
+- [x] Audit server-side input validation and tRPC procedure guards
+- [x] Audit authentication flow (JWT, session cookies, OAuth state)
+- [x] Audit database access patterns (SQL injection, over-fetching)
+- [x] Audit client-side secret exposure (env vars, API keys in bundle)
+- [x] Audit file upload paths and storage access controls
+- [x] Audit rate limiting and abuse prevention
+- [x] Audit CORS configuration
+- [x] Produced prioritised security report (delivered to user)

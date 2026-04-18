@@ -290,21 +290,21 @@ export default function NavBar() {
             <div className="relative h-10 sm:h-12" style={{ width: 'auto', minWidth: '60px' }}>
               {/* Standard logo (white bg) */}
               <img
-                src="/manus-storage/SEBA_hd_4ec811c2_903a1620.png"
+                src="/manus-storage/SEBA_hd_new_b460fab2.png"
                 alt="SEBA"
                 className="h-10 sm:h-12 w-auto object-contain absolute top-0 left-0 transition-opacity duration-500"
                 style={{ opacity: isClassroomPage ? 0 : 1 }}
               />
               {/* Classroom logo (black bg) */}
               <img
-                src="/manus-storage/SEBA1_02cbc6c3_db7cba26.png"
+                src="/manus-storage/SEBA1_new_9053c213.png"
                 alt="SEBA"
                 className="h-10 sm:h-12 w-auto object-contain absolute top-0 left-0 transition-opacity duration-500"
                 style={{ opacity: isClassroomPage ? 1 : 0 }}
               />
               {/* Invisible spacer to reserve correct width */}
               <img
-                src="/manus-storage/SEBA_hd_4ec811c2_903a1620.png"
+                src="/manus-storage/SEBA_hd_new_b460fab2.png"
                 alt=""
                 aria-hidden="true"
                 className="h-10 sm:h-12 w-auto object-contain invisible"
