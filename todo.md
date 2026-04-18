@@ -3604,3 +3604,7 @@
 - [x] Follow-up 1: Export talking points in Word and PDF exports (buildSlidesDoc in exportUtils.ts) — render them as a numbered list after the bullets and before the teacher note
 - [x] Follow-up 2: Make talking points editable in the Presentation.tsx slide card (Create view) — add/edit/delete individual points inline, matching the MaterialView edit UX
 - [x] Follow-up 3: Add "Include discussion talking points" checkbox to the generator form; when unchecked, omit talkingPoints from the LLM prompt instruction
+
+## Feature: Slides structural pages
+- [x] Update slides LLM prompt to always include: slide 1 = front/title page (topic, subject, year group, competency), second-to-last slide = summary/recap page (key takeaways), last slide = Thank You / Credits / Resources page (acknowledgements, suggested further reading, image credits)
+- [x] Update the slideCount override logic so the count refers to content slides only, and the 3 structural slides are always added on top

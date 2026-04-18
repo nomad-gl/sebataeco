@@ -88,7 +88,12 @@ Schema:
     }
   ]
 }
-Generate 8-10 slides: slide 1 = title/overview, slides 2-8 = content, last slide = summary/review questions. Each bullet must contain real factual content, not generic placeholders. talkingPoints must be genuine open-ended questions that encourage critical thinking and discussion, not restatements of the bullets.`,
+Generate 8-10 slides total using this FIXED structure:
+- Slide 1 (FRONT PAGE): Title slide. heading = presentation title. bullets = [subject, year group, competency, teacher name placeholder]. speakerNote = brief welcome/intro note. talkingPoints = []. imagePrompt = a relevant hero illustration for the topic.
+- Slides 2 to N-2 (CONTENT SLIDES): Each covers a distinct subtopic or concept. 3-5 substantive bullets with real factual content. talkingPoints must be genuine open-ended questions that encourage critical thinking and discussion.
+- Slide N-1 (SUMMARY / RECAP): heading = "Summary & Key Takeaways". bullets = 4-6 concise takeaways recapping the most important points from the content slides. talkingPoints = 2-3 reflection questions. speakerNote = guidance on how to run a class recap activity.
+- Slide N (CLOSING / THANK YOU): heading = "Thank You & Resources". bullets = ["Thank you for attending!", "Further reading: [2-3 real book/website titles relevant to the topic]", "Image credits: [list any notable image sources]", "Prepared with SEBA AI Studio – aina.forum"]. speakerNote = closing remarks and Q&A invitation. talkingPoints = []. imagePrompt = a warm, positive closing illustration.
+Each bullet must contain real factual content, not generic placeholders.`,
 
     crossword: `
 Schema:
@@ -452,9 +457,12 @@ export const materialsRouter = router({
       // For slides, override the default count instruction if the user specified one
       let systemPrompt = buildSystemPrompt(input.type, input.competency ?? undefined, input.yearGroup ?? undefined);
       if (input.type === "slides" && input.slideCount) {
+        // The 3 structural slides (front, summary, closing) are always included.
+        // slideCount refers to content slides; total = slideCount + 3.
+        const totalSlides = input.slideCount + 3;
         systemPrompt = systemPrompt.replace(
-          /Generate \d+-\d+ slides:[^.]+\./,
-          `Generate exactly ${input.slideCount} slides: slide 1 = title/overview, slides 2-${input.slideCount - 1} = content, last slide = summary/review questions.`
+          /Generate \d+-\d+ slides total[^`]*/,
+          `Generate exactly ${totalSlides} slides total using this FIXED structure:\n- Slide 1 (FRONT PAGE): Title slide. heading = presentation title. bullets = [subject, year group, competency, teacher name placeholder]. speakerNote = brief welcome/intro note. talkingPoints = []. imagePrompt = a relevant hero illustration for the topic.\n- Slides 2 to ${totalSlides - 2} (CONTENT SLIDES): Each covers a distinct subtopic or concept. 3-5 substantive bullets with real factual content. talkingPoints must be genuine open-ended questions that encourage critical thinking and discussion.\n- Slide ${totalSlides - 1} (SUMMARY / RECAP): heading = "Summary & Key Takeaways". bullets = 4-6 concise takeaways recapping the most important points from the content slides. talkingPoints = 2-3 reflection questions. speakerNote = guidance on how to run a class recap activity.\n- Slide ${totalSlides} (CLOSING / THANK YOU): heading = "Thank You & Resources". bullets = ["Thank you for attending!", "Further reading: [2-3 real book/website titles relevant to the topic]", "Image credits: [list any notable image sources]", "Prepared with SEBA AI Studio \u2013 aina.forum"]. speakerNote = closing remarks and Q&A invitation. talkingPoints = []. imagePrompt = a warm, positive closing illustration.\nEach bullet must contain real factual content, not generic placeholders.`
         );
       }
       // Conditionally strip talking points instruction from the prompt
