@@ -3387,22 +3387,22 @@
 - [x] Replace all "SebaMeet" user-facing text with "AINA | Meet" across components, i18n strings, and page titles
 
 ## Feature: Pre-call personalised header + invitation toast branding + live subtitles
-- [ ] Pre-call screen: show "Call with {partnerName}" in header instead of raw room name
-- [ ] Meeting invitation banner: rebrand label from "Meeting Invitation" to "AINA | Meet invitation"
-- [ ] Video call: add live subtitle/caption toggle button in call controls
-- [ ] Video call: use Web Speech API to transcribe local audio and display captions on screen
-- [ ] Video call: subtitle language selector (Catalan, Spanish, English)
+- [x] Pre-call screen: show "Call with {partnerName}" in header instead of raw room name
+- [x] Meeting invitation banner: rebrand label from "Meeting Invitation" to "AINA | Meet invitation"
+- [x] Video call: add live subtitle/caption toggle button in call controls
+- [x] Video call: use Web Speech API to transcribe local audio and display captions on screen
+- [x] Video call: subtitle language selector (Catalan, Spanish, English)
 
 ## Feature: Live subtitles in SebaMeet video call
-- [ ] Add subtitle toggle button in the call controls bar
-- [ ] Add language selector (Catalan ca-ES, Spanish es-ES, English en-GB)
-- [ ] Add live caption overlay at the bottom of the video feed using Web Speech API (continuous, interimResults)
-- [ ] Add subtitle cleanup on component unmount and when subtitles toggled off
+- [x] Add subtitle toggle button in the call controls bar
+- [x] Add language selector (Catalan ca-ES, Spanish es-ES, English en-GB)
+- [x] Add live caption overlay at the bottom of the video feed using Web Speech API (continuous, interimResults)
+- [x] Add subtitle cleanup on component unmount and when subtitles toggled off
 
 ## Fix: UK English throughout the app
-- [ ] Change all en-US locale references to en-GB (SpeechRecognition, date formatting, i18n)
-- [ ] English subtitle option must use en-GB not en-US
-- [ ] Review i18n English translation strings for US spellings (color→colour, organize→organise, etc.)
+- [x] Change all en-US locale references to en-GB (SpeechRecognition, date formatting, i18n)
+- [x] English subtitle option must use en-GB not en-US
+- [x] Review i18n English translation strings for US spellings (color→colour, organize→organise, etc.)
 
 ## Bug: Video ratio needs adjusting to standard 16:9
 - [x] Audit all video container sizing in SebaMeet (main feed, PiP self-view, secondary peer thumbnails)
@@ -3442,3 +3442,8 @@
 
 ## Feature: Translate MySituacions print template headings
 - [x] Replace hardcoded Context/Task/Competencies/Activities/Criteria headings in handlePrint with t() calls using existing situacio_*_label keys
+
+## Feature: SebaSymbol favicon + tab title
+- [x] Generate 32px PNG favicon from SebaSymbol SVG (solid dark variant)
+- [x] Upload favicon to CDN and update client/index.html favicon link
+- [x] Revert tab title to "Seba | AINA" in client/index.html
