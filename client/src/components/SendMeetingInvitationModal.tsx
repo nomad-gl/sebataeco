@@ -7,6 +7,7 @@
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { SebaSymbol } from "@/components/SebaSymbol";
+import { useI18n } from "@/contexts/I18nContext";
 import {
   Dialog,
   DialogContent,
@@ -39,21 +40,6 @@ interface Props {
   prefillRecurrence?: string | null;
 }
 
-const DURATION_OPTIONS = [
-  { value: "15",  label: "15 minutes" },
-  { value: "30",  label: "30 minutes" },
-  { value: "45",  label: "45 minutes" },
-  { value: "60",  label: "1 hour" },
-  { value: "90",  label: "1.5 hours" },
-  { value: "120", label: "2 hours" },
-];
-
-const RECURRENCE_OPTIONS = [
-  { value: "none",     label: "Does not repeat" },
-  { value: "weekly",   label: "Weekly" },
-  { value: "biweekly", label: "Every 2 weeks" },
-];
-
 function toLocalDatetimeValue(d: Date) {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -68,6 +54,24 @@ export function SendMeetingInvitationModal({
   prefillAgenda,
   prefillRecurrence,
 }: Props) {
+  const { t } = useI18n();
+
+  // Duration and recurrence options use t() so they update when language changes
+  const DURATION_OPTIONS = [
+    { value: "15",  label: t("meet_dur_15") },
+    { value: "30",  label: t("meet_dur_30") },
+    { value: "45",  label: t("meet_dur_45") },
+    { value: "60",  label: t("meet_dur_60") },
+    { value: "90",  label: t("meet_dur_90") },
+    { value: "120", label: t("meet_dur_120") },
+  ];
+
+  const RECURRENCE_OPTIONS = [
+    { value: "none",     label: t("meet_rec_none") },
+    { value: "weekly",   label: t("meet_rec_weekly") },
+    { value: "biweekly", label: t("meet_rec_biweekly") },
+  ];
+
   // ── Invitee multi-select ────────────────────────────────────────────────
   const [selectedInvitees, setSelectedInvitees] = useState<{ id: number; name: string }[]>(
     () => (toUserId && toUserName ? [{ id: toUserId, name: toUserName }] : [])
@@ -145,7 +149,7 @@ export function SendMeetingInvitationModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <SebaSymbol className="w-5 h-5 text-[#003082]" />
-            Schedule a Meeting
+            {t("meet_modal_title")}
           </DialogTitle>
         </DialogHeader>
 
@@ -154,7 +158,7 @@ export function SendMeetingInvitationModal({
           {/* ── Invitees ─────────────────────────────────────────────── */}
           <div className="space-y-1.5">
             <Label className="flex items-center gap-1">
-              <Users className="w-3.5 h-3.5" /> Invitees
+              <Users className="w-3.5 h-3.5" /> {t("meet_modal_invitees")}
             </Label>
 
             {selectedInvitees.length > 0 && (
@@ -177,7 +181,7 @@ export function SendMeetingInvitationModal({
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
               <Input
-                placeholder="Search people to invite…"
+                placeholder={t("meet_modal_search_people")}
                 value={userSearch}
                 onChange={(e) => setUserSearch(e.target.value)}
                 className="pl-8 text-sm"
@@ -206,16 +210,16 @@ export function SendMeetingInvitationModal({
             )}
 
             {userSearch.trim() !== "" && filteredUsers.length === 0 && (
-              <p className="text-xs text-muted-foreground px-1">No matching users found.</p>
+              <p className="text-xs text-muted-foreground px-1">{t("meet_modal_no_users")}</p>
             )}
           </div>
 
           {/* ── Title ────────────────────────────────────────────────── */}
           <div className="space-y-1.5">
-            <Label htmlFor="meet-title">Meeting title</Label>
+            <Label htmlFor="meet-title">{t("meet_modal_meeting_title")}</Label>
             <Input
               id="meet-title"
-              placeholder="e.g. Weekly check-in, Curriculum review…"
+              placeholder={t("meet_modal_title_placeholder")}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={256}
@@ -225,7 +229,7 @@ export function SendMeetingInvitationModal({
           {/* ── Date & time ──────────────────────────────────────────── */}
           <div className="space-y-1.5">
             <Label htmlFor="meet-datetime" className="flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5" /> Date & time
+              <Calendar className="w-3.5 h-3.5" /> {t("meet_modal_datetime")}
             </Label>
             <Input
               id="meet-datetime"
@@ -240,7 +244,7 @@ export function SendMeetingInvitationModal({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" /> Duration
+                <Clock className="w-3.5 h-3.5" /> {t("meet_modal_duration")}
               </Label>
               <Select value={duration} onValueChange={setDuration}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -253,7 +257,7 @@ export function SendMeetingInvitationModal({
             </div>
             <div className="space-y-1.5">
               <Label className="flex items-center gap-1">
-                <RefreshCw className="w-3.5 h-3.5" /> Repeats
+                <RefreshCw className="w-3.5 h-3.5" /> {t("meet_modal_repeats")}
               </Label>
               <Select value={recurrence} onValueChange={(v) => setRecurrence(v as typeof recurrence)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -268,10 +272,10 @@ export function SendMeetingInvitationModal({
 
           {/* ── Message ──────────────────────────────────────────────── */}
           <div className="space-y-1.5">
-            <Label htmlFor="meet-message">Message (optional)</Label>
+            <Label htmlFor="meet-message">{t("meet_modal_message")}</Label>
             <Textarea
               id="meet-message"
-              placeholder="Add context or notes for the recipients…"
+              placeholder={t("meet_modal_message_placeholder")}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               rows={2}
@@ -287,16 +291,16 @@ export function SendMeetingInvitationModal({
               className="flex items-center gap-1.5 text-xs text-[#003082] hover:text-[#002060] transition-colors"
             >
               <FileText className="w-3.5 h-3.5" />
-              + Add agenda / notes
+              {t("meet_modal_add_agenda")}
             </button>
           ) : (
             <div className="space-y-1.5">
               <Label htmlFor="meet-agenda" className="flex items-center gap-1">
-                <FileText className="w-3.5 h-3.5" /> Agenda / notes
+                <FileText className="w-3.5 h-3.5" /> {t("meet_modal_agenda")}
               </Label>
               <Textarea
                 id="meet-agenda"
-                placeholder="Outline the topics to cover, documents to review, or preparation notes…"
+                placeholder={t("meet_modal_agenda_placeholder")}
                 value={agenda}
                 onChange={(e) => setAgenda(e.target.value)}
                 rows={4}
@@ -309,7 +313,7 @@ export function SendMeetingInvitationModal({
           {recurrence !== "none" && (
             <p className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md px-3 py-2">
               <RefreshCw className="w-3 h-3 inline mr-1 text-blue-500" />
-              This invitation covers the first occurrence. You can send a new invitation for each subsequent session.
+              {t("meet_modal_recurrence_note")}
             </p>
           )}
 
@@ -321,10 +325,10 @@ export function SendMeetingInvitationModal({
           >
             <Send className="w-4 h-4" />
             {sendMut.isPending
-              ? "Sending…"
+              ? t("meet_modal_sending")
               : selectedInvitees.length > 1
-                ? `Send to ${selectedInvitees.length} people`
-                : "Send Invitation"}
+                ? t("meet_modal_send_to_many").replace("{count}", String(selectedInvitees.length))
+                : t("meet_modal_send")}
           </Button>
         </div>
       </DialogContent>

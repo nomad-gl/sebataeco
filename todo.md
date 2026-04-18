@@ -3425,3 +3425,20 @@
 ## Bug: DM panel causes page to scroll to bottom and hide footer
 - [x] Fix DMPanel scroll containment — replaced scrollIntoView (which propagated to page body) with scrollTop on the message container ref; page no longer scrolls when DM panel opens
 - [x] Ensure the message thread scroll is contained within the DMPanel, not the page
+
+## Feature: Translation audit and Spanish hero update
+- [x] Update Spanish hero title/accent/subtitle to match new AINA branding (parallel to Catalan changes)
+- [x] Audit all three languages (EN/ES/CA) for missing translation keys
+- [x] Fix any hardcoded English strings found in JSX components
+
+## Feature: Catalan 'teacher' → 'Professora'
+- [x] Update all Catalan translations where value is "Professor", "Professorat", "Teacher" or similar to use "Professora" (feminine form)
+- [x] Ensure position_teacher, nav_teacher, dir_teacher_name, dir_settings_role_teacher and all related keys use "Professora" in CA
+
+## Feature: Wire SendMeetingInvitationModal to i18n
+- [x] Add meet_modal_*, meet_dur_*, meet_rec_* translation keys to EN, ES, CA blocks in I18nContext.tsx
+- [x] Wire SendMeetingInvitationModal.tsx to use t() for all hardcoded strings (title, labels, placeholders, buttons)
+- [x] DURATION_OPTIONS and RECURRENCE_OPTIONS now use t() so labels update when language changes
+
+## Feature: Translate MySituacions print template headings
+- [x] Replace hardcoded Context/Task/Competencies/Activities/Criteria headings in handlePrint with t() calls using existing situacio_*_label keys

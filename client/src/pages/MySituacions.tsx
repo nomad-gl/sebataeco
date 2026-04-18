@@ -128,11 +128,11 @@ export default function MySituacions() {
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${parsed.title}</title>
 <style>body{font-family:sans-serif;margin:32px;color:#111}h1{font-size:1.3rem;margin-bottom:4px}h2{font-size:0.9rem;text-transform:uppercase;letter-spacing:.05em;color:#555;margin:18px 0 6px}p,li{font-size:0.88rem;line-height:1.55}ol{padding-left:1.2rem}.badge{display:inline-block;background:#e0e7ff;color:#3730a3;border-radius:9999px;padding:2px 10px;font-size:0.75rem;font-weight:700;margin-right:6px}.footer{margin-top:32px;font-size:0.7rem;color:#999;border-top:1px solid #eee;padding-top:8px}@media print{body{margin:16px}}</style></head><body>
 <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;border-bottom:2px solid #1e3a5f;padding-bottom:12px">${logoHtml}<div><h1 style="margin:0">${parsed.title}</h1><p style="margin:2px 0;color:#555;font-size:0.8rem">${item.subject} &middot; ${item.yearGroup}</p></div></div>
-<h2>Context</h2><p>${parsed.context}</p>
-<h2>Task</h2><p>${parsed.task}</p>
-<h2>Competencies</h2>${parsed.competencies.map(c=>`<p><span class="badge">${c.code}</span>${c.description}</p>`).join('')}
-<h2>Activities</h2>${parsed.activities.map((a,i)=>`<p><strong>${i+1}. ${a.phase}:</strong> ${a.description}</p>`).join('')}
-<h2>Criteria</h2><ol>${parsed.criteria.map(c=>`<li>${c}</li>`).join('')}</ol>
+<h2>${t("situacio_context_label")}</h2><p>${parsed.context}</p>
+<h2>${t("situacio_task_label")}</h2><p>${parsed.task}</p>
+<h2>${t("situacio_competencies_label")}</h2>${parsed.competencies.map(c=>`<p><span class="badge">${c.code}</span>${c.description}</p>`).join('')}
+<h2>${t("situacio_activities_label")}</h2>${parsed.activities.map((a,i)=>`<p><strong>${i+1}. ${a.phase}:</strong> ${a.description}</p>`).join('')}
+<h2>${t("situacio_criteria_label")}</h2><ol>${parsed.criteria.map(c=>`<li>${c}</li>`).join('')}</ol>
 <p style="font-style:italic;color:#888;font-size:0.78rem;margin-top:12px">${parsed.lomloeRef}</p>
 <div class="footer">Powered by SEBA &middot; ${new Date().toLocaleDateString()}</div>
 </body></html>`;
