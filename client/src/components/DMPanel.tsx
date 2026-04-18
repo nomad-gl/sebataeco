@@ -8,7 +8,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
-import { X, Send, ArrowLeft } from "lucide-react";
+import { X, Send, ArrowLeft, ChevronDown } from "lucide-react";
 
 interface DMPanelProps {
   /** The partner user's numeric DB id */
@@ -44,12 +44,38 @@ export function DMPanel({ partnerId, partnerName, myId, onClose }: DMPanelProps)
     },
   });
 
-  // Scroll to bottom on new messages — use scrollTop on the container to avoid
-  // scrollIntoView propagating up to the page body and hiding the footer.
+  // Track whether this is the very first load so we always scroll on mount.
+  const isInitialScrollRef = useRef(true);
+
+  // Show/hide the scroll-to-bottom button.
+  const [isScrolledUp, setIsScrolledUp] = useState(false);
+
+  const handleMessagesScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    setIsScrolledUp(distanceFromBottom > 100);
+  }, []);
+
+  const scrollToBottom = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+  }, []);
+
+  // Scroll to bottom on new messages — but only if the user is already near
+  // the bottom (within 100 px). On the very first render we always scroll.
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
-    container.scrollTop = container.scrollHeight;
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    if (isInitialScrollRef.current || distanceFromBottom < 100) {
+      container.scrollTop = container.scrollHeight;
+      isInitialScrollRef.current = false;
+      setIsScrolledUp(false);
+    }
   }, [messagesQ.data]);
 
   const handleSend = useCallback(async () => {
@@ -109,62 +135,79 @@ export function DMPanel({ partnerId, partnerName, myId, onClose }: DMPanelProps)
       </div>
 
       {/* Message thread */}
-      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
-        {messages.length === 0 && !messagesQ.isLoading && (
-          <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground py-16">
-            <div
-              className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white mb-4"
-              style={{ background: "#003082" }}
-            >
-              {initials(partnerName)}
-            </div>
-            <p className="font-semibold">{t("forum_dm_empty_title")}</p>
-            <p className="text-sm mt-1 text-muted-foreground">{t("forum_dm_empty_sub")}</p>
-          </div>
-        )}
-
-        {messages.map((msg) => {
-          const isMine = msg.fromUserId === myId;
-          return (
-            <div
-              key={msg.id}
-              className={`flex items-end gap-2 ${isMine ? "flex-row-reverse" : "flex-row"}`}
-            >
-              {!isMine && (
-                <div
-                  className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
-                  style={{ background: "#003082" }}
-                >
-                  {initials(partnerName)}
-                </div>
-              )}
-              <div className={`max-w-[72%] flex flex-col ${isMine ? "items-end" : "items-start"}`}>
-                <div
-                  className={`px-3.5 py-2 rounded-2xl text-sm leading-relaxed shadow-sm ${
-                    isMine
-                      ? "bg-[#003082] text-white rounded-br-sm"
-                      : "bg-muted text-foreground rounded-bl-sm border border-border"
-                  }`}
-                >
-                  {msg.messageType === "voice" && msg.audioUrl ? (
-                    <div className="flex flex-col gap-1.5">
-                      <audio controls className="w-full max-w-xs" style={{ height: "32px" }}>
-                        <source src={msg.audioUrl} type="audio/webm" />
-                        <source src={msg.audioUrl} type="audio/mp4" />
-                      </audio>
-                      <span className="text-xs opacity-70">{msg.body}</span>
-                    </div>
-                  ) : (
-                    msg.body
-                  )}
-                </div>
-                <span className="text-[10px] text-muted-foreground mt-0.5 mx-1">
-                  {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </span>
+      <div className="relative flex-1 min-h-0 flex flex-col">
+        <div
+          ref={messagesContainerRef}
+          onScroll={handleMessagesScroll}
+          className="flex-1 overflow-y-auto px-4 py-4 space-y-2"
+        >
+          {messages.length === 0 && !messagesQ.isLoading && (
+            <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground py-16">
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white mb-4"
+                style={{ background: "#003082" }}
+              >
+                {initials(partnerName)}
               </div>
+              <p className="font-semibold">{t("forum_dm_empty_title")}</p>
+              <p className="text-sm mt-1 text-muted-foreground">{t("forum_dm_empty_sub")}</p>
             </div>
-          );
-        })}
+          )}
+
+          {messages.map((msg) => {
+            const isMine = msg.fromUserId === myId;
+            return (
+              <div
+                key={msg.id}
+                className={`flex items-end gap-2 ${isMine ? "flex-row-reverse" : "flex-row"}`}
+              >
+                {!isMine && (
+                  <div
+                    className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+                    style={{ background: "#003082" }}
+                  >
+                    {initials(partnerName)}
+                  </div>
+                )}
+                <div className={`max-w-[72%] flex flex-col ${isMine ? "items-end" : "items-start"}`}>
+                  <div
+                    className={`px-3.5 py-2 rounded-2xl text-sm leading-relaxed shadow-sm ${
+                      isMine
+                        ? "bg-[#003082] text-white rounded-br-sm"
+                        : "bg-muted text-foreground rounded-bl-sm border border-border"
+                    }`}
+                  >
+                    {msg.messageType === "voice" && msg.audioUrl ? (
+                      <div className="flex flex-col gap-1.5">
+                        <audio controls className="w-full max-w-xs" style={{ height: "32px" }}>
+                          <source src={msg.audioUrl} type="audio/webm" />
+                          <source src={msg.audioUrl} type="audio/mp4" />
+                        </audio>
+                        <span className="text-xs opacity-70">{msg.body}</span>
+                      </div>
+                    ) : (
+                      msg.body
+                    )}
+                  </div>
+                  <span className="text-[10px] text-muted-foreground mt-0.5 mx-1">
+                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Scroll-to-bottom button */}
+        {isScrolledUp && (
+          <button
+            onClick={scrollToBottom}
+            className="absolute bottom-4 right-4 z-10 flex items-center justify-center w-9 h-9 rounded-full bg-[#003082] text-white shadow-lg hover:bg-[#002060] transition-all duration-200 animate-in fade-in slide-in-from-bottom-2"
+            aria-label="Scroll to bottom"
+          >
+            <ChevronDown className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       {/* Input bar */}

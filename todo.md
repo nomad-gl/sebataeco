@@ -3559,3 +3559,8 @@
 - [x] Root cause: useEffect fires on every messages update with no guard, snapping back to bottom even when user has scrolled up
 - [x] Fix SebaConnect.tsx: added isInitialScrollRef + near-bottom guard (distanceFromBottom < 100px) so auto-scroll only fires when user is already near the bottom or on initial load
 - [x] Fix Forum.tsx: same near-bottom guard applied; also reset isInitialScrollRef in openChannel() and openDm() so each new channel/DM correctly scrolls to bottom on first open
+
+## Feature: Scroll-to-bottom floating button in chat views
+- [x] SebaConnect.tsx: add isScrolledUp state + onScroll handler; render floating ChevronDown button when scrolled up > 100px; clicking scrolls to bottom and hides button
+- [x] Forum.tsx: same floating button pattern applied to the messages container
+- [x] DMPanel.tsx: same floating button pattern applied to the messages container

@@ -578,6 +578,23 @@ export default function SebaConnect() {
   // Track whether this is the very first load so we always scroll on mount.
   const isInitialScrollRef = useRef(true);
 
+  // Show/hide the scroll-to-bottom button.
+  const [isScrolledUp, setIsScrolledUp] = useState(false);
+
+  const handleMessagesScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    setIsScrolledUp(distanceFromBottom > 100);
+  }, []);
+
+  const scrollToBottom = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+  }, []);
+
   // Scroll to bottom on new messages — but only if the user is already near
   // the bottom (within 100 px).  This prevents auto-scroll from fighting the
   // user when they scroll up to read history.  On the very first render we
@@ -590,6 +607,7 @@ export default function SebaConnect() {
     if (isInitialScrollRef.current || distanceFromBottom < 100) {
       container.scrollTop = container.scrollHeight;
       isInitialScrollRef.current = false;
+      setIsScrolledUp(false);
     }
   }, [messagesQuery.data]);
 
@@ -818,7 +836,8 @@ export default function SebaConnect() {
         {/* ── Messages tab ──────────────────────────────────────────────────── */}
         {tab === "messages" && (
           <>
-            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-4 min-h-[40vh] md:min-h-0">
+            <div className="relative flex-1 min-h-0 flex flex-col">
+            <div ref={messagesContainerRef} onScroll={handleMessagesScroll} className="flex-1 overflow-y-auto px-4 py-4 min-h-[40vh] md:min-h-0">
               {messagesQuery.isLoading ? (
                 <div className="text-center text-muted-foreground text-sm py-8">{t("connect_loading_messages")}</div>
               ) : messages.length === 0 ? (
@@ -885,6 +904,18 @@ export default function SebaConnect() {
                   <div ref={messagesEndRef} />
                 </>
               )}
+            </div>
+
+            {/* Scroll-to-bottom button */}
+            {isScrolledUp && (
+              <button
+                onClick={scrollToBottom}
+                className="absolute bottom-4 right-4 z-10 flex items-center justify-center w-9 h-9 rounded-full bg-[#003082] text-white shadow-lg hover:bg-[#002060] transition-all duration-200 animate-in fade-in slide-in-from-bottom-2"
+                aria-label="Scroll to bottom"
+              >
+                <ChevronDown className="w-5 h-5" />
+              </button>
+            )}
             </div>
 
             {/* Message input */}
