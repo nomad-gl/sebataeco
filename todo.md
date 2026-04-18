@@ -3335,3 +3335,7 @@
 ## Bug: Login page logo replacement
 
 - [x] Replace existing logo on login/sign-out page with the SEBA logo
+
+## Feature: RegisterWithInvite logo update
+
+- [x] Replace logo on RegisterWithInvite page with SEBA logo to match login page
