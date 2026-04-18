@@ -3581,3 +3581,10 @@
 - [x] SlidesViewer: add full review modal (lightbox) showing all slides with navigation
 - [x] SlidesViewer: add "Save Edited Version" button that calls materials.update to persist changes back to the database
 - [x] SlidesViewer: show unsaved-changes indicator when edits have been made but not saved
+
+## Feature: Presentation page — image improvements
+- [ ] Full Preview modal: show slide image (if generated) inside each slide panel in the modal
+- [ ] Image suggestion card: add "Generate All Images" bulk button that calls generateSlideImage for every slide sequentially and shows a progress indicator
+- [x] Full Preview modal: pass slideImages into modal so generated images are shown per slide
+- [x] Image suggestion card: add "Generate All Images" bulk button (sequential, with progress) for all slides that have an imagePrompt
+- [x] Image suggestion card: make the imagePrompt text inline-editable so teachers can customise the prompt before generating

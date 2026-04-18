@@ -98,10 +98,12 @@ function SlidePreviewModal({
   slides,
   initialIndex,
   onClose,
+  slideImages,
 }: {
   slides: Slide[];
   initialIndex: number;
   onClose: () => void;
+  slideImages?: Record<number, string>;
 }) {
   const { t } = useI18n();
   const [idx, setIdx] = useState(initialIndex);
@@ -164,12 +166,24 @@ function SlidePreviewModal({
             </div>
           )}
 
-          {slide.imagePrompt && (
-            <div className="bg-yellow-400/10 border border-yellow-400/20 rounded-xl p-4">
-              <p className="text-yellow-200 text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5 mb-1">
-                <Lightbulb className="w-3.5 h-3.5" /> {t("pres_image_suggestion")}
-              </p>
-              <p className="text-yellow-100/80 text-sm italic">{slide.imagePrompt}</p>
+          {(slideImages?.[idx] || slide.imagePrompt) && (
+            <div className="bg-yellow-400/10 border border-yellow-400/20 rounded-xl p-4 space-y-3">
+              {slideImages?.[idx] && (
+                <img
+                  src={slideImages[idx]}
+                  alt={slide.imagePrompt ?? "Slide image"}
+                  className="w-full rounded-xl object-cover max-h-72 border border-yellow-400/20"
+                  crossOrigin="anonymous"
+                />
+              )}
+              {slide.imagePrompt && (
+                <>
+                  <p className="text-yellow-200 text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5">
+                    <Lightbulb className="w-3.5 h-3.5" /> {t("pres_image_suggestion")}
+                  </p>
+                  <p className="text-yellow-100/80 text-sm italic">{slide.imagePrompt}</p>
+                </>
+              )}
             </div>
           )}
 
@@ -218,6 +232,9 @@ export default function Presentation() {
   const [slides, setSlides] = useState<Slide[]>([]);
   const [slideImages, setSlideImages] = useState<Record<number, string>>({});
   const [generatingImageFor, setGeneratingImageFor] = useState<number | null>(null);
+  const [bulkGeneratingImages, setBulkGeneratingImages] = useState(false);
+  const [bulkImageProgress, setBulkImageProgress] = useState<{ done: number; total: number } | null>(null);
+  const [editablePrompts, setEditablePrompts] = useState<Record<number, string>>({});
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [saved, setSaved] = useState(false);
   const exportId = "presentation-export-area";
@@ -364,9 +381,33 @@ export default function Presentation() {
     });
   };
 
+  const getPrompt = (idx: number, fallback: string) => editablePrompts[idx] ?? fallback;
+
   const handleGenerateImage = (idx: number, prompt: string) => {
     setGeneratingImageFor(idx);
     generateSlideImageMut.mutate({ prompt }, { onSettled: () => setGeneratingImageFor(null) });
+  };
+
+  const handleBulkGenerateImages = async () => {
+    const targets = slides
+      .map((s, i) => ({ i, prompt: getPrompt(i, s.imagePrompt ?? "") }))
+      .filter(x => x.prompt.trim() !== "");
+    if (targets.length === 0) return;
+    setBulkGeneratingImages(true);
+    setBulkImageProgress({ done: 0, total: targets.length });
+    for (let t = 0; t < targets.length; t++) {
+      const { i, prompt } = targets[t]!;
+      try {
+        const result = await generateSlideImageMut.mutateAsync({ prompt });
+        setSlideImages(prev => ({ ...prev, [i]: result.url ?? "" }));
+      } catch {
+        // continue to next slide even if one fails
+      }
+      setBulkImageProgress({ done: t + 1, total: targets.length });
+    }
+    setBulkGeneratingImages(false);
+    setBulkImageProgress(null);
+    toast.success("All images generated");
   };
 
   const handleDerive = (type: "quiz" | "missing_words") => {
@@ -450,6 +491,7 @@ export default function Presentation() {
           slides={slides}
           initialIndex={previewIndex}
           onClose={() => setPreviewIndex(null)}
+          slideImages={slideImages}
         />
       )}
 
@@ -766,24 +808,59 @@ export default function Presentation() {
 
                     {slide.imagePrompt && (
                       <div className="bg-yellow-400/10 border border-yellow-400/20 rounded-lg p-3 space-y-2">
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <p className="text-yellow-200 text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5 mb-1">
-                              <Lightbulb className="w-3 h-3" /> {t("pres_image_suggestion")}
-                            </p>
-                            <p className="text-yellow-100/80 text-xs italic">{slide.imagePrompt}</p>
+                        {/* Header row */}
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <p className="text-yellow-200 text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5">
+                            <Lightbulb className="w-3 h-3" /> {t("pres_image_suggestion")}
+                          </p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {/* Bulk generate button — only shown when there are slides with prompts */}
+                            {slides.filter(s => s.imagePrompt).length > 1 && (
+                              <Button size="sm"
+                                className="bg-orange-500/80 hover:bg-orange-500 text-white text-xs px-2 py-1 h-auto gap-1"
+                                disabled={bulkGeneratingImages || generatingImageFor !== null}
+                                onClick={handleBulkGenerateImages}>
+                                {bulkGeneratingImages
+                                  ? <><Loader2 className="w-3 h-3 animate-spin" />
+                                      {bulkImageProgress ? ` ${bulkImageProgress.done}/${bulkImageProgress.total}` : ""}
+                                    </>
+                                  : <><Layers className="w-3 h-3" /> Generate All Images</>}
+                              </Button>
+                            )}
+                            {/* Single slide generate button */}
+                            <Button size="sm"
+                              className="shrink-0 bg-yellow-500/80 hover:bg-yellow-500 text-white text-xs px-2 py-1 h-auto"
+                              disabled={generatingImageFor === currentSlide || bulkGeneratingImages}
+                              onClick={() => handleGenerateImage(currentSlide, getPrompt(currentSlide, slide.imagePrompt!))}>
+                              {generatingImageFor === currentSlide
+                                ? <Loader2 className="w-3 h-3 animate-spin" />
+                                : <><ImagePlus className="w-3 h-3 mr-1" /> {t("pres_generate_image_btn")}</>}
+                            </Button>
                           </div>
-                          <Button size="sm"
-                            className="shrink-0 bg-yellow-500/80 hover:bg-yellow-500 text-white text-xs px-2 py-1 h-auto"
-                            disabled={generatingImageFor === currentSlide}
-                            onClick={() => handleGenerateImage(currentSlide, slide.imagePrompt!)}>
-                            {generatingImageFor === currentSlide
-                              ? <Loader2 className="w-3 h-3 animate-spin" />
-                              : <><ImagePlus className="w-3 h-3 mr-1" /> {t("pres_generate_image_btn")}</>}
-                          </Button>
                         </div>
+                        {/* Editable prompt text */}
+                        <Textarea
+                          value={editablePrompts[currentSlide] ?? slide.imagePrompt}
+                          onChange={e => setEditablePrompts(prev => ({ ...prev, [currentSlide]: e.target.value }))}
+                          rows={2}
+                          className="text-yellow-100/90 text-xs italic bg-yellow-400/5 border-yellow-400/30 focus:border-yellow-400 resize-none placeholder:text-yellow-200/40"
+                          placeholder="Describe the image to generate…"
+                        />
+                        {/* Bulk progress bar */}
+                        {bulkGeneratingImages && bulkImageProgress && (
+                          <div className="space-y-1">
+                            <Progress
+                              value={(bulkImageProgress.done / bulkImageProgress.total) * 100}
+                              className="h-1.5 bg-yellow-400/20"
+                            />
+                            <p className="text-yellow-200/60 text-xs text-right">
+                              {bulkImageProgress.done} / {bulkImageProgress.total} generated
+                            </p>
+                          </div>
+                        )}
+                        {/* Generated image preview */}
                         {slideImages[currentSlide] && (
-                          <img src={slideImages[currentSlide]} alt={slide.imagePrompt}
+                          <img src={slideImages[currentSlide]} alt={getPrompt(currentSlide, slide.imagePrompt)}
                             className="w-full rounded-lg object-cover max-h-48 border border-yellow-400/20"
                             crossOrigin="anonymous" />
                         )}
