@@ -7,7 +7,7 @@ import {
   Presentation as PresentationIcon, Globe, Users, MessagesSquare, Bell, Download,
   CalendarDays, FileText, Settings as SettingsIcon, ShieldAlert, Lock, HelpCircle,
   BarChart3, UserCheck, BookCheck, GraduationCap, Mic,
-  ClipboardList, Banknote, UserCog, FolderOpen, Building2, Wrench, Music, Wifi, LogOut,
+  ClipboardList, Banknote, UserCog, FolderOpen, Building2, Wrench, Music, Wifi, LogOut, LogIn,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -798,6 +798,24 @@ export default function NavBar() {
             </div>
 
             {/* User avatar + Sign Out — desktop */}
+            {/* Sign In button — desktop, only when not authenticated */}
+            {!user && (
+              <Link
+                href="/login"
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all border",
+                  isClassroomPage
+                    ? "text-white border-white/30 hover:bg-white/15"
+                    : "text-primary border-primary/40 hover:bg-primary/5"
+                )}
+                aria-label={t("nav_sign_in")}
+                title={t("nav_sign_in")}
+              >
+                <LogIn className="w-4 h-4" />
+                <span className="hidden lg:inline">{t("nav_sign_in")}</span>
+              </Link>
+            )}
+
             {user && (
               <div className="flex items-center gap-1.5">
                 {/* Avatar circle with initials */}
@@ -890,6 +908,22 @@ export default function NavBar() {
               <p className={cn("text-xs font-semibold uppercase tracking-wider mb-2 px-1", isClassroomPage ? "text-white/50" : "text-muted-foreground")}>
   {t("nav_home")} &amp; {t("nav_chat")}
               </p>
+              {/* Sign In — mobile, only when not authenticated */}
+              {!user && (
+                <Link
+                  href="/login"
+                  onClick={() => setMobileOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mb-1 border",
+                    isClassroomPage
+                      ? "text-white border-white/30 hover:bg-white/15"
+                      : "text-primary border-primary/40 hover:bg-primary/5"
+                  )}
+                >
+                  <LogIn className="w-5 h-5 flex-shrink-0" />
+                  {t("nav_sign_in")}
+                </Link>
+              )}
               {mainNavItemsBefore.map(({ href, label, icon: Icon }) => {
                 const active = location === href || (href !== "/" && location.startsWith(href));
                 return (

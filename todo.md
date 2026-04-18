@@ -3356,3 +3356,8 @@
 - [x] Diagnose why sign-in page is still not accessible — root cause: production running old code (login page works, SEBA logo broken on old build)
 - [x] Fix menu access issue — resolved by publishing latest checkpoint to production
 - [x] Fix sign-in page access issue — resolved by publishing latest checkpoint to production
+
+## Feature: Sign In button in NavBar
+
+- [x] Add Sign In button to desktop NavBar (visible only when not authenticated)
+- [x] Add Sign In button to mobile slide-out menu (visible only when not authenticated)
