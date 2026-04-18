@@ -563,6 +563,51 @@ function SlidesViewer({ content, materialId, onSaved }: {
         </CardContent>
       </Card>
 
+      {/* Talking points */}
+      {(slide.talkingPoints && slide.talkingPoints.length > 0 || editMode) && (
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="p-4">
+            <p className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+              <span>💬</span> Discussion Talking Points
+            </p>
+            {editMode ? (
+              <div className="flex flex-col gap-2">
+                {(slide.talkingPoints ?? []).map((tp, i) => (
+                  <div key={i} className="flex items-start gap-1.5">
+                    <Input
+                      value={tp}
+                      onChange={e => {
+                        const updated = [...(slide.talkingPoints ?? [])];
+                        updated[i] = e.target.value;
+                        updateSlide(current, { talkingPoints: updated });
+                      }}
+                      className="flex-1 h-7 text-sm border-dashed focus:border-blue-400 bg-blue-50"
+                    />
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive"
+                      onClick={() => {
+                        const updated = (slide.talkingPoints ?? []).filter((_, bi) => bi !== i);
+                        updateSlide(current, { talkingPoints: updated });
+                      }}>
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ))}
+                <Button size="sm" variant="ghost" className="self-start text-xs text-blue-600 hover:text-blue-700 h-6 px-2 gap-1"
+                  onClick={() => updateSlide(current, { talkingPoints: [...(slide.talkingPoints ?? []), "New discussion question…"] })}>
+                  + Add talking point
+                </Button>
+              </div>
+            ) : (
+              <ol className="flex flex-col gap-1.5 list-decimal list-inside">
+                {(slide.talkingPoints ?? []).map((tp, i) => (
+                  <li key={i} className="text-sm text-blue-900">{tp}</li>
+                ))}
+              </ol>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Speaker notes */}
       {(slide.speakerNote || editMode) && (
         <Card className="bg-amber-50 border-amber-200">
@@ -621,6 +666,20 @@ function SlidesViewer({ content, materialId, onSaved }: {
                     ))}
                   </ul>
                 </div>
+                {slides[reviewIdx]!.talkingPoints && slides[reviewIdx]!.talkingPoints!.length > 0 && (
+                  <Card className="bg-blue-50 border-blue-200">
+                    <CardContent className="p-3">
+                      <p className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-1 flex items-center gap-1.5">
+                        <span>💬</span> Discussion Talking Points
+                      </p>
+                      <ol className="flex flex-col gap-1.5 list-decimal list-inside">
+                        {slides[reviewIdx]!.talkingPoints!.map((tp, i) => (
+                          <li key={i} className="text-sm text-blue-900">{tp}</li>
+                        ))}
+                      </ol>
+                    </CardContent>
+                  </Card>
+                )}
                 {slides[reviewIdx]!.speakerNote && (
                   <Card className="bg-amber-50 border-amber-200">
                     <CardContent className="p-3">

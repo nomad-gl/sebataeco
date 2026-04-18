@@ -12,7 +12,7 @@ import NavBar from "@/components/NavBar";
 import {
   Loader2, Presentation as PresentationIcon, ChevronLeft, ChevronRight,
   Download, Printer, BookOpen, Lightbulb, Pencil, Check, X, FileQuestion,
-  AlignLeft, ImagePlus, ArrowLeft, Save, Layers, Maximize2, ChevronDown,
+  AlignLeft, ImagePlus, ArrowLeft, Save, Layers, Maximize2, ChevronDown, MessageSquare,
 } from "lucide-react";
 import { getLoginUrl } from "@/const";
 import { exportPDF, exportWord, exportPNG, exportToCsv, exportToXml } from "@/lib/exportUtils";
@@ -39,6 +39,7 @@ type Slide = {
   title: string;
   content: string;
   speakerNotes?: string;
+  talkingPoints?: string[];
   keyVocabulary?: string[];
   competencyTag?: string;
   imagePrompt?: string;
@@ -203,6 +204,19 @@ function SlidePreviewModal({
                   )}
                 </div>
               )}
+            </div>
+          )}
+
+          {slide.talkingPoints && slide.talkingPoints.length > 0 && (
+            <div className="bg-blue-500/10 border border-blue-400/25 rounded-xl p-4">
+              <p className="text-blue-200 text-xs font-semibold uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <MessageSquare className="w-3.5 h-3.5" /> Discussion Talking Points
+              </p>
+              <ol className="flex flex-col gap-1.5 list-decimal list-inside">
+                {slide.talkingPoints.map((tp, i) => (
+                  <li key={i} className="text-blue-100/80 text-sm leading-relaxed">{tp}</li>
+                ))}
+              </ol>
             </div>
           )}
 
@@ -619,102 +633,6 @@ export default function Presentation() {
           </CardContent>
         </Card>
 
-        {/* ── Bulk Generate section ──────────────────────────────────────────── */}
-        <Card className="bg-[#0d1f4a]/90 border-blue-400/30 text-white shadow-xl">
-          <button
-            className="w-full flex items-center justify-between px-5 py-4 text-left"
-            onClick={() => setShowBulk(v => !v)}
-          >
-            <div className="flex items-center gap-2">
-              <Layers className="w-5 h-5 text-blue-300" />
-              <span className="font-semibold text-white">Bulk Generate</span>
-              <Badge className="bg-blue-400/20 text-blue-200 border-blue-400/30 text-xs ml-1">New</Badge>
-            </div>
-            <ChevronDown className={`w-4 h-4 text-white/60 transition-transform ${showBulk ? "rotate-180" : ""}`} />
-          </button>
-
-          {showBulk && (
-            <CardContent className="px-5 pb-5 pt-0 space-y-4 border-t border-blue-400/20">
-              <p className="text-white/70 text-sm">
-                Enter one topic per line. Each will be generated as a separate presentation and saved to My Materials automatically.
-              </p>
-              <Textarea
-                value={bulkTopics}
-                onChange={e => setBulkTopics(e.target.value)}
-                placeholder={"The Water Cycle\nPhotosynthesis\nThe Roman Empire\nFractions and Decimals"}
-                rows={6}
-                className="bg-white/10 border-white/30 text-white placeholder:text-white/30 resize-none focus:border-blue-400 font-mono text-sm"
-              />
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-white/90 font-medium text-sm">Subject <span className="text-red-400">*</span></Label>
-                  <Select value={bulkSubject} onValueChange={setBulkSubject}>
-                    <SelectTrigger className="bg-white/10 border-white/30 text-white focus:border-blue-400">
-                      <SelectValue placeholder="Select subject" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SUBJECT_KEYS.map((k, i) => <SelectItem key={k} value={SUBJECT_VALUES[i]!}>{t(k)}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-white/90 font-medium text-sm">Year Group <span className="text-red-400">*</span></Label>
-                  <Select value={bulkYearGroup} onValueChange={setBulkYearGroup}>
-                    <SelectTrigger className="bg-white/10 border-white/30 text-white focus:border-blue-400">
-                      <SelectValue placeholder="Select year group" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {YEAR_GROUP_VALUES.map(y => <SelectItem key={y.value} value={y.value}>{t(y.labelKey)}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-white/90 font-medium text-sm">Competency</Label>
-                  <Select value={bulkCompetency} onValueChange={setBulkCompetency}>
-                    <SelectTrigger className="bg-white/10 border-white/30 text-white focus:border-blue-400">
-                      <SelectValue placeholder="Any" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="any">Any</SelectItem>
-                      {COMPETENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {bulkProgress && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm text-white/70">
-                    <span>Generating: <span className="text-white font-medium">{bulkProgress.current}</span></span>
-                    <span>{bulkProgress.done} / {bulkProgress.total}</span>
-                  </div>
-                  <Progress value={(bulkProgress.done / bulkProgress.total) * 100} className="h-2 bg-white/10" />
-                </div>
-              )}
-
-              <div className="flex gap-2">
-                <Button
-                  className="bg-blue-500 hover:bg-blue-400 text-white font-bold shadow-md flex-1"
-                  disabled={
-                    !bulkTopics.trim() || !bulkSubject || !bulkYearGroup || bulkProgress !== null
-                  }
-                  onClick={handleBulkGenerate}
-                >
-                  {bulkProgress
-                    ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Generating…</>
-                    : <><Layers className="w-4 h-4 mr-2" /> Bulk Generate & Save</>}
-                </Button>
-                {bulkProgress && (
-                  <Button variant="outline" className="border-white/30 text-white hover:bg-white/10"
-                    onClick={() => { bulkAbortRef.current = true; }}>
-                    Cancel
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          )}
-        </Card>
-
         {/* ── Slide viewer ───────────────────────────────────────────────────── */}
         {generated && slides.length > 0 && (
           <div className="space-y-4">
@@ -895,6 +813,19 @@ export default function Presentation() {
                       </div>
                     )}
 
+                    {slide.talkingPoints && slide.talkingPoints.length > 0 && (
+                      <div className="bg-blue-500/10 border border-blue-400/25 rounded-lg p-3">
+                        <p className="text-blue-200 text-xs font-semibold uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                          <MessageSquare className="w-3.5 h-3.5" /> Discussion Talking Points
+                        </p>
+                        <ol className="flex flex-col gap-1.5 list-decimal list-inside">
+                          {slide.talkingPoints.map((tp, i) => (
+                            <li key={i} className="text-blue-100/80 text-xs leading-relaxed">{tp}</li>
+                          ))}
+                        </ol>
+                      </div>
+                    )}
+
                     {slide.speakerNotes !== undefined && (
                       <div className="bg-white/8 border border-white/15 rounded-lg p-3">
                         <p className="text-white/60 text-xs font-semibold uppercase tracking-wide mb-1">
@@ -931,6 +862,102 @@ export default function Presentation() {
             </div>
           </div>
         )}
+
+        {/* ── Bulk Generate section ──────────────────────────────────────────── */}
+        <Card className="bg-[#0d1f4a]/90 border-blue-400/30 text-white shadow-xl">
+          <button
+            className="w-full flex items-center justify-between px-5 py-4 text-left"
+            onClick={() => setShowBulk(v => !v)}
+          >
+            <div className="flex items-center gap-2">
+              <Layers className="w-5 h-5 text-blue-300" />
+              <span className="font-semibold text-white">Bulk Generate</span>
+              <Badge className="bg-blue-400/20 text-blue-200 border-blue-400/30 text-xs ml-1">New</Badge>
+            </div>
+            <ChevronDown className={`w-4 h-4 text-white/60 transition-transform ${showBulk ? "rotate-180" : ""}`} />
+          </button>
+
+          {showBulk && (
+            <CardContent className="px-5 pb-5 pt-0 space-y-4 border-t border-blue-400/20">
+              <p className="text-white/70 text-sm">
+                Enter one topic per line. Each will be generated as a separate presentation and saved to My Materials automatically.
+              </p>
+              <Textarea
+                value={bulkTopics}
+                onChange={e => setBulkTopics(e.target.value)}
+                placeholder={"The Water Cycle\nPhotosynthesis\nThe Roman Empire\nFractions and Decimals"}
+                rows={6}
+                className="bg-white/10 border-white/30 text-white placeholder:text-white/30 resize-none focus:border-blue-400 font-mono text-sm"
+              />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-white/90 font-medium text-sm">Subject <span className="text-red-400">*</span></Label>
+                  <Select value={bulkSubject} onValueChange={setBulkSubject}>
+                    <SelectTrigger className="bg-white/10 border-white/30 text-white focus:border-blue-400">
+                      <SelectValue placeholder="Select subject" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SUBJECT_KEYS.map((k, i) => <SelectItem key={k} value={SUBJECT_VALUES[i]!}>{t(k)}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-white/90 font-medium text-sm">Year Group <span className="text-red-400">*</span></Label>
+                  <Select value={bulkYearGroup} onValueChange={setBulkYearGroup}>
+                    <SelectTrigger className="bg-white/10 border-white/30 text-white focus:border-blue-400">
+                      <SelectValue placeholder="Select year group" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {YEAR_GROUP_VALUES.map(y => <SelectItem key={y.value} value={y.value}>{t(y.labelKey)}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-white/90 font-medium text-sm">Competency</Label>
+                  <Select value={bulkCompetency} onValueChange={setBulkCompetency}>
+                    <SelectTrigger className="bg-white/10 border-white/30 text-white focus:border-blue-400">
+                      <SelectValue placeholder="Any" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">Any</SelectItem>
+                      {COMPETENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {bulkProgress && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm text-white/70">
+                    <span>Generating: <span className="text-white font-medium">{bulkProgress.current}</span></span>
+                    <span>{bulkProgress.done} / {bulkProgress.total}</span>
+                  </div>
+                  <Progress value={(bulkProgress.done / bulkProgress.total) * 100} className="h-2 bg-white/10" />
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <Button
+                  className="bg-blue-500 hover:bg-blue-400 text-white font-bold shadow-md flex-1"
+                  disabled={
+                    !bulkTopics.trim() || !bulkSubject || !bulkYearGroup || bulkProgress !== null
+                  }
+                  onClick={handleBulkGenerate}
+                >
+                  {bulkProgress
+                    ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Generating…</>
+                    : <><Layers className="w-4 h-4 mr-2" /> Bulk Generate & Save</>}
+                </Button>
+                {bulkProgress && (
+                  <Button variant="outline" className="border-white/30 text-white hover:bg-white/10"
+                    onClick={() => { bulkAbortRef.current = true; }}>
+                    Cancel
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          )}
+        </Card>
       </main>
     </div>
   );

@@ -3592,3 +3592,10 @@
 ## Follow-up 1 & 2: Presentation page image prompt persistence + modal regenerate
 - [x] Follow-up 1: When teacher clicks Save, merge editablePrompts back into slides array so updated imagePrompt values are written to the database
 - [x] Follow-up 2: Add Regenerate Image button inside the Full Preview modal so teachers can trigger a new image without closing the preview
+
+## Feature: Presentation — talking points + layout
+- [x] Add talkingPoints field (string[]) to Slide type in Presentation.tsx
+- [x] Update materials router slides LLM prompt to generate 3-4 talking points per slide (discussion questions/prompts for the tutor)
+- [x] Render talking points in the slide card (editable, collapsible section with a speech-bubble icon)
+- [x] Render talking points in the Full Preview modal
+- [x] Move Bulk Generate card to below the slide review/image card (currently it sits above the slide viewer)

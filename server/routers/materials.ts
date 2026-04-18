@@ -82,12 +82,13 @@ Schema:
       "slideNumber": number,
       "heading": string,
       "bullets": [string],            // 3-5 substantive bullet points with real content
-      "speakerNote": string,          // 2-3 sentences for the teacher; teaching tips, discussion prompts
+      "speakerNote": string,          // 2-3 sentences for the teacher; teaching tips, pacing guidance
+      "talkingPoints": [string],      // 3-4 open-ended discussion questions or prompts the tutor can use to spark class conversation about this slide's content
       "imagePrompt": string           // descriptive prompt for an educational diagram or illustration
     }
   ]
 }
-Generate 8-10 slides: slide 1 = title/overview, slides 2-8 = content, last slide = summary/review questions. Each bullet must contain real factual content, not generic placeholders.`,
+Generate 8-10 slides: slide 1 = title/overview, slides 2-8 = content, last slide = summary/review questions. Each bullet must contain real factual content, not generic placeholders. talkingPoints must be genuine open-ended questions that encourage critical thinking and discussion, not restatements of the bullets.`,
 
     crossword: `
 Schema:
