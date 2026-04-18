@@ -3368,3 +3368,8 @@
 - [x] Fix login for owner: added email-field fallback in login mutation so OAuth accounts with a passwordHash can log in
 - [x] Add setPassword mutation so owner/any user can add a local password to their existing account (Settings → Account Security)
 - [x] Show helpful error on login page when email exists but has no password set (generic UNAUTHORIZED message preserved)
+
+## Bug: Mobile member selection broken for call/video/message
+- [x] Diagnose why member list items are not tappable/selectable on mobile in SebaConnect — root cause: buttons hidden with opacity-0 (hover-only), no touch state
+- [x] Fix touch target size and tap handling for member list on mobile — buttons now always visible on mobile (opacity-100), 36px min touch target, active:bg feedback
+- [x] Ensure call, video, and message buttons are accessible after selecting a member on mobile

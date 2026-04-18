@@ -1094,28 +1094,28 @@ export default function SebaConnect() {
                         <Circle className="w-2.5 h-2.5 fill-green-500 text-green-500 absolute -bottom-0.5 -right-0.5" />
                       </div>
                       <span className="text-sm truncate flex-1 text-left">{m.name}</span>
-                      {/* Video + Audio call buttons — visible on hover */}
-                      <div className="flex items-center gap-1 opacity-0 group-hover/member:opacity-100 transition-opacity shrink-0">
+                      {/* Video + Audio call buttons — always visible on mobile, hover-reveal on desktop */}
+                      <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover/member:opacity-100 transition-opacity shrink-0">
                         <button
                           onClick={() => handleMemberCall(m.id, m.name, false)}
                           title={t("connect_click_to_call")}
-                          className="p-1 rounded hover:bg-blue-700 text-green-400 hover:text-white transition-colors"
+                          className="p-2 sm:p-1 rounded hover:bg-blue-700 active:bg-blue-700 text-green-400 hover:text-white transition-colors min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
                         >
-                          <Video className="w-3.5 h-3.5" />
+                          <Video className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                         </button>
                         <button
                           onClick={() => handleMemberCall(m.id, m.name, true)}
                           title={t("call_audio_only_label")}
-                          className="p-1 rounded hover:bg-blue-700 text-green-400 hover:text-white transition-colors"
+                          className="p-2 sm:p-1 rounded hover:bg-blue-700 active:bg-blue-700 text-green-400 hover:text-white transition-colors min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
                         >
-                          <Phone className="w-3.5 h-3.5" />
+                          <Phone className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                         </button>
                         <button
                           onClick={() => setMeetInviteTarget({ id: m.id, name: m.name })}
                           title="Schedule a meeting"
-                          className="p-1 rounded hover:bg-blue-700 text-blue-300 hover:text-white transition-colors"
+                          className="p-2 sm:p-1 rounded hover:bg-blue-700 active:bg-blue-700 text-blue-300 hover:text-white transition-colors min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
                         >
-                          <CalendarPlus className="w-3.5 h-3.5" />
+                          <CalendarPlus className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                         </button>
                       </div>
                     </div>
@@ -1144,13 +1144,13 @@ export default function SebaConnect() {
                         <Circle className="w-2.5 h-2.5 fill-gray-400 text-gray-400 absolute -bottom-0.5 -right-0.5" />
                       </div>
                       <span className="text-sm truncate flex-1">{m.name}</span>
-                      {/* Schedule meeting button — visible on hover */}
-                      <button
-                        onClick={() => setMeetInviteTarget({ id: m.id, name: m.name })}
-                        title="Schedule a meeting"
-                        className="p-1 rounded opacity-0 group-hover/offline:opacity-100 hover:bg-blue-700 text-blue-400 hover:text-white transition-all"
-                      >
-                        <CalendarPlus className="w-3.5 h-3.5" />
+                      {/* Schedule meeting button — always visible on mobile, hover-reveal on desktop */}
+                        <button
+                          onClick={() => setMeetInviteTarget({ id: m.id, name: m.name })}
+                          title="Schedule a meeting"
+                          className="p-2 sm:p-1 rounded opacity-100 sm:opacity-0 sm:group-hover/offline:opacity-100 hover:bg-blue-700 active:bg-blue-700 text-blue-400 hover:text-white transition-all min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
+                        >
+                        <CalendarPlus className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                       </button>
                     </div>
                   ))}
