@@ -202,13 +202,22 @@ export default function Forum() {
     }
   }, [channelsQ.data, activeChannelId]);
 
-  // Scroll to bottom on new messages — use scrollTop on the container (not
-  // scrollIntoView) to prevent the scroll from propagating up to the page body
-  // and hijacking the user's window scroll position.
+  // Track whether this is the very first load so we always scroll on mount.
+  const isInitialScrollRef = useRef(true);
+
+  // Scroll to bottom on new messages — but only if the user is already near
+  // the bottom (within 100 px).  This prevents auto-scroll from fighting the
+  // user when they scroll up to read history.  On the very first render we
+  // always scroll so the latest message is visible immediately.
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
-    container.scrollTop = container.scrollHeight;
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    if (isInitialScrollRef.current || distanceFromBottom < 100) {
+      container.scrollTop = container.scrollHeight;
+      isInitialScrollRef.current = false;
+    }
   }, [channelMessagesQ.data, dmMessagesQ.data]);
 
   // Heartbeat ping every 30s
@@ -297,6 +306,8 @@ export default function Forum() {
     setView("channel");
     setActiveChannelId(id);
     setMobileSidebarOpen(false);
+    // Reset so the new channel scrolls to bottom on first load.
+    isInitialScrollRef.current = true;
   };
 
   const openDm = (userId: number) => {
@@ -307,6 +318,8 @@ export default function Forum() {
     // Clear unread badge immediately when opening a DM conversation
     utils.forum.getUnreadCount.invalidate();
     utils.forum.getConversations.invalidate();
+    // Reset so the new DM thread scrolls to bottom on first load.
+    isInitialScrollRef.current = true;
   };
 
   // ─── file upload handler ───────────────────────────────────────────────────
