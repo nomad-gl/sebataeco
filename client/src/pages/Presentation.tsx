@@ -99,11 +99,15 @@ function SlidePreviewModal({
   initialIndex,
   onClose,
   slideImages,
+  generatingImageFor,
+  onGenerateImage,
 }: {
   slides: Slide[];
   initialIndex: number;
   onClose: () => void;
   slideImages?: Record<number, string>;
+  generatingImageFor?: number | null;
+  onGenerateImage?: (idx: number, prompt: string) => void;
 }) {
   const { t } = useI18n();
   const [idx, setIdx] = useState(initialIndex);
@@ -168,6 +172,7 @@ function SlidePreviewModal({
 
           {(slideImages?.[idx] || slide.imagePrompt) && (
             <div className="bg-yellow-400/10 border border-yellow-400/20 rounded-xl p-4 space-y-3">
+              {/* Image (if generated) */}
               {slideImages?.[idx] && (
                 <img
                   src={slideImages[idx]}
@@ -177,12 +182,26 @@ function SlidePreviewModal({
                 />
               )}
               {slide.imagePrompt && (
-                <>
-                  <p className="text-yellow-200 text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5">
-                    <Lightbulb className="w-3.5 h-3.5" /> {t("pres_image_suggestion")}
-                  </p>
-                  <p className="text-yellow-100/80 text-sm italic">{slide.imagePrompt}</p>
-                </>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1">
+                    <p className="text-yellow-200 text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5 mb-1">
+                      <Lightbulb className="w-3.5 h-3.5" /> {t("pres_image_suggestion")}
+                    </p>
+                    <p className="text-yellow-100/80 text-sm italic">{slide.imagePrompt}</p>
+                  </div>
+                  {onGenerateImage && (
+                    <Button
+                      size="sm"
+                      className="shrink-0 bg-yellow-500/80 hover:bg-yellow-500 text-white text-xs px-2 py-1 h-auto gap-1"
+                      disabled={generatingImageFor === idx}
+                      onClick={() => onGenerateImage(idx, slide.imagePrompt!)}
+                    >
+                      {generatingImageFor === idx
+                        ? <Loader2 className="w-3 h-3 animate-spin" />
+                        : <><ImagePlus className="w-3 h-3" /> {slideImages?.[idx] ? "Regenerate" : t("pres_generate_image_btn")}</>}
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
           )}
@@ -360,7 +379,14 @@ export default function Presentation() {
       competency: (generated.competency || undefined) as "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC" | undefined,
       yearGroup: (generated.yearGroup || undefined) as "junior" | "primary" | "secondary" | undefined,
       title: generated.title,
-      content: JSON.stringify({ ...generated, slides }),
+      content: JSON.stringify({
+        ...generated,
+        slides: slides.map((s, i) =>
+          editablePrompts[i] !== undefined
+            ? { ...s, imagePrompt: editablePrompts[i] }
+            : s
+        ),
+      }),
     });
   };
 
@@ -492,6 +518,8 @@ export default function Presentation() {
           initialIndex={previewIndex}
           onClose={() => setPreviewIndex(null)}
           slideImages={slideImages}
+          generatingImageFor={generatingImageFor}
+          onGenerateImage={handleGenerateImage}
         />
       )}
 

@@ -3583,8 +3583,12 @@
 - [x] SlidesViewer: show unsaved-changes indicator when edits have been made but not saved
 
 ## Feature: Presentation page — image improvements
-- [ ] Full Preview modal: show slide image (if generated) inside each slide panel in the modal
-- [ ] Image suggestion card: add "Generate All Images" bulk button that calls generateSlideImage for every slide sequentially and shows a progress indicator
+- [x] Full Preview modal: show slide image (if generated) inside each slide panel in the modal
+- [x] Image suggestion card: add "Generate All Images" bulk button that calls generateSlideImage for every slide sequentially and shows a progress indicator
 - [x] Full Preview modal: pass slideImages into modal so generated images are shown per slide
 - [x] Image suggestion card: add "Generate All Images" bulk button (sequential, with progress) for all slides that have an imagePrompt
 - [x] Image suggestion card: make the imagePrompt text inline-editable so teachers can customise the prompt before generating
+
+## Follow-up 1 & 2: Presentation page image prompt persistence + modal regenerate
+- [x] Follow-up 1: When teacher clicks Save, merge editablePrompts back into slides array so updated imagePrompt values are written to the database
+- [x] Follow-up 2: Add Regenerate Image button inside the Full Preview modal so teachers can trigger a new image without closing the preview
