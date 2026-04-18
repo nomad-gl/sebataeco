@@ -3349,3 +3349,10 @@
 
 - [x] Add user avatar with initials and name tooltip next to Sign Out button in NavBar (desktop)
 - [x] Add user name display in mobile nav menu
+
+## Bug: Cannot access full menu and sign-in page (critical)
+
+- [x] Diagnose why user cannot access the full navigation menu — root cause: production running old code (pre-NavBar update)
+- [x] Diagnose why sign-in page is still not accessible — root cause: production running old code (login page works, SEBA logo broken on old build)
+- [x] Fix menu access issue — resolved by publishing latest checkpoint to production
+- [x] Fix sign-in page access issue — resolved by publishing latest checkpoint to production
