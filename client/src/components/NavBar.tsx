@@ -7,7 +7,7 @@ import {
   Presentation as PresentationIcon, Globe, Users, MessagesSquare, Bell, Download,
   CalendarDays, FileText, Settings as SettingsIcon, ShieldAlert, Lock, HelpCircle,
   BarChart3, UserCheck, BookCheck, GraduationCap, Mic,
-  ClipboardList, Banknote, UserCog, FolderOpen, Building2, Wrench, Music, Wifi,
+  ClipboardList, Banknote, UserCog, FolderOpen, Building2, Wrench, Music, Wifi, LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -90,7 +90,7 @@ export default function NavBar() {
   const langRef     = useRef<HTMLDivElement>(null);
   const bellRef     = useRef<HTMLDivElement>(null);
 
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   // Position-based visibility helpers
   // Director sees everything; each role sees its own menus plus shared menus
@@ -796,6 +796,23 @@ export default function NavBar() {
                 </div>
               )}
             </div>
+
+            {/* Sign Out — desktop */}
+            {user && (
+              <button
+                onClick={logout}
+                className={cn(
+                  "flex items-center justify-center w-9 h-9 rounded-lg transition-all",
+                  isClassroomPage
+                    ? "text-white/80 hover:text-white hover:bg-white/15"
+                    : "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                )}
+                aria-label={t("nav_sign_out")}
+                title={t("nav_sign_out")}
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            )}
           </nav>
 
           {/* Mobile: language pill + hamburger */}
@@ -1149,6 +1166,24 @@ export default function NavBar() {
                 );
               })}
             </div>
+            )}
+
+            {/* Sign Out — mobile */}
+            {user && (
+              <div className="px-4 py-3 border-t border-border mt-1">
+                <button
+                  onClick={() => { setMobileOpen(false); logout(); }}
+                  className={cn(
+                    "flex items-center gap-3 w-full px-3 py-3 rounded-xl text-sm font-medium transition-all",
+                    isClassroomPage
+                      ? "text-white/80 hover:text-white hover:bg-white/15"
+                      : "text-destructive hover:bg-destructive/10"
+                  )}
+                >
+                  <LogOut className="w-5 h-5 flex-shrink-0" />
+                  {t("nav_sign_out")}
+                </button>
+              </div>
             )}
           </nav>
         </div>

@@ -3326,3 +3326,8 @@
 - [x] Add AI Models link to Director dropdown (desktop + mobile)
 - [x] Add AI Accountability link to Director dropdown (desktop + mobile)
 - [x] i18n keys reuse existing nav_audit, nav_ai_models, nav_accountability keys (already present in all languages)
+
+## Bug: Sign Out button not visible
+
+- [x] Diagnose why Sign Out button is not visible in the NavBar
+- [x] Fix Sign Out button so it is always accessible to logged-in users
