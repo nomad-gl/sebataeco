@@ -42,12 +42,20 @@ export function useAuth(options?: UseAuthOptions) {
         error instanceof TRPCClientError &&
         error.data?.code === "UNAUTHORIZED"
       ) {
-        return;
+        // Already logged out — fall through to cleanup
+      } else {
+        throw error;
       }
-      throw error;
     } finally {
+      // Clear the cached user from tRPC and localStorage so no stale data
+      // remains after the session cookie is gone.
       utils.auth.me.setData(undefined, null);
+      localStorage.removeItem("manus-runtime-user-info");
       await utils.auth.me.invalidate();
+      // Redirect to the login page after logout
+      if (typeof window !== "undefined") {
+        window.location.href = getLoginUrl("/");
+      }
     }
   }, [logoutMutation, utils]);
 

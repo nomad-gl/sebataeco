@@ -3297,3 +3297,14 @@
 
 - [x] Diagnose why voice prompt image creation intent is detected but no image is generated/displayed
 - [x] Fix the image generation flow so voice-triggered image requests produce and display an image
+
+## Audit: Logout process verification
+
+- [x] Server-side: auth.logout publicProcedure clears session cookie with httpOnly, sameSite=none, secure, maxAge=-1
+- [x] Client-side: useAuth.logout() clears tRPC cache, removes manus-runtime-user-info from localStorage, and redirects to login
+- [x] DashboardLayout: redirects to login when user is null (covers post-logout state)
+- [x] UI entry point: Sign Out button in DashboardLayout sidebar footer (all roles)
+- [x] Fix: localStorage user cache was not cleared on logout — now removed in finally block
+- [x] Fix: no redirect after logout — now redirects to login page via getLoginUrl("/")
+- [x] Fix: UNAUTHORIZED error on logout (already-expired session) now falls through to cleanup instead of throwing
+- [x] Tests: extended auth.logout.test.ts with 3 new cases (unauthenticated, HTTP, single-cookie-only)

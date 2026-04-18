@@ -41,8 +41,53 @@ function createAuthContext(): { ctx: TrpcContext; clearedCookies: CookieCall[] }
   return { ctx, clearedCookies };
 }
 
+function createUnauthenticatedContext(): { ctx: TrpcContext; clearedCookies: CookieCall[] } {
+  const clearedCookies: CookieCall[] = [];
+  const ctx: TrpcContext = {
+    user: null,
+    req: {
+      protocol: "https",
+      headers: {},
+    } as TrpcContext["req"],
+    res: {
+      clearCookie: (name: string, options: Record<string, unknown>) => {
+        clearedCookies.push({ name, options });
+      },
+    } as TrpcContext["res"],
+  };
+  return { ctx, clearedCookies };
+}
+
+function createHttpContext(): { ctx: TrpcContext; clearedCookies: CookieCall[] } {
+  const clearedCookies: CookieCall[] = [];
+  const user: AuthenticatedUser = {
+    id: 2,
+    openId: "http-user",
+    email: "http@example.com",
+    name: "HTTP User",
+    loginMethod: "local",
+    role: "user",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    lastSignedIn: new Date(),
+  };
+  const ctx: TrpcContext = {
+    user,
+    req: {
+      protocol: "http",
+      headers: {},
+    } as TrpcContext["req"],
+    res: {
+      clearCookie: (name: string, options: Record<string, unknown>) => {
+        clearedCookies.push({ name, options });
+      },
+    } as TrpcContext["res"],
+  };
+  return { ctx, clearedCookies };
+}
+
 describe("auth.logout", () => {
-  it("clears the session cookie and reports success", async () => {
+  it("clears the session cookie and reports success (authenticated, HTTPS)", async () => {
     const { ctx, clearedCookies } = createAuthContext();
     const caller = appRouter.createCaller(ctx);
 
@@ -58,5 +103,40 @@ describe("auth.logout", () => {
       httpOnly: true,
       path: "/",
     });
+  });
+
+  it("clears the session cookie even when called without an active session (unauthenticated)", async () => {
+    // logout is a publicProcedure so it must work even if no session cookie is present
+    const { ctx, clearedCookies } = createUnauthenticatedContext();
+    const caller = appRouter.createCaller(ctx);
+
+    const result = await caller.auth.logout();
+
+    expect(result).toEqual({ success: true });
+    expect(clearedCookies).toHaveLength(1);
+    expect(clearedCookies[0]?.name).toBe(COOKIE_NAME);
+  });
+
+  it("sets secure:false when the request is plain HTTP", async () => {
+    const { ctx, clearedCookies } = createHttpContext();
+    const caller = appRouter.createCaller(ctx);
+
+    await caller.auth.logout();
+
+    expect(clearedCookies[0]?.options).toMatchObject({
+      secure: false,
+      httpOnly: true,
+      sameSite: "none",
+      path: "/",
+    });
+  });
+
+  it("only clears exactly one cookie per logout call", async () => {
+    const { ctx, clearedCookies } = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+
+    await caller.auth.logout();
+
+    expect(clearedCookies).toHaveLength(1);
   });
 });
