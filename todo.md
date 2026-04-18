@@ -3447,3 +3447,7 @@
 - [x] Generate 32px PNG favicon from SebaSymbol SVG (solid dark variant)
 - [x] Upload favicon to CDN and update client/index.html favicon link
 - [x] Revert tab title to "Seba | AINA" in client/index.html
+
+## Feature: Windows tile meta tags
+- [x] Generate 144px SebaSymbol PNG for Windows tile
+- [x] Add msapplication-TileImage, msapplication-TileColor, and msapplication-config meta tags to index.html
