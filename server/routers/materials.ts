@@ -444,9 +444,17 @@ export const materialsRouter = router({
       topic: z.string().min(2).max(200),
       competency: CompetencyCodeSchema.nullish(),
       yearGroup: YearGroupSchema.nullish(),
+      slideCount: z.number().int().min(3).max(12).nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const systemPrompt = buildSystemPrompt(input.type, input.competency ?? undefined, input.yearGroup ?? undefined);
+      // For slides, override the default count instruction if the user specified one
+      let systemPrompt = buildSystemPrompt(input.type, input.competency ?? undefined, input.yearGroup ?? undefined);
+      if (input.type === "slides" && input.slideCount) {
+        systemPrompt = systemPrompt.replace(
+          /Generate \d+-\d+ slides:[^.]+\./,
+          `Generate exactly ${input.slideCount} slides: slide 1 = title/overview, slides 2-${input.slideCount - 1} = content, last slide = summary/review questions.`
+        );
+      }
 
       // Enrich with knowledge bank examples for alignment
       const contextQs = getQuestions(

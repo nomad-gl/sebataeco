@@ -530,6 +530,13 @@ export default function MyMaterials() {
                             onClick={(e) => { e.stopPropagation(); navigate(`/materials/${m.id}`); }}>
                             <ExternalLink className="w-3.5 h-3.5" /> {t("my_materials_open")}
                           </Button>
+                          {m.type === "slides" && (
+                            <Button size="sm" variant="outline" className="gap-1.5 border-purple-400/50 text-purple-300 hover:bg-purple-500/20 bg-transparent"
+                              title="Edit in Presentation"
+                              onClick={(e) => { e.stopPropagation(); navigate(`/presentation?id=${m.id}`); }}>
+                              <Presentation className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
                           <Button size="sm" variant="ghost"
                             className="px-2 text-white/60 hover:text-white hover:bg-white/15"
                             onClick={(e) => { e.stopPropagation(); shareLink(m.id); }}>

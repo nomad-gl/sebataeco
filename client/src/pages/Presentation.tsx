@@ -1,4 +1,3 @@
-import { useState, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -21,6 +20,7 @@ import ExportDropdown, { PrintIcon, PdfIcon, WordIcon, PngIcon, CsvIcon, XmlIcon
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { useI18n } from "@/contexts/I18nContext";
+import { useState, useRef, useEffect } from "react";
 
 const COMPETENCIES = ["CCL","CP","STEM","CD","CPSAA","CC","CE","CCEC"];
 const YEAR_GROUP_VALUES = [
@@ -212,6 +212,7 @@ export default function Presentation() {
   const [subject, setSubject] = useState<string | undefined>(undefined);
   const [yearGroup, setYearGroup] = useState<string | undefined>(undefined);
   const [competency, setCompetency] = useState<string | undefined>(undefined);
+  const [slideCount, setSlideCount] = useState(6);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [generated, setGenerated] = useState<PresentationData | null>(null);
   const [slides, setSlides] = useState<Slide[]>([]);
@@ -220,6 +221,36 @@ export default function Presentation() {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [saved, setSaved] = useState(false);
   const exportId = "presentation-export-area";
+
+  // Load saved material when navigated from My Materials with ?id=<materialId>
+  const materialIdParam = new URLSearchParams(window.location.search).get("id");
+  const loadMaterialId = materialIdParam ? parseInt(materialIdParam, 10) : null;
+  const { data: loadedMaterial } = trpc.materials.get.useQuery(
+    { id: loadMaterialId! },
+    { enabled: !!loadMaterialId && !isNaN(loadMaterialId!) }
+  );
+  const loadedRef = useRef(false);
+  useEffect(() => {
+    if (!loadedMaterial || loadedRef.current) return;
+    loadedRef.current = true;
+    try {
+      const content = typeof loadedMaterial.content === "string"
+        ? JSON.parse(loadedMaterial.content as string)
+        : (loadedMaterial.content as Record<string, unknown>);
+      const pres = content as PresentationData;
+      setGenerated(pres);
+      setSlides(pres.slides ?? []);
+      setTopic(loadedMaterial.topic ?? "");
+      setSubject(pres.subject || undefined);
+      setYearGroup(pres.yearGroup || undefined);
+      setCompetency(pres.competency || undefined);
+      setCurrentSlide(0);
+      setSaved(true); // already saved
+      toast.success("Presentation loaded — ready to edit");
+    } catch {
+      toast.error("Could not load presentation");
+    }
+  }, [loadedMaterial]);
 
   // Bulk generate state
   const [showBulk, setShowBulk] = useState(false);
@@ -300,6 +331,7 @@ export default function Presentation() {
       topic: heading ? `${heading}: ${topic}` : topic,
       competency: (competency && competency !== "any" ? competency : undefined) as "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC" | undefined,
       yearGroup: yearGroup as "junior" | "primary" | "secondary",
+      slideCount,
     });
   };
 
@@ -492,6 +524,16 @@ export default function Presentation() {
                   {COMPETENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-white/90 font-medium">
+                Number of Slides <span className="text-white/50 font-normal">(3–12)</span>
+              </Label>
+              <Input
+                type="number" min={3} max={12} value={slideCount}
+                onChange={(e) => setSlideCount(Math.min(12, Math.max(3, parseInt(e.target.value) || 6)))}
+                className="bg-white/10 border-white/30 text-white placeholder:text-white/40 focus:border-blue-400"
+              />
             </div>
             <div className="flex items-end">
               <Button

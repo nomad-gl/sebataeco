@@ -3570,3 +3570,7 @@
 - [x] Add Save to My Materials button on the Presentation page after generation (currently only export options exist, no explicit save)
 - [x] Add Bulk Generate section: textarea for multiple topics (one per line), generates all presentations sequentially and saves each to My Materials, shows progress bar
 - [x] Fix Presentation page: generator form card and slide card are too transparent — increase opacity/background so text is clearly readable
+
+## Follow-up 1 & 3: Presentation page enhancements
+- [x] Follow-up 1: My Materials — add "Edit in Presentation" button on saved slides items; clicking it navigates to /presentation?id=<materialId> and loads the saved slides into the edit/review view
+- [x] Follow-up 3: Slide count control — add a number input (default 6, range 3–12) to the generator form; pass slideCount through the tRPC create mutation so the LLM generates the requested number of slides
