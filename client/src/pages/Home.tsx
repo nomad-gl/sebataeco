@@ -15,7 +15,7 @@ const LOMLOE_LOGO =
   "/manus-storage/lomloe_23170104_ad4cf225.png";
 
 const HERO_BG =
-  "/manus-storage/hero-bg_a68af405.jpg";
+  "/manus-storage/hero-bg_a767782c.jpg";
 
 const COMP_COLORS: Record<string, string> = {
   CCL: "var(--comp-ccl)",

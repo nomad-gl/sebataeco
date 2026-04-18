@@ -14,7 +14,7 @@ import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 
 const HERO_BG =
-  "/manus-storage/hero-bg_a68af405.jpg";
+  "/manus-storage/hero-bg_a767782c.jpg";
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
 type YearGroup = "junior" | "primary" | "secondary";

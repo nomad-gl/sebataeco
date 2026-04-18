@@ -19,7 +19,7 @@ import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 
 const DEFAULT_BG =
-  "/manus-storage/hero-bg_a68af405.jpg";
+  "/manus-storage/hero-bg_a767782c.jpg";
 
 const LANG_OPTIONS = [
   { code: "en", label: "English (UK)" },

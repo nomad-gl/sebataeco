@@ -3532,3 +3532,10 @@
 - [x] AI generation uses invokeLLM with LOMLOE competency context and student profile data
 - [x] Print/PDF export via browser print with print-optimised CSS
 - [x] Updated aina.test.ts for protectedProcedure change — 162/162 tests passing
+
+## Bug: Hero background image missing on Home page
+- [x] Root cause: /manus-storage/ paths require a storage proxy route that was missing from the server
+- [x] Created server/_core/storageProxy.ts and registered it in server/_core/index.ts
+- [x] Re-uploaded hero-bg.jpg to get a valid storage key (hero-bg_a767782c.jpg)
+- [x] Updated all 13 references across Home.tsx, Forum.tsx, LocalLogin.tsx, Practice.tsx, RegisterWithInvite.tsx, and index.css (8 CSS bg classes)
+- [x] Storage proxy confirmed working: /manus-storage/* returns 307 redirect to signed CDN URL
