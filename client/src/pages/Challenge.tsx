@@ -96,6 +96,16 @@ export default function Challenge() {
     onError: (e) => toast.error(e.message),
   });
 
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const deleteRoomMutation = trpc.challenge.deleteRoom.useMutation({
+    onSuccess: () => {
+      myRooms.refetch();
+      toast.success(t("challenge_room_deleted"));
+      setDeleteConfirmId(null);
+    },
+    onError: (e) => { toast.error(e.message); setDeleteConfirmId(null); },
+  });
+
   // Enable polling immediately when roomId is set so the lobby never shows blank
   const isInRoomView = view === "lobby" || view === "live";
   const roomQuery = trpc.challenge.getRoom.useQuery(
@@ -321,7 +331,7 @@ export default function Challenge() {
             {/* ── Sessions sub-tab ── */}
             {homeTab === "sessions" && (
               <>
-                {myRooms.data && myRooms.data.length > 0 ? (
+                    {myRooms.data && myRooms.data.length > 0 ? (
                   <div className="space-y-3">
                     <h2 className="text-lg font-semibold text-white/90">{t("challenge_leaderboard")}</h2>
                     <div className="grid gap-3">
@@ -331,13 +341,22 @@ export default function Challenge() {
                           className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 flex items-center justify-between cursor-pointer hover:bg-white/15 transition-colors"
                           onClick={() => { setRoomId(r.id); setView(r.status === "finished" ? "results" : "lobby"); }}
                         >
-                          <div>
-                            <p className="font-semibold text-white">{r.title}</p>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-white truncate">{r.title}</p>
                             <p className="text-sm text-white/60">{t("challenge_room_code")}: <span className="font-mono font-bold text-yellow-300">{r.roomCode}</span></p>
                           </div>
-                          <Badge className={r.status === "finished" ? "bg-gray-500" : r.status === "active" ? "bg-green-500" : "bg-yellow-500"}>
-                            {r.status}
-                          </Badge>
+                          <div className="flex items-center gap-2 ml-3 flex-shrink-0">
+                            <Badge className={r.status === "finished" ? "bg-gray-500" : r.status === "active" ? "bg-green-500" : "bg-yellow-500"}>
+                              {r.status}
+                            </Badge>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(r.id); }}
+                              className="p-1.5 rounded-lg text-white/40 hover:text-red-400 hover:bg-red-500/20 transition-colors"
+                              title={t("challenge_delete_room")}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -677,6 +696,10 @@ export default function Challenge() {
         )}
         {view === "lobby" && room && isParaulaRoom && (
           <div className="max-w-2xl mx-auto space-y-5">
+            {/* Back button */}
+            <Button variant="ghost" size="sm" onClick={() => { setRoomId(null); setView("home"); }} className="flex items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/10 -ml-2">
+              <ArrowLeft className="size-4" />{t("btn_back")}
+            </Button>
             {/* PARAULA Live Lobby Header */}
             <div className="text-center space-y-1">
               <div className="inline-flex items-center gap-2 bg-orange-400/20 text-orange-300 border border-orange-400/30 rounded-full px-4 py-1.5 text-sm font-semibold">
@@ -849,6 +872,10 @@ export default function Challenge() {
         {/* ── Lobby view (MCQ rooms) ── */}
         {view === "lobby" && room && !isParaulaRoom && (
           <div className="max-w-2xl mx-auto space-y-5">
+            {/* Back button */}
+            <Button variant="ghost" size="sm" onClick={() => { setRoomId(null); setView("home"); }} className="flex items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/10 -ml-2">
+              <ArrowLeft className="size-4" />{t("btn_back")}
+            </Button>
             {/* Header */}
             <div className="text-center space-y-1">
               <div className="inline-flex items-center gap-2 bg-green-400/20 text-green-300 border border-green-400/30 rounded-full px-4 py-1.5 text-sm font-semibold">
@@ -962,6 +989,10 @@ export default function Challenge() {
           const q = room.questions[room.currentQuestion];
           return (
             <div className="max-w-2xl mx-auto space-y-6">
+              {/* Back button */}
+              <Button variant="ghost" size="sm" onClick={() => { setRoomId(null); setView("home"); }} className="flex items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/10 -ml-2">
+                <ArrowLeft className="size-4" />{t("btn_back")}
+              </Button>
               {/* AINA logo — enlarged for gaming mode */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -1090,6 +1121,10 @@ export default function Challenge() {
             : [...room.participants].sort((a, b) => b.score - a.score);
           return (
           <div className="max-w-lg mx-auto space-y-6">
+            {/* Back button */}
+            <Button variant="ghost" size="sm" onClick={() => { setRoomId(null); setView("home"); }} className="flex items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/10 -ml-2">
+              <ArrowLeft className="size-4" />{t("btn_back")}
+            </Button>
             <div className="text-center space-y-2">
               <Trophy className={`w-16 h-16 mx-auto ${isParaulaResults ? "text-orange-300" : "text-yellow-300"}`} />
               {isParaulaResults && <p className="font-black tracking-widest text-orange-300 text-xl">PARAULA</p>}
@@ -1446,6 +1481,32 @@ export default function Challenge() {
               >
                 {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 {t("challenge_save_group_confirm")}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* ── Delete room confirmation dialog ── */}
+        <Dialog open={deleteConfirmId !== null} onOpenChange={(open) => { if (!open) setDeleteConfirmId(null); }}>
+          <DialogContent className="bg-slate-900 border-white/20 text-white">
+            <DialogHeader>
+              <DialogTitle className="text-white flex items-center gap-2">
+                <Trash2 className="w-5 h-5 text-red-400" />
+                {t("challenge_delete_room")}
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-white/70 text-sm">{t("challenge_delete_room_confirm")}</p>
+            <DialogFooter className="gap-2">
+              <Button variant="ghost" onClick={() => setDeleteConfirmId(null)} className="text-white/60 hover:text-white">
+                {t("cancel")}
+              </Button>
+              <Button
+                onClick={() => deleteConfirmId !== null && deleteRoomMutation.mutate({ challengeId: deleteConfirmId })}
+                disabled={deleteRoomMutation.isPending}
+                className="bg-red-600 hover:bg-red-500 text-white gap-2"
+              >
+                {deleteRoomMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                {t("challenge_delete_room_confirm_btn")}
               </Button>
             </DialogFooter>
           </DialogContent>

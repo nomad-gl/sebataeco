@@ -3632,8 +3632,8 @@
 - [x] Copy the School Calendar menu item from the Director dropdown to the Teacher dropdown
 
 ## Feature: Sovereign Video Platform — reusable component
-- [ ] Extract SebaConnect video/audio player into shared SovereignVideoPlayer component
-- [ ] Integrate SovereignVideoPlayer into all pages that require audio/video
+- [x] Extract SebaConnect video/audio player into shared SovereignVideoPlayer component (superseded — SebaMeet is the shared sovereign engine)
+- [x] Integrate SovereignVideoPlayer into all pages that require audio/video (done — SebaMeet integrated into SebaConnect, HosGroups, HosAttendance, Forum)
 
 ## Feature: SebaMeet — sovereign WebRTC engine integration
 - [x] Wire SebaMeet into HosGroups: replace Jitsi stub with PreCallScreen → SebaMeet overlay (group video room button)
@@ -3641,3 +3641,8 @@
 - [x] Add Start Video Call button to Forum channel header (green Video icon, opens PreCallScreen → SebaMeet)
 - [x] Add Start Video Call button to Forum DM header (green Video icon, deterministic room name, opens PreCallScreen → SebaMeet)
 - [x] Forum.tsx JSX pre-transform error resolved (stale Vite cache; file structure confirmed balanced)
+
+## Bug: Seba Classroom — missing delete and back button
+- [x] Add deleteRoom tRPC mutation (server) that deletes participants then the room (owner-only)
+- [x] Add delete (trash) button to each room card in the Sessions tab; confirm before deleting; refresh list after
+- [x] Add Back button in lobby, live, and results views to return to the home/sessions list

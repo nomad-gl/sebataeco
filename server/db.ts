@@ -251,6 +251,14 @@ export async function deleteParticipant(participantId: number, challengeId: numb
     .where(and(eq(challengeParticipants.id, participantId), eq(challengeParticipants.challengeId, challengeId)));
 }
 
+export async function deleteChallenge(challengeId: number) {
+  const db = await getDb();
+  if (!db) return;
+  // Delete participants first (no DB-level cascade)
+  await db.delete(challengeParticipants).where(eq(challengeParticipants.challengeId, challengeId));
+  await db.delete(classChallenges).where(eq(classChallenges.id, challengeId));
+}
+
 export async function resetParticipantScores(challengeId: number) {
   const db = await getDb();
   if (!db) return;

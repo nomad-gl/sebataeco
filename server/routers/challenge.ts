@@ -14,6 +14,7 @@ import {
   submitAnswer,
   getParticipants,
   deleteParticipant,
+  deleteChallenge,
 } from "../db";
 import { COMPETENCY_META, getQuestions, type CompetencyCode, type YearGroup } from "../knowledge/lomloeKnowledgeBank";
 import { createNotification } from "./notifications";
@@ -508,6 +509,16 @@ export const challengeRouter = router({
       const room = await getChallengeById(input.challengeId);
       if (!room || room.hostId !== ctx.user.id) throw new Error("Not authorised");
       await deleteParticipant(input.participantId, input.challengeId);
+      return { success: true };
+    }),
+
+  /** Teacher: permanently delete a challenge room and all its participants */
+  deleteRoom: protectedProcedure
+    .input(z.object({ challengeId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const room = await getChallengeById(input.challengeId);
+      if (!room || room.hostId !== ctx.user.id) throw new Error("Not authorised");
+      await deleteChallenge(input.challengeId);
       return { success: true };
     }),
 

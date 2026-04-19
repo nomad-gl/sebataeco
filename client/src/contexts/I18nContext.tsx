@@ -1984,6 +1984,10 @@ export const translations = {
     challenge_history_total: "Total",
     challenge_history_export_csv: "Export CSV",
     challenge_history_all_groups: "All year groups",
+    challenge_delete_room: "Delete room",
+    challenge_delete_room_confirm: "This will permanently delete the room and all participant data. This action cannot be undone.",
+    challenge_delete_room_confirm_btn: "Delete room",
+    challenge_room_deleted: "Room deleted",
     nav_help: "Help & Instructions",
 
     // Help page — structural
@@ -4610,6 +4614,10 @@ export const translations = {
     challenge_history_total: "Total",
     challenge_history_export_csv: "Exportar CSV",
     challenge_history_all_groups: "Todos los grupos",
+    challenge_delete_room: "Eliminar sala",
+    challenge_delete_room_confirm: "Esto eliminará permanentemente la sala y todos los datos de los participantes. Esta acción no se puede deshacer.",
+    challenge_delete_room_confirm_btn: "Eliminar sala",
+    challenge_room_deleted: "Sala eliminada",
     nav_help: "Ayuda e Instrucciones",
 
     // Help page — structural
@@ -7218,6 +7226,10 @@ export const translations = {
     challenge_history_total: "Total",
     challenge_history_export_csv: "Exportar CSV",
     challenge_history_all_groups: "Tots els grups",
+    challenge_delete_room: "Eliminar sala",
+    challenge_delete_room_confirm: "Això eliminarà permanentment la sala i totes les dades dels participants. Aquesta acció no es pot desfer.",
+    challenge_delete_room_confirm_btn: "Eliminar sala",
+    challenge_room_deleted: "Sala eliminada",
     nav_help: "Ajuda i Instruccions",
 
     // Help page — structural
