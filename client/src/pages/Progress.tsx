@@ -4,9 +4,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import NavBar from "@/components/NavBar";
+import BackButton from "@/components/BackButton";
 import {
   Loader2, Lock, Users, TrendingUp, Trophy, Target,
-  ChevronRight, Plus, BookOpen, Star, Download, ArrowLeft,
+  ChevronRight, Plus, BookOpen, Star, Download,
 } from "lucide-react";
 import { getLoginUrl } from "@/const";
 import { useLocation, Link } from "wouter";
@@ -147,9 +148,7 @@ export default function Progress() {
         {/* Page header */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
-            <button onClick={() => window.history.back()} className="inline-flex items-center gap-1.5 text-sm text-white/60 hover:text-white transition-colors mb-2">
-              <ArrowLeft className="h-4 w-4" />{t("btn_back")}
-            </button>
+            <BackButton label={t("btn_back")} variant="dark" className="mb-2" />
             <h1 className="text-3xl font-bold text-white">{t("progress_page_title")}</h1>
             <p className="text-white/60 text-sm mt-1">
               {t("progress_page_subtitle")}

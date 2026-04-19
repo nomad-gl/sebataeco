@@ -8,6 +8,7 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import NavBar from "@/components/NavBar";
+import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -34,7 +35,8 @@ import {
   Clock,
   FileText,
   Loader2,
-  ArrowLeft,
+  Search,
+  X,
 } from "lucide-react";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -192,6 +194,10 @@ export default function IndividualPlans() {
   const [deleteIlpId, setDeleteIlpId] = useState<number | null>(null);
   const [ilpGenerating, setIlpGenerating] = useState(false);
 
+  // ── Search/filter state ──
+  const [ilpSearch, setIlpSearch] = useState("");
+  const [lpSearch, setLpSearch] = useState("");
+
   // ── Lesson Plan state ──
   const [lpView, setLpView] = useState<"list" | "form" | "detail">("list");
   const [lpForm, setLpForm] = useState<LessonFormData>(defaultLessonForm());
@@ -241,10 +247,6 @@ export default function IndividualPlans() {
   // ─── ILP handlers ──────────────────────────────────────────────────────────
 
   async function handleGenerateIlp() {
-    if (!ilpForm.studentName.trim()) {
-      toast.error("Student name is required.");
-      return;
-    }
     setIlpGenerating(true);
     try {
       const result = await generateIlp.mutateAsync({
@@ -268,10 +270,6 @@ export default function IndividualPlans() {
   }
 
   async function handleSaveIlp() {
-    if (!ilpForm.studentName.trim()) {
-      toast.error("Student name is required.");
-      return;
-    }
     if (editingIlpId !== null) {
       await updateIlp.mutateAsync({ id: editingIlpId, ...ilpForm });
     } else {
@@ -299,10 +297,6 @@ export default function IndividualPlans() {
   // ─── Lesson Plan handlers ──────────────────────────────────────────────────
 
   async function handleGenerateLp() {
-    if (!lpForm.studentName.trim()) {
-      toast.error("Student name is required.");
-      return;
-    }
     setLpGenerating(true);
     try {
       const result = await generateLp.mutateAsync({
@@ -327,10 +321,6 @@ export default function IndividualPlans() {
   }
 
   async function handleSaveLp() {
-    if (!lpForm.studentName.trim()) {
-      toast.error("Student name is required.");
-      return;
-    }
     if (editingLpId !== null) {
       await updateLp.mutateAsync({ id: editingLpId, ...lpForm });
     } else {
@@ -363,9 +353,7 @@ export default function IndividualPlans() {
       <NavBar />
       <div className="max-w-6xl mx-auto px-4 py-6 sm:py-8">
         {/* Page header */}
-        <button onClick={() => window.history.back()} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
-          <ArrowLeft className="h-4 w-4" />Back
-        </button>
+        <BackButton label="Back" className="mb-4" />
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-2 sm:gap-3">
             <GraduationCap className="w-6 h-6 sm:w-8 sm:h-8 text-primary shrink-0" />
@@ -396,6 +384,21 @@ export default function IndividualPlans() {
                     <Plus className="w-4 h-4 mr-1" />New ILP
                   </Button>
                 </div>
+                {/* Student search */}
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    value={ilpSearch}
+                    onChange={e => setIlpSearch(e.target.value)}
+                    placeholder="Filter by student name…"
+                    className="pl-9 pr-9"
+                  />
+                  {ilpSearch && (
+                    <button onClick={() => setIlpSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
                 {ilpList.isLoading ? (
                   <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-20 w-full" />)}</div>
                 ) : ilpList.data?.length === 0 ? (
@@ -407,9 +410,18 @@ export default function IndividualPlans() {
                       <Plus className="w-4 h-4 mr-2" /> Create ILP
                     </Button>
                   </div>
-                ) : (
+                ) : (() => {
+                  const filtered = (ilpList.data ?? []).filter(p =>
+                    !ilpSearch.trim() || (p.studentName ?? "").toLowerCase().includes(ilpSearch.toLowerCase())
+                  );
+                  return filtered.length === 0 ? (
+                    <div className="text-center py-10 text-muted-foreground">
+                      <Search className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                      <p className="text-sm">No plans found for "{ilpSearch}"</p>
+                    </div>
+                  ) : (
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {ilpList.data?.map(plan => (
+                    {filtered.map(plan => (
                       <Card key={plan.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => { setViewingIlpId(plan.id); setIlpView("detail"); }}>
                         <CardHeader className="pb-2">
                           <div className="flex justify-between items-start">
@@ -441,7 +453,8 @@ export default function IndividualPlans() {
                       </Card>
                     ))}
                   </div>
-                )}
+                  );
+                })()}
               </div>
             )}
 
@@ -458,8 +471,8 @@ export default function IndividualPlans() {
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="sm:col-span-2">
-                        <Label>Student Name *</Label>
-                        <Input value={ilpForm.studentName} onChange={e => setIlpForm(f => ({ ...f, studentName: e.target.value }))} placeholder="e.g. Maria García" />
+                        <Label>Student Name <span className="text-xs text-muted-foreground">(optional)</span></Label>
+                        <Input value={ilpForm.studentName} onChange={e => setIlpForm(f => ({ ...f, studentName: e.target.value }))} placeholder="e.g. Maria García — leave blank for a general plan" />
                       </div>
                       <div>
                         <Label>Year Group</Label>
@@ -606,6 +619,21 @@ export default function IndividualPlans() {
                     <Plus className="w-4 h-4 mr-1" />New Plan
                   </Button>
                 </div>
+                {/* Student search */}
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    value={lpSearch}
+                    onChange={e => setLpSearch(e.target.value)}
+                    placeholder="Filter by student name…"
+                    className="pl-9 pr-9"
+                  />
+                  {lpSearch && (
+                    <button onClick={() => setLpSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
                 {lpList.isLoading ? (
                   <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-20 w-full" />)}</div>
                 ) : lpList.data?.length === 0 ? (
@@ -617,9 +645,18 @@ export default function IndividualPlans() {
                       <Plus className="w-4 h-4 mr-2" /> Create Lesson Plan
                     </Button>
                   </div>
-                ) : (
+                ) : (() => {
+                  const filteredLp = (lpList.data ?? []).filter(p =>
+                    !lpSearch.trim() || (p.studentName ?? "").toLowerCase().includes(lpSearch.toLowerCase())
+                  );
+                  return filteredLp.length === 0 ? (
+                    <div className="text-center py-10 text-muted-foreground">
+                      <Search className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                      <p className="text-sm">No plans found for "{lpSearch}"</p>
+                    </div>
+                  ) : (
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {lpList.data?.map(plan => (
+                    {filteredLp.map(plan => (
                       <Card key={plan.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => { setViewingLpId(plan.id); setLpView("detail"); }}>
                         <CardHeader className="pb-2">
                           <div className="flex justify-between items-start">
@@ -651,7 +688,8 @@ export default function IndividualPlans() {
                       </Card>
                     ))}
                   </div>
-                )}
+                  );
+                })()}
               </div>
             )}
 
@@ -668,8 +706,8 @@ export default function IndividualPlans() {
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="sm:col-span-2">
-                        <Label>Student Name *</Label>
-                        <Input value={lpForm.studentName} onChange={e => setLpForm(f => ({ ...f, studentName: e.target.value }))} placeholder="e.g. Marc Puig" />
+                        <Label>Student Name <span className="text-xs text-muted-foreground">(optional)</span></Label>
+                        <Input value={lpForm.studentName} onChange={e => setLpForm(f => ({ ...f, studentName: e.target.value }))} placeholder="e.g. Marc Puig — leave blank for a general plan" />
                       </div>
                       <div>
                         <Label>Year Group</Label>

@@ -3657,3 +3657,28 @@
 ## Bug: Mobile layout issues in Lesson Planner and Individual Plans
 - [x] Fix Lesson Planner mobile layout (toolbar stacks vertically on mobile, action buttons scroll horizontally)
 - [x] Fix Individual Plans mobile layout (added NavBar + back button, responsive header, grid-cols-1 on mobile, responsive section headers)
+
+## Feature: Shared BackButton component
+- [x] Create client/src/components/BackButton.tsx (ArrowLeft icon, window.history.back(), consistent ghost style; supports light/dark variants)
+- [x] Replace all inline back buttons across pages with <BackButton />
+
+## Bug: IndividualPlans detail view missing back button
+- [x] Add back button to ILP detail view (ilpView === "detail") — detail view uses ChevronLeft Back to list button
+- [x] Add back button to Lesson Plan detail view (lpView === "detail") — detail view uses ChevronLeft Back to list button
+
+## Feature: LessonPlanner mobile overflow menu
+- [x] Collapse secondary toolbar buttons (Renumber, Fill All, Load Template, Save Template, Export All) into a MoreHorizontal dropdown on mobile
+- [x] Keep primary actions (Plans list, title, Save) always visible on mobile
+
+## Feature: Calendar ↔ Lesson Planner sync + ILP student tagging
+- [x] Audit Calendar and Lesson Planner DB schemas and routes (sync already fully implemented via calendarEventId FK)
+- [x] Add optional student_name (text) column to ilp table (was already present; made nullable)
+- [x] Add optional student_name (text) column to lesson_plans (individual) table (was already present; made nullable)
+- [x] Run DB migration for new columns (ALTER TABLE MODIFY COLUMN studentName VARCHAR(256) NULL applied)
+- [x] Update server helpers and tRPC procedures to accept/return student_name (Zod validators updated to optional)
+- [x] IndividualPlans UI: add optional student name input field in ILP form (label updated to show optional)
+- [x] IndividualPlans UI: add optional student name input field in Lesson Plan form (label updated to show optional)
+- [x] IndividualPlans UI: display student tag badge on ILP and LP list cards (already shown on cards)
+- [x] IndividualPlans UI: add student name filter/search on list views (search bar added to both ILP and LP list views)
+- [x] Calendar ↔ Lesson Planner sync: ensure lesson_plans created in LessonPlanner appear in Calendar (bidirectional sync confirmed working via calendarEventId + eventPlanMap)
+- [x] Calendar ↔ Lesson Planner sync: ensure calendar events linked to lesson plans stay in sync (confirmed working)

@@ -3,6 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import NavBar from "@/components/NavBar";
+import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -10,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import {
   Loader2, BookMarked, Copy, Check, Trash2, BookOpen, Target,
-  ClipboardList, Zap, ExternalLink, RefreshCw, Globe, Lock, Printer, ArrowLeft,
+  ClipboardList, Zap, ExternalLink, RefreshCw, Globe, Lock, Printer,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -286,9 +287,7 @@ export default function MySituacions() {
       <NavBar />
       <div className="container py-6 max-w-5xl mx-auto w-full flex-1 space-y-5">
         {/* Header */}
-        <button onClick={() => window.history.back()} className="inline-flex items-center gap-1.5 text-sm text-white/60 hover:text-white transition-colors mb-1">
-          <ArrowLeft className="h-4 w-4" />{t("btn_back")}
-        </button>
+        <BackButton label={t("btn_back")} variant="dark" className="mb-1" />
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-white/15">

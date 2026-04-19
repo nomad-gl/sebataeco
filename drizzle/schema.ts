@@ -1486,8 +1486,8 @@ export const individualLearningPlans = mysqlTable("individual_learning_plans", {
   id: int("id").autoincrement().primaryKey(),
   /** Teacher who created the plan */
   teacherId: int("teacherId").notNull(),
-  /** Student name (free text — no user account required) */
-  studentName: varchar("studentName", { length: 256 }).notNull(),
+  /** Student name (free text — no user account required; optional) */
+  studentName: varchar("studentName", { length: 256 }),
   /** Year group / age range */
   yearGroup: varchar("yearGroup", { length: 32 }),
   /** Subject or area of focus */
@@ -1522,8 +1522,8 @@ export const individualLessonPlans = mysqlTable("individual_lesson_plans", {
   teacherId: int("teacherId").notNull(),
   /** Optional link to a parent learning plan */
   learningPlanId: int("learningPlanId"),
-  /** Student name */
-  studentName: varchar("studentName", { length: 256 }).notNull(),
+  /** Student name (optional) */
+  studentName: varchar("studentName", { length: 256 }),
   /** Year group */
   yearGroup: varchar("yearGroup", { length: 32 }),
   /** Subject */

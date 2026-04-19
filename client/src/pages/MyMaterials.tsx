@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import NavBar from "@/components/NavBar";
+import BackButton from "@/components/BackButton";
 import { toast } from "sonner";
 import {
   Loader2, Plus, Trash2, ExternalLink, BookOpen, Presentation,
@@ -282,9 +283,7 @@ export default function MyMaterials() {
       <NavBar />
       <div className="container py-4 sm:py-8 max-w-3xl mx-auto flex flex-col gap-4 sm:gap-6">
         {/* Header */}
-        <Button variant="ghost" size="sm" onClick={() => window.history.back()} className="self-start flex items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/10 -ml-2">
-          <ArrowLeft className="size-4" />{t("btn_back")}
-        </Button>
+        <BackButton variant="ghost" label={t("btn_back")} />
         <div className="flex flex-col gap-3">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-white drop-shadow">{t("my_materials_title")}</h1>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import NavBar from "@/components/NavBar";
+import BackButton from "@/components/BackButton";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
@@ -289,9 +290,7 @@ export default function Challenge() {
         {/* ── Home view ── */}
         {view === "home" && (
           <div className="space-y-6">
-            <Button variant="ghost" size="sm" onClick={() => window.history.back()} className="flex items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/10 -ml-2">
-              <ArrowLeft className="size-4" />{t("btn_back")}
-            </Button>
+            <BackButton variant="ghost" label={t("btn_back")} />
             <div className="text-center space-y-2">
               <div className="inline-flex items-center gap-2 bg-yellow-400/20 text-yellow-300 border border-yellow-400/30 rounded-full px-4 py-1.5 text-sm font-semibold backdrop-blur-sm">
                 <Zap className="w-4 h-4" /> {t("challenge_title")}

@@ -24,7 +24,6 @@ import {
   KeyRound,
   Eye,
   EyeOff,
-  ArrowLeft,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -44,6 +43,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import NavBar from "@/components/NavBar";
+import BackButton from "@/components/BackButton";
 import LogoUploader from "@/components/LogoUploader";
 import { useI18n, type TranslationKey } from "@/contexts/I18nContext";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -454,9 +454,7 @@ export default function Settings() {
       <NavBar />
       <main className="container max-w-2xl py-8 px-4">
         {/* Page header */}
-        <button onClick={() => window.history.back()} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
-          <ArrowLeft className="h-4 w-4" />{t("btn_back")}
-        </button>
+        <BackButton label={t("btn_back")} className="mb-4" />
         <div className="flex items-center gap-3 mb-8">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
             <SettingsIcon className="w-5 h-5 text-primary" />

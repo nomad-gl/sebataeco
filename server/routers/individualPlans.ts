@@ -28,7 +28,7 @@ import { invokeLLM } from "../_core/llm";
 // ─── Shared Zod schemas ────────────────────────────────────────────────────────
 
 const ilpInput = z.object({
-  studentName: z.string().min(1).max(256),
+  studentName: z.string().max(256).optional(),  // optional — plan may be for a group or unnamed student
   yearGroup: z.string().max(32).optional(),
   subject: z.string().max(128).optional(),
   competencies: z.string().max(512).optional(),
@@ -42,7 +42,7 @@ const ilpInput = z.object({
 
 const lessonPlanInput = z.object({
   learningPlanId: z.number().int().optional(),
-  studentName: z.string().min(1).max(256),
+  studentName: z.string().max(256).optional(),  // optional — plan may be for a group or unnamed student
   yearGroup: z.string().max(32).optional(),
   subject: z.string().max(128).optional(),
   topic: z.string().max(256).optional(),

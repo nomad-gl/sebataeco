@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import NavBar from "@/components/NavBar";
+import BackButton from "@/components/BackButton";
 import ParallaxSection from "@/components/ParallaxSection";
 import CompetencySelector from "@/components/CompetencySelector";
 import { cn } from "@/lib/utils";
@@ -110,9 +111,7 @@ export default function Practice() {
 
       <div className="container py-4 sm:py-8 max-w-2xl mx-auto w-full flex flex-col gap-4 sm:gap-6">
         <div className="flex flex-col gap-1">
-          <Button variant="ghost" size="sm" onClick={() => window.history.back()} className="self-start flex items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/10 -ml-2">
-            <ArrowLeft className="size-4" />{t("btn_back")}
-          </Button>
+          <BackButton variant="ghost" label={t("btn_back")} />
           <h1 className="text-2xl font-bold text-white">{t("practice_title")}</h1>
           <p className="text-sm text-white/70">{t("practice_subtitle")}</p>
         </div>

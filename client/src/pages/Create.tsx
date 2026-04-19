@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import NavBar from "@/components/NavBar";
+import BackButton from "@/components/BackButton";
 import CompetencySelector from "@/components/CompetencySelector";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -584,12 +585,8 @@ export default function Create() {
 
           {/* Bottom save bar */}
           <div className="flex items-center justify-between border-t border-border pt-4 gap-3">
-            <Button variant="ghost" size="sm" onClick={handleDiscard} className="gap-1.5 text-muted-foreground">
-              <ArrowLeft className="w-3.5 h-3.5" />
-              {t("create_back_to_create")}
-            </Button>
-            <Button onClick={handleSave} disabled={saveMutation.isPending} className="gap-2">
-              {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            <Button variant="outline" size="sm" onClick={handleSave} disabled={saveMutation.isPending} className="gap-1.5">
+              {saveMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
               {t("create_save_material")}
             </Button>
           </div>
@@ -598,17 +595,14 @@ export default function Create() {
     );
   }
 
-  // ── Creation form ────────────────────────────────────────────────────────────
+  // ── Form view ────────────────────────────────────────────────────────────────
   return (
-    <div className="create-bg flex flex-col">
+    <div className="create-bg flex flex-col min-h-screen">
       <NavBar />
-
-      <div className="container py-4 sm:py-8 max-w-3xl mx-auto flex flex-col gap-6 sm:gap-8">
-        {/* Header */}
+      <div className="container py-4 sm:py-8 max-w-3xl mx-auto flex flex-col gap-6">
+        {/* Page header */}
+        <BackButton variant="ghost" label={t("btn_back")} className="mb-2" />
         <div>
-          <Button variant="ghost" size="sm" onClick={() => window.history.back()} className="flex items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/10 -ml-2 mb-2">
-            <ArrowLeft className="size-4" />{t("btn_back")}
-          </Button>
           <h1 className="text-xl sm:text-2xl font-bold text-white">{t("create_title")}</h1>
           <p className="text-sm text-white/70 mt-1">{t("create_subtitle")}</p>
         </div>

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import NavBar from "@/components/NavBar";
+import BackButton from "@/components/BackButton";
 import {
   Loader2, Presentation as PresentationIcon, ChevronLeft, ChevronRight,
   Download, Printer, BookOpen, Lightbulb, Pencil, Check, X, FileQuestion,
@@ -581,10 +582,7 @@ export default function Presentation() {
       <main className="flex-1 container py-6 sm:py-8 space-y-6">
         {/* Page header */}
         <div className="text-white flex flex-col gap-1">
-          <Button variant="ghost" size="sm" onClick={() => window.history.back()}
-            className="self-start flex items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/10 -ml-2">
-            <ArrowLeft className="size-4" />{t("btn_back")}
-          </Button>
+          <BackButton variant="ghost" label={t("btn_back")} />
           <h1 className="text-2xl sm:text-3xl font-heading font-bold flex items-center gap-2">
             <PresentationIcon className="w-7 h-7 text-blue-300" /> {t("pres_title")}
           </h1>

@@ -12,13 +12,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Users, Plus, Trash2, Mail, BookOpen, Calendar, ChevronRight,
-  UserPlus, Send, Loader2, AlertCircle, GraduationCap, ClipboardList, TrendingUp, ArrowLeft,
+  UserPlus, Send, Loader2, AlertCircle, GraduationCap, ClipboardList, TrendingUp,
   Pencil, Check, X, Upload, Search, BarChart2
 } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "@/contexts/I18nContext";
 import { Link } from "wouter";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import BackButton from "@/components/BackButton";
 
 
 // ── Competency colour map ────────────────────────────────────────────────────
@@ -673,14 +674,7 @@ export default function Groups() {
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => window.history.back()}
-            className="text-white/60 hover:text-white hover:bg-white/10 mb-4 gap-1.5"
-          >
-            <ArrowLeft className="w-4 h-4" /> {t("gp_back")}
-          </Button>
+          <BackButton variant="ghost" label={t("gp_back")} className="mb-4" />
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl sm:text-3xl font-heading font-bold text-white flex items-center gap-3">

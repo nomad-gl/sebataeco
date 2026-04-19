@@ -2,9 +2,10 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
 import NavBar from "@/components/NavBar";
+import BackButton from "@/components/BackButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BookCheck, ArrowLeft } from "lucide-react";
+import { BookCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const LOMLOE_CODES = ["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"];
@@ -70,9 +71,7 @@ export default function HosCurriculum() {
       <NavBar />
       <div className="container py-8 max-w-5xl">
         {/* Header */}
-        <button onClick={() => window.history.back()} className="inline-flex items-center gap-1.5 text-sm text-white/60 hover:text-white transition-colors mb-4">
-          <ArrowLeft className="h-4 w-4" />{t("btn_back")}
-        </button>
+        <BackButton label={t("btn_back")} variant="dark" className="mb-4" />
         <div className="flex items-center gap-3 mb-8">
           <div className="p-3 rounded-xl bg-teal-500/20 border border-teal-400/30">
             <BookCheck className="w-7 h-7 text-teal-300" />
