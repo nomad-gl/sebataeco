@@ -3611,3 +3611,14 @@
 
 ## Feature: Front page teacher name pre-fill
 - [x] In Presentation.tsx createMutation onSuccess, replace any bullet on slide 1 that matches "teacher" or "Teacher:" placeholder with the logged-in user's display name (from useAuth())
+
+## Bug: Generated slide images not saved to My Materials
+- [x] In Presentation.tsx handleSave, merge slideImages URLs into the slides array (as imageUrl field) before writing to DB so images are persisted
+
+## Bug: Seba Classroom leaderboard missing delete buttons
+- [x] Add delete (trash) button to each leaderboard entry in Seba Classroom; call a deleteLeaderboardEntry tRPC mutation; confirm before deleting
+
+## Feature: School/Institution field in presentation generator
+- [x] Add optional "School / Institution" text input to the generator form in Presentation.tsx
+- [x] Inject the school name into the front page slide bullets alongside the teacher name after generation
+- [x] Pass school name through to the LLM prompt as part of the front page bullet list

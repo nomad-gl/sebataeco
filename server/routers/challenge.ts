@@ -13,6 +13,7 @@ import {
   joinChallenge,
   submitAnswer,
   getParticipants,
+  deleteParticipant,
 } from "../db";
 import { COMPETENCY_META, getQuestions, type CompetencyCode, type YearGroup } from "../knowledge/lomloeKnowledgeBank";
 import { createNotification } from "./notifications";
@@ -500,6 +501,16 @@ export const challengeRouter = router({
     }),
 
   /** Teacher: advance to the next word in a PARAULA live room (multi-round) */
+  deleteParticipant: protectedProcedure
+    .input(z.object({ participantId: z.number(), challengeId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      // Verify the teacher owns this challenge
+      const room = await getChallengeById(input.challengeId);
+      if (!room || room.hostId !== ctx.user.id) throw new Error("Not authorised");
+      await deleteParticipant(input.participantId, input.challengeId);
+      return { success: true };
+    }),
+
   nextParaulaRound: protectedProcedure
     .input(z.object({
       challengeId: z.number(),

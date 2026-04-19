@@ -256,6 +256,7 @@ export default function Presentation() {
   // Single generate form state
   const [topic, setTopic] = useState("");
   const [heading, setHeading] = useState("");
+  const [school, setSchool] = useState("");
   const [subject, setSubject] = useState<string | undefined>(undefined);
   const [yearGroup, setYearGroup] = useState<string | undefined>(undefined);
   const [competency, setCompetency] = useState<string | undefined>(undefined);
@@ -319,21 +320,37 @@ export default function Presentation() {
         const content = typeof data.content === "string" ? JSON.parse(data.content) : data.content;
         const pres = content as PresentationData;
         setGenerated(pres);
-        // Pre-fill teacher name on the front page (slide 1) if the user is logged in.
+        // Pre-fill teacher name and school on the front page (slide 1).
         // The raw LLM response uses heading/bullets; cast to access them safely.
         const teacherName = user?.name ?? user?.email ?? null;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const rawSlides = (pres.slides ?? []) as any[];
         const hydratedSlides: typeof pres.slides = rawSlides.map((s, idx) => {
-          if (idx === 0 && teacherName && Array.isArray(s.bullets)) {
-            return {
-              ...s,
-              bullets: (s.bullets as string[]).map((b: string) =>
+          if (idx === 0 && Array.isArray(s.bullets)) {
+            let bullets = s.bullets as string[];
+            // Replace teacher name placeholder
+            if (teacherName) {
+              bullets = bullets.map((b: string) =>
                 /teacher|Teacher:|Prepared by|teacher name/i.test(b)
                   ? b.replace(/teacher name placeholder|teacher name|Teacher:|Prepared by[^,]*/i, `Prepared by: ${teacherName}`)
                   : b
-              ),
-            };
+              );
+            }
+            // Append school name if provided
+            if (school.trim()) {
+              // Replace any existing school placeholder or append
+              const hasSchool = bullets.some(b => /school|institution|centre/i.test(b));
+              if (hasSchool) {
+                bullets = bullets.map((b: string) =>
+                  /school|institution|centre/i.test(b)
+                    ? `${school.trim()}`
+                    : b
+                );
+              } else {
+                bullets = [...bullets, school.trim()];
+              }
+            }
+            return { ...s, bullets };
           }
           return s;
         });
@@ -415,11 +432,13 @@ export default function Presentation() {
       title: generated.title,
       content: JSON.stringify({
         ...generated,
-        slides: slides.map((s, i) =>
-          editablePrompts[i] !== undefined
-            ? { ...s, imagePrompt: editablePrompts[i] }
-            : s
-        ),
+        slides: slides.map((s, i) => ({
+          ...s,
+          // Persist edited image prompt if changed
+          ...(editablePrompts[i] !== undefined ? { imagePrompt: editablePrompts[i] } : {}),
+          // Persist generated image URL so it appears when reopened from My Materials
+          ...(slideImages[i] ? { imageUrl: slideImages[i] } : {}),
+        })),
       }),
     });
   };
@@ -573,12 +592,20 @@ export default function Presentation() {
         {/* ── Generator form ─────────────────────────────────────────────────── */}
         <Card className="bg-[#0d1f4a]/90 border-blue-400/30 text-white shadow-xl">
           <CardContent className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="sm:col-span-2 space-y-1.5">
+            <div className="space-y-1.5">
               <Label className="text-white/90 font-medium">
                 {t("pres_heading_label")} <span className="text-white/50 font-normal">({t("optional")})</span>
               </Label>
               <Input value={heading} onChange={(e) => setHeading(e.target.value)}
                 placeholder={t("pres_heading_placeholder")}
+                className="bg-white/10 border-white/30 text-white placeholder:text-white/40 focus:border-blue-400" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-white/90 font-medium">
+                School / Institution <span className="text-white/50 font-normal">({t("optional")})</span>
+              </Label>
+              <Input value={school} onChange={(e) => setSchool(e.target.value)}
+                placeholder="e.g. Institut Escola Aina"
                 className="bg-white/10 border-white/30 text-white placeholder:text-white/40 focus:border-blue-400" />
             </div>
             <div className="sm:col-span-2 space-y-1.5">

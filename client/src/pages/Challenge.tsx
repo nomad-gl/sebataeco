@@ -13,7 +13,7 @@ import {
   Zap, Users, Trophy, ChevronRight, ChevronLeft,
   Copy, Play, SkipForward, StopCircle, Plus, Loader2,
   BookOpen, Library, CheckCircle2, QrCode, Link2, Printer, Eye, ArrowLeft,
-  BarChart2, Check, X as XIcon, History, ChevronDown, ChevronUp, Medal, Search, CalendarRange, FilterX,
+  BarChart2, Check, X as XIcon, History, ChevronDown, ChevronUp, Medal, Search, CalendarRange, FilterX, Trash2,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import CompetencySelector from "@/components/CompetencySelector";
@@ -175,6 +175,11 @@ export default function Challenge() {
     },
     onError: () => toast.error(t("challenge_save_group_error")),
   });
+  const deleteParticipantMut = trpc.challenge.deleteParticipant.useMutation({
+    onSuccess: () => { roomQuery.refetch(); toast.success("Participant removed"); },
+    onError: (e) => toast.error(e.message),
+  });
+
   const handleSaveToGroup = useCallback(() => {
     const r = roomQuery.data;
     if (!r || !roomId || saveGroupId === "none") return;
@@ -1141,11 +1146,24 @@ export default function Challenge() {
                     <span className="text-2xl">{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}.`}</span>
                     <span className="text-white font-medium">{p.nickname}</span>
                   </div>
-                  {isParaulaResults ? (
-                    <span className="text-orange-300 font-bold">{p.score > 0 ? `${p.score} guess${p.score !== 1 ? "es" : ""}` : "—"}</span>
-                  ) : (
-                    <span className="text-yellow-300 font-bold">{p.score} / {room.questions.length}</span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {isParaulaResults ? (
+                      <span className="text-orange-300 font-bold">{p.score > 0 ? `${p.score} guess${p.score !== 1 ? "es" : ""}` : "—"}</span>
+                    ) : (
+                      <span className="text-yellow-300 font-bold">{p.score} / {room.questions.length}</span>
+                    )}
+                    <button
+                      title="Remove from leaderboard"
+                      className="ml-1 p-1 rounded hover:bg-red-500/30 text-white/40 hover:text-red-300 transition-colors"
+                      onClick={() => {
+                        if (confirm(`Remove "${p.nickname}" from the leaderboard?`)) {
+                          deleteParticipantMut.mutate({ participantId: p.id, challengeId: room.id });
+                        }
+                      }}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

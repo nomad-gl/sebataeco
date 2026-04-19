@@ -1,4 +1,4 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, InsertPracticeSession, InsertTeachingMaterial, users, practiceSessions, teachingMaterials, classChallenges, challengeParticipants, ainaUserProfiles, ainaMessageRatings, questionAnswers, questionReviewStatus, type AinaUserProfile } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -242,6 +242,13 @@ export async function updateChallengeQuestions(id: number, questions: string) {
   const db = await getDb();
   if (!db) return;
   await db.update(classChallenges).set({ questions }).where(eq(classChallenges.id, id));
+}
+
+export async function deleteParticipant(participantId: number, challengeId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(challengeParticipants)
+    .where(and(eq(challengeParticipants.id, participantId), eq(challengeParticipants.challengeId, challengeId)));
 }
 
 export async function resetParticipantScores(challengeId: number) {
