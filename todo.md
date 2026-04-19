@@ -3724,3 +3724,6 @@
 - [x] Added test:i18n and test:ci scripts to package.json
 - [x] Write interpolated-placeholder parity test ({n}, {count}, etc. must exist in ES and CA equivalents) — server/i18n.placeholders.test.ts, 105 tests all pass
 - [x] Fix any missing placeholders found by the audit — no missing placeholders found, all 105 checks pass
+
+## Bug: Browser tab title always shows extra page text
+- [x] Fix tab title to always show exactly "SEBA | Aina" on every page — no page-specific suffix appended (fixed index.html title tag and simplified useDocumentTitle.ts to always return the fixed string)
