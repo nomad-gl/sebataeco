@@ -3712,3 +3712,9 @@
   - Fixed: Create.tsx (Remove image, Slide image: label)
   - Fixed: MaterialView.tsx (Delete this slide, Print word list)
   - Fixed: Forum.tsx (Start video call, Scroll to bottom)
+
+## Feature: i18n next steps (post-audit)
+- [x] Add missing-key parity lint test: assert every EN key exists in ES and CA blocks (server/i18n.parity.test.ts — 5052 tests pass)
+- [x] Translate ComponentShowcase.tsx hardcoded Toggle/ToggleGroup aria-labels (N/A — page is not routed or user-facing; skipped intentionally)
+- [x] Write language-switching integration test (verify t() output changes per language) (server/i18n.switching.test.ts — 74 tests pass)
+- [x] Fixed 28 missing keys discovered by parity test (pres_subject/year_group/competency/options in ES+CA, cal_holiday in ES+CA, admin_errors_* in CA, not_found_* in CA, ilp_*/lp_* in CA, challenge_cancel in CA)

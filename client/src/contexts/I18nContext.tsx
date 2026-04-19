@@ -5395,7 +5395,11 @@ export const translations = {
     mv_delete_slide: "Eliminar esta diapositiva",
     // Presentation bulk generate
     pres_bulk_generate: "Generar en masa",
-    pres_school: "Centro / Instituci\u00f3n",
+    pres_school: "Centro / Institución",
+    pres_subject: "Asignatura",
+    pres_year_group: "Curso",
+    pres_competency: "Competencia",
+    pres_options: "Opciones",
     pres_discussion_points: "Puntos de debate",
     // Privacy page
     privacy_primary: "Primario",
@@ -5419,7 +5423,8 @@ export const translations = {
     sp_edited: "Editado",
     sp_ai_draft: "Borrador IA",
     // SchoolCalendar
-    cal_fill_times_tooltip: "Rellenar horas de inicio/fin en todos los eventos de lecci\u00f3n usando la hora de sesi\u00f3n predeterminada del calendario",
+    cal_holiday: "Festivo",
+    cal_fill_times_tooltip: "Rellenar horas de inicio/fin en todos los eventos de lección usando la hora de sesión predeterminada del calendario",
     cal_view_details: "Ver detalles",
     cal_duplicate_date: "Duplicar a otra fecha",
     cal_fill_missing_times: "Rellenar horas de inicio/fin que faltan en todos los eventos de clase usando la hora de sesión predeterminada del calendario",
@@ -8077,6 +8082,26 @@ export const translations = {
     admin_finance: "Finances",
     admin_enrolment: "Matriculació",
     admin_facilities: "Instal·lacions",
+    // AdminErrors page
+    admin_errors_tab_errors: "Registre d'Errors",
+    admin_errors_tab_fixes: "Historial de Correccions",
+    admin_errors_tab_health: "Verificació de Salut",
+    admin_errors_show_all: "Mostrar tot",
+    admin_errors_escalations_only: "Només escalades",
+    admin_errors_db_connected: "Connectat",
+    admin_errors_db_failed: "Error",
+    admin_errors_db_status: "Connexió de base de dades:",
+    admin_errors_healthy: "Tots els sistemes funcionen correctament.",
+    admin_errors_health_failed: "Error en la verificació de salut.",
+    // NotFound page
+    not_found_title: "Pàgina no trobada",
+    not_found_desc: "La pàgina que busques no existeix.",
+    not_found_home: "Anar a l'inici",
+    // IndividualPlans search
+    ilp_search_placeholder: "Cercar per nom d'alumne...",
+    ilp_no_results: "No s'han trobat plans per a aquest alumne.",
+    lp_search_placeholder: "Cercar per nom d'alumne...",
+    lp_no_results: "No s'han trobat plans de lecció per a aquest alumne.",
     // MaterialViewer
     mv_no_materials: "No s'han trobat materials",
     mv_open_full: "Obrir a mida completa",
@@ -8086,6 +8111,10 @@ export const translations = {
     // Presentation bulk generate
     pres_bulk_generate: "Generar en massa",
     pres_school: "Centre / Institució",
+    pres_subject: "Assignatura",
+    pres_year_group: "Curs",
+    pres_competency: "Competència",
+    pres_options: "Opcions",
     pres_discussion_points: "Punts de debat",
     // Privacy page
     privacy_primary: "Primari",
@@ -8109,6 +8138,7 @@ export const translations = {
     sp_edited: "Editat",
     sp_ai_draft: "Esborrany IA",
     // SchoolCalendar
+    cal_holiday: "Festiu",
     cal_fill_times_tooltip: "Omplir les hores d'inici/fi a tots els esdeveniments de lliçó usant l'hora de sessió predeterminada del calendari",
     cal_view_details: "Veure detalls",
     cal_duplicate_date: "Duplicar a una altra data",
@@ -8131,6 +8161,7 @@ export const translations = {
     challenge_print: "Imprimir",
     challenge_print_word_list: "Imprimir llista de paraules",
     challenge_selected: "Seleccionat:",
+    challenge_cancel: "Cancel·lar",
     challenge_down: "Avall",
     challenge_paraula: "PARAULA",
     // DirectorUsers
