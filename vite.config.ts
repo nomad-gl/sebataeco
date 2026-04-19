@@ -150,40 +150,7 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
-/**
- * Injects <link rel="modulepreload"> tags for the two core vendor chunks
- * (vendor-react, vendor-trpc) into the built index.html so browsers start
- * fetching them in parallel with the entry module, saving one round-trip.
- */
-function vitePluginModulePreload(): Plugin {
-  const PRELOAD_CHUNKS = ["vendor-react", "vendor-trpc"];
-  return {
-    name: "manus-modulepreload",
-    apply: "build",
-    generateBundle(_opts, bundle) {
-      // Collect hashed filenames for the target chunks
-      const preloadFiles: string[] = [];
-      for (const [fileName, chunk] of Object.entries(bundle)) {
-        if (chunk.type === "chunk" && PRELOAD_CHUNKS.some((name) => chunk.name === name)) {
-          preloadFiles.push(fileName);
-        }
-      }
-      // Inject into index.html chunk
-      const htmlChunk = bundle["index.html"];
-      if (htmlChunk && htmlChunk.type === "asset" && typeof htmlChunk.source === "string" && preloadFiles.length > 0) {
-        const tags = preloadFiles
-          .map((f) => `    <link rel="modulepreload" href="/${f}" />`)
-          .join("\n");
-        htmlChunk.source = htmlChunk.source.replace(
-          "</head>",
-          `${tags}\n  </head>`
-        );
-      }
-    },
-  };
-}
-
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginModulePreload()];
+const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
 
 export default defineConfig({
   plugins,
@@ -221,16 +188,14 @@ export default defineConfig({
           if (id.includes('codemirror') || id.includes('@codemirror')) {
             return 'vendor-editor';
           }
-          // NOTE: Mermaid is intentionally NOT split into its own chunk.
-          // Mermaid uses class-based static initialisers that produce a
-          // "Cannot access 'X' before initialization" ReferenceError when
-          // Rollup reorders them across chunk boundaries. Keeping Mermaid
-          // in vendor-misc avoids this circular-init regression.
+          // NOTE: Mermaid and Lucide icons are intentionally NOT split into
+          // their own chunks. Libraries that call React.forwardRef / React.createElement
+          // at static-initialiser time will throw "Cannot access 'X' before
+          // initialization" if Rollup places them in a chunk that executes
+          // before vendor-react. Keeping them in vendor-misc (which imports
+          // vendor-react) avoids this blank-screen regression.
           //
-          // Syntax highlighting (shiki)
-          if (id.includes('shiki') || id.includes('@shikijs')) {
-            return 'vendor-shiki';
-          }
+          // Syntax highlighting (shiki) — kept in vendor-misc for same reason
           // PDF generation
           if (id.includes('pdfmake') || id.includes('jspdf') || id.includes('html2canvas')) {
             return 'vendor-pdf';
@@ -239,11 +204,8 @@ export default defineConfig({
           if (id.includes('date-fns') || id.includes('dayjs') || id.includes('luxon')) {
             return 'vendor-dates';
           }
-          // Lucide icons
-          if (id.includes('lucide-react')) {
-            return 'vendor-icons';
-          }
           // All remaining node_modules go into a shared vendor chunk
+          // (includes Mermaid, Shiki, Lucide icons)
           if (id.includes('node_modules/')) {
             return 'vendor-misc';
           }

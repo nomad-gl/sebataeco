@@ -1,17 +1,24 @@
 /**
  * scripts/chunk-safety-check.mjs
  *
- * Chunk-safety smoke test — run after `pnpm build` to catch circular-
- * initialisation errors (e.g. "Cannot access 'X' before initialization")
- * in any JS chunk before the build is deployed.
+ * Chunk-safety smoke test — run after `pnpm build` to catch two classes
+ * of runtime errors that cause a blank screen in production:
+ *
+ *  A) Circular-init within a vendor chunk (class A extends B where B is
+ *     declared after A in the same file — the Mermaid regression).
+ *
+ *  B) React-dependency cross-chunk ordering (a non-react vendor chunk
+ *     calls React.forwardRef / React.createElement at static-init time
+ *     but is placed in a separate chunk that may execute before
+ *     vendor-react — the Lucide icons regression).
  *
  * Background
  * ----------
- * Rollup's manualChunks can reorder the static-initialiser execution of
- * modules that use class-based inheritance (notably Mermaid).  When that
- * happens the browser throws a ReferenceError at startup and the app shows
- * a blank screen.  This script catches that class of error in CI so it
- * never reaches production.
+ * Rollup's manualChunks can reorder module execution across chunk
+ * boundaries. When a library calls React APIs at module load time and
+ * React is in a different chunk, the browser throws:
+ *   TypeError: Cannot read properties of undefined (reading 'forwardRef')
+ * This produces a blank screen with no visible error in the UI.
  *
  * Strategy: pure static analysis (no execution)
  * -----------------------------------------------
@@ -22,11 +29,11 @@
  *     AFTER A in the same chunk.  This is the exact pattern that caused
  *     the Mermaid blank-screen regression.
  *
- *  2. BEFORE-INIT PATTERN SCAN — search for the string pattern
- *     "Cannot access" which Rollup/Terser sometimes leaves in minified
- *     error messages, and for TDZ-unsafe patterns like
- *     `const x = y` where `y` is a `const`/`let` declared later.
- *     (This is a heuristic; false positives are possible but rare.)
+ *  2. REACT-DEPENDENCY CHECK — detect vendor chunks (other than
+ *     vendor-react itself) that contain React API call patterns
+ *     (.forwardRef(, .createElement(, .createContext() etc.) at the
+ *     top level without importing from vendor-react. These chunks are
+ *     unsafe to split away from vendor-react.
  *
  *  3. ORPHAN CHECK — verify every non-index chunk filename appears in
  *     the main index bundle (ensures no 404 on dynamic import).
@@ -107,7 +114,76 @@ function circularInitScan(source) {
 }
 
 /**
- * Pass 2: Orphan check.
+ * Pass 2: React-dependency cross-chunk check.
+ *
+ * Detects vendor chunks (other than vendor-react) that call React APIs
+ * (.forwardRef, .createElement, .createContext, .memo, .useRef, etc.)
+ * at the TOP LEVEL of the module (i.e. outside any function body).
+ *
+ * These calls execute at static-init time. If the chunk is separate from
+ * vendor-react, the browser may evaluate it before vendor-react is ready,
+ * causing: TypeError: Cannot read properties of undefined (reading 'forwardRef')
+ *
+ * Returns array of issue strings.
+ */
+function reactDepCheck(source, chunkName) {
+  // Only check non-react vendor chunks
+  if (chunkName === 'vendor-react' || !chunkName.startsWith('vendor-')) return [];
+
+  // SAFE: If this chunk imports from vendor-react (via relative path like
+  // "./vendor-react-HASH.js"), the browser module graph guarantees vendor-react
+  // is evaluated first. Only flag chunks that call React APIs at top level
+  // WITHOUT importing vendor-react — those can cause a blank-screen TypeError.
+  // Vite outputs relative imports like: from"./vendor-react-C1s5oXEI.js"
+  const importsVendorReact = /from["']\.\/vendor-react-[^"']+["']/.test(source);
+  if (importsVendorReact) return [];
+
+  // Also safe: if the chunk doesn't call any React APIs at all
+  const REACT_API_PATTERN = /\.(forwardRef|createElement|createContext|memo|cloneElement)\s*\(/;
+  if (!REACT_API_PATTERN.test(source)) return [];
+
+  const issues = [];
+
+  // Scan for top-level React API calls (depth 0 = outside any function/block)
+  let depth = 0;
+  let inString = false;
+  let stringChar = '';
+  let i = 0;
+  const topLevelReactCalls = new Set();
+
+  while (i < source.length) {
+    const ch = source[i];
+    if (inString) {
+      if (ch === '\\') { i += 2; continue; }
+      if (ch === stringChar) inString = false;
+    } else {
+      if (ch === '"' || ch === "'" || ch === '`') { inString = true; stringChar = ch; }
+      else if (ch === '{') depth++;
+      else if (ch === '}') depth--;
+      else if (depth === 0) {
+        const slice = source.slice(i, i + 60);
+        const m = slice.match(/^[A-Za-z_$][A-Za-z0-9_$]*\.(forwardRef|createElement|createContext|memo|cloneElement)\s*\(/);
+        if (m) topLevelReactCalls.add(m[1]);
+      }
+    }
+    i++;
+  }
+
+  for (const apiName of topLevelReactCalls) {
+    issues.push(
+      `[react-dep] top-level .${apiName}() call without importing vendor-react — ` +
+      `this chunk calls React.${apiName} at static-init time but does not import ` +
+      `vendor-react. It may execute before React is available if loaded via ` +
+      `modulepreload or as a standalone dynamic import. ` +
+      `Move this library into vendor-misc to prevent blank-screen TypeError.`
+    );
+  }
+
+  return issues;
+}
+
+/**
+ * Pass 3: Orphan check.
  * Returns true if the chunk is NOT referenced in the index bundle.
  */
 function isOrphan(chunkName, indexSource) {
@@ -134,7 +210,7 @@ const indexChunkName = indexChunkPath?.split("/").pop() ?? "";
 
 console.log(
   `\nChunk-safety check — ${chunks.length} chunk(s) in ${ASSETS_DIR}\n` +
-    `  Passes: [1] circular-init  [2] orphan\n`
+    `  Passes: [1] circular-init  [2] react-dep  [3] orphan\n`
 );
 
 const failures = [];
@@ -150,15 +226,25 @@ for (const chunkPath of chunks.sort()) {
   // ── Pass 1: Circular-init (vendor chunks only) ──────────────────────
   // Only vendor chunks are at risk — Rollup only reorders modules within
   // a manually-defined chunk, not within page-level lazy chunks.
+  let source = null;
   if (name.startsWith("vendor-")) {
-    const source = readFileSync(chunkPath, "utf8");
+    source = readFileSync(chunkPath, "utf8");
     const circIssues = circularInitScan(source);
     for (const issue of circIssues) {
       chunkFailures.push(`[circular-init] ${issue}`);
     }
   }
 
-  // ── Pass 2: Orphan check ────────────────────────────────────────────
+  // ── Pass 2: React-dependency cross-chunk check ──────────────────────
+  if (name.startsWith("vendor-") && name !== "vendor-react") {
+    if (!source) source = readFileSync(chunkPath, "utf8");
+    const reactIssues = reactDepCheck(source, name);
+    for (const issue of reactIssues) {
+      chunkFailures.push(issue);
+    }
+  }
+
+  // ── Pass 3: Orphan check ──────────────────────────────────────────
   // Skip the index chunk itself; all others should be referenced.
   if (name !== indexChunkName && !name.startsWith("index-")) {
     if (isOrphan(name, indexSource)) {

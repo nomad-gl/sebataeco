@@ -3754,3 +3754,11 @@
 - [x] Write scripts/chunk-safety-check.mjs — pure static analysis (circular-init scan + orphan check), 92 chunks checked in <5s, 0 failures
 - [x] Add chunk-safety build + check steps to .github/workflows/ci.yml (runs after i18n missing-key scan)
 - [x] Add chunk-safety:check npm script to package.json
+
+## Bug: Blank screen (vendor-icons React-dep regression)
+- [x] Root cause: vendor-icons and vendor-shiki chunks called React.forwardRef at static-init time without importing vendor-react, causing TypeError on live site
+- [x] Fix: removed vendor-icons and vendor-shiki from manualChunks — both now stay in vendor-misc where vendor-react is already available
+- [x] Fix: removed vitePluginModulePreload plugin from vite.config.ts (was loading chunks out of order via modulepreload)
+- [x] Updated chunk-safety script: added Pass 2 (react-dep cross-chunk check) — detects vendor chunks that call React APIs at top level without importing vendor-react
+- [x] Fixed import detection regex to match Vite's relative path format (./vendor-react-HASH.js)
+- [x] All 90 chunks pass: 0 hard failures, 0 soft warnings
