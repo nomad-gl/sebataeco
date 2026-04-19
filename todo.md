@@ -3630,3 +3630,14 @@
 ## Feature: Role menus — School Calendar
 - [x] Copy the School Calendar menu item from the Director dropdown to the Head of Study dropdown
 - [x] Copy the School Calendar menu item from the Director dropdown to the Teacher dropdown
+
+## Feature: Sovereign Video Platform — reusable component
+- [ ] Extract SebaConnect video/audio player into shared SovereignVideoPlayer component
+- [ ] Integrate SovereignVideoPlayer into all pages that require audio/video
+
+## Feature: SebaMeet — sovereign WebRTC engine integration
+- [x] Wire SebaMeet into HosGroups: replace Jitsi stub with PreCallScreen → SebaMeet overlay (group video room button)
+- [x] Wire SebaMeet into HosAttendance: replace Jitsi stub with PreCallScreen → SebaMeet overlay (attendance video room button)
+- [x] Add Start Video Call button to Forum channel header (green Video icon, opens PreCallScreen → SebaMeet)
+- [x] Add Start Video Call button to Forum DM header (green Video icon, deterministic room name, opens PreCallScreen → SebaMeet)
+- [x] Forum.tsx JSX pre-transform error resolved (stale Vite cache; file structure confirmed balanced)

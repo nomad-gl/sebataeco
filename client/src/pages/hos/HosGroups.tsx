@@ -18,6 +18,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
+import PreCallScreen, { VideoBackground, VideoFilter } from "@/components/PreCallScreen";
+import { SebaMeet } from "@/components/SebaMeet";
 
 const YEAR_GROUP_LABELS: Record<string, string> = {
   junior: "Junior (Yr 3–4)",
@@ -66,6 +68,17 @@ export default function HosGroups() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [form, setForm] = useState<GroupForm>(EMPTY_FORM);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  // ── Video call state ────────────────────────────────────────────────────────
+  const [callRoom, setCallRoom] = useState<{ roomName: string; name: string } | null>(null);
+  const [preCallActive, setPreCallActive] = useState(false);
+  const [videoCallActive, setVideoCallActive] = useState(false);
+  const [callOpts, setCallOpts] = useState<{ videoEnabled: boolean; audioEnabled: boolean; background: VideoBackground; filter: VideoFilter } | null>(null);
+
+  function openGroupCall(groupId: number, className: string) {
+    setCallRoom({ roomName: `seba-group-${groupId}`, name: className });
+    setPreCallActive(true);
+  }
 
   const utils = trpc.useUtils();
   const { data: groups = [], isLoading } = trpc.hos.getGroups.useQuery({ academicYear });
@@ -230,18 +243,12 @@ export default function HosGroups() {
                         </td>
                         <td className="py-3 text-right">
                           <div className="flex items-center justify-end gap-1">
-                            {/* Group video room button */}
+                            {/* Group video room button — sovereign SebaMeet */}
                             <Button
                               variant="ghost"
                               size="sm"
                               className="h-7 w-7 p-0 text-[#003082] hover:text-[#003082]"
-                              onClick={() =>
-                                window.open(
-                                  `https://meet.jit.si/seba-group-${g.id}`,
-                                  "_blank",
-                                  "noopener,noreferrer"
-                                )
-                              }
+                              onClick={() => openGroupCall(g.id, g.className)}
                               title={t("hos_video_room")}
                             >
                               <Video className="w-3.5 h-3.5" />
@@ -358,6 +365,43 @@ export default function HosGroups() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Pre-call screen */}
+      {preCallActive && callRoom && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <PreCallScreen
+            roomName={callRoom.roomName}
+            channelName={callRoom.name}
+            onJoin={(opts) => {
+              setCallOpts(opts);
+              setPreCallActive(false);
+              setVideoCallActive(true);
+            }}
+            onCancel={() => {
+              setPreCallActive(false);
+              setCallRoom(null);
+            }}
+          />
+        </div>
+      )}
+
+      {/* SebaMeet — sovereign WebRTC engine */}
+      {videoCallActive && callRoom && callOpts && (
+        <div className="fixed inset-0 z-50">
+          <SebaMeet
+            roomName={callRoom.roomName}
+            channelName={callRoom.name}
+            audioOnly={!callOpts.videoEnabled}
+            videoFilter={callOpts.filter?.css ?? undefined}
+            backgroundId={callOpts.background?.id ?? undefined}
+            onEnd={() => {
+              setVideoCallActive(false);
+              setCallRoom(null);
+              setCallOpts(null);
+            }}
+          />
+        </div>
+      )}
 
       {/* Delete Confirm Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

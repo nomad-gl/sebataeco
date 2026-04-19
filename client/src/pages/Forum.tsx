@@ -8,9 +8,11 @@ import {
   ChevronLeft, Circle, ArrowLeft, Wifi, WifiOff,
   SmilePlus, MoreVertical, Bell, Settings, Mic, MicOff,
   Pin, PinOff, Reply, Paperclip, FileText, Image as ImageIcon,
-  Download, X, ChevronDown, ChevronUp,
+  Download, X, ChevronDown, ChevronUp, Video,
 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
+import PreCallScreen, { VideoBackground, VideoFilter } from "@/components/PreCallScreen";
+import { SebaMeet } from "@/components/SebaMeet";
 import { Link } from "wouter";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
@@ -114,6 +116,12 @@ export default function Forum() {
   const [threadInput, setThreadInput] = useState("");
   const [showPinned, setShowPinned] = useState(false);
   const [fileUploadRef] = useState(() => ({ current: null as HTMLInputElement | null }));
+
+  // ── Video call state ────────────────────────────────────────────────────────
+  const [callRoom, setCallRoom] = useState<{ roomName: string; name: string } | null>(null);
+  const [preCallActive, setPreCallActive] = useState(false);
+  const [videoCallActive, setVideoCallActive] = useState(false);
+  const [callOpts, setCallOpts] = useState<{ videoEnabled: boolean; audioEnabled: boolean; background: VideoBackground; filter: VideoFilter } | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -767,7 +775,34 @@ export default function Forum() {
                   >
                     <Users className="w-4 h-4" />
                   </button>
+                  {/* Video call button — channel */}
+                  <button
+                    onClick={() => {
+                      setCallRoom({ roomName: `seba-channel-${activeChannelId}`, name: activeChannel?.name ?? `Channel ${activeChannelId}` });
+                      setPreCallActive(true);
+                    }}
+                    className="p-2 rounded-lg hover:bg-emerald-500/20 text-emerald-300 transition-colors"
+                    title="Start video call"
+                  >
+                    <Video className="w-4 h-4" />
+                  </button>
                 </>
+              )}
+              {view === "dm" && activeDmUser && (
+                /* Video call button — DM */
+                <button
+                  onClick={() => {
+                    const myId = user?.id ?? 0;
+                    const otherId = activeDmUser.id;
+                    const roomName = `seba-dm-${Math.min(myId, otherId)}-${Math.max(myId, otherId)}`;
+                    setCallRoom({ roomName, name: activeDmUser.name });
+                    setPreCallActive(true);
+                  }}
+                  className="p-2 rounded-lg hover:bg-emerald-500/20 text-emerald-300 transition-colors"
+                  title="Start video call"
+                >
+                  <Video className="w-4 h-4" />
+                </button>
               )}
             </div>
           </div>
@@ -1174,6 +1209,43 @@ export default function Forum() {
       <div className="hidden md:flex items-center justify-center py-1 bg-black/30 border-t border-white/15 text-[10px] text-white/40 relative z-10">
         {t("forum_footer")}
       </div>
+
+      {/* Pre-call screen */}
+      {preCallActive && callRoom && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <PreCallScreen
+            roomName={callRoom.roomName}
+            channelName={callRoom.name}
+            onJoin={(opts) => {
+              setCallOpts(opts);
+              setPreCallActive(false);
+              setVideoCallActive(true);
+            }}
+            onCancel={() => {
+              setPreCallActive(false);
+              setCallRoom(null);
+            }}
+          />
+        </div>
+      )}
+
+      {/* SebaMeet — sovereign WebRTC engine */}
+      {videoCallActive && callRoom && callOpts && (
+        <div className="fixed inset-0 z-50">
+          <SebaMeet
+            roomName={callRoom.roomName}
+            channelName={callRoom.name}
+            audioOnly={!callOpts.videoEnabled}
+            videoFilter={callOpts.filter?.css ?? undefined}
+            backgroundId={callOpts.background?.id ?? undefined}
+            onEnd={() => {
+              setVideoCallActive(false);
+              setCallRoom(null);
+              setCallOpts(null);
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }

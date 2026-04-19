@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import { UserCheck, BarChart3, CheckCircle2, XCircle, Clock, FileCheck, Video } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
+import PreCallScreen, { VideoBackground, VideoFilter } from "@/components/PreCallScreen";
+import { SebaMeet } from "@/components/SebaMeet";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
 import { Button } from "@/components/ui/button";
@@ -57,6 +59,12 @@ export default function HosAttendance() {
   const [localStatuses, setLocalStatuses] = useState<Record<number, AttendanceStatus>>({});
   const [localNotes, setLocalNotes] = useState<Record<number, string>>({});
   const [activeTab, setActiveTab] = useState<"register" | "chart">("register");
+
+  // ── Video call state ────────────────────────────────────────────────────────
+  const [callRoom, setCallRoom] = useState<{ roomName: string; name: string } | null>(null);
+  const [preCallActive, setPreCallActive] = useState(false);
+  const [videoCallActive, setVideoCallActive] = useState(false);
+  const [callOpts, setCallOpts] = useState<{ videoEnabled: boolean; audioEnabled: boolean; background: VideoBackground; filter: VideoFilter } | null>(null);
 
   const { data: classGroupsList = [] } = trpc.hos.getAllClassGroups.useQuery();
 
@@ -228,13 +236,11 @@ export default function HosAttendance() {
                   variant="outline"
                   size="sm"
                   className="text-[#003082] border-[#003082]/30 hover:bg-[#003082]/5"
-                  onClick={() =>
-                    window.open(
-                      `https://meet.jit.si/seba-group-${selectedGroupId}`,
-                      "_blank",
-                      "noopener,noreferrer"
-                    )
-                  }
+                  onClick={() => {
+                    const grp = classGroupsList.find((g: { id: number; className: string }) => g.id === selectedGroupId);
+                    setCallRoom({ roomName: `seba-group-${selectedGroupId}`, name: grp?.className ?? `Group ${selectedGroupId}` });
+                    setPreCallActive(true);
+                  }}
                 >
                   <Video className="h-4 w-4 mr-1.5" />
                   {t("hos_video_room")}
@@ -404,6 +410,42 @@ export default function HosAttendance() {
           </div>
         )}
       </div>
+      {/* Pre-call screen */}
+      {preCallActive && callRoom && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <PreCallScreen
+            roomName={callRoom.roomName}
+            channelName={callRoom.name}
+            onJoin={(opts) => {
+              setCallOpts(opts);
+              setPreCallActive(false);
+              setVideoCallActive(true);
+            }}
+            onCancel={() => {
+              setPreCallActive(false);
+              setCallRoom(null);
+            }}
+          />
+        </div>
+      )}
+
+      {/* SebaMeet — sovereign WebRTC engine */}
+      {videoCallActive && callRoom && callOpts && (
+        <div className="fixed inset-0 z-50">
+          <SebaMeet
+            roomName={callRoom.roomName}
+            channelName={callRoom.name}
+            audioOnly={!callOpts.videoEnabled}
+            videoFilter={callOpts.filter?.css ?? undefined}
+            backgroundId={callOpts.background?.id ?? undefined}
+            onEnd={() => {
+              setVideoCallActive(false);
+              setCallRoom(null);
+              setCallOpts(null);
+            }}
+          />
+        </div>
+      )}
     </DashboardLayout>
   );
 }
