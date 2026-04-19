@@ -63,3 +63,22 @@ jobs:
         run: pnpm i18n:missing
         env:
           NODE_ENV: test
+
+      # ── Chunk-safety smoke test ──────────────────────────────────────────
+      # Builds the project and then evaluates every JS chunk in a Node vm
+      # sandbox to catch circular-initialisation errors (ReferenceError /
+      # SyntaxError) that would cause a blank screen in production.
+      #
+      # Background: Rollup's manualChunks can reorder static initialisers
+      # in libraries that use class-based inheritance (e.g. Mermaid), causing
+      # "Cannot access 'X' before initialization" at runtime.  This step
+      # catches that regression before deployment.
+      - name: Production build
+        run: pnpm build
+        env:
+          NODE_ENV: production
+
+      - name: Chunk-safety check
+        run: pnpm chunk-safety:check
+        env:
+          NODE_ENV: production

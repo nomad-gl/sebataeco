@@ -3749,3 +3749,8 @@
 - [x] Root cause: vendor-mermaid chunk caused "Cannot access 'ke' before initialization" ReferenceError — Mermaid's class-based static initialisers break when Rollup reorders them across chunk boundaries
 - [x] Fix: removed vendor-mermaid manual chunk from vite.config.ts; Mermaid now stays in vendor-misc where initialisation order is preserved
 - [x] Added comment in vite.config.ts explaining why Mermaid must not be split into its own chunk
+
+## Feature: Chunk-safety CI smoke test
+- [x] Write scripts/chunk-safety-check.mjs — pure static analysis (circular-init scan + orphan check), 92 chunks checked in <5s, 0 failures
+- [x] Add chunk-safety build + check steps to .github/workflows/ci.yml (runs after i18n missing-key scan)
+- [x] Add chunk-safety:check npm script to package.json
