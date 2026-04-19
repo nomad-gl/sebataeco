@@ -3730,3 +3730,11 @@
 - [x] Add i18n:missing npm script to package.json
 - [x] Add i18n missing-key scan step to .github/workflows/ci.yml
 - [x] Guide user through GitHub export — instructions provided in final report (Settings → GitHub in Management UI)
+
+## Feature: Performance optimisation (loading speed)
+- [x] Audit bundle size and identify large chunks (main bundle was 6.7 MB / 1.49 MB gzip — all pages loaded eagerly)
+- [x] Implement React.lazy() + Suspense for all 50+ page routes (code splitting) — App.tsx rewritten with lazy imports and PageLoader spinner fallback
+- [x] Add manual Rollup chunk splitting in vite.config.ts (vendor-react, vendor-trpc, vendor-radix, vendor-editor, vendor-mermaid, vendor-shiki, vendor-pdf, vendor-dates, vendor-icons, vendor-misc)
+- [x] Add loading="lazy" to all <img> JSX tags across all pages (AIChatBox, PreCallScreen, GroupProgress, StudentProgress, DirectorSettings, Presentation)
+- [x] Add aggressive Cache-Control: max-age=1y, immutable headers for hashed /assets and /fonts in server/_core/vite.ts
+- [x] Bump service worker cache version to seba-v2 to bust stale chunks on next visit

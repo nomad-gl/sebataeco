@@ -167,6 +167,54 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    // Raise the warning threshold — we now split manually below
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          // React core — loaded on every page
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+            return 'vendor-react';
+          }
+          // tRPC + tanstack-query — shared data layer
+          if (id.includes('@trpc/') || id.includes('@tanstack/react-query')) {
+            return 'vendor-trpc';
+          }
+          // Radix UI primitives (shadcn/ui)
+          if (id.includes('@radix-ui/')) {
+            return 'vendor-radix';
+          }
+          // Code editor (CodeMirror)
+          if (id.includes('codemirror') || id.includes('@codemirror')) {
+            return 'vendor-editor';
+          }
+          // Mermaid diagrams — large, only used in specific pages
+          if (id.includes('mermaid') || id.includes('cytoscape') || id.includes('dagre')) {
+            return 'vendor-mermaid';
+          }
+          // Syntax highlighting (shiki)
+          if (id.includes('shiki') || id.includes('@shikijs')) {
+            return 'vendor-shiki';
+          }
+          // PDF generation
+          if (id.includes('pdfmake') || id.includes('jspdf') || id.includes('html2canvas')) {
+            return 'vendor-pdf';
+          }
+          // Date utilities
+          if (id.includes('date-fns') || id.includes('dayjs') || id.includes('luxon')) {
+            return 'vendor-dates';
+          }
+          // Lucide icons
+          if (id.includes('lucide-react')) {
+            return 'vendor-icons';
+          }
+          // All remaining node_modules go into a shared vendor chunk
+          if (id.includes('node_modules/')) {
+            return 'vendor-misc';
+          }
+        },
+      },
+    },
   },
   server: {
     host: true,

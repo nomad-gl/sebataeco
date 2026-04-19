@@ -847,7 +847,7 @@ export default function PreCallScreen({
           </div>
         </div>
         {schoolLogoUrl && (
-          <img src={schoolLogoUrl} alt="School" className="h-8 w-auto object-contain opacity-80" />
+          <img src={schoolLogoUrl} alt="School" className="h-8 w-auto object-contain opacity-80" loading="lazy" />
         )}
       </div>
 
@@ -1233,7 +1233,7 @@ export default function PreCallScreen({
                         : "border-gray-700 hover:border-gray-500"
                     }`}
                   >
-                    <img src={customBgUrl} alt="My Background" className="w-full h-full object-cover" />
+                    <img src={customBgUrl} alt="My Background" className="w-full h-full object-cover" loading="lazy" />
                     <div className="absolute bottom-0 inset-x-0 bg-black/60 text-xs text-center py-0.5 truncate px-1">My Background</div>
                     {selectedBg.id === "custom" && (
                       <div className="absolute top-1 right-1"><CheckCircle className="w-4 h-4 text-blue-400" /></div>

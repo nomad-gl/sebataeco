@@ -148,7 +148,7 @@ export default function DirectorSettings() {
                   {/* Preview */}
                   <div className="flex-shrink-0 w-24 h-24 rounded-xl border-2 border-dashed border-border flex items-center justify-center bg-muted/30 overflow-hidden">
                     {branding?.logoUrl ? (
-                      <img src={branding.logoUrl} alt="School logo" className="w-full h-full object-contain p-1" />
+                      <img src={branding.logoUrl} alt="School logo" className="w-full h-full object-contain p-1" loading="lazy" />
                     ) : (
                       <ImageIcon className="w-8 h-8 text-muted-foreground" />
                     )}
@@ -235,7 +235,7 @@ export default function DirectorSettings() {
               {/* Preview */}
               <div className="flex-shrink-0 w-32 h-20 rounded-xl border-2 border-dashed border-border flex items-center justify-center bg-muted/30 overflow-hidden">
                 {loginBg ? (
-                  <img src={loginBg} alt="Login background" className="w-full h-full object-cover" />
+                  <img src={loginBg} alt="Login background" className="w-full h-full object-cover" loading="lazy" />
                 ) : (
                   <ImageIcon className="w-8 h-8 text-muted-foreground" />
                 )}

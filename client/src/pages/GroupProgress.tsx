@@ -506,7 +506,7 @@ export default function GroupProgress() {
                       </span>
                       {schoolLogo && (
                         <>
-                          <img src={schoolLogo} alt="logo" className="h-7 w-auto rounded" />
+                          <img src={schoolLogo} alt="logo" className="h-7 w-auto rounded" loading="lazy" />
                           <button
                             className="text-white/40 hover:text-red-400 transition-colors"
                             onClick={() => { setSchoolLogo(null); localStorage.removeItem("seba_school_logo"); }}
