@@ -19,7 +19,7 @@ import { VIDEO_BACKGROUNDS, VIDEO_FILTERS } from "@/components/PreCallScreen";
 import {
   Mic, MicOff, Video, VideoOff, PhoneOff, Monitor, MonitorOff,
   Circle, Volume2, Users, Hand, PhoneCall, Clock, MessageSquare, Send as SendIcon, X, Pin,
-  Settings, Sliders, CheckCircle, Captions, CaptionsOff, ChevronDown, Expand, Shrink,
+  Settings, Sliders, CheckCircle, Captions, CaptionsOff, ChevronDown, Expand, Shrink, GripHorizontal,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -1397,6 +1397,13 @@ const SebaMeetInner = function SebaMeet({
             />
           </>
         )}
+        {/* Drag hint — visible on hover */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+          <div className="bg-black/60 text-white text-[9px] px-2 py-1 rounded-full flex items-center gap-1">
+            <GripHorizontal className="w-3 h-3" />
+            <span>Drag to move</span>
+          </div>
+        </div>
         {/* PiP label */}
         <div className="absolute bottom-1 left-1 flex items-center gap-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded-full">
           {audioMuted && <MicOff className="w-2.5 h-2.5 text-red-400" />}

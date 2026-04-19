@@ -3685,3 +3685,10 @@
 
 ## Bug: SebaMeet local video silhouette stretched horizontally
 - [x] Fix: canvas dimensions now dynamically synced to actual video resolution via onloadedmetadata; hardcoded 640x360 removed from both SebaMeet and PreCallScreen canvas elements
+
+## Feature: SebaMeet PiP drag-to-reposition
+- [x] Make the local video PiP tile draggable to any corner of the screen during a live call (already implemented)
+- [x] Snap to nearest corner on drag release with spring animation (already implemented)
+- [x] Support both mouse drag and touch drag (mobile) (already implemented)
+- [x] Persist chosen corner in component state, reset on call end (already implemented)
+- [x] Added "Drag to move" hint overlay visible on hover (GripHorizontal icon)
