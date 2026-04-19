@@ -221,10 +221,12 @@ export default defineConfig({
           if (id.includes('codemirror') || id.includes('@codemirror')) {
             return 'vendor-editor';
           }
-          // Mermaid diagrams — large, only used in specific pages
-          if (id.includes('mermaid') || id.includes('cytoscape') || id.includes('dagre')) {
-            return 'vendor-mermaid';
-          }
+          // NOTE: Mermaid is intentionally NOT split into its own chunk.
+          // Mermaid uses class-based static initialisers that produce a
+          // "Cannot access 'X' before initialization" ReferenceError when
+          // Rollup reorders them across chunk boundaries. Keeping Mermaid
+          // in vendor-misc avoids this circular-init regression.
+          //
           // Syntax highlighting (shiki)
           if (id.includes('shiki') || id.includes('@shikijs')) {
             return 'vendor-shiki';

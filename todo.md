@@ -3744,3 +3744,8 @@
 - [x] Add <link rel="preload"> for primary latin Nunito font subset (most-used woff2 file)
 - [x] Add vitePluginModulePreload() to vite.config.ts — injects <link rel="modulepreload"> for vendor-react and vendor-trpc into built index.html at build time (hash-safe)
 - [x] Audit self-hosted font weights — Nunito had 6 weights (400–900); only 400/500/600/700 are used; removed 10 unused @font-face blocks (weights 800 and 900) from fonts.css, saving ~100 KB of CSS declarations and preventing those subsets from being fetched
+
+## Bug: Blank screen on live site after chunk splitting
+- [x] Root cause: vendor-mermaid chunk caused "Cannot access 'ke' before initialization" ReferenceError — Mermaid's class-based static initialisers break when Rollup reorders them across chunk boundaries
+- [x] Fix: removed vendor-mermaid manual chunk from vite.config.ts; Mermaid now stays in vendor-misc where initialisation order is preserved
+- [x] Added comment in vite.config.ts explaining why Mermaid must not be split into its own chunk
