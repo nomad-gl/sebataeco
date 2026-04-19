@@ -3724,3 +3724,9 @@
 - [x] Added test:i18n and test:ci scripts to package.json
 - [x] Write interpolated-placeholder parity test ({n}, {count}, etc. must exist in ES and CA equivalents) — server/i18n.placeholders.test.ts, 105 tests all pass
 - [x] Fix any missing placeholders found by the audit — no missing placeholders found, all 105 checks pass
+
+## Feature: i18n:missing script and GitHub export
+- [x] Create scripts/i18n-missing.mjs — scans all t("key") calls in source files and reports keys absent from I18nContext.tsx (0 missing keys found across 260 files and 2526 EN keys)
+- [x] Add i18n:missing npm script to package.json
+- [x] Add i18n missing-key scan step to .github/workflows/ci.yml
+- [x] Guide user through GitHub export — instructions provided in final report (Settings → GitHub in Management UI)

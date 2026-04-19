@@ -56,3 +56,10 @@ jobs:
         run: pnpm vitest run server/i18n.placeholders.test.ts
         env:
           NODE_ENV: test
+
+      # Scans all t("key") calls in source files and fails if any key is
+      # absent from I18nContext.tsx — catches typos at commit time.
+      - name: i18n missing-key scan
+        run: pnpm i18n:missing
+        env:
+          NODE_ENV: test
