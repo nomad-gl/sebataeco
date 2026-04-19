@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Copy, Check, BookOpen, Target, ClipboardList, Zap, BookMarked, Save, Download, Pencil, X } from "lucide-react";
+import { Loader2, Copy, Check, BookOpen, Target, ClipboardList, Zap, BookMarked, Save, Download, Pencil, X, ArrowLeft } from "lucide-react";
 import { SebaSymbol } from "@/components/SebaSymbol";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -301,6 +301,9 @@ ${result.criteria.map(c => `<li>${c}</li>`).join("\n")}
       <NavBar />
       <div className="container py-6 max-w-5xl mx-auto w-full flex-1 space-y-6">
         {/* Header */}
+        <button onClick={() => window.history.back()} className="inline-flex items-center gap-1.5 text-sm text-white/60 hover:text-white transition-colors">
+          <ArrowLeft className="h-4 w-4" />{t("btn_back")}
+        </button>
         <div className="flex items-start gap-3">
           <div className="p-2.5 rounded-xl bg-white/15 mt-0.5">
             <SebaSymbol className="w-6 h-6 text-white" />

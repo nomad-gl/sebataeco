@@ -1107,7 +1107,7 @@ export default function LessonPlanner() {
           <div className="p-4 sm:p-6 space-y-5 max-w-3xl mx-auto">
 
             {/* Toolbar */}
-            <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
               <div className="flex items-center gap-2 flex-wrap">
                 {/* Mobile: plans sheet trigger */}
                 {isMobile && (
@@ -1137,9 +1137,9 @@ export default function LessonPlanner() {
                 </div>
                 {isDirty && <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">{t("lp_unsaved")}</Badge>}
               </div>
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-0.5 sm:pb-0 sm:flex-wrap shrink-0">
                 {selectedId && (
-                  <Button variant="outline" size="sm" onClick={() => deleteMutation.mutate({ id: selectedId })} className="text-red-600 hover:text-red-700">
+                  <Button variant="outline" size="sm" onClick={() => deleteMutation.mutate({ id: selectedId })} className="text-red-600 hover:text-red-700 shrink-0">
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 )}

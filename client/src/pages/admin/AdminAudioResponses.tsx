@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
+import NavBar from "@/components/NavBar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
   Music, Upload, Trash2, Play, Pause, Plus, X, ChevronDown, ChevronUp,
-  Volume2, FileAudio,
+  Volume2, FileAudio, ArrowLeft,
 } from "lucide-react";
 import { useI18n } from "@/contexts/I18nContext";
 import { cn } from "@/lib/utils";
@@ -181,7 +182,12 @@ export default function AdminAudioResponses() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+    <div className="min-h-screen bg-background">
+      <NavBar />
+      <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+      <button onClick={() => window.history.back()} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <ArrowLeft className="h-4 w-4" />{t("btn_back")}
+      </button>
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="p-2 rounded-lg bg-blue-500/10">
@@ -401,6 +407,7 @@ export default function AdminAudioResponses() {
           <p>{t("audio_info_limit")}</p>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

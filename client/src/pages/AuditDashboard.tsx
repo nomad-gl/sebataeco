@@ -50,6 +50,7 @@ import {
   UserCheck,
   KeyRound,
   Users,
+  ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -144,6 +145,9 @@ export default function AuditDashboard() {
       <main className="flex-1">
       <div className="container max-w-6xl py-8 space-y-6">
         {/* Header */}
+        <button onClick={() => window.history.back()} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-2">
+          <ArrowLeft className="h-4 w-4" />{t("btn_back")}
+        </button>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">{t("audit_title")}</h1>

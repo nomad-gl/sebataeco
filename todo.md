@@ -3650,3 +3650,10 @@
 ## Bug: Missing back buttons on Group Progress and Create Teaching Material
 - [x] Add back button to Group Progress page (already present — links to /groups)
 - [x] Add back button to Create Teaching Material page (added ← Back using window.history.back())
+
+## Feature: Back button audit — ensure every page has a back button
+- [x] Audit all pages and add back button where missing (added to Help, MySituacions, Progress, Settings, SituacioGenerator, AuditDashboard, HosCurriculum, AdminSectionStub, AdminAudioResponses, AdminWakeWords; DashboardLayout pages excluded)
+
+## Bug: Mobile layout issues in Lesson Planner and Individual Plans
+- [x] Fix Lesson Planner mobile layout (toolbar stacks vertically on mobile, action buttons scroll horizontally)
+- [x] Fix Individual Plans mobile layout (added NavBar + back button, responsive header, grid-cols-1 on mobile, responsive section headers)

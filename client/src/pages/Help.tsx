@@ -6,7 +6,7 @@ import {
   MessageCircle, Dumbbell, TrendingUp, Users, BookOpen, FileText,
   CalendarDays, Zap, LayoutDashboard, ShieldAlert, Lock, Library,
   Presentation as PresentationIcon, ChevronDown, ChevronUp,
-  Play, CheckCircle, Info, HelpCircle, ExternalLink,
+  Play, CheckCircle, Info, HelpCircle, ExternalLink, ArrowLeft,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { SebaSymbol } from "@/components/SebaSymbol";
@@ -378,6 +378,10 @@ export default function Help() {
       {/* Hero */}
       <div className="bg-gradient-to-br from-primary/10 via-background to-background border-b border-border">
         <div className="container py-10 max-w-4xl">
+          <button onClick={() => window.history.back()} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
+            <ArrowLeft className="h-4 w-4" />
+            {t("btn_back")}
+          </button>
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
               <HelpCircle className="w-5 h-5 text-primary" />

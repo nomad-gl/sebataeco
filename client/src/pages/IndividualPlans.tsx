@@ -7,6 +7,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import NavBar from "@/components/NavBar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,7 @@ import {
   Clock,
   FileText,
   Loader2,
+  ArrowLeft,
 } from "lucide-react";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -358,27 +360,29 @@ export default function IndividualPlans() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <NavBar />
+      <div className="max-w-6xl mx-auto px-4 py-6 sm:py-8">
         {/* Page header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
-            <GraduationCap className="w-8 h-8 text-primary" />
+        <button onClick={() => window.history.back()} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
+          <ArrowLeft className="h-4 w-4" />Back
+        </button>
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-2 sm:gap-3">
+            <GraduationCap className="w-6 h-6 sm:w-8 sm:h-8 text-primary shrink-0" />
             Individual Plans
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">
             Generate AI-powered Individual Learning Plans and Individual Lesson Plans tailored to each student.
           </p>
         </div>
 
         <Tabs defaultValue="ilp" className="w-full">
-          <TabsList className="mb-6">
-            <TabsTrigger value="ilp" className="flex items-center gap-2">
-              <BookOpen className="w-4 h-4" />
-              Learning Plans (ILP)
+          <TabsList className="mb-6 w-full sm:w-auto">
+            <TabsTrigger value="ilp" className="flex items-center gap-1.5 flex-1 sm:flex-none">
+              <BookOpen className="w-4 h-4" />Learning Plans
             </TabsTrigger>
-            <TabsTrigger value="lesson" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Lesson Plans
+            <TabsTrigger value="lesson" className="flex items-center gap-1.5 flex-1 sm:flex-none">
+              <FileText className="w-4 h-4" />Lesson Plans
             </TabsTrigger>
           </TabsList>
 
@@ -386,10 +390,10 @@ export default function IndividualPlans() {
           <TabsContent value="ilp">
             {ilpView === "list" && (
               <div>
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold">Individual Learning Plans</h2>
-                  <Button onClick={() => { setIlpForm(defaultILPForm()); setEditingIlpId(null); setIlpView("form"); }}>
-                    <Plus className="w-4 h-4 mr-2" /> New ILP
+                <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
+                  <h2 className="text-lg sm:text-xl font-semibold">Individual Learning Plans</h2>
+                  <Button size="sm" onClick={() => { setIlpForm(defaultILPForm()); setEditingIlpId(null); setIlpView("form"); }}>
+                    <Plus className="w-4 h-4 mr-1" />New ILP
                   </Button>
                 </div>
                 {ilpList.isLoading ? (
@@ -452,8 +456,8 @@ export default function IndividualPlans() {
                     <CardDescription>Fill in the student details, then generate or write the plan content.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="col-span-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="sm:col-span-2">
                         <Label>Student Name *</Label>
                         <Input value={ilpForm.studentName} onChange={e => setIlpForm(f => ({ ...f, studentName: e.target.value }))} placeholder="e.g. Maria García" />
                       </div>
@@ -596,10 +600,10 @@ export default function IndividualPlans() {
           <TabsContent value="lesson">
             {lpView === "list" && (
               <div>
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold">Individual Lesson Plans</h2>
-                  <Button onClick={() => { setLpForm(defaultLessonForm()); setEditingLpId(null); setLpView("form"); }}>
-                    <Plus className="w-4 h-4 mr-2" /> New Lesson Plan
+                <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
+                  <h2 className="text-lg sm:text-xl font-semibold">Individual Lesson Plans</h2>
+                  <Button size="sm" onClick={() => { setLpForm(defaultLessonForm()); setEditingLpId(null); setLpView("form"); }}>
+                    <Plus className="w-4 h-4 mr-1" />New Plan
                   </Button>
                 </div>
                 {lpList.isLoading ? (
@@ -662,8 +666,8 @@ export default function IndividualPlans() {
                     <CardDescription>Fill in the lesson details, then generate or write the plan content.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="col-span-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="sm:col-span-2">
                         <Label>Student Name *</Label>
                         <Input value={lpForm.studentName} onChange={e => setLpForm(f => ({ ...f, studentName: e.target.value }))} placeholder="e.g. Marc Puig" />
                       </div>
@@ -681,7 +685,7 @@ export default function IndividualPlans() {
                           <SelectContent>{SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                         </Select>
                       </div>
-                      <div className="col-span-2">
+                      <div className="sm:col-span-2">
                         <Label>Lesson Topic</Label>
                         <Input value={lpForm.topic} onChange={e => setLpForm(f => ({ ...f, topic: e.target.value }))} placeholder="e.g. Fractions — adding unlike denominators" />
                       </div>
