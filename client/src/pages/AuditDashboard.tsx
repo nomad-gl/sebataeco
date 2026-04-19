@@ -56,10 +56,11 @@ import { toast } from "sonner";
 
 type EventType = "all" | "grade_override" | "bias_flag" | "learning_path" | "assessment" | "account_changes";
 
-const SEVERITY_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  info: { label: "Info", variant: "secondary" },
-  warning: { label: "Warning", variant: "outline" },
-  critical: { label: "Critical", variant: "destructive" },
+type SeverityVariant = "default" | "secondary" | "destructive" | "outline";
+const SEVERITY_VARIANTS: Record<string, SeverityVariant> = {
+  info: "secondary",
+  warning: "outline",
+  critical: "destructive",
 };
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {
@@ -286,14 +287,16 @@ export default function AuditDashboard() {
                     </TableRow>
                   )}
                   {logData?.events.map((event) => {
-                    const sev = SEVERITY_CONFIG[event.severity] ?? SEVERITY_CONFIG.info;
+                    const sevVariant = SEVERITY_VARIANTS[event.severity] ?? SEVERITY_VARIANTS.info;
+                    const sevKey = `audit_severity_${event.severity}` as `audit_severity_${'info'|'warning'|'critical'}`;
+                    const sevLabel = t(sevKey as Parameters<typeof t>[0]) || event.severity;
                     return (
                       <TableRow key={event.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedEvent(event as unknown as Record<string, unknown>)}>
                         <TableCell>{TYPE_ICONS[event.type]}</TableCell>
                         <TableCell className="font-medium text-sm">{event.typeLabel}</TableCell>
                         <TableCell className="text-sm text-muted-foreground max-w-xs truncate">{event.summary}</TableCell>
                         <TableCell>
-                          <Badge variant={sev.variant}>{sev.label}</Badge>
+                          <Badge variant={sevVariant}>{sevLabel}</Badge>
                         </TableCell>
                         <TableCell>
                           <Badge variant={event.resolved ? "secondary" : "outline"}>

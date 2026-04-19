@@ -328,11 +328,11 @@ function AccountSecurityCard({ t }: { t: (k: TranslationKey) => string }) {
             onClick={() => setShowSetPw(true)}
           >
             <KeyRound className="w-3.5 h-3.5" />
-            {user?.loginMethod === "local" ? "Change Password" : "Set Login Password"}
+            {user?.loginMethod === "local" ? t("settings_change_password") : t("settings_set_password")}
           </Button>
         ) : (
           <form onSubmit={handleSetPassword} className="space-y-3 border rounded-lg p-4 bg-muted/30">
-            <p className="text-sm font-medium">Set Login Password</p>
+            <p className="text-sm font-medium">{t("settings_set_password")}</p>
             <p className="text-xs text-muted-foreground">
               Once set, you can log in with your email and this password on any device.
             </p>
@@ -344,18 +344,18 @@ function AccountSecurityCard({ t }: { t: (k: TranslationKey) => string }) {
             {/* Current password — only needed if account already has one */}
             {user?.loginMethod === "local" && (
               <div className="space-y-1">
-                <Label className="text-xs">Current Password</Label>
+                <Label className="text-xs">{t("settings_current_password")}</Label>
                 <Input
                   type="password"
                   value={currentPw}
                   onChange={(e) => setCurrentPw(e.target.value)}
-                  placeholder="Enter current password"
+                  placeholder={t("settings_current_password_placeholder")}
                   autoComplete="current-password"
                 />
               </div>
             )}
             <div className="space-y-1">
-              <Label className="text-xs">New Password</Label>
+              <Label className="text-xs">{t("settings_new_password")}</Label>
               <div className="relative">
                 <Input
                   type={showNewPw ? "text" : "password"}
@@ -375,12 +375,12 @@ function AccountSecurityCard({ t }: { t: (k: TranslationKey) => string }) {
               </div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Confirm New Password</Label>
+              <Label className="text-xs">{t("settings_confirm_password")}</Label>
               <Input
                 type="password"
                 value={confirmPw}
                 onChange={(e) => setConfirmPw(e.target.value)}
-                placeholder="Repeat new password"
+                placeholder={t("settings_confirm_password_placeholder")}
                 autoComplete="new-password"
               />
             </div>
@@ -394,14 +394,14 @@ function AccountSecurityCard({ t }: { t: (k: TranslationKey) => string }) {
                 size="sm"
                 onClick={() => { setShowSetPw(false); setCurrentPw(""); setNewPw(""); setConfirmPw(""); setPwError(""); }}
               >
-                Cancel
+                {t("cancel")}
               </Button>
               <Button
                 type="submit"
                 size="sm"
                 disabled={setPasswordMutation.isPending}
               >
-                {setPasswordMutation.isPending ? "Saving…" : "Save Password"}
+                {setPasswordMutation.isPending ? t("settings_set_password") + "…" : t("save")}
               </Button>
             </div>
           </form>

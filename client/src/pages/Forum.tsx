@@ -782,7 +782,7 @@ export default function Forum() {
                       setPreCallActive(true);
                     }}
                     className="p-2 rounded-lg hover:bg-emerald-500/20 text-emerald-300 transition-colors"
-                    title="Start video call"
+                    title={t("forum_start_video_call")}
                   >
                     <Video className="w-4 h-4" />
                   </button>
@@ -799,7 +799,7 @@ export default function Forum() {
                     setPreCallActive(true);
                   }}
                   className="p-2 rounded-lg hover:bg-emerald-500/20 text-emerald-300 transition-colors"
-                  title="Start video call"
+                  title={t("forum_start_video_call")}
                 >
                   <Video className="w-4 h-4" />
                 </button>
@@ -1059,7 +1059,7 @@ export default function Forum() {
             <button
               onClick={scrollToBottom}
               className="absolute bottom-4 right-4 z-10 flex items-center justify-center w-9 h-9 rounded-full bg-white/20 backdrop-blur-sm text-white shadow-lg hover:bg-white/30 transition-all duration-200 animate-in fade-in slide-in-from-bottom-2"
-              aria-label="Scroll to bottom"
+              aria-label={t("sc_scroll_bottom")}
             >
               <ChevronDown className="w-5 h-5" />
             </button>

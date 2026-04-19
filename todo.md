@@ -3692,3 +3692,23 @@
 - [x] Support both mouse drag and touch drag (mobile) (already implemented)
 - [x] Persist chosen corner in component state, reset on call end (already implemented)
 - [x] Added "Drag to move" hint overlay visible on hover (GripHorizontal icon)
+
+## Feature: Full i18n audit — ensure all text is translatable
+- [x] Audit all pages/components for hardcoded strings not using t()
+- [x] Add missing keys to I18nContext.tsx (EN/ES/CA) for all new strings
+- [x] Replace all hardcoded strings with t() calls across all pages
+  - Fixed: SchoolCalendar.tsx (title tooltips, Fill Times button, Applying… text)
+  - Fixed: IndividualPlans.tsx (BackButton label)
+  - Fixed: SebaConnect.tsx (Attach file, Delete, Send DM, Start video call)
+  - Fixed: Challenge.tsx (PARAULA word bank, Remove from leaderboard)
+  - Fixed: Settings.tsx (Change Password button)
+  - Fixed: DirectorUsers.tsx (Select all active aria-label)
+  - Fixed: SituacioGenerator.tsx (Click to edit label)
+  - Fixed: StudentProgress.tsx (Edited / AI Draft badges)
+  - Fixed: LocalLogin.tsx (English (UK) language label)
+  - Fixed: RegisterWithInvite.tsx (language display labels)
+  - Fixed: MyMaterials.tsx (No materials found, Open full size, Delete, Edit in Presentation)
+  - Fixed: AuditDashboard.tsx (Info/Warning/Critical severity badges)
+  - Fixed: Create.tsx (Remove image, Slide image: label)
+  - Fixed: MaterialView.tsx (Delete this slide, Print word list)
+  - Fixed: Forum.tsx (Start video call, Scroll to bottom)

@@ -494,7 +494,7 @@ function SlidesViewer({ content, materialId, onSaved }: {
             {editMode && (
               <Button size="icon" variant="ghost"
                 className="ml-auto text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
-                title="Delete this slide"
+                title={t("mv_delete_slide")}
                 onClick={() => deleteSlide(current)}>
                 <Trash2 className="w-4 h-4" />
               </Button>
@@ -1024,7 +1024,7 @@ function PaRaulaViewer({ content, materialTitle, topic, materialId }: {
           <span className="text-xs text-muted-foreground">{topic} · {pairs.length} words · {lang.toUpperCase()}</span>
         </div>
         <div className="flex gap-1.5 flex-shrink-0">
-          <Button size="sm" variant="outline" onClick={handlePrint} title="Print word list">
+          <Button size="sm" variant="outline" onClick={handlePrint} title={t("challenge_print_word_list")}>
             <Printer className="w-3.5 h-3.5" />
           </Button>
           <Button

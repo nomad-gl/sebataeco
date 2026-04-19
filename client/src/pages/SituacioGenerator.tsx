@@ -45,14 +45,15 @@ function EditableField({
   onChange,
   multiline = true,
   className,
+  clickToEditLabel,
 }: {
   value: string;
   onChange: (v: string) => void;
   multiline?: boolean;
   className?: string;
+  clickToEditLabel?: string;
 }) {
   const [editing, setEditing] = useState(false);
-  useDocumentTitle("Generador de Situacions d'Aprenentatge LOMLOE");
   const ref = useRef<HTMLTextAreaElement | HTMLInputElement>(null);
 
   useEffect(() => {
@@ -90,7 +91,7 @@ function EditableField({
         className
       )}
       onClick={() => setEditing(true)}
-      title="Click to edit"
+      title={clickToEditLabel ?? "Click to edit"}
     >
       <p className="text-white/80 text-sm leading-relaxed whitespace-pre-wrap">{value}</p>
       <Pencil className="absolute top-1.5 right-1.5 w-3 h-3 text-white/30 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -427,12 +428,14 @@ ${result.criteria.map(c => `<li>${c}</li>`).join("\n")}
                       onChange={(v) => updateResult({ title: v })}
                       multiline={false}
                       className="text-xl font-bold"
+                      clickToEditLabel={t("situacio_click_to_edit")}
                     />
                     <EditableField
                       value={result.lomloeRef}
                       onChange={(v) => updateResult({ lomloeRef: v })}
                       multiline={false}
                       className="text-xs text-white/40 italic mt-1"
+                      clickToEditLabel={t("situacio_click_to_edit")}
                     />
                   </div>
                   <div className="flex gap-2 flex-wrap">
@@ -482,7 +485,7 @@ ${result.criteria.map(c => `<li>${c}</li>`).join("\n")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <EditableField value={result.context} onChange={(v) => updateResult({ context: v })} />
+                    <EditableField value={result.context} onChange={(v) => updateResult({ context: v })} clickToEditLabel={t("situacio_click_to_edit")} />
                   </CardContent>
                 </Card>
 
@@ -495,7 +498,7 @@ ${result.criteria.map(c => `<li>${c}</li>`).join("\n")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <EditableField value={result.task} onChange={(v) => updateResult({ task: v })} />
+                    <EditableField value={result.task} onChange={(v) => updateResult({ task: v })} clickToEditLabel={t("situacio_click_to_edit")} />
                   </CardContent>
                 </Card>
 
@@ -521,6 +524,7 @@ ${result.criteria.map(c => `<li>${c}</li>`).join("\n")}
                           onChange={(v) => updateCompetencyDesc(i, v)}
                           multiline={false}
                           className="flex-1"
+                          clickToEditLabel={t("situacio_click_to_edit")}
                         />
                       </div>
                     ))}
@@ -547,10 +551,12 @@ ${result.criteria.map(c => `<li>${c}</li>`).join("\n")}
                             onChange={(v) => updateActivity(i, "phase", v)}
                             multiline={false}
                             className="text-xs font-semibold uppercase tracking-wide"
+                            clickToEditLabel={t("situacio_click_to_edit")}
                           />
                           <EditableField
                             value={a.description}
                             onChange={(v) => updateActivity(i, "description", v)}
+                            clickToEditLabel={t("situacio_click_to_edit")}
                           />
                         </div>
                       </div>
@@ -576,6 +582,7 @@ ${result.criteria.map(c => `<li>${c}</li>`).join("\n")}
                             onChange={(v) => updateCriterion(i, v)}
                             multiline={false}
                             className="flex-1"
+                            clickToEditLabel={t("situacio_click_to_edit")}
                           />
                         </li>
                       ))}

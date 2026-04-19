@@ -1,10 +1,12 @@
 import BackButton from "@/components/BackButton";
+import { useI18n } from "@/contexts/I18nContext";
 import NavBar from "@/components/NavBar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Building2  } from "lucide-react";
 
 export default function AdminGovernance() {
+  const { t } = useI18n();
   return (
     <div className="min-h-screen bg-background">
       <NavBar />
@@ -15,10 +17,10 @@ export default function AdminGovernance() {
             <Building2 className="w-7 h-7 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Governing Bodies</h1>
+            <h1 className="text-2xl font-bold text-foreground">{t("admin_governing_bodies")}</h1>
             <p className="text-muted-foreground text-sm mt-0.5">Òrgans de Govern — Consell Escolar, Claustre minutes and agendas</p>
           </div>
-          <Badge variant="secondary" className="ml-auto">Coming Soon</Badge>
+          <Badge variant="secondary" className="ml-auto">{t("admin_coming_soon")}</Badge>
         </div>
         <Card className="border-dashed border-2 border-border">
           <CardHeader>

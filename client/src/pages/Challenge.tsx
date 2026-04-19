@@ -703,7 +703,7 @@ export default function Challenge() {
             <div className="text-center space-y-1">
               <div className="inline-flex items-center gap-2 bg-orange-400/20 text-orange-300 border border-orange-400/30 rounded-full px-4 py-1.5 text-sm font-semibold">
                 <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse inline-block" />
-                <span className="font-black tracking-widest">PARAULA</span> Live — Waiting for students
+                <span className="font-black tracking-widest">{t("challenge_paraula")}</span> Live — Waiting for students
               </div>
               <h2 className="text-2xl font-bold text-white">{room.title}</h2>
               {paraulaRoomQuery.data?.clue && (
@@ -800,7 +800,7 @@ export default function Challenge() {
               <div className="text-center space-y-1">
                 <div className="inline-flex items-center gap-2 bg-orange-400/20 text-orange-300 border border-orange-400/30 rounded-full px-4 py-1.5 text-sm font-semibold">
                   <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse inline-block" />
-                  <span className="font-black tracking-widest">PARAULA</span> Live — Game in progress
+                  <span className="font-black tracking-widest">{t("challenge_paraula")}</span> Live — Game in progress
                 </div>
                 <h2 className="text-2xl font-bold text-white">{room.title}</h2>
                 {pr?.clue && <p className="text-white/60 text-sm">Clue: <span className="text-orange-300 font-semibold">{pr.clue}</span></p>}
@@ -1126,7 +1126,7 @@ export default function Challenge() {
             </Button>
             <div className="text-center space-y-2">
               <Trophy className={`w-16 h-16 mx-auto ${isParaulaResults ? "text-orange-300" : "text-yellow-300"}`} />
-              {isParaulaResults && <p className="font-black tracking-widest text-orange-300 text-xl">PARAULA</p>}
+              {isParaulaResults && <p className="font-black tracking-widest text-orange-300 text-xl">{t("challenge_paraula")}</p>}
               <h2 className="text-2xl font-bold text-white">{t("practice_done_title")}</h2>
               <p className="text-white/70">{room.title}</p>
             </div>
@@ -1187,10 +1187,10 @@ export default function Challenge() {
                       <span className="text-yellow-300 font-bold">{p.score} / {room.questions.length}</span>
                     )}
                     <button
-                      title="Remove from leaderboard"
+                      title={t("challenge_remove_from_lb")}
                       className="ml-1 p-1 rounded hover:bg-red-500/30 text-white/40 hover:text-red-300 transition-colors"
                       onClick={() => {
-                        if (confirm(`Remove "${p.nickname}" from the leaderboard?`)) {
+                        if (confirm(`${t("challenge_remove_from_lb_confirm")} "${p.nickname}"?`)) {
                           deleteParticipantMut.mutate({ participantId: p.id, challengeId: room.id });
                         }
                       }}
@@ -1361,7 +1361,7 @@ export default function Challenge() {
               <DialogContent className="bg-slate-900 border-white/20 text-white max-w-sm">
                 <DialogHeader>
                   <DialogTitle className="text-white flex items-center gap-2">
-                    <span className="font-black tracking-widest text-orange-400">PARAULA</span> Next Word
+                    <span className="font-black tracking-widest text-orange-400">{t("challenge_paraula")}</span> Next Word
                   </DialogTitle>
                 </DialogHeader>
                 <p className="text-white/60 text-sm">Pick the next word for students to guess.</p>

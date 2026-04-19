@@ -1,10 +1,12 @@
 import BackButton from "@/components/BackButton";
+import { useI18n } from "@/contexts/I18nContext";
 import NavBar from "@/components/NavBar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Banknote  } from "lucide-react";
 
 export default function AdminFinance() {
+  const { t } = useI18n();
   return (
     <div className="min-h-screen bg-background">
       <NavBar />
@@ -18,7 +20,7 @@ export default function AdminFinance() {
             <h1 className="text-2xl font-bold text-foreground">Budget &amp; Finance</h1>
             <p className="text-muted-foreground text-sm mt-0.5">Gestió Econòmica — School budget, expenditure, ESFER@ reports</p>
           </div>
-          <Badge variant="secondary" className="ml-auto">Coming Soon</Badge>
+          <Badge variant="secondary" className="ml-auto">{t("admin_coming_soon")}</Badge>
         </div>
         <Card className="border-dashed border-2 border-border">
           <CardHeader>

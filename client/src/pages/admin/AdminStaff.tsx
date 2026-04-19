@@ -1,10 +1,12 @@
 import BackButton from "@/components/BackButton";
+import { useI18n } from "@/contexts/I18nContext";
 import NavBar from "@/components/NavBar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { UserCog  } from "lucide-react";
 
 export default function AdminStaff() {
+  const { t } = useI18n();
   return (
     <div className="min-h-screen bg-background">
       <NavBar />
@@ -15,10 +17,10 @@ export default function AdminStaff() {
             <UserCog className="w-7 h-7 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Staff Management</h1>
+            <h1 className="text-2xl font-bold text-foreground">{t("admin_staff_management")}</h1>
             <p className="text-muted-foreground text-sm mt-0.5">Gestió de Personal — Staff records, absences, leave, timetable admin</p>
           </div>
-          <Badge variant="secondary" className="ml-auto">Coming Soon</Badge>
+          <Badge variant="secondary" className="ml-auto">{t("admin_coming_soon")}</Badge>
         </div>
         <Card className="border-dashed border-2 border-border">
           <CardHeader>

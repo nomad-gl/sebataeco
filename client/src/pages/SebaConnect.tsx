@@ -681,13 +681,13 @@ export default function SebaConnect() {
               type="button"
               onClick={() => navigate("/")}
               className="p-1 rounded hover:bg-white/20 transition-colors text-white/80 hover:text-white shrink-0"
-              title="Back to home"
+              title={t("sc_back_home")}
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
             <SebaSymbol className="w-5 h-5 text-white" />
             <div>
-              <p className="text-white font-bold text-sm leading-tight">SEBA Connect</p>
+              <p className="text-white font-bold text-sm leading-tight">{t("sc_title")}</p>
               <p className="text-white/70 text-xs">{t("connect_subtitle")}</p>
             </div>
           </div>
@@ -911,7 +911,7 @@ export default function SebaConnect() {
               <button
                 onClick={scrollToBottom}
                 className="absolute bottom-4 right-4 z-10 flex items-center justify-center w-9 h-9 rounded-full bg-[#003082] text-white shadow-lg hover:bg-[#002060] transition-all duration-200 animate-in fade-in slide-in-from-bottom-2"
-                aria-label="Scroll to bottom"
+                aria-label={t("sc_scroll_bottom")}
               >
                 <ChevronDown className="w-5 h-5" />
               </button>
@@ -942,7 +942,7 @@ export default function SebaConnect() {
                     variant="outline"
                     className="w-9 h-9"
                     onClick={() => fileInputRef.current?.click()}
-                    title="Adjuntar fitxer"
+                    title={t("sc_attach_file")}
                   >
                     <Paperclip className="w-4 h-4" />
                   </Button>
@@ -1081,7 +1081,7 @@ export default function SebaConnect() {
                           variant="ghost"
                           className="w-8 h-8 text-destructive"
                           onClick={() => deleteFileMutation.mutate({ fileId: f.id })}
-                          title="Eliminar"
+                          title={t("sc_delete")}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>
@@ -1162,14 +1162,14 @@ export default function SebaConnect() {
                         </button>
                         <button
                           onClick={() => { setDmPartner({ id: m.id, name: m.name }); setMembersOpen(false); }}
-                          title="Send direct message"
+                          title={t("sc_send_dm")}
                           className="p-2 sm:p-1 rounded hover:bg-blue-700 active:bg-blue-700 text-purple-300 hover:text-white transition-colors min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
                         >
                           <MessageCircle className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                         </button>
                         <button
                           onClick={() => setMeetInviteTarget({ id: m.id, name: m.name })}
-                          title="Schedule a meeting"
+                          title={t("sc_schedule_meeting")}
                           className="p-2 sm:p-1 rounded hover:bg-blue-700 active:bg-blue-700 text-blue-300 hover:text-white transition-colors min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
                         >
                           <CalendarPlus className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
@@ -1203,7 +1203,7 @@ export default function SebaConnect() {
                       {/* Schedule meeting button — always visible on mobile, hover-reveal on desktop */}
                         <button
                           onClick={() => setMeetInviteTarget({ id: m.id, name: m.name })}
-                          title="Schedule a meeting"
+                          title={t("sc_schedule_meeting")}
                           className="p-2 sm:p-1 rounded opacity-100 sm:opacity-0 sm:group-hover/offline:opacity-100 hover:bg-blue-700 active:bg-blue-700 text-blue-400 hover:text-white transition-all min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
                         >
                         <CalendarPlus className="w-4 h-4 sm:w-3.5 sm:h-3.5" />

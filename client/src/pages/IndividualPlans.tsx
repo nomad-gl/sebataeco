@@ -5,6 +5,7 @@
  */
 
 import { useState } from "react";
+import { useI18n } from "@/contexts/I18nContext";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import NavBar from "@/components/NavBar";
@@ -183,6 +184,7 @@ const defaultLessonForm = (): LessonFormData => ({
 
 export default function IndividualPlans() {
   const { user } = useAuth();
+  const { t } = useI18n();
 
   const utils = trpc.useUtils();
 
@@ -353,7 +355,7 @@ export default function IndividualPlans() {
       <NavBar />
       <div className="max-w-6xl mx-auto px-4 py-6 sm:py-8">
         {/* Page header */}
-        <BackButton label="Back" className="mb-4" />
+        <BackButton label={t("back")} className="mb-4" />
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-2 sm:gap-3">
             <GraduationCap className="w-6 h-6 sm:w-8 sm:h-8 text-primary shrink-0" />

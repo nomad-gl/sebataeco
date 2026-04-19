@@ -408,7 +408,7 @@ export default function MyMaterials() {
         ) : filteredMaterials.length === 0 ? (
           <div className="text-center py-12 text-white/60">
             <Search className="w-8 h-8 mx-auto mb-3 opacity-50" />
-            <p className="text-sm">No materials found</p>
+            <p className="text-sm">{t("mv_no_materials")}</p>
           </div>
         ) : activeFilter === "image" && filteredMaterials.length > 0 ? (
           /* AI Images gallery — thumbnail grid */
@@ -439,14 +439,14 @@ export default function MyMaterials() {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors"
-                          title="Open full size"
+                          title={t("mv_open_full")}
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
                         </a>
                       )}
                       <button
                         className="p-1.5 rounded-lg bg-red-500/60 hover:bg-red-500/80 text-white transition-colors"
-                        title="Delete"
+                        title={t("mv_delete")}
                         onClick={() => { if (confirm(t("my_materials_delete") + "?")) deleteMutation.mutate({ id: m.id }); }}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -531,7 +531,7 @@ export default function MyMaterials() {
                           </Button>
                           {m.type === "slides" && (
                             <Button size="sm" variant="outline" className="gap-1.5 border-purple-400/50 text-purple-300 hover:bg-purple-500/20 bg-transparent"
-                              title="Edit in Presentation"
+                              title={t("mv_edit_presentation")}
                               onClick={(e) => { e.stopPropagation(); navigate(`/presentation?id=${m.id}`); }}>
                               <Presentation className="w-3.5 h-3.5" />
                             </Button>

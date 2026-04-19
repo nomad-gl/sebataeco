@@ -1321,8 +1321,8 @@ function AssignmentRow({
               <Eye className="w-3.5 h-3.5 text-teal-400" />
               <span className="text-teal-300 text-xs font-semibold">{t("sp_ai_assignment_preview")}</span>
               {assignment.editedContent
-                ? <Badge className="bg-amber-500/30 text-amber-200 border-amber-500/30 text-xs border">Edited</Badge>
-                : <Badge className="bg-teal-600/30 text-teal-200 border-teal-500/30 text-xs border">AI Draft</Badge>
+                ? <Badge className="bg-amber-500/30 text-amber-200 border-amber-500/30 text-xs border">{t("sp_edited")}</Badge>
+                : <Badge className="bg-teal-600/30 text-teal-200 border-teal-500/30 text-xs border">{t("sp_ai_draft")}</Badge>
               }
             </div>
             <div className="flex gap-2">

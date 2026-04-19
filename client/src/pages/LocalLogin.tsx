@@ -21,11 +21,12 @@ import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 const DEFAULT_BG =
   "/manus-storage/hero-bg_a767782c.jpg";
 
-const LANG_OPTIONS = [
-  { code: "en", label: "English (UK)" },
-  { code: "es", label: "Español" },
-  { code: "ca", label: "Català" },
+const LANG_OPTIONS_STATIC = [
+  { code: "en" as const },
+  { code: "es" as const },
+  { code: "ca" as const },
 ];
+const LANG_LABELS: Record<string, string> = { en: "English (UK)", es: "Español", ca: "Català" };
 
 export default function LocalLogin() {
   const { t, lang, setLang } = useI18n();
@@ -113,22 +114,22 @@ export default function LocalLogin() {
             onClick={() => setShowLangMenu((v) => !v)}
           >
             <Globe className="w-4 h-4" />
-            {LANG_OPTIONS.find((l) => l.code === lang)?.label ?? "Language"}
+            {LANG_LABELS[lang] ?? t("lang_english_uk")}
           </Button>
           {showLangMenu && (
             <div className="absolute right-0 mt-1 w-36 rounded-lg bg-white/95 backdrop-blur shadow-lg border border-gray-200 overflow-hidden z-30">
-              {LANG_OPTIONS.map((opt) => (
+              {LANG_OPTIONS_STATIC.map((opt) => (
                 <button
                   key={opt.code}
                   className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
                     lang === opt.code ? "font-semibold text-red-600" : "text-gray-700"
                   }`}
                   onClick={() => {
-                    setLang(opt.code as "en" | "es" | "ca");
+                    setLang(opt.code);
                     setShowLangMenu(false);
                   }}
                 >
-                  {opt.label}
+                  {LANG_LABELS[opt.code]}
                 </button>
               ))}
             </div>

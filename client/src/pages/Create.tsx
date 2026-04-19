@@ -258,7 +258,7 @@ function SlidesPreview({ content, onChange }: { content: Record<string, unknown>
                   <button
                     onClick={() => handleRemoveImage(si)}
                     className="absolute top-1.5 right-1.5 p-1 rounded bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                    title="Remove image"
+                    title={t("create_remove_image")}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -266,7 +266,7 @@ function SlidesPreview({ content, onChange }: { content: Record<string, unknown>
               ) : (
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <ImagePlus className="w-3.5 h-3.5" /> Slide image:
+                    <ImagePlus className="w-3.5 h-3.5" /> {t("create_slide_image")}
                   </span>
                   <Button
                     size="sm"

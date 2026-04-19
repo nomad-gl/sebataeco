@@ -298,6 +298,9 @@ export const translations = {
     audit_retention_running: "Purging…",
     audit_retention_success: "Purge complete",
     audit_retention_error: "Purge failed",
+    audit_severity_info: "Info",
+    audit_severity_warning: "Warning",
+    audit_severity_critical: "Critical",
     back: "Back",
     dpa_page_title: "Data Processing Agreement",
     dpa_dialog_title: "Data Processing Agreement",
@@ -631,6 +634,8 @@ export const translations = {
     challenge_enter_code: "Enter room code",
     challenge_join_btn: "Join",
     challenge_leaderboard: "Leaderboard",
+    challenge_remove_from_lb: "Remove from leaderboard",
+    challenge_remove_from_lb_confirm: "Remove from the leaderboard?",
     challenge_question_count: "Number of questions",
 
     // Question Library
@@ -1280,6 +1285,8 @@ export const translations = {
     create_image_failed: "Image generation failed. Please try again.",
     create_image_uploaded: "Image uploaded!",
     create_image_upload_failed: "Image upload failed. Please try again.",
+    create_remove_image: "Remove image",
+    create_slide_image: "Slide image:",
 
     // School Calendar
     cal_title: "School Calendar Planner",
@@ -2643,6 +2650,99 @@ export const translations = {
     inv_countdown_days: "Expires in {d}d {h}h",
     inv_countdown_hours: "Expires in {h}h {m}m",
     inv_countdown_minutes: "Expires in {m}m",
+    // Admin stub pages
+    admin_coming_soon: "Coming Soon",
+    admin_school_documents: "School Documents",
+    admin_governing_bodies: "Governing Bodies",
+    admin_staff_management: "Staff Management",
+    // AdminErrors page
+    admin_errors_tab_errors: "Error Log",
+    admin_errors_tab_fixes: "Fix History",
+    admin_errors_tab_health: "Health Check",
+    admin_errors_show_all: "Show all",
+    admin_errors_escalations_only: "Escalations only",
+    admin_errors_db_connected: "Connected",
+    admin_errors_db_failed: "Failed",
+    admin_errors_db_status: "Database connection:",
+    admin_errors_healthy: "All systems healthy \u2014 no fixes needed.",
+    admin_errors_health_failed: "Health check failed.",
+    // NotFound page
+    not_found_title: "Page not found",
+    not_found_desc: "The page you are looking for does not exist.",
+    not_found_home: "Go home",
+    // IndividualPlans search
+    ilp_search_placeholder: "Search by student name...",
+    ilp_no_results: "No plans found for this student.",
+    lp_search_placeholder: "Search by student name...",
+    lp_no_results: "No lesson plans found for this student.",
+    // MaterialView
+    mv_no_materials: "No materials found",
+    mv_open_full: "Open full size",
+    mv_delete: "Delete",
+    mv_edit_presentation: "Edit in Presentation",
+    mv_delete_slide: "Delete this slide",
+    // Presentation bulk generate
+    pres_bulk_generate: "Bulk Generate",
+    pres_school: "School / Institution",
+    pres_subject: "Subject",
+    pres_year_group: "Year Group",
+    pres_competency: "Competency",
+    pres_options: "Options",
+    pres_discussion_points: "Discussion talking points",
+    // Privacy page
+    privacy_primary: "Primary",
+    privacy_target: "Target",
+    privacy_ai_inference: "AI Inference",
+    privacy_delete_data: "DELETE MY DATA",
+    // Settings page
+    settings_logo_placeholder: "Logo here",
+    settings_set_password: "Set Login Password",
+    settings_change_password: "Change Password",
+    settings_current_password: "Current Password",
+    settings_current_password_placeholder: "Enter current password",
+    settings_new_password: "New Password",
+    settings_confirm_password: "Confirm New Password",
+    settings_confirm_password_placeholder: "Repeat new password",
+    settings_powered_by: "Powered by SEBA",
+    settings_sign_in: "Sign In",
+    // SituacioGenerator
+    situacio_click_to_edit: "Click to edit",
+    // StudentProgress
+    sp_edited: "Edited",
+    sp_ai_draft: "AI Draft",
+    // SchoolCalendar
+    cal_holiday: "Holiday",
+    cal_fill_times_tooltip: "Fill missing start/end times on all lesson events using the calendar's default session time",
+    cal_view_details: "View details",
+    cal_duplicate_date: "Duplicate to another date",
+    cal_fill_missing_times: "Fill missing start/end times on all lesson events using the calendar's default session time",
+    cal_applying: "Applying…",
+    cal_fill_times_btn: "Fill Times",
+    // SebaConnect
+    sc_back_home: "Back to home",
+    sc_title: "SEBA Connect",
+    sc_scroll_bottom: "Scroll to bottom",
+    forum_start_video_call: "Start video call",
+    sc_attach_file: "Attach file",
+    sc_delete: "Delete",
+    sc_send_dm: "Send direct message",
+    sc_schedule_meeting: "Schedule a meeting",
+    // Challenge / Paraula
+    challenge_word_bank: "Word Bank",
+    challenge_hints: "Hints",
+    challenge_tap_reveal: "Tap to reveal definition",
+    challenge_print: "Print",
+    challenge_print_word_list: "Print word list",
+    challenge_selected: "Selected:",
+    challenge_cancel: "Cancel",
+    challenge_down: "Down",
+    challenge_paraula: "PARAULA",
+    // DirectorUsers
+    dir_select_all_active: "Select all active",
+    // DirectorSettings language
+    lang_english_uk: "English (UK)",
+    // Groups page
+    groups_no_groups: "No groups found",
   },
   es: {
     // NavBar
@@ -2937,6 +3037,9 @@ export const translations = {
     audit_retention_running: "Purgando\u2026",
     audit_retention_success: "Purga completada",
     audit_retention_error: "Error en la purga",
+    audit_severity_info: "Info",
+    audit_severity_warning: "Advertencia",
+    audit_severity_critical: "Crítico",
     back: "Volver",
     dpa_page_title: "Acuerdo de Tratamiento de Datos",
     dpa_dialog_title: "Acuerdo de Tratamiento de Datos",
@@ -3267,6 +3370,8 @@ export const translations = {
     challenge_enter_code: "Introduce el código de sala",
     challenge_join_btn: "Unirse",
     challenge_leaderboard: "Clasificación",
+    challenge_remove_from_lb: "Eliminar del marcador",
+    challenge_remove_from_lb_confirm: "¿Eliminar del marcador?",
     challenge_question_count: "Número de preguntas",
 
     // Question Library
@@ -3912,6 +4017,8 @@ export const translations = {
     create_slides_all_have_images: "Todas las diapositivas ya tienen imágenes",
     create_slides_all_images_done: "¡Todas las imágenes generadas!",
     create_slides_no_prompt: "No hay indicación de imagen disponible para esta diapositiva",
+    create_remove_image: "Eliminar imagen",
+    create_slide_image: "Imagen de diapositiva:",
     create_image_generated: "¡Imagen generada!",
     create_image_failed: "Error al generar la imagen. Por favor, inténtalo de nuevo.",
     create_image_uploaded: "¡Imagen subida!",
@@ -5255,6 +5362,94 @@ export const translations = {
     inv_countdown_days: "Caduca en {d}d {h}h",
     inv_countdown_hours: "Caduca en {h}h {m}m",
     inv_countdown_minutes: "Caduca en {m}m",
+    // Admin stub pages
+    admin_coming_soon: "Pr\u00f3ximamente",
+    admin_school_documents: "Documentos del Centro",
+    admin_governing_bodies: "\u00d3rganos de Gobierno",
+    admin_staff_management: "Gesti\u00f3n de Personal",
+    // AdminErrors page
+    admin_errors_tab_errors: "Registro de Errores",
+    admin_errors_tab_fixes: "Historial de Correcciones",
+    admin_errors_tab_health: "Verificaci\u00f3n de Salud",
+    admin_errors_show_all: "Mostrar todo",
+    admin_errors_escalations_only: "Solo escalaciones",
+    admin_errors_db_connected: "Conectado",
+    admin_errors_db_failed: "Error",
+    admin_errors_db_status: "Conexi\u00f3n de base de datos:",
+    admin_errors_healthy: "Todos los sistemas funcionan correctamente.",
+    admin_errors_health_failed: "Error en la verificaci\u00f3n de salud.",
+    // NotFound page
+    not_found_title: "P\u00e1gina no encontrada",
+    not_found_desc: "La p\u00e1gina que buscas no existe.",
+    not_found_home: "Ir al inicio",
+    // IndividualPlans search
+    ilp_search_placeholder: "Buscar por nombre del alumno...",
+    ilp_no_results: "No se encontraron planes para este alumno.",
+    lp_search_placeholder: "Buscar por nombre del alumno...",
+    lp_no_results: "No se encontraron planes de lecci\u00f3n para este alumno.",
+    // MaterialView
+    mv_no_materials: "No se encontraron materiales",
+    mv_open_full: "Abrir a tama\u00f1o completo",
+    mv_delete: "Eliminar",
+    mv_edit_presentation: "Editar en Presentación",
+    mv_delete_slide: "Eliminar esta diapositiva",
+    // Presentation bulk generate
+    pres_bulk_generate: "Generar en masa",
+    pres_school: "Centro / Instituci\u00f3n",
+    pres_discussion_points: "Puntos de debate",
+    // Privacy page
+    privacy_primary: "Primario",
+    privacy_target: "Objetivo",
+    privacy_ai_inference: "Inferencia IA",
+    privacy_delete_data: "ELIMINAR MIS DATOS",
+    // Settings page
+    settings_logo_placeholder: "Logo aqu\u00ed",
+    settings_set_password: "Establecer contrase\u00f1a",
+    settings_change_password: "Cambiar contrase\u00f1a",
+    settings_current_password: "Contrase\u00f1a actual",
+    settings_current_password_placeholder: "Introduce la contrase\u00f1a actual",
+    settings_new_password: "Nueva contrase\u00f1a",
+    settings_confirm_password: "Confirmar nueva contrase\u00f1a",
+    settings_confirm_password_placeholder: "Repite la nueva contrase\u00f1a",
+    settings_powered_by: "Desarrollado por SEBA",
+    settings_sign_in: "Iniciar sesi\u00f3n",
+    // SituacioGenerator
+    situacio_click_to_edit: "Haz clic para editar",
+    // StudentProgress
+    sp_edited: "Editado",
+    sp_ai_draft: "Borrador IA",
+    // SchoolCalendar
+    cal_fill_times_tooltip: "Rellenar horas de inicio/fin en todos los eventos de lecci\u00f3n usando la hora de sesi\u00f3n predeterminada del calendario",
+    cal_view_details: "Ver detalles",
+    cal_duplicate_date: "Duplicar a otra fecha",
+    cal_fill_missing_times: "Rellenar horas de inicio/fin que faltan en todos los eventos de clase usando la hora de sesión predeterminada del calendario",
+    cal_applying: "Aplicando…",
+    cal_fill_times_btn: "Rellenar horas",
+    // SebaConnect
+    sc_back_home: "Volver al inicio",
+    sc_title: "SEBA Connect",
+    sc_scroll_bottom: "Ir al final",
+    forum_start_video_call: "Iniciar videollamada",
+    sc_attach_file: "Adjuntar archivo",
+    sc_delete: "Eliminar",
+    sc_send_dm: "Enviar mensaje directo",
+    sc_schedule_meeting: "Programar reuni\u00f3n",
+    // Challenge / Paraula
+    challenge_word_bank: "Banco de palabras",
+    challenge_hints: "Pistas",
+    challenge_tap_reveal: "Toca para ver la definici\u00f3n",
+    challenge_print: "Imprimir",
+    challenge_print_word_list: "Imprimir lista de palabras",
+    challenge_selected: "Seleccionado:",
+    challenge_cancel: "Cancelar",
+    challenge_down: "Abajo",
+    challenge_paraula: "PARAULA",
+    // DirectorUsers
+    dir_select_all_active: "Seleccionar todos los activos",
+    // DirectorSettings language
+    lang_english_uk: "Ingl\u00e9s (Reino Unido)",
+    // Groups page
+    groups_no_groups: "No se encontraron grupos",
   },
   ca: {
     // NavBar
@@ -5549,6 +5744,9 @@ export const translations = {
     audit_retention_running: "Purgant\u2026",
     audit_retention_success: "Purga completada",
     audit_retention_error: "Error en la purga",
+    audit_severity_info: "Info",
+    audit_severity_warning: "Avís",
+    audit_severity_critical: "Crític",
     back: "Enrere",
     dpa_page_title: "Acord de Tractament de Dades",
     dpa_dialog_title: "Acord de Tractament de Dades",
@@ -5879,6 +6077,8 @@ export const translations = {
     challenge_enter_code: "Introdueix el codi de sala",
     challenge_join_btn: "Unir-se",
     challenge_leaderboard: "Classificació",
+    challenge_remove_from_lb: "Eliminar de la classificació",
+    challenge_remove_from_lb_confirm: "Eliminar de la classificació?",
     challenge_question_count: "Nombre de preguntes",
 
     // Question Library
@@ -6524,6 +6724,8 @@ export const translations = {
     create_slides_all_have_images: "Totes les diapositives ja tenen imatges",
     create_slides_all_images_done: "Totes les imatges generades!",
     create_slides_no_prompt: "No hi ha indicació d'imatge disponible per a aquesta diapositiva",
+    create_remove_image: "Eliminar imatge",
+    create_slide_image: "Imatge de diapositiva:",
     create_image_generated: "Imatge generada!",
     create_image_failed: "Error en generar la imatge. Si us plau, torna-ho a intentar.",
     create_image_uploaded: "Imatge pujada!",
@@ -7867,6 +8069,76 @@ export const translations = {
     inv_countdown_days: "Caduca en {d}d {h}h",
     inv_countdown_hours: "Caduca en {h}h {m}m",
     inv_countdown_minutes: "Caduca en {m}m",
+    // Admin stub pages
+    admin_coming_soon: "Pròximament",
+    admin_school_documents: "Documents del Centre",
+    admin_governing_bodies: "Òrgans de Govern",
+    admin_staff_management: "Gestió de Personal",
+    admin_finance: "Finances",
+    admin_enrolment: "Matriculació",
+    admin_facilities: "Instal·lacions",
+    // MaterialViewer
+    mv_no_materials: "No s'han trobat materials",
+    mv_open_full: "Obrir a mida completa",
+    mv_delete: "Eliminar",
+    mv_edit_presentation: "Editar a Presentació",
+    mv_delete_slide: "Eliminar aquesta diapositiva",
+    // Presentation bulk generate
+    pres_bulk_generate: "Generar en massa",
+    pres_school: "Centre / Institució",
+    pres_discussion_points: "Punts de debat",
+    // Privacy page
+    privacy_primary: "Primari",
+    privacy_target: "Objectiu",
+    privacy_ai_inference: "Inferència IA",
+    privacy_delete_data: "ELIMINAR LES MEVES DADES",
+    // Settings page
+    settings_logo_placeholder: "Logo aquí",
+    settings_set_password: "Establir contrasenya d'inici de sessió",
+    settings_change_password: "Canviar contrasenya",
+    settings_current_password: "Contrasenya actual",
+    settings_current_password_placeholder: "Introduïu la contrasenya actual",
+    settings_new_password: "Nova contrasenya",
+    settings_confirm_password: "Confirmar nova contrasenya",
+    settings_confirm_password_placeholder: "Repetiu la nova contrasenya",
+    settings_powered_by: "Desenvolupat per SEBA",
+    settings_sign_in: "Iniciar sessió",
+    // SituacioGenerator
+    situacio_click_to_edit: "Feu clic per editar",
+    // StudentProgress
+    sp_edited: "Editat",
+    sp_ai_draft: "Esborrany IA",
+    // SchoolCalendar
+    cal_fill_times_tooltip: "Omplir les hores d'inici/fi a tots els esdeveniments de lliçó usant l'hora de sessió predeterminada del calendari",
+    cal_view_details: "Veure detalls",
+    cal_duplicate_date: "Duplicar a una altra data",
+    cal_fill_missing_times: "Omplir les hores d'inici/fi que falten en tots els esdeveniments de classe usant l'hora de sessió predeterminada del calendari",
+    cal_applying: "Aplicant…",
+    cal_fill_times_btn: "Omplir hores",
+    // SebaConnect
+    sc_back_home: "Tornar a l'inici",
+    sc_title: "SEBA Connect",
+    sc_scroll_bottom: "Anar al final",
+    forum_start_video_call: "Iniciar videotrucada",
+    sc_attach_file: "Adjuntar fitxer",
+    sc_delete: "Eliminar",
+    sc_send_dm: "Enviar missatge directe",
+    sc_schedule_meeting: "Programar una reunió",
+    // Challenge / Paraula
+    challenge_word_bank: "Banc de paraules",
+    challenge_hints: "Pistes",
+    challenge_tap_reveal: "Toca per veure la definició",
+    challenge_print: "Imprimir",
+    challenge_print_word_list: "Imprimir llista de paraules",
+    challenge_selected: "Seleccionat:",
+    challenge_down: "Avall",
+    challenge_paraula: "PARAULA",
+    // DirectorUsers
+    dir_select_all_active: "Seleccionar tots els actius",
+    // DirectorSettings language
+    lang_english_uk: "Anglès (Regne Unit)",
+    // Groups page
+    groups_no_groups: "No s'han trobat grups",
   },
 } as const;
 

@@ -277,7 +277,7 @@ export default function DirectorUsers() {
                       <Checkbox
                         checked={allActiveSelected}
                         onCheckedChange={toggleSelectAll}
-                        aria-label="Select all active"
+                        aria-label={t("dir_select_all_active")}
                       />
                     </th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">{t("dir_users_col_name")}</th>

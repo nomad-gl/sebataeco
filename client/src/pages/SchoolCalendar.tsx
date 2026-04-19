@@ -1926,10 +1926,10 @@ export default function SchoolCalendar() {
                           className="h-7 text-[10px] px-2 gap-1 text-teal-700 border-teal-300 hover:bg-teal-50 dark:text-teal-400 dark:border-teal-700 dark:hover:bg-teal-950/30"
                           disabled={applyDefaultTimeMutation.isPending}
                           onClick={() => applyDefaultTimeMutation.mutate({ calendarId: selectedCalendarId })}
-                          title="Fill missing start/end times on all lesson events using the calendar's default session time"
+                          title={t("cal_fill_times_tooltip")}
                         >
                           {applyDefaultTimeMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Clock className="w-3 h-3" />}
-                          <span className="hidden sm:inline">{applyDefaultTimeMutation.isPending ? "Applying…" : "Fill Times"}</span>
+                          <span className="hidden sm:inline">{applyDefaultTimeMutation.isPending ? t("cal_applying") : t("cal_fill_times_btn")}</span>
                         </Button>
                       )}
                       <span className="text-[11px] text-muted-foreground hidden sm:inline">{t("cal_wk_abbr")}</span>
@@ -2031,10 +2031,10 @@ export default function SchoolCalendar() {
                           className="h-7 text-[10px] px-2 gap-1 text-teal-700 border-teal-300 hover:bg-teal-50 dark:text-teal-400 dark:border-teal-700 dark:hover:bg-teal-950/30"
                           disabled={applyDefaultTimeMutation.isPending}
                           onClick={() => applyDefaultTimeMutation.mutate({ calendarId: selectedCalendarId })}
-                          title="Fill missing start/end times on all lesson events using the calendar's default session time"
+                          title={t("cal_fill_times_tooltip")}
                         >
                           {applyDefaultTimeMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Clock className="w-3 h-3" />}
-                          <span className="hidden sm:inline">{applyDefaultTimeMutation.isPending ? "Applying…" : "Fill Times"}</span>
+                          <span className="hidden sm:inline">{applyDefaultTimeMutation.isPending ? t("cal_applying") : t("cal_fill_times_btn")}</span>
                         </Button>
                       )}
                       <span className="text-[11px] text-muted-foreground hidden sm:inline">{t("cal_wk_abbr")}</span>
@@ -2203,7 +2203,7 @@ export default function SchoolCalendar() {
                           <div key={weekLabel} className={`flex gap-3 items-start rounded-md px-2 py-1 ${isHolidayOnly ? "bg-amber-50 border border-amber-200/70" : hasNoLessons ? "opacity-60" : ""}`}>
                             <div className="w-20 shrink-0 pt-1">
                               <span className="text-xs font-mono text-muted-foreground">{weekLabel}</span>
-                              {isHolidayOnly && <div className="text-[9px] text-amber-600 font-semibold uppercase tracking-wide mt-0.5">Holiday</div>}
+                              {isHolidayOnly && <div className="text-[9px] text-amber-600 font-semibold uppercase tracking-wide mt-0.5">{t("cal_holiday")}</div>}
                             </div>
                             <div className="flex flex-wrap gap-1 flex-1">
                               {wEvents.map(ev => {
@@ -3241,7 +3241,7 @@ export default function SchoolCalendar() {
                           <button
                             className="font-medium text-sm truncate text-left hover:underline focus:outline-none"
                             onClick={(e) => { setShowDayPanel(false); setTimeout(() => openDetail(ev, e), 80); }}
-                            title="View details"
+                            title={t("cal_view_details")}
                           >
                             {ev.title}
                           </button>
@@ -4061,7 +4061,7 @@ export default function SchoolCalendar() {
                 size="sm"
                 variant="outline"
                 className="gap-1.5"
-                title="Duplicate to another date"
+                title={t("cal_duplicate_date")}
                 onClick={() => setShowDuplicateInput(v => !v)}
               >
                 <Copy className="w-3.5 h-3.5" />
