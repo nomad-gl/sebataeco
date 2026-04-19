@@ -657,7 +657,20 @@ const SebaMeetInner = function SebaMeet({
         });
         if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return; }
         localStreamRef.current = stream;
-        if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
+          // Sync canvas dimensions to actual video resolution once metadata is known
+          const syncCanvasSize = () => {
+            const vid = localVideoRef.current;
+            if (vid && localCanvasRef.current && vid.videoWidth > 0) {
+              localCanvasRef.current.width  = vid.videoWidth;
+              localCanvasRef.current.height = vid.videoHeight;
+            }
+          };
+          localVideoRef.current.onloadedmetadata = syncCanvasSize;
+          // Also fire immediately if metadata is already available
+          if (localVideoRef.current.readyState >= 1) syncCanvasSize();
+        }
 
         const result = await joinRoom.mutateAsync({ roomName });
         if (cancelled) return;
@@ -1376,9 +1389,9 @@ const SebaMeetInner = function SebaMeet({
               style={{ display: bgReady ? "none" : "block", objectFit: "cover", ...(resolvedFilter ? { filter: resolvedFilter } : {}) }}
             />
             {/* Canvas — shown when background compositing is active */}
+            {/* width/height are set dynamically via onloadedmetadata to match actual video resolution */}
             <canvas
               ref={localCanvasRef}
-              width={640} height={360}
               className="absolute inset-0 w-full h-full scale-x-[-1]"
               style={{ display: bgReady ? "block" : "none", objectFit: "cover", ...(resolvedFilter ? { filter: resolvedFilter } : {}) }}
             />

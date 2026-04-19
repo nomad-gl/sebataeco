@@ -456,7 +456,20 @@ export default function PreCallScreen({
   // ── Apply stream to video element ───────────────────────────────────────
   const applyStream = useCallback((stream: MediaStream) => {
     streamRef.current = stream;
-    if (videoRef.current) videoRef.current.srcObject = stream;
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream;
+      // Sync canvas dimensions to actual video resolution once metadata is known
+      const syncCanvasSize = () => {
+        const vid = videoRef.current;
+        if (vid && canvasRef.current && vid.videoWidth > 0) {
+          canvasRef.current.width  = vid.videoWidth;
+          canvasRef.current.height = vid.videoHeight;
+        }
+      };
+      videoRef.current.onloadedmetadata = syncCanvasSize;
+      // Also fire immediately if metadata is already available
+      if (videoRef.current.readyState >= 1) syncCanvasSize();
+    }
     const hasVideo = stream.getVideoTracks().length > 0;
     const hasAudio = stream.getAudioTracks().length > 0;
     setCameraStatus(hasVideo ? "ok" : "unavailable");
@@ -860,11 +873,10 @@ export default function PreCallScreen({
             )}
 
             {/* MediaPipe segmentation canvas (smart blur) — person sharp, bg blurred */}
+            {/* width/height are set dynamically via onloadedmetadata to match actual video resolution */}
             {showCanvas && (
               <canvas
                 ref={canvasRef}
-                width={640}
-                height={360}
                 className="absolute inset-0 w-full h-full object-cover"
                 style={{ ...mirrorStyle }}
               />

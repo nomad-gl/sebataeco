@@ -3682,3 +3682,6 @@
 - [x] IndividualPlans UI: add student name filter/search on list views (search bar added to both ILP and LP list views)
 - [x] Calendar ↔ Lesson Planner sync: ensure lesson_plans created in LessonPlanner appear in Calendar (bidirectional sync confirmed working via calendarEventId + eventPlanMap)
 - [x] Calendar ↔ Lesson Planner sync: ensure calendar events linked to lesson plans stay in sync (confirmed working)
+
+## Bug: SebaMeet local video silhouette stretched horizontally
+- [x] Fix: canvas dimensions now dynamically synced to actual video resolution via onloadedmetadata; hardcoded 640x360 removed from both SebaMeet and PreCallScreen canvas elements
