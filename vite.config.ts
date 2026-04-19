@@ -150,7 +150,40 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
+/**
+ * Injects <link rel="modulepreload"> tags for the two core vendor chunks
+ * (vendor-react, vendor-trpc) into the built index.html so browsers start
+ * fetching them in parallel with the entry module, saving one round-trip.
+ */
+function vitePluginModulePreload(): Plugin {
+  const PRELOAD_CHUNKS = ["vendor-react", "vendor-trpc"];
+  return {
+    name: "manus-modulepreload",
+    apply: "build",
+    generateBundle(_opts, bundle) {
+      // Collect hashed filenames for the target chunks
+      const preloadFiles: string[] = [];
+      for (const [fileName, chunk] of Object.entries(bundle)) {
+        if (chunk.type === "chunk" && PRELOAD_CHUNKS.some((name) => chunk.name === name)) {
+          preloadFiles.push(fileName);
+        }
+      }
+      // Inject into index.html chunk
+      const htmlChunk = bundle["index.html"];
+      if (htmlChunk && htmlChunk.type === "asset" && typeof htmlChunk.source === "string" && preloadFiles.length > 0) {
+        const tags = preloadFiles
+          .map((f) => `    <link rel="modulepreload" href="/${f}" />`)
+          .join("\n");
+        htmlChunk.source = htmlChunk.source.replace(
+          "</head>",
+          `${tags}\n  </head>`
+        );
+      }
+    },
+  };
+}
+
+const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginModulePreload()];
 
 export default defineConfig({
   plugins,

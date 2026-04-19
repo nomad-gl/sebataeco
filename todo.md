@@ -3738,3 +3738,9 @@
 - [x] Add loading="lazy" to all <img> JSX tags across all pages (AIChatBox, PreCallScreen, GroupProgress, StudentProgress, DirectorSettings, Presentation)
 - [x] Add aggressive Cache-Control: max-age=1y, immutable headers for hashed /assets and /fonts in server/_core/vite.ts
 - [x] Bump service worker cache version to seba-v2 to bust stale chunks on next visit
+
+## Feature: Performance next steps (preload, modulepreload, font audit)
+- [x] Add <link rel="preload"> for hero background image in index.html (hero-bg_a767782c.jpg, fetchpriority=high)
+- [x] Add <link rel="preload"> for primary latin Nunito font subset (most-used woff2 file)
+- [x] Add vitePluginModulePreload() to vite.config.ts — injects <link rel="modulepreload"> for vendor-react and vendor-trpc into built index.html at build time (hash-safe)
+- [x] Audit self-hosted font weights — Nunito had 6 weights (400–900); only 400/500/600/700 are used; removed 10 unused @font-face blocks (weights 800 and 900) from fonts.css, saving ~100 KB of CSS declarations and preventing those subsets from being fetched
