@@ -10,6 +10,8 @@
     "check": "tsc --noEmit",
     "format": "prettier --write .",
     "test": "vitest run",
+    "test:i18n": "vitest run server/i18n.parity.test.ts server/i18n.switching.test.ts server/i18n.placeholders.test.ts",
+    "test:ci": "vitest run",
     "db:push": "drizzle-kit generate && drizzle-kit migrate"
   },
   "dependencies": {

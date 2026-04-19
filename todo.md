@@ -3718,3 +3718,9 @@
 - [x] Translate ComponentShowcase.tsx hardcoded Toggle/ToggleGroup aria-labels (N/A — page is not routed or user-facing; skipped intentionally)
 - [x] Write language-switching integration test (verify t() output changes per language) (server/i18n.switching.test.ts — 74 tests pass)
 - [x] Fixed 28 missing keys discovered by parity test (pres_subject/year_group/competency/options in ES+CA, cal_holiday in ES+CA, admin_errors_* in CA, not_found_* in CA, ilp_*/lp_* in CA, challenge_cancel in CA)
+
+## Feature: i18n CI and placeholder audit
+- [x] Add i18n parity test to CI pipeline (runs on every commit) — .github/workflows/ci.yml created with dedicated i18n gate steps
+- [x] Added test:i18n and test:ci scripts to package.json
+- [x] Write interpolated-placeholder parity test ({n}, {count}, etc. must exist in ES and CA equivalents) — server/i18n.placeholders.test.ts, 105 tests all pass
+- [x] Fix any missing placeholders found by the audit — no missing placeholders found, all 105 checks pass

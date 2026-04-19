@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: TypeScript check
+        run: pnpm check
+
+      - name: Run full test suite
+        run: pnpm test:ci
+        env:
+          # i18n tests are pure unit tests and need no secrets.
+          # Other tests that call external APIs will be skipped automatically
+          # when the relevant env vars are absent.
+          NODE_ENV: test
+
+      # Dedicated i18n gate — runs as a separate, clearly-labelled step so
+      # failures are immediately visible in the CI summary without having to
+      # scroll through the full test output.
+      - name: i18n key parity gate
+        run: pnpm vitest run server/i18n.parity.test.ts
+        env:
+          NODE_ENV: test
+
+      - name: i18n language-switching gate
+        run: pnpm vitest run server/i18n.switching.test.ts
+        env:
+          NODE_ENV: test
+
+      - name: i18n placeholder parity gate
+        run: pnpm vitest run server/i18n.placeholders.test.ts
+        env:
+          NODE_ENV: test
