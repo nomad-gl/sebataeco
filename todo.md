@@ -3622,3 +3622,7 @@
 - [x] Add optional "School / Institution" text input to the generator form in Presentation.tsx
 - [x] Inject the school name into the front page slide bullets alongside the teacher name after generation
 - [x] Pass school name through to the LLM prompt as part of the front page bullet list
+
+## Feature: Bulk Generate — School/Institution field
+- [x] Add School/Institution text input to the Bulk Generate card in Presentation.tsx
+- [x] Pass the bulk school value through each batch createMutation call so all generated presentations include the school name on their front page

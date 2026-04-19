@@ -311,6 +311,7 @@ export default function Presentation() {
   const [bulkYearGroup, setBulkYearGroup] = useState<string | undefined>(undefined);
   const [bulkCompetency, setBulkCompetency] = useState<string | undefined>(undefined);
   const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number; current: string } | null>(null);
+  const [bulkSchool, setBulkSchool] = useState("");
   const bulkAbortRef = useRef(false);
 
   // ── mutations ──────────────────────────────────────────────────────────────
@@ -519,6 +520,7 @@ export default function Presentation() {
         await utils.client.materials.create.mutate({
           type: "slides",
           topic: t,
+          school: bulkSchool.trim() || undefined,
           competency: (bulkCompetency && bulkCompetency !== "any" ? bulkCompetency : undefined) as "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC" | undefined,
           yearGroup: bulkYearGroup as "junior" | "primary" | "secondary",
         });
@@ -972,6 +974,17 @@ export default function Presentation() {
                 rows={6}
                 className="bg-white/10 border-white/30 text-white placeholder:text-white/30 resize-none focus:border-blue-400 font-mono text-sm"
               />
+              {/* School / Institution */}
+              <div className="space-y-1.5">
+                <Label className="text-white/90 font-medium text-sm">School / Institution <span className="text-white/40 font-normal">(optional)</span></Label>
+                <Input
+                  value={bulkSchool}
+                  onChange={e => setBulkSchool(e.target.value)}
+                  placeholder="e.g. Escola Pia de Mataró"
+                  className="bg-white/10 border-white/30 text-white placeholder:text-white/30 focus:border-blue-400"
+                />
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="space-y-1.5">
                   <Label className="text-white/90 font-medium text-sm">Subject <span className="text-red-400">*</span></Label>

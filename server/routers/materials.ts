@@ -452,6 +452,7 @@ export const materialsRouter = router({
       yearGroup: YearGroupSchema.nullish(),
       slideCount: z.number().int().min(3).max(12).nullish(),
       includeTalkingPoints: z.boolean().nullish(),
+      school: z.string().max(200).nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
       // For slides, override the default count instruction if the user specified one
