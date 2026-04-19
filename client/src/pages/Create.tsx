@@ -606,6 +606,9 @@ export default function Create() {
       <div className="container py-4 sm:py-8 max-w-3xl mx-auto flex flex-col gap-6 sm:gap-8">
         {/* Header */}
         <div>
+          <Button variant="ghost" size="sm" onClick={() => window.history.back()} className="flex items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/10 -ml-2 mb-2">
+            <ArrowLeft className="size-4" />{t("btn_back")}
+          </Button>
           <h1 className="text-xl sm:text-2xl font-bold text-white">{t("create_title")}</h1>
           <p className="text-sm text-white/70 mt-1">{t("create_subtitle")}</p>
         </div>

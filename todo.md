@@ -3646,3 +3646,7 @@
 - [x] Add deleteRoom tRPC mutation (server) that deletes participants then the room (owner-only)
 - [x] Add delete (trash) button to each room card in the Sessions tab; confirm before deleting; refresh list after
 - [x] Add Back button in lobby, live, and results views to return to the home/sessions list
+
+## Bug: Missing back buttons on Group Progress and Create Teaching Material
+- [x] Add back button to Group Progress page (already present — links to /groups)
+- [x] Add back button to Create Teaching Material page (added ← Back using window.history.back())
