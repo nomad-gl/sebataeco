@@ -167,51 +167,6 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
-    // Raise the warning threshold — we now split manually below
-    chunkSizeWarningLimit: 600,
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          // React core — loaded on every page
-          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
-            return 'vendor-react';
-          }
-          // tRPC + tanstack-query — shared data layer
-          if (id.includes('@trpc/') || id.includes('@tanstack/react-query')) {
-            return 'vendor-trpc';
-          }
-          // Radix UI primitives (shadcn/ui)
-          if (id.includes('@radix-ui/')) {
-            return 'vendor-radix';
-          }
-          // Code editor (CodeMirror)
-          if (id.includes('codemirror') || id.includes('@codemirror')) {
-            return 'vendor-editor';
-          }
-          // NOTE: Mermaid and Lucide icons are intentionally NOT split into
-          // their own chunks. Libraries that call React.forwardRef / React.createElement
-          // at static-initialiser time will throw "Cannot access 'X' before
-          // initialization" if Rollup places them in a chunk that executes
-          // before vendor-react. Keeping them in vendor-misc (which imports
-          // vendor-react) avoids this blank-screen regression.
-          //
-          // Syntax highlighting (shiki) — kept in vendor-misc for same reason
-          // PDF generation
-          if (id.includes('pdfmake') || id.includes('jspdf') || id.includes('html2canvas')) {
-            return 'vendor-pdf';
-          }
-          // Date utilities
-          if (id.includes('date-fns') || id.includes('dayjs') || id.includes('luxon')) {
-            return 'vendor-dates';
-          }
-          // All remaining node_modules go into a shared vendor chunk
-          // (includes Mermaid, Shiki, Lucide icons)
-          if (id.includes('node_modules/')) {
-            return 'vendor-misc';
-          }
-        },
-      },
-    },
   },
   server: {
     host: true,

@@ -867,7 +867,7 @@ export default function Presentation() {
                         {slideImages[currentSlide] && (
                           <img src={slideImages[currentSlide]} alt={getPrompt(currentSlide, slide.imagePrompt)}
                             className="w-full rounded-lg object-cover max-h-48 border border-yellow-400/20"
-                            crossOrigin="anonymous" loading="lazy" />
+                            crossOrigin="anonymous" />
                         )}
                       </div>
                     )}

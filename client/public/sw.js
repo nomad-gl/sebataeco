@@ -1,5 +1,5 @@
 // SEBA PWA Service Worker
-const CACHE_NAME = "seba-v2";
+const CACHE_NAME = "seba-v1";
 const OFFLINE_URL = "/";
 
 // Install event — cache the offline shell

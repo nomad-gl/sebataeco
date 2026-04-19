@@ -896,7 +896,7 @@ export default function StudentProgress() {
                       </span>
                       {schoolLogo && (
                         <>
-                          <img src={schoolLogo} alt="logo" className="h-7 w-auto rounded" loading="lazy" />
+                          <img src={schoolLogo} alt="logo" className="h-7 w-auto rounded" />
                           <button
                             className="text-white/40 hover:text-red-400 transition-colors"
                             onClick={() => { setSchoolLogo(null); localStorage.removeItem("seba_school_logo"); }}
@@ -1402,7 +1402,7 @@ function AssignmentRow({
                       <p className="text-white/40 text-xs">{t("sp_upload_preview")}</p>
                     </div>
                     {localSubmission.mime.startsWith("image/") && (
-                      <img src={localSubmission.url} alt="preview" className="w-16 h-16 object-cover rounded border border-white/20" loading="lazy" />
+                      <img src={localSubmission.url} alt="preview" className="w-16 h-16 object-cover rounded border border-white/20" />
                     )}
                     <div className="flex flex-col gap-1">
                       <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()}

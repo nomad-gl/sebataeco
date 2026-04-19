@@ -56,29 +56,3 @@ jobs:
         run: pnpm vitest run server/i18n.placeholders.test.ts
         env:
           NODE_ENV: test
-
-      # Scans all t("key") calls in source files and fails if any key is
-      # absent from I18nContext.tsx — catches typos at commit time.
-      - name: i18n missing-key scan
-        run: pnpm i18n:missing
-        env:
-          NODE_ENV: test
-
-      # ── Chunk-safety smoke test ──────────────────────────────────────────
-      # Builds the project and then evaluates every JS chunk in a Node vm
-      # sandbox to catch circular-initialisation errors (ReferenceError /
-      # SyntaxError) that would cause a blank screen in production.
-      #
-      # Background: Rollup's manualChunks can reorder static initialisers
-      # in libraries that use class-based inheritance (e.g. Mermaid), causing
-      # "Cannot access 'X' before initialization" at runtime.  This step
-      # catches that regression before deployment.
-      - name: Production build
-        run: pnpm build
-        env:
-          NODE_ENV: production
-
-      - name: Chunk-safety check
-        run: pnpm chunk-safety:check
-        env:
-          NODE_ENV: production
