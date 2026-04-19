@@ -203,6 +203,7 @@ export default function NavBar() {
     { href: "/head-of-study/curriculum",          label: t("hos_curriculum"),          icon: BookCheck },
     { href: "/head-of-study/reports",             label: t("hos_reports"),             icon: Download },
     { href: "/head-of-study/settings",            label: t("hos_settings"),            icon: SettingsIcon },
+    { href: "/school-calendar",                   label: t("nav_school_calendar"),     icon: CalendarDays },
     { href: "/connect",                           label: t("nav_connect"),             icon: Wifi },
   ];
 
@@ -244,6 +245,7 @@ export default function NavBar() {
     { href: "/connect",       label: t("nav_connect"),       icon: Wifi },
     { href: "/lesson-planner",  label: t("nav_lesson_planner"),  icon: FileText },
     { href: "/individual-plans",  label: t("nav_individual_plans"),  icon: GraduationCap },
+    { href: "/school-calendar",  label: t("nav_school_calendar"),  icon: CalendarDays },
     { href: "/help",             label: t("nav_help"),            icon: HelpCircle },
     { href: "/privacy",           label: t("nav_privacy"),          icon: Lock },
   ];

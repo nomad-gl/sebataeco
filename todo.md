@@ -3626,3 +3626,7 @@
 ## Feature: Bulk Generate — School/Institution field
 - [x] Add School/Institution text input to the Bulk Generate card in Presentation.tsx
 - [x] Pass the bulk school value through each batch createMutation call so all generated presentations include the school name on their front page
+
+## Feature: Role menus — School Calendar
+- [x] Copy the School Calendar menu item from the Director dropdown to the Head of Study dropdown
+- [x] Copy the School Calendar menu item from the Director dropdown to the Teacher dropdown
