@@ -7,10 +7,46 @@
 
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { eq, desc, count, and } from "drizzle-orm";
+import { eq, desc, count, and, like, isNull } from "drizzle-orm";
 import { getDb } from "../db";
 import { adminProcedure, router } from "../_core/trpc";
-import { tenants, users, territories, territorialDirectorTerritories } from "../../drizzle/schema";
+import {
+  tenants,
+  users,
+  territories,
+  territorialDirectorTerritories,
+  roleChangeAudit,
+} from "../../drizzle/schema";
+
+// ─── Audit helper ────────────────────────────────────────────────────────────
+
+async function writeAudit(params: {
+  actingUserId: number;
+  targetUserId: number;
+  oldRole: string | null;
+  newRole: string;
+  action: string;
+  reason?: string;
+  territoryId?: number;
+}) {
+  const db = await getDb();
+  if (!db) return; // best-effort — never block the main operation
+  try {
+    await db.insert(roleChangeAudit).values({
+      actingUserId: params.actingUserId,
+      targetUserId: params.targetUserId,
+      oldRole: params.oldRole,
+      newRole: params.newRole,
+      action: params.action,
+      reason: params.reason ?? null,
+      territoryId: params.territoryId ?? null,
+    });
+  } catch {
+    // Audit failure must never surface to the client
+  }
+}
+
+// ─── Router ──────────────────────────────────────────────────────────────────
 
 export const tenantsRouter = router({
   /**
@@ -32,7 +68,6 @@ export const tenantsRouter = router({
       .from(tenants)
       .orderBy(desc(tenants.createdAt));
 
-    // Fetch member counts and owner names in one pass
     const allUsers = await db
       .select({
         id: users.id,
@@ -112,7 +147,6 @@ export const tenantsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
 
-      // Verify the owner user exists
       const [owner] = await db
         .select({ id: users.id, name: users.name })
         .from(users)
@@ -128,7 +162,6 @@ export const tenantsRouter = router({
 
       const newTenantId = (result as unknown as [{ insertId: number }])[0].insertId;
 
-      // Assign the owner user to this tenant
       await db
         .update(users)
         .set({ tenantId: newTenantId })
@@ -187,8 +220,6 @@ export const tenantsRouter = router({
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
 
-    const { isNull } = await import("drizzle-orm");
-
     const rows = await db
       .select({
         id: users.id,
@@ -216,7 +247,6 @@ export const tenantsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
 
-      // Unassign all users from this tenant first
       await db
         .update(users)
         .set({ tenantId: null })
@@ -281,16 +311,28 @@ export const tenantsRouter = router({
 
   /**
    * Grant territorial_director role to a user and optionally assign a territory.
-   * SEBA admin only.
+   * Writes an audit record. SEBA admin only.
    */
   grantTerritorialDirector: adminProcedure
     .input(z.object({
       userId: z.number().int().positive(),
       territoryId: z.number().int().positive().optional(),
+      reason: z.string().max(512).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      // Fetch current role for audit trail
+      const [target] = await db
+        .select({ role: users.role })
+        .from(users)
+        .where(eq(users.id, input.userId))
+        .limit(1);
+
+      if (!target) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+
+      const oldRole = target.role ?? null;
 
       // Promote user to territorial_director
       await db
@@ -298,14 +340,32 @@ export const tenantsRouter = router({
         .set({ role: "territorial_director" })
         .where(eq(users.id, input.userId));
 
+      // Write audit record
+      await writeAudit({
+        actingUserId: ctx.user.id,
+        targetUserId: input.userId,
+        oldRole,
+        newRole: "territorial_director",
+        action: "grant",
+        reason: input.reason,
+        territoryId: input.territoryId,
+      });
+
       // Assign territory if provided
       if (input.territoryId) {
         const { sql } = await import("drizzle-orm");
-        // Use INSERT IGNORE to avoid duplicate key errors
         await db.execute(
           sql`INSERT IGNORE INTO territorial_director_territories (userId, territoryId, grantedByUserId)
               VALUES (${input.userId}, ${input.territoryId}, ${ctx.user.id})`
         );
+        await writeAudit({
+          actingUserId: ctx.user.id,
+          targetUserId: input.userId,
+          oldRole: "territorial_director",
+          newRole: "territorial_director",
+          action: "assign_territory",
+          territoryId: input.territoryId,
+        });
       }
 
       return { success: true };
@@ -313,12 +373,15 @@ export const tenantsRouter = router({
 
   /**
    * Revoke territorial_director role from a user (demotes back to 'user').
-   * Also removes all territory assignments.
+   * Also removes all territory assignments. Writes an audit record.
    * SEBA admin only.
    */
   revokeTerritorialDirector: adminProcedure
-    .input(z.object({ userId: z.number().int().positive() }))
-    .mutation(async ({ input }) => {
+    .input(z.object({
+      userId: z.number().int().positive(),
+      reason: z.string().max(512).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
 
@@ -331,12 +394,21 @@ export const tenantsRouter = router({
         .delete(territorialDirectorTerritories)
         .where(eq(territorialDirectorTerritories.userId, input.userId));
 
+      await writeAudit({
+        actingUserId: ctx.user.id,
+        targetUserId: input.userId,
+        oldRole: "territorial_director",
+        newRole: "user",
+        action: "revoke",
+        reason: input.reason,
+      });
+
       return { success: true };
     }),
 
   /**
    * Assign an additional territory to an existing territorial director.
-   * SEBA admin only.
+   * Writes an audit record. SEBA admin only.
    */
   assignTerritory: adminProcedure
     .input(z.object({
@@ -353,22 +425,49 @@ export const tenantsRouter = router({
             VALUES (${input.userId}, ${input.territoryId}, ${ctx.user.id})`
       );
 
+      await writeAudit({
+        actingUserId: ctx.user.id,
+        targetUserId: input.userId,
+        oldRole: "territorial_director",
+        newRole: "territorial_director",
+        action: "assign_territory",
+        territoryId: input.territoryId,
+      });
+
       return { success: true };
     }),
 
   /**
    * Remove a territory assignment from a territorial director.
-   * SEBA admin only.
+   * Writes an audit record. SEBA admin only.
    */
   removeTerritory: adminProcedure
     .input(z.object({ assignmentId: z.number().int().positive() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      // Fetch the assignment for audit
+      const [assignment] = await db
+        .select()
+        .from(territorialDirectorTerritories)
+        .where(eq(territorialDirectorTerritories.id, input.assignmentId))
+        .limit(1);
 
       await db
         .delete(territorialDirectorTerritories)
         .where(eq(territorialDirectorTerritories.id, input.assignmentId));
+
+      if (assignment) {
+        await writeAudit({
+          actingUserId: ctx.user.id,
+          targetUserId: assignment.userId,
+          oldRole: "territorial_director",
+          newRole: "territorial_director",
+          action: "remove_territory",
+          territoryId: assignment.territoryId,
+        });
+      }
 
       return { success: true };
     }),
@@ -392,5 +491,94 @@ export const tenantsRouter = router({
         .where(eq(tenants.id, input.tenantId));
 
       return { success: true };
+    }),
+
+  // ─── Audit Log ───────────────────────────────────────────────────────────────
+
+  /**
+   * List role-change audit records (most recent first, paginated).
+   * SEBA admin only.
+   */
+  listRoleAudit: adminProcedure
+    .input(z.object({
+      limit: z.number().int().min(1).max(100).default(50),
+      offset: z.number().int().min(0).default(0),
+    }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      const records = await db
+        .select({
+          id: roleChangeAudit.id,
+          actingUserId: roleChangeAudit.actingUserId,
+          targetUserId: roleChangeAudit.targetUserId,
+          oldRole: roleChangeAudit.oldRole,
+          newRole: roleChangeAudit.newRole,
+          action: roleChangeAudit.action,
+          reason: roleChangeAudit.reason,
+          territoryId: roleChangeAudit.territoryId,
+          createdAt: roleChangeAudit.createdAt,
+        })
+        .from(roleChangeAudit)
+        .orderBy(desc(roleChangeAudit.createdAt))
+        .limit(input.limit)
+        .offset(input.offset);
+
+      // Enrich with user names
+      const userIds = new Set([
+        ...records.map(r => r.actingUserId),
+        ...records.map(r => r.targetUserId),
+      ]);
+      const { inArray } = await import("drizzle-orm");
+      const userIdArray = Array.from(userIds);
+      const enrichedUsers = userIdArray.length > 0
+        ? await db
+          .select({ id: users.id, name: users.name, email: users.email })
+          .from(users)
+          .where(inArray(users.id, userIdArray))
+        : [];
+
+      const userMap = Object.fromEntries(enrichedUsers.map(u => [u.id, u]));
+
+      const allTerritories = await db.select({ id: territories.id, name: territories.name }).from(territories);
+      const territoryMap = Object.fromEntries(allTerritories.map(t => [t.id, t.name]));
+
+      return records.map(r => ({
+        ...r,
+        actingUserName: userMap[r.actingUserId]?.name ?? `User #${r.actingUserId}`,
+        actingUserEmail: userMap[r.actingUserId]?.email ?? null,
+        targetUserName: userMap[r.targetUserId]?.name ?? `User #${r.targetUserId}`,
+        targetUserEmail: userMap[r.targetUserId]?.email ?? null,
+        territoryName: r.territoryId ? (territoryMap[r.territoryId] ?? null) : null,
+      }));
+    }),
+
+  // ─── Onboarding Helpers ──────────────────────────────────────────────────────
+
+  /**
+   * Search for a user by email (partial match, case-insensitive).
+   * Returns up to 10 results. SEBA admin only.
+   * Used by the "Grant Role" dialog so admins don't need to know user IDs.
+   */
+  findUserByEmail: adminProcedure
+    .input(z.object({ email: z.string().min(2).max(255) }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      const rows = await db
+        .select({
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          role: users.role,
+          tenantId: users.tenantId,
+        })
+        .from(users)
+        .where(like(users.email, `%${input.email}%`))
+        .limit(10);
+
+      return rows;
     }),
 });

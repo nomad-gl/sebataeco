@@ -3786,3 +3786,20 @@
 - [x] Territorial director cannot see tenants outside their assigned territory
 - [x] Admin UI: assign/remove territory from a territorial director user
 - [x] Frontend overview page shows territory name in header
+
+## Follow-up 1: Seed all Catalan Territorial Services
+- [x] Seed all 9 Catalan Serveis Territorials d'Educació as territories (Terres de l'Ebre already exists)
+- [x] Verify all territories are queryable via the admin UI
+
+## Follow-up 2: Role-Change Audit Log
+- [x] Add role_change_audit table to drizzle/schema.ts (id, actingUserId, targetUserId, oldRole, newRole, reason, createdAt)
+- [x] Apply migration SQL for role_change_audit table
+- [x] Update tenants.grantTerritorialDirector to write audit record on grant
+- [x] Update tenants.revokeTerritorialDirector to write audit record on revoke
+- [x] Add tenants.listRoleAudit procedure (admin-only, paginated)
+- [x] Add Role Audit tab to TenantManagement page
+
+## Follow-up 3: Territorial Director Onboarding Helper
+- [x] Add "Find User by Email" search in the Grant Role dialog (so admins don't need to know the user ID)
+- [x] Show a confirmation card after granting role with direct link to /territorial/overview
+- [x] Add "Copy invite link" button that generates a pre-filled login URL for the new Territorial Director

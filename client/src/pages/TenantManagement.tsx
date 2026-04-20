@@ -6,6 +6,7 @@
  * Tabs:
  *  1. Schools — manage tenants, assign users
  *  2. Territorial Directors — grant/revoke role, assign territories
+ *  3. Role Audit Log — immutable history of every role change
  */
 
 import { useState } from "react";
@@ -57,8 +58,20 @@ import {
   Shield,
   ShieldOff,
   X,
+  ClipboardList,
+  Search,
+  CheckCircle2,
+  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
+
+// ── Action badge colours ──────────────────────────────────────────────────────
+const actionBadge: Record<string, string> = {
+  grant: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
+  revoke: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
+  assign_territory: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
+  remove_territory: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
+};
 
 export default function TenantManagement() {
   const { user, loading: authLoading } = useAuth();
@@ -74,10 +87,17 @@ export default function TenantManagement() {
 
   // ── Territorial Directors tab state ────────────────────────────────────────
   const [grantDialogOpen, setGrantDialogOpen] = useState(false);
-  const [grantUserId, setGrantUserId] = useState("");
+  const [grantEmailSearch, setGrantEmailSearch] = useState("");
+  const [grantSelectedUser, setGrantSelectedUser] = useState<{ id: number; name: string | null; email: string | null } | null>(null);
   const [grantTerritoryId, setGrantTerritoryId] = useState("");
+  const [grantReason, setGrantReason] = useState("");
+  const [grantSuccessUser, setGrantSuccessUser] = useState<{ id: number; name: string | null } | null>(null);
   const [addTerritoryDialogUserId, setAddTerritoryDialogUserId] = useState<number | null>(null);
   const [addTerritoryId, setAddTerritoryId] = useState("");
+
+  // ── Audit tab state ────────────────────────────────────────────────────────
+  const [auditOffset, setAuditOffset] = useState(0);
+  const AUDIT_PAGE_SIZE = 25;
 
   const utils = trpc.useUtils();
 
@@ -86,6 +106,17 @@ export default function TenantManagement() {
   const { data: unassignedUsers } = trpc.tenants.listUnassignedUsers.useQuery();
   const { data: territorialDirectors, isLoading: tdLoading } = trpc.tenants.listTerritorialDirectors.useQuery();
   const { data: allTerritories } = trpc.tenants.listTerritories.useQuery();
+  const { data: auditRecords, isLoading: auditLoading } = trpc.tenants.listRoleAudit.useQuery({
+    limit: AUDIT_PAGE_SIZE,
+    offset: auditOffset,
+  });
+
+  // Email search (only fires when ≥ 3 chars)
+  const emailSearchEnabled = grantEmailSearch.length >= 3;
+  const { data: emailSearchResults } = trpc.tenants.findUserByEmail.useQuery(
+    { email: grantEmailSearch },
+    { enabled: emailSearchEnabled }
+  );
 
   // ── Mutations: Schools ─────────────────────────────────────────────────────
   const createMutation = trpc.tenants.create.useMutation({
@@ -126,10 +157,13 @@ export default function TenantManagement() {
     onSuccess: () => {
       utils.tenants.listTerritorialDirectors.invalidate();
       utils.tenants.listUnassignedUsers.invalidate();
+      utils.tenants.listRoleAudit.invalidate();
+      setGrantSuccessUser(grantSelectedUser);
       setGrantDialogOpen(false);
-      setGrantUserId("");
+      setGrantEmailSearch("");
+      setGrantSelectedUser(null);
       setGrantTerritoryId("");
-      toast.success("Territorial Director role granted.");
+      setGrantReason("");
     },
     onError: (err) => toast.error(err.message),
   });
@@ -137,6 +171,7 @@ export default function TenantManagement() {
   const revokeTdMutation = trpc.tenants.revokeTerritorialDirector.useMutation({
     onSuccess: () => {
       utils.tenants.listTerritorialDirectors.invalidate();
+      utils.tenants.listRoleAudit.invalidate();
       toast.success("Territorial Director role revoked.");
     },
     onError: (err) => toast.error(err.message),
@@ -145,6 +180,7 @@ export default function TenantManagement() {
   const addTerritoryMutation = trpc.tenants.assignTerritory.useMutation({
     onSuccess: () => {
       utils.tenants.listTerritorialDirectors.invalidate();
+      utils.tenants.listRoleAudit.invalidate();
       setAddTerritoryDialogUserId(null);
       setAddTerritoryId("");
       toast.success("Territory assigned.");
@@ -155,6 +191,7 @@ export default function TenantManagement() {
   const removeTerritoryMutation = trpc.tenants.removeTerritory.useMutation({
     onSuccess: () => {
       utils.tenants.listTerritorialDirectors.invalidate();
+      utils.tenants.listRoleAudit.invalidate();
       toast.success("Territory removed.");
     },
     onError: (err) => toast.error(err.message),
@@ -174,10 +211,7 @@ export default function TenantManagement() {
     );
   }
 
-  // All users (assigned + unassigned) for the grant dialog
-  const allKnownUsers = [
-    ...(unassignedUsers ?? []),
-  ];
+  const loginUrl = `${window.location.origin}/login`;
 
   return (
     <div className="container py-8 max-w-6xl">
@@ -194,6 +228,52 @@ export default function TenantManagement() {
         </div>
       </div>
 
+      {/* Post-grant success banner */}
+      {grantSuccessUser && (
+        <Card className="mb-6 border-green-300 bg-green-50 dark:bg-green-950/20 dark:border-green-800">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400 shrink-0" />
+                <div>
+                  <p className="font-semibold text-green-800 dark:text-green-300">
+                    Territorial Director role granted to {grantSuccessUser.name ?? `User #${grantSuccessUser.id}`}
+                  </p>
+                  <p className="text-sm text-green-700 dark:text-green-400 mt-0.5">
+                    They can now log in and access their territory overview at{" "}
+                    <span className="font-mono text-xs bg-green-100 dark:bg-green-900/40 px-1.5 py-0.5 rounded">
+                      /territorial/overview
+                    </span>
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-green-400 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/30"
+                  onClick={() => {
+                    navigator.clipboard.writeText(loginUrl);
+                    toast.success("Login URL copied to clipboard.");
+                  }}
+                >
+                  <Copy className="h-3.5 w-3.5 mr-1.5" />
+                  Copy login link
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-green-600 hover:text-green-800"
+                  onClick={() => setGrantSuccessUser(null)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Tabs defaultValue="schools">
         <TabsList className="mb-6">
           <TabsTrigger value="schools" className="flex items-center gap-2">
@@ -204,11 +284,14 @@ export default function TenantManagement() {
             <MapPin className="h-4 w-4" />
             Territorial Directors
           </TabsTrigger>
+          <TabsTrigger value="audit" className="flex items-center gap-2">
+            <ClipboardList className="h-4 w-4" />
+            Role Audit Log
+          </TabsTrigger>
         </TabsList>
 
         {/* ── Schools Tab ─────────────────────────────────────────────────── */}
         <TabsContent value="schools" className="space-y-6">
-          {/* Action buttons */}
           <div className="flex justify-end gap-2">
             <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
               <DialogTrigger asChild>
@@ -459,34 +542,85 @@ export default function TenantManagement() {
             </div>
 
             {/* Grant role dialog */}
-            <Dialog open={grantDialogOpen} onOpenChange={setGrantDialogOpen}>
+            <Dialog open={grantDialogOpen} onOpenChange={open => {
+              setGrantDialogOpen(open);
+              if (!open) {
+                setGrantEmailSearch("");
+                setGrantSelectedUser(null);
+                setGrantTerritoryId("");
+                setGrantReason("");
+              }
+            }}>
               <DialogTrigger asChild>
                 <Button>
                   <Shield className="h-4 w-4 mr-2" />
                   Grant Role
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-md">
                 <DialogHeader>
                   <DialogTitle>Grant Territorial Director Role</DialogTitle>
                   <DialogDescription>
-                    Promote a user to Territorial Director and optionally assign their territory.
-                    Only SEBA admins can perform this action.
+                    Search for a user by email, then assign their territory. Only SEBA admins can perform this action.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-2">
+                  {/* Email search */}
                   <div>
-                    <label className="text-sm font-medium mb-1 block">User</label>
-                    <Input
-                      placeholder="Enter user ID (e.g. 1504672)"
-                      value={grantUserId}
-                      onChange={e => setGrantUserId(e.target.value)}
-                      type="number"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Find the user ID from the database or audit log.
-                    </p>
+                    <label className="text-sm font-medium mb-1 block">Search user by email</label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        className="pl-9"
+                        placeholder="Type at least 3 characters…"
+                        value={grantEmailSearch}
+                        onChange={e => {
+                          setGrantEmailSearch(e.target.value);
+                          setGrantSelectedUser(null);
+                        }}
+                      />
+                    </div>
+                    {emailSearchEnabled && emailSearchResults && emailSearchResults.length > 0 && !grantSelectedUser && (
+                      <div className="mt-1 border rounded-md bg-popover shadow-md overflow-hidden">
+                        {emailSearchResults.map(u => (
+                          <button
+                            key={u.id}
+                            className="w-full text-left px-3 py-2 hover:bg-muted text-sm flex items-center justify-between gap-2"
+                            onClick={() => {
+                              setGrantSelectedUser(u);
+                              setGrantEmailSearch(u.email ?? "");
+                            }}
+                          >
+                            <div>
+                              <div className="font-medium">{u.name ?? "—"}</div>
+                              <div className="text-muted-foreground text-xs">{u.email}</div>
+                            </div>
+                            <Badge variant="secondary" className="text-xs shrink-0">{u.role}</Badge>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {emailSearchEnabled && emailSearchResults?.length === 0 && !grantSelectedUser && (
+                      <p className="text-xs text-muted-foreground mt-1">No users found matching that email.</p>
+                    )}
+                    {grantSelectedUser && (
+                      <div className="mt-2 flex items-center gap-2 px-3 py-2 rounded-md bg-primary/5 border border-primary/20">
+                        <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{grantSelectedUser.name ?? "—"}</p>
+                          <p className="text-xs text-muted-foreground truncate">{grantSelectedUser.email}</p>
+                        </div>
+                        <button
+                          className="text-muted-foreground hover:text-foreground"
+                          onClick={() => { setGrantSelectedUser(null); setGrantEmailSearch(""); }}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
                   </div>
+
+                  {/* Territory */}
                   <div>
                     <label className="text-sm font-medium mb-1 block">Territory (optional)</label>
                     <Select value={grantTerritoryId} onValueChange={setGrantTerritoryId}>
@@ -500,18 +634,29 @@ export default function TenantManagement() {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {/* Reason */}
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Reason (optional, recorded in audit log)</label>
+                    <Input
+                      placeholder="e.g. Appointed by Departament d'Educació"
+                      value={grantReason}
+                      onChange={e => setGrantReason(e.target.value)}
+                    />
+                  </div>
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setGrantDialogOpen(false)}>Cancel</Button>
                   <Button
                     onClick={() => {
-                      if (!grantUserId) return;
+                      if (!grantSelectedUser) return;
                       grantTdMutation.mutate({
-                        userId: parseInt(grantUserId),
+                        userId: grantSelectedUser.id,
                         territoryId: grantTerritoryId ? parseInt(grantTerritoryId) : undefined,
+                        reason: grantReason || undefined,
                       });
                     }}
-                    disabled={!grantUserId || grantTdMutation.isPending}
+                    disabled={!grantSelectedUser || grantTdMutation.isPending}
                   >
                     Grant Role
                   </Button>
@@ -526,7 +671,7 @@ export default function TenantManagement() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300 flex items-center gap-2">
                   <MapPin className="h-4 w-4" />
-                  Registered Territories
+                  Registered Territories ({allTerritories.length})
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -538,7 +683,6 @@ export default function TenantManagement() {
                     >
                       <span className="font-medium">{t.name}</span>
                       {t.region && <span className="text-blue-500 dark:text-blue-400 text-xs">· {t.region}</span>}
-                      <span className="text-blue-400 text-xs ml-1">#{t.id}</span>
                     </div>
                   ))}
                 </div>
@@ -583,8 +727,6 @@ export default function TenantManagement() {
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground mb-2">{td.email ?? "—"}</p>
-
-                        {/* Territory chips */}
                         <div className="flex flex-wrap gap-1.5">
                           {td.territories.length === 0 ? (
                             <span className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
@@ -608,7 +750,6 @@ export default function TenantManagement() {
                               </span>
                             ))
                           )}
-                          {/* Add territory button */}
                           <button
                             className="text-xs text-blue-500 hover:text-blue-700 dark:hover:text-blue-300 px-2 py-0.5 rounded-full border border-dashed border-blue-300 dark:border-blue-700 transition-colors"
                             onClick={() => setAddTerritoryDialogUserId(td.id)}
@@ -617,7 +758,6 @@ export default function TenantManagement() {
                           </button>
                         </div>
                       </div>
-
                       <div className="flex items-center gap-2 ml-4 shrink-0">
                         <Button
                           variant="outline"
@@ -641,9 +781,118 @@ export default function TenantManagement() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* ── Role Audit Log Tab ─────────────────────────────────────────── */}
+        <TabsContent value="audit" className="space-y-6">
+          <div>
+            <h2 className="text-xl font-semibold flex items-center gap-2">
+              <ClipboardList className="h-5 w-5 text-muted-foreground" />
+              Role Change Audit Log
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Immutable record of every role grant, revoke, and territory assignment. Read-only.
+            </p>
+          </div>
+
+          <Card>
+            <CardContent className="pt-4">
+              {auditLoading ? (
+                <div className="flex justify-center py-10">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+                </div>
+              ) : !auditRecords || auditRecords.length === 0 ? (
+                <div className="text-center py-10 text-muted-foreground">
+                  <ClipboardList className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                  <p className="font-medium">No audit records yet</p>
+                  <p className="text-sm mt-1">Records appear here when roles are granted or revoked.</p>
+                </div>
+              ) : (
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>When</TableHead>
+                        <TableHead>Action</TableHead>
+                        <TableHead>Target User</TableHead>
+                        <TableHead>Role Change</TableHead>
+                        <TableHead>Territory</TableHead>
+                        <TableHead>Performed By</TableHead>
+                        <TableHead>Reason</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {auditRecords.map(r => (
+                        <TableRow key={r.id}>
+                          <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                            {new Date(r.createdAt).toLocaleString()}
+                          </TableCell>
+                          <TableCell>
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${actionBadge[r.action] ?? "bg-muted text-muted-foreground"}`}>
+                              {r.action.replace(/_/g, " ")}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm font-medium">{r.targetUserName}</div>
+                            <div className="text-xs text-muted-foreground">{r.targetUserEmail ?? ""}</div>
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {r.oldRole ? (
+                              <span className="flex items-center gap-1">
+                                <span className="text-muted-foreground">{r.oldRole}</span>
+                                <span className="text-muted-foreground">→</span>
+                                <span className="font-medium">{r.newRole}</span>
+                              </span>
+                            ) : (
+                              <span className="font-medium">{r.newRole}</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {r.territoryName ?? "—"}
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">{r.actingUserName}</div>
+                            <div className="text-xs text-muted-foreground">{r.actingUserEmail ?? ""}</div>
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground max-w-[180px] truncate">
+                            {r.reason ?? "—"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+
+                  {/* Pagination */}
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                    <p className="text-sm text-muted-foreground">
+                      Showing {auditOffset + 1}–{auditOffset + auditRecords.length}
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={auditOffset === 0}
+                        onClick={() => setAuditOffset(Math.max(0, auditOffset - AUDIT_PAGE_SIZE))}
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={auditRecords.length < AUDIT_PAGE_SIZE}
+                        onClick={() => setAuditOffset(auditOffset + AUDIT_PAGE_SIZE)}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
-      {/* Add territory dialog (triggered inline from TD card) */}
+      {/* Add territory dialog */}
       <Dialog
         open={addTerritoryDialogUserId !== null}
         onOpenChange={open => !open && setAddTerritoryDialogUserId(null)}

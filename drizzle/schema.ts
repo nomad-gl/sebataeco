@@ -1687,3 +1687,29 @@ export const territorialDirectorTerritories = mysqlTable("territorial_director_t
 
 export type TerritorialDirectorTerritory = typeof territorialDirectorTerritories.$inferSelect;
 export type InsertTerritorialDirectorTerritory = typeof territorialDirectorTerritories.$inferInsert;
+
+/**
+ * role_change_audit — immutable audit trail for every role grant/revoke action.
+ * Written by server-side procedures only; never modified after insert.
+ * SEBA admins can read all records; no other role has access.
+ */
+export const roleChangeAudit = mysqlTable("role_change_audit", {
+  id: int("id").autoincrement().primaryKey(),
+  /** The SEBA admin who performed the action */
+  actingUserId: int("actingUserId").notNull(),
+  /** The user whose role was changed */
+  targetUserId: int("targetUserId").notNull(),
+  /** Role value before the change (null if user was newly created) */
+  oldRole: varchar("oldRole", { length: 64 }),
+  /** Role value after the change */
+  newRole: varchar("newRole", { length: 64 }).notNull(),
+  /** Optional free-text reason provided by the admin */
+  reason: varchar("reason", { length: 512 }),
+  /** Territory assigned/removed (for territorial_director grants) */
+  territoryId: int("territoryId"),
+  /** 'grant' | 'revoke' | 'assign_territory' | 'remove_territory' */
+  action: varchar("action", { length: 64 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type RoleChangeAudit = typeof roleChangeAudit.$inferSelect;
+export type InsertRoleChangeAudit = typeof roleChangeAudit.$inferInsert;
