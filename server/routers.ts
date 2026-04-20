@@ -36,6 +36,7 @@ import { callBackgroundRouter } from "./routers/callBackground";
 import { ainaRouter } from "./routers/aina";
 import { localAuthRouter } from "./routers/localAuth";
 import { ilpRouter, lessonPlanRouter } from "./routers/individualPlans";
+import { tenantsRouter } from "./routers/tenants";
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -91,6 +92,7 @@ export const appRouter = router({
   localAuth: localAuthRouter,
   ilp: ilpRouter,
   lessonPlan: lessonPlanRouter,
+  tenants: tenantsRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -34,6 +34,13 @@ export const users = mysqlTable("users", {
    * Stored as TEXT so it works on all MySQL/TiDB versions without JSON column type.
    */
   callPrefs: text("callPrefs"),
+  /**
+   * Multi-tenant isolation key.
+   * NULL = SEBA admin (bypasses all tenant filters and can see all data).
+   * Non-null = the tenant group this user belongs to.
+   * Set when a director is promoted or when an invited user registers.
+   */
+  tenantId: int("tenantId"),
 });
 
 export type User = typeof users.$inferSelect;
@@ -78,6 +85,8 @@ export const teachingMaterials = mysqlTable("teaching_materials", {
   content: text("content").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  /** Tenant isolation key — matches users.tenantId of the creating teacher */
+  tenantId: int("tenantId"),
 });
 
 export type TeachingMaterial = typeof teachingMaterials.$inferSelect;
@@ -101,6 +110,8 @@ export const classChallenges = mysqlTable("class_challenges", {
   answerRevealed: boolean("answerRevealed").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 
 export type ClassChallenge = typeof classChallenges.$inferSelect;
@@ -145,6 +156,8 @@ export const classGroups = mysqlTable("class_groups", {
   notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 
 export type ClassGroup = typeof classGroups.$inferSelect;
@@ -175,6 +188,8 @@ export const groupMessages = mysqlTable("group_messages", {
   subject: varchar("subject", { length: 255 }).notNull(),
   body: text("body").notNull(),
   sentAt: timestamp("sentAt").defaultNow().notNull(),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 
 export type GroupMessage = typeof groupMessages.$inferSelect;
@@ -256,6 +271,8 @@ export const assignments = mysqlTable("assignments", {
   /** When the submission was uploaded */
   submissionUploadedAt: timestamp("submissionUploadedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 
 export type Assignment = typeof assignments.$inferSelect;
@@ -286,6 +303,8 @@ export const forumChannels = mysqlTable("forum_channels", {
   description: varchar("description", { length: 255 }),
   emoji: varchar("emoji", { length: 8 }).notNull().default("💬"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 
 export type ForumChannel = typeof forumChannels.$inferSelect;
@@ -328,6 +347,8 @@ export const forumDirectMessages = mysqlTable("forum_direct_messages", {
   /** JSON map of lang -> translated body, e.g. {"es":"...","ca":"..."} */
   translatedBodies: text("translatedBodies"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 
 export type ForumDirectMessage = typeof forumDirectMessages.$inferSelect;
@@ -545,6 +566,8 @@ export const schoolCalendars = mysqlTable("school_calendars", {
   defaultEndTime: varchar("defaultEndTime", { length: 8 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 
 export type SchoolCalendar = typeof schoolCalendars.$inferSelect;
@@ -583,6 +606,8 @@ export const schoolCalendarEvents = mysqlTable("school_calendar_events", {
   seriesId: varchar("seriesId", { length: 36 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 
 export type SchoolCalendarEvent = typeof schoolCalendarEvents.$inferSelect;
@@ -637,6 +662,8 @@ export const lessonPlans = mysqlTable("lesson_plans", {
   calendarEventId: int("calendarEventId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 
 export type LessonPlan = typeof lessonPlans.$inferSelect;
@@ -690,6 +717,8 @@ export const aiAssessments = mysqlTable("ai_assessments", {
   /** Whether a teacher has overridden this assessment */
   overridden: boolean("overridden").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 export type AiAssessment = typeof aiAssessments.$inferSelect;
 export type InsertAiAssessment = typeof aiAssessments.$inferInsert;
@@ -711,6 +740,8 @@ export const aiGradeOverrides = mysqlTable("ai_grade_overrides", {
   /** Mandatory justification — teacher must explain the override */
   reason: text("reason").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 export type AiGradeOverride = typeof aiGradeOverrides.$inferSelect;
 export type InsertAiGradeOverride = typeof aiGradeOverrides.$inferInsert;
@@ -737,6 +768,8 @@ export const aiBiasFlags = mysqlTable("ai_bias_flags", {
   resolved: boolean("resolved").default(false).notNull(),
   resolvedAt: timestamp("resolvedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 export type AiBiasFlag = typeof aiBiasFlags.$inferSelect;
 export type InsertAiBiasFlag = typeof aiBiasFlags.$inferInsert;
@@ -765,6 +798,8 @@ export const aiLearningPaths = mysqlTable("ai_learning_paths", {
   /** LOMLOE article / competency references cited */
   lomloeReferences: text("lomloeReferences"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 export type AiLearningPath = typeof aiLearningPaths.$inferSelect;
 export type InsertAiLearningPath = typeof aiLearningPaths.$inferInsert;
@@ -829,6 +864,8 @@ export const studentReports = mysqlTable("student_reports", {
   lastEditedBy: int("lastEditedBy"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 export type StudentReport = typeof studentReports.$inferSelect;
 export type InsertStudentReport = typeof studentReports.$inferInsert;
@@ -913,6 +950,8 @@ export const calendarSessions = mysqlTable("calendar_sessions", {
   endTime: varchar("endTime", { length: 8 }).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 
 export type CalendarSession = typeof calendarSessions.$inferSelect;
@@ -927,6 +966,8 @@ export const sessionTemplates = mysqlTable("session_templates", {
   /** JSON array of session entry objects: {name, lessonDays, startTime, endTime} */
   sessions: text("sessions").notNull().default("[]"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 
 export type SessionTemplate = typeof sessionTemplates.$inferSelect;
@@ -947,6 +988,8 @@ export const lessonPlanTemplates = mysqlTable("lesson_plan_templates", {
   /** JSON snapshot of all lesson plan fields (subject, yearGroup, competencies, sections, etc.) */
   data: text("data").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 
 export type LessonPlanTemplate = typeof lessonPlanTemplates.$inferSelect;
@@ -1037,6 +1080,8 @@ export const timetableSlots = mysqlTable("timetable_slots", {
   academicYear: varchar("academicYear", { length: 16 }).notNull().default("2025-26"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 
 export type TimetableSlot = typeof timetableSlots.$inferSelect;
@@ -1086,6 +1131,8 @@ export const assessmentEvents = mysqlTable("assessment_events", {
   academicYear: varchar("academicYear", { length: 16 }).notNull().default("2025-26"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 export type AssessmentEvent = typeof assessmentEvents.$inferSelect;
 export type InsertAssessmentEvent = typeof assessmentEvents.$inferInsert;
@@ -1112,6 +1159,8 @@ export const savedSituacions = mysqlTable("saved_situacions", {
   sharedBy: varchar("sharedBy", { length: 128 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 export type SavedSituacio = typeof savedSituacions.$inferSelect;
 export type InsertSavedSituacio = typeof savedSituacions.$inferInsert;
@@ -1126,6 +1175,8 @@ export const schoolSettings = mysqlTable("school_settings", {
   logoUrl: text("logoUrl"),
   logoKey: varchar("logoKey", { length: 512 }),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 export type SchoolSettings = typeof schoolSettings.$inferSelect;
 export type InsertSchoolSettings = typeof schoolSettings.$inferInsert;
@@ -1149,6 +1200,8 @@ export const wakeWords = mysqlTable("wake_words", {
   /** If false, the word is disabled but not deleted */
   isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 export type WakeWord = typeof wakeWords.$inferSelect;
 export type InsertWakeWord = typeof wakeWords.$inferInsert;
@@ -1176,6 +1229,8 @@ export const audioResponses = mysqlTable("audio_responses", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   /** Owner user id */
   createdBy: varchar("createdBy", { length: 128 }),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 export type AudioResponse = typeof audioResponses.$inferSelect;
 export type InsertAudioResponse = typeof audioResponses.$inferInsert;
@@ -1194,6 +1249,8 @@ export const attendanceChanges = mysqlTable("attendance_changes", {
   previousStatus: mysqlEnum("previousStatus", ["present", "absent", "late", "excused"]),
   newStatus: mysqlEnum("newStatus", ["present", "absent", "late", "excused"]).notNull(),
   note: text("note"),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 
 export type AttendanceChange = typeof attendanceChanges.$inferSelect;
@@ -1276,6 +1333,8 @@ export const teamsChannels = mysqlTable("teams_channels", {
   createdBy: varchar("createdBy", { length: 128 }).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   isArchived: boolean("isArchived").default(false).notNull(),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 export type TeamsChannel = typeof teamsChannels.$inferSelect;
 
@@ -1313,6 +1372,8 @@ export const teamsAssignments = mysqlTable("teams_assignments", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   maxScore: int("maxScore").default(100),
   isPublished: boolean("isPublished").default(true).notNull(),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 export type TeamsAssignment = typeof teamsAssignments.$inferSelect;
 
@@ -1348,6 +1409,8 @@ export const teamsFiles = mysqlTable("teams_files", {
   mimeType: varchar("mimeType", { length: 100 }),
   fileSize: int("fileSize"),
   uploadedAt: timestamp("uploadedAt").defaultNow().notNull(),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 export type TeamsFile = typeof teamsFiles.$inferSelect;
 
@@ -1369,6 +1432,8 @@ export const dmCalls = mysqlTable("dm_calls", {
   acceptedAt: timestamp("acceptedAt"),
   endedAt: timestamp("endedAt"),
   durationSeconds: int("durationSeconds"),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 export type DmCall = typeof dmCalls.$inferSelect;
 export type InsertDmCall = typeof dmCalls.$inferInsert;
@@ -1383,6 +1448,8 @@ export const webrtcSessions = mysqlTable("webrtc_sessions", {
   roomName: varchar("roomName", { length: 128 }).notNull().unique(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   endedAt: timestamp("endedAt"),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 export type WebrtcSession = typeof webrtcSessions.$inferSelect;
 
@@ -1430,6 +1497,8 @@ export const meetingInvitations = mysqlTable("meeting_invitations", {
   status: mysqlEnum("status", ["pending", "accepted", "declined", "cancelled"]).default("pending").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   respondedAt: timestamp("respondedAt"),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 export type MeetingInvitation = typeof meetingInvitations.$inferSelect;
 
@@ -1445,6 +1514,8 @@ export const callChatMessages = mysqlTable("call_chat_messages", {
   senderName: varchar("senderName", { length: 256 }).notNull(),
   message:    text("message").notNull(),
   sentAt:     timestamp("sentAt").defaultNow().notNull(),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 export type CallChatMessage = typeof callChatMessages.$inferSelect;
 
@@ -1475,6 +1546,8 @@ export const teacherInvites = mysqlTable("teacher_invites", {
   expiresAt: timestamp("expiresAt").notNull(),
   usedAt: timestamp("usedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
+  /** Tenant isolation key — set to the inviting director's tenantId */
+  tenantId: int("tenantId"),
 });
 export type TeacherInvite = typeof teacherInvites.$inferSelect;
 
@@ -1508,6 +1581,8 @@ export const individualLearningPlans = mysqlTable("individual_learning_plans", {
   status: mysqlEnum("status", ["draft", "active", "completed", "archived"]).default("draft").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 export type IndividualLearningPlan = typeof individualLearningPlans.$inferSelect;
 export type InsertIndividualLearningPlan = typeof individualLearningPlans.$inferInsert;
@@ -1546,6 +1621,27 @@ export const individualLessonPlans = mysqlTable("individual_lesson_plans", {
   status: mysqlEnum("status", ["draft", "ready", "delivered"]).default("draft").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  /** Tenant isolation key */
+  tenantId: int("tenantId"),
 });
 export type IndividualLessonPlan = typeof individualLessonPlans.$inferSelect;
 export type InsertIndividualLessonPlan = typeof individualLessonPlans.$inferInsert;
+
+/**
+ * Tenants — one row per director/school group.
+ * Created automatically when a director first signs in or is promoted.
+ * All invited users inherit the director's tenant_id.
+ * SEBA admins (role === 'admin') have tenant_id = NULL and bypass all tenant filters.
+ */
+export const tenants = mysqlTable("tenants", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Human-readable school/organisation name */
+  name: varchar("name", { length: 255 }).notNull(),
+  /** FK to users.id — the director who owns this tenant */
+  ownerUserId: int("ownerUserId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Tenant = typeof tenants.$inferSelect;
+export type InsertTenant = typeof tenants.$inferInsert;

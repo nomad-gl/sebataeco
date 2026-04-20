@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { eq, and, desc, max, inArray } from "drizzle-orm";
 import { getDb } from "../db";
 import { protectedProcedure, router } from "../_core/trpc";
+import { buildTenantWhere, getTenantIdForInsert } from "../tenantFilter";
 import {
   classGroups,
   groupStudents,
@@ -18,10 +19,12 @@ export const groupsRouter = router({
   list: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     if (!db) return [];
+    // Tenant filter: admins see all groups; regular users see their tenant's groups
+    const tenantWhere = buildTenantWhere(ctx.user, classGroups);
     const rows = await db
       .select()
       .from(classGroups)
-      .where(eq(classGroups.userId, ctx.user.id))
+      .where(tenantWhere ?? eq(classGroups.userId, ctx.user.id))
       .orderBy(desc(classGroups.createdAt));
     // Fetch counts for all groups in one pass
     const countMap: Record<number, number> = {};
@@ -54,6 +57,7 @@ export const groupsRouter = router({
         className: input.className,
         level: input.level,
         assessmentTitle: input.assessmentTitle,
+        tenantId: getTenantIdForInsert(ctx.user),
       });
       return { id: (result as any)[0].insertId as number };
     }),

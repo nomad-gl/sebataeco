@@ -3727,3 +3727,37 @@
 
 ## Bug: Browser tab title always shows extra page text
 - [x] Fix tab title to always show exactly "SEBA | Aina" on every page — no page-specific suffix appended (fixed index.html title tag and simplified useDocumentTitle.ts to always return the fixed string)
+
+## Feature: Multi-tenant data isolation (closed system per director)
+- [ ] Audit all DB tables and tRPC procedures to map every query needing tenant scoping
+- [ ] Create tenants table (id, name, owner_id/director_user_id, created_at)
+- [ ] Add tenant_id column to users table (nullable for SEBA admins)
+- [ ] Add tenant_id column to all data tables: school_profiles, timetables, lesson_plans, materials, student_progress, situacions, individual_plans, challenges, groups, forum_channels, forum_messages, audit_logs, invitations, etc.
+- [ ] Generate and apply migration SQL for all schema changes
+- [ ] Update server/db.ts helpers to always filter by tenant_id from ctx.user
+- [ ] Update all tRPC protectedProcedures to inject and enforce tenant_id
+- [ ] Add adminProcedure middleware that bypasses tenant filter for SEBA admins (role === 'admin')
+- [ ] Update director invite flow: assign invited user to director's tenant_id on registration
+- [ ] Update admin UI (AuditDashboard, DirectorUsers) to show cross-tenant data for admins only
+- [ ] Write Vitest tests for tenant isolation (user A cannot read user B's data)
+- [ ] Run full test suite and save checkpoint
+
+## Multi-Tenant Architecture
+- [x] Add tenants table to drizzle/schema.ts with id, name, ownerUserId, createdAt, updatedAt
+- [x] Add tenantId column to users table in schema.ts
+- [x] Add tenantId column to 35 Category A tables (lesson_plans, class_groups, teaching_materials, practice_sessions, assignments, forum_channels, forum_direct_messages, school_calendars, school_calendar_events, ai_assessments, ai_grade_overrides, ai_bias_flags, ai_learning_paths, student_reports, calendar_sessions, session_templates, lesson_plan_templates, timetable_slots, assessment_events, saved_situacions, school_settings, wake_words, audio_responses, attendance_changes, teams_channels, teams_assignments, teams_files, dm_calls, meeting_invitations, call_chat_messages, webrtc_sessions, teacher_invites, individual_learning_plans, individual_lesson_plans, group_messages)
+- [x] Write and apply migration SQL (drizzle/0045_add_tenant_id.sql) — 37 statements executed
+- [x] Add tenantProcedure middleware in server/_core/trpc.ts (SEBA admins bypass tenant filters)
+- [x] Create server/tenantFilter.ts utility with buildTenantWhere helper
+- [x] Update groups router to apply tenant filtering on list queries and stamp tenantId on create
+- [x] Update localAuth register procedure to inherit tenantId from invite on registration
+- [x] Update director.createTeacherInvite to stamp tenantId from the creating director's account
+- [x] Create server/routers/tenants.ts with SEBA admin procedures: list, getById, create, updateName, assignUser, listUnassignedUsers, delete
+- [x] Register tenantsRouter in server/routers.ts as appRouter.tenants
+- [x] Create client/src/pages/TenantManagement.tsx — SEBA admin cross-tenant management UI
+- [x] Add /seba/tenants route to App.tsx
+- [x] Write server/tenants.test.ts — all 4 tests pass (schema verification + admin role grants)
+
+## Admin Role Grants
+- [x] Confirm Paul Harry-Mitchell (paulharrymitchell@gmail.com, id=1) has role=admin (already set)
+- [x] Grant Romi Mitchell (mitchellromi@gmail.com, id=1504672) role=admin, position=director

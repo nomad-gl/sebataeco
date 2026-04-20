@@ -205,6 +205,9 @@ export const localAuthRouter = router({
         passwordHash,
         loginMethod: "local",
         lastSignedIn: new Date(),
+        // Inherit the tenant from the invite so the new teacher is automatically
+        // placed in the same school group as the Director who sent the invite.
+        tenantId: invite.tenantId ?? null,
       });
 
       // Mark invite as used

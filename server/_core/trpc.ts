@@ -61,3 +61,41 @@ export const adminProcedure = t.procedure.use(
     });
   }),
 );
+
+/**
+ * tenantProcedure — for any procedure that operates on tenant-scoped data.
+ *
+ * Behaviour:
+ *  - SEBA admins (role === 'admin') get tenantId = null, meaning they bypass
+ *    all tenant filters and can see all data across every tenant.
+ *  - Regular users get their own tenantId (may be null if not yet assigned
+ *    to a tenant, in which case they see only their own rows via userId).
+ *
+ * Usage in procedures:
+ *   const { user, tenantId, isAdmin } = ctx;
+ *   if (!isAdmin && tenantId !== null) {
+ *     query.where(eq(table.tenantId, tenantId));
+ *   }
+ */
+export const tenantProcedure = t.procedure.use(
+  t.middleware(async opts => {
+    const { ctx, next } = opts;
+
+    if (!ctx.user) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
+    }
+
+    const isAdmin = ctx.user.role === 'admin';
+    // Admins bypass tenant filter (tenantId = null means "see all")
+    const tenantId = isAdmin ? null : (ctx.user.tenantId ?? null);
+
+    return next({
+      ctx: {
+        ...ctx,
+        user: ctx.user,
+        tenantId,
+        isAdmin,
+      },
+    });
+  }),
+);

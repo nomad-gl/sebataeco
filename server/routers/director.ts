@@ -834,11 +834,14 @@ export const directorRouter = router({
       const { teacherInvites } = await import("../../drizzle/schema");
       const token = crypto.randomBytes(32).toString("hex");
       const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
+      // Stamp the invite with the director's tenantId so invited teachers
+      // are automatically placed in the same school group on registration.
       await db.insert(teacherInvites).values({
         token,
         email: input.email ?? null,
         createdByUserId: ctx.user.id,
         expiresAt,
+        tenantId: ctx.user.tenantId ?? null,
       });
       const inviteUrl = `${input.origin}/register?invite=${token}`;
       await notifyOwner({
