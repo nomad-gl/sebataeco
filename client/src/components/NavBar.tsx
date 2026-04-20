@@ -475,7 +475,7 @@ export default function NavBar() {
                 <ChevronDown className={cn("w-3 h-3 transition-transform hidden lg:inline", adminOpen && "rotate-180")} />
               </button>
               {adminOpen && (
-                <div className="absolute right-0 top-full mt-1 w-64 bg-white border border-border rounded-xl shadow-lg py-1 z-50">
+                <div className="absolute right-0 top-full mt-1 w-64 bg-white border border-border rounded-xl shadow-lg py-1 z-50 max-h-[80vh] overflow-y-auto">
                   {/* School administration section */}
                   <p className="px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                     {t("nav_admin_school_section")}

@@ -3853,3 +3853,7 @@
 - [x] Verify expired token returns FORBIDDEN
 - [x] Verify accepted user has role=director and correct tenantId
 - [x] Fix: add 'director' to users.role enum in live DB (was missing from migration)
+
+## Fix: Administration Dropdown Scrollable
+- [x] Find the Administration dropdown DropdownMenuContent in NavBar.tsx
+- [x] Add max-height and overflow-y-auto so the menu scrolls when items exceed viewport height
