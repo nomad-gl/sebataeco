@@ -78,7 +78,8 @@ export default function NavBar() {
   const [hosOpen, setHosOpen]           = useState(false);
   const [situacioOpen, setSituacioOpen] = useState(false);
   const [adminOpen, setAdminOpen]       = useState(false);
-  const [platformExpanded, setPlatformExpanded] = useState(false);
+  const [platformExpanded, setPlatformExpanded] = useState(() => isAdminUnlocked());
+  const adminMenuRef = useRef<HTMLDivElement>(null);
   const [pinOpen, setPinOpen]           = useState(false);
   const [pinTarget, setPinTarget]       = useState<string | null>(null);
   const [platformUnlocked, setPlatformUnlocked] = useState(() => isAdminUnlocked());
@@ -476,7 +477,29 @@ export default function NavBar() {
                 <ChevronDown className={cn("w-3 h-3 transition-transform hidden lg:inline", adminOpen && "rotate-180")} />
               </button>
               {adminOpen && (
-                <div role="menu" className="absolute right-0 top-full mt-1 w-64 bg-white border border-border rounded-xl shadow-lg py-1 z-50 max-h-[80vh] overflow-y-auto">
+                <div
+                  ref={adminMenuRef}
+                  role="menu"
+                  aria-label={t("nav_administration")}
+                  className="absolute right-0 top-full mt-1 w-64 bg-white border border-border rounded-xl shadow-lg py-1 z-50 max-h-[80vh] overflow-y-auto"
+                  onKeyDown={(e) => {
+                    const items = adminMenuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]');
+                    if (!items || items.length === 0) return;
+                    const focused = document.activeElement as HTMLElement;
+                    const idx = Array.from(items).indexOf(focused);
+                    if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      const next = idx < items.length - 1 ? items[idx + 1] : items[0];
+                      next.focus();
+                    } else if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      const prev = idx > 0 ? items[idx - 1] : items[items.length - 1];
+                      prev.focus();
+                    } else if (e.key === "Escape") {
+                      setAdminOpen(false);
+                    }
+                  }}
+                >
                   {/* School administration section — sticky header */}
                   <p className="sticky top-0 bg-white z-10 px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground border-b border-border/40">
                     {t("nav_admin_school_section")}
@@ -545,7 +568,7 @@ export default function NavBar() {
                     className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary transition-colors text-left"
                   >
                     <UserPlus className="w-4 h-4 text-blue-600" />
-                    {platformUnlocked ? "Register Territorial Director" : <span className="opacity-60">Register Territorial Director</span>}
+                    {platformUnlocked ? t("nav_admin_register_td") : <span className="opacity-60">{t("nav_admin_register_td")}</span>}
                   </button>
                   <Link
                     href="/seba/tenants"
@@ -554,7 +577,7 @@ export default function NavBar() {
                     className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary transition-colors"
                   >
                     <Building2 className="w-4 h-4 text-purple-600" />
-                    Tenant Management
+                    {t("nav_admin_tenant_management")}
                   </Link>
                 </div>
               )}

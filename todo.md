@@ -3863,3 +3863,9 @@
 - [x] Add sticky section headers (sticky top-0 bg-white z-10) so labels stay visible while scrolling
 - [x] Add role="menu" and role="menuitem" ARIA attributes for keyboard navigation
 - [x] Collapse PIN-locked Platform Tools section by default (clickable header toggles expand/collapse)
+
+## Follow-ups: Admin Dropdown Keyboard & i18n
+- [x] Translate "Register Territorial Director" — added nav_admin_register_td key in EN/ES/CA
+- [x] Translate "Tenant Management" — added nav_admin_tenant_management key in EN/ES/CA
+- [x] Auto-expand Platform Tools section when already unlocked (init platformExpanded to isAdminUnlocked())
+- [x] Add keyboard arrow-key navigation: ArrowUp/ArrowDown moves focus between menuitem elements, Escape closes dropdown
