@@ -78,11 +78,11 @@ export const territorialDirectorRouter = router({
         ? db.select({ count: count() }).from(users).where(and(userWhere, eq(users.position, "director")))
         : db.select({ count: count() }).from(users).where(eq(users.position, "director")),
 
-      allowedTenantIds === null
+      (allowedTenantIds === null
         ? db.select({ count: count() }).from(lessonPlans)
         : allowedTenantIds.length > 0
           ? db.select({ count: count() }).from(lessonPlans).where(inArray(lessonPlans.tenantId, allowedTenantIds))
-          : Promise.resolve([[{ count: 0 }]]),
+          : Promise.resolve([{ count: 0 }] as { count: number }[])),
       db.select({ count: count() }).from(aiBiasFlags).where(eq(aiBiasFlags.resolved, false)),
     ]);
 

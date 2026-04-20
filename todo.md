@@ -3763,17 +3763,17 @@
 - [x] Grant Romi Mitchell (mitchellromi@gmail.com, id=1504672) role=admin, position=director
 
 ## Feature: Territorial Director Role (Terres de l'Ebre)
-- [ ] Add 'territorial_director' to users.role enum in drizzle/schema.ts
-- [ ] Apply migration SQL to alter users.role enum
-- [ ] Add territorialDirectorProcedure middleware in server/_core/trpc.ts (allows territorial_director + admin)
-- [ ] Create server/routers/territorialDirector.ts with cross-tenant overview procedures
-- [ ] Create client/src/pages/TerritorialDirectorOverview.tsx — read-only view of all tenants, directors, and user groups
-- [ ] Add /territorial/overview route to App.tsx
-- [ ] Add SEBA admin UI to grant/revoke territorial_director role (in TenantManagement or DirectorUsers page)
-- [ ] Ensure territorial_director cannot modify data — read-only oversight only
-- [ ] Add territorial_director nav link visible only to that role
-- [ ] Write vitest tests for territorial_director access control
-- [ ] Checkpoint after all territorial director features complete
+- [x] Add 'territorial_director' to users.role enum in drizzle/schema.ts
+- [x] Apply migration SQL to alter users.role enum
+- [x] Add territorialDirectorProcedure middleware in server/_core/trpc.ts (allows territorial_director + admin)
+- [x] Create server/routers/territorialDirector.ts with cross-tenant overview procedures
+- [x] Create client/src/pages/TerritorialDirectorOverview.tsx — read-only view of all tenants, directors, and user groups
+- [x] Add /territorial/overview route to App.tsx
+- [x] Add SEBA admin UI to grant/revoke territorial_director role (in TenantManagement or DirectorUsers page)
+- [x] Ensure territorial_director cannot modify data — read-only oversight only
+- [x] Add territorial_director nav link visible only to that role (shown in header for territorial_director role)
+- [x] Write vitest tests for territorial_director access control
+- [x] Checkpoint after all territorial director features complete
 
 ## Feature: Territory Scoping for Territorial Director
 - [x] Add territories table (id, name, region, createdAt) to schema.ts
