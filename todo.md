@@ -3811,3 +3811,30 @@
 - [x] Add visual waveform / audio level indicator while recording
 - [x] Improve retry UX — clear state and restart cleanly
 - [x] Add confidence score display when speech is recognised
+
+## Follow-up: Terres de l'Ebre Territorial Director Account
+- [x] Create a local-auth account for the Terres de l'Ebre Territorial Director in the DB
+- [x] Grant territorial_director role and assign Terres de l'Ebre territory via backend SQL
+- [x] Verify account is visible in the Territorial Directors tab of Tenant Management
+
+## Follow-up: Tenant-to-Territory Linking (Schools Tab)
+- [x] Add "Assign Territory" action to each tenant row in the Schools tab of TenantManagement
+- [x] Backend: tenants.assignTenantToTerritory procedure (admin-only)
+- [x] Show current territory badge on each tenant row
+- [x] Territorial Director overview filters by tenants in their territory (already uses territoryId on tenants)
+
+## Follow-up: Director Invitation Flow
+- [x] Add director_invites table (id, token, tenantId, email, createdByUserId, expiresAt, usedAt, createdAt)
+- [x] Apply migration SQL for director_invites table
+- [x] Backend: tenants.createDirectorInvite procedure (admin-only, generates secure token, returns invite URL)
+- [x] Backend: publicProcedure tenants.validateDirectorInvite (checks token, returns tenant name + email)
+- [x] Backend: publicProcedure tenants.acceptDirectorInvite (registers user, sets role=director, tenantId, marks invite used)
+- [x] Frontend: "Invite Director" button in Schools tab → dialog with email + tenant pre-filled → copy invite link
+- [x] Frontend: /invite/director/:token landing page — shows school name, pre-fills email, completes registration
+- [x] Invite link expires after 7 days; show clear error if expired or already used
+
+## Feature: Admin Dropdown — Register & Grant Terres de l'Ebre Territorial Director
+- [x] Find the secure admin dropdown component
+- [x] Add backend procedure: tenants.registerAndGrantTerritorialDirector (creates local-auth account, grants role, assigns territory, writes audit log)
+- [x] Add action button in admin dropdown with confirmation dialog (shows generated credentials)
+- [x] Button only visible to role=admin users

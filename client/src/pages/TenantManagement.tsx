@@ -95,6 +95,16 @@ export default function TenantManagement() {
   const [addTerritoryDialogUserId, setAddTerritoryDialogUserId] = useState<number | null>(null);
   const [addTerritoryId, setAddTerritoryId] = useState("");
 
+  // ── Director Invite state ──────────────────────────────────────────────────
+  const [inviteDialogTenantId, setInviteDialogTenantId] = useState<number | null>(null);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteResult, setInviteResult] = useState<{ token: string; tenantName: string; expiresAt: Date } | null>(null);
+  const [inviteCopied, setInviteCopied] = useState(false);
+
+  // ── Tenant-to-territory state ─────────────────────────────────────────────
+  const [tenantTerritoryDialogId, setTenantTerritoryDialogId] = useState<number | null>(null);
+  const [tenantTerritoryId, setTenantTerritoryId] = useState("");
+
   // ── Audit tab state ────────────────────────────────────────────────────────
   const [auditOffset, setAuditOffset] = useState(0);
   const AUDIT_PAGE_SIZE = 25;
@@ -193,6 +203,26 @@ export default function TenantManagement() {
       utils.tenants.listTerritorialDirectors.invalidate();
       utils.tenants.listRoleAudit.invalidate();
       toast.success("Territory removed.");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  // ── Mutations: Director Invites ────────────────────────────────────────────
+  const createInviteMutation = trpc.tenants.createDirectorInvite.useMutation({
+    onSuccess: (data) => {
+      setInviteResult(data);
+      toast.success(`Invite created for ${data.tenantName}`);
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  // ── Mutations: Tenant-to-Territory ─────────────────────────────────────────
+  const assignTenantTerritoryMutation = trpc.tenants.assignTenantToTerritory.useMutation({
+    onSuccess: () => {
+      utils.tenants.list.invalidate();
+      setTenantTerritoryDialogId(null);
+      setTenantTerritoryId("");
+      toast.success("Tenant assigned to territory.");
     },
     onError: (err) => toast.error(err.message),
   });
@@ -464,18 +494,40 @@ export default function TenantManagement() {
                           {new Date(tenant.createdAt).toLocaleDateString()}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => {
-                              if (confirm(`Delete tenant "${tenant.name}"? All its users will become unassigned.`)) {
-                                deleteMutation.mutate({ id: tenant.id });
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-xs px-2"
+                              onClick={() => { setInviteDialogTenantId(tenant.id); setInviteEmail(""); setInviteResult(null); setInviteCopied(false); }}
+                              title="Create Director Invite Link"
+                            >
+                              <UserPlus className="h-3.5 w-3.5 mr-1" />
+                              Invite Director
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 text-xs px-2"
+                              onClick={() => { setTenantTerritoryDialogId(tenant.id); setTenantTerritoryId(""); }}
+                              title="Assign to Territory"
+                            >
+                              <MapPin className="h-3.5 w-3.5 mr-1" />
+                              Territory
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => {
+                                if (confirm(`Delete tenant "${tenant.name}"? All its users will become unassigned.`)) {
+                                  deleteMutation.mutate({ id: tenant.id });
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -527,7 +579,130 @@ export default function TenantManagement() {
           )}
         </TabsContent>
 
-        {/* ── Territorial Directors Tab ──────────────────────────────────── */}
+        {/* ── Territorial Directors Tab ──────────────────────────────────────────── */}
+
+      {/* Director Invite Dialog */}
+      <Dialog open={inviteDialogTenantId !== null} onOpenChange={open => { if (!open) { setInviteDialogTenantId(null); setInviteResult(null); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-blue-600" />
+              Invite Director
+            </DialogTitle>
+            <DialogDescription>
+              Generate a secure invite link for a new school director. The link is valid for 7 days.
+            </DialogDescription>
+          </DialogHeader>
+          {!inviteResult ? (
+            <div className="space-y-4 py-2">
+              <div>
+                <label className="text-sm font-medium mb-1 block">Pre-fill Email (optional)</label>
+                <Input
+                  type="email"
+                  placeholder="director@school.cat"
+                  value={inviteEmail}
+                  onChange={e => setInviteEmail(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground mt-1">If provided, the email field will be pre-filled on the acceptance page.</p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4 py-2">
+              <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+                <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-green-800 dark:text-green-300">Invite created for {inviteResult.tenantName}</p>
+                  <p className="text-xs text-green-700 dark:text-green-400">Expires {new Date(inviteResult.expiresAt).toLocaleDateString()}</p>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Invite Link</label>
+                <div className="flex gap-2">
+                  <Input
+                    readOnly
+                    value={`${window.location.origin}/invite/director/${inviteResult.token}`}
+                    className="font-mono text-xs"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/invite/director/${inviteResult!.token}`);
+                      setInviteCopied(true);
+                      setTimeout(() => setInviteCopied(false), 2000);
+                      toast.success("Invite link copied!");
+                    }}
+                  >
+                    {inviteCopied ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            {!inviteResult ? (
+              <>
+                <Button variant="outline" onClick={() => setInviteDialogTenantId(null)}>Cancel</Button>
+                <Button
+                  disabled={createInviteMutation.isPending}
+                  onClick={() => {
+                    if (!inviteDialogTenantId) return;
+                    createInviteMutation.mutate({
+                      tenantId: inviteDialogTenantId,
+                      email: inviteEmail.trim() || undefined,
+                    });
+                  }}
+                >
+                  {createInviteMutation.isPending ? "Generating..." : "Generate Invite Link"}
+                </Button>
+              </>
+            ) : (
+              <Button onClick={() => { setInviteDialogTenantId(null); setInviteResult(null); }}>Done</Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Tenant to Territory Dialog */}
+      <Dialog open={tenantTerritoryDialogId !== null} onOpenChange={open => { if (!open) { setTenantTerritoryDialogId(null); setTenantTerritoryId(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-purple-600" />
+              Assign Tenant to Territory
+            </DialogTitle>
+            <DialogDescription>
+              Link this school to a Catalan territorial service so it appears in the correct Territorial Director's overview.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-sm font-medium mb-1 block">Territory</label>
+              <Select value={tenantTerritoryId} onValueChange={setTenantTerritoryId}>
+                <SelectTrigger><SelectValue placeholder="Select a territory" /></SelectTrigger>
+                <SelectContent>
+                  {allTerritories?.map(t => (
+                    <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTenantTerritoryDialogId(null)}>Cancel</Button>
+            <Button
+              disabled={!tenantTerritoryId || assignTenantTerritoryMutation.isPending}
+              onClick={() => {
+                if (!tenantTerritoryDialogId || !tenantTerritoryId) return;
+                assignTenantTerritoryMutation.mutate({ tenantId: tenantTerritoryDialogId, territoryId: parseInt(tenantTerritoryId) });
+              }}
+            >
+              {assignTenantTerritoryMutation.isPending ? "Assigning..." : "Assign"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
         <TabsContent value="territorial" className="space-y-6">
           <div className="flex items-center justify-between">
             <div>

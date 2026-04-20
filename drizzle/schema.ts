@@ -1713,3 +1713,29 @@ export const roleChangeAudit = mysqlTable("role_change_audit", {
 });
 export type RoleChangeAudit = typeof roleChangeAudit.$inferSelect;
 export type InsertRoleChangeAudit = typeof roleChangeAudit.$inferInsert;
+
+/**
+ * director_invites — SEBA-admin-generated invite links for onboarding new school directors.
+ * Each invite is pre-set with a tenantId and role=director so the director can register
+ * without a manual post-registration assignment step.
+ */
+export const directorInvites = mysqlTable("director_invites", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Secure random token used in the invite URL */
+  token: varchar("token", { length: 128 }).notNull().unique(),
+  /** The tenant (school) the new director will be assigned to */
+  tenantId: int("tenantId").notNull(),
+  /** Pre-filled email for the invite (optional — director can change on acceptance) */
+  email: varchar("email", { length: 320 }),
+  /** The SEBA admin who created the invite */
+  createdByUserId: int("createdByUserId").notNull(),
+  /** When the invite expires (default 7 days from creation) */
+  expiresAt: timestamp("expiresAt").notNull(),
+  /** Set when the invite is accepted — references the new director's user ID */
+  usedByUserId: int("usedByUserId"),
+  /** Timestamp when the invite was accepted */
+  usedAt: timestamp("usedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type DirectorInvite = typeof directorInvites.$inferSelect;
+export type InsertDirectorInvite = typeof directorInvites.$inferInsert;

@@ -9,14 +9,17 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { eq, desc, count, and, like, isNull } from "drizzle-orm";
 import { getDb } from "../db";
-import { adminProcedure, router } from "../_core/trpc";
+import { adminProcedure, publicProcedure, router } from "../_core/trpc";
 import {
   tenants,
   users,
   territories,
   territorialDirectorTerritories,
   roleChangeAudit,
+  directorInvites,
 } from "../../drizzle/schema";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 // ─── Audit helper ────────────────────────────────────────────────────────────
 
@@ -553,8 +556,7 @@ export const tenantsRouter = router({
         territoryName: r.territoryId ? (territoryMap[r.territoryId] ?? null) : null,
       }));
     }),
-
-  // ─── Onboarding Helpers ──────────────────────────────────────────────────────
+  // ─── Onboarding Helpers ────────────────────────────────────────────────────────
 
   /**
    * Search for a user by email (partial match, case-insensitive).
@@ -580,5 +582,201 @@ export const tenantsRouter = router({
         .limit(10);
 
       return rows;
+    }),
+
+  // ─── One-click Territorial Director Registration ─────────────────────────────
+
+  /**
+   * Create a local-auth account for a Territorial Director, grant the role,
+   * assign their territory, and write an audit record — all in one mutation.
+   * Returns the generated temporary credentials so the admin can share them.
+   */
+  registerAndGrantTerritorialDirector: adminProcedure
+    .input(z.object({
+      name: z.string().min(2).max(255),
+      email: z.string().email(),
+      territoryId: z.number().int().positive(),
+      reason: z.string().max(500).optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      // Guard: email must be unique
+      const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, input.email)).limit(1);
+      if (existing) throw new TRPCError({ code: "CONFLICT", message: "An account with this email already exists." });
+
+      // Guard: territory must exist
+      const [territory] = await db.select({ id: territories.id, name: territories.name })
+        .from(territories).where(eq(territories.id, input.territoryId)).limit(1);
+      if (!territory) throw new TRPCError({ code: "NOT_FOUND", message: "Territory not found." });
+
+      // Generate a secure temporary password (12 chars, URL-safe base64)
+      const tempPassword = crypto.randomBytes(9).toString("base64url");
+      const passwordHash = await bcrypt.hash(tempPassword, 12);
+
+      // Insert the user
+      const [insertResult] = await db.insert(users).values({
+        name: input.name,
+        email: input.email,
+        passwordHash,
+        loginMethod: "local",
+        role: "territorial_director",
+        position: "director",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any);
+      const userId = (insertResult as any).insertId as number;
+
+      // Assign territory
+      await db.insert(territorialDirectorTerritories).values({
+        userId,
+        territoryId: input.territoryId,
+        grantedByUserId: ctx.user.id,
+      } as any);
+
+      // Write audit record
+      await writeAudit({
+        actingUserId: ctx.user.id,
+        targetUserId: userId,
+        oldRole: null,
+        newRole: "territorial_director",
+        action: "grant",
+        reason: input.reason ?? `Registered and granted territorial_director for ${territory.name}`,
+        territoryId: input.territoryId,
+      });
+
+      return {
+        userId,
+        name: input.name,
+        email: input.email,
+        tempPassword,
+        territoryName: territory.name,
+      };
+    }),
+
+  // ─── Director Invitation Flow ─────────────────────────────────────────────────
+
+  /**
+   * Create a director invite link with pre-set tenantId and role=director.
+   * Returns the invite token (frontend constructs the full URL).
+   * SEBA admin only.
+   */
+  createDirectorInvite: adminProcedure
+    .input(z.object({
+      tenantId: z.number().int().positive(),
+      email: z.string().email().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      // Verify tenant exists
+      const [tenant] = await db.select({ id: tenants.id, name: tenants.name })
+        .from(tenants).where(eq(tenants.id, input.tenantId)).limit(1);
+      if (!tenant) throw new TRPCError({ code: "NOT_FOUND", message: "Tenant not found." });
+
+      const token = crypto.randomBytes(32).toString("hex");
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+      await db.insert(directorInvites).values({
+        token,
+        tenantId: input.tenantId,
+        email: input.email ?? null,
+        createdByUserId: ctx.user.id,
+        expiresAt,
+      } as any);
+
+      return { token, tenantName: tenant.name, expiresAt };
+    }),
+
+  /**
+   * Validate an invite token — public procedure (used on the invite landing page).
+   * Returns tenant name and pre-filled email if the invite is valid.
+   */
+  validateDirectorInvite: publicProcedure
+    .input(z.object({ token: z.string().length(64) }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      const [invite] = await db
+        .select({
+          id: directorInvites.id,
+          tenantId: directorInvites.tenantId,
+          email: directorInvites.email,
+          expiresAt: directorInvites.expiresAt,
+          usedAt: directorInvites.usedAt,
+        })
+        .from(directorInvites)
+        .where(eq(directorInvites.token, input.token))
+        .limit(1);
+
+      if (!invite) throw new TRPCError({ code: "NOT_FOUND", message: "Invite not found." });
+      if (invite.usedAt) throw new TRPCError({ code: "FORBIDDEN", message: "This invite has already been used." });
+      if (new Date() > invite.expiresAt) throw new TRPCError({ code: "FORBIDDEN", message: "This invite has expired." });
+
+      const [tenant] = await db.select({ name: tenants.name })
+        .from(tenants).where(eq(tenants.id, invite.tenantId)).limit(1);
+
+      return {
+        tenantId: invite.tenantId,
+        tenantName: tenant?.name ?? "Unknown School",
+        email: invite.email,
+        expiresAt: invite.expiresAt,
+      };
+    }),
+
+  /**
+   * Accept a director invite — public procedure.
+   * Creates the user account with role=director and tenantId pre-set.
+   */
+  acceptDirectorInvite: publicProcedure
+    .input(z.object({
+      token: z.string().length(64),
+      name: z.string().min(2).max(255),
+      email: z.string().email(),
+      password: z.string().min(8).max(128),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      // Re-validate invite
+      const [invite] = await db
+        .select()
+        .from(directorInvites)
+        .where(eq(directorInvites.token, input.token))
+        .limit(1);
+
+      if (!invite) throw new TRPCError({ code: "NOT_FOUND", message: "Invite not found." });
+      if (invite.usedAt) throw new TRPCError({ code: "FORBIDDEN", message: "This invite has already been used." });
+      if (new Date() > invite.expiresAt) throw new TRPCError({ code: "FORBIDDEN", message: "This invite has expired." });
+
+      // Guard: email must be unique
+      const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, input.email)).limit(1);
+      if (existing) throw new TRPCError({ code: "CONFLICT", message: "An account with this email already exists." });
+
+      const passwordHash = await bcrypt.hash(input.password, 12);
+
+      const [insertResult] = await db.insert(users).values({
+        name: input.name,
+        email: input.email,
+        passwordHash,
+        loginMethod: "local",
+        role: "user",
+        position: "director",
+        tenantId: invite.tenantId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any);
+      const userId = (insertResult as any).insertId as number;
+
+      // Mark invite as used
+      await db.update(directorInvites)
+        .set({ usedByUserId: userId, usedAt: new Date() })
+        .where(eq(directorInvites.token, input.token));
+
+      return { success: true, userId };
     }),
 });

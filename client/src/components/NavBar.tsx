@@ -8,6 +8,7 @@ import {
   CalendarDays, FileText, Settings as SettingsIcon, ShieldAlert, Lock, HelpCircle,
   BarChart3, UserCheck, BookCheck, GraduationCap, Mic,
   ClipboardList, Banknote, UserCog, FolderOpen, Building2, Wrench, Music, Wifi, LogOut, LogIn,
+  UserPlus, Copy, CheckCircle2, MapPin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -17,6 +18,7 @@ import { DialectBadge } from "@/components/CatalanDialectDetector";
 import { usePwaInstall } from "@/hooks/usePwaInstall";
 import { Share, Plus } from "lucide-react";
 import { SebaSymbol } from "@/components/SebaSymbol";
+import { toast } from "sonner";
 
 const LANG_OPTIONS: { code: Lang; label: string; flag: string }[] = [
   { code: "ca", label: "CA", flag: "🏴" },
@@ -82,6 +84,13 @@ export default function NavBar() {
   const [langOpen, setLangOpen]         = useState(false);
   const [mobileOpen, setMobileOpen]     = useState(false);
   const [bellOpen, setBellOpen]         = useState(false);
+  // Register Territorial Director dialog state
+  const [tdDialogOpen, setTdDialogOpen]   = useState(false);
+  const [tdName, setTdName]               = useState("");
+  const [tdEmail, setTdEmail]             = useState("");
+  const [tdReason, setTdReason]           = useState("");
+  const [tdResult, setTdResult]           = useState<{ email: string; tempPassword: string; territoryName: string } | null>(null);
+  const [tdCopied, setTdCopied]           = useState(false);
   const dropRef     = useRef<HTMLDivElement>(null);
   const directorRef = useRef<HTMLDivElement>(null);
   const hosRef      = useRef<HTMLDivElement>(null);
@@ -91,6 +100,17 @@ export default function NavBar() {
   const bellRef     = useRef<HTMLDivElement>(null);
 
   const { user, logout } = useAuth();
+
+  // Territorial Director registration mutation
+  const registerTD = trpc.tenants.registerAndGrantTerritorialDirector.useMutation({
+    onSuccess: (data) => {
+      setTdResult({ email: data.email, tempPassword: data.tempPassword, territoryName: data.territoryName });
+      toast.success(`Territorial Director registered for ${data.territoryName}`);
+    },
+    onError: (err) => toast.error(err.message),
+  });
+  const { data: tdTerritories = [] } = trpc.tenants.listTerritories.useQuery(undefined, { enabled: tdDialogOpen && !!user && user.role === "admin" });
+  const [tdTerritoryId, setTdTerritoryId] = useState<number | null>(null);
 
   // Position-based visibility helpers
   // Director sees everything; each role sees its own menus plus shared menus
@@ -505,6 +525,31 @@ export default function NavBar() {
                       </Link>
                     );
                   })}
+                  {/* Divider + Register Territorial Director action */}
+                  {platformUnlocked && (
+                    <>
+                      <div className="my-1 border-t border-border" />
+                      <p className="px-4 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        Territorial Services
+                      </p>
+                      <button
+                        onClick={() => { setTdDialogOpen(true); setAdminOpen(false); setTdResult(null); setTdName(""); setTdEmail(""); setTdReason(""); setTdTerritoryId(null); }}
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary transition-colors text-left"
+                      >
+                        <UserPlus className="w-4 h-4 text-blue-600" />
+                        Register Territorial Director
+                      </button>
+                      <Link
+                        href="/seba/tenants"
+                        onClick={() => setAdminOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary transition-colors"
+                      >
+                        <Building2 className="w-4 h-4 text-purple-600" />
+                        Tenant Management
+                      </Link>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -1308,6 +1353,127 @@ export default function NavBar() {
         onSuccess={handlePinSuccess}
         onCancel={() => { setPinOpen(false); setPinTarget(null); }}
       />
+
+      {/* Register Territorial Director dialog */}
+      {tdDialogOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => !registerTD.isPending && setTdDialogOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+            {!tdResult ? (
+              <>
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                    <UserPlus className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-semibold text-gray-900">Register Territorial Director</h2>
+                    <p className="text-xs text-gray-500">Creates account, grants role, assigns territory</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Full Name</label>
+                    <input
+                      type="text"
+                      value={tdName}
+                      onChange={(e) => setTdName(e.target.value)}
+                      placeholder="e.g. Director Territorial Terres de l'Ebre"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Email Address</label>
+                    <input
+                      type="email"
+                      value={tdEmail}
+                      onChange={(e) => setTdEmail(e.target.value)}
+                      placeholder="e.g. territorial.ebre@educacio.gencat.cat"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Territory</label>
+                    <select
+                      value={tdTerritoryId ?? ""}
+                      onChange={(e) => setTdTerritoryId(e.target.value ? Number(e.target.value) : null)}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    >
+                      <option value="">Select territory...</option>
+                      {tdTerritories.map((t: { id: number; name: string }) => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Reason (optional)</label>
+                    <input
+                      type="text"
+                      value={tdReason}
+                      onChange={(e) => setTdReason(e.target.value)}
+                      placeholder="e.g. Appointed by Departament d'Educació"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-5">
+                  <button
+                    onClick={() => setTdDialogOpen(false)}
+                    className="flex-1 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    disabled={!tdName.trim() || !tdEmail.trim() || !tdTerritoryId || registerTD.isPending}
+                    onClick={() => registerTD.mutate({ name: tdName.trim(), email: tdEmail.trim(), territoryId: tdTerritoryId!, reason: tdReason.trim() || undefined })}
+                    className="flex-1 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  >
+                    {registerTD.isPending ? "Registering..." : "Register & Grant"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
+                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-semibold text-gray-900">Director Registered</h2>
+                    <p className="text-xs text-gray-500">{tdResult.territoryName}</p>
+                  </div>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Email</span>
+                    <span className="font-medium text-gray-900">{tdResult.email}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-500">Temp Password</span>
+                    <div className="flex items-center gap-2">
+                      <code className="font-mono text-xs bg-white border border-gray-200 px-2 py-0.5 rounded">{tdResult.tempPassword}</code>
+                      <button
+                        onClick={() => { navigator.clipboard.writeText(`Email: ${tdResult!.email}\nPassword: ${tdResult!.tempPassword}\nPortal: ${window.location.origin}/login`); setTdCopied(true); setTimeout(() => setTdCopied(false), 2000); }}
+                        className="p-1 rounded hover:bg-gray-100 transition-colors"
+                        title="Copy credentials"
+                      >
+                        {tdCopied ? <CheckCircle2 className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4 text-gray-400" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2 mt-3">
+                  Share these credentials securely. The director should change their password on first login.
+                </p>
+                <button
+                  onClick={() => setTdDialogOpen(false)}
+                  className="w-full mt-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors"
+                >
+                  Done
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }
