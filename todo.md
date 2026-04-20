@@ -3869,3 +3869,9 @@
 - [x] Translate "Tenant Management" — added nav_admin_tenant_management key in EN/ES/CA
 - [x] Auto-expand Platform Tools section when already unlocked (init platformExpanded to isAdminUnlocked())
 - [x] Add keyboard arrow-key navigation: ArrowUp/ArrowDown moves focus between menuitem elements, Escape closes dropdown
+
+## Follow-ups: Nav Bar Accessibility & Mobile Parity
+- [x] Add keyboard arrow-key navigation to Director, HoS, Situació, and Lang dropdowns
+- [x] Auto-focus first menuitem when any dropdown opens
+- [x] Sync mobile nav: use translation keys for all hardcoded strings
+- [x] Sync mobile nav: add collapsible Platform Tools section matching desktop behaviour

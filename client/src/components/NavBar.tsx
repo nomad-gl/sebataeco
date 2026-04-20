@@ -79,7 +79,11 @@ export default function NavBar() {
   const [situacioOpen, setSituacioOpen] = useState(false);
   const [adminOpen, setAdminOpen]       = useState(false);
   const [platformExpanded, setPlatformExpanded] = useState(() => isAdminUnlocked());
-  const adminMenuRef = useRef<HTMLDivElement>(null);
+  const adminMenuRef    = useRef<HTMLDivElement>(null);
+  const situacioMenuRef = useRef<HTMLDivElement>(null);
+  const hosMenuRef      = useRef<HTMLDivElement>(null);
+  const directorMenuRef = useRef<HTMLDivElement>(null);
+  const langMenuRef     = useRef<HTMLDivElement>(null);
   const [pinOpen, setPinOpen]           = useState(false);
   const [pinTarget, setPinTarget]       = useState<string | null>(null);
   const [platformUnlocked, setPlatformUnlocked] = useState(() => isAdminUnlocked());
@@ -294,6 +298,13 @@ export default function NavBar() {
   // Close mobile menu on route change
   useEffect(() => { setMobileOpen(false); setDropOpen(false); setDirectorOpen(false); setHosOpen(false); setSituacioOpen(false); setAdminOpen(false); setLangOpen(false); }, [location]);
 
+  // Auto-focus first menuitem when any dropdown opens
+  useEffect(() => { if (adminOpen)    { setTimeout(() => adminMenuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus(), 0); } }, [adminOpen]);
+  useEffect(() => { if (situacioOpen) { setTimeout(() => situacioMenuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus(), 0); } }, [situacioOpen]);
+  useEffect(() => { if (hosOpen)      { setTimeout(() => hosMenuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus(), 0); } }, [hosOpen]);
+  useEffect(() => { if (directorOpen) { setTimeout(() => directorMenuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus(), 0); } }, [directorOpen]);
+  useEffect(() => { if (langOpen)     { setTimeout(() => langMenuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus(), 0); } }, [langOpen]);
+
   // Note: body scroll lock removed — the mobile nav panel itself scrolls instead
   // (overflow-y-auto on the nav element handles long menus on small screens)
 
@@ -384,13 +395,27 @@ export default function NavBar() {
               </button>
 
               {situacioOpen && (
-                <div className="absolute left-0 top-full mt-1 w-52 bg-white border border-border rounded-xl shadow-lg py-1 z-50">
+                <div
+                  ref={situacioMenuRef}
+                  role="menu"
+                  aria-label={t("nav_situacio_nav")}
+                  className="absolute left-0 top-full mt-1 w-52 bg-white border border-border rounded-xl shadow-lg py-1 z-50"
+                  onKeyDown={(e) => {
+                    const items = situacioMenuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]');
+                    if (!items?.length) return;
+                    const idx = Array.from(items).indexOf(document.activeElement as HTMLElement);
+                    if (e.key === "ArrowDown") { e.preventDefault(); (items[idx < items.length - 1 ? idx + 1 : 0]).focus(); }
+                    else if (e.key === "ArrowUp") { e.preventDefault(); (items[idx > 0 ? idx - 1 : items.length - 1]).focus(); }
+                    else if (e.key === "Escape") setSituacioOpen(false);
+                  }}
+                >
                   {situacioItems.map(({ href, label, icon: Icon }) => {
                     const active = location === href || (href !== "/" && location.startsWith(href));
                     return (
                       <Link
                         key={href}
                         href={href}
+                        role="menuitem"
                         onClick={() => setSituacioOpen(false)}
                         className={cn(
                           "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
@@ -606,13 +631,27 @@ export default function NavBar() {
               </button>
 
               {hosOpen && (
-                <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-border rounded-xl shadow-lg py-1 z-50">
+                <div
+                  ref={hosMenuRef}
+                  role="menu"
+                  aria-label={t("nav_head_of_study")}
+                  className="absolute right-0 top-full mt-1 w-56 bg-white border border-border rounded-xl shadow-lg py-1 z-50"
+                  onKeyDown={(e) => {
+                    const items = hosMenuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]');
+                    if (!items?.length) return;
+                    const idx = Array.from(items).indexOf(document.activeElement as HTMLElement);
+                    if (e.key === "ArrowDown") { e.preventDefault(); (items[idx < items.length - 1 ? idx + 1 : 0]).focus(); }
+                    else if (e.key === "ArrowUp") { e.preventDefault(); (items[idx > 0 ? idx - 1 : items.length - 1]).focus(); }
+                    else if (e.key === "Escape") setHosOpen(false);
+                  }}
+                >
                   {hosItems.map(({ href, label, icon: Icon }) => {
                     const active = location === href || (href !== "/" && location.startsWith(href));
                     return (
                       <Link
                         key={href}
                         href={href}
+                        role="menuitem"
                         onClick={() => setHosOpen(false)}
                         className={cn(
                           "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
@@ -627,6 +666,7 @@ export default function NavBar() {
                   {/* TA Forum */}
                   <Link
                     href="/forum"
+                    role="menuitem"
                     onClick={() => setHosOpen(false)}
                     className={cn(
                       "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
@@ -673,7 +713,20 @@ export default function NavBar() {
               </button>
 
               {directorOpen && (
-                <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-border rounded-xl shadow-lg py-1 z-50">
+                <div
+                  ref={directorMenuRef}
+                  role="menu"
+                  aria-label={t("nav_director")}
+                  className="absolute right-0 top-full mt-1 w-56 bg-white border border-border rounded-xl shadow-lg py-1 z-50"
+                  onKeyDown={(e) => {
+                    const items = directorMenuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]');
+                    if (!items?.length) return;
+                    const idx = Array.from(items).indexOf(document.activeElement as HTMLElement);
+                    if (e.key === "ArrowDown") { e.preventDefault(); (items[idx < items.length - 1 ? idx + 1 : 0]).focus(); }
+                    else if (e.key === "ArrowUp") { e.preventDefault(); (items[idx > 0 ? idx - 1 : items.length - 1]).focus(); }
+                    else if (e.key === "Escape") setDirectorOpen(false);
+                  }}
+                >
                   {directorItems.map(({ href, label, icon: Icon }) => {
                     const active = location === href || (href !== "/" && location.startsWith(href));
                     const isUsersItem = href === "/director/users";
@@ -681,6 +734,7 @@ export default function NavBar() {
                       <Link
                         key={href}
                         href={href}
+                        role="menuitem"
                         onClick={() => setDirectorOpen(false)}
                         className={cn(
                           "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
@@ -700,6 +754,7 @@ export default function NavBar() {
                   {/* TA Forum */}
                   <Link
                     href="/forum"
+                    role="menuitem"
                     onClick={() => setDirectorOpen(false)}
                     className={cn(
                       "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
@@ -856,10 +911,24 @@ export default function NavBar() {
               </button>
 
               {langOpen && (
-                <div className="absolute right-0 top-full mt-1 w-36 bg-white border border-border rounded-xl shadow-lg py-1 z-50">
+                <div
+                  ref={langMenuRef}
+                  role="menu"
+                  aria-label={t("nav_change_language")}
+                  className="absolute right-0 top-full mt-1 w-36 bg-white border border-border rounded-xl shadow-lg py-1 z-50"
+                  onKeyDown={(e) => {
+                    const items = langMenuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]');
+                    if (!items?.length) return;
+                    const idx = Array.from(items).indexOf(document.activeElement as HTMLElement);
+                    if (e.key === "ArrowDown") { e.preventDefault(); (items[idx < items.length - 1 ? idx + 1 : 0]).focus(); }
+                    else if (e.key === "ArrowUp") { e.preventDefault(); (items[idx > 0 ? idx - 1 : items.length - 1]).focus(); }
+                    else if (e.key === "Escape") setLangOpen(false);
+                  }}
+                >
                   {LANG_OPTIONS.map((opt) => (
                     <button
                       key={opt.code}
+                      role="menuitem"
                       onClick={() => { setLang(opt.code); setLangOpen(false); }}
                       className={cn(
                         "w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors text-left",
@@ -1101,13 +1170,17 @@ export default function NavBar() {
               })}
               {/* Divider + Platform tools */}
               <div className="my-2 border-t border-border/40" />
-              <p className={cn("text-xs font-semibold uppercase tracking-wider mb-2 px-1 flex items-center gap-1", isClassroomPage ? "text-white/50" : "text-muted-foreground")}>
+              <button
+                onClick={() => setPlatformExpanded((v) => !v)}
+                className={cn("w-full text-xs font-semibold uppercase tracking-wider mb-2 px-1 flex items-center gap-1 text-left", isClassroomPage ? "text-white/50" : "text-muted-foreground")}
+              >
                 <Lock className="w-3 h-3" />
                 {t("nav_admin_platform_section")}
                 {!platformUnlocked && <span className="ml-auto text-[9px] bg-amber-100 text-amber-700 rounded px-1">PIN</span>}
                 {platformUnlocked && <span className="ml-auto text-[9px] bg-green-100 text-green-700 rounded px-1">{t("nav_admin_unlocked")}</span>}
-              </p>
-              {platformItems.map(({ href, label, icon: Icon }) => {
+                <ChevronDown className={cn("w-3 h-3 ml-1 transition-transform", platformExpanded && "rotate-180")} />
+              </button>
+              {platformExpanded && platformItems.map(({ href, label, icon: Icon }) => {
                 const active = location === href || (href !== "/" && location.startsWith(href));
                 return (
                   <Link
@@ -1394,7 +1467,7 @@ export default function NavBar() {
                     <UserPlus className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
-                    <h2 className="text-base font-semibold text-gray-900">Register Territorial Director</h2>
+                    <h2 className="text-base font-semibold text-gray-900">{t("nav_admin_register_td")}</h2>
                     <p className="text-xs text-gray-500">Creates account, grants role, assigns territory</p>
                   </div>
                 </div>
