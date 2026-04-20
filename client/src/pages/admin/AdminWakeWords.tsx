@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 
 type TestResult = {
   transcript: string;
+  confidence: number;
   matched: boolean;
   matchedWord?: string;
   matchedVariant?: string;
@@ -51,6 +52,40 @@ function buildMatcher(words: { word: string; phoneticVariants: string; isActive:
 const getSR = (): (new () => any) | null =>
   (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition || null;
 
+/**
+ * Animated waveform bars shown while recording.
+ * Uses CSS animations only — no Web Audio API required.
+ */
+function WaveformBars({ active }: { active: boolean }) {
+  const bars = [3, 5, 8, 5, 7, 4, 6, 3, 8, 5, 4, 7, 3, 6, 5];
+  return (
+    <div className="flex items-center gap-[2px] h-8">
+      {bars.map((h, i) => (
+        <div
+          key={i}
+          className={cn(
+            "w-1 rounded-full transition-all",
+            active
+              ? "bg-violet-500 dark:bg-violet-400"
+              : "bg-muted-foreground/30"
+          )}
+          style={{
+            height: active ? `${h * 3}px` : "4px",
+            animation: active ? `waveBar ${0.4 + (i % 5) * 0.1}s ease-in-out infinite alternate` : "none",
+            animationDelay: `${i * 0.05}s`,
+          }}
+        />
+      ))}
+      <style>{`
+        @keyframes waveBar {
+          from { transform: scaleY(0.3); }
+          to   { transform: scaleY(1); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 function PronunciationTester({
   words,
   onAddVariant,
@@ -63,15 +98,100 @@ function PronunciationTester({
   const [liveTranscript, setLiveTranscript] = useState("");
   const [result, setResult] = useState<TestResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const recognisersRef = useRef<any[]>([]);
+
+  // Use a ref for the single active recogniser instance
+  const recogniserRef = useRef<any>(null);
+  // Use a ref for liveTranscript so onend always sees the latest value (fixes stale closure)
+  const liveTranscriptRef = useRef("");
+  // Track the current language index for sequential fallback
+  const langIndexRef = useRef(0);
+  const settledRef = useRef(false);
+  const autoStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const hasSR = !!getSR();
 
-  const stopAll = useCallback(() => {
-    recognisersRef.current.forEach((r) => { try { r.stop(); } catch { /* ignore */ } });
-    recognisersRef.current = [];
+  const stopRecogniser = useCallback(() => {
+    if (recogniserRef.current) {
+      try { recogniserRef.current.stop(); } catch { /* ignore */ }
+      recogniserRef.current = null;
+    }
+    if (autoStopTimerRef.current) {
+      clearTimeout(autoStopTimerRef.current);
+      autoStopTimerRef.current = null;
+    }
     setIsRecording(false);
   }, []);
+
+  // Start a single recogniser for the given language
+  const startForLang = useCallback((lang: string, matcher: ReturnType<typeof buildMatcher>) => {
+    const SR = getSR();
+    if (!SR) return;
+
+    const r = new SR();
+    r.lang = lang;
+    r.continuous = false;
+    r.interimResults = true;
+    r.maxAlternatives = 5;
+    recogniserRef.current = r;
+
+    r.onresult = (e: any) => {
+      // Collect all alternatives from all result items
+      const transcripts: string[] = [];
+      let bestConfidence = 0;
+      for (let i = 0; i < e.results.length; i++) {
+        for (let j = 0; j < e.results[i].length; j++) {
+          transcripts.push(e.results[i][j].transcript as string);
+          if (j === 0) bestConfidence = Math.max(bestConfidence, e.results[i][j].confidence ?? 0);
+        }
+      }
+      const joined = transcripts.join(" ");
+      liveTranscriptRef.current = joined;
+      setLiveTranscript(joined);
+
+      if (e.results[0]?.isFinal && !settledRef.current) {
+        settledRef.current = true;
+        const { matched, word, variant } = matcher(joined);
+        setResult({ transcript: joined, confidence: bestConfidence, matched, matchedWord: word, matchedVariant: variant });
+        stopRecogniser();
+      }
+    };
+
+    r.onerror = (e: any) => {
+      // "aborted" fires when we call .stop() ourselves — ignore it
+      if (e.error === "aborted") return;
+      if (e.error === "no-speech") {
+        // Try next language if available
+        const LANGS = ["ca-ES", "es-ES"];
+        const nextIdx = langIndexRef.current + 1;
+        if (nextIdx < LANGS.length && !settledRef.current) {
+          langIndexRef.current = nextIdx;
+          startForLang(LANGS[nextIdx], matcher);
+        } else {
+          stopRecogniser();
+        }
+        return;
+      }
+      if (!settledRef.current) {
+        setError(`${t("wake_test_error")}: ${e.error}`);
+        stopRecogniser();
+      }
+    };
+
+    r.onend = () => {
+      // Only fire if we haven't already settled via onresult
+      if (!settledRef.current) {
+        const transcript = liveTranscriptRef.current;
+        if (transcript) {
+          settledRef.current = true;
+          const { matched, word, variant } = matcher(transcript);
+          setResult({ transcript, confidence: 0, matched, matchedWord: word, matchedVariant: variant });
+        }
+        stopRecogniser();
+      }
+    };
+
+    r.start();
+  }, [stopRecogniser, t]);
 
   const startRecording = useCallback(() => {
     const SR = getSR();
@@ -79,73 +199,25 @@ function PronunciationTester({
       setError(t("wake_test_no_sr"));
       return;
     }
+    // Reset all state
     setResult(null);
     setLiveTranscript("");
+    liveTranscriptRef.current = "";
     setError(null);
+    settledRef.current = false;
+    langIndexRef.current = 0;
     setIsRecording(true);
 
     const matcher = buildMatcher(words);
-    const LANGS = ["ca-ES", "es-ES"];
-    let settled = false;
+    startForLang("ca-ES", matcher);
 
-    const instances = LANGS.map((lang) => {
-      const r = new SR();
-      r.lang = lang;
-      r.continuous = false;
-      r.interimResults = true;
-      r.maxAlternatives = 3;
+    // Auto-stop after 8 seconds
+    autoStopTimerRef.current = setTimeout(() => {
+      if (!settledRef.current) stopRecogniser();
+    }, 8000);
+  }, [words, t, startForLang, stopRecogniser]);
 
-      r.onresult = (e: any) => {
-        const transcripts: string[] = [];
-        for (let i = 0; i < e.results.length; i++) {
-          for (let j = 0; j < e.results[i].length; j++) {
-            transcripts.push(e.results[i][j].transcript as string);
-          }
-        }
-        const joined = transcripts.join(" ");
-        setLiveTranscript(joined);
-
-        if (e.results[0]?.isFinal && !settled) {
-          settled = true;
-          const { matched, word, variant } = matcher(joined);
-          setResult({ transcript: joined, matched, matchedWord: word, matchedVariant: variant });
-          stopAll();
-        }
-      };
-
-      r.onerror = (e: any) => {
-        if (e.error === "no-speech" || e.error === "aborted") return;
-        if (!settled) {
-          setError(`${t("wake_test_error")}: ${e.error}`);
-          stopAll();
-        }
-      };
-
-      r.onend = () => {
-        // If no final result yet, stop everything
-        if (!settled) {
-          settled = true;
-          if (liveTranscript) {
-            const { matched, word, variant } = matcher(liveTranscript);
-            setResult({ transcript: liveTranscript, matched, matchedWord: word, matchedVariant: variant });
-          }
-          stopAll();
-        }
-      };
-
-      r.start();
-      return r;
-    });
-
-    recognisersRef.current = instances;
-
-    // Auto-stop after 6 seconds
-    setTimeout(() => {
-      if (!settled) stopAll();
-    }, 6000);
-  }, [words, t, stopAll, liveTranscript]);
-
-  useEffect(() => () => stopAll(), [stopAll]);
+  useEffect(() => () => stopRecogniser(), [stopRecogniser]);
 
   // Find the word id for a matched word name
   const matchedWordObj = result?.matchedWord
@@ -166,16 +238,13 @@ function PronunciationTester({
           <p className="text-sm text-destructive">{t("wake_test_no_sr")}</p>
         )}
 
-        {/* Record button */}
-        <div className="flex items-center gap-3">
+        {/* Record button + waveform */}
+        <div className="flex items-center gap-4">
           <Button
-            onClick={isRecording ? stopAll : startRecording}
+            onClick={isRecording ? stopRecogniser : startRecording}
             disabled={!hasSR}
             variant={isRecording ? "destructive" : "default"}
-            className={cn(
-              "gap-2 transition-all",
-              isRecording && "animate-pulse"
-            )}
+            className={cn("gap-2 transition-all", isRecording && "shadow-lg shadow-red-500/20")}
           >
             {isRecording ? (
               <><MicOff className="w-4 h-4" />{t("wake_test_stop")}</>
@@ -183,6 +252,7 @@ function PronunciationTester({
               <><Mic className="w-4 h-4" />{t("wake_test_record")}</>
             )}
           </Button>
+          <WaveformBars active={isRecording} />
           {isRecording && (
             <span className="text-sm text-muted-foreground flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
@@ -227,7 +297,7 @@ function PronunciationTester({
               </span>
             </div>
 
-            <div className="space-y-1 text-sm">
+            <div className="space-y-2 text-sm">
               <p className="text-muted-foreground">
                 {t("wake_test_heard")}:{" "}
                 <span className="font-mono text-foreground">"{result.transcript}"</span>
@@ -240,6 +310,30 @@ function PronunciationTester({
                     <> {t("wake_test_via_variant")} <Badge variant="outline" className="font-mono text-xs">{result.matchedVariant}</Badge></>
                   )}
                 </p>
+              )}
+              {result.confidence > 0 && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Recognition confidence</span>
+                    <span className={cn(
+                      "font-semibold",
+                      result.confidence >= 0.75 ? "text-green-600 dark:text-green-400" :
+                      result.confidence >= 0.5  ? "text-yellow-600 dark:text-yellow-400" :
+                                                  "text-red-600 dark:text-red-400"
+                    )}>{Math.round(result.confidence * 100)}%</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all duration-500",
+                        result.confidence >= 0.75 ? "bg-green-500" :
+                        result.confidence >= 0.5  ? "bg-yellow-500" :
+                                                    "bg-red-500"
+                      )}
+                      style={{ width: `${Math.round(result.confidence * 100)}%` }}
+                    />
+                  </div>
+                </div>
               )}
             </div>
 

@@ -3803,3 +3803,11 @@
 - [x] Add "Find User by Email" search in the Grant Role dialog (so admins don't need to know the user ID)
 - [x] Show a confirmation card after granting role with direct link to /territorial/overview
 - [x] Add "Copy invite link" button that generates a pre-filled login URL for the new Territorial Director
+
+## Bug Fix: Pronunciation Tester Recording Not Working
+- [x] Fix stale closure bug in onend handler (liveTranscript always "" at capture time)
+- [x] Fix dual SpeechRecognition instances competing/aborting each other — use single instance with multi-lang fallback
+- [x] Remove liveTranscript from startRecording useCallback deps to prevent stale handler refs
+- [x] Add visual waveform / audio level indicator while recording
+- [x] Improve retry UX — clear state and restart cleanly
+- [x] Add confidence score display when speech is recognised
