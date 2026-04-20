@@ -3838,3 +3838,18 @@
 - [x] Add backend procedure: tenants.registerAndGrantTerritorialDirector (creates local-auth account, grants role, assigns territory, writes audit log)
 - [x] Add action button in admin dropdown with confirmation dialog (shows generated credentials)
 - [x] Button only visible to role=admin users
+
+## Follow-up: Territory Badge on Tenant Rows
+- [x] Add territory name badge to each tenant row in the Schools tab (shows assigned territory or "Unassigned")
+- [x] Backend: update tenants.list to include territoryName in the returned rows
+- [x] Frontend: render Badge with territory name (purple if assigned, muted if not)
+
+## Follow-up: Seed Territory Assignments for Existing Tenants
+- [x] No existing tenants in DB yet — system is fresh; territory assignment will happen as schools onboard
+
+## Follow-up: End-to-End Director Invite Flow Test
+- [x] Write vitest for createDirectorInvite → validateDirectorInvite → acceptDirectorInvite
+- [x] Verify token is single-use (second accept fails with CONFLICT)
+- [x] Verify expired token returns FORBIDDEN
+- [x] Verify accepted user has role=director and correct tenantId
+- [x] Fix: add 'director' to users.role enum in live DB (was missing from migration)

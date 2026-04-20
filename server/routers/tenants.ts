@@ -65,6 +65,7 @@ export const tenantsRouter = router({
         id: tenants.id,
         name: tenants.name,
         ownerUserId: tenants.ownerUserId,
+        territoryId: tenants.territoryId,
         createdAt: tenants.createdAt,
         updatedAt: tenants.updatedAt,
       })
@@ -79,6 +80,12 @@ export const tenantsRouter = router({
         tenantId: users.tenantId,
       })
       .from(users);
+
+    // Fetch all territories for name lookup
+    const allTerritories = await db
+      .select({ id: territories.id, name: territories.name })
+      .from(territories);
+    const territoryNameMap = Object.fromEntries(allTerritories.map(t => [t.id, t.name]));
 
     const memberCountMap: Record<number, number> = {};
     const ownerMap: Record<number, { name: string | null; email: string | null }> = {};
@@ -99,6 +106,7 @@ export const tenantsRouter = router({
       memberCount: memberCountMap[t.id] ?? 0,
       ownerName: ownerMap[t.id]?.name ?? null,
       ownerEmail: ownerMap[t.id]?.email ?? null,
+      territoryName: t.territoryId ? (territoryNameMap[t.territoryId] ?? null) : null,
     }));
   }),
 

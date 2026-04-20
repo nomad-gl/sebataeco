@@ -469,6 +469,7 @@ export default function TenantManagement() {
                     <TableRow>
                       <TableHead>School / Organisation</TableHead>
                       <TableHead>Owner</TableHead>
+                      <TableHead>Territory</TableHead>
                       <TableHead>Members</TableHead>
                       <TableHead>Created</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
@@ -483,6 +484,16 @@ export default function TenantManagement() {
                             <div>{tenant.ownerName ?? "—"}</div>
                             <div className="text-muted-foreground text-xs">{tenant.ownerEmail ?? ""}</div>
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          {(tenant as any).territoryName ? (
+                            <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 border-purple-200 dark:border-purple-700 text-xs font-normal">
+                              <MapPin className="h-3 w-3 mr-1" />
+                              {(tenant as any).territoryName}
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground italic">Unassigned</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           <Badge variant="secondary">
