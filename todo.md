@@ -3857,3 +3857,9 @@
 ## Fix: Administration Dropdown Scrollable
 - [x] Find the Administration dropdown DropdownMenuContent in NavBar.tsx
 - [x] Add max-height and overflow-y-auto so the menu scrolls when items exceed viewport height
+
+## Fix + Follow-ups: Admin Dropdown UX
+- [x] Fix: "Territorial Services" label is hardcoded — added nav_admin_territorial_section + nav_admin_platform_collapse to EN/ES/CA
+- [x] Add sticky section headers (sticky top-0 bg-white z-10) so labels stay visible while scrolling
+- [x] Add role="menu" and role="menuitem" ARIA attributes for keyboard navigation
+- [x] Collapse PIN-locked Platform Tools section by default (clickable header toggles expand/collapse)

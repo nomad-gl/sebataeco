@@ -78,6 +78,7 @@ export default function NavBar() {
   const [hosOpen, setHosOpen]           = useState(false);
   const [situacioOpen, setSituacioOpen] = useState(false);
   const [adminOpen, setAdminOpen]       = useState(false);
+  const [platformExpanded, setPlatformExpanded] = useState(false);
   const [pinOpen, setPinOpen]           = useState(false);
   const [pinTarget, setPinTarget]       = useState<string | null>(null);
   const [platformUnlocked, setPlatformUnlocked] = useState(() => isAdminUnlocked());
@@ -475,9 +476,9 @@ export default function NavBar() {
                 <ChevronDown className={cn("w-3 h-3 transition-transform hidden lg:inline", adminOpen && "rotate-180")} />
               </button>
               {adminOpen && (
-                <div className="absolute right-0 top-full mt-1 w-64 bg-white border border-border rounded-xl shadow-lg py-1 z-50 max-h-[80vh] overflow-y-auto">
-                  {/* School administration section */}
-                  <p className="px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <div role="menu" className="absolute right-0 top-full mt-1 w-64 bg-white border border-border rounded-xl shadow-lg py-1 z-50 max-h-[80vh] overflow-y-auto">
+                  {/* School administration section — sticky header */}
+                  <p className="sticky top-0 bg-white z-10 px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground border-b border-border/40">
                     {t("nav_admin_school_section")}
                   </p>
                   {schoolAdminItems.map(({ href, label, icon: Icon }) => {
@@ -486,6 +487,7 @@ export default function NavBar() {
                       <Link
                         key={href}
                         href={href}
+                        role="menuitem"
                         onClick={() => setAdminOpen(false)}
                         className={cn(
                           "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
@@ -499,19 +501,25 @@ export default function NavBar() {
                   })}
                   {/* Divider */}
                   <div className="my-1 border-t border-border" />
-                  {/* Platform tools section — PIN-gated */}
-                  <p className="px-4 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                  {/* Platform tools section — collapsed by default when PIN-locked */}
+                  <button
+                    role="menuitem"
+                    onClick={() => setPlatformExpanded((v) => !v)}
+                    className="sticky top-[28px] bg-white z-10 w-full px-4 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1 hover:bg-secondary/50 transition-colors border-b border-border/40"
+                  >
                     <Lock className="w-3 h-3" />
                     {t("nav_admin_platform_section")}
                     {!platformUnlocked && <span className="ml-auto text-[9px] bg-amber-100 text-amber-700 rounded px-1">PIN</span>}
-                    {platformUnlocked && <span className="ml-auto text-[9px] bg-green-100 text-green-700 rounded px-1">{t("nav_admin_unlocked")}</span>}
-                  </p>
-                  {platformItems.map(({ href, label, icon: Icon }) => {
+                    {platformUnlocked && <span className="text-[9px] bg-green-100 text-green-700 rounded px-1">{t("nav_admin_unlocked")}</span>}
+                    <ChevronDown className={cn("w-3 h-3 ml-auto transition-transform", platformExpanded && "rotate-180")} />
+                  </button>
+                  {platformExpanded && platformItems.map(({ href, label, icon: Icon }) => {
                     const active = location === href || (href !== "/" && location.startsWith(href));
                     return (
                       <Link
                         key={href}
                         href={href}
+                        role="menuitem"
                         onClick={(e) => { handlePlatformClick(href, e); if (platformUnlocked) setAdminOpen(false); }}
                         className={cn(
                           "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
@@ -525,31 +533,29 @@ export default function NavBar() {
                       </Link>
                     );
                   })}
-                  {/* Divider + Register Territorial Director action */}
-                  {platformUnlocked && (
-                    <>
-                      <div className="my-1 border-t border-border" />
-                      <p className="px-4 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />
-                        Territorial Services
-                      </p>
-                      <button
-                        onClick={() => { setTdDialogOpen(true); setAdminOpen(false); setTdResult(null); setTdName(""); setTdEmail(""); setTdReason(""); setTdTerritoryId(null); }}
-                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary transition-colors text-left"
-                      >
-                        <UserPlus className="w-4 h-4 text-blue-600" />
-                        Register Territorial Director
-                      </button>
-                      <Link
-                        href="/seba/tenants"
-                        onClick={() => setAdminOpen(false)}
-                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary transition-colors"
-                      >
-                        <Building2 className="w-4 h-4 text-purple-600" />
-                        Tenant Management
-                      </Link>
-                    </>
-                  )}
+                  {/* Divider + Territorial Services section */}
+                  <div className="my-1 border-t border-border" />
+                  <p className="sticky top-[28px] bg-white z-10 px-4 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1 border-b border-border/40">
+                    <MapPin className="w-3 h-3" />
+                    {t("nav_admin_territorial_section")}
+                  </p>
+                  <button
+                    role="menuitem"
+                    onClick={() => { setTdDialogOpen(true); setAdminOpen(false); setTdResult(null); setTdName(""); setTdEmail(""); setTdReason(""); setTdTerritoryId(null); }}
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary transition-colors text-left"
+                  >
+                    <UserPlus className="w-4 h-4 text-blue-600" />
+                    {platformUnlocked ? "Register Territorial Director" : <span className="opacity-60">Register Territorial Director</span>}
+                  </button>
+                  <Link
+                    href="/seba/tenants"
+                    role="menuitem"
+                    onClick={() => setAdminOpen(false)}
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary transition-colors"
+                  >
+                    <Building2 className="w-4 h-4 text-purple-600" />
+                    Tenant Management
+                  </Link>
                 </div>
               )}
             </div>
