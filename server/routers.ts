@@ -37,6 +37,7 @@ import { ainaRouter } from "./routers/aina";
 import { localAuthRouter } from "./routers/localAuth";
 import { ilpRouter, lessonPlanRouter } from "./routers/individualPlans";
 import { tenantsRouter } from "./routers/tenants";
+import { territorialDirectorRouter } from "./routers/territorialDirector";
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -93,6 +94,7 @@ export const appRouter = router({
   ilp: ilpRouter,
   lessonPlan: lessonPlanRouter,
   tenants: tenantsRouter,
+  territorialDirector: territorialDirectorRouter,
 });
 
 export type AppRouter = typeof appRouter;

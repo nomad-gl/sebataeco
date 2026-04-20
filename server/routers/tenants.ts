@@ -10,7 +10,7 @@ import { TRPCError } from "@trpc/server";
 import { eq, desc, count, and } from "drizzle-orm";
 import { getDb } from "../db";
 import { adminProcedure, router } from "../_core/trpc";
-import { tenants, users } from "../../drizzle/schema";
+import { tenants, users, territories, territorialDirectorTerritories } from "../../drizzle/schema";
 
 export const tenantsRouter = router({
   /**
@@ -223,6 +223,173 @@ export const tenantsRouter = router({
         .where(eq(users.tenantId, input.id));
 
       await db.delete(tenants).where(eq(tenants.id, input.id));
+
+      return { success: true };
+    }),
+
+  // ─── Territorial Director Management ────────────────────────────────────────
+
+  /**
+   * List all territories.
+   * SEBA admin only.
+   */
+  listTerritories: adminProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+    return db.select().from(territories).orderBy(territories.name);
+  }),
+
+  /**
+   * List all users with role = 'territorial_director', with their assigned territories.
+   * SEBA admin only.
+   */
+  listTerritorialDirectors: adminProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+    const tds = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        role: users.role,
+        lastSignedIn: users.lastSignedIn,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .where(eq(users.role, "territorial_director"))
+      .orderBy(users.name);
+
+    const allAssignments = await db
+      .select({
+        userId: territorialDirectorTerritories.userId,
+        territoryId: territorialDirectorTerritories.territoryId,
+        id: territorialDirectorTerritories.id,
+      })
+      .from(territorialDirectorTerritories);
+
+    const allTerritories = await db.select({ id: territories.id, name: territories.name }).from(territories);
+    const territoryMap = Object.fromEntries(allTerritories.map(t => [t.id, t.name]));
+
+    return tds.map(td => ({
+      ...td,
+      territories: allAssignments
+        .filter(a => a.userId === td.id)
+        .map(a => ({ assignmentId: a.id, territoryId: a.territoryId, territoryName: territoryMap[a.territoryId] ?? null })),
+    }));
+  }),
+
+  /**
+   * Grant territorial_director role to a user and optionally assign a territory.
+   * SEBA admin only.
+   */
+  grantTerritorialDirector: adminProcedure
+    .input(z.object({
+      userId: z.number().int().positive(),
+      territoryId: z.number().int().positive().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      // Promote user to territorial_director
+      await db
+        .update(users)
+        .set({ role: "territorial_director" })
+        .where(eq(users.id, input.userId));
+
+      // Assign territory if provided
+      if (input.territoryId) {
+        const { sql } = await import("drizzle-orm");
+        // Use INSERT IGNORE to avoid duplicate key errors
+        await db.execute(
+          sql`INSERT IGNORE INTO territorial_director_territories (userId, territoryId, grantedByUserId)
+              VALUES (${input.userId}, ${input.territoryId}, ${ctx.user.id})`
+        );
+      }
+
+      return { success: true };
+    }),
+
+  /**
+   * Revoke territorial_director role from a user (demotes back to 'user').
+   * Also removes all territory assignments.
+   * SEBA admin only.
+   */
+  revokeTerritorialDirector: adminProcedure
+    .input(z.object({ userId: z.number().int().positive() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      await db
+        .update(users)
+        .set({ role: "user" })
+        .where(eq(users.id, input.userId));
+
+      await db
+        .delete(territorialDirectorTerritories)
+        .where(eq(territorialDirectorTerritories.userId, input.userId));
+
+      return { success: true };
+    }),
+
+  /**
+   * Assign an additional territory to an existing territorial director.
+   * SEBA admin only.
+   */
+  assignTerritory: adminProcedure
+    .input(z.object({
+      userId: z.number().int().positive(),
+      territoryId: z.number().int().positive(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      const { sql } = await import("drizzle-orm");
+      await db.execute(
+        sql`INSERT IGNORE INTO territorial_director_territories (userId, territoryId, grantedByUserId)
+            VALUES (${input.userId}, ${input.territoryId}, ${ctx.user.id})`
+      );
+
+      return { success: true };
+    }),
+
+  /**
+   * Remove a territory assignment from a territorial director.
+   * SEBA admin only.
+   */
+  removeTerritory: adminProcedure
+    .input(z.object({ assignmentId: z.number().int().positive() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      await db
+        .delete(territorialDirectorTerritories)
+        .where(eq(territorialDirectorTerritories.id, input.assignmentId));
+
+      return { success: true };
+    }),
+
+  /**
+   * Assign a territory to a tenant (links the school to a geographic region).
+   * SEBA admin only.
+   */
+  assignTenantToTerritory: adminProcedure
+    .input(z.object({
+      tenantId: z.number().int().positive(),
+      territoryId: z.number().int().positive().nullable(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      await db
+        .update(tenants)
+        .set({ territoryId: input.territoryId })
+        .where(eq(tenants.id, input.tenantId));
 
       return { success: true };
     }),

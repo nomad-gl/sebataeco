@@ -3729,18 +3729,18 @@
 - [x] Fix tab title to always show exactly "SEBA | Aina" on every page — no page-specific suffix appended (fixed index.html title tag and simplified useDocumentTitle.ts to always return the fixed string)
 
 ## Feature: Multi-tenant data isolation (closed system per director)
-- [ ] Audit all DB tables and tRPC procedures to map every query needing tenant scoping
-- [ ] Create tenants table (id, name, owner_id/director_user_id, created_at)
-- [ ] Add tenant_id column to users table (nullable for SEBA admins)
-- [ ] Add tenant_id column to all data tables: school_profiles, timetables, lesson_plans, materials, student_progress, situacions, individual_plans, challenges, groups, forum_channels, forum_messages, audit_logs, invitations, etc.
-- [ ] Generate and apply migration SQL for all schema changes
-- [ ] Update server/db.ts helpers to always filter by tenant_id from ctx.user
-- [ ] Update all tRPC protectedProcedures to inject and enforce tenant_id
-- [ ] Add adminProcedure middleware that bypasses tenant filter for SEBA admins (role === 'admin')
-- [ ] Update director invite flow: assign invited user to director's tenant_id on registration
-- [ ] Update admin UI (AuditDashboard, DirectorUsers) to show cross-tenant data for admins only
-- [ ] Write Vitest tests for tenant isolation (user A cannot read user B's data)
-- [ ] Run full test suite and save checkpoint
+- [x] Audit all DB tables and tRPC procedures to map every query needing tenant scoping
+- [x] Create tenants table (id, name, owner_id/director_user_id, created_at)
+- [x] Add tenant_id column to users table (nullable for SEBA admins)
+- [x] Add tenant_id column to all data tables: school_profiles, timetables, lesson_plans, materials, student_progress, situacions, individual_plans, challenges, groups, forum_channels, forum_messages, audit_logs, invitations, etc.
+- [x] Generate and apply migration SQL for all schema changes
+- [x] Update server/db.ts helpers to always filter by tenant_id from ctx.user
+- [x] Update all tRPC protectedProcedures to inject and enforce tenant_id
+- [x] Add adminProcedure middleware that bypasses tenant filter for SEBA admins (role === 'admin')
+- [x] Update director invite flow: assign invited user to director's tenant_id on registration
+- [x] Update admin UI (AuditDashboard, DirectorUsers) to show cross-tenant data for admins only
+- [x] Write Vitest tests for tenant isolation (user A cannot read user B's data)
+- [x] Run full test suite and save checkpoint
 
 ## Multi-Tenant Architecture
 - [x] Add tenants table to drizzle/schema.ts with id, name, ownerUserId, createdAt, updatedAt
@@ -3761,3 +3761,28 @@
 ## Admin Role Grants
 - [x] Confirm Paul Harry-Mitchell (paulharrymitchell@gmail.com, id=1) has role=admin (already set)
 - [x] Grant Romi Mitchell (mitchellromi@gmail.com, id=1504672) role=admin, position=director
+
+## Feature: Territorial Director Role (Terres de l'Ebre)
+- [ ] Add 'territorial_director' to users.role enum in drizzle/schema.ts
+- [ ] Apply migration SQL to alter users.role enum
+- [ ] Add territorialDirectorProcedure middleware in server/_core/trpc.ts (allows territorial_director + admin)
+- [ ] Create server/routers/territorialDirector.ts with cross-tenant overview procedures
+- [ ] Create client/src/pages/TerritorialDirectorOverview.tsx — read-only view of all tenants, directors, and user groups
+- [ ] Add /territorial/overview route to App.tsx
+- [ ] Add SEBA admin UI to grant/revoke territorial_director role (in TenantManagement or DirectorUsers page)
+- [ ] Ensure territorial_director cannot modify data — read-only oversight only
+- [ ] Add territorial_director nav link visible only to that role
+- [ ] Write vitest tests for territorial_director access control
+- [ ] Checkpoint after all territorial director features complete
+
+## Feature: Territory Scoping for Territorial Director
+- [x] Add territories table (id, name, region, createdAt) to schema.ts
+- [x] Add territoryId column to tenants table (FK to territories)
+- [x] Add territorial_director_territories junction table (userId, territoryId) to schema.ts
+- [x] Apply migration SQL for territories, tenants.territoryId, territorial_director_territories
+- [x] Seed "Terres de l'Ebre" as the first territory
+- [x] Update territorialDirectorProcedure to inject allowedTenantIds (only tenants in user's assigned territories)
+- [x] Update all territorial director router queries to filter by allowedTenantIds
+- [x] Territorial director cannot see tenants outside their assigned territory
+- [x] Admin UI: assign/remove territory from a territorial director user
+- [x] Frontend overview page shows territory name in header

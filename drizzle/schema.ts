@@ -9,7 +9,7 @@ export const users = mysqlTable("users", {
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin", "head_of_study"]).default("user").notNull(),
+  role: mysqlEnum("role", ["user", "admin", "head_of_study", "territorial_director"]).default("user").notNull(),
   /** Position assigned by the Director — controls which nav menus are visible */
   position: mysqlEnum("position", ["unassigned", "teacher", "head_of_study", "director"]).default("unassigned").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -1639,9 +1639,51 @@ export const tenants = mysqlTable("tenants", {
   name: varchar("name", { length: 255 }).notNull(),
   /** FK to users.id — the director who owns this tenant */
   ownerUserId: int("ownerUserId").notNull(),
+  /** FK to territories.id — the geographic territory this school belongs to */
+  territoryId: int("territoryId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
 export type Tenant = typeof tenants.$inferSelect;
 export type InsertTenant = typeof tenants.$inferInsert;
+
+// ─── Territorial Services ────────────────────────────────────────────────────
+
+/**
+ * territories — geographic/administrative regions managed by SEBA.
+ * Each territory is overseen by one or more territorial directors.
+ * Example: "Terres de l'Ebre" (Catalonia, Spain).
+ */
+export const territories = mysqlTable("territories", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Official name of the territory, e.g. "Terres de l'Ebre" */
+  name: varchar("name", { length: 255 }).notNull(),
+  /** Optional region/province label for display */
+  region: varchar("region", { length: 128 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Territory = typeof territories.$inferSelect;
+export type InsertTerritory = typeof territories.$inferInsert;
+
+/**
+ * territorial_director_territories — junction table linking a
+ * territorial_director user to the territories they oversee.
+ * A single user may oversee more than one territory.
+ * Only SEBA admins can insert/delete rows here.
+ */
+export const territorialDirectorTerritories = mysqlTable("territorial_director_territories", {
+  id: int("id").autoincrement().primaryKey(),
+  /** FK to users.id — must have role = 'territorial_director' */
+  userId: int("userId").notNull(),
+  /** FK to territories.id */
+  territoryId: int("territoryId").notNull(),
+  /** SEBA admin who granted this assignment */
+  grantedByUserId: int("grantedByUserId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type TerritorialDirectorTerritory = typeof territorialDirectorTerritories.$inferSelect;
+export type InsertTerritorialDirectorTerritory = typeof territorialDirectorTerritories.$inferInsert;

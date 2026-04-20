@@ -63,6 +63,82 @@ export const adminProcedure = t.procedure.use(
 );
 
 /**
+ * territorialDirectorProcedure — read-only cross-tenant oversight.
+ *
+ * Accessible to:
+ *  - SEBA admins (role === 'admin') — full access, allowedTenantIds = null (all tenants)
+ *  - Territorial directors (role === 'territorial_director') — read-only overview
+ *    scoped strictly to tenants within their assigned territories.
+ *    allowedTenantIds = number[] of tenant IDs they may view.
+ *
+ * Territorial directors CANNOT mutate data — all write operations must use
+ * adminProcedure or protectedProcedure instead.
+ */
+export const territorialDirectorProcedure = t.procedure.use(
+  t.middleware(async opts => {
+    const { ctx, next } = opts;
+
+    if (!ctx.user) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
+    }
+
+    const isAdmin = ctx.user.role === 'admin';
+    const isTerritorialDirector = ctx.user.role === 'territorial_director';
+
+    if (!isAdmin && !isTerritorialDirector) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Territorial Director access required." });
+    }
+
+    // Admins see everything; territorial directors see only their territory's tenants
+    let allowedTenantIds: number[] | null = null; // null = unrestricted (admin)
+    let allowedTerritoryIds: number[] = [];
+
+    if (isTerritorialDirector) {
+      // Dynamically import to avoid circular deps at module load time
+      const { getDb } = await import("../db");
+      const { territorialDirectorTerritories, tenants } = await import("../../drizzle/schema");
+      const { eq, inArray } = await import("drizzle-orm");
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      // 1. Get the territory IDs this user is assigned to
+      const assignments = await db
+        .select({ territoryId: territorialDirectorTerritories.territoryId })
+        .from(territorialDirectorTerritories)
+        .where(eq(territorialDirectorTerritories.userId, ctx.user.id));
+
+      allowedTerritoryIds = assignments.map(a => a.territoryId);
+
+      if (allowedTerritoryIds.length === 0) {
+        // No territory assigned yet — return empty scope
+        allowedTenantIds = [];
+      } else {
+        // 2. Get all tenants that belong to those territories
+        const scopedTenants = await db
+          .select({ id: tenants.id })
+          .from(tenants)
+          .where(inArray(tenants.territoryId, allowedTerritoryIds));
+
+        allowedTenantIds = scopedTenants.map(t => t.id);
+      }
+    }
+
+    return next({
+      ctx: {
+        ...ctx,
+        user: ctx.user,
+        isTerritorialDirector,
+        isAdmin,
+        /** null = unrestricted (admin); number[] = tenant IDs visible to this territorial director */
+        allowedTenantIds,
+        allowedTerritoryIds,
+      },
+    });
+  }),
+);
+
+/**
  * tenantProcedure — for any procedure that operates on tenant-scoped data.
  *
  * Behaviour:

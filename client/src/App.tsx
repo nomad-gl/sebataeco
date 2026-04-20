@@ -75,6 +75,7 @@ import AdminAudioResponses from "./pages/admin/AdminAudioResponses";
 import AttendanceRegister from "./pages/AttendanceRegister";
 import IndividualPlans from "./pages/IndividualPlans";
 import TenantManagement from "./pages/TenantManagement";
+import TerritorialDirectorOverview from "./pages/TerritorialDirectorOverview";
 import { useAuth } from "./_core/hooks/useAuth";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
@@ -167,6 +168,7 @@ function Router() {
         </Route>
         <Route path="/individual-plans" component={IndividualPlans} />
         <Route path="/seba/tenants" component={TenantManagement} />
+        <Route path="/territorial/overview" component={TerritorialDirectorOverview} />
         <Route path="/my-situacions">
           <HosOrAdminRoute component={MySituacions} />
         </Route>
