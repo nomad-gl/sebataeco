@@ -1137,7 +1137,7 @@ export const directorRouter = router({
    * set mustChangePassword=true, and email the user their new credentials.
    */
   adminResetUserPassword: adminProcedure
-    .input(z.object({ userId: z.number() }))
+    .input(z.object({ userId: z.number(), customPassword: z.string().min(6).max(128).optional() }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
@@ -1148,8 +1148,8 @@ export const directorRouter = router({
         .limit(1);
       if (!targetUser) throw new Error("User not found");
       if (!targetUser.email) throw new Error("User has no email address");
-      // Generate a new 12-char temp password
-      const tempPassword = crypto.randomBytes(9).toString("base64url").slice(0, 12);
+      // Use custom password if provided, otherwise generate a 12-char temp password
+      const tempPassword = input.customPassword ?? crypto.randomBytes(9).toString("base64url").slice(0, 12);
       const hash = await bcrypt.hash(tempPassword, 12);
       await db.update(users).set({ passwordHash: hash, mustChangePassword: true }).where(eq(users.id, input.userId));
       // Audit log
@@ -1169,6 +1169,6 @@ export const directorRouter = router({
         loginUrl: "https://aina.forum/login",
         role: targetUser.role ?? "user",
       });
-      return { success: true };
+      return { success: true, tempPassword, email: targetUser.email };
     }),
 });

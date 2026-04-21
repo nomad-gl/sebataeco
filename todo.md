@@ -4142,3 +4142,6 @@
 - [x] Password Management card: add status filter toggle (All / Password set / No password / Must change)
 - [x] Password Management card: add bulk reset with checkboxes and Reset selected button
 - [x] Password Management card: add School column (schoolName from users table)
+- [x] Password Management card: return and display plaintext temp password after reset so admin can copy/email it manually
+- [x] Password Management: show revealed temp password with eye/copy button after reset
+- [x] Password Management: allow admin to set a custom password (typed) instead of auto-generated

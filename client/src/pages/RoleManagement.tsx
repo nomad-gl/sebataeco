@@ -47,6 +47,9 @@ import {
   RefreshCw,
   LockOpen,
   Lock,
+  Eye,
+  EyeOff,
+  Copy,
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -206,11 +209,20 @@ export default function RoleManagement() {
   const [confirmResetUserId, setConfirmResetUserId] = useState<number | null>(null);
   const [pwdSelectedIds, setPwdSelectedIds] = useState<Set<number>>(new Set());
   const [bulkResetConfirm, setBulkResetConfirm] = useState(false);
+  // Map of userId → { password, email, visible } revealed after a reset
+  const [revealedPasswords, setRevealedPasswords] = useState<Record<number, { password: string; email: string; visible: boolean }>>({})
+  // Map of userId → custom password input value (empty = auto-generate)
+  const [customPasswordInputs, setCustomPasswordInputs] = useState<Record<number, string>>({})
+  // Map of userId → whether to show the custom password input field
+  const [showCustomInput, setShowCustomInput] = useState<Record<number, boolean>>({});
   const { data: pwdStatusUsers = [], isLoading: pwdLoading, refetch: refetchPwd } =
     trpc.director.listUsersPasswordStatus.useQuery();
   const resetPasswordMutation = trpc.director.adminResetUserPassword.useMutation({
-    onSuccess: () => {
-      toast.success("Temporary password issued and emailed to the user.");
+    onSuccess: (data, variables) => {
+      setRevealedPasswords(prev => ({
+        ...prev,
+        [variables.userId]: { password: data.tempPassword, email: data.email ?? "", visible: true },
+      }));
       setConfirmResetUserId(null);
       void refetchPwd();
     },
@@ -814,40 +826,114 @@ export default function RoleManagement() {
                           <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
                             {formatDate(u.lastSignedIn)}
                           </td>
-                          {/* Reset button */}
-                          <td className="px-3 py-2 text-right">
-                            {confirmResetUserId === u.id ? (
-                              <span className="inline-flex items-center gap-1">
-                                <span className="text-xs text-muted-foreground mr-1">Confirm?</span>
-                                <button
-                                  className="p-1 rounded text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
-                                  disabled={isResetting}
-                                  onClick={() => resetPasswordMutation.mutate({ userId: u.id })}
-                                  title="Yes, reset password"
+                          {/* Reset / reveal column */}
+                          <td className="px-3 py-2">
+                            <div className="flex flex-col gap-1.5 items-end">
+                              {/* Revealed password display */}
+                              {revealedPasswords[u.id] && (
+                                <div className="flex items-center gap-1 bg-muted/60 border border-border rounded px-2 py-1 text-xs font-mono">
+                                  <span className="select-all">
+                                    {revealedPasswords[u.id].visible
+                                      ? revealedPasswords[u.id].password
+                                      : "•".repeat(revealedPasswords[u.id].password.length)}
+                                  </span>
+                                  <button
+                                    className="p-0.5 rounded hover:bg-muted text-muted-foreground"
+                                    title={revealedPasswords[u.id].visible ? "Hide" : "Show"}
+                                    onClick={() => setRevealedPasswords(prev => ({
+                                      ...prev,
+                                      [u.id]: { ...prev[u.id], visible: !prev[u.id].visible },
+                                    }))}
+                                  >
+                                    {revealedPasswords[u.id].visible
+                                      ? <EyeOff className="w-3 h-3" />
+                                      : <Eye className="w-3 h-3" />}
+                                  </button>
+                                  <button
+                                    className="p-0.5 rounded hover:bg-muted text-muted-foreground"
+                                    title="Copy password"
+                                    onClick={() => {
+                                      void navigator.clipboard.writeText(revealedPasswords[u.id].password);
+                                      toast.success("Password copied to clipboard");
+                                    }}
+                                  >
+                                    <Copy className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    className="p-0.5 rounded hover:bg-muted text-muted-foreground"
+                                    title="Dismiss"
+                                    onClick={() => setRevealedPasswords(prev => { const n = { ...prev }; delete n[u.id]; return n; })}
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              )}
+
+                              {/* Custom password input toggle */}
+                              {confirmResetUserId === u.id && (
+                                <div className="flex flex-col gap-1 w-full">
+                                  <button
+                                    className="text-xs text-muted-foreground underline underline-offset-2 text-right"
+                                    onClick={() => setShowCustomInput(prev => ({ ...prev, [u.id]: !prev[u.id] }))}
+                                  >
+                                    {showCustomInput[u.id] ? "Use auto-generated" : "Set custom password"}
+                                  </button>
+                                  {showCustomInput[u.id] && (
+                                    <input
+                                      type="text"
+                                      className="w-full rounded border border-border bg-background px-2 py-1 text-xs font-mono"
+                                      placeholder="Min 6 characters"
+                                      value={customPasswordInputs[u.id] ?? ""}
+                                      onChange={(e) => setCustomPasswordInputs(prev => ({ ...prev, [u.id]: e.target.value }))}
+                                      autoFocus
+                                    />
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Confirm / Reset buttons */}
+                              {confirmResetUserId === u.id ? (
+                                <span className="inline-flex items-center gap-1">
+                                  <span className="text-xs text-muted-foreground mr-1">Confirm?</span>
+                                  <button
+                                    className="p-1 rounded text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
+                                    disabled={isResetting || (showCustomInput[u.id] && (customPasswordInputs[u.id] ?? "").length < 6)}
+                                    onClick={() => resetPasswordMutation.mutate({
+                                      userId: u.id,
+                                      customPassword: showCustomInput[u.id] && customPasswordInputs[u.id]
+                                        ? customPasswordInputs[u.id]
+                                        : undefined,
+                                    })}
+                                    title="Yes, set password"
+                                  >
+                                    {isResetting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                                  </button>
+                                  <button
+                                    className="p-1 rounded text-muted-foreground hover:bg-muted"
+                                    onClick={() => {
+                                      setConfirmResetUserId(null);
+                                      setShowCustomInput(prev => { const n = { ...prev }; delete n[u.id]; return n; });
+                                      setCustomPasswordInputs(prev => { const n = { ...prev }; delete n[u.id]; return n; });
+                                    }}
+                                    title="Cancel"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </span>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs gap-1"
+                                  disabled={!u.email}
+                                  title={!u.email ? "No email address on file" : "Set or reset password"}
+                                  onClick={() => setConfirmResetUserId(u.id)}
                                 >
-                                  {isResetting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                                </button>
-                                <button
-                                  className="p-1 rounded text-muted-foreground hover:bg-muted"
-                                  onClick={() => setConfirmResetUserId(null)}
-                                  title="Cancel"
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                </button>
-                              </span>
-                            ) : (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 text-xs gap-1"
-                                disabled={!u.email}
-                                title={!u.email ? "No email address on file" : "Issue a new temporary password"}
-                                onClick={() => setConfirmResetUserId(u.id)}
-                              >
-                                <KeyRound className="w-3 h-3" />
-                                Reset
-                              </Button>
-                            )}
+                                  <KeyRound className="w-3 h-3" />
+                                  {revealedPasswords[u.id] ? "Reset again" : "Set / Reset"}
+                                </Button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );
