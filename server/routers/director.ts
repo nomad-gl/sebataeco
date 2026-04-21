@@ -419,6 +419,7 @@ export const directorRouter = router({
     const rows = await db
       .select({
         id: users.id,
+        name: users.name,
         displayName: users.displayName,
         email: users.email,
         role: users.role,

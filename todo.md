@@ -4129,3 +4129,4 @@
 - [x] Auto-populate users.schoolName when assigned to a school (both assignUser and assignUserBySchoolName procedures)
 - [x] Cascade schoolName update to all assigned users when a tenant name is changed
 - [x] Role Management: allow the user section of the Users card to be edited and saved (name, email, school, role, position)
+- [x] Show user name first (before email) in all user lists when name is available

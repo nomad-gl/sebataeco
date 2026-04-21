@@ -55,6 +55,7 @@ type UserRole = "user" | "teacher" | "director" | "head_of_study" | "territorial
 
 type ManagedUser = {
   id: number;
+  name: string | null;
   displayName: string | null;
   email: string | null;
   role: string;
@@ -170,7 +171,7 @@ export default function RoleManagement() {
 
   function startEdit(u: ManagedUser) {
     setEditingUserId(u.id);
-    setEditName(u.displayName ?? "");
+    setEditName(u.name ?? u.displayName ?? "");
     setEditEmail(u.email ?? "");
     setEditPosition(u.position ?? "");
     setEditSchoolName(u.schoolName ?? "");
@@ -487,8 +488,8 @@ export default function RoleManagement() {
                           </div>
                         ) : (
                           <>
-                            <div className="font-medium">{user.displayName ?? user.email ?? `#${user.id}`}</div>
-                            {user.displayName && user.email && (
+                            <div className="font-medium">{user.name ?? user.displayName ?? user.email ?? `#${user.id}`}</div>
+                            {(user.name ?? user.displayName) && user.email && (
                               <div className="text-xs text-muted-foreground">{user.email}</div>
                             )}
                             {user.position && (
@@ -600,7 +601,7 @@ export default function RoleManagement() {
             </DialogTitle>
             <DialogDescription>
               {pending && t("role_mgmt_confirm_desc")
-                .replace("{name}", pending.user.displayName ?? pending.user.email ?? `#${pending.user.id}`)
+                .replace("{name}", pending.user.name ?? pending.user.displayName ?? pending.user.email ?? `#${pending.user.id}`)
                 .replace("{from}", t(ROLE_META[pending.user.role as UserRole]?.labelKey ?? "role_user"))
                 .replace("{to}", t(ROLE_META[pending.newRole]?.labelKey ?? "role_user"))}
             </DialogDescription>
