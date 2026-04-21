@@ -206,7 +206,7 @@ export default function Home() {
         itemType="https://schema.org/FAQPage"
       >
         <h2 className="text-2xl font-bold mb-8 text-center">
-          {t("faq_title" as Parameters<typeof t>[0]) || "Preguntes freqüents"}
+          {t("faq_title")}
         </h2>
         {([
           {

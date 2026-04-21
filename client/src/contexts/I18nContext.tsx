@@ -456,6 +456,7 @@ export const translations = {
     home_feature_create_title: "Create Materials",
     home_feature_create_desc: "Generate quizzes, crosswords, flashcards, wordsearches, and more — ready to print or download.",
     home_competencies_title: "8 LOMLOE Competencies",
+    faq_title: "Frequently Asked Questions",
 
     // Practice
     practice_title: "Practice Mode",
@@ -3310,6 +3311,7 @@ export const translations = {
     home_feature_create_title: "Crear Materiales",
     home_feature_create_desc: "Genera cuestionarios, crucigramas, tarjetas, sopas de letras y más — listos para imprimir o descargar.",
     home_competencies_title: "8 Competencias LOMLOE",
+    faq_title: "Preguntas frecuentes",
 
     // Practice
     practice_title: "Modo Práctica",
@@ -6140,6 +6142,7 @@ export const translations = {
     home_feature_create_title: "Crear Materials",
     home_feature_create_desc: "Genera qüestionaris, mots encreuats, targetes, sopes de lletres i més — a punt per imprimir o descarregar.",
     home_competencies_title: "8 Competències LOMLOE",
+    faq_title: "Preguntes freqüents",
 
     // Practice
     practice_title: "Mode Pràctica",
