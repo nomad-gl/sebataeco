@@ -183,6 +183,14 @@ export default function NavBar() {
   });
   const pendingInviteCount = pendingInviteData?.count ?? 0;
 
+  // Pending assignment request badge (Director/Admin)
+  const isDirectorOrAdmin = user?.role === "director" || user?.role === "admin";
+  const { data: pendingAssignData } = trpc.assignmentRequests.pendingCount.useQuery(undefined, {
+    enabled: !!user && isDirectorOrAdmin,
+    refetchInterval: 30_000,
+  });
+  const pendingAssignCount = pendingAssignData?.count ?? 0;
+
   // Items before Teacher dropdown (Home removed — logo already links to /)
   const mainNavItemsBefore = [
     { href: "/chat",           label: t("nav_chat"),           icon: MessageCircle },
@@ -244,6 +252,7 @@ export default function NavBar() {
     { href: "/head-of-study/curriculum",          label: t("hos_curriculum"),          icon: BookCheck },
     { href: "/head-of-study/reports",             label: t("hos_reports"),             icon: Download },
     { href: "/head-of-study/settings",            label: t("hos_settings"),            icon: SettingsIcon },
+    { href: "/head-of-study/assign-users",        label: t("hos_assign_users"),        icon: UserPlus },
     { href: "/school-calendar",                   label: t("nav_school_calendar"),     icon: CalendarDays },
     { href: "/connect",                           label: t("nav_connect"),             icon: Wifi },
   ];
@@ -261,6 +270,7 @@ export default function NavBar() {
     { href: "/director/reports",   label: t("dir_reports"),          icon: Download },
     { href: "/director/settings",  label: t("dir_settings"),         icon: SettingsIcon },
     { href: "/director/users",     label: t("dir_users_nav"),        icon: UserCog },
+    { href: "/director/approvals",  label: t("dir_approvals"),        icon: ClipboardList },
     { href: "/attendance",           label: t("nav_attendance"),       icon: ClipboardList },
     { href: "/school-calendar",      label: t("nav_school_calendar"),  icon: CalendarDays },
     { href: "/connect",             label: t("nav_connect"),          icon: Wifi },
@@ -779,6 +789,11 @@ export default function NavBar() {
                         {isUsersItem && pendingInviteCount > 0 && (
                           <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-bold text-white leading-none">
                             {pendingInviteCount > 9 ? "9+" : pendingInviteCount}
+                          </span>
+                        )}
+                        {href === "/director/approvals" && pendingAssignCount > 0 && (
+                          <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white leading-none">
+                            {pendingAssignCount > 9 ? "9+" : pendingAssignCount}
                           </span>
                         )}
                       </Link>

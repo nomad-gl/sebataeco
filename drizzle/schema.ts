@@ -1763,3 +1763,37 @@ export const directorInvites = mysqlTable("director_invites", {
 });
 export type DirectorInvite = typeof directorInvites.$inferSelect;
 export type InsertDirectorInvite = typeof directorInvites.$inferInsert;
+
+/**
+ * assignment_requests — pending user-to-school assignment requests submitted by
+ * a Head of Study. A Director (or SEBA admin) must approve or reject each one
+ * before the user is actually moved into the school.
+ *
+ * Workflow:
+ *   1. HoS submits request  → status = 'pending'
+ *   2. Director approves    → status = 'approved', user.tenantId is updated
+ *      Director rejects     → status = 'rejected', optional reason stored
+ */
+export const assignmentRequests = mysqlTable("assignment_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  /** The Head of Study (or admin) who submitted the request */
+  requestedByUserId: int("requestedByUserId").notNull(),
+  /** The unassigned user to be moved into a school */
+  targetUserId: int("targetUserId").notNull(),
+  /** The school (tenant) the target user should be assigned to */
+  tenantId: int("tenantId").notNull(),
+  /** Workflow status */
+  status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  /** Optional note from the HoS explaining the request */
+  requestNote: varchar("requestNote", { length: 512 }),
+  /** Optional reason from the Director when rejecting */
+  rejectionReason: varchar("rejectionReason", { length: 512 }),
+  /** Director or admin who reviewed the request */
+  reviewedByUserId: int("reviewedByUserId"),
+  /** When the request was reviewed */
+  reviewedAt: timestamp("reviewedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type AssignmentRequest = typeof assignmentRequests.$inferSelect;
+export type InsertAssignmentRequest = typeof assignmentRequests.$inferInsert;

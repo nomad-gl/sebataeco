@@ -23,6 +23,7 @@ import { auditRouter } from "./routers/audit";
 import { dpaRouter } from "./routers/dpa";
 import { whatsNewRouter } from "./routers/whatsNew";
 import { selfHealRouter } from "./routers/selfHeal";
+import { assignmentRequestsRouter } from "./routers/assignmentRequests";
 import { directorRouter } from "./routers/director";
 import { hosRouter } from "./routers/hos";
 import { wakeWordsRouter } from "./routers/wakeWords";
@@ -143,6 +144,7 @@ export const appRouter = router({
   lessonPlan: lessonPlanRouter,
   tenants: tenantsRouter,
   territorialDirector: territorialDirectorRouter,
+  assignmentRequests: assignmentRequestsRouter,
 });
 
 export type AppRouter = typeof appRouter;

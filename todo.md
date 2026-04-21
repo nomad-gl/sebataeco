@@ -4080,3 +4080,23 @@
 - [x] Frontend: show pencil icon on unassigned user rows in the Assign User dialog user list
 - [x] Frontend: inline edit or small dialog to update the user's display name
 - [x] Frontend: optimistic update + success/error toast
+
+## Feature: Head of Study → Director Assignment Approval Workflow
+- [ ] DB: add assignmentRequests table (id, requestedByUserId, targetUserId, tenantId, status, reason, reviewedByUserId, reviewedAt, createdAt)
+- [ ] Backend: hos.createAssignmentRequest procedure (head_of_study or admin, creates pending request)
+- [ ] Backend: hos.listMyRequests procedure (head_of_study sees own requests with status)
+- [ ] Backend: director.listPendingAssignmentRequests procedure (director sees requests for their tenant)
+- [ ] Backend: director.approveAssignmentRequest procedure (director approves → triggers actual assignUser)
+- [ ] Backend: director.rejectAssignmentRequest procedure (director rejects with optional reason)
+- [ ] Backend: admin.listAllAssignmentRequests procedure (admin sees all requests cross-tenant)
+- [ ] Frontend: HosAssignUsers.tsx — new HoS page with unassigned user list, request form, and status tracker
+- [ ] Frontend: register /head-of-study/assign-users route in App.tsx and add nav link in HoS sidebar
+- [ ] Frontend: DirectorApprovals.tsx — new Director page listing pending requests with approve/reject buttons
+- [ ] Frontend: register /director/approvals route in App.tsx and add nav link in Director sidebar
+- [ ] Frontend: pending badge count on Director nav link when requests exist
+- [ ] Frontend: owner notification on new request and on approval/rejection
+- [ ] Write vitest tests for the approval workflow procedures
+- [ ] Update todo.md and save checkpoint
+
+## Feature: Director Promotion → School Management Sync
+- [ ] In RoleManagement.tsx confirmChange, after a successful role change to 'director', also invalidate tenants.list so School Management owner column reflects the new director immediately
