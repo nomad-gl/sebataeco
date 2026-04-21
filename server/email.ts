@@ -1,0 +1,227 @@
+/**
+ * server/email.ts
+ *
+ * Nodemailer-based email helper for SEBA AI Studio.
+ * Sends HTML invite emails for teacher and director invite flows.
+ *
+ * Configuration is driven entirely by environment variables:
+ *   SMTP_HOST   — SMTP server hostname (e.g. smtp.gmail.com)
+ *   SMTP_PORT   — SMTP port (default: 587)
+ *   SMTP_USER   — SMTP username / login address
+ *   SMTP_PASS   — SMTP password or app password
+ *   SMTP_FROM   — "From" address shown to recipients (defaults to SMTP_USER)
+ *   SMTP_SECURE — Set to "true" to use TLS on port 465 (default: false → STARTTLS)
+ *
+ * All sends are fire-and-forget: errors are logged but never thrown so that a
+ * misconfigured SMTP server cannot break the invite creation flow.
+ */
+
+import nodemailer from "nodemailer";
+
+// ─── Transport ───────────────────────────────────────────────────────────────
+
+function createTransport() {
+  const host = process.env.SMTP_HOST;
+  const port = parseInt(process.env.SMTP_PORT ?? "587", 10);
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  const secure = process.env.SMTP_SECURE === "true"; // true = port 465 TLS
+
+  if (!host || !user || !pass) {
+    return null; // SMTP not configured — email sending disabled
+  }
+
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    auth: { user, pass },
+    tls: {
+      // Allow self-signed certs in development
+      rejectUnauthorized: process.env.NODE_ENV === "production",
+    },
+  });
+}
+
+// ─── Shared HTML layout ───────────────────────────────────────────────────────
+
+function htmlWrapper(body: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SEBA AI Studio Invitation</title>
+  <style>
+    body { margin: 0; padding: 0; background: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .wrapper { max-width: 560px; margin: 40px auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+    .header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 32px 40px; text-align: center; }
+    .header-logo { font-size: 22px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px; }
+    .header-logo span { color: #60a5fa; }
+    .body { padding: 36px 40px; }
+    .greeting { font-size: 20px; font-weight: 600; color: #111827; margin: 0 0 12px; }
+    .text { font-size: 15px; color: #4b5563; line-height: 1.6; margin: 0 0 20px; }
+    .school-badge { display: inline-block; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 6px 14px; font-size: 14px; font-weight: 600; color: #1d4ed8; margin-bottom: 24px; }
+    .cta-wrapper { text-align: center; margin: 28px 0; }
+    .cta-btn { display: inline-block; background: #2563eb; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 600; padding: 14px 32px; border-radius: 10px; }
+    .url-fallback { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 16px; font-size: 12px; font-family: monospace; color: #374151; word-break: break-all; margin: 0 0 24px; }
+    .expiry { font-size: 13px; color: #9ca3af; margin: 0 0 8px; }
+    .footer { background: #f9fafb; border-top: 1px solid #f0f0f0; padding: 20px 40px; text-align: center; font-size: 12px; color: #9ca3af; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <div class="header-logo">SEBA <span>AI Studio</span></div>
+    </div>
+    <div class="body">${body}</div>
+    <div class="footer">Powered by SEBA · This email was sent automatically. Please do not reply.</div>
+  </div>
+</body>
+</html>`;
+}
+
+// ─── Email templates ──────────────────────────────────────────────────────────
+
+function teacherInviteHtml(opts: {
+  inviteUrl: string;
+  tenantName: string | null;
+  expiresAt: Date;
+}): string {
+  const school = opts.tenantName ? `<div class="school-badge">🏫 ${opts.tenantName}</div>` : "";
+  const expiry = opts.expiresAt.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  return htmlWrapper(`
+    <p class="greeting">You've been invited to join SEBA AI Studio as a Teacher</p>
+    ${school}
+    <p class="text">
+      A SEBA administrator has created an account invitation for you.
+      Click the button below to set up your account — it only takes a minute.
+    </p>
+    <div class="cta-wrapper">
+      <a href="${opts.inviteUrl}" class="cta-btn">Accept Invitation &rarr;</a>
+    </div>
+    <p class="text" style="font-size:13px;color:#6b7280;">
+      If the button doesn't work, copy and paste this link into your browser:
+    </p>
+    <div class="url-fallback">${opts.inviteUrl}</div>
+    <p class="expiry">This invitation expires on <strong>${expiry}</strong>. It can only be used once.</p>
+  `);
+}
+
+function directorInviteHtml(opts: {
+  inviteUrl: string;
+  tenantName: string;
+  expiresAt: Date;
+}): string {
+  const expiry = opts.expiresAt.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  return htmlWrapper(`
+    <p class="greeting">You've been invited to join SEBA AI Studio as Director</p>
+    <div class="school-badge">🏫 ${opts.tenantName}</div>
+    <p class="text">
+      A SEBA administrator has invited you to become the Director of
+      <strong>${opts.tenantName}</strong> on SEBA AI Studio.
+      Click the button below to create your account.
+    </p>
+    <div class="cta-wrapper">
+      <a href="${opts.inviteUrl}" class="cta-btn">Accept Invitation &rarr;</a>
+    </div>
+    <p class="text" style="font-size:13px;color:#6b7280;">
+      If the button doesn't work, copy and paste this link into your browser:
+    </p>
+    <div class="url-fallback">${opts.inviteUrl}</div>
+    <p class="expiry">This invitation expires on <strong>${expiry}</strong>. It can only be used once.</p>
+  `);
+}
+
+// ─── Public API ───────────────────────────────────────────────────────────────
+
+export interface SendInviteResult {
+  sent: boolean;
+  /** True when SMTP is not configured — caller should show copy-link fallback */
+  smtpNotConfigured: boolean;
+  error?: string;
+}
+
+/**
+ * Send a teacher invite email.
+ * Returns a result object — never throws.
+ */
+export async function sendTeacherInviteEmail(opts: {
+  to: string;
+  inviteUrl: string;
+  tenantName: string | null;
+  expiresAt: Date;
+}): Promise<SendInviteResult> {
+  const transport = createTransport();
+  if (!transport) {
+    console.warn("[Email] SMTP not configured — skipping teacher invite email.");
+    return { sent: false, smtpNotConfigured: true };
+  }
+
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+
+  try {
+    await transport.sendMail({
+      from: `"SEBA AI Studio" <${from}>`,
+      to: opts.to,
+      subject: opts.tenantName
+        ? `You've been invited to join ${opts.tenantName} on SEBA AI Studio`
+        : "You've been invited to SEBA AI Studio as a Teacher",
+      html: teacherInviteHtml({
+        inviteUrl: opts.inviteUrl,
+        tenantName: opts.tenantName,
+        expiresAt: opts.expiresAt,
+      }),
+    });
+    console.log(`[Email] Teacher invite sent to ${opts.to}`);
+    return { sent: true, smtpNotConfigured: false };
+  } catch (err: any) {
+    console.error("[Email] Failed to send teacher invite:", err?.message ?? err);
+    return { sent: false, smtpNotConfigured: false, error: err?.message };
+  }
+}
+
+/**
+ * Send a director invite email.
+ * Returns a result object — never throws.
+ */
+export async function sendDirectorInviteEmail(opts: {
+  to: string;
+  inviteUrl: string;
+  tenantName: string;
+  expiresAt: Date;
+}): Promise<SendInviteResult> {
+  const transport = createTransport();
+  if (!transport) {
+    console.warn("[Email] SMTP not configured — skipping director invite email.");
+    return { sent: false, smtpNotConfigured: true };
+  }
+
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+
+  try {
+    await transport.sendMail({
+      from: `"SEBA AI Studio" <${from}>`,
+      to: opts.to,
+      subject: `You've been invited to become Director of ${opts.tenantName} on SEBA AI Studio`,
+      html: directorInviteHtml({
+        inviteUrl: opts.inviteUrl,
+        tenantName: opts.tenantName,
+        expiresAt: opts.expiresAt,
+      }),
+    });
+    console.log(`[Email] Director invite sent to ${opts.to}`);
+    return { sent: true, smtpNotConfigured: false };
+  } catch (err: any) {
+    console.error("[Email] Failed to send director invite:", err?.message ?? err);
+    return { sent: false, smtpNotConfigured: false, error: err?.message };
+  }
+}

@@ -62,7 +62,12 @@ import {
   Search,
   CheckCircle2,
   Copy,
+  Eye,
+  EyeOff,
+  UserCog,
 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 
 // ── Action badge colours ──────────────────────────────────────────────────────
@@ -82,6 +87,13 @@ export default function TenantManagement() {
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [newTenantName, setNewTenantName] = useState("");
   const [newOwnerUserId, setNewOwnerUserId] = useState("");
+  // Create-with-owner state
+  const [createMode, setCreateMode] = useState<"existing" | "new">("existing");
+  const [newOwnerName, setNewOwnerName] = useState("");
+  const [newOwnerEmail, setNewOwnerEmail] = useState("");
+  const [newOwnerPassword, setNewOwnerPassword] = useState("");
+  const [showOwnerPassword, setShowOwnerPassword] = useState(false);
+  const [createWithOwnerSuccess, setCreateWithOwnerSuccess] = useState<{ tenantName: string; ownerName: string; ownerEmail: string } | null>(null);
   const [assignUserId, setAssignUserId] = useState("");
   const [assignToTenantId, setAssignToTenantId] = useState("");
 
@@ -137,6 +149,16 @@ export default function TenantManagement() {
       setNewTenantName("");
       setNewOwnerUserId("");
       toast.success("Tenant created successfully.");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const createWithOwnerMutation = trpc.tenants.createWithOwner.useMutation({
+    onSuccess: (data) => {
+      utils.tenants.list.invalidate();
+      utils.tenants.listUnassignedUsers.invalidate();
+      setCreateWithOwnerSuccess({ tenantName: data.tenantName, ownerName: data.ownerName, ownerEmail: data.ownerEmail });
+      toast.success(`Tenant "${data.tenantName}" created with owner ${data.ownerName}.`);
     },
     onError: (err) => toast.error(err.message),
   });
@@ -374,51 +396,197 @@ export default function TenantManagement() {
               </DialogContent>
             </Dialog>
 
-            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+            <Dialog open={createDialogOpen} onOpenChange={(open) => {
+              setCreateDialogOpen(open);
+              if (!open) {
+                setCreateMode("existing");
+                setNewTenantName("");
+                setNewOwnerUserId("");
+                setNewOwnerName("");
+                setNewOwnerEmail("");
+                setNewOwnerPassword("");
+                setShowOwnerPassword(false);
+                setCreateWithOwnerSuccess(null);
+              }
+            }}>
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
                   New Tenant
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-lg">
                 <DialogHeader>
                   <DialogTitle>Create New Tenant</DialogTitle>
-                  <DialogDescription>Create a new school tenant and assign an owner (director).</DialogDescription>
+                  <DialogDescription>Create a new school or organisation and assign a director/owner.</DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4 py-2">
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">School / Organisation Name</label>
-                    <Input
-                      placeholder="e.g. Escola Pia de Barcelona"
-                      value={newTenantName}
-                      onChange={e => setNewTenantName(e.target.value)}
-                    />
+
+                {createWithOwnerSuccess ? (
+                  /* ── Success state ── */
+                  <div className="py-4 space-y-4">
+                    <div className="flex items-start gap-3 p-4 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
+                      <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="font-semibold text-green-800 dark:text-green-300">
+                          Tenant "{createWithOwnerSuccess.tenantName}" created
+                        </p>
+                        <p className="text-sm text-green-700 dark:text-green-400 mt-1">
+                          Owner account created for <strong>{createWithOwnerSuccess.ownerName}</strong>
+                          {" "}({createWithOwnerSuccess.ownerEmail}). They can now log in at{" "}
+                          <span className="font-mono text-xs">{window.location.origin}/login</span>.
+                        </p>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={() => setCreateDialogOpen(false)}>Done</Button>
+                    </DialogFooter>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Owner User</label>
-                    <Select value={newOwnerUserId} onValueChange={setNewOwnerUserId}>
-                      <SelectTrigger><SelectValue placeholder="Select the director/owner" /></SelectTrigger>
-                      <SelectContent>
-                        {unassignedUsers?.map(u => (
-                          <SelectItem key={u.id} value={String(u.id)}>
-                            {u.name ?? u.email ?? `User #${u.id}`}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
-                  <Button
-                    onClick={() => {
-                      if (!newTenantName.trim() || !newOwnerUserId) return;
-                      createMutation.mutate({ name: newTenantName.trim(), ownerUserId: parseInt(newOwnerUserId) });
-                    }}
-                    disabled={!newTenantName.trim() || !newOwnerUserId || createMutation.isPending}
-                  >Create Tenant</Button>
-                </DialogFooter>
+                ) : (
+                  /* ── Form state ── */
+                  <>
+                    <div className="space-y-4 py-2">
+                      {/* School name */}
+                      <div className="space-y-1.5">
+                        <Label htmlFor="tenant-name">School / Organisation Name</Label>
+                        <Input
+                          id="tenant-name"
+                          placeholder="e.g. Escola Pia de Barcelona"
+                          value={newTenantName}
+                          onChange={e => setNewTenantName(e.target.value)}
+                        />
+                      </div>
+
+                      <Separator />
+
+                      {/* Owner mode toggle */}
+                      <div className="space-y-2">
+                        <Label>Owner / Director</Label>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={createMode === "existing" ? "default" : "outline"}
+                            onClick={() => setCreateMode("existing")}
+                            className="flex-1"
+                          >
+                            <Users className="h-3.5 w-3.5 mr-1.5" />
+                            Assign Existing User
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={createMode === "new" ? "default" : "outline"}
+                            onClick={() => setCreateMode("new")}
+                            className="flex-1"
+                          >
+                            <UserCog className="h-3.5 w-3.5 mr-1.5" />
+                            Create New User
+                          </Button>
+                        </div>
+                      </div>
+
+                      {createMode === "existing" ? (
+                        /* Assign existing unassigned user */
+                        <div className="space-y-1.5">
+                          <Label>Select Existing User</Label>
+                          <Select value={newOwnerUserId} onValueChange={setNewOwnerUserId}>
+                            <SelectTrigger><SelectValue placeholder="Select the director/owner" /></SelectTrigger>
+                            <SelectContent>
+                              {unassignedUsers?.length === 0 && (
+                                <SelectItem value="_none" disabled>No unassigned users</SelectItem>
+                              )}
+                              {unassignedUsers?.map(u => (
+                                <SelectItem key={u.id} value={String(u.id)}>
+                                  {u.name ?? u.email ?? `User #${u.id}`}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      ) : (
+                        /* Create new owner user */
+                        <div className="space-y-3">
+                          <div className="space-y-1.5">
+                            <Label htmlFor="owner-name">Full Name</Label>
+                            <Input
+                              id="owner-name"
+                              placeholder="e.g. Maria García"
+                              value={newOwnerName}
+                              onChange={e => setNewOwnerName(e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="owner-email">Email Address</Label>
+                            <Input
+                              id="owner-email"
+                              type="email"
+                              placeholder="director@school.cat"
+                              value={newOwnerEmail}
+                              onChange={e => setNewOwnerEmail(e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="owner-password">Temporary Password</Label>
+                            <div className="relative">
+                              <Input
+                                id="owner-password"
+                                type={showOwnerPassword ? "text" : "password"}
+                                placeholder="Min. 8 characters"
+                                value={newOwnerPassword}
+                                onChange={e => setNewOwnerPassword(e.target.value)}
+                                className="pr-10"
+                              />
+                              <button
+                                type="button"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                onClick={() => setShowOwnerPassword(v => !v)}
+                              >
+                                {showOwnerPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              </button>
+                            </div>
+                            <p className="text-xs text-muted-foreground">Share this password with the director so they can log in and change it.</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
+                      {createMode === "existing" ? (
+                        <Button
+                          onClick={() => {
+                            if (!newTenantName.trim() || !newOwnerUserId) return;
+                            createMutation.mutate({ name: newTenantName.trim(), ownerUserId: parseInt(newOwnerUserId) });
+                          }}
+                          disabled={!newTenantName.trim() || !newOwnerUserId || createMutation.isPending}
+                        >
+                          {createMutation.isPending ? "Creating..." : "Create Tenant"}
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={() => {
+                            if (!newTenantName.trim() || !newOwnerName.trim() || !newOwnerEmail.trim() || newOwnerPassword.length < 8) return;
+                            createWithOwnerMutation.mutate({
+                              tenantName: newTenantName.trim(),
+                              ownerName: newOwnerName.trim(),
+                              ownerEmail: newOwnerEmail.trim(),
+                              ownerPassword: newOwnerPassword,
+                            });
+                          }}
+                          disabled={
+                            !newTenantName.trim() ||
+                            !newOwnerName.trim() ||
+                            !newOwnerEmail.trim() ||
+                            newOwnerPassword.length < 8 ||
+                            createWithOwnerMutation.isPending
+                          }
+                        >
+                          {createWithOwnerMutation.isPending ? "Creating..." : "Create Tenant & Owner"}
+                        </Button>
+                      )}
+                    </DialogFooter>
+                  </>
+                )}
               </DialogContent>
             </Dialog>
           </div>

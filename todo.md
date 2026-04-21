@@ -3888,3 +3888,24 @@
 - [x] Acceptance page: shows school name, pre-fills email, name/password form, redirects to login on success
 - [x] Add translation keys: nav_admin_invite_teacher (EN/ES/CA)
 - [x] Write vitest tests for the teacher invite flow (create → validate → accept, single-use, expired)
+
+## Feature: Email Delivery for Invite Links
+
+- [ ] Install nodemailer + @types/nodemailer
+- [ ] Add SMTP secrets: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM
+- [ ] Create server/email.ts helper: sendInviteEmail(to, inviteUrl, role, tenantName, expiresAt)
+- [ ] Wire sendInviteEmail into tenants.createTeacherInvite (fire-and-forget, non-blocking)
+- [ ] Wire sendInviteEmail into tenants.createDirectorInvite (fire-and-forget, non-blocking)
+- [ ] Update NavBar Invite Teacher dialog: show "Email sent to <address>" confirmation when email is provided
+- [ ] Update TenantManagement Invite Director dialog: show email-sent confirmation
+- [ ] Write vitest tests for email helper (mock transport, verify correct fields)
+- [ ] Update todo.md and save checkpoint
+
+## Feature: Create Tenant with Owner User
+
+- [x] Backend: tenants.createWithOwner procedure — atomically creates tenant + owner user (name, email, password, role=director, position=director), assigns user as tenant owner
+- [x] Backend: guard duplicate email on owner user creation
+- [x] Frontend: extend Create Tenant dialog with optional "Add Owner User" toggle section (name, email, password fields)
+- [x] Frontend: show success state with owner name and email after creation
+- [x] Write vitest tests for createWithOwner (happy path, duplicate email, missing fields)
+- [x] Update todo.md and save checkpoint

@@ -183,6 +183,88 @@ export const tenantsRouter = router({
     }),
 
   /**
+   * Create a new tenant AND a new owner user in one atomic step.
+   * The new user is created with role='user', position='director', and is
+   * immediately assigned as the tenant owner.
+   * SEBA admin only.
+   */
+  createWithOwner: adminProcedure
+    .input(
+      z.object({
+        tenantName: z.string().min(1).max(255),
+        ownerName: z.string().min(2).max(255),
+        ownerEmail: z.string().email(),
+        ownerPassword: z.string().min(8).max(128),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      // Guard: email must be unique
+      const [existing] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.email, input.ownerEmail))
+        .limit(1);
+      if (existing)
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "An account with this email already exists.",
+        });
+
+      const passwordHash = await bcrypt.hash(input.ownerPassword, 12);
+      const openId = `local_director_${crypto.randomBytes(16).toString("hex")}`;
+
+      // 1. Create the owner user (no tenantId yet)
+      const [userInsert] = await db.insert(users).values({
+        name: input.ownerName,
+        displayName: input.ownerName,
+        email: input.ownerEmail,
+        openId,
+        passwordHash,
+        loginMethod: "local",
+        role: "user",
+        position: "director",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastSignedIn: new Date(),
+      } as any);
+      const newUserId = (userInsert as any).insertId as number;
+
+      // 2. Create the tenant with the new user as owner
+      const [tenantInsert] = await db.insert(tenants).values({
+        name: input.tenantName,
+        ownerUserId: newUserId,
+      } as any);
+      const newTenantId = (tenantInsert as any).insertId as number;
+
+      // 3. Assign the user to the tenant
+      await db
+        .update(users)
+        .set({ tenantId: newTenantId })
+        .where(eq(users.id, newUserId));
+
+      // 4. Write audit entry
+      await writeAudit({
+        actingUserId: ctx.user.id,
+        targetUserId: newUserId,
+        oldRole: null,
+        newRole: "director",
+        action: "grant",
+        reason: `Created as owner of new tenant: ${input.tenantName}`,
+      });
+
+      return {
+        tenantId: newTenantId,
+        tenantName: input.tenantName,
+        userId: newUserId,
+        ownerName: input.ownerName,
+        ownerEmail: input.ownerEmail,
+      };
+    }),
+
+  /**
    * Update a tenant's name.
    * SEBA admin only.
    */
