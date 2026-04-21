@@ -19,7 +19,7 @@ import {
 import { count, eq, gte, sql, desc, and, lt, inArray, isNotNull, isNull, gt } from "drizzle-orm";
 import crypto from "crypto";
 import { passwordResetTokens } from "../../drizzle/schema";
-import { appSettings, schoolSettings, adminAuditLogs } from "../../drizzle/schema";
+import { appSettings, schoolSettings, adminAuditLogs, roleChangeAudit } from "../../drizzle/schema";
 import { notifyOwner } from "../_core/notification";
 import { generateDirectorReportPdf } from "../directorReportPdf";
 import { storagePut } from "../storage";
@@ -386,13 +386,22 @@ export const directorRouter = router({
         if (input.schoolName !== undefined) (updatePayload as Record<string, unknown>).schoolName = input.schoolName ?? null;
       }
       await db.update(users).set(updatePayload).where(eq(users.id, numericId));
-      // Write audit log entry
+      // Write to adminAuditLogs (general audit trail)
       await db.insert(adminAuditLogs).values({
         userId: ctx.user.id,
         action: "update_user_role",
         resource: "user",
         resourceId: String(numericId),
         details: JSON.stringify({ targetUserId: numericId, oldRole, newRole: input.role }),
+      });
+      // Also write to roleChangeAudit so the Role Change Audit Log shows this change
+      await db.insert(roleChangeAudit).values({
+        actingUserId: ctx.user.id,
+        targetUserId: numericId,
+        oldRole: oldRole ?? null,
+        newRole: input.role,
+        action: "grant",
+        reason: `Role Management: ${oldRole ?? "none"} → ${input.role}`,
       });
       // Notify owner on significant promotions
       const notifyRoles = ["admin", "director", "territorial_director"];

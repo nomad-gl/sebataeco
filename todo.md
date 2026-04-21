@@ -4133,3 +4133,4 @@
 - [x] Email temporary password to teacher/user when local account is created and assigned to a school
 - [x] Set mustChangePassword=true on all admin-created local accounts
 - [x] Enforce password change on first login for mustChangePassword accounts
+- [x] Fix Role Change Audit Log to show all role grants/changes made from Role Management page
