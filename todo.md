@@ -3999,3 +3999,10 @@
 ## Feature: Role Management → Tenant Management sync
 
 - [x] On successful role change in RoleManagement, invalidate tenants.list, tenants.listUnassignedUsers, tenants.listTerritorialDirectors, tenants.listRoleAudit so TenantManagement reflects the update immediately
+
+## Feature: Tenant Management — Director status + Invite Territory Director
+
+- [x] Backend: extend tenants.list to return ownerRole and ownerDeactivatedAt for each tenant
+- [x] Frontend: Owner column — show role badge (director/head_of_study/etc.) and Active/Deactivated status pill next to owner name
+- [x] Frontend: Rename "Invite Director" button to "Invite Territory Director" and open the Grant Territorial Director dialog (or a new TD invite flow) instead of the director invite dialog
+- [x] Update todo.md and save checkpoint

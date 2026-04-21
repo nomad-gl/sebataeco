@@ -80,6 +80,8 @@ export const tenantsRouter = router({
         name: users.name,
         email: users.email,
         tenantId: users.tenantId,
+        role: users.role,
+        deactivatedAt: users.deactivatedAt,
       })
       .from(users);
 
@@ -90,7 +92,7 @@ export const tenantsRouter = router({
     const territoryNameMap = Object.fromEntries(allTerritories.map(t => [t.id, t.name]));
 
     const memberCountMap: Record<number, number> = {};
-    const ownerMap: Record<number, { name: string | null; email: string | null }> = {};
+    const ownerMap: Record<number, { name: string | null; email: string | null; role: string | null; deactivatedAt: Date | null }> = {};
 
     for (const u of allUsers) {
       if (u.tenantId !== null && u.tenantId !== undefined) {
@@ -100,7 +102,12 @@ export const tenantsRouter = router({
 
     for (const t of allTenants) {
       const owner = allUsers.find(u => u.id === t.ownerUserId);
-      ownerMap[t.id] = { name: owner?.name ?? null, email: owner?.email ?? null };
+      ownerMap[t.id] = {
+        name: owner?.name ?? null,
+        email: owner?.email ?? null,
+        role: owner?.role ?? null,
+        deactivatedAt: owner?.deactivatedAt ?? null,
+      };
     }
 
     return allTenants.map(t => ({
@@ -108,6 +115,8 @@ export const tenantsRouter = router({
       memberCount: memberCountMap[t.id] ?? 0,
       ownerName: ownerMap[t.id]?.name ?? null,
       ownerEmail: ownerMap[t.id]?.email ?? null,
+      ownerRole: ownerMap[t.id]?.role ?? null,
+      ownerDeactivatedAt: ownerMap[t.id]?.deactivatedAt ?? null,
       territoryName: t.territoryId ? (territoryNameMap[t.territoryId] ?? null) : null,
     }));
   }),

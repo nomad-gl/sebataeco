@@ -65,10 +65,55 @@ import {
   Eye,
   EyeOff,
   UserCog,
+  GraduationCap,
+  Globe,
+  ShieldCheck,
+  User,
+  CircleCheck,
+  CircleX,
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+
+// ── Role badge metadata ─────────────────────────────────────────────────────
+const ROLE_META: Record<string, { label: string; color: string; Icon: React.ElementType }> = {
+  user:                 { label: "User",                color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",          Icon: User },
+  teacher:              { label: "Teacher",             color: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",              Icon: GraduationCap },
+  director:             { label: "Director",            color: "bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-300",       Icon: Building2 },
+  head_of_study:        { label: "Head of Study",       color: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",          Icon: ShieldCheck },
+  territorial_director: { label: "Territorial Dir.",    color: "bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-300",             Icon: Globe },
+  admin:                { label: "Admin",               color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300",  Icon: Shield },
+};
+
+function OwnerRoleBadge({ role }: { role: string | null }) {
+  if (!role) return null;
+  const meta = ROLE_META[role] ?? ROLE_META.user;
+  const { Icon } = meta;
+  return (
+    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium ${meta.color}`}>
+      <Icon className="w-2.5 h-2.5" />
+      {meta.label}
+    </span>
+  );
+}
+
+function OwnerStatusPill({ deactivatedAt }: { deactivatedAt: Date | null }) {
+  if (deactivatedAt) {
+    return (
+      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">
+        <CircleX className="w-2.5 h-2.5" />
+        Deactivated
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300">
+      <CircleCheck className="w-2.5 h-2.5" />
+      Active
+    </span>
+  );
+}
 
 // ── Action badge colours ──────────────────────────────────────────────────────
 const actionBadge: Record<string, string> = {
@@ -650,9 +695,17 @@ export default function TenantManagement() {
                       <TableRow key={tenant.id}>
                         <TableCell className="font-medium">{tenant.name}</TableCell>
                         <TableCell>
-                          <div className="text-sm">
-                            <div>{tenant.ownerName ?? "—"}</div>
-                            <div className="text-muted-foreground text-xs">{tenant.ownerEmail ?? ""}</div>
+                          <div className="text-sm space-y-0.5">
+                            <div className="font-medium">{tenant.ownerName ?? "—"}</div>
+                            {tenant.ownerEmail && (
+                              <div className="text-muted-foreground text-xs">{tenant.ownerEmail}</div>
+                            )}
+                            {tenant.ownerName && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                <OwnerRoleBadge role={(tenant as any).ownerRole} />
+                                <OwnerStatusPill deactivatedAt={(tenant as any).ownerDeactivatedAt ?? null} />
+                              </div>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -679,12 +732,20 @@ export default function TenantManagement() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-xs px-2"
-                              onClick={() => { setInviteDialogTenantId(tenant.id); setInviteEmail(""); setInviteResult(null); setInviteCopied(false); }}
-                              title="Create Director Invite Link"
+                              className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 text-xs px-2"
+                              onClick={() => {
+                                // Pre-select this tenant's territory (if set) and open the Grant TD dialog
+                                setGrantTerritoryId((tenant as any).territoryId ? String((tenant as any).territoryId) : "");
+                                setGrantEmailSearch("");
+                                setGrantSelectedUser(null);
+                                setGrantReason("");
+                                setGrantSuccessUser(null);
+                                setGrantDialogOpen(true);
+                              }}
+                              title="Invite / Grant Territorial Director"
                             >
-                              <UserPlus className="h-3.5 w-3.5 mr-1" />
-                              Invite Director
+                              <Globe className="h-3.5 w-3.5 mr-1" />
+                              Invite Territory Director
                             </Button>
                             <Button
                               variant="ghost"
