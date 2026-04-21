@@ -38,8 +38,11 @@ import {
   GraduationCap,
   Globe,
   User,
+  MapPin,
+  Languages,
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { Label } from "@/components/ui/label";
+import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -115,6 +118,18 @@ export default function RoleManagement() {
   const [filterRole, setFilterRole] = useState<string>("all");
   const [filterTenant, setFilterTenant] = useState<string>("all");
   const [pending, setPending] = useState<PendingChange | null>(null);
+
+  // Director-specific extra fields shown in the confirmation dialog
+  const [directorLocation, setDirectorLocation] = useState<string>("");
+  const [directorLanguage, setDirectorLanguage] = useState<string>("");
+
+  // Reset director extras whenever a new pending change is set
+  useEffect(() => {
+    if (pending?.newRole === "director") {
+      setDirectorLocation("");
+      setDirectorLanguage("");
+    }
+  }, [pending]);
 
   // Derived tenant list for filter dropdown
   const tenants = useMemo(() => {
@@ -304,7 +319,7 @@ export default function RoleManagement() {
 
       {/* Confirmation dialog */}
       <Dialog open={!!pending} onOpenChange={(open) => !open && setPending(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ShieldAlert className="w-5 h-5 text-amber-500" />
@@ -317,6 +332,47 @@ export default function RoleManagement() {
                 .replace("{to}", t(ROLE_META[pending.newRole]?.labelKey ?? "role_user"))}
             </DialogDescription>
           </DialogHeader>
+
+          {/* Director-specific extra fields */}
+          {pending?.newRole === "director" && (
+            <div className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5 text-sm font-medium">
+                  <MapPin className="w-3.5 h-3.5 text-violet-500" />
+                  School Location
+                </Label>
+                <Select value={directorLocation} onValueChange={setDirectorLocation}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select location…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="historical_centre">Historical Centre</SelectItem>
+                    <SelectItem value="nucli_antic">Nucli Antic</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5 text-sm font-medium">
+                  <Languages className="w-3.5 h-3.5 text-violet-500" />
+                  School Language
+                </Label>
+                <Select value={directorLanguage} onValueChange={setDirectorLanguage}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select language…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="en">English</SelectItem>
+                    <SelectItem value="es">Spanish (Español)</SelectItem>
+                    <SelectItem value="ca">Catalan (Català)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                These details help identify the school. They are optional and can be updated later.
+              </p>
+            </div>
+          )}
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setPending(null)}>{t("btn_cancel")}</Button>
             <Button

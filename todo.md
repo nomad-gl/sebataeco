@@ -4006,3 +4006,10 @@
 - [x] Frontend: Owner column — show role badge (director/head_of_study/etc.) and Active/Deactivated status pill next to owner name
 - [x] Frontend: Rename "Invite Director" button to "Invite Territory Director" and open the Grant Territorial Director dialog (or a new TD invite flow) instead of the director invite dialog
 - [x] Update todo.md and save checkpoint
+
+## Feature: School Management rename + role capitalisation + Director location/language
+
+- [x] Capitalise role names in Role Change Audit Log column (oldRole/newRole raw strings → formatted labels)
+- [x] Rename "Tenant Management" → "School Management": page title, i18n key (EN), NavBar href label, App.tsx route comment
+- [x] RoleManagement: when Director is selected in the role dropdown, show location picker (Historical Centre / Nucli Antic) and language picker (EN/ES/CA) in the confirmation dialog
+- [x] Update todo.md and save checkpoint

@@ -34,7 +34,7 @@ export const translations = {
     nav_admin_platform_collapse: "Show platform tools",
     nav_admin_invite_teacher: "Invite Teacher",
     nav_admin_register_td: "Register Territorial Director",
-    nav_admin_tenant_management: "Tenant Management",
+    nav_admin_tenant_management: "School Management",
     nav_admin_enrolment: "Enrolment & Records",
     nav_admin_finance: "Budget & Finance",
     nav_admin_staff: "Staff Management",

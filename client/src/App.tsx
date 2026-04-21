@@ -74,7 +74,7 @@ import AdminWakeWords from "./pages/admin/AdminWakeWords";
 import AdminAudioResponses from "./pages/admin/AdminAudioResponses";
 import AttendanceRegister from "./pages/AttendanceRegister";
 import IndividualPlans from "./pages/IndividualPlans";
-import TenantManagement from "./pages/TenantManagement";
+import SchoolManagement from "./pages/TenantManagement";
 import RoleManagement from "./pages/RoleManagement";
 import TerritorialDirectorOverview from "./pages/TerritorialDirectorOverview";
 import DirectorInviteAccept from "./pages/DirectorInviteAccept";
@@ -193,7 +193,7 @@ function Router() {
           <HosOrAdminRoute component={SituacioGenerator} />
         </Route>
         <Route path="/individual-plans" component={IndividualPlans} />
-        <Route path="/seba/tenants" component={TenantManagement} />
+        <Route path="/seba/tenants" component={SchoolManagement} />
         <Route path="/seba/roles" component={RoleManagement} />
         <Route path="/territorial/overview" component={TerritorialDirectorOverview} />
         <Route path="/invite/director/:token" component={DirectorInviteAccept} />

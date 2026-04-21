@@ -115,6 +115,20 @@ function OwnerStatusPill({ deactivatedAt }: { deactivatedAt: Date | null }) {
   );
 }
 
+// ── Role label formatter ────────────────────────────────────────────────────
+const ROLE_LABELS: Record<string, string> = {
+  user: "User",
+  teacher: "Teacher",
+  director: "Director",
+  head_of_study: "Head of Study",
+  territorial_director: "Territorial Director",
+  admin: "Admin",
+};
+function formatRole(raw: string | null): string {
+  if (!raw) return "—";
+  return ROLE_LABELS[raw] ?? raw.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+}
+
 // ── Action badge colours ──────────────────────────────────────────────────────
 const actionBadge: Record<string, string> = {
   grant: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
@@ -318,8 +332,8 @@ export default function TenantManagement() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Building2 className="h-8 w-8 text-primary" />
-            Tenant Management
+            <Building2 className="h-7 w-7" />
+            School Management
           </h1>
           <p className="text-muted-foreground mt-1">
             SEBA super-admin view — manage all school tenants, user assignments, and territorial oversight.
@@ -1262,12 +1276,12 @@ export default function TenantManagement() {
                           <TableCell className="text-xs">
                             {r.oldRole ? (
                               <span className="flex items-center gap-1">
-                                <span className="text-muted-foreground">{r.oldRole}</span>
+                                <span className="text-muted-foreground">{formatRole(r.oldRole)}</span>
                                 <span className="text-muted-foreground">→</span>
-                                <span className="font-medium">{r.newRole}</span>
+                                <span className="font-medium">{formatRole(r.newRole)}</span>
                               </span>
                             ) : (
-                              <span className="font-medium">{r.newRole}</span>
+                              <span className="font-medium">{formatRole(r.newRole)}</span>
                             )}
                           </TableCell>
                           <TableCell className="text-xs text-muted-foreground">
