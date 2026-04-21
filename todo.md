@@ -4034,3 +4034,10 @@
 - [x] Add "Unassigned" filter tab in Role Management role filter dropdown
 - [x] Update filtered logic to support filterRole === "unassigned" (role='user' AND tenantId IS NULL)
 - [x] Display "—" in School column for unassigned users
+
+## Feature: Role Management Next Steps (3 items)
+
+- [x] Show "Registered" (createdAt) column in Role Management table when Unassigned filter is active
+- [x] Add bulk-assign: checkbox column in Unassigned filter view + "Assign to school" action with school picker dialog (calls tenants.bulkAssignUsers)
+- [x] Add bulkAssignUsers procedure (adminProcedure, accepts userIds[] + tenantId, updates all in one query)
+- [x] Notify owner via email/notification when a new Manus OAuth user registers for the first time (upsertUser detects new vs returning user)

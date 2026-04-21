@@ -116,6 +116,19 @@ export default function RoleManagement() {
     onError: (err) => toast.error(err.message),
   });
 
+  const bulkAssignMutation = trpc.tenants.bulkAssignUsers.useMutation({
+    onSuccess: (data) => {
+      toast.success(`${data.assigned} user${data.assigned !== 1 ? "s" : ""} assigned to school successfully.`);
+      setBulkAssignOpen(false);
+      setBulkTenantId("");
+      setSelectedIds(new Set());
+      void refetch();
+      void utils.tenants.list.invalidate();
+      void utils.tenants.listUnassignedUsers.invalidate();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   const [search, setSearch] = useState("");
   const [filterRole, setFilterRole] = useState<string>("all");
   const [filterTenant, setFilterTenant] = useState<string>("all");
@@ -124,6 +137,16 @@ export default function RoleManagement() {
   // Director-specific extra fields shown in the confirmation dialog
   const [directorLocation, setDirectorLocation] = useState<string>("");
   const [directorLanguage, setDirectorLanguage] = useState<string>("");
+
+  // Bulk-assign selection for Unassigned filter view
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
+  const [bulkTenantId, setBulkTenantId] = useState<string>("");
+
+  // Reset selection when filter changes
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [filterRole]);
 
   // Reset director extras whenever a new pending change is set
   useEffect(() => {
@@ -253,6 +276,53 @@ export default function RoleManagement() {
         </CardContent>
       </Card>
 
+      {/* Bulk-assign toolbar — shown only when Unassigned filter is active and items are selected */}
+      {filterRole === "unassigned" && selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 px-4 py-2 bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800 rounded-lg">
+          <span className="text-sm font-medium text-violet-700 dark:text-violet-300">
+            {selectedIds.size} user{selectedIds.size !== 1 ? "s" : ""} selected
+          </span>
+          <Button size="sm" variant="default" className="bg-violet-600 hover:bg-violet-700 text-white" onClick={() => setBulkAssignOpen(true)}>
+            Assign to School
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>Clear</Button>
+        </div>
+      )}
+
+      {/* Bulk-assign dialog */}
+      <Dialog open={bulkAssignOpen} onOpenChange={setBulkAssignOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign {selectedIds.size} user{selectedIds.size !== 1 ? "s" : ""} to a school</DialogTitle>
+            <DialogDescription>Select the school to assign the selected users to. Their role will remain unchanged.</DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <Select value={bulkTenantId} onValueChange={setBulkTenantId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a school..." />
+              </SelectTrigger>
+              <SelectContent>
+                {tenants.map((tn) => (
+                  <SelectItem key={tn.id} value={tn.id}>{tn.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setBulkAssignOpen(false)}>Cancel</Button>
+            <Button
+              disabled={!bulkTenantId || bulkAssignMutation.isPending}
+              onClick={() => {
+                if (!bulkTenantId) return;
+                bulkAssignMutation.mutate({ userIds: Array.from(selectedIds), tenantId: Number(bulkTenantId) });
+              }}
+            >
+              {bulkAssignMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Assign"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* User table */}
       <Card>
         <CardHeader className="pb-2">
@@ -274,16 +344,47 @@ export default function RoleManagement() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/40">
+                    {filterRole === "unassigned" && (
+                      <th className="px-4 py-3 w-8">
+                        <input
+                          type="checkbox"
+                          className="rounded"
+                          checked={selectedIds.size === filtered.length && filtered.length > 0}
+                          onChange={(e) => {
+                            if (e.target.checked) setSelectedIds(new Set(filtered.map(u => u.id)));
+                            else setSelectedIds(new Set());
+                          }}
+                        />
+                      </th>
+                    )}
                     <th className="text-left px-4 py-3 font-medium">{t("role_mgmt_col_user")}</th>
                     <th className="text-left px-4 py-3 font-medium">{t("role_mgmt_col_school")}</th>
                     <th className="text-left px-4 py-3 font-medium">{t("role_mgmt_col_current_role")}</th>
                     <th className="text-left px-4 py-3 font-medium">{t("role_mgmt_col_assign_role")}</th>
-                    <th className="text-left px-4 py-3 font-medium">{t("role_mgmt_col_last_seen")}</th>
+                    {filterRole === "unassigned" ? (
+                      <th className="text-left px-4 py-3 font-medium">Registered</th>
+                    ) : (
+                      <th className="text-left px-4 py-3 font-medium">{t("role_mgmt_col_last_seen")}</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map((user) => (
-                    <tr key={user.id} className={`border-b last:border-0 hover:bg-muted/20 transition-colors ${user.deactivatedAt ? "opacity-50" : ""}`}>
+                    <tr key={user.id} className={`border-b last:border-0 hover:bg-muted/20 transition-colors ${user.deactivatedAt ? "opacity-50" : ""} ${selectedIds.has(user.id) ? "bg-violet-50 dark:bg-violet-950/20" : ""}`}>
+                      {filterRole === "unassigned" && (
+                        <td className="px-4 py-3">
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={selectedIds.has(user.id)}
+                            onChange={(e) => {
+                              const next = new Set(selectedIds);
+                              if (e.target.checked) next.add(user.id); else next.delete(user.id);
+                              setSelectedIds(next);
+                            }}
+                          />
+                        </td>
+                      )}
                       <td className="px-4 py-3">
                         <div className="font-medium">{user.displayName ?? user.email ?? `#${user.id}`}</div>
                         {user.displayName && user.email && (
@@ -334,7 +435,7 @@ export default function RoleManagement() {
                         </Select>
                       </td>
                       <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                        {formatDate(user.lastSignedIn)}
+                        {filterRole === "unassigned" ? formatDate(user.createdAt) : formatDate(user.lastSignedIn)}
                       </td>
                     </tr>
                   ))}

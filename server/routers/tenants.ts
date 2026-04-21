@@ -324,6 +324,28 @@ export const tenantsRouter = router({
     }),
 
   /**
+   * Bulk-assign multiple users to a single tenant in one operation.
+   * SEBA admin only — used from the Role Management Unassigned filter view.
+   */
+  bulkAssignUsers: adminProcedure
+    .input(z.object({
+      userIds: z.array(z.number().int().positive()).min(1),
+      tenantId: z.number().int().positive(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      const { inArray } = await import("drizzle-orm");
+      await db
+        .update(users)
+        .set({ tenantId: input.tenantId })
+        .where(inArray(users.id, input.userIds));
+
+      return { assigned: input.userIds.length };
+    }),
+
+  /**
    * List all users not yet assigned to any tenant.
    * SEBA admin only — useful for onboarding new directors.
    */

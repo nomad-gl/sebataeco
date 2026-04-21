@@ -29,6 +29,10 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     return;
   }
 
+  // Detect first-time registration (no existing row) before the upsert
+  const existing = await db.select({ id: users.id }).from(users).where(eq(users.openId, user.openId)).limit(1);
+  const isNewUser = existing.length === 0;
+
   try {
     const values: InsertUser = {
       openId: user.openId,
@@ -77,6 +81,18 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     await db.insert(users).values(values).onDuplicateKeyUpdate({
       set: updateSet,
     });
+
+    // Fire-and-forget owner notification for brand-new registrations
+    if (isNewUser) {
+      const displayName = user.name ?? user.email ?? user.openId;
+      const email = user.email ? `\nEmail: ${user.email}` : "";
+      import("./_core/notification").then(({ notifyOwner }) => {
+        notifyOwner({
+          title: `New user registered: ${displayName}`,
+          content: `A new user has signed in for the first time via Manus OAuth.\n\nName: ${displayName}${email}\nRegistered at: ${new Date().toISOString()}\n\nThis user is currently unassigned. Visit Role Management to assign them to a school.`,
+        }).catch(() => { /* silent */ });
+      }).catch(() => { /* silent */ });
+    }
   } catch (error) {
     console.error("[Database] Failed to upsert user:", error);
     throw error;
