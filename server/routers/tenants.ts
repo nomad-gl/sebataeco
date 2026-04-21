@@ -214,7 +214,7 @@ export const tenantsRouter = router({
         });
 
       const passwordHash = await bcrypt.hash(input.ownerPassword, 12);
-      const openId = `local_director_${crypto.randomBytes(16).toString("hex")}`;
+      const openId = `local:${input.ownerEmail.toLowerCase().trim()}`;
 
       // 1. Create the owner user (no tenantId yet)
       const [userInsert] = await db.insert(users).values({
@@ -224,7 +224,7 @@ export const tenantsRouter = router({
         openId,
         passwordHash,
         loginMethod: "local",
-        role: "user",
+        role: "director",
         position: "director",
         mustChangePassword: true,
         createdAt: new Date(),
@@ -850,18 +850,22 @@ export const tenantsRouter = router({
       if (existing) throw new TRPCError({ code: "CONFLICT", message: "An account with this email already exists." });
 
       const passwordHash = await bcrypt.hash(input.password, 12);
+      const openId = `local:${input.email.toLowerCase().trim()}`;
 
       const [insertResult] = await db.insert(users).values({
         name: input.name,
+        displayName: input.name,
         email: input.email,
+        openId,
         passwordHash,
         loginMethod: "local",
-        role: "user",
+        role: "director",
         position: "director",
         tenantId: invite.tenantId,
         mustChangePassword: true,
         createdAt: new Date(),
         updatedAt: new Date(),
+        lastSignedIn: new Date(),
       } as any);
       const userId = (insertResult as any).insertId as number;
 
@@ -965,7 +969,7 @@ export const tenantsRouter = router({
       if (existing) throw new TRPCError({ code: "CONFLICT", message: "An account with this email already exists." });
 
       const passwordHash = await bcrypt.hash(input.password, 12);
-      const openId = `local_teacher_${crypto.randomBytes(16).toString("hex")}`;
+      const openId = `local:${input.email.toLowerCase().trim()}`;
 
       const [insertResult] = await db.insert(users).values({
         name: input.name,
@@ -974,7 +978,7 @@ export const tenantsRouter = router({
         openId,
         passwordHash,
         loginMethod: "local",
-        role: "user",
+        role: "teacher",
         position: "teacher",
         tenantId: invite.tenantId ?? null,
         mustChangePassword: true,

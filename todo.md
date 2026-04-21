@@ -3963,3 +3963,20 @@
 - [x] Add i18n keys for sovereignty warning (EN/ES/CA): sovereignty_warning_title, sovereignty_warning_body, sovereignty_warning_suggestion, sovereignty_warning_contact_ca, sovereignty_warning_contact_en
 - [x] Write vitest tests for isConsumerEmail domain detection (12 test cases)
 - [x] Update todo.md and save checkpoint
+
+## Audit: Director-Created User Access Flows
+
+- [x] Map all Director-controlled user creation paths (teacher invite, director invite, createWithOwner)
+- [x] Verify teacher invite flow: token validation → register → login → correct role/tenantId
+- [x] Verify director invite flow: token validation → register → login → correct role/tenantId
+- [x] Verify createWithOwner flow: admin creates director → mustChangePassword → login → change password → access
+- [x] Verify TeacherInviteAccept page wires to correct tenants.acceptTeacherInvite procedure
+- [x] Verify DirectorInviteAccept page wires to correct tenants.acceptDirectorInvite procedure
+- [x] Verify mustChangePassword redirect works after first login for all created users
+- [x] Verify role-based route access: teacher sees teacher pages, director sees director pages
+- [x] Fix Bug 1: acceptDirectorInvite missing openId, displayName, lastSignedIn — added all three
+- [x] Fix Bug 2: acceptDirectorInvite set role='user' instead of role='director' — corrected
+- [x] Fix Bug 3: createWithOwner used random openId format — changed to local:<email> format
+- [x] Fix Bug 4: acceptTeacherInvite used random openId format — changed to local:<email> format
+- [x] Write vitest tests (20 tests) for all three creation flows in directorAccess.test.ts
+- [x] Update todo.md and save checkpoint
