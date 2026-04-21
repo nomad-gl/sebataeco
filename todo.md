@@ -4048,3 +4048,16 @@
 - [x] Add 3-letter prefix search input + scrollable list in role change confirmation dialog
 - [x] Selecting a school from the list shows a selected badge and clears the dropdown
 - [x] Update todo.md and save checkpoint
+
+## Feature: School Name Persistence + Municipality Filter + Auto-Location
+
+- [x] Add schoolName column to users table in schema.ts, generate migration SQL, apply via DB
+- [x] Extend updateUserRole to accept and save schoolName
+- [x] Return schoolName from listAllUsersForAdmin and tenants.list (ownerSchoolName)
+- [x] Display schoolName in Role Management user row (under role badge for directors)
+- [x] Display ownerSchoolName in School Management owner cell
+- [x] Wire selectedSchool → schoolName in RoleManagement confirmation dialog
+- [x] Add municipality filter dropdown above school search box in role change dialog
+- [x] Selecting municipality filters SCHOOLS_BY_MUNICIPALITY list instead of full CATALONIA_SCHOOLS
+- [x] Auto-populate directorLocation when selected school name matches a known location pattern
+- [x] Update todo.md and save checkpoint

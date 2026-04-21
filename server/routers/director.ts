@@ -358,6 +358,7 @@ export const directorRouter = router({
       /** Only relevant when role === 'director' */
       schoolLocation: z.string().max(64).optional().nullable(),
       schoolLanguage: z.string().max(8).optional().nullable(),
+      schoolName: z.string().max(256).optional().nullable(),
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -380,6 +381,7 @@ export const directorRouter = router({
       if (input.role === "director") {
         if (input.schoolLocation !== undefined) (updatePayload as Record<string, unknown>).schoolLocation = input.schoolLocation ?? null;
         if (input.schoolLanguage !== undefined) (updatePayload as Record<string, unknown>).schoolLanguage = input.schoolLanguage ?? null;
+        if (input.schoolName !== undefined) (updatePayload as Record<string, unknown>).schoolName = input.schoolName ?? null;
       }
       await db.update(users).set(updatePayload).where(eq(users.id, numericId));
       // Write audit log entry
@@ -428,6 +430,7 @@ export const directorRouter = router({
         deactivatedAt: users.deactivatedAt,
         schoolLocation: users.schoolLocation,
         schoolLanguage: users.schoolLanguage,
+        schoolName: users.schoolName,
       })
       .from(users)
       .leftJoin(tenants, eq(users.tenantId, tenants.id))

@@ -52,6 +52,11 @@ export const users = mysqlTable("users", {
    */
   schoolLanguage: varchar("schoolLanguage", { length: 8 }),
   /**
+   * For users with role='director': the full official school name selected from
+   * the Generalitat de Catalunya directory. NULL for all other roles.
+   */
+  schoolName: varchar("schoolName", { length: 256 }),
+  /**
    * When true the user must change their password before accessing the app.
    * Set to true for accounts created by admins with a temporary password.
    * Cleared to false once the user successfully changes their password.

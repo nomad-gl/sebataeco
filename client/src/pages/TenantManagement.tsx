@@ -720,6 +720,12 @@ export default function TenantManagement() {
                                 <OwnerStatusPill deactivatedAt={(tenant as any).ownerDeactivatedAt ?? null} />
                               </div>
                             )}
+                            {(tenant as any).ownerSchoolName && (
+                              <div className="flex items-center gap-0.5 mt-1 text-xs text-slate-600 dark:text-slate-400 max-w-[200px]">
+                                <Building2 className="h-3 w-3 shrink-0" />
+                                <span className="truncate" title={(tenant as any).ownerSchoolName}>{(tenant as any).ownerSchoolName}</span>
+                              </div>
+                            )}
                             {((tenant as any).ownerSchoolLocation || (tenant as any).ownerSchoolLanguage) && (
                               <div className="flex flex-wrap gap-2 mt-1">
                                 {(tenant as any).ownerSchoolLocation && (

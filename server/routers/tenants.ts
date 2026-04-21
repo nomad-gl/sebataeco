@@ -84,6 +84,7 @@ export const tenantsRouter = router({
         deactivatedAt: users.deactivatedAt,
         schoolLocation: users.schoolLocation,
         schoolLanguage: users.schoolLanguage,
+        schoolName: users.schoolName,
       })
       .from(users);
 
@@ -94,7 +95,7 @@ export const tenantsRouter = router({
     const territoryNameMap = Object.fromEntries(allTerritories.map(t => [t.id, t.name]));
 
     const memberCountMap: Record<number, number> = {};
-    const ownerMap: Record<number, { name: string | null; email: string | null; role: string | null; deactivatedAt: Date | null; schoolLocation: string | null; schoolLanguage: string | null }> = {};
+    const ownerMap: Record<number, { name: string | null; email: string | null; role: string | null; deactivatedAt: Date | null; schoolLocation: string | null; schoolLanguage: string | null; schoolName: string | null }> = {};
 
     for (const u of allUsers) {
       if (u.tenantId !== null && u.tenantId !== undefined) {
@@ -111,6 +112,7 @@ export const tenantsRouter = router({
         deactivatedAt: owner?.deactivatedAt ?? null,
         schoolLocation: owner?.schoolLocation ?? null,
         schoolLanguage: owner?.schoolLanguage ?? null,
+        schoolName: owner?.schoolName ?? null,
       };
     }
 
@@ -123,6 +125,7 @@ export const tenantsRouter = router({
       ownerDeactivatedAt: ownerMap[t.id]?.deactivatedAt ?? null,
       ownerSchoolLocation: ownerMap[t.id]?.schoolLocation ?? null,
       ownerSchoolLanguage: ownerMap[t.id]?.schoolLanguage ?? null,
+      ownerSchoolName: ownerMap[t.id]?.schoolName ?? null,
       territoryName: t.territoryId ? (territoryNameMap[t.territoryId] ?? null) : null,
     }));
   }),

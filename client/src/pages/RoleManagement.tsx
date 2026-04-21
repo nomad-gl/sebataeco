@@ -45,7 +45,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
-import { CATALONIA_SCHOOLS } from "@/data/cataloniaSchools";
+import { CATALONIA_SCHOOLS, CATALONIA_MUNICIPALITIES, SCHOOLS_BY_MUNICIPALITY } from "@/data/cataloniaSchools";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type UserRole = "user" | "teacher" | "director" | "head_of_study" | "territorial_director" | "admin";
@@ -63,6 +63,7 @@ type ManagedUser = {
   deactivatedAt: Date | null;
   schoolLocation: string | null;
   schoolLanguage: string | null;
+  schoolName: string | null;
 };
 
 type PendingChange = { user: ManagedUser; newRole: UserRole };
@@ -141,6 +142,7 @@ export default function RoleManagement() {
   const [directorLanguage, setDirectorLanguage] = useState<string>("");
   const [schoolSearch, setSchoolSearch] = useState<string>("");
   const [selectedSchool, setSelectedSchool] = useState<string>("");
+  const [municipalityFilter, setMunicipalityFilter] = useState<string>("");
 
   // Bulk-assign selection for Unassigned filter view
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -159,15 +161,20 @@ export default function RoleManagement() {
       setDirectorLanguage("");
       setSchoolSearch("");
       setSelectedSchool("");
+      setMunicipalityFilter("");
     }
   }, [pending]);
 
-  // Filtered school list — only show results once 3+ characters are typed
+  // Filtered school list — filter by municipality first, then by 3+ char search
   const schoolMatches = useMemo(() => {
-    if (schoolSearch.trim().length < 3) return [];
+    const pool = municipalityFilter
+      ? (SCHOOLS_BY_MUNICIPALITY[municipalityFilter] ?? [])
+      : CATALONIA_SCHOOLS;
+    if (!municipalityFilter && schoolSearch.trim().length < 3) return [];
+    if (schoolSearch.trim().length === 0) return pool.slice(0, 100);
     const q = schoolSearch.trim().toLowerCase();
-    return CATALONIA_SCHOOLS.filter((s) => s.toLowerCase().includes(q)).slice(0, 100);
-  }, [schoolSearch]);
+    return pool.filter((s) => s.toLowerCase().includes(q)).slice(0, 100);
+  }, [schoolSearch, municipalityFilter]);
 
   // Derived tenant list for filter dropdown
   const tenants = useMemo(() => {
@@ -214,6 +221,7 @@ export default function RoleManagement() {
       ...(pending.newRole === "director" ? {
         schoolLocation: directorLocation || null,
         schoolLanguage: directorLanguage || null,
+        schoolName: selectedSchool || null,
       } : {}),
     });
     setPending(null);
@@ -412,6 +420,12 @@ export default function RoleManagement() {
                       </td>
                       <td className="px-4 py-3">
                         <RoleBadge role={user.role} t={t} />
+                        {user.role === "director" && user.schoolName && (
+                          <div className="mt-1 flex items-center gap-0.5 text-xs text-slate-600 dark:text-slate-400 max-w-[180px]">
+                            <Building2 className="w-3 h-3 shrink-0" />
+                            <span className="truncate" title={user.schoolName}>{user.schoolName}</span>
+                          </div>
+                        )}
                         {user.role === "director" && (user.schoolLocation || user.schoolLanguage) && (
                           <div className="mt-1 flex flex-wrap gap-1">
                             {user.schoolLocation && (
@@ -479,18 +493,39 @@ export default function RoleManagement() {
           {pending?.newRole === "director" && (
             <div className="space-y-4 py-2">
 
+              {/* ── Municipality filter ── */}
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5 text-sm font-medium">
+                  <Globe className="w-3.5 h-3.5 text-violet-500" />
+                  Municipality
+                  <span className="text-xs font-normal text-muted-foreground ml-1">(optional — narrows the school list)</span>
+                </Label>
+                <Select value={municipalityFilter} onValueChange={(v) => { setMunicipalityFilter(v === "__all__" ? "" : v); setSchoolSearch(""); setSelectedSchool(""); }}>
+                  <SelectTrigger className="w-full text-sm">
+                    <SelectValue placeholder="All municipalities…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">All municipalities</SelectItem>
+                    {CATALONIA_MUNICIPALITIES.map((m) => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* ── School search ── */}
               <div className="space-y-1.5">
                 <Label className="flex items-center gap-1.5 text-sm font-medium">
                   <Building2 className="w-3.5 h-3.5 text-violet-500" />
                   School Name
-                  <span className="text-xs font-normal text-muted-foreground ml-1">(type 3+ letters to search)</span>
+                  {!municipalityFilter && <span className="text-xs font-normal text-muted-foreground ml-1">(type 3+ letters to search)</span>}
+                  {municipalityFilter && <span className="text-xs font-normal text-muted-foreground ml-1">(showing schools in {municipalityFilter})</span>}
                 </Label>
                 <div className="relative">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
                   <Input
                     className="pl-8 text-sm"
-                    placeholder="e.g. Escola Sant…"
+                    placeholder={municipalityFilter ? `Search in ${municipalityFilter}…` : "e.g. Escola Sant…"}
                     value={schoolSearch}
                     onChange={(e) => {
                       setSchoolSearch(e.target.value);
