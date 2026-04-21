@@ -202,7 +202,10 @@ export default function RoleManagement() {
 
   // Password Management card state
   const [pwdSearch, setPwdSearch] = useState("");
+  const [pwdFilter, setPwdFilter] = useState<"all" | "set" | "not_set" | "must_change">("all");
   const [confirmResetUserId, setConfirmResetUserId] = useState<number | null>(null);
+  const [pwdSelectedIds, setPwdSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkResetConfirm, setBulkResetConfirm] = useState(false);
   const { data: pwdStatusUsers = [], isLoading: pwdLoading, refetch: refetchPwd } =
     trpc.director.listUsersPasswordStatus.useQuery();
   const resetPasswordMutation = trpc.director.adminResetUserPassword.useMutation({
@@ -216,6 +219,20 @@ export default function RoleManagement() {
       setConfirmResetUserId(null);
     },
   });
+
+  async function bulkResetPasswords(ids: number[]) {
+    let done = 0;
+    for (const id of ids) {
+      try {
+        await resetPasswordMutation.mutateAsync({ userId: id });
+        done++;
+      } catch { /* individual error already toasted */ }
+    }
+    toast.success(`${done} password${done !== 1 ? "s" : ""} reset and emailed.`);
+    setPwdSelectedIds(new Set());
+    setBulkResetConfirm(false);
+    void refetchPwd();
+  }
 
   // Reset selection when filter changes
   useEffect(() => {
@@ -625,60 +642,151 @@ export default function RoleManagement() {
           </p>
         </CardHeader>
         <CardContent>
-          {/* Search */}
-          <div className="relative mb-3">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-            <Input
-              className="pl-8 text-sm"
-              placeholder="Search by name or email…"
-              value={pwdSearch}
-              onChange={(e) => setPwdSearch(e.target.value)}
-            />
+          {/* Toolbar: search + filter + bulk reset */}
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <div className="relative flex-1 min-w-[180px]">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+              <Input
+                className="pl-8 text-sm"
+                placeholder="Search by name, email or school…"
+                value={pwdSearch}
+                onChange={(e) => setPwdSearch(e.target.value)}
+              />
+            </div>
+            {/* Status filter */}
+            <Select value={pwdFilter} onValueChange={(v) => { setPwdFilter(v as typeof pwdFilter); setPwdSelectedIds(new Set()); }}>
+              <SelectTrigger className="w-[170px] text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All users</SelectItem>
+                <SelectItem value="set">Password set</SelectItem>
+                <SelectItem value="not_set">No password</SelectItem>
+                <SelectItem value="must_change">Must change</SelectItem>
+              </SelectContent>
+            </Select>
+            {/* Bulk reset */}
+            {pwdSelectedIds.size > 0 && (
+              bulkResetConfirm ? (
+                <span className="inline-flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground">Reset {pwdSelectedIds.size} user{pwdSelectedIds.size !== 1 ? "s" : ""}?</span>
+                  <button
+                    className="p-1 rounded text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
+                    onClick={() => bulkResetPasswords(Array.from(pwdSelectedIds))}
+                    title="Confirm bulk reset"
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    className="p-1 rounded text-muted-foreground hover:bg-muted"
+                    onClick={() => setBulkResetConfirm(false)}
+                    title="Cancel"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs gap-1 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400"
+                  onClick={() => setBulkResetConfirm(true)}
+                >
+                  <KeyRound className="w-3 h-3" />
+                  Reset {pwdSelectedIds.size} selected
+                </Button>
+              )
+            )}
           </div>
 
           {pwdLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
             </div>
-          ) : (
-            <div className="overflow-x-auto rounded border border-border">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-muted/40 border-b border-border">
-                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">User</th>
-                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Role</th>
-                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Password</th>
-                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Status</th>
-                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Last Sign-in</th>
-                    <th className="px-3 py-2" />
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {pwdStatusUsers
-                    .filter((u) => {
-                      if (!pwdSearch.trim()) return true;
-                      const q = pwdSearch.toLowerCase();
-                      return (
-                        (u.name ?? "").toLowerCase().includes(q) ||
-                        (u.displayName ?? "").toLowerCase().includes(q) ||
-                        (u.email ?? "").toLowerCase().includes(q)
-                      );
-                    })
-                    .map((u) => {
+          ) : (() => {
+            const filtered = pwdStatusUsers.filter((u) => {
+              // text search
+              if (pwdSearch.trim()) {
+                const q = pwdSearch.toLowerCase();
+                const match =
+                  (u.name ?? "").toLowerCase().includes(q) ||
+                  (u.displayName ?? "").toLowerCase().includes(q) ||
+                  (u.email ?? "").toLowerCase().includes(q) ||
+                  (u.schoolName ?? "").toLowerCase().includes(q);
+                if (!match) return false;
+              }
+              // status filter
+              if (pwdFilter === "set") return u.hasPassword;
+              if (pwdFilter === "not_set") return !u.hasPassword;
+              if (pwdFilter === "must_change") return !!u.mustChangePassword;
+              return true;
+            });
+            const allFilteredIds = filtered.filter(u => !!u.email).map(u => u.id);
+            const allChecked = allFilteredIds.length > 0 && allFilteredIds.every(id => pwdSelectedIds.has(id));
+            return (
+              <div className="overflow-x-auto rounded border border-border">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-muted/40 border-b border-border">
+                      <th className="px-3 py-2 w-8">
+                        <input
+                          type="checkbox"
+                          className="rounded"
+                          checked={allChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setPwdSelectedIds(new Set(allFilteredIds));
+                            } else {
+                              setPwdSelectedIds(new Set());
+                            }
+                          }}
+                          title="Select all"
+                        />
+                      </th>
+                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">User</th>
+                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">Role</th>
+                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">School</th>
+                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">Password</th>
+                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">Status</th>
+                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">Last Sign-in</th>
+                      <th className="px-3 py-2" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {filtered.map((u) => {
                       const displayName = u.name ?? u.displayName ?? u.email ?? `#${u.id}`;
                       const isResetting = resetPasswordMutation.isPending && confirmResetUserId === u.id;
+                      const isChecked = pwdSelectedIds.has(u.id);
                       return (
-                        <tr key={u.id} className="hover:bg-muted/20 transition-colors">
+                        <tr key={u.id} className={`hover:bg-muted/20 transition-colors ${isChecked ? "bg-amber-50/40 dark:bg-amber-900/10" : ""}`}>
+                          {/* Checkbox */}
+                          <td className="px-3 py-2">
+                            <input
+                              type="checkbox"
+                              className="rounded"
+                              checked={isChecked}
+                              disabled={!u.email}
+                              onChange={(e) => {
+                                const next = new Set(pwdSelectedIds);
+                                if (e.target.checked) next.add(u.id); else next.delete(u.id);
+                                setPwdSelectedIds(next);
+                              }}
+                            />
+                          </td>
                           {/* User */}
                           <td className="px-3 py-2">
-                            <div className="font-medium truncate max-w-[180px]">{displayName}</div>
+                            <div className="font-medium truncate max-w-[160px]">{displayName}</div>
                             {u.email && displayName !== u.email && (
-                              <div className="text-xs text-muted-foreground truncate max-w-[180px]">{u.email}</div>
+                              <div className="text-xs text-muted-foreground truncate max-w-[160px]">{u.email}</div>
                             )}
                           </td>
                           {/* Role */}
                           <td className="px-3 py-2">
                             <RoleBadge role={u.role ?? "user"} t={t} />
+                          </td>
+                          {/* School */}
+                          <td className="px-3 py-2 text-xs text-muted-foreground max-w-[140px] truncate">
+                            {u.schoolName ?? <span className="italic">—</span>}
                           </td>
                           {/* Password set? */}
                           <td className="px-3 py-2">
@@ -744,10 +852,18 @@ export default function RoleManagement() {
                         </tr>
                       );
                     })}
-                </tbody>
-              </table>
-            </div>
-          )}
+                    {filtered.length === 0 && (
+                      <tr>
+                        <td colSpan={8} className="px-3 py-6 text-center text-sm text-muted-foreground">
+                          No users match the current filter.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
         </CardContent>
       </Card>
 

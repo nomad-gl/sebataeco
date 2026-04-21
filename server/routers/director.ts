@@ -1122,6 +1122,7 @@ export const directorRouter = router({
           mustChangePassword: users.mustChangePassword,
           lastSignedIn: users.lastSignedIn,
           deactivatedAt: users.deactivatedAt,
+          schoolName: users.schoolName,
         })
         .from(users)
         .orderBy(desc(users.lastSignedIn));

@@ -4136,3 +4136,9 @@
 - [x] Fix Role Change Audit Log to show all role grants/changes made from Role Management page
 - [x] Add Password Management card to Role Management page: list users with password status (set/not set, mustChangePassword flag)
 - [x] Add adminResetUserPassword procedure in director.ts: generate temp password, hash it, set mustChangePassword=true, email user
+- [x] Password Management card: add status filter toggle (All / Password set / No password / Must change)
+- [x] Password Management card: add bulk reset with checkboxes and Reset selected button
+- [x] Password Management card: add School column (schoolName from users table)
+- [x] Password Management card: add status filter toggle (All / Password set / No password / Must change)
+- [x] Password Management card: add bulk reset with checkboxes and Reset selected button
+- [x] Password Management card: add School column (schoolName from users table)
