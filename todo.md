@@ -4027,3 +4027,10 @@
 - [x] RoleManagement: display location (MapPin) and language (Languages icon) below role badge for director users
 - [x] School Management: display ownerSchoolLocation and ownerSchoolLanguage in Owner cell
 - [x] All 5703 tests pass, 0 TypeScript errors
+
+## Feature: Unassigned Users in Role Management Search
+
+- [x] Remove passwordHash IS NOT NULL filter from listAllUsersForAdmin so Manus OAuth users (no passwordHash) also appear
+- [x] Add "Unassigned" filter tab in Role Management role filter dropdown
+- [x] Update filtered logic to support filterRole === "unassigned" (role='user' AND tenantId IS NULL)
+- [x] Display "—" in School column for unassigned users

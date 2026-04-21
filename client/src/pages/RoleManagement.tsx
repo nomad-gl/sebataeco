@@ -150,7 +150,9 @@ export default function RoleManagement() {
         (u.displayName ?? "").toLowerCase().includes(q) ||
         (u.email ?? "").toLowerCase().includes(q) ||
         (u.tenantName ?? "").toLowerCase().includes(q);
-      const matchRole = filterRole === "all" || u.role === filterRole;
+      const matchRole =
+        filterRole === "all" ||
+        (filterRole === "unassigned" ? (u.role === "user" && !u.tenantId) : u.role === filterRole);
       const matchTenant = filterTenant === "all" || String(u.tenantId) === filterTenant;
       return matchSearch && matchRole && matchTenant;
     });
@@ -232,6 +234,7 @@ export default function RoleManagement() {
               {ALL_ROLES.map((r) => (
                 <SelectItem key={r} value={r}>{t(ROLE_META[r].labelKey)}</SelectItem>
               ))}
+              <SelectItem value="unassigned">Unassigned</SelectItem>
             </SelectContent>
           </Select>
           {tenants.length > 0 && (

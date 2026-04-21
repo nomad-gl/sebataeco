@@ -431,7 +431,6 @@ export const directorRouter = router({
       })
       .from(users)
       .leftJoin(tenants, eq(users.tenantId, tenants.id))
-      .where(isNotNull(users.passwordHash))
       .orderBy(desc(users.lastSignedIn));
     return rows;
   }),
