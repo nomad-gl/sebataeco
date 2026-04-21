@@ -1114,6 +1114,44 @@ export const tenantsRouter = router({
     }),
 
   /**
+   * Assign a user to a school identified by name.
+   * If a tenant with that exact name already exists, the user is assigned to it.
+   * If no matching tenant exists, a new tenant is created with that name first.
+   * SEBA admin only.
+   */
+  assignUserBySchoolName: adminProcedure
+    .input(z.object({
+      userId: z.number().int().positive(),
+      schoolName: z.string().min(1).max(255),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      // Find existing tenant by exact name (case-insensitive)
+      const allTenants = await db
+        .select({ id: tenants.id, name: tenants.name })
+        .from(tenants);
+      const existing = allTenants.find(
+        t => t.name.toLowerCase() === input.schoolName.toLowerCase()
+      );
+
+      let tenantId: number;
+      if (existing) {
+        tenantId = existing.id;
+      } else {
+        // Create a new tenant with this school name (no owner yet)
+        const result = await db.insert(tenants).values({ name: input.schoolName });
+        tenantId = (result as unknown as [{ insertId: number }])[0].insertId;
+      }
+
+      // Assign the user to the tenant
+      await db.update(users).set({ tenantId }).where(eq(users.id, input.userId));
+
+      return { success: true, tenantId, created: !existing };
+    }),
+
+  /**
    * Remove (clear) the owner of a school/tenant.
    * Sets ownerUserId to NULL so the school has no assigned director.
    * SEBA admin only.

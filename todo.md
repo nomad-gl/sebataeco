@@ -4125,3 +4125,4 @@
 - [x] Allow unassigned users names to be edited inline in the Unassigned Users card (pencil icon on hover, inline input with Save/Cancel, calls tenants.updateUserName)
 - [x] Allow unassigned users names to be edited inline in the Unassigned Users card (pencil icon on hover, inline input with Save/Cancel, calls tenants.updateUserName)
 - [x] Assign User to School dialog: replace plain tenant dropdown with filtered Catalonia school search (municipality/comarca filter + name search, same pattern as Role Management director picker)
+- [x] Fix: Assign button not enabled when school chosen from Catalonia list in Assign User to School dialog (assignSelectedSchool set but assignToTenantId stays empty)

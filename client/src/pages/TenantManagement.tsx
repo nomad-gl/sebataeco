@@ -280,7 +280,23 @@ export default function TenantManagement() {
       setAssignDialogOpen(false);
       setAssignUserId("");
       setAssignToTenantId("");
-      toast.success("User assigned to tenant.");
+      toast.success("User assigned to school.");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const assignBySchoolNameMutation = trpc.tenants.assignUserBySchoolName.useMutation({
+    onSuccess: (data) => {
+      utils.tenants.list.invalidate();
+      utils.tenants.listUnassignedUsers.invalidate();
+      setAssignDialogOpen(false);
+      setAssignUserId("");
+      setAssignToTenantId("");
+      setAssignSelectedSchool("");
+      setAssignSchoolSearch("");
+      setAssignMunicipalityFilter("");
+      setAssignComarcaFilter("");
+      toast.success(data.created ? "User assigned and new school registered." : "User assigned to school.");
     },
     onError: (err) => toast.error(err.message),
   });
@@ -699,11 +715,30 @@ export default function TenantManagement() {
                   <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>Cancel</Button>
                   <Button
                     onClick={() => {
-                      if (!assignUserId || !assignToTenantId) return;
-                      assignMutation.mutate({ userId: parseInt(assignUserId), tenantId: parseInt(assignToTenantId) });
+                      if (!assignUserId) return;
+                      if (assignSelectedSchool) {
+                        // Catalonia list selection — find-or-create tenant by name
+                        assignBySchoolNameMutation.mutate({
+                          userId: parseInt(assignUserId),
+                          schoolName: assignSelectedSchool,
+                        });
+                      } else if (assignToTenantId) {
+                        // Registered school dropdown selection
+                        assignMutation.mutate({
+                          userId: parseInt(assignUserId),
+                          tenantId: parseInt(assignToTenantId),
+                        });
+                      }
                     }}
-                    disabled={!assignUserId || !assignToTenantId || assignMutation.isPending}
-                  >Assign</Button>
+                    disabled={
+                      !assignUserId ||
+                      (!assignSelectedSchool && !assignToTenantId) ||
+                      assignMutation.isPending ||
+                      assignBySchoolNameMutation.isPending
+                    }
+                  >
+                    {(assignMutation.isPending || assignBySchoolNameMutation.isPending) ? "Assigning…" : "Assign"}
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
