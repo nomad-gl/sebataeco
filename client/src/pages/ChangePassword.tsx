@@ -20,6 +20,16 @@ export default function ChangePassword() {
   const [, navigate] = useLocation();
   const { refresh } = useAuth();
 
+  // Read ?next= param so we can redirect back after password change
+  const nextPath = (() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const n = params.get("next");
+      if (n && n.startsWith("/")) return n;
+    } catch {}
+    return "/";
+  })();
+
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -31,7 +41,7 @@ export default function ChangePassword() {
     onSuccess: async () => {
       toast.success("Password changed successfully. Welcome!");
       await refresh();
-      navigate("/");
+      navigate(nextPath);
     },
     onError: (err) => toast.error(err.message),
   });

@@ -23,6 +23,8 @@ import { appSettings, schoolSettings, adminAuditLogs } from "../../drizzle/schem
 import { notifyOwner } from "../_core/notification";
 import { generateDirectorReportPdf } from "../directorReportPdf";
 import { storagePut } from "../storage";
+import bcrypt from "bcryptjs";
+import { sendTempPasswordEmail } from "../email";
 
 /** The 8 LOMLOE key competencies */
 const LOMLOE_COMPETENCIES = [
@@ -1001,5 +1003,94 @@ export const directorRouter = router({
 
       await db.update(users).set(updates as Parameters<ReturnType<typeof db.update<typeof users>>['set']>[0]).where(eq(users.id, input.userId));
       return { success: true };
+    }),
+
+  /**
+   * Create a local (email+password) account for a teacher or user directly,
+   * bypassing the invite-link flow. Generates a secure temporary password,
+   * sets mustChangePassword=true, and emails the credentials to the user.
+   * Admin only.
+   */
+  createLocalUserWithTempPassword: adminProcedure
+    .input(z.object({
+      name: z.string().min(1).max(255),
+      email: z.string().email().max(320),
+      role: z.enum(["user", "teacher", "head_of_study", "director"]).default("teacher"),
+      tenantId: z.number().int().positive().optional(),
+      schoolName: z.string().max(256).optional().nullable(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+
+      // Guard: email must be unique
+      const [existing] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.email, input.email.toLowerCase().trim()))
+        .limit(1);
+      if (existing) throw new Error("An account with this email already exists.");
+
+      // Resolve school name from tenant if not provided
+      let resolvedSchoolName = input.schoolName ?? null;
+      if (!resolvedSchoolName && input.tenantId) {
+        const { tenants } = await import("../../drizzle/schema");
+        const [tenant] = await db
+          .select({ name: tenants.name })
+          .from(tenants)
+          .where(eq(tenants.id, input.tenantId))
+          .limit(1);
+        resolvedSchoolName = tenant?.name ?? null;
+      }
+
+      const tempPassword = crypto.randomBytes(9).toString("base64url");
+      const passwordHash = await bcrypt.hash(tempPassword, 12);
+      const openId = `local:${input.email.toLowerCase().trim()}`;
+
+      const positionMap: Record<string, string> = {
+        teacher: "teacher",
+        head_of_study: "head_of_study",
+        director: "director",
+        user: "unassigned",
+      };
+
+      const [insertResult] = await db.insert(users).values({
+        name: input.name,
+        displayName: input.name,
+        email: input.email.toLowerCase().trim(),
+        openId,
+        passwordHash,
+        loginMethod: "local",
+        role: input.role,
+        position: (positionMap[input.role] ?? "unassigned") as any,
+        tenantId: input.tenantId ?? null,
+        schoolName: resolvedSchoolName,
+        mustChangePassword: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastSignedIn: new Date(),
+      } as any);
+      const userId = (insertResult as any).insertId as number;
+
+      // Log the creation
+      await db.insert(adminAuditLogs).values({
+        userId: ctx.user.id,
+        action: "create_local_user",
+        resource: "user",
+        resourceId: String(userId),
+        details: JSON.stringify({ name: input.name, email: input.email, role: input.role, tenantId: input.tenantId ?? null }),
+      });
+
+      // Fire-and-forget: email the temporary credentials
+      void sendTempPasswordEmail({
+        to: input.email,
+        name: input.name,
+        tempPassword,
+        schoolName: resolvedSchoolName,
+        loginUrl: "https://aina.forum/login",
+        role: input.role,
+      });
+
+      return { success: true, userId, tempPassword };
     }),
 });

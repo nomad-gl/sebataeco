@@ -4130,3 +4130,6 @@
 - [x] Cascade schoolName update to all assigned users when a tenant name is changed
 - [x] Role Management: allow the user section of the Users card to be edited and saved (name, email, school, role, position)
 - [x] Show user name first (before email) in all user lists when name is available
+- [x] Email temporary password to teacher/user when local account is created and assigned to a school
+- [x] Set mustChangePassword=true on all admin-created local accounts
+- [x] Enforce password change on first login for mustChangePassword accounts

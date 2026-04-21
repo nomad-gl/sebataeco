@@ -307,3 +307,97 @@ export async function sendDirectorInviteEmail(opts: {
     return { sent: false, smtpNotConfigured: false, error: err?.message };
   }
 }
+
+// ─── Temporary password email ─────────────────────────────────────────────────
+
+function tempPasswordHtml(opts: {
+  name: string;
+  email: string;
+  tempPassword: string;
+  schoolName: string | null;
+  loginUrl: string;
+  role: string;
+}): string {
+  const school = opts.schoolName
+    ? `<div class="school-badge">🏫 ${opts.schoolName}</div>`
+    : "";
+  const roleLabel =
+    opts.role === "teacher"
+      ? "Teacher"
+      : opts.role === "director"
+      ? "Director"
+      : opts.role === "territorial_director"
+      ? "Territorial Director"
+      : opts.role === "head_of_study"
+      ? "Head of Study"
+      : "User";
+  return htmlWrapper(`
+    <p class="greeting">Welcome to SEBA AI Studio, ${opts.name}!</p>
+    ${school}
+    <p class="text">
+      An administrator has created a <strong>${roleLabel}</strong> account for you on
+      SEBA AI Studio. Use the credentials below to sign in for the first time.
+      You will be asked to choose a new password immediately after logging in.
+    </p>
+    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:20px 24px;margin:0 0 24px;font-size:14px;color:#374151;line-height:2">
+      <div><strong>Email:</strong> <code style="background:#eff6ff;padding:2px 8px;border-radius:4px;color:#1d4ed8">${opts.email}</code></div>
+      <div><strong>Temporary password:</strong> <code style="background:#fef9c3;padding:2px 8px;border-radius:4px;color:#92400e;font-size:15px;letter-spacing:1px">${opts.tempPassword}</code></div>
+    </div>
+    <div class="cta-wrapper">
+      <a href="${opts.loginUrl}" class="cta-btn">Sign in now &rarr;</a>
+    </div>
+    <p class="text" style="font-size:13px;color:#6b7280;">
+      If the button doesn't work, copy and paste this link into your browser:<br/>
+      <span style="font-family:monospace;word-break:break-all">${opts.loginUrl}</span>
+    </p>
+    <p class="expiry">For your security, please change your password as soon as you sign in. Do not share these credentials with anyone.</p>
+  `);
+}
+
+export interface SendTempPasswordResult {
+  sent: boolean;
+  smtpNotConfigured: boolean;
+  error?: string;
+}
+
+/**
+ * Send a temporary-password welcome email to a newly created local account.
+ * Returns a result object — never throws.
+ */
+export async function sendTempPasswordEmail(opts: {
+  to: string;
+  name: string;
+  tempPassword: string;
+  schoolName: string | null;
+  loginUrl: string;
+  role: string;
+}): Promise<SendTempPasswordResult> {
+  const transport = createTransport();
+  if (!transport) {
+    console.warn("[Email] SMTP not configured — skipping temp-password email.");
+    return { sent: false, smtpNotConfigured: true };
+  }
+
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+
+  try {
+    await transport.sendMail({
+      from: `"SEBA AI Studio" <${from}>`,
+      to: opts.to,
+      subject: "Your SEBA AI Studio account is ready — temporary password inside",
+      html: tempPasswordHtml({
+        name: opts.name,
+        email: opts.to,
+        tempPassword: opts.tempPassword,
+        schoolName: opts.schoolName,
+        loginUrl: opts.loginUrl,
+        role: opts.role,
+      }),
+    });
+    console.log(`[Email] Temp-password email sent to ${opts.to}`);
+    return { sent: true, smtpNotConfigured: false };
+  } catch (err: any) {
+    console.error("[Email] Failed to send temp-password email:", err?.message ?? err);
+    return { sent: false, smtpNotConfigured: false, error: err?.message };
+  }
+}

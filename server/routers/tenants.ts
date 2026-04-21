@@ -21,7 +21,7 @@ import {
 } from "../../drizzle/schema";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { sendTeacherInviteEmail, sendDirectorInviteEmail } from "../email";
+import { sendTeacherInviteEmail, sendDirectorInviteEmail, sendTempPasswordEmail } from "../email";
 
 // ─── Audit helper ────────────────────────────────────────────────────────────
 
@@ -273,6 +273,16 @@ export const tenantsRouter = router({
         newRole: "director",
         action: "grant",
         reason: `Created as owner of new tenant: ${input.tenantName}`,
+      });
+
+      // Fire-and-forget: send temp-password welcome email to the new director
+      void sendTempPasswordEmail({
+        to: input.ownerEmail,
+        name: input.ownerName,
+        tempPassword: input.ownerPassword,
+        schoolName: input.tenantName,
+        loginUrl: `https://aina.forum/login`,
+        role: "director",
       });
 
       return {
@@ -795,6 +805,16 @@ export const tenantsRouter = router({
         action: "grant",
         reason: input.reason ?? `Registered and granted territorial_director for ${territory.name}`,
         territoryId: input.territoryId,
+      });
+
+      // Fire-and-forget: send temp-password welcome email
+      void sendTempPasswordEmail({
+        to: input.email,
+        name: input.name,
+        tempPassword,
+        schoolName: territory.name,
+        loginUrl: `${process.env.VITE_FRONTEND_FORGE_API_URL ? "https://" + (process.env.VITE_APP_ID ?? "") + ".manus.space" : "https://aina.forum"}/login`,
+        role: "territorial_director",
       });
 
       return {

@@ -83,8 +83,13 @@ export default function LocalLogin() {
 
   // ── Mutations ────────────────────────────────────────────────────────────
   const loginMutation = trpc.localAuth.login.useMutation({
-    onSuccess: () => {
-      window.location.href = returnPath;
+    onSuccess: (data) => {
+      if (data.mustChangePassword) {
+        // Force password change before accessing the app
+        window.location.href = `/change-password?next=${encodeURIComponent(returnPath)}`;
+      } else {
+        window.location.href = returnPath;
+      }
     },
     onError: (err) => setLoginError(err.message),
   });
