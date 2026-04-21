@@ -1,6 +1,8 @@
 /**
  * /ai-models — Public page attributing all AI models used by SEBA to
  * the Barcelona Supercomputing Center (BSC) Salamandra and Àguila frameworks.
+ * All visible strings are run through the i18n t() helper so the page
+ * respects the user's selected language (CA / ES / EN).
  */
 import { ExternalLink, Cpu, FlaskConical, Globe, Shield, BookOpen, ChevronLeft } from "lucide-react";
 import { Link } from "wouter";
@@ -23,6 +25,9 @@ interface ModelCardProps {
   language: string[];
   badge?: string;
   badgeVariant?: "default" | "secondary" | "outline";
+  labelsLanguages: string;
+  labelsLicence: string;
+  labelsUsedFor: string;
 }
 
 function ModelCard({
@@ -36,6 +41,9 @@ function ModelCard({
   language,
   badge,
   badgeVariant = "default",
+  labelsLanguages,
+  labelsLicence,
+  labelsUsedFor,
 }: ModelCardProps) {
   return (
     <Card className="border-border/60 hover:border-primary/30 transition-colors">
@@ -75,7 +83,7 @@ function ModelCard({
 
         <div className="grid grid-cols-2 gap-3 text-xs">
           <div>
-            <p className="font-semibold text-foreground mb-1">Languages</p>
+            <p className="font-semibold text-foreground mb-1">{labelsLanguages}</p>
             <div className="flex flex-wrap gap-1">
               {language.map((l) => (
                 <span key={l} className="bg-muted px-1.5 py-0.5 rounded text-[10px]">{l}</span>
@@ -83,13 +91,13 @@ function ModelCard({
             </div>
           </div>
           <div>
-            <p className="font-semibold text-foreground mb-1">Licence</p>
+            <p className="font-semibold text-foreground mb-1">{labelsLicence}</p>
             <span className="text-muted-foreground">{licence}</span>
           </div>
         </div>
 
         <div>
-          <p className="text-xs font-semibold text-foreground mb-1.5">Used in SEBA for</p>
+          <p className="text-xs font-semibold text-foreground mb-1.5">{labelsUsedFor}</p>
           <ul className="space-y-0.5">
             {usedFor.map((u) => (
               <li key={u} className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -107,59 +115,65 @@ function ModelCard({
 export default function AiModels() {
   const { t } = useI18n();
 
+  const cardLabels = {
+    labelsLanguages: t("ai_models_card_languages"),
+    labelsLicence: t("ai_models_card_licence"),
+    labelsUsedFor: t("ai_models_card_used_for"),
+  };
+
   const models: ModelCardProps[] = [
     {
       name: "Salamandra 2 7B Instruct",
       family: "Salamandra Family · BSC",
       familyUrl: "https://projecteaina.cat/tech/en/introducing-the-salamandra-family-of-models/",
-      description:
-        "Salamandra 2 is a family of open-source large language models developed by the Barcelona Supercomputing Center (BSC) as part of Projecte Aina. Trained on a multilingual corpus with strong coverage of Catalan, Spanish, and English, it is the primary language model powering SEBA's conversational assistant (Aina), lesson planning, and curriculum-aligned content generation.",
+      description: t("ai_models_salamandra_desc"),
       usedFor: [
-        "Aina conversational assistant",
-        "Lesson plan generation",
-        "Worksheet and materials creation",
-        "Curriculum-aligned question generation",
-        "Bias detection and content moderation",
+        t("ai_models_salamandra_use1"),
+        t("ai_models_salamandra_use2"),
+        t("ai_models_salamandra_use3"),
+        t("ai_models_salamandra_use4"),
+        t("ai_models_salamandra_use5"),
       ],
       licence: "Apache 2.0",
       hfUrl: "https://huggingface.co/BSC-LT/salamandra-2-7b-instruct",
-      language: ["Catalan", "Spanish", "English"],
-      badge: "Primary model",
+      language: [t("ai_models_lang_catalan"), t("ai_models_lang_spanish"), t("ai_models_lang_english")],
+      badge: t("ai_models_badge_primary"),
       badgeVariant: "default",
+      ...cardLabels,
     },
     {
       name: "Àguila 7B",
       family: "Àguila Family · BSC",
       familyUrl: "https://huggingface.co/BSC-LT/aguila-7b",
-      description:
-        "Àguila (Agile General-purpose Language model for Iberian LAnguages) is an open-source bilingual language model developed by the Barcelona Supercomputing Center (BSC). It is optimised for Spanish and Catalan and serves as a complementary model in SEBA for tasks requiring high-quality Iberian language understanding, including reading comprehension, summarisation, and student feedback generation.",
+      description: t("ai_models_aguila_desc"),
       usedFor: [
-        "Student feedback generation",
-        "Reading comprehension tasks",
-        "Summarisation of educational content",
-        "Spanish and Catalan language understanding",
+        t("ai_models_aguila_use1"),
+        t("ai_models_aguila_use2"),
+        t("ai_models_aguila_use3"),
+        t("ai_models_aguila_use4"),
       ],
       licence: "Apache 2.0",
       hfUrl: "https://huggingface.co/BSC-LT/aguila-7b",
-      language: ["Spanish", "Catalan"],
-      badge: "Complementary model",
+      language: [t("ai_models_lang_spanish"), t("ai_models_lang_catalan")],
+      badge: t("ai_models_badge_complementary"),
       badgeVariant: "secondary",
+      ...cardLabels,
     },
     {
       name: "Whisper (via HF Inference API)",
       family: "OpenAI Whisper",
       familyUrl: "https://huggingface.co/openai/whisper-large-v3",
-      description:
-        "Whisper is an open-source automatic speech recognition (ASR) model developed by OpenAI. SEBA uses it via the Hugging Face Inference API for voice transcription features, enabling teachers to dictate lesson notes and students to submit spoken answers.",
+      description: t("ai_models_whisper_desc"),
       usedFor: [
-        "Voice transcription for lesson notes",
-        "Spoken student answer processing",
+        t("ai_models_whisper_use1"),
+        t("ai_models_whisper_use2"),
       ],
       licence: "MIT",
       hfUrl: "https://huggingface.co/openai/whisper-large-v3",
-      language: ["Multilingual (99 languages)"],
-      badge: "Speech-to-text",
+      language: [t("ai_models_lang_multilingual")],
+      badge: t("ai_models_badge_stt"),
       badgeVariant: "outline",
+      ...cardLabels,
     },
   ];
 
@@ -202,7 +216,7 @@ export default function AiModels() {
               Barcelona Supercomputing Center (BSC) — Centro Nacional de Supercomputación
             </p>
             <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-              All primary AI models used by SEBA are developed and maintained by the BSC as part of{" "}
+              {t("ai_models_bsc_desc")}{" "}
               <a
                 href="https://projecteaina.cat"
                 target="_blank"
@@ -211,7 +225,7 @@ export default function AiModels() {
               >
                 Projecte Aina
               </a>
-              , a public initiative to build open-source AI for the Catalan language.
+              {t("ai_models_bsc_desc2")}
             </p>
             <div className="flex flex-wrap justify-center sm:justify-start gap-3 mt-2">
               <a

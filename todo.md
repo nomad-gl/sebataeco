@@ -3924,3 +3924,10 @@
 - [x] Prevent navigation away from /change-password while flag is set
 - [x] Write vitest tests for changePassword procedure
 - [x] Update todo.md and save checkpoint
+
+## Fix: Translate /ai-models page (hardcoded English strings)
+
+- [x] Audit AiModels.tsx for all hardcoded English strings
+- [x] Add missing translation keys to EN, CA, and ES locale files
+- [x] Replace hardcoded strings in AiModels.tsx with t() calls
+- [x] Verify page renders correctly in CA, ES, and EN
