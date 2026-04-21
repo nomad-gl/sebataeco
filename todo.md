@@ -4061,3 +4061,10 @@
 - [x] Selecting municipality filters SCHOOLS_BY_MUNICIPALITY list instead of full CATALONIA_SCHOOLS
 - [x] Auto-populate directorLocation when selected school name matches a known location pattern
 - [x] Update todo.md and save checkpoint
+
+## Feature: School Management Municipality Filter
+- [x] Add municipality dropdown filter to School Management Schools tab (735 Catalan municipalities)
+- [x] Add name/owner search input alongside municipality filter
+- [x] Show filtered count badge (N of M) when filters are active
+- [x] Show empty-state when no schools match the filters
+- [x] Clear filters button when any filter is active

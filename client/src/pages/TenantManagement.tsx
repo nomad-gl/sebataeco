@@ -9,7 +9,7 @@
  *  3. Role Audit Log — immutable history of every role change
  */
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
@@ -75,6 +75,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { CATALONIA_MUNICIPALITIES, SCHOOLS_BY_MUNICIPALITY } from "@/data/cataloniaSchools";
 
 // ── Role badge metadata ─────────────────────────────────────────────────────
 const ROLE_META: Record<string, { label: string; color: string; Icon: React.ElementType }> = {
@@ -142,6 +143,8 @@ export default function TenantManagement() {
   const [, navigate] = useLocation();
 
   // ── Schools tab state ──────────────────────────────────────────────────────
+  const [schoolMunicipalityFilter, setSchoolMunicipalityFilter] = useState("");
+  const [schoolNameSearch, setSchoolNameSearch] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [newTenantName, setNewTenantName] = useState("");
@@ -191,6 +194,30 @@ export default function TenantManagement() {
     limit: AUDIT_PAGE_SIZE,
     offset: auditOffset,
   });
+
+  // Filtered tenant list (municipality + name search)
+  const filteredTenants = useMemo(() => {
+    if (!tenantList) return [];
+    let result = tenantList;
+    if (schoolMunicipalityFilter) {
+      const schoolsInMunicipality = new Set(
+        (SCHOOLS_BY_MUNICIPALITY[schoolMunicipalityFilter] ?? []).map((s) => s.toLowerCase())
+      );
+      result = result.filter((t) => {
+        const ownerSchoolName = (t as any).ownerSchoolName as string | null;
+        return ownerSchoolName && schoolsInMunicipality.has(ownerSchoolName.toLowerCase());
+      });
+    }
+    if (schoolNameSearch.trim().length >= 2) {
+      const q = schoolNameSearch.trim().toLowerCase();
+      result = result.filter((t) =>
+        t.name.toLowerCase().includes(q) ||
+        ((t as any).ownerName as string | null)?.toLowerCase().includes(q) ||
+        ((t as any).ownerSchoolName as string | null)?.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [tenantList, schoolMunicipalityFilter, schoolNameSearch]);
 
   // Email search (only fires when ≥ 3 chars)
   const emailSearchEnabled = grantEmailSearch.length >= 3;
@@ -679,11 +706,59 @@ export default function TenantManagement() {
           {/* Tenant list */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5" />
-                All Tenants
-              </CardTitle>
-              <CardDescription>Each row represents one school or organisation.</CardDescription>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="flex-1">
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5" />
+                    All Tenants
+                    {(schoolMunicipalityFilter || schoolNameSearch.trim().length >= 2) && (
+                      <span className="ml-1 text-sm font-normal text-muted-foreground">
+                        ({filteredTenants.length} of {tenantList?.length ?? 0})
+                      </span>
+                    )}
+                  </CardTitle>
+                  <CardDescription>Each row represents one school or organisation.</CardDescription>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                  {/* Name search */}
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                    <Input
+                      className="pl-8 h-8 text-sm w-48"
+                      placeholder="Search schools…"
+                      value={schoolNameSearch}
+                      onChange={(e) => setSchoolNameSearch(e.target.value)}
+                    />
+                  </div>
+                  {/* Municipality filter */}
+                  <Select
+                    value={schoolMunicipalityFilter || "__all__"}
+                    onValueChange={(v) => setSchoolMunicipalityFilter(v === "__all__" ? "" : v)}
+                  >
+                    <SelectTrigger className="h-8 text-sm w-52">
+                      <MapPin className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                      <SelectValue placeholder="All municipalities" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">All municipalities</SelectItem>
+                      {CATALONIA_MUNICIPALITIES.map((m) => (
+                        <SelectItem key={m} value={m}>{m}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {/* Clear filters */}
+                  {(schoolMunicipalityFilter || schoolNameSearch) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2 text-xs text-muted-foreground"
+                      onClick={() => { setSchoolMunicipalityFilter(""); setSchoolNameSearch(""); }}
+                    >
+                      <X className="h-3.5 w-3.5 mr-1" /> Clear
+                    </Button>
+                  )}
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {!tenantList || tenantList.length === 0 ? (
@@ -691,6 +766,12 @@ export default function TenantManagement() {
                   <Building2 className="h-12 w-12 mx-auto mb-3 opacity-30" />
                   <p className="font-medium">No tenants yet</p>
                   <p className="text-sm mt-1">Create the first tenant to get started.</p>
+                </div>
+              ) : filteredTenants.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Search className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                  <p className="font-medium">No schools match the current filters</p>
+                  <p className="text-sm mt-1">Try a different municipality or clear the search.</p>
                 </div>
               ) : (
                 <Table>
@@ -705,7 +786,7 @@ export default function TenantManagement() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {tenantList.map(tenant => (
+                    {filteredTenants.map(tenant => (
                       <TableRow key={tenant.id}>
                         <TableCell className="font-medium">{tenant.name}</TableCell>
                         <TableCell>
