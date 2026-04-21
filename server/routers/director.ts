@@ -1102,4 +1102,72 @@ export const directorRouter = router({
 
       return { success: true, userId, tempPassword };
     }),
+
+  /**
+   * List all local-account users with their password status for the admin
+   * Password Management card. Never returns the actual hash.
+   */
+  listUsersPasswordStatus: adminProcedure
+    .query(async () => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const rows = await db
+        .select({
+          id: users.id,
+          name: users.name,
+          displayName: users.displayName,
+          email: users.email,
+          role: users.role,
+          hasPassword: sql<number>`CASE WHEN ${users.passwordHash} IS NOT NULL THEN 1 ELSE 0 END`,
+          mustChangePassword: users.mustChangePassword,
+          lastSignedIn: users.lastSignedIn,
+          deactivatedAt: users.deactivatedAt,
+        })
+        .from(users)
+        .orderBy(desc(users.lastSignedIn));
+      return rows.map(r => ({
+        ...r,
+        hasPassword: r.hasPassword === 1,
+      }));
+    }),
+
+  /**
+   * Admin: reset a user's password to a new temporary password,
+   * set mustChangePassword=true, and email the user their new credentials.
+   */
+  adminResetUserPassword: adminProcedure
+    .input(z.object({ userId: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const [targetUser] = await db
+        .select({ id: users.id, name: users.name, displayName: users.displayName, email: users.email, role: users.role, tenantId: users.tenantId })
+        .from(users)
+        .where(eq(users.id, input.userId))
+        .limit(1);
+      if (!targetUser) throw new Error("User not found");
+      if (!targetUser.email) throw new Error("User has no email address");
+      // Generate a new 12-char temp password
+      const tempPassword = crypto.randomBytes(9).toString("base64url").slice(0, 12);
+      const hash = await bcrypt.hash(tempPassword, 12);
+      await db.update(users).set({ passwordHash: hash, mustChangePassword: true }).where(eq(users.id, input.userId));
+      // Audit log
+      await db.insert(adminAuditLogs).values({
+        userId: ctx.user.id,
+        action: "admin_password_reset",
+        resource: "user",
+        resourceId: String(input.userId),
+        details: JSON.stringify({ targetUserId: input.userId, email: targetUser.email }),
+      });
+      // Email the new temp password
+      void sendTempPasswordEmail({
+        to: targetUser.email,
+        name: targetUser.name ?? targetUser.displayName ?? targetUser.email,
+        tempPassword,
+        schoolName: null,
+        loginUrl: "https://aina.forum/login",
+        role: targetUser.role ?? "user",
+      });
+      return { success: true };
+    }),
 });

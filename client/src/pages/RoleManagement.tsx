@@ -43,6 +43,10 @@ import {
   Pencil,
   X,
   Check,
+  KeyRound,
+  RefreshCw,
+  LockOpen,
+  Lock,
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -195,6 +199,23 @@ export default function RoleManagement() {
     if (editSchoolName !== (u.schoolName ?? "")) payload.schoolName = editSchoolName.trim() || null;
     updateProfileMutation.mutate(payload);
   }
+
+  // Password Management card state
+  const [pwdSearch, setPwdSearch] = useState("");
+  const [confirmResetUserId, setConfirmResetUserId] = useState<number | null>(null);
+  const { data: pwdStatusUsers = [], isLoading: pwdLoading, refetch: refetchPwd } =
+    trpc.director.listUsersPasswordStatus.useQuery();
+  const resetPasswordMutation = trpc.director.adminResetUserPassword.useMutation({
+    onSuccess: () => {
+      toast.success("Temporary password issued and emailed to the user.");
+      setConfirmResetUserId(null);
+      void refetchPwd();
+    },
+    onError: (err) => {
+      toast.error(err.message);
+      setConfirmResetUserId(null);
+    },
+  });
 
   // Reset selection when filter changes
   useEffect(() => {
@@ -584,6 +605,145 @@ export default function RoleManagement() {
                       </td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Password Management card ──────────────────────────────────────── */}
+      <Card className="shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <KeyRound className="w-4 h-4 text-amber-500" />
+            Password Management
+          </CardTitle>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            View each user&apos;s password status and issue a new temporary password when needed.
+            Passwords are stored as secure hashes and cannot be read — only reset.
+          </p>
+        </CardHeader>
+        <CardContent>
+          {/* Search */}
+          <div className="relative mb-3">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+            <Input
+              className="pl-8 text-sm"
+              placeholder="Search by name or email…"
+              value={pwdSearch}
+              onChange={(e) => setPwdSearch(e.target.value)}
+            />
+          </div>
+
+          {pwdLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded border border-border">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-muted/40 border-b border-border">
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">User</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Role</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Password</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Status</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Last Sign-in</th>
+                    <th className="px-3 py-2" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {pwdStatusUsers
+                    .filter((u) => {
+                      if (!pwdSearch.trim()) return true;
+                      const q = pwdSearch.toLowerCase();
+                      return (
+                        (u.name ?? "").toLowerCase().includes(q) ||
+                        (u.displayName ?? "").toLowerCase().includes(q) ||
+                        (u.email ?? "").toLowerCase().includes(q)
+                      );
+                    })
+                    .map((u) => {
+                      const displayName = u.name ?? u.displayName ?? u.email ?? `#${u.id}`;
+                      const isResetting = resetPasswordMutation.isPending && confirmResetUserId === u.id;
+                      return (
+                        <tr key={u.id} className="hover:bg-muted/20 transition-colors">
+                          {/* User */}
+                          <td className="px-3 py-2">
+                            <div className="font-medium truncate max-w-[180px]">{displayName}</div>
+                            {u.email && displayName !== u.email && (
+                              <div className="text-xs text-muted-foreground truncate max-w-[180px]">{u.email}</div>
+                            )}
+                          </td>
+                          {/* Role */}
+                          <td className="px-3 py-2">
+                            <RoleBadge role={u.role ?? "user"} t={t} />
+                          </td>
+                          {/* Password set? */}
+                          <td className="px-3 py-2">
+                            {u.hasPassword ? (
+                              <span className="inline-flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                                <Lock className="w-3 h-3" /> Set
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                                <LockOpen className="w-3 h-3" /> Not set
+                              </span>
+                            )}
+                          </td>
+                          {/* mustChangePassword */}
+                          <td className="px-3 py-2">
+                            {u.mustChangePassword ? (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                                <RefreshCw className="w-3 h-3" /> Must change
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </td>
+                          {/* Last sign-in */}
+                          <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
+                            {formatDate(u.lastSignedIn)}
+                          </td>
+                          {/* Reset button */}
+                          <td className="px-3 py-2 text-right">
+                            {confirmResetUserId === u.id ? (
+                              <span className="inline-flex items-center gap-1">
+                                <span className="text-xs text-muted-foreground mr-1">Confirm?</span>
+                                <button
+                                  className="p-1 rounded text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
+                                  disabled={isResetting}
+                                  onClick={() => resetPasswordMutation.mutate({ userId: u.id })}
+                                  title="Yes, reset password"
+                                >
+                                  {isResetting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                                </button>
+                                <button
+                                  className="p-1 rounded text-muted-foreground hover:bg-muted"
+                                  onClick={() => setConfirmResetUserId(null)}
+                                  title="Cancel"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </span>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs gap-1"
+                                disabled={!u.email}
+                                title={!u.email ? "No email address on file" : "Issue a new temporary password"}
+                                onClick={() => setConfirmResetUserId(u.id)}
+                              >
+                                <KeyRound className="w-3 h-3" />
+                                Reset
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                 </tbody>
               </table>
             </div>
