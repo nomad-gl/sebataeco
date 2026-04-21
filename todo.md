@@ -4076,7 +4076,7 @@
 - [x] Add active/deactivated director toggle filter to Schools table
 
 ## Feature: Edit unassigned user names in School Management
-- [ ] Backend: add tenants.updateUserName procedure (admin-only, updates users.name by id)
-- [ ] Frontend: show pencil icon on unassigned user rows in the Assign User dialog user list
-- [ ] Frontend: inline edit or small dialog to update the user's display name
-- [ ] Frontend: optimistic update + success/error toast
+- [x] Backend: add tenants.updateUserName procedure (admin-only, updates users.name by id)
+- [x] Frontend: show pencil icon on unassigned user rows in the Assign User dialog user list
+- [x] Frontend: inline edit or small dialog to update the user's display name
+- [x] Frontend: optimistic update + success/error toast

@@ -73,6 +73,7 @@ import {
   User,
   CircleCheck,
   CircleX,
+  Pencil,
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -164,6 +165,8 @@ export default function TenantManagement() {
   const [assignToTenantId, setAssignToTenantId] = useState("");
   const [assignSchoolSearch, setAssignSchoolSearch] = useState("");
   const [assignSelectedSchool, setAssignSelectedSchool] = useState("");
+  const [editingUserId, setEditingUserId] = useState<number | null>(null);
+  const [editingUserName, setEditingUserName] = useState("");
 
   // ── Territorial Directors tab state ────────────────────────────────────────
   const [grantDialogOpen, setGrantDialogOpen] = useState(false);
@@ -274,6 +277,15 @@ export default function TenantManagement() {
     onError: (err) => toast.error(err.message),
   });
 
+  const updateUserNameMutation = trpc.tenants.updateUserName.useMutation({
+    onSuccess: () => {
+      utils.tenants.listUnassignedUsers.invalidate();
+      setEditingUserId(null);
+      setEditingUserName("");
+      toast.success("Name updated.");
+    },
+    onError: (err) => toast.error(err.message),
+  });
   const deleteMutation = trpc.tenants.delete.useMutation({
     onSuccess: () => {
       utils.tenants.list.invalidate();
@@ -462,19 +474,61 @@ export default function TenantManagement() {
                   <DialogDescription>Move an unassigned user into a school in Catalonia.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-2">
-                  {/* User picker */}
+                  {/* User picker with inline name editing */}
                   <div>
                     <label className="text-sm font-medium mb-1 block">User</label>
-                    <Select value={assignUserId} onValueChange={setAssignUserId}>
-                      <SelectTrigger><SelectValue placeholder="Select a user" /></SelectTrigger>
-                      <SelectContent>
-                        {unassignedUsers?.map(u => (
-                          <SelectItem key={u.id} value={String(u.id)}>
-                            {u.name ?? u.email ?? `User #${u.id}`}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {editingUserId ? (
+                      /* Inline name editor */
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Input
+                            className="h-8 text-sm flex-1"
+                            value={editingUserName}
+                            onChange={(e) => setEditingUserName(e.target.value)}
+                            placeholder="Enter display name"
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && editingUserName.trim()) {
+                                updateUserNameMutation.mutate({ userId: editingUserId, name: editingUserName.trim() });
+                              }
+                              if (e.key === "Escape") { setEditingUserId(null); setEditingUserName(""); }
+                            }}
+                            autoFocus
+                          />
+                          <Button
+                            size="sm" className="h-8 px-2"
+                            disabled={!editingUserName.trim() || updateUserNameMutation.isPending}
+                            onClick={() => updateUserNameMutation.mutate({ userId: editingUserId, name: editingUserName.trim() })}
+                          >Save</Button>
+                          <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => { setEditingUserId(null); setEditingUserName(""); }}>Cancel</Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Press Enter to save, Escape to cancel.</p>
+                      </div>
+                    ) : (
+                      <Select value={assignUserId} onValueChange={setAssignUserId}>
+                        <SelectTrigger><SelectValue placeholder="Select a user" /></SelectTrigger>
+                        <SelectContent>
+                          {unassignedUsers?.map(u => (
+                            <div key={u.id} className="flex items-center group">
+                              <SelectItem value={String(u.id)} className="flex-1">
+                                {u.name ?? u.email ?? `User #${u.id}`}
+                              </SelectItem>
+                              <button
+                                className="mr-1 p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-accent transition-opacity"
+                                title="Edit name"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  setEditingUserId(u.id);
+                                  setEditingUserName(u.name ?? "");
+                                }}
+                              >
+                                <Pencil className="h-3 w-3 text-muted-foreground" />
+                              </button>
+                            </div>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                   {/* School picker — Catalonia full list with search */}
                   <div>

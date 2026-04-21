@@ -1055,4 +1055,23 @@ export const tenantsRouter = router({
 
       return { success: true, userId };
     }),
+
+  /**
+   * Update a user's display name.
+   * SEBA admin only — used to correct names of unassigned users.
+   */
+  updateUserName: adminProcedure
+    .input(z.object({
+      userId: z.number().int().positive(),
+      name: z.string().min(1).max(120).trim(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      await db
+        .update(users)
+        .set({ name: input.name, updatedAt: new Date() })
+        .where(eq(users.id, input.userId));
+      return { success: true };
+    }),
 });
