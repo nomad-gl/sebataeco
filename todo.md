@@ -4122,3 +4122,6 @@
 - [x] Update todo.md and save checkpoint
 - [x] Add removeOwner procedure to tenants router (clear ownerUserId to NULL) — schema made nullable, TypeScript clean
 - [x] Add Edit Owner / Remove Owner buttons to Owner cell edit mode in School Management (idle mode shows two buttons; search mode activated by Edit Owner)
+- [x] Allow unassigned users names to be edited inline in the Unassigned Users card (pencil icon on hover, inline input with Save/Cancel, calls tenants.updateUserName)
+- [x] Allow unassigned users names to be edited inline in the Unassigned Users card (pencil icon on hover, inline input with Save/Cancel, calls tenants.updateUserName)
+- [x] Assign User to School dialog: replace plain tenant dropdown with filtered Catalonia school search (municipality/comarca filter + name search, same pattern as Role Management director picker)

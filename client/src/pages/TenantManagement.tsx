@@ -169,6 +169,12 @@ export default function TenantManagement() {
   const [editingUserName, setEditingUserName] = useState("");
   const [editingTenantId, setEditingTenantId] = useState<number | null>(null);
   const [editingTenantName, setEditingTenantName] = useState("");
+  // Unassigned Users card — inline name editing
+  const [cardEditingUserId, setCardEditingUserId] = useState<number | null>(null);
+  const [cardEditingUserName, setCardEditingUserName] = useState("");
+  // Assign dialog — municipality/comarca filter
+  const [assignMunicipalityFilter, setAssignMunicipalityFilter] = useState("");
+  const [assignComarcaFilter, setAssignComarcaFilter] = useState("");
 
   // ── Territorial Directors tab state ────────────────────────────────────────
   const [grantDialogOpen, setGrantDialogOpen] = useState(false);
@@ -284,6 +290,16 @@ export default function TenantManagement() {
       utils.tenants.listUnassignedUsers.invalidate();
       setEditingUserId(null);
       setEditingUserName("");
+      toast.success("Name updated.");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+  // Separate mutation instance for the Unassigned Users card inline editing
+  const cardUpdateUserNameMutation = trpc.tenants.updateUserName.useMutation({
+    onSuccess: () => {
+      utils.tenants.listUnassignedUsers.invalidate();
+      setCardEditingUserId(null);
+      setCardEditingUserName("");
       toast.success("Name updated.");
     },
     onError: (err) => toast.error(err.message),
@@ -508,7 +524,7 @@ export default function TenantManagement() {
           <div className="flex justify-end gap-2">
             <Dialog open={assignDialogOpen} onOpenChange={(open) => {
               setAssignDialogOpen(open);
-              if (!open) { setAssignUserId(""); setAssignToTenantId(""); setAssignSchoolSearch(""); setAssignSelectedSchool(""); }
+              if (!open) { setAssignUserId(""); setAssignToTenantId(""); setAssignSchoolSearch(""); setAssignSelectedSchool(""); setAssignMunicipalityFilter(""); setAssignComarcaFilter(""); }
             }}>
               <DialogTrigger asChild>
                 <Button variant="outline">
@@ -578,67 +594,104 @@ export default function TenantManagement() {
                       </Select>
                     )}
                   </div>
-                  {/* School picker — Catalonia full list with search */}
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">School</label>
-                    {/* Search input */}
-                    <div className="relative mb-2">
-                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-                      <Input
-                        className="pl-8 h-8 text-sm"
-                        placeholder="Type 3+ letters to search schools…"
-                        value={assignSchoolSearch}
-                        onChange={(e) => { setAssignSchoolSearch(e.target.value); setAssignSelectedSchool(""); }}
-                      />
-                    </div>
+                  {/* School picker — comarca/municipality filter + name search */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium block">School</label>
+
                     {/* Selected school badge */}
-                    {assignSelectedSchool && (
-                      <div className="flex items-center gap-1.5 mb-2 px-2 py-1 rounded bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 text-sm">
+                    {assignSelectedSchool ? (
+                      <div className="flex items-center gap-1.5 px-2 py-1.5 rounded bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 text-sm">
                         <Building2 className="h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate">{assignSelectedSchool}</span>
-                        <button className="ml-auto" onClick={() => { setAssignSelectedSchool(""); setAssignSchoolSearch(""); }}>
+                        <span className="truncate flex-1">{assignSelectedSchool}</span>
+                        <button onClick={() => { setAssignSelectedSchool(""); setAssignSchoolSearch(""); setAssignMunicipalityFilter(""); setAssignComarcaFilter(""); }}>
                           <X className="h-3.5 w-3.5" />
                         </button>
                       </div>
-                    )}
-                    {/* Scrollable results */}
-                    {assignSchoolSearch.trim().length >= 3 && !assignSelectedSchool && (() => {
-                      const q = assignSchoolSearch.trim().toLowerCase();
-                      const matches = CATALONIA_SCHOOLS.filter(s => s.toLowerCase().includes(q)).slice(0, 80);
-                      return matches.length === 0 ? (
-                        <p className="text-xs text-muted-foreground px-1">No schools found.</p>
-                      ) : (
-                        <ScrollArea className="h-44 rounded border">
-                          <div className="p-1">
-                            {matches.map(school => (
-                              <button
-                                key={school}
-                                className="w-full text-left text-sm px-2 py-1.5 rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-                                onClick={() => { setAssignSelectedSchool(school); setAssignSchoolSearch(school); }}
-                              >
-                                {school}
-                              </button>
-                            ))}
-                          </div>
-                        </ScrollArea>
-                      );
-                    })()}
-                    {assignSchoolSearch.trim().length < 3 && !assignSelectedSchool && (
-                      <p className="text-xs text-muted-foreground px-1">Type at least 3 letters to search all 4,890 schools in Catalonia.</p>
-                    )}
-                    {/* Also allow selecting from existing registered tenants */}
-                    {!assignSelectedSchool && (
-                      <div className="mt-3">
-                        <p className="text-xs text-muted-foreground mb-1">Or select from registered schools:</p>
-                        <Select value={assignToTenantId} onValueChange={setAssignToTenantId}>
-                          <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select a registered school" /></SelectTrigger>
+                    ) : (
+                      <>
+                        {/* Comarca filter */}
+                        <Select value={assignComarcaFilter} onValueChange={(v) => { setAssignComarcaFilter(v === "_all" ? "" : v); setAssignMunicipalityFilter(""); setAssignSchoolSearch(""); }}>
+                          <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Filter by comarca (optional)" /></SelectTrigger>
                           <SelectContent>
-                            {tenantList?.map(t => (
-                              <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
+                            <SelectItem value="_all">All comarques</SelectItem>
+                            {CATALONIA_COMARQUES.map(c => (
+                              <SelectItem key={c} value={c}>{c}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
-                      </div>
+
+                        {/* Municipality filter */}
+                        <Select
+                          value={assignMunicipalityFilter}
+                          onValueChange={(v) => { setAssignMunicipalityFilter(v === "_all" ? "" : v); setAssignSchoolSearch(""); }}
+                        >
+                          <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Filter by municipality (optional)" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="_all">All municipalities</SelectItem>
+                            {(assignComarcaFilter
+                              ? (MUNICIPALITIES_BY_COMARCA[assignComarcaFilter] ?? [])
+                              : CATALONIA_MUNICIPALITIES
+                            ).map(m => (
+                              <SelectItem key={m} value={m}>{m}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        {/* Name search */}
+                        <div className="relative">
+                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                          <Input
+                            className="pl-8 h-8 text-sm"
+                            placeholder={assignMunicipalityFilter ? `Search in ${assignMunicipalityFilter}…` : "Type 3+ letters to search schools…"}
+                            value={assignSchoolSearch}
+                            onChange={(e) => setAssignSchoolSearch(e.target.value)}
+                          />
+                        </div>
+
+                        {/* Results list */}
+                        {(() => {
+                          const pool = assignMunicipalityFilter
+                            ? (SCHOOLS_BY_MUNICIPALITY[assignMunicipalityFilter] ?? [])
+                            : CATALONIA_SCHOOLS;
+                          const q = assignSchoolSearch.trim().toLowerCase();
+                          const showAll = !!assignMunicipalityFilter && q.length === 0;
+                          if (!showAll && q.length < 3) {
+                            return <p className="text-xs text-muted-foreground px-1">{assignMunicipalityFilter ? `Showing schools in ${assignMunicipalityFilter}. Type to filter.` : "Type at least 3 letters to search all 4,890 schools."}</p>;
+                          }
+                          const matches = (q.length >= 3 ? pool.filter(s => s.toLowerCase().includes(q)) : pool).slice(0, 100);
+                          return matches.length === 0 ? (
+                            <p className="text-xs text-muted-foreground px-1">No schools found.</p>
+                          ) : (
+                            <ScrollArea className="h-44 rounded border">
+                              <div className="p-1">
+                                {matches.map(school => (
+                                  <button
+                                    key={school}
+                                    type="button"
+                                    className="w-full text-left text-sm px-2 py-1.5 rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                                    onClick={() => { setAssignSelectedSchool(school); setAssignSchoolSearch(school); }}
+                                  >
+                                    {school}
+                                  </button>
+                                ))}
+                              </div>
+                            </ScrollArea>
+                          );
+                        })()}
+
+                        {/* Registered schools fallback */}
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Or select from registered schools:</p>
+                          <Select value={assignToTenantId} onValueChange={setAssignToTenantId}>
+                            <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select a registered school" /></SelectTrigger>
+                            <SelectContent>
+                              {tenantList?.map(t => (
+                                <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>
@@ -1224,7 +1277,42 @@ export default function TenantManagement() {
                   <TableBody>
                     {unassignedUsers.map(u => (
                       <TableRow key={u.id}>
-                        <TableCell className="font-medium">{u.name ?? "—"}</TableCell>
+                        {/* Name cell — inline editing */}
+                        <TableCell className="font-medium">
+                          {cardEditingUserId === u.id ? (
+                            <div className="flex items-center gap-1.5">
+                              <Input
+                                autoFocus
+                                className="h-7 text-sm w-40"
+                                value={cardEditingUserName}
+                                onChange={e => setCardEditingUserName(e.target.value)}
+                                onKeyDown={e => {
+                                  if (e.key === "Enter" && cardEditingUserName.trim()) {
+                                    cardUpdateUserNameMutation.mutate({ userId: u.id, name: cardEditingUserName.trim() });
+                                  }
+                                  if (e.key === "Escape") { setCardEditingUserId(null); setCardEditingUserName(""); }
+                                }}
+                              />
+                              <Button
+                                size="sm" className="h-7 px-2 text-xs"
+                                disabled={!cardEditingUserName.trim() || cardUpdateUserNameMutation.isPending}
+                                onClick={() => cardUpdateUserNameMutation.mutate({ userId: u.id, name: cardEditingUserName.trim() })}
+                              >Save</Button>
+                              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => { setCardEditingUserId(null); setCardEditingUserName(""); }}>Cancel</Button>
+                            </div>
+                          ) : (
+                            <div className="group flex items-center gap-1">
+                              <span>{u.name ?? "—"}</span>
+                              <button
+                                className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-accent"
+                                title="Edit name"
+                                onClick={() => { setCardEditingUserId(u.id); setCardEditingUserName(u.name ?? ""); }}
+                              >
+                                <Pencil className="h-3 w-3 text-muted-foreground" />
+                              </button>
+                            </div>
+                          )}
+                        </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{u.email ?? "—"}</TableCell>
                         <TableCell>
                           <Badge variant={u.role === "admin" ? "default" : "secondary"}>{u.role}</Badge>
