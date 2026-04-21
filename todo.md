@@ -4102,10 +4102,10 @@
 - [x] In RoleManagement.tsx confirmChange, after a successful role change to 'director', also invalidate tenants.list so School Management owner column reflects the new director immediately — already implemented (lines 114-117)
 
 ## Feature: School Management — Edit Tenant + Delete Unassigned User
-- [ ] Frontend: Add inline edit (pencil icon) to each row in the All Tenants table — clicking opens an inline text field to rename the school, saves via tenants.updateName
-- [ ] Frontend: Add delete button to each row in the Unassigned Users card — clicking shows a confirm dialog then calls a new tenants.deleteUser procedure
-- [ ] Backend: tenants.deleteUser procedure (admin only — permanently deletes a user by id)
-- [ ] Update todo.md and save checkpoint
+- [x] Frontend: Add inline edit (pencil icon) to each row in the All Tenants table — clicking opens an inline text field to rename the school, saves via tenants.updateName
+- [x] Frontend: Add delete button to each row in the Unassigned Users card — clicking shows a confirm dialog then calls a new tenants.deleteUser procedure
+- [x] Backend: tenants.deleteUser procedure (admin only — permanently deletes a user by id)
+- [x] Update todo.md and save checkpoint
 
 ## Feature: School Management — Inline Editing & Delete
 
@@ -4113,3 +4113,10 @@
 - [x] Backend: tenants.updateName procedure (admin-only, already existed)
 - [x] Unassigned Users card: delete button per row with confirmation dialog
 - [x] Backend: tenants.deleteUser procedure (admin-only, self-deletion guard)
+
+## Feature: School Management — Edit Owner Column
+
+- [x] Backend: tenants.updateOwner procedure (admin-only, changes ownerUserId on a tenant, validates new owner exists)
+- [x] Frontend: Pencil icon on Owner cell in All Tenants card opens an inline user-search dialog to pick a new owner
+- [x] Frontend: User search by name/email (3+ chars), shows matching users, click to confirm reassignment
+- [x] Update todo.md and save checkpoint

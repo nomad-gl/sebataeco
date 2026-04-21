@@ -370,6 +370,25 @@ export default function TenantManagement() {
   });
 
   // ── Mutations: Tenant-to-Territory ─────────────────────────────────────────
+  // Owner edit state
+  const [editOwnerTenantId, setEditOwnerTenantId] = useState<number | null>(null);
+  const [ownerSearch, setOwnerSearch] = useState("");
+  const [ownerSearchResults, setOwnerSearchResults] = useState<{ id: number; name: string | null; email: string | null }[]>([]);
+  const updateOwnerMutation = trpc.tenants.updateOwner.useMutation({
+    onSuccess: () => {
+      utils.tenants.list.invalidate();
+      setEditOwnerTenantId(null);
+      setOwnerSearch("");
+      setOwnerSearchResults([]);
+      toast.success("Owner updated successfully.");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const { data: ownerSearchData } = trpc.tenants.findUserByEmail.useQuery(
+    { email: ownerSearch },
+    { enabled: ownerSearch.length >= 3 }
+  );
+
   const assignTenantTerritoryMutation = trpc.tenants.assignTenantToTerritory.useMutation({
     onSuccess: () => {
       utils.tenants.list.invalidate();
@@ -981,40 +1000,87 @@ export default function TenantManagement() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <div className="text-sm space-y-0.5">
-                            <div className="font-medium">{tenant.ownerName ?? "—"}</div>
-                            {tenant.ownerEmail && (
-                              <div className="text-muted-foreground text-xs">{tenant.ownerEmail}</div>
-                            )}
-                            {tenant.ownerName && (
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                <OwnerRoleBadge role={(tenant as any).ownerRole} />
-                                <OwnerStatusPill deactivatedAt={(tenant as any).ownerDeactivatedAt ?? null} />
+                          {editOwnerTenantId === tenant.id ? (
+                            <div className="space-y-1.5 min-w-[200px]">
+                              <Input
+                                autoFocus
+                                placeholder="Search by name or email…"
+                                value={ownerSearch}
+                                onChange={e => setOwnerSearch(e.target.value)}
+                                className="h-7 text-xs"
+                              />
+                              {ownerSearch.length >= 3 && ownerSearchData && ownerSearchData.length > 0 && (
+                                <div className="border rounded-md bg-popover shadow-md max-h-40 overflow-y-auto">
+                                  {ownerSearchData.map(u => (
+                                    <button
+                                      key={u.id}
+                                      type="button"
+                                      className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground flex flex-col"
+                                      onClick={() => {
+                                        if (confirm(`Set owner of "${tenant.name}" to ${u.name ?? u.email}?`)) {
+                                          updateOwnerMutation.mutate({ tenantId: tenant.id, newOwnerUserId: u.id });
+                                        }
+                                      }}
+                                    >
+                                      <span className="font-medium">{u.name ?? "—"}</span>
+                                      <span className="text-muted-foreground">{u.email}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                              {ownerSearch.length >= 3 && ownerSearchData && ownerSearchData.length === 0 && (
+                                <p className="text-xs text-muted-foreground px-1">No users found.</p>
+                              )}
+                              <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => { setEditOwnerTenantId(null); setOwnerSearch(""); }}>
+                                Cancel
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="group text-sm space-y-0.5 relative">
+                              <div className="flex items-center gap-1">
+                                <span className="font-medium">{tenant.ownerName ?? "—"}</span>
+                                <button
+                                  type="button"
+                                  title="Change owner"
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                                  onClick={() => { setEditOwnerTenantId(tenant.id); setOwnerSearch(""); }}
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </button>
                               </div>
-                            )}
-                            {(tenant as any).ownerSchoolName && (
-                              <div className="flex items-center gap-0.5 mt-1 text-xs text-slate-600 dark:text-slate-400 max-w-[200px]">
-                                <Building2 className="h-3 w-3 shrink-0" />
-                                <span className="truncate" title={(tenant as any).ownerSchoolName}>{(tenant as any).ownerSchoolName}</span>
-                              </div>
-                            )}
-                            {((tenant as any).ownerSchoolLocation || (tenant as any).ownerSchoolLanguage) && (
-                              <div className="flex flex-wrap gap-2 mt-1">
-                                {(tenant as any).ownerSchoolLocation && (
-                                  <span className="inline-flex items-center gap-0.5 text-xs text-violet-600 dark:text-violet-400">
-                                    <MapPin className="h-3 w-3" />
-                                    {(tenant as any).ownerSchoolLocation === "historical_centre" ? "Historical Centre" : (tenant as any).ownerSchoolLocation === "nucli_antic" ? "Nucli Antic" : (tenant as any).ownerSchoolLocation}
-                                  </span>
-                                )}
-                                {(tenant as any).ownerSchoolLanguage && (
-                                  <span className="inline-flex items-center gap-0.5 text-xs text-violet-600 dark:text-violet-400">
-                                    <Globe className="h-3 w-3" />
-                                    {(tenant as any).ownerSchoolLanguage === "en" ? "English" : (tenant as any).ownerSchoolLanguage === "es" ? "Spanish" : (tenant as any).ownerSchoolLanguage === "ca" ? "Catalan" : (tenant as any).ownerSchoolLanguage}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </div>
+                              {tenant.ownerEmail && (
+                                <div className="text-muted-foreground text-xs">{tenant.ownerEmail}</div>
+                              )}
+                              {tenant.ownerName && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  <OwnerRoleBadge role={(tenant as any).ownerRole} />
+                                  <OwnerStatusPill deactivatedAt={(tenant as any).ownerDeactivatedAt ?? null} />
+                                </div>
+                              )}
+                              {(tenant as any).ownerSchoolName && (
+                                <div className="flex items-center gap-0.5 mt-1 text-xs text-slate-600 dark:text-slate-400 max-w-[200px]">
+                                  <Building2 className="h-3 w-3 shrink-0" />
+                                  <span className="truncate" title={(tenant as any).ownerSchoolName}>{(tenant as any).ownerSchoolName}</span>
+                                </div>
+                              )}
+                              {((tenant as any).ownerSchoolLocation || (tenant as any).ownerSchoolLanguage) && (
+                                <div className="flex flex-wrap gap-2 mt-1">
+                                  {(tenant as any).ownerSchoolLocation && (
+                                    <span className="inline-flex items-center gap-0.5 text-xs text-violet-600 dark:text-violet-400">
+                                      <MapPin className="h-3 w-3" />
+                                      {(tenant as any).ownerSchoolLocation === "historical_centre" ? "Historical Centre" : (tenant as any).ownerSchoolLocation === "nucli_antic" ? "Nucli Antic" : (tenant as any).ownerSchoolLocation}
+                                    </span>
+                                  )}
+                                  {(tenant as any).ownerSchoolLanguage && (
+                                    <span className="inline-flex items-center gap-0.5 text-xs text-violet-600 dark:text-violet-400">
+                                      <Globe className="h-3 w-3" />
+                                      {(tenant as any).ownerSchoolLanguage === "en" ? "English" : (tenant as any).ownerSchoolLanguage === "es" ? "Spanish" : (tenant as any).ownerSchoolLanguage === "ca" ? "Catalan" : (tenant as any).ownerSchoolLanguage}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell>
                           {(tenant as any).territoryName ? (

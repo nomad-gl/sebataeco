@@ -1076,6 +1076,25 @@ export const tenantsRouter = router({
     }),
 
   /**
+   * Reassign the owner of a tenant to a different user.
+   * SEBA admin only.
+   */
+  updateOwner: adminProcedure
+    .input(z.object({
+      tenantId: z.number().int().positive(),
+      newOwnerUserId: z.number().int().positive(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      // Validate new owner exists
+      const [newOwner] = await db.select({ id: users.id }).from(users).where(eq(users.id, input.newOwnerUserId)).limit(1);
+      if (!newOwner) throw new TRPCError({ code: "NOT_FOUND", message: "User not found." });
+      await db.update(tenants).set({ ownerUserId: input.newOwnerUserId, updatedAt: new Date() }).where(eq(tenants.id, input.tenantId));
+      return { success: true };
+    }),
+
+  /**
    * Permanently delete a user account.
    * SEBA admin only — intended for removing unassigned users that should not exist.
    * Prevents self-deletion.
