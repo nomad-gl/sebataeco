@@ -4120,3 +4120,5 @@
 - [x] Frontend: Pencil icon on Owner cell in All Tenants card opens an inline user-search dialog to pick a new owner
 - [x] Frontend: User search by name/email (3+ chars), shows matching users, click to confirm reassignment
 - [x] Update todo.md and save checkpoint
+- [x] Add removeOwner procedure to tenants router (clear ownerUserId to NULL) — schema made nullable, TypeScript clean
+- [x] Add Edit Owner / Remove Owner buttons to Owner cell edit mode in School Management (idle mode shows two buttons; search mode activated by Edit Owner)

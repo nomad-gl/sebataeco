@@ -1662,7 +1662,7 @@ export const tenants = mysqlTable("tenants", {
   /** Human-readable school/organisation name */
   name: varchar("name", { length: 255 }).notNull(),
   /** FK to users.id — the director who owns this tenant */
-  ownerUserId: int("ownerUserId").notNull(),
+  ownerUserId: int("ownerUserId"),
   /** FK to territories.id — the geographic territory this school belongs to */
   territoryId: int("territoryId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

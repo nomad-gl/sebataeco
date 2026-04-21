@@ -374,13 +374,24 @@ export default function TenantManagement() {
   const [editOwnerTenantId, setEditOwnerTenantId] = useState<number | null>(null);
   const [ownerSearch, setOwnerSearch] = useState("");
   const [ownerSearchResults, setOwnerSearchResults] = useState<{ id: number; name: string | null; email: string | null }[]>([]);
+  const [ownerEditMode, setOwnerEditMode] = useState<"search" | "idle">("idle");
   const updateOwnerMutation = trpc.tenants.updateOwner.useMutation({
     onSuccess: () => {
       utils.tenants.list.invalidate();
       setEditOwnerTenantId(null);
       setOwnerSearch("");
       setOwnerSearchResults([]);
+      setOwnerEditMode("idle");
       toast.success("Owner updated successfully.");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const removeOwnerMutation = trpc.tenants.removeOwner.useMutation({
+    onSuccess: () => {
+      utils.tenants.list.invalidate();
+      setEditOwnerTenantId(null);
+      setOwnerEditMode("idle");
+      toast.success("Owner removed. The school now has no assigned director.");
     },
     onError: (e) => toast.error(e.message),
   });
@@ -1002,38 +1013,72 @@ export default function TenantManagement() {
                         <TableCell>
                           {editOwnerTenantId === tenant.id ? (
                             <div className="space-y-1.5 min-w-[200px]">
-                              <Input
-                                autoFocus
-                                placeholder="Search by name or email…"
-                                value={ownerSearch}
-                                onChange={e => setOwnerSearch(e.target.value)}
-                                className="h-7 text-xs"
-                              />
-                              {ownerSearch.length >= 3 && ownerSearchData && ownerSearchData.length > 0 && (
-                                <div className="border rounded-md bg-popover shadow-md max-h-40 overflow-y-auto">
-                                  {ownerSearchData.map(u => (
-                                    <button
-                                      key={u.id}
-                                      type="button"
-                                      className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground flex flex-col"
+                              {ownerEditMode === "idle" ? (
+                                <div className="flex flex-col gap-1.5">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 text-xs justify-start gap-1.5"
+                                    onClick={() => setOwnerEditMode("search")}
+                                  >
+                                    <Pencil className="h-3 w-3" />
+                                    Edit Owner
+                                  </Button>
+                                  {tenant.ownerUserId && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-7 text-xs justify-start gap-1.5 text-destructive hover:text-destructive border-destructive/30 hover:border-destructive"
                                       onClick={() => {
-                                        if (confirm(`Set owner of "${tenant.name}" to ${u.name ?? u.email}?`)) {
-                                          updateOwnerMutation.mutate({ tenantId: tenant.id, newOwnerUserId: u.id });
+                                        if (confirm(`Remove the owner of "${tenant.name}"? The school will have no assigned director.`)) {
+                                          removeOwnerMutation.mutate({ tenantId: tenant.id });
                                         }
                                       }}
                                     >
-                                      <span className="font-medium">{u.name ?? "—"}</span>
-                                      <span className="text-muted-foreground">{u.email}</span>
-                                    </button>
-                                  ))}
+                                      <Trash2 className="h-3 w-3" />
+                                      Remove Owner
+                                    </Button>
+                                  )}
+                                  <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => { setEditOwnerTenantId(null); setOwnerEditMode("idle"); }}>
+                                    Cancel
+                                  </Button>
                                 </div>
+                              ) : (
+                                <>
+                                  <Input
+                                    autoFocus
+                                    placeholder="Search by name or email…"
+                                    value={ownerSearch}
+                                    onChange={e => setOwnerSearch(e.target.value)}
+                                    className="h-7 text-xs"
+                                  />
+                                  {ownerSearch.length >= 3 && ownerSearchData && ownerSearchData.length > 0 && (
+                                    <div className="border rounded-md bg-popover shadow-md max-h-40 overflow-y-auto">
+                                      {ownerSearchData.map(u => (
+                                        <button
+                                          key={u.id}
+                                          type="button"
+                                          className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground flex flex-col"
+                                          onClick={() => {
+                                            if (confirm(`Set owner of "${tenant.name}" to ${u.name ?? u.email}?`)) {
+                                              updateOwnerMutation.mutate({ tenantId: tenant.id, newOwnerUserId: u.id });
+                                            }
+                                          }}
+                                        >
+                                          <span className="font-medium">{u.name ?? "—"}</span>
+                                          <span className="text-muted-foreground">{u.email}</span>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {ownerSearch.length >= 3 && ownerSearchData && ownerSearchData.length === 0 && (
+                                    <p className="text-xs text-muted-foreground px-1">No users found.</p>
+                                  )}
+                                  <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => { setOwnerEditMode("idle"); setOwnerSearch(""); }}>
+                                    ← Back
+                                  </Button>
+                                </>
                               )}
-                              {ownerSearch.length >= 3 && ownerSearchData && ownerSearchData.length === 0 && (
-                                <p className="text-xs text-muted-foreground px-1">No users found.</p>
-                              )}
-                              <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => { setEditOwnerTenantId(null); setOwnerSearch(""); }}>
-                                Cancel
-                              </Button>
                             </div>
                           ) : (
                             <div className="group text-sm space-y-0.5 relative">

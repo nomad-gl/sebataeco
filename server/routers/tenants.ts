@@ -1112,4 +1112,22 @@ export const tenantsRouter = router({
       await db.delete(users).where(eq(users.id, input.userId));
       return { success: true };
     }),
+
+  /**
+   * Remove (clear) the owner of a school/tenant.
+   * Sets ownerUserId to NULL so the school has no assigned director.
+   * SEBA admin only.
+   */
+  removeOwner: adminProcedure
+    .input(z.object({
+      tenantId: z.number().int().positive(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      const [tenant] = await db.select({ id: tenants.id }).from(tenants).where(eq(tenants.id, input.tenantId)).limit(1);
+      if (!tenant) throw new TRPCError({ code: "NOT_FOUND", message: "School not found." });
+      await db.update(tenants).set({ ownerUserId: null, updatedAt: new Date() }).where(eq(tenants.id, input.tenantId));
+      return { success: true };
+    }),
 });
