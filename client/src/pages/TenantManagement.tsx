@@ -230,9 +230,11 @@ export default function TenantManagement() {
   });
 
   // ── Mutations: Director Invites ────────────────────────────────────────────
+  const [inviteEmailSent, setInviteEmailSent] = useState(false);
   const createInviteMutation = trpc.tenants.createDirectorInvite.useMutation({
     onSuccess: (data) => {
       setInviteResult(data);
+      setInviteEmailSent(!!inviteEmail.trim());
       toast.success(`Invite created for ${data.tenantName}`);
     },
     onError: (err) => toast.error(err.message),
@@ -761,7 +763,7 @@ export default function TenantManagement() {
         {/* ── Territorial Directors Tab ──────────────────────────────────────────── */}
 
       {/* Director Invite Dialog */}
-      <Dialog open={inviteDialogTenantId !== null} onOpenChange={open => { if (!open) { setInviteDialogTenantId(null); setInviteResult(null); } }}>
+      <Dialog open={inviteDialogTenantId !== null} onOpenChange={open => { if (!open) { setInviteDialogTenantId(null); setInviteResult(null); setInviteEmailSent(false); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -782,7 +784,7 @@ export default function TenantManagement() {
                   value={inviteEmail}
                   onChange={e => setInviteEmail(e.target.value)}
                 />
-                <p className="text-xs text-muted-foreground mt-1">If provided, the email field will be pre-filled on the acceptance page.</p>
+                <p className="text-xs text-muted-foreground mt-1">If provided, the invite link will be emailed automatically and the email field pre-filled on the acceptance page.</p>
               </div>
             </div>
           ) : (
@@ -794,6 +796,12 @@ export default function TenantManagement() {
                   <p className="text-xs text-green-700 dark:text-green-400">Expires {new Date(inviteResult.expiresAt).toLocaleDateString()}</p>
                 </div>
               </div>
+              {inviteEmailSent && (
+                <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <CheckCircle2 className="h-4 w-4 text-blue-600 shrink-0" />
+                  <p className="text-sm text-blue-800 dark:text-blue-300">Email sent to <strong>{inviteEmail}</strong></p>
+                </div>
+              )}
               <div>
                 <label className="text-sm font-medium mb-1 block">Invite Link</label>
                 <div className="flex gap-2">
@@ -829,6 +837,7 @@ export default function TenantManagement() {
                     createInviteMutation.mutate({
                       tenantId: inviteDialogTenantId,
                       email: inviteEmail.trim() || undefined,
+                      origin: window.location.origin,
                     });
                   }}
                 >

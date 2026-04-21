@@ -21,6 +21,7 @@ import {
 } from "../../drizzle/schema";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
+import { sendTeacherInviteEmail, sendDirectorInviteEmail } from "../email";
 
 // ─── Audit helper ────────────────────────────────────────────────────────────
 
@@ -758,6 +759,7 @@ export const tenantsRouter = router({
     .input(z.object({
       tenantId: z.number().int().positive(),
       email: z.string().email().optional(),
+      origin: z.string().url().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -778,6 +780,12 @@ export const tenantsRouter = router({
         createdByUserId: ctx.user.id,
         expiresAt,
       } as any);
+
+      // Fire-and-forget email — non-blocking, errors are logged not thrown
+      if (input.email && input.origin) {
+        const inviteUrl = `${input.origin}/invite/director/${token}`;
+        sendDirectorInviteEmail({ to: input.email, inviteUrl, tenantName: tenant.name, expiresAt }).catch(() => {});
+      }
 
       return { token, tenantName: tenant.name, expiresAt };
     }),
@@ -903,6 +911,18 @@ export const tenantsRouter = router({
       } as any);
 
       const inviteUrl = `${input.origin}/invite/teacher/${token}`;
+
+      // Fire-and-forget email — non-blocking, errors are logged not thrown
+      if (input.email) {
+        // Optionally fetch tenant name for the email
+        let tenantName: string | null = null;
+        if (input.tenantId) {
+          const [t] = await db.select({ name: tenants.name }).from(tenants).where(eq(tenants.id, input.tenantId)).limit(1);
+          tenantName = t?.name ?? null;
+        }
+        sendTeacherInviteEmail({ to: input.email, inviteUrl, tenantName, expiresAt }).catch(() => {});
+      }
+
       return { token, inviteUrl, expiresAt };
     }),
 

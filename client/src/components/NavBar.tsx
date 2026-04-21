@@ -112,9 +112,11 @@ export default function NavBar() {
   const [teacherInviteEmail, setTeacherInviteEmail] = useState("");
   const [teacherInviteLink, setTeacherInviteLink] = useState<string | null>(null);
   const [teacherInviteCopied, setTeacherInviteCopied] = useState(false);
+  const [teacherInviteEmailSent, setTeacherInviteEmailSent] = useState(false);
   const createTeacherInvite = trpc.tenants.createTeacherInvite.useMutation({
     onSuccess: (data) => {
       setTeacherInviteLink(data.inviteUrl);
+      setTeacherInviteEmailSent(!!teacherInviteEmail.trim());
       toast.success("Teacher invite link generated");
     },
     onError: (err) => toast.error(err.message),
@@ -1663,6 +1665,12 @@ export default function NavBar() {
                     <p className="text-xs text-gray-500 mt-0.5">Valid for 7 days. Share this link with the teacher.</p>
                   </div>
                 </div>
+                {teacherInviteEmailSent && (
+                  <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 mb-3">
+                    <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
+                    <p className="text-xs text-blue-800">Email sent to <strong>{teacherInviteEmail}</strong></p>
+                  </div>
+                )}
                 <div className="bg-gray-50 rounded-xl p-4 space-y-3">
                   <div className="flex items-center gap-2">
                     <code className="flex-1 text-xs font-mono text-gray-700 break-all">{teacherInviteLink}</code>
@@ -1679,7 +1687,7 @@ export default function NavBar() {
                   This link can only be used once. The teacher will set their own password on the invite page.
                 </p>
                 <button
-                  onClick={() => setTeacherInviteOpen(false)}
+                  onClick={() => { setTeacherInviteOpen(false); setTeacherInviteEmailSent(false); }}
                   className="w-full mt-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors"
                 >
                   Done

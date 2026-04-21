@@ -3891,15 +3891,15 @@
 
 ## Feature: Email Delivery for Invite Links
 
-- [ ] Install nodemailer + @types/nodemailer
-- [ ] Add SMTP secrets: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM
-- [ ] Create server/email.ts helper: sendInviteEmail(to, inviteUrl, role, tenantName, expiresAt)
-- [ ] Wire sendInviteEmail into tenants.createTeacherInvite (fire-and-forget, non-blocking)
-- [ ] Wire sendInviteEmail into tenants.createDirectorInvite (fire-and-forget, non-blocking)
-- [ ] Update NavBar Invite Teacher dialog: show "Email sent to <address>" confirmation when email is provided
-- [ ] Update TenantManagement Invite Director dialog: show email-sent confirmation
-- [ ] Write vitest tests for email helper (mock transport, verify correct fields)
-- [ ] Update todo.md and save checkpoint
+- [x] Install nodemailer + @types/nodemailer (already installed: nodemailer@^8.0.5)
+- [x] Add SMTP secrets: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM (env vars ready; credentials to be provided via Secrets panel when Brevo account is set up)
+- [x] Create server/email.ts helper: sendTeacherInviteEmail / sendDirectorInviteEmail / sendPlanByEmail (all implemented with HTML templates and graceful fallback)
+- [x] Wire sendTeacherInviteEmail into tenants.createTeacherInvite (fire-and-forget, non-blocking)
+- [x] Wire sendDirectorInviteEmail into tenants.createDirectorInvite (fire-and-forget, non-blocking, origin param added)
+- [x] Update NavBar Invite Teacher dialog: show "Email sent to <address>" confirmation when email is provided
+- [x] Update TenantManagement Invite Director dialog: show email-sent confirmation
+- [x] Write vitest tests for email helper (mock transport, verify correct fields) — 19 tests in server/email.test.ts
+- [x] Update todo.md and save checkpoint
 
 ## Feature: Create Tenant with Owner User
 
