@@ -970,7 +970,35 @@ export const directorRouter = router({
         title: "Teacher Invite Resent",
         content: `A Director resent a teacher registration link${existing.email ? ` for ${existing.email}` : ""}. New link: ${inviteUrl} (expires ${expiresAt.toISOString()})`,
       });
-      return { inviteUrl, expiresAt };
+       return { inviteUrl, expiresAt };
     }),
 
+  /**
+   * Update editable profile fields for any user.
+   * SEBA admin only — used from the Role Management Users card.
+   * All fields are optional; only provided fields are updated.
+   */
+  updateUserProfile: adminProcedure
+    .input(z.object({
+      userId: z.number().int().positive(),
+      name: z.string().min(1).max(255).optional(),
+      email: z.string().email().max(255).optional(),
+      position: z.string().max(128).optional().nullable(),
+      schoolName: z.string().max(256).optional().nullable(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+
+      const updates: Record<string, unknown> = {};
+      if (input.name !== undefined) updates.name = input.name;
+      if (input.email !== undefined) updates.email = input.email;
+      if (input.position !== undefined) updates.position = input.position;
+      if (input.schoolName !== undefined) updates.schoolName = input.schoolName;
+
+      if (Object.keys(updates).length === 0) return { success: true };
+
+      await db.update(users).set(updates as Parameters<ReturnType<typeof db.update<typeof users>>['set']>[0]).where(eq(users.id, input.userId));
+      return { success: true };
+    }),
 });

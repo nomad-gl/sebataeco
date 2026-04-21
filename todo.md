@@ -4128,3 +4128,4 @@
 - [x] Fix: Assign button not enabled when school chosen from Catalonia list in Assign User to School dialog (assignSelectedSchool set but assignToTenantId stays empty)
 - [x] Auto-populate users.schoolName when assigned to a school (both assignUser and assignUserBySchoolName procedures)
 - [x] Cascade schoolName update to all assigned users when a tenant name is changed
+- [x] Role Management: allow the user section of the Users card to be edited and saved (name, email, school, role, position)

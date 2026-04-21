@@ -40,6 +40,9 @@ import {
   User,
   MapPin,
   Languages,
+  Pencil,
+  X,
+  Check,
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -148,6 +151,49 @@ export default function RoleManagement() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
   const [bulkTenantId, setBulkTenantId] = useState<string>("");
+
+  // Inline user profile editing
+  const [editingUserId, setEditingUserId] = useState<number | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPosition, setEditPosition] = useState("");
+  const [editSchoolName, setEditSchoolName] = useState("");
+
+  const updateProfileMutation = trpc.director.updateUserProfile.useMutation({
+    onSuccess: () => {
+      toast.success("User profile updated.");
+      setEditingUserId(null);
+      void refetch();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  function startEdit(u: ManagedUser) {
+    setEditingUserId(u.id);
+    setEditName(u.displayName ?? "");
+    setEditEmail(u.email ?? "");
+    setEditPosition(u.position ?? "");
+    setEditSchoolName(u.schoolName ?? "");
+  }
+
+  function cancelEdit() {
+    setEditingUserId(null);
+  }
+
+  function saveEdit(u: ManagedUser) {
+    const payload: {
+      userId: number;
+      name?: string;
+      email?: string;
+      position?: string | null;
+      schoolName?: string | null;
+    } = { userId: u.id };
+    if (editName.trim() && editName.trim() !== (u.displayName ?? "")) payload.name = editName.trim();
+    if (editEmail.trim() && editEmail.trim() !== (u.email ?? "")) payload.email = editEmail.trim();
+    if (editPosition !== (u.position ?? "")) payload.position = editPosition.trim() || null;
+    if (editSchoolName !== (u.schoolName ?? "")) payload.schoolName = editSchoolName.trim() || null;
+    updateProfileMutation.mutate(payload);
+  }
 
   // Reset selection when filter changes
   useEffect(() => {
@@ -387,11 +433,12 @@ export default function RoleManagement() {
                     ) : (
                       <th className="text-left px-4 py-3 font-medium">{t("role_mgmt_col_last_seen")}</th>
                     )}
+                    <th className="px-4 py-3 w-8" />
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map((user) => (
-                    <tr key={user.id} className={`border-b last:border-0 hover:bg-muted/20 transition-colors ${user.deactivatedAt ? "opacity-50" : ""} ${selectedIds.has(user.id) ? "bg-violet-50 dark:bg-violet-950/20" : ""}`}>
+                    <tr key={user.id} className={`group border-b last:border-0 hover:bg-muted/20 transition-colors ${user.deactivatedAt ? "opacity-50" : ""} ${selectedIds.has(user.id) ? "bg-violet-50 dark:bg-violet-950/20" : ""}`}>
                       {filterRole === "unassigned" && (
                         <td className="px-4 py-3">
                           <input
@@ -407,12 +454,50 @@ export default function RoleManagement() {
                         </td>
                       )}
                       <td className="px-4 py-3">
-                        <div className="font-medium">{user.displayName ?? user.email ?? `#${user.id}`}</div>
-                        {user.displayName && user.email && (
-                          <div className="text-xs text-muted-foreground">{user.email}</div>
-                        )}
-                        {user.deactivatedAt && (
-                          <Badge variant="destructive" className="text-xs mt-0.5">{t("role_mgmt_deactivated")}</Badge>
+                        {editingUserId === user.id ? (
+                          <div className="space-y-1.5">
+                            <Input
+                              className="h-7 text-xs"
+                              placeholder="Name"
+                              value={editName}
+                              onChange={(e) => setEditName(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === "Enter") saveEdit(user); if (e.key === "Escape") cancelEdit(); }}
+                            />
+                            <Input
+                              className="h-7 text-xs"
+                              placeholder="Email"
+                              value={editEmail}
+                              onChange={(e) => setEditEmail(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === "Enter") saveEdit(user); if (e.key === "Escape") cancelEdit(); }}
+                            />
+                            <Input
+                              className="h-7 text-xs"
+                              placeholder="Position (optional)"
+                              value={editPosition}
+                              onChange={(e) => setEditPosition(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === "Enter") saveEdit(user); if (e.key === "Escape") cancelEdit(); }}
+                            />
+                            <Input
+                              className="h-7 text-xs"
+                              placeholder="School name (optional)"
+                              value={editSchoolName}
+                              onChange={(e) => setEditSchoolName(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === "Enter") saveEdit(user); if (e.key === "Escape") cancelEdit(); }}
+                            />
+                          </div>
+                        ) : (
+                          <>
+                            <div className="font-medium">{user.displayName ?? user.email ?? `#${user.id}`}</div>
+                            {user.displayName && user.email && (
+                              <div className="text-xs text-muted-foreground">{user.email}</div>
+                            )}
+                            {user.position && (
+                              <div className="text-xs text-muted-foreground italic">{user.position}</div>
+                            )}
+                            {user.deactivatedAt && (
+                              <Badge variant="destructive" className="text-xs mt-0.5">{t("role_mgmt_deactivated")}</Badge>
+                            )}
+                          </>
                         )}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
@@ -463,6 +548,38 @@ export default function RoleManagement() {
                       </td>
                       <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
                         {filterRole === "unassigned" ? formatDate(user.createdAt) : formatDate(user.lastSignedIn)}
+                      </td>
+                      <td className="px-4 py-3">
+                        {editingUserId === user.id ? (
+                          <div className="flex gap-1">
+                            <button
+                              type="button"
+                              className="p-1 rounded hover:bg-green-100 dark:hover:bg-green-900 text-green-600 dark:text-green-400 disabled:opacity-50"
+                              title="Save"
+                              disabled={updateProfileMutation.isPending}
+                              onClick={() => saveEdit(user)}
+                            >
+                              {updateProfileMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                            </button>
+                            <button
+                              type="button"
+                              className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900 text-red-500"
+                              title="Cancel"
+                              onClick={cancelEdit}
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-muted text-muted-foreground"
+                            title="Edit user"
+                            onClick={() => startEdit(user)}
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
