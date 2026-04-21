@@ -318,9 +318,20 @@ export const tenantsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
 
+      // Look up the tenant name so we can populate schoolName on the user
+      let schoolName: string | null = null;
+      if (input.tenantId !== null) {
+        const [tenant] = await db
+          .select({ name: tenants.name })
+          .from(tenants)
+          .where(eq(tenants.id, input.tenantId))
+          .limit(1);
+        schoolName = tenant?.name ?? null;
+      }
+
       await db
         .update(users)
-        .set({ tenantId: input.tenantId })
+        .set({ tenantId: input.tenantId, ...(schoolName !== null ? { schoolName } : {}) })
         .where(eq(users.id, input.userId));
 
       return { success: true };
@@ -1145,8 +1156,9 @@ export const tenantsRouter = router({
         tenantId = (result as unknown as [{ insertId: number }])[0].insertId;
       }
 
-      // Assign the user to the tenant
-      await db.update(users).set({ tenantId }).where(eq(users.id, input.userId));
+      // Assign the user to the tenant and populate their schoolName
+      const canonicalName = existing ? existing.name : input.schoolName;
+      await db.update(users).set({ tenantId, schoolName: canonicalName }).where(eq(users.id, input.userId));
 
       return { success: true, tenantId, created: !existing };
     }),
