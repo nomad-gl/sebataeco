@@ -297,10 +297,17 @@ export const tenantsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
 
+      // Rename the tenant
       await db
         .update(tenants)
-        .set({ name: input.name })
+        .set({ name: input.name, updatedAt: new Date() })
         .where(eq(tenants.id, input.id));
+
+      // Cascade the new name to all users assigned to this tenant
+      await db
+        .update(users)
+        .set({ schoolName: input.name })
+        .where(eq(users.tenantId, input.id));
 
       return { success: true };
     }),

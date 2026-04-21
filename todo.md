@@ -4127,3 +4127,4 @@
 - [x] Assign User to School dialog: replace plain tenant dropdown with filtered Catalonia school search (municipality/comarca filter + name search, same pattern as Role Management director picker)
 - [x] Fix: Assign button not enabled when school chosen from Catalonia list in Assign User to School dialog (assignSelectedSchool set but assignToTenantId stays empty)
 - [x] Auto-populate users.schoolName when assigned to a school (both assignUser and assignUserBySchoolName procedures)
+- [x] Cascade schoolName update to all assigned users when a tenant name is changed
