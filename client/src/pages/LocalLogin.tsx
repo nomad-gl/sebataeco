@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Globe, Eye, EyeOff, Loader2, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { SebaSymbol } from "@/components/SebaSymbol";
+import SovereigntyWarning from "@/components/SovereigntyWarning";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 
@@ -195,6 +196,8 @@ export default function LocalLogin() {
                     </button>
                   </div>
                 </div>
+
+                <SovereigntyWarning email={loginEmail} />
 
                 {loginError && (
                   <p className="text-red-300 text-sm bg-red-900/30 border border-red-500/30 rounded-lg px-3 py-2">

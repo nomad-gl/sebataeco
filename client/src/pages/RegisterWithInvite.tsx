@@ -31,6 +31,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { SebaSymbol } from "@/components/SebaSymbol";
+import SovereigntyWarning from "@/components/SovereigntyWarning";
 
 const DEFAULT_BG =
   "/manus-storage/hero-bg_a767782c.jpg";
@@ -339,6 +340,8 @@ export default function RegisterWithInvite() {
                   placeholder="••••••••"
                 />
               </div>
+
+              <SovereigntyWarning email={regEmail} locked={!!tokenData?.email} />
 
               {regError && (
                 <p className="text-red-300 text-sm bg-red-900/30 border border-red-500/30 rounded-lg px-3 py-2">

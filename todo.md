@@ -3940,3 +3940,26 @@
 - [x] Fix hardcoded English strings in IndividualPlans, Accountability, Admin generate dialogs
 - [x] Add btn_close, btn_loading, acc_path_generate_desc, admin_kb_* i18n keys to EN/ES/CA
 - [x] Verify all fixes compile cleanly (0 TS errors, 5518 tests pass)
+
+## Feature: Share Individual Plan via Email
+
+- [x] Backend: ilp.shareByEmail tRPC protectedProcedure (recipient email, plan content, sender name)
+- [x] Backend: format plan as branded HTML email (title, sections, SEBA footer)
+- [x] Backend: send via Nodemailer SMTP (reuse server/email.ts transport)
+- [x] Frontend: "Share via Email" button on generated ILP and Lesson Plan cards
+- [x] Frontend: Share dialog with recipient email input, optional personal message, send button
+- [x] Frontend: show success/error toast after send
+- [x] Add i18n keys for share dialog (EN/ES/CA): ilp_share_email_title, ilp_share_email_label, ilp_share_message_label, ilp_share_send, ilp_share_sent, ilp_share_error
+- [x] Write vitest tests for ilp.shareByEmail procedure
+- [x] Update todo.md and save checkpoint
+
+## Feature: Sovereignty Email-Domain Warning
+
+- [x] Create SovereigntyWarning.tsx — shared component with consumer domain blocklist (gmail, outlook, yahoo, hotmail, icloud, live, msn, aol, proton, etc.)
+- [x] Frontend: isConsumerEmail() helper in SovereigntyWarning.tsx
+- [x] Frontend: show sovereignty warning banner on LocalLogin.tsx when consumer domain detected in email field
+- [x] Frontend: show sovereignty warning banner on RegisterWithInvite.tsx when consumer domain detected (locked when pre-filled from invite)
+- [x] Warning: explains data sovereignty risk, suggests institutional email, shows contact address based on language
+- [x] Add i18n keys for sovereignty warning (EN/ES/CA): sovereignty_warning_title, sovereignty_warning_body, sovereignty_warning_suggestion, sovereignty_warning_contact_ca, sovereignty_warning_contact_en
+- [x] Write vitest tests for isConsumerEmail domain detection (12 test cases)
+- [x] Update todo.md and save checkpoint

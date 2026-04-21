@@ -18,8 +18,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Streamdown } from "streamdown";
@@ -38,6 +54,8 @@ import {
   Loader2,
   Search,
   X,
+  Mail,
+  Send,
 } from "lucide-react";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -200,6 +218,12 @@ export default function IndividualPlans() {
   const [ilpSearch, setIlpSearch] = useState("");
   const [lpSearch, setLpSearch] = useState("");
 
+  // ── Share by email state ──
+  const [shareDialog, setShareDialog] = useState<{ type: "ilp" | "lesson"; id: number; title: string } | null>(null);
+  const [shareEmail, setShareEmail] = useState("");
+  const [shareMessage, setShareMessage] = useState("");
+  const [shareEmailError, setShareEmailError] = useState("");
+
   // ── Lesson Plan state ──
   const [lpView, setLpView] = useState<"list" | "form" | "detail">("list");
   const [lpForm, setLpForm] = useState<LessonFormData>(defaultLessonForm());
@@ -243,6 +267,60 @@ export default function IndividualPlans() {
     onSuccess: () => { utils.lessonPlan.list.invalidate(); setDeleteLpId(null); toast.success("Lesson plan deleted."); },
   });
   const generateLp = trpc.lessonPlan.generateAI.useMutation();
+
+  // ── Share mutations ──
+  const shareIlp = trpc.ilp.shareByEmail.useMutation({
+    onSuccess: (data) => {
+      if (data.smtpNotConfigured) {
+        toast.warning(t("ilp_share_smtp_not_configured"));
+      } else if (data.sent) {
+        toast.success(t("ilp_share_sent"));
+        setShareDialog(null);
+        setShareEmail("");
+        setShareMessage("");
+      } else {
+        toast.error(t("ilp_share_error"));
+      }
+    },
+    onError: () => toast.error(t("ilp_share_error")),
+  });
+  const shareLp = trpc.lessonPlan.shareByEmail.useMutation({
+    onSuccess: (data) => {
+      if (data.smtpNotConfigured) {
+        toast.warning(t("ilp_share_smtp_not_configured"));
+      } else if (data.sent) {
+        toast.success(t("ilp_share_sent"));
+        setShareDialog(null);
+        setShareEmail("");
+        setShareMessage("");
+      } else {
+        toast.error(t("ilp_share_error"));
+      }
+    },
+    onError: () => toast.error(t("ilp_share_error")),
+  });
+
+  function openShareDialog(type: "ilp" | "lesson", id: number, title: string) {
+    setShareDialog({ type, id, title });
+    setShareEmail("");
+    setShareMessage("");
+    setShareEmailError("");
+  }
+
+  function handleShare() {
+    if (!shareDialog) return;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(shareEmail)) {
+      setShareEmailError(t("ilp_share_email_invalid"));
+      return;
+    }
+    setShareEmailError("");
+    if (shareDialog.type === "ilp") {
+      shareIlp.mutate({ id: shareDialog.id, recipientEmail: shareEmail, personalMessage: shareMessage || undefined });
+    } else {
+      shareLp.mutate({ id: shareDialog.id, recipientEmail: shareEmail, personalMessage: shareMessage || undefined });
+    }
+  }
 
   if (!user) return null;
 
@@ -443,10 +521,15 @@ export default function IndividualPlans() {
                           <p className="text-xs text-muted-foreground line-clamp-2">
                             {plan.learningGoals || plan.studentContext || "No context provided."}
                           </p>
-                          <div className="flex gap-2 mt-3" onClick={e => e.stopPropagation()}>
+                          <div className="flex gap-2 mt-3 flex-wrap" onClick={e => e.stopPropagation()}>
                             <Button size="sm" variant="outline" onClick={() => openEditIlp(plan)}>
                               <Edit3 className="w-3 h-3 mr-1" /> Edit
                             </Button>
+                            {plan.planContent && (
+                              <Button size="sm" variant="outline" onClick={() => openShareDialog("ilp", plan.id, plan.studentName ? `ILP — ${plan.studentName}` : "ILP")}>
+                                <Mail className="w-3 h-3 mr-1" /> Share
+                              </Button>
+                            )}
                             <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700" onClick={() => setDeleteIlpId(plan.id)}>
                               <Trash2 className="w-3 h-3" />
                             </Button>
@@ -589,9 +672,14 @@ export default function IndividualPlans() {
                             <Edit3 className="w-4 h-4 mr-1" /> Edit
                           </Button>
                           {viewingIlp.data.planContent && (
-                            <Button size="sm" variant="outline" onClick={() => printPlan(`ILP — ${viewingIlp.data!.studentName}`, viewingIlp.data!.planContent ?? "")}>
-                              <Printer className="w-4 h-4 mr-1" /> Print
-                            </Button>
+                            <>
+                              <Button size="sm" variant="outline" onClick={() => openShareDialog("ilp", viewingIlp.data!.id, viewingIlp.data!.studentName ? `ILP — ${viewingIlp.data!.studentName}` : "ILP")}>
+                                <Mail className="w-4 h-4 mr-1" /> {t("ilp_share_btn")}
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => printPlan(`ILP — ${viewingIlp.data!.studentName}`, viewingIlp.data!.planContent ?? "")}>
+                                <Printer className="w-4 h-4 mr-1" /> Print
+                              </Button>
+                            </>
                           )}
                         </div>
                       </div>
@@ -678,10 +766,15 @@ export default function IndividualPlans() {
                           <p className="text-xs text-muted-foreground line-clamp-2">
                             {plan.objectives || plan.studentContext || "No context provided."}
                           </p>
-                          <div className="flex gap-2 mt-3" onClick={e => e.stopPropagation()}>
+                          <div className="flex gap-2 mt-3 flex-wrap" onClick={e => e.stopPropagation()}>
                             <Button size="sm" variant="outline" onClick={() => openEditLp(plan)}>
                               <Edit3 className="w-3 h-3 mr-1" /> Edit
                             </Button>
+                            {plan.planContent && (
+                              <Button size="sm" variant="outline" onClick={() => openShareDialog("lesson", plan.id, plan.studentName ? `Lesson — ${plan.studentName}` : "Lesson Plan")}>
+                                <Mail className="w-3 h-3 mr-1" /> Share
+                              </Button>
+                            )}
                             <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700" onClick={() => setDeleteLpId(plan.id)}>
                               <Trash2 className="w-3 h-3" />
                             </Button>
@@ -827,9 +920,14 @@ export default function IndividualPlans() {
                             <Edit3 className="w-4 h-4 mr-1" /> Edit
                           </Button>
                           {viewingLp.data.planContent && (
-                            <Button size="sm" variant="outline" onClick={() => printPlan(`Lesson Plan — ${viewingLp.data!.studentName}: ${viewingLp.data!.topic ?? ""}`, viewingLp.data!.planContent ?? "")}>
-                              <Printer className="w-4 h-4 mr-1" /> Print
-                            </Button>
+                            <>
+                              <Button size="sm" variant="outline" onClick={() => openShareDialog("lesson", viewingLp.data!.id, viewingLp.data!.studentName ? `Lesson — ${viewingLp.data!.studentName}` : "Lesson Plan")}>
+                                <Mail className="w-4 h-4 mr-1" /> {t("ilp_share_btn")}
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => printPlan(`Lesson Plan — ${viewingLp.data!.studentName}: ${viewingLp.data!.topic ?? ""}`, viewingLp.data!.planContent ?? "")}>
+                                <Printer className="w-4 h-4 mr-1" /> Print
+                              </Button>
+                            </>
                           )}
                         </div>
                       </div>
@@ -850,6 +948,57 @@ export default function IndividualPlans() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Share via Email dialog */}
+      <Dialog open={shareDialog !== null} onOpenChange={open => !open && setShareDialog(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="w-5 h-5 text-primary" />
+              {t("ilp_share_title")}
+            </DialogTitle>
+            <DialogDescription>
+              {shareDialog?.title} — {t("ilp_share_desc")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label htmlFor="share-email">{t("ilp_share_recipient_label")}</Label>
+              <Input
+                id="share-email"
+                type="email"
+                value={shareEmail}
+                onChange={e => { setShareEmail(e.target.value); setShareEmailError(""); }}
+                placeholder={t("ilp_share_recipient_placeholder")}
+                className={shareEmailError ? "border-red-500" : ""}
+              />
+              {shareEmailError && <p className="text-xs text-red-500 mt-1">{shareEmailError}</p>}
+            </div>
+            <div>
+              <Label htmlFor="share-message">{t("ilp_share_message_label")}</Label>
+              <Textarea
+                id="share-message"
+                rows={3}
+                value={shareMessage}
+                onChange={e => setShareMessage(e.target.value)}
+                placeholder={t("ilp_share_message_placeholder")}
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={() => setShareDialog(null)}>{t("btn_cancel")}</Button>
+            <Button
+              onClick={handleShare}
+              disabled={shareIlp.isPending || shareLp.isPending}
+              className="gap-2"
+            >
+              {shareIlp.isPending || shareLp.isPending
+                ? <><Loader2 className="w-4 h-4 animate-spin" /> {t("ilp_share_sending")}</>
+                : <><Send className="w-4 h-4" /> {t("ilp_share_btn")}</>}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete ILP confirmation */}
       <AlertDialog open={deleteIlpId !== null} onOpenChange={open => !open && setDeleteIlpId(null)}>

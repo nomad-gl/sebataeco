@@ -143,6 +143,88 @@ function directorInviteHtml(opts: {
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
+// ─── Plan sharing ────────────────────────────────────────────────────────────
+
+function markdownToHtml(md: string): string {
+  return md
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/^### (.+)$/gm, "<h3 style='color:#1e3a5f;font-size:1rem;margin:1.2rem 0 0.4rem'>$1</h3>")
+    .replace(/^## (.+)$/gm, "<h2 style='color:#1e3a5f;font-size:1.1rem;margin:1.4rem 0 0.5rem;border-bottom:1px solid #e5e7eb;padding-bottom:4px'>$1</h2>")
+    .replace(/^# (.+)$/gm, "<h1 style='color:#1e3a5f;font-size:1.3rem;margin:1.6rem 0 0.6rem'>$1</h1>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/^- (.+)$/gm, "<li style='margin:3px 0'>$1</li>")
+    .replace(/(<li[^>]*>.*<\/li>\n?)+/g, (m) => `<ul style='margin:8px 0 8px 20px;padding:0'>${m}</ul>`)
+    .replace(/\n\n/g, "</p><p style='margin:0 0 12px'>")
+    .replace(/\n/g, "<br/>");
+}
+
+function planEmailHtml(opts: {
+  senderName: string;
+  planTitle: string;
+  planContent: string;
+  planType: "ilp" | "lesson";
+  personalMessage?: string;
+}): string {
+  const typeLabel = opts.planType === "ilp" ? "Individual Learning Plan" : "Individual Lesson Plan";
+  const personalBlock = opts.personalMessage
+    ? `<div style='background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px 18px;margin:0 0 20px;font-size:14px;color:#1e40af;line-height:1.6'>
+        <strong>Message from ${opts.senderName}:</strong><br/>${opts.personalMessage}
+       </div>`
+    : "";
+  return htmlWrapper(`
+    <p class="greeting">${opts.planTitle}</p>
+    <div class="school-badge">📄 ${typeLabel}</div>
+    <p class="text">${opts.senderName} has shared this ${typeLabel} with you via SEBA AI Studio.</p>
+    ${personalBlock}
+    <div style='background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:20px 24px;font-size:14px;color:#374151;line-height:1.7'>
+      <p style='margin:0 0 12px'>${markdownToHtml(opts.planContent)}</p>
+    </div>
+  `);
+}
+
+export interface SendPlanResult {
+  sent: boolean;
+  smtpNotConfigured: boolean;
+  error?: string;
+}
+
+/**
+ * Send a plan (ILP or Lesson Plan) by email.
+ * Returns a result object — never throws.
+ */
+export async function sendPlanByEmail(opts: {
+  to: string;
+  senderName: string;
+  planTitle: string;
+  planContent: string;
+  planType: "ilp" | "lesson";
+  personalMessage?: string;
+}): Promise<SendPlanResult> {
+  const transport = createTransport();
+  if (!transport) {
+    console.warn("[Email] SMTP not configured — skipping plan share email.");
+    return { sent: false, smtpNotConfigured: true };
+  }
+
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+  const typeLabel = opts.planType === "ilp" ? "Individual Learning Plan" : "Individual Lesson Plan";
+
+  try {
+    await transport.sendMail({
+      from: `"SEBA AI Studio" <${from}>`,
+      to: opts.to,
+      subject: `${opts.senderName} shared a ${typeLabel} with you — SEBA AI Studio`,
+      html: planEmailHtml(opts),
+    });
+    console.log(`[Email] Plan shared with ${opts.to}`);
+    return { sent: true, smtpNotConfigured: false };
+  } catch (err: any) {
+    console.error("[Email] Failed to send plan email:", err?.message ?? err);
+    return { sent: false, smtpNotConfigured: false, error: err?.message };
+  }
+}
+
 export interface SendInviteResult {
   sent: boolean;
   /** True when SMTP is not configured — caller should show copy-link fallback */

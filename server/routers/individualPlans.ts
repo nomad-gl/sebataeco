@@ -24,6 +24,7 @@ import { getDb } from "../db";
 import { individualLearningPlans, individualLessonPlans } from "../../drizzle/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
+import { sendPlanByEmail } from "../email";
 
 // ─── Shared Zod schemas ────────────────────────────────────────────────────────
 
@@ -138,6 +139,41 @@ export const ilpRouter = router({
           )
         );
       return { success: true };
+    }),
+
+  shareByEmail: protectedProcedure
+    .input(
+      z.object({
+        id: z.number().int(),
+        recipientEmail: z.string().email(),
+        personalMessage: z.string().max(1000).optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const [plan] = await db
+        .select()
+        .from(individualLearningPlans)
+        .where(
+          and(
+            eq(individualLearningPlans.id, input.id),
+            eq(individualLearningPlans.teacherId, ctx.user.id)
+          )
+        );
+      if (!plan) throw new TRPCError({ code: "NOT_FOUND" });
+      if (!plan.planContent) throw new TRPCError({ code: "BAD_REQUEST", message: "Plan has no content to share." });
+
+      const result = await sendPlanByEmail({
+        to: input.recipientEmail,
+        senderName: ctx.user.name ?? ctx.user.email ?? "A teacher",
+        planTitle: plan.studentName ? `ILP — ${plan.studentName}` : "Individual Learning Plan",
+        planContent: plan.planContent,
+        planType: "ilp",
+        personalMessage: input.personalMessage,
+      });
+
+      return { sent: result.sent, smtpNotConfigured: result.smtpNotConfigured };
     }),
 
   generateAI: protectedProcedure
@@ -270,6 +306,43 @@ export const lessonPlanRouter = router({
           )
         );
       return { success: true };
+    }),
+
+  shareByEmail: protectedProcedure
+    .input(
+      z.object({
+        id: z.number().int(),
+        recipientEmail: z.string().email(),
+        personalMessage: z.string().max(1000).optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const [plan] = await db
+        .select()
+        .from(individualLessonPlans)
+        .where(
+          and(
+            eq(individualLessonPlans.id, input.id),
+            eq(individualLessonPlans.teacherId, ctx.user.id)
+          )
+        );
+      if (!plan) throw new TRPCError({ code: "NOT_FOUND" });
+      if (!plan.planContent) throw new TRPCError({ code: "BAD_REQUEST", message: "Plan has no content to share." });
+
+      const result = await sendPlanByEmail({
+        to: input.recipientEmail,
+        senderName: ctx.user.name ?? ctx.user.email ?? "A teacher",
+        planTitle: plan.studentName
+          ? `Lesson Plan — ${plan.studentName}${plan.topic ? `: ${plan.topic}` : ""}`
+          : "Individual Lesson Plan",
+        planContent: plan.planContent,
+        planType: "lesson",
+        personalMessage: input.personalMessage,
+      });
+
+      return { sent: result.sent, smtpNotConfigured: result.smtpNotConfigured };
     }),
 
   generateAI: protectedProcedure
