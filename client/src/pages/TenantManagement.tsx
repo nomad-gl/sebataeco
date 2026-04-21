@@ -43,7 +43,9 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -75,7 +77,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { CATALONIA_MUNICIPALITIES, SCHOOLS_BY_MUNICIPALITY } from "@/data/cataloniaSchools";
+import { CATALONIA_MUNICIPALITIES, SCHOOLS_BY_MUNICIPALITY, CATALONIA_SCHOOLS, MUNICIPALITIES_BY_COMARCA, CATALONIA_COMARQUES } from "@/data/cataloniaSchools";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 // ── Role badge metadata ─────────────────────────────────────────────────────
 const ROLE_META: Record<string, { label: string; color: string; Icon: React.ElementType }> = {
@@ -145,6 +148,7 @@ export default function TenantManagement() {
   // ── Schools tab state ──────────────────────────────────────────────────────
   const [schoolMunicipalityFilter, setSchoolMunicipalityFilter] = useState("");
   const [schoolNameSearch, setSchoolNameSearch] = useState("");
+  const [directorStatusFilter, setDirectorStatusFilter] = useState<"all" | "active" | "deactivated">("all");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [newTenantName, setNewTenantName] = useState("");
@@ -158,6 +162,8 @@ export default function TenantManagement() {
   const [createWithOwnerSuccess, setCreateWithOwnerSuccess] = useState<{ tenantName: string; ownerName: string; ownerEmail: string } | null>(null);
   const [assignUserId, setAssignUserId] = useState("");
   const [assignToTenantId, setAssignToTenantId] = useState("");
+  const [assignSchoolSearch, setAssignSchoolSearch] = useState("");
+  const [assignSelectedSchool, setAssignSelectedSchool] = useState("");
 
   // ── Territorial Directors tab state ────────────────────────────────────────
   const [grantDialogOpen, setGrantDialogOpen] = useState(false);
@@ -195,7 +201,7 @@ export default function TenantManagement() {
     offset: auditOffset,
   });
 
-  // Filtered tenant list (municipality + name search)
+  // Filtered tenant list (municipality + name search + director status)
   const filteredTenants = useMemo(() => {
     if (!tenantList) return [];
     let result = tenantList;
@@ -216,8 +222,15 @@ export default function TenantManagement() {
         ((t as any).ownerSchoolName as string | null)?.toLowerCase().includes(q)
       );
     }
+    if (directorStatusFilter !== "all") {
+      result = result.filter((t) => {
+        const deactivatedAt = (t as any).ownerDeactivatedAt as string | null;
+        const isDeactivated = !!deactivatedAt;
+        return directorStatusFilter === "deactivated" ? isDeactivated : !isDeactivated;
+      });
+    }
     return result;
-  }, [tenantList, schoolMunicipalityFilter, schoolNameSearch]);
+  }, [tenantList, schoolMunicipalityFilter, schoolNameSearch, directorStatusFilter]);
 
   // Email search (only fires when ≥ 3 chars)
   const emailSearchEnabled = grantEmailSearch.length >= 3;
@@ -433,19 +446,23 @@ export default function TenantManagement() {
         {/* ── Schools Tab ─────────────────────────────────────────────────── */}
         <TabsContent value="schools" className="space-y-6">
           <div className="flex justify-end gap-2">
-            <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+            <Dialog open={assignDialogOpen} onOpenChange={(open) => {
+              setAssignDialogOpen(open);
+              if (!open) { setAssignUserId(""); setAssignToTenantId(""); setAssignSchoolSearch(""); setAssignSelectedSchool(""); }
+            }}>
               <DialogTrigger asChild>
                 <Button variant="outline">
                   <UserPlus className="h-4 w-4 mr-2" />
                   Assign User
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Assign User to Tenant</DialogTitle>
-                  <DialogDescription>Move an unassigned user into a school tenant.</DialogDescription>
+                  <DialogTitle>Assign User to School</DialogTitle>
+                  <DialogDescription>Move an unassigned user into a school in Catalonia.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-2">
+                  {/* User picker */}
                   <div>
                     <label className="text-sm font-medium mb-1 block">User</label>
                     <Select value={assignUserId} onValueChange={setAssignUserId}>
@@ -459,16 +476,68 @@ export default function TenantManagement() {
                       </SelectContent>
                     </Select>
                   </div>
+                  {/* School picker — Catalonia full list with search */}
                   <div>
-                    <label className="text-sm font-medium mb-1 block">Tenant</label>
-                    <Select value={assignToTenantId} onValueChange={setAssignToTenantId}>
-                      <SelectTrigger><SelectValue placeholder="Select a tenant" /></SelectTrigger>
-                      <SelectContent>
-                        {tenantList?.map(t => (
-                          <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <label className="text-sm font-medium mb-1 block">School</label>
+                    {/* Search input */}
+                    <div className="relative mb-2">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                      <Input
+                        className="pl-8 h-8 text-sm"
+                        placeholder="Type 3+ letters to search schools…"
+                        value={assignSchoolSearch}
+                        onChange={(e) => { setAssignSchoolSearch(e.target.value); setAssignSelectedSchool(""); }}
+                      />
+                    </div>
+                    {/* Selected school badge */}
+                    {assignSelectedSchool && (
+                      <div className="flex items-center gap-1.5 mb-2 px-2 py-1 rounded bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 text-sm">
+                        <Building2 className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{assignSelectedSchool}</span>
+                        <button className="ml-auto" onClick={() => { setAssignSelectedSchool(""); setAssignSchoolSearch(""); }}>
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
+                    {/* Scrollable results */}
+                    {assignSchoolSearch.trim().length >= 3 && !assignSelectedSchool && (() => {
+                      const q = assignSchoolSearch.trim().toLowerCase();
+                      const matches = CATALONIA_SCHOOLS.filter(s => s.toLowerCase().includes(q)).slice(0, 80);
+                      return matches.length === 0 ? (
+                        <p className="text-xs text-muted-foreground px-1">No schools found.</p>
+                      ) : (
+                        <ScrollArea className="h-44 rounded border">
+                          <div className="p-1">
+                            {matches.map(school => (
+                              <button
+                                key={school}
+                                className="w-full text-left text-sm px-2 py-1.5 rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                                onClick={() => { setAssignSelectedSchool(school); setAssignSchoolSearch(school); }}
+                              >
+                                {school}
+                              </button>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      );
+                    })()}
+                    {assignSchoolSearch.trim().length < 3 && !assignSelectedSchool && (
+                      <p className="text-xs text-muted-foreground px-1">Type at least 3 letters to search all 4,890 schools in Catalonia.</p>
+                    )}
+                    {/* Also allow selecting from existing registered tenants */}
+                    {!assignSelectedSchool && (
+                      <div className="mt-3">
+                        <p className="text-xs text-muted-foreground mb-1">Or select from registered schools:</p>
+                        <Select value={assignToTenantId} onValueChange={setAssignToTenantId}>
+                          <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select a registered school" /></SelectTrigger>
+                          <SelectContent>
+                            {tenantList?.map(t => (
+                              <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <DialogFooter>
@@ -730,7 +799,7 @@ export default function TenantManagement() {
                       onChange={(e) => setSchoolNameSearch(e.target.value)}
                     />
                   </div>
-                  {/* Municipality filter */}
+                  {/* Municipality filter — grouped by comarca */}
                   <Select
                     value={schoolMunicipalityFilter || "__all__"}
                     onValueChange={(v) => setSchoolMunicipalityFilter(v === "__all__" ? "" : v)}
@@ -739,20 +808,39 @@ export default function TenantManagement() {
                       <MapPin className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
                       <SelectValue placeholder="All municipalities" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-72">
                       <SelectItem value="__all__">All municipalities</SelectItem>
-                      {CATALONIA_MUNICIPALITIES.map((m) => (
-                        <SelectItem key={m} value={m}>{m}</SelectItem>
+                      {CATALONIA_COMARQUES.map((comarca) => (
+                        <SelectGroup key={comarca}>
+                          <SelectLabel className="text-xs font-semibold text-muted-foreground px-2 py-1">{comarca}</SelectLabel>
+                          {(MUNICIPALITIES_BY_COMARCA[comarca] ?? []).map((m) => (
+                            <SelectItem key={m} value={m}>{m}</SelectItem>
+                          ))}
+                        </SelectGroup>
                       ))}
                     </SelectContent>
                   </Select>
+                  {/* Director status toggle */}
+                  <Select
+                    value={directorStatusFilter}
+                    onValueChange={(v) => setDirectorStatusFilter(v as "all" | "active" | "deactivated")}
+                  >
+                    <SelectTrigger className="h-8 text-sm w-44">
+                      <SelectValue placeholder="Director status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All directors</SelectItem>
+                      <SelectItem value="active">Active directors</SelectItem>
+                      <SelectItem value="deactivated">Deactivated directors</SelectItem>
+                    </SelectContent>
+                  </Select>
                   {/* Clear filters */}
-                  {(schoolMunicipalityFilter || schoolNameSearch) && (
+                  {(schoolMunicipalityFilter || schoolNameSearch || directorStatusFilter !== "all") && (
                     <Button
                       variant="ghost"
                       size="sm"
                       className="h-8 px-2 text-xs text-muted-foreground"
-                      onClick={() => { setSchoolMunicipalityFilter(""); setSchoolNameSearch(""); }}
+                      onClick={() => { setSchoolMunicipalityFilter(""); setSchoolNameSearch(""); setDirectorStatusFilter("all"); }}
                     >
                       <X className="h-3.5 w-3.5 mr-1" /> Clear
                     </Button>

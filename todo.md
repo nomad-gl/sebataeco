@@ -4068,3 +4068,15 @@
 - [x] Show filtered count badge (N of M) when filters are active
 - [x] Show empty-state when no schools match the filters
 - [x] Clear filters button when any filter is active
+
+## Feature: School Management follow-ups (assign dialog + comarca filter + director toggle)
+- [x] Rename "Assign User to Tenant" dialog to "Assign User to School"
+- [x] Replace tenant dropdown in assign dialog with Catalonia school search (3-letter prefix, scrollable list of 4,890 schools)
+- [x] Add comarca grouping to municipality dropdown in School Management (41 comarques, MUNICIPALITIES_BY_COMARCA + CATALONIA_COMARQUES)
+- [x] Add active/deactivated director toggle filter to Schools table
+
+## Feature: Edit unassigned user names in School Management
+- [ ] Backend: add tenants.updateUserName procedure (admin-only, updates users.name by id)
+- [ ] Frontend: show pencil icon on unassigned user rows in the Assign User dialog user list
+- [ ] Frontend: inline edit or small dialog to update the user's display name
+- [ ] Frontend: optimistic update + success/error toast
