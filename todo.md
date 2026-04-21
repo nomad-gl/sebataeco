@@ -4041,3 +4041,10 @@
 - [x] Add bulk-assign: checkbox column in Unassigned filter view + "Assign to school" action with school picker dialog (calls tenants.bulkAssignUsers)
 - [x] Add bulkAssignUsers procedure (adminProcedure, accepts userIds[] + tenantId, updates all in one query)
 - [x] Notify owner via email/notification when a new Manus OAuth user registers for the first time (upsertUser detects new vs returning user)
+
+## Feature: Catalonia Schools Search in Role Change Dialog
+
+- [x] Add cataloniaSchools.ts data file (4890 schools from Generalitat de Catalunya open data)
+- [x] Add 3-letter prefix search input + scrollable list in role change confirmation dialog
+- [x] Selecting a school from the list shows a selected badge and clears the dropdown
+- [x] Update todo.md and save checkpoint

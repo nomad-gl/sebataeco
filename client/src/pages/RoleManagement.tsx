@@ -42,8 +42,10 @@ import {
   Languages,
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
+import { CATALONIA_SCHOOLS } from "@/data/cataloniaSchools";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type UserRole = "user" | "teacher" | "director" | "head_of_study" | "territorial_director" | "admin";
@@ -137,6 +139,8 @@ export default function RoleManagement() {
   // Director-specific extra fields shown in the confirmation dialog
   const [directorLocation, setDirectorLocation] = useState<string>("");
   const [directorLanguage, setDirectorLanguage] = useState<string>("");
+  const [schoolSearch, setSchoolSearch] = useState<string>("");
+  const [selectedSchool, setSelectedSchool] = useState<string>("");
 
   // Bulk-assign selection for Unassigned filter view
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -153,8 +157,17 @@ export default function RoleManagement() {
     if (pending?.newRole === "director") {
       setDirectorLocation("");
       setDirectorLanguage("");
+      setSchoolSearch("");
+      setSelectedSchool("");
     }
   }, [pending]);
+
+  // Filtered school list — only show results once 3+ characters are typed
+  const schoolMatches = useMemo(() => {
+    if (schoolSearch.trim().length < 3) return [];
+    const q = schoolSearch.trim().toLowerCase();
+    return CATALONIA_SCHOOLS.filter((s) => s.toLowerCase().includes(q)).slice(0, 100);
+  }, [schoolSearch]);
 
   // Derived tenant list for filter dropdown
   const tenants = useMemo(() => {
@@ -465,6 +478,72 @@ export default function RoleManagement() {
           {/* Director-specific extra fields */}
           {pending?.newRole === "director" && (
             <div className="space-y-4 py-2">
+
+              {/* ── School search ── */}
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5 text-sm font-medium">
+                  <Building2 className="w-3.5 h-3.5 text-violet-500" />
+                  School Name
+                  <span className="text-xs font-normal text-muted-foreground ml-1">(type 3+ letters to search)</span>
+                </Label>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                  <Input
+                    className="pl-8 text-sm"
+                    placeholder="e.g. Escola Sant…"
+                    value={schoolSearch}
+                    onChange={(e) => {
+                      setSchoolSearch(e.target.value);
+                      if (selectedSchool && !e.target.value) setSelectedSchool("");
+                    }}
+                  />
+                </div>
+
+                {/* Selected school badge */}
+                {selectedSchool && (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800 rounded text-xs text-violet-700 dark:text-violet-300">
+                    <Building2 className="w-3 h-3 shrink-0" />
+                    <span className="truncate">{selectedSchool}</span>
+                    <button
+                      type="button"
+                      className="ml-auto shrink-0 text-violet-400 hover:text-violet-600"
+                      onClick={() => { setSelectedSchool(""); setSchoolSearch(""); }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+
+                {/* Scrollable results list */}
+                {schoolMatches.length > 0 && !selectedSchool && (
+                  <ScrollArea className="h-48 border rounded-md bg-popover">
+                    <div className="p-1">
+                      {schoolMatches.map((school) => (
+                        <button
+                          key={school}
+                          type="button"
+                          className="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-violet-50 dark:hover:bg-violet-950/30 hover:text-violet-700 dark:hover:text-violet-300 transition-colors"
+                          onClick={() => {
+                            setSelectedSchool(school);
+                            setSchoolSearch(school);
+                          }}
+                        >
+                          {school}
+                        </button>
+                      ))}
+                      {schoolMatches.length === 100 && (
+                        <p className="px-3 py-1.5 text-xs text-muted-foreground italic">Showing first 100 results — refine your search</p>
+                      )}
+                    </div>
+                  </ScrollArea>
+                )}
+
+                {schoolSearch.trim().length >= 3 && schoolMatches.length === 0 && !selectedSchool && (
+                  <p className="text-xs text-muted-foreground px-1">No schools found matching "{schoolSearch}"</p>
+                )}
+              </div>
+
+              {/* ── Location ── */}
               <div className="space-y-1.5">
                 <Label className="flex items-center gap-1.5 text-sm font-medium">
                   <MapPin className="w-3.5 h-3.5 text-violet-500" />
@@ -480,6 +559,8 @@ export default function RoleManagement() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* ── Language ── */}
               <div className="space-y-1.5">
                 <Label className="flex items-center gap-1.5 text-sm font-medium">
                   <Languages className="w-3.5 h-3.5 text-violet-500" />
@@ -496,6 +577,7 @@ export default function RoleManagement() {
                   </SelectContent>
                 </Select>
               </div>
+
               <p className="text-xs text-muted-foreground">
                 These details help identify the school. They are optional and can be updated later.
               </p>
