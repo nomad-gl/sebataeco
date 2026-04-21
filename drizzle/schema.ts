@@ -42,6 +42,16 @@ export const users = mysqlTable("users", {
    */
   tenantId: int("tenantId"),
   /**
+   * For users with role='director': the physical location of their school.
+   * NULL for all other roles.
+   */
+  schoolLocation: varchar("schoolLocation", { length: 64 }),
+  /**
+   * For users with role='director': the preferred school language (en/es/ca).
+   * NULL for all other roles.
+   */
+  schoolLanguage: varchar("schoolLanguage", { length: 8 }),
+  /**
    * When true the user must change their password before accessing the app.
    * Set to true for accounts created by admins with a temporary password.
    * Cleared to false once the user successfully changes their password.

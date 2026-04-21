@@ -720,6 +720,22 @@ export default function TenantManagement() {
                                 <OwnerStatusPill deactivatedAt={(tenant as any).ownerDeactivatedAt ?? null} />
                               </div>
                             )}
+                            {((tenant as any).ownerSchoolLocation || (tenant as any).ownerSchoolLanguage) && (
+                              <div className="flex flex-wrap gap-2 mt-1">
+                                {(tenant as any).ownerSchoolLocation && (
+                                  <span className="inline-flex items-center gap-0.5 text-xs text-violet-600 dark:text-violet-400">
+                                    <MapPin className="h-3 w-3" />
+                                    {(tenant as any).ownerSchoolLocation === "historical_centre" ? "Historical Centre" : (tenant as any).ownerSchoolLocation === "nucli_antic" ? "Nucli Antic" : (tenant as any).ownerSchoolLocation}
+                                  </span>
+                                )}
+                                {(tenant as any).ownerSchoolLanguage && (
+                                  <span className="inline-flex items-center gap-0.5 text-xs text-violet-600 dark:text-violet-400">
+                                    <Globe className="h-3 w-3" />
+                                    {(tenant as any).ownerSchoolLanguage === "en" ? "English" : (tenant as any).ownerSchoolLanguage === "es" ? "Spanish" : (tenant as any).ownerSchoolLanguage === "ca" ? "Catalan" : (tenant as any).ownerSchoolLanguage}
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>

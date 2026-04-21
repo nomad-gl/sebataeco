@@ -4013,3 +4013,17 @@
 - [x] Rename "Tenant Management" → "School Management": page title, i18n key (EN), NavBar href label, App.tsx route comment
 - [x] RoleManagement: when Director is selected in the role dropdown, show location picker (Historical Centre / Nucli Antic) and language picker (EN/ES/CA) in the confirmation dialog
 - [x] Update todo.md and save checkpoint
+
+## Feature: Persist Director schoolLocation and schoolLanguage
+
+- [x] Add schoolLocation (VARCHAR 64) and schoolLanguage (VARCHAR 8) columns to users table in schema.ts
+- [x] Apply ALTER TABLE migration to live database
+- [x] Extend director.updateUserRole input to accept schoolLocation and schoolLanguage (optional, director-only)
+- [x] Save schoolLocation/schoolLanguage to DB when role is set to director
+- [x] Add schoolLocation and schoolLanguage to listAllUsersForAdmin select fields
+- [x] Add schoolLocation and schoolLanguage to tenants.list allUsers select and ownerMap
+- [x] Return ownerSchoolLocation and ownerSchoolLanguage from tenants.list
+- [x] RoleManagement: pass schoolLocation/schoolLanguage in mutation call
+- [x] RoleManagement: display location (MapPin) and language (Languages icon) below role badge for director users
+- [x] School Management: display ownerSchoolLocation and ownerSchoolLanguage in Owner cell
+- [x] All 5703 tests pass, 0 TypeScript errors

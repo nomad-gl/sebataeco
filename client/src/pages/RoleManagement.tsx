@@ -59,6 +59,8 @@ type ManagedUser = {
   lastSignedIn: Date | null;
   createdAt: Date | null;
   deactivatedAt: Date | null;
+  schoolLocation: string | null;
+  schoolLanguage: string | null;
 };
 
 type PendingChange = { user: ManagedUser; newRole: UserRole };
@@ -168,7 +170,14 @@ export default function RoleManagement() {
 
   function confirmChange() {
     if (!pending) return;
-    roleMutation.mutate({ userId: pending.user.id, role: pending.newRole });
+    roleMutation.mutate({
+      userId: pending.user.id,
+      role: pending.newRole,
+      ...(pending.newRole === "director" ? {
+        schoolLocation: directorLocation || null,
+        schoolLanguage: directorLanguage || null,
+      } : {}),
+    });
     setPending(null);
   }
 
@@ -286,6 +295,22 @@ export default function RoleManagement() {
                       </td>
                       <td className="px-4 py-3">
                         <RoleBadge role={user.role} t={t} />
+                        {user.role === "director" && (user.schoolLocation || user.schoolLanguage) && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {user.schoolLocation && (
+                              <span className="inline-flex items-center gap-0.5 text-xs text-violet-600 dark:text-violet-400">
+                                <MapPin className="w-3 h-3" />
+                                {user.schoolLocation === "historical_centre" ? "Historical Centre" : user.schoolLocation === "nucli_antic" ? "Nucli Antic" : user.schoolLocation}
+                              </span>
+                            )}
+                            {user.schoolLanguage && (
+                              <span className="inline-flex items-center gap-0.5 text-xs text-violet-600 dark:text-violet-400">
+                                <Languages className="w-3 h-3" />
+                                {user.schoolLanguage === "en" ? "English" : user.schoolLanguage === "es" ? "Spanish" : user.schoolLanguage === "ca" ? "Catalan" : user.schoolLanguage}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <Select
