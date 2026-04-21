@@ -95,11 +95,18 @@ function RoleBadge({ role, t }: { role: string; t: (k: TranslationKey) => string
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function RoleManagement() {
   const { t } = useI18n();
+  const utils = trpc.useUtils();
   const { data: users = [], isLoading, refetch } = trpc.director.listAllUsersForAdmin.useQuery();
   const roleMutation = trpc.director.updateUserRole.useMutation({
     onSuccess: (data) => {
       toast.success(t("role_mgmt_updated").replace("{role}", t(ROLE_META[data.newRole as UserRole]?.labelKey ?? "role_user")));
+      // Refresh this page
       void refetch();
+      // Invalidate TenantManagement queries so it reflects the updated role immediately
+      void utils.tenants.list.invalidate();
+      void utils.tenants.listUnassignedUsers.invalidate();
+      void utils.tenants.listTerritorialDirectors.invalidate();
+      void utils.tenants.listRoleAudit.invalidate();
     },
     onError: (err) => toast.error(err.message),
   });

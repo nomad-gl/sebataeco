@@ -3995,3 +3995,7 @@
 - [x] Add i18n keys for role management UI (EN/ES/CA)
 - [x] Write vitest tests for admin.updateUserRole (happy path, self-demotion guard, non-admin guard) — 30 tests in server/roleManagement.test.ts
 - [x] Update todo.md and save checkpoint
+
+## Feature: Role Management → Tenant Management sync
+
+- [x] On successful role change in RoleManagement, invalidate tenants.list, tenants.listUnassignedUsers, tenants.listTerritorialDirectors, tenants.listRoleAudit so TenantManagement reflects the update immediately
