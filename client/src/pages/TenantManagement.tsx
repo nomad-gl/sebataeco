@@ -167,6 +167,8 @@ export default function TenantManagement() {
   const [assignSelectedSchool, setAssignSelectedSchool] = useState("");
   const [editingUserId, setEditingUserId] = useState<number | null>(null);
   const [editingUserName, setEditingUserName] = useState("");
+  const [editingTenantId, setEditingTenantId] = useState<number | null>(null);
+  const [editingTenantName, setEditingTenantName] = useState("");
 
   // ── Territorial Directors tab state ────────────────────────────────────────
   const [grantDialogOpen, setGrantDialogOpen] = useState(false);
@@ -291,6 +293,22 @@ export default function TenantManagement() {
       utils.tenants.list.invalidate();
       utils.tenants.listUnassignedUsers.invalidate();
       toast.success("Tenant deleted. Users are now unassigned.");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+  const editTenantMutation = trpc.tenants.updateName.useMutation({
+    onSuccess: () => {
+      utils.tenants.list.invalidate();
+      setEditingTenantId(null);
+      setEditingTenantName("");
+      toast.success("School name updated.");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+  const deleteUserMutation = trpc.tenants.deleteUser.useMutation({
+    onSuccess: () => {
+      utils.tenants.listUnassignedUsers.invalidate();
+      toast.success("User deleted.");
     },
     onError: (err) => toast.error(err.message),
   });
@@ -930,7 +948,38 @@ export default function TenantManagement() {
                   <TableBody>
                     {filteredTenants.map(tenant => (
                       <TableRow key={tenant.id}>
-                        <TableCell className="font-medium">{tenant.name}</TableCell>
+                        <TableCell className="font-medium">
+                          {editingTenantId === tenant.id ? (
+                            <div className="flex items-center gap-1">
+                              <Input
+                                value={editingTenantName}
+                                onChange={e => setEditingTenantName(e.target.value)}
+                                onKeyDown={e => {
+                                  if (e.key === "Enter" && editingTenantName.trim()) editTenantMutation.mutate({ id: tenant.id, name: editingTenantName.trim() });
+                                  if (e.key === "Escape") { setEditingTenantId(null); setEditingTenantName(""); }
+                                }}
+                                className="h-7 text-sm w-40"
+                                autoFocus
+                              />
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-green-600" disabled={!editingTenantName.trim() || editTenantMutation.isPending}
+                                onClick={() => editTenantMutation.mutate({ id: tenant.id, name: editingTenantName.trim() })}>
+                                <CheckCircle2 className="h-4 w-4" />
+                              </Button>
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground"
+                                onClick={() => { setEditingTenantId(null); setEditingTenantName(""); }}>
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1 group">
+                              <span>{tenant.name}</span>
+                              <Button size="icon" variant="ghost" className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground transition-opacity"
+                                onClick={() => { setEditingTenantId(tenant.id); setEditingTenantName(tenant.name); }}>
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <div className="text-sm space-y-0.5">
                             <div className="font-medium">{tenant.ownerName ?? "—"}</div>
@@ -1058,6 +1107,7 @@ export default function TenantManagement() {
                       <TableHead>Email</TableHead>
                       <TableHead>Role</TableHead>
                       <TableHead>Last Active</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1070,6 +1120,21 @@ export default function TenantManagement() {
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {u.lastSignedIn ? new Date(u.lastSignedIn).toLocaleDateString() : "Never"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            title="Delete user"
+                            onClick={() => {
+                              if (confirm(`Permanently delete user "${u.name ?? u.email}"? This cannot be undone.`)) {
+                                deleteUserMutation.mutate({ userId: u.id });
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}

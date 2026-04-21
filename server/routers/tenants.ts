@@ -1074,4 +1074,23 @@ export const tenantsRouter = router({
         .where(eq(users.id, input.userId));
       return { success: true };
     }),
+
+  /**
+   * Permanently delete a user account.
+   * SEBA admin only — intended for removing unassigned users that should not exist.
+   * Prevents self-deletion.
+   */
+  deleteUser: adminProcedure
+    .input(z.object({
+      userId: z.number().int().positive(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      if (input.userId === ctx.user.id) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Cannot delete your own account." });
+      }
+      await db.delete(users).where(eq(users.id, input.userId));
+      return { success: true };
+    }),
 });

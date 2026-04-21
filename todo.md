@@ -4082,21 +4082,34 @@
 - [x] Frontend: optimistic update + success/error toast
 
 ## Feature: Head of Study → Director Assignment Approval Workflow
-- [ ] DB: add assignmentRequests table (id, requestedByUserId, targetUserId, tenantId, status, reason, reviewedByUserId, reviewedAt, createdAt)
-- [ ] Backend: hos.createAssignmentRequest procedure (head_of_study or admin, creates pending request)
-- [ ] Backend: hos.listMyRequests procedure (head_of_study sees own requests with status)
-- [ ] Backend: director.listPendingAssignmentRequests procedure (director sees requests for their tenant)
-- [ ] Backend: director.approveAssignmentRequest procedure (director approves → triggers actual assignUser)
-- [ ] Backend: director.rejectAssignmentRequest procedure (director rejects with optional reason)
-- [ ] Backend: admin.listAllAssignmentRequests procedure (admin sees all requests cross-tenant)
-- [ ] Frontend: HosAssignUsers.tsx — new HoS page with unassigned user list, request form, and status tracker
-- [ ] Frontend: register /head-of-study/assign-users route in App.tsx and add nav link in HoS sidebar
-- [ ] Frontend: DirectorApprovals.tsx — new Director page listing pending requests with approve/reject buttons
-- [ ] Frontend: register /director/approvals route in App.tsx and add nav link in Director sidebar
-- [ ] Frontend: pending badge count on Director nav link when requests exist
-- [ ] Frontend: owner notification on new request and on approval/rejection
-- [ ] Write vitest tests for the approval workflow procedures
-- [ ] Update todo.md and save checkpoint
+- [x] DB: add assignmentRequests table (id, requestedByUserId, targetUserId, tenantId, status, reason, reviewedByUserId, reviewedAt, createdAt)
+- [x] Backend: hos.createAssignmentRequest procedure (head_of_study or admin, creates pending request)
+- [x] Backend: hos.listMyRequests procedure (head_of_study sees own requests with status)
+- [x] Backend: director.listPendingAssignmentRequests procedure (director sees requests for their tenant)
+- [x] Backend: director.approveAssignmentRequest procedure (director approves → triggers actual assignUser)
+- [x] Backend: director.rejectAssignmentRequest procedure (director rejects with optional reason)
+- [x] Backend: admin.listAllAssignmentRequests procedure (admin sees all requests cross-tenant)
+- [x] Frontend: HosAssignUsers.tsx — new HoS page with unassigned user list, request form, and status tracker
+- [x] Frontend: register /head-of-study/assign-users route in App.tsx and add nav link in HoS sidebar
+- [x] Frontend: DirectorApprovals.tsx — new Director page listing pending requests with approve/reject buttons
+- [x] Frontend: register /director/approvals route in App.tsx and add nav link in Director sidebar
+- [x] Frontend: pending badge count on Director nav link when requests exist
+- [x] Frontend: owner notification on new request and on approval/rejection
+- [x] Write vitest tests for the approval workflow procedures
+- [x] Update todo.md and save checkpoint
 
 ## Feature: Director Promotion → School Management Sync
-- [ ] In RoleManagement.tsx confirmChange, after a successful role change to 'director', also invalidate tenants.list so School Management owner column reflects the new director immediately
+- [x] In RoleManagement.tsx confirmChange, after a successful role change to 'director', also invalidate tenants.list so School Management owner column reflects the new director immediately — already implemented (lines 114-117)
+
+## Feature: School Management — Edit Tenant + Delete Unassigned User
+- [ ] Frontend: Add inline edit (pencil icon) to each row in the All Tenants table — clicking opens an inline text field to rename the school, saves via tenants.updateName
+- [ ] Frontend: Add delete button to each row in the Unassigned Users card — clicking shows a confirm dialog then calls a new tenants.deleteUser procedure
+- [ ] Backend: tenants.deleteUser procedure (admin only — permanently deletes a user by id)
+- [ ] Update todo.md and save checkpoint
+
+## Feature: School Management — Inline Editing & Delete
+
+- [x] All Tenants card: inline edit school name (pencil icon on hover, Enter/Escape/Save/Cancel)
+- [x] Backend: tenants.updateName procedure (admin-only, already existed)
+- [x] Unassigned Users card: delete button per row with confirmation dialog
+- [x] Backend: tenants.deleteUser procedure (admin-only, self-deletion guard)
