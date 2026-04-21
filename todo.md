@@ -3909,3 +3909,18 @@
 - [x] Frontend: show success state with owner name and email after creation
 - [x] Write vitest tests for createWithOwner (happy path, duplicate email, missing fields)
 - [x] Update todo.md and save checkpoint
+
+## Feature: Force Password Change on First Login
+
+- [x] Add mustChangePassword boolean column to users table in schema.ts
+- [x] Generate migration SQL and apply to live DB
+- [x] Set mustChangePassword=true in createWithOwner procedure
+- [x] Set mustChangePassword=true in acceptTeacherInvite procedure
+- [x] Set mustChangePassword=true in acceptDirectorInvite procedure
+- [x] Add auth.changePassword tRPC protectedProcedure (validates current password, hashes new, clears flag)
+- [x] Add mustChangePassword field to auth.me response
+- [x] Build /change-password page with current password + new password + confirm fields
+- [x] Intercept routing in App.tsx: redirect to /change-password if user.mustChangePassword is true
+- [x] Prevent navigation away from /change-password while flag is set
+- [x] Write vitest tests for changePassword procedure
+- [x] Update todo.md and save checkpoint

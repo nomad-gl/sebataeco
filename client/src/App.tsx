@@ -78,12 +78,35 @@ import TenantManagement from "./pages/TenantManagement";
 import TerritorialDirectorOverview from "./pages/TerritorialDirectorOverview";
 import DirectorInviteAccept from "./pages/DirectorInviteAccept";
 import TeacherInviteAccept from "./pages/TeacherInviteAccept";
+import ChangePassword from "./pages/ChangePassword";
 import { useAuth } from "./_core/hooks/useAuth";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { useI18n } from "./contexts/I18nContext";
 import { GlobalCallListener } from "./components/GlobalCallListener";
+
+/**
+ * Global guard: if the authenticated user has mustChangePassword=true,
+ * redirect them to /change-password regardless of which route they visit.
+ * Public routes (login, invite, change-password itself) are exempt.
+ */
+const EXEMPT_PATHS = ["/login", "/change-password", "/reset-password", "/register"];
+
+function MustChangePasswordGuard() {
+  const { user, loading } = useAuth();
+  const [location, navigate] = useLocation();
+
+  useEffect(() => {
+    if (loading) return;
+    if (!user) return;
+    if (!(user as any).mustChangePassword) return;
+    const isExempt = EXEMPT_PATHS.some(p => location.startsWith(p)) || location.startsWith("/invite/");
+    if (!isExempt) navigate("/change-password");
+  }, [loading, user, location, navigate]);
+
+  return null;
+}
 
 /** Wraps a component and redirects to / with a toast if the user lacks admin or head_of_study role. */
 function HosOrAdminRoute({ component: Component }: { component: React.ComponentType }) {
@@ -173,6 +196,7 @@ function Router() {
         <Route path="/territorial/overview" component={TerritorialDirectorOverview} />
         <Route path="/invite/director/:token" component={DirectorInviteAccept} />
         <Route path="/invite/teacher/:token" component={TeacherInviteAccept} />
+        <Route path="/change-password" component={ChangePassword} />
         <Route path="/my-situacions">
           <HosOrAdminRoute component={MySituacions} />
         </Route>
@@ -200,6 +224,7 @@ function App() {
           <BackToTop />
           <GlobalCallListener />
           <OfflineBanner />
+          <MustChangePasswordGuard />
           <Router />
         </TooltipProvider>
       </ThemeProvider>

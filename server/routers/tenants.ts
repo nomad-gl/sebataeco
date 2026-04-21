@@ -226,6 +226,7 @@ export const tenantsRouter = router({
         loginMethod: "local",
         role: "user",
         position: "director",
+        mustChangePassword: true,
         createdAt: new Date(),
         updatedAt: new Date(),
         lastSignedIn: new Date(),
@@ -858,6 +859,7 @@ export const tenantsRouter = router({
         role: "user",
         position: "director",
         tenantId: invite.tenantId,
+        mustChangePassword: true,
         createdAt: new Date(),
         updatedAt: new Date(),
       } as any);
@@ -975,6 +977,7 @@ export const tenantsRouter = router({
         role: "user",
         position: "teacher",
         tenantId: invite.tenantId ?? null,
+        mustChangePassword: true,
         createdAt: new Date(),
         updatedAt: new Date(),
         lastSignedIn: new Date(),

@@ -3,6 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
+import bcrypt from "bcryptjs";
 import { getDb } from "./db";
 import { lomloeRouter } from "./routers/lomloe";
 import { materialsRouter } from "./routers/materials";
@@ -57,6 +58,53 @@ export const appRouter = router({
         const { users } = await import("../drizzle/schema");
         const { eq } = await import("drizzle-orm");
         await dbConn.update(users).set({ ttsVoice: input.voice }).where(eq(users.id, ctx.user.id));
+        return { success: true };
+      }),
+
+    /**
+     * Change the current user's password.
+     * If mustChangePassword is true, clears the flag after a successful change.
+     * Requires the current password to be supplied (prevents CSRF abuse).
+     */
+    changePassword: protectedProcedure
+      .input(
+        z.object({
+          currentPassword: z.string().min(1),
+          newPassword: z.string().min(8).max(128),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const { TRPCError } = await import("@trpc/server");
+        const dbConn = await getDb();
+        if (!dbConn) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+        const { users } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+
+        // Fetch the stored hash
+        const [row] = await dbConn
+          .select({ passwordHash: users.passwordHash, mustChangePassword: users.mustChangePassword })
+          .from(users)
+          .where(eq(users.id, ctx.user.id))
+          .limit(1);
+
+        if (!row?.passwordHash) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "No local password is set for this account. Use Manus OAuth to sign in.",
+          });
+        }
+
+        const valid = await bcrypt.compare(input.currentPassword, row.passwordHash);
+        if (!valid) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Current password is incorrect." });
+        }
+
+        const newHash = await bcrypt.hash(input.newPassword, 12);
+        await dbConn
+          .update(users)
+          .set({ passwordHash: newHash, mustChangePassword: false })
+          .where(eq(users.id, ctx.user.id));
+
         return { success: true };
       }),
   }),

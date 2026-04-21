@@ -41,6 +41,12 @@ export const users = mysqlTable("users", {
    * Set when a director is promoted or when an invited user registers.
    */
   tenantId: int("tenantId"),
+  /**
+   * When true the user must change their password before accessing the app.
+   * Set to true for accounts created by admins with a temporary password.
+   * Cleared to false once the user successfully changes their password.
+   */
+  mustChangePassword: boolean("mustChangePassword").default(false).notNull(),
 });
 
 export type User = typeof users.$inferSelect;
