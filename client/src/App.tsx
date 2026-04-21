@@ -77,6 +77,7 @@ import IndividualPlans from "./pages/IndividualPlans";
 import TenantManagement from "./pages/TenantManagement";
 import TerritorialDirectorOverview from "./pages/TerritorialDirectorOverview";
 import DirectorInviteAccept from "./pages/DirectorInviteAccept";
+import TeacherInviteAccept from "./pages/TeacherInviteAccept";
 import { useAuth } from "./_core/hooks/useAuth";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
@@ -171,6 +172,7 @@ function Router() {
         <Route path="/seba/tenants" component={TenantManagement} />
         <Route path="/territorial/overview" component={TerritorialDirectorOverview} />
         <Route path="/invite/director/:token" component={DirectorInviteAccept} />
+        <Route path="/invite/teacher/:token" component={TeacherInviteAccept} />
         <Route path="/my-situacions">
           <HosOrAdminRoute component={MySituacions} />
         </Route>

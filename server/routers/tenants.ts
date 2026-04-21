@@ -17,6 +17,7 @@ import {
   territorialDirectorTerritories,
   roleChangeAudit,
   directorInvites,
+  teacherInvites,
 } from "../../drizzle/schema";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -784,6 +785,124 @@ export const tenantsRouter = router({
       await db.update(directorInvites)
         .set({ usedByUserId: userId, usedAt: new Date() })
         .where(eq(directorInvites.token, input.token));
+
+      return { success: true, userId };
+    }),
+
+  // ─── Teacher Invite Flow ─────────────────────────────────────────────────
+
+  createTeacherInvite: adminProcedure
+    .input(
+      z.object({
+        email: z.string().email().optional(),
+        tenantId: z.number().int().positive().optional(),
+        origin: z.string().url(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      const token = crypto.randomBytes(48).toString("hex");
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+      await db.insert(teacherInvites).values({
+        token,
+        email: input.email ?? null,
+        tenantId: input.tenantId ?? null,
+        createdByUserId: ctx.user.id,
+        expiresAt,
+      } as any);
+
+      const inviteUrl = `${input.origin}/invite/teacher/${token}`;
+      return { token, inviteUrl, expiresAt };
+    }),
+
+  validateTeacherInvite: publicProcedure
+    .input(z.object({ token: z.string() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      const [invite] = await db
+        .select()
+        .from(teacherInvites)
+        .where(eq(teacherInvites.token, input.token))
+        .limit(1);
+
+      if (!invite) throw new TRPCError({ code: "NOT_FOUND", message: "Invite not found." });
+      if (invite.usedAt) throw new TRPCError({ code: "FORBIDDEN", message: "This invite has already been used." });
+      if (new Date() > invite.expiresAt) throw new TRPCError({ code: "FORBIDDEN", message: "This invite has expired." });
+
+      // Optionally fetch tenant name
+      let tenantName: string | null = null;
+      if (invite.tenantId) {
+        const [tenant] = await db
+          .select({ name: tenants.name })
+          .from(tenants)
+          .where(eq(tenants.id, invite.tenantId))
+          .limit(1);
+        tenantName = tenant?.name ?? null;
+      }
+
+      return {
+        email: invite.email,
+        tenantId: invite.tenantId,
+        tenantName,
+        expiresAt: invite.expiresAt,
+      };
+    }),
+
+  acceptTeacherInvite: publicProcedure
+    .input(
+      z.object({
+        token: z.string(),
+        name: z.string().min(1),
+        email: z.string().email(),
+        password: z.string().min(8),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      const [invite] = await db
+        .select()
+        .from(teacherInvites)
+        .where(eq(teacherInvites.token, input.token))
+        .limit(1);
+
+      if (!invite) throw new TRPCError({ code: "NOT_FOUND", message: "Invite not found." });
+      if (invite.usedAt) throw new TRPCError({ code: "FORBIDDEN", message: "This invite has already been used." });
+      if (new Date() > invite.expiresAt) throw new TRPCError({ code: "FORBIDDEN", message: "This invite has expired." });
+
+      // Guard: email must be unique
+      const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, input.email)).limit(1);
+      if (existing) throw new TRPCError({ code: "CONFLICT", message: "An account with this email already exists." });
+
+      const passwordHash = await bcrypt.hash(input.password, 12);
+      const openId = `local_teacher_${crypto.randomBytes(16).toString("hex")}`;
+
+      const [insertResult] = await db.insert(users).values({
+        name: input.name,
+        displayName: input.name,
+        email: input.email,
+        openId,
+        passwordHash,
+        loginMethod: "local",
+        role: "user",
+        position: "teacher",
+        tenantId: invite.tenantId ?? null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastSignedIn: new Date(),
+      } as any);
+      const userId = (insertResult as any).insertId as number;
+
+      // Mark invite as used
+      await db.update(teacherInvites)
+        .set({ usedByUserId: userId, usedAt: new Date() })
+        .where(eq(teacherInvites.token, input.token));
 
       return { success: true, userId };
     }),

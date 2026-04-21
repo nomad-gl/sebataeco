@@ -9,7 +9,7 @@ export const users = mysqlTable("users", {
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin", "head_of_study", "territorial_director"]).default("user").notNull(),
+  role: mysqlEnum("role", ["user", "admin", "head_of_study", "territorial_director", "director", "teacher"]).default("user").notNull(),
   /** Position assigned by the Director — controls which nav menus are visible */
   position: mysqlEnum("position", ["unassigned", "teacher", "head_of_study", "director"]).default("unassigned").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -1544,12 +1544,15 @@ export const teacherInvites = mysqlTable("teacher_invites", {
   email: varchar("email", { length: 320 }),
   createdByUserId: int("createdByUserId").notNull(),
   expiresAt: timestamp("expiresAt").notNull(),
+  /** Set when the invite is accepted — references the new teacher's user ID */
+  usedByUserId: int("usedByUserId"),
   usedAt: timestamp("usedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   /** Tenant isolation key — set to the inviting director's tenantId */
   tenantId: int("tenantId"),
 });
 export type TeacherInvite = typeof teacherInvites.$inferSelect;
+export type InsertTeacherInvite = typeof teacherInvites.$inferInsert;
 
 /**
  * individual_learning_plans: AI-generated personalised learning plans for individual students.

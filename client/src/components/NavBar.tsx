@@ -107,6 +107,19 @@ export default function NavBar() {
 
   const { user, logout } = useAuth();
 
+  // Invite Teacher dialog state
+  const [teacherInviteOpen, setTeacherInviteOpen] = useState(false);
+  const [teacherInviteEmail, setTeacherInviteEmail] = useState("");
+  const [teacherInviteLink, setTeacherInviteLink] = useState<string | null>(null);
+  const [teacherInviteCopied, setTeacherInviteCopied] = useState(false);
+  const createTeacherInvite = trpc.tenants.createTeacherInvite.useMutation({
+    onSuccess: (data) => {
+      setTeacherInviteLink(data.inviteUrl);
+      toast.success("Teacher invite link generated");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   // Territorial Director registration mutation
   const registerTD = trpc.tenants.registerAndGrantTerritorialDirector.useMutation({
     onSuccess: (data) => {
@@ -587,6 +600,14 @@ export default function NavBar() {
                     <MapPin className="w-3 h-3" />
                     {t("nav_admin_territorial_section")}
                   </p>
+                  <button
+                    role="menuitem"
+                    onClick={() => { setTeacherInviteOpen(true); setAdminOpen(false); setTeacherInviteLink(null); setTeacherInviteEmail(""); setTeacherInviteCopied(false); }}
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary transition-colors text-left"
+                  >
+                    <GraduationCap className="w-4 h-4 text-green-600" />
+                    {t("nav_admin_invite_teacher")}
+                  </button>
                   <button
                     role="menuitem"
                     onClick={() => { setTdDialogOpen(true); setAdminOpen(false); setTdResult(null); setTdName(""); setTdEmail(""); setTdReason(""); setTdTerritoryId(null); }}
@@ -1567,6 +1588,88 @@ export default function NavBar() {
                 </p>
                 <button
                   onClick={() => setTdDialogOpen(false)}
+                  className="w-full mt-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors"
+                >
+                  Done
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Invite Teacher dialog */}
+      {teacherInviteOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => !createTeacherInvite.isPending && setTeacherInviteOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+            {!teacherInviteLink ? (
+              <>
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
+                    <GraduationCap className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-semibold text-gray-900">{t("nav_admin_invite_teacher")}</h2>
+                    <p className="text-xs text-gray-500 mt-0.5">Generate a 7-day invite link for a new teacher.</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Teacher Email (optional)</label>
+                    <input
+                      type="email"
+                      value={teacherInviteEmail}
+                      onChange={(e) => setTeacherInviteEmail(e.target.value)}
+                      placeholder="teacher@school.cat"
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">If provided, the invite page will pre-fill this email.</p>
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-5">
+                  <button
+                    onClick={() => setTeacherInviteOpen(false)}
+                    className="flex-1 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    disabled={createTeacherInvite.isPending}
+                    onClick={() => createTeacherInvite.mutate({ email: teacherInviteEmail.trim() || undefined, origin: window.location.origin })}
+                    className="flex-1 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+                  >
+                    {createTeacherInvite.isPending ? "Generating…" : "Generate Link"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
+                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-semibold text-gray-900">Invite Link Ready</h2>
+                    <p className="text-xs text-gray-500 mt-0.5">Valid for 7 days. Share this link with the teacher.</p>
+                  </div>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 text-xs font-mono text-gray-700 break-all">{teacherInviteLink}</code>
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(teacherInviteLink!); setTeacherInviteCopied(true); setTimeout(() => setTeacherInviteCopied(false), 2000); }}
+                      className="p-1.5 rounded-lg hover:bg-gray-200 transition-colors flex-shrink-0"
+                      title="Copy link"
+                    >
+                      {teacherInviteCopied ? <CheckCircle2 className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4 text-gray-400" />}
+                    </button>
+                  </div>
+                </div>
+                <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2 mt-3">
+                  This link can only be used once. The teacher will set their own password on the invite page.
+                </p>
+                <button
+                  onClick={() => setTeacherInviteOpen(false)}
                   className="w-full mt-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors"
                 >
                   Done

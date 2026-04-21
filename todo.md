@@ -3875,3 +3875,16 @@
 - [x] Auto-focus first menuitem when any dropdown opens
 - [x] Sync mobile nav: use translation keys for all hardcoded strings
 - [x] Sync mobile nav: add collapsible Platform Tools section matching desktop behaviour
+
+## Feature: Admin Invite Teacher (Secure Admin Menu)
+- [x] Add teacher_invites table to drizzle/schema.ts (id, token, email, tenantId, role, createdByUserId, expiresAt, usedAt, createdAt)
+- [x] Apply migration SQL for teacher_invites table
+- [x] Backend: tenants.createTeacherInvite procedure (admin-only, generates secure token, 7-day expiry, returns invite URL)
+- [x] Backend: publicProcedure tenants.validateTeacherInvite (checks token, returns tenant name + email)
+- [x] Backend: publicProcedure tenants.acceptTeacherInvite (registers user, sets role=teacher, tenantId, marks invite used)
+- [x] Frontend: "Invite Teacher" button in secure admin dropdown (Platform Tools section)
+- [x] Invite dialog: email input, optional tenant selector, generates link on submit, shows copy button
+- [x] Create /invite/teacher/:token acceptance landing page
+- [x] Acceptance page: shows school name, pre-fills email, name/password form, redirects to login on success
+- [x] Add translation keys: nav_admin_invite_teacher (EN/ES/CA)
+- [x] Write vitest tests for the teacher invite flow (create → validate → accept, single-use, expired)
