@@ -72,7 +72,7 @@ function GradeOverridesTab() {
       </div>
 
       {isLoading ? (
-        <div className="text-muted-foreground text-sm">Loading...</div>
+        <div className="text-muted-foreground text-sm">{t("btn_loading")}</div>
       ) : assessments.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
@@ -180,7 +180,7 @@ function GradeOverridesTab() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>{t("btn_cancel")}</Button>
             <Button
               onClick={() =>
                 createMutation.mutate({
@@ -228,7 +228,7 @@ function GradeOverridesTab() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOverrideOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setOverrideOpen(false)}>{t("btn_cancel")}</Button>
             <Button
               onClick={() => {
                 if (!selectedAssessmentId) return;
@@ -286,7 +286,7 @@ function GradeOverridesTab() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAuditOpen(false)}>Close</Button>
+            <Button variant="outline" onClick={() => setAuditOpen(false)}>{t("btn_close")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -544,7 +544,7 @@ function BiasIncidentsTab() {
 
       {/* Flag list */}
       {isLoading ? (
-        <div className="text-muted-foreground text-sm">Loading...</div>
+        <div className="text-muted-foreground text-sm">{t("btn_loading")}</div>
       ) : flags.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
@@ -630,7 +630,7 @@ function LearningPathsTab() {
       utils.accountability.paths.list.invalidate();
       setGenerateOpen(false);
       setForm({ studentId: "", studentName: "", competency: "CCL", yearGroup: "primary" });
-      toast.success(t("acc_path_generate") + " — path saved");
+      toast.success(t("acc_path_saved"));
     },
     onError: (e) => toast.error(e.message),
   });
@@ -653,7 +653,7 @@ function LearningPathsTab() {
       </div>
 
       {isLoading ? (
-        <div className="text-muted-foreground text-sm">Loading...</div>
+        <div className="text-muted-foreground text-sm">{t("btn_loading")}</div>
       ) : paths.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
@@ -719,7 +719,7 @@ function LearningPathsTab() {
           <DialogHeader>
             <DialogTitle>{t("acc_path_generate_title")}</DialogTitle>
             <DialogDescription>
-              The AI will generate a personalised learning path with a full LOMLOE-referenced justification.
+              {t("acc_path_generate_desc")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -760,7 +760,7 @@ function LearningPathsTab() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setGenerateOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setGenerateOpen(false)}>{t("btn_cancel")}</Button>
             <Button
               onClick={() =>
                 generateMutation.mutate({
@@ -788,7 +788,7 @@ function LearningPathsTab() {
             </DialogDescription>
           </DialogHeader>
           {!justification ? (
-            <p className="text-sm text-muted-foreground">Loading...</p>
+            <p className="text-sm text-muted-foreground">{t("btn_loading")}</p>
           ) : (
             <div className="space-y-6">
               <div className="border rounded-lg p-4 bg-muted/30">
@@ -855,7 +855,7 @@ function LearningPathsTab() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => window.print()}>{t("acc_path_print")}</Button>
-            <Button onClick={() => setJustificationOpen(false)}>Close</Button>
+            <Button onClick={() => setJustificationOpen(false)}>{t("btn_close")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

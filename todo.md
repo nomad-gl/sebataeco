@@ -3931,3 +3931,12 @@
 - [x] Add missing translation keys to EN, CA, and ES locale files
 - [x] Replace hardcoded strings in AiModels.tsx with t() calls
 - [x] Verify page renders correctly in CA, ES, and EN
+
+## Fix: Ensure all AI Generate buttons work on all pages
+
+- [x] Map all AI generate entry points (pages + backend procedures)
+- [x] Test each AI generate flow end-to-end
+- [x] Fix any broken AI generate flows — all 20 procedures verified working
+- [x] Fix hardcoded English strings in IndividualPlans, Accountability, Admin generate dialogs
+- [x] Add btn_close, btn_loading, acc_path_generate_desc, admin_kb_* i18n keys to EN/ES/CA
+- [x] Verify all fixes compile cleanly (0 TS errors, 5518 tests pass)

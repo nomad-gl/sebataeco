@@ -263,9 +263,9 @@ export default function IndividualPlans() {
       });
       const generated = result.planContent as string;
       setIlpForm(f => ({ ...f, planContent: generated }));
-      toast.success("Plan generated — review and save.");
+      toast.success(t("ilp_generated_toast"));
     } catch {
-      toast.error("Generation failed. Please try again.");
+      toast.error(t("ilp_generation_failed"));
     } finally {
       setIlpGenerating(false);
     }
@@ -314,9 +314,9 @@ export default function IndividualPlans() {
       });
       const generatedLesson = result.planContent as string;
       setLpForm(f => ({ ...f, planContent: generatedLesson }));
-      toast.success("Lesson plan generated — review and save.");
+      toast.success(t("lp_generated_review_toast"));
     } catch {
-      toast.error("Generation failed. Please try again.");
+      toast.error(t("ilp_generation_failed"));
     } finally {
       setLpGenerating(false);
     }
