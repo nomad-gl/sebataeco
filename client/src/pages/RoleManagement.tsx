@@ -851,13 +851,28 @@ export default function RoleManagement() {
                                   </button>
                                   <button
                                     className="p-0.5 rounded hover:bg-muted text-muted-foreground"
-                                    title="Copy password"
+                                    title="Copy password only"
                                     onClick={() => {
                                       void navigator.clipboard.writeText(revealedPasswords[u.id].password);
                                       toast.success("Password copied to clipboard");
                                     }}
                                   >
                                     <Copy className="w-3 h-3" />
+                                  </button>
+                                  {/* Divider */}
+                                  <span className="text-border select-none">|</span>
+                                  {/* Copy credentials (email + password) */}
+                                  <button
+                                    className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-primary/10 hover:bg-primary/20 text-primary text-[10px] font-sans font-medium whitespace-nowrap"
+                                    title="Copy email and password together"
+                                    onClick={() => {
+                                      const text = `Email: ${revealedPasswords[u.id].email}\nPassword: ${revealedPasswords[u.id].password}`;
+                                      void navigator.clipboard.writeText(text);
+                                      toast.success("Email + password copied to clipboard");
+                                    }}
+                                  >
+                                    <Copy className="w-2.5 h-2.5" />
+                                    Both
                                   </button>
                                   <button
                                     className="p-0.5 rounded hover:bg-muted text-muted-foreground"

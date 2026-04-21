@@ -4145,3 +4145,4 @@
 - [x] Password Management card: return and display plaintext temp password after reset so admin can copy/email it manually
 - [x] Password Management: show revealed temp password with eye/copy button after reset
 - [x] Password Management: allow admin to set a custom password (typed) instead of auto-generated
+- [x] Password Management: add single-click Copy Credentials button (email + password) in revealed password badge
