@@ -352,14 +352,17 @@ export const directorRouter = router({
 
   /** Update a user's role - sends owner notification when promoting to admin */
   updateUserRole: adminProcedure
-    .input(z.object({ userId: z.union([z.string(), z.number()]), role: z.enum(["user", "admin"]) }))
+    .input(z.object({
+      userId: z.union([z.string(), z.number()]),
+      role: z.enum(["user", "admin", "director", "head_of_study", "territorial_director", "teacher"]),
+    }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       const numericId = typeof input.userId === "string" ? parseInt(input.userId, 10) : input.userId;
-      // Prevent self-demotion
+      // Prevent self-demotion from admin
       if (numericId === ctx.user.id && input.role !== "admin") {
-        throw new Error("Cannot demote your own account");
+        throw new Error("Cannot change your own role");
       }
       // Fetch current role before updating
       const [targetUser] = await db
@@ -377,12 +380,13 @@ export const directorRouter = router({
         resourceId: String(numericId),
         details: JSON.stringify({ targetUserId: numericId, oldRole, newRole: input.role }),
       });
-      // Notify owner when a user is promoted to admin
-      if (input.role === "admin" && oldRole !== "admin") {
+      // Notify owner on significant promotions
+      const notifyRoles = ["admin", "director", "territorial_director"];
+      if (notifyRoles.includes(input.role) && oldRole !== input.role) {
         try {
           await notifyOwner({
-            title: "SEBA: New Admin Promoted",
-            content: `A user has been promoted to Director/Admin on SEBA.\n\nName: ${targetUser?.name ?? "Unknown"}\nEmail: ${targetUser?.email ?? "Unknown"}\nPromoted at: ${new Date().toISOString()}`,
+            title: `SEBA: User role changed to ${input.role}`,
+            content: `Role updated on SEBA.\n\nName: ${targetUser?.name ?? "Unknown"}\nEmail: ${targetUser?.email ?? "Unknown"}\nOld role: ${oldRole}\nNew role: ${input.role}\nChanged at: ${new Date().toISOString()}`,
           });
         } catch {
           // Non-fatal — role update already succeeded
@@ -390,6 +394,34 @@ export const directorRouter = router({
       }
       return { success: true, newRole: input.role };
     }),
+
+  /**
+   * SEBA admin: list ALL local accounts across all tenants.
+   * Returns id, displayName, email, role, position, tenantId, lastSignedIn, deactivatedAt.
+   */
+  listAllUsersForAdmin: adminProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+    const { tenants } = await import("../../drizzle/schema");
+    const rows = await db
+      .select({
+        id: users.id,
+        displayName: users.displayName,
+        email: users.email,
+        role: users.role,
+        position: users.position,
+        tenantId: users.tenantId,
+        tenantName: tenants.name,
+        lastSignedIn: users.lastSignedIn,
+        createdAt: users.createdAt,
+        deactivatedAt: users.deactivatedAt,
+      })
+      .from(users)
+      .leftJoin(tenants, eq(users.tenantId, tenants.id))
+      .where(isNotNull(users.passwordHash))
+      .orderBy(desc(users.lastSignedIn));
+    return rows;
+  }),
 
   /** LOMLOE curriculum compliance — competency gap analysis across all lesson plans */
   getCurriculumCompliance: adminProcedure.query(async () => {

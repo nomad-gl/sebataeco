@@ -625,6 +625,16 @@ export default function NavBar() {
                     <Building2 className="w-4 h-4 text-purple-600" />
                     {t("nav_admin_tenant_management")}
                   </Link>
+                  <Link
+                    href="/seba/roles"
+                    role="menuitem"
+                    onClick={() => { if (platformUnlocked) setAdminOpen(false); else handlePlatformClick("/seba/roles", { preventDefault: () => {} } as React.MouseEvent); }}
+                    className={cn("flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary transition-colors", !platformUnlocked && "opacity-60")}
+                  >
+                    <UserCog className="w-4 h-4 text-violet-600" />
+                    {t("nav_admin_role_mgmt")}
+                    {!platformUnlocked && <Lock className="w-3 h-3 ml-auto text-muted-foreground" />}
+                  </Link>
                 </div>
               )}
             </div>

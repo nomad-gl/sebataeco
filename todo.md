@@ -3980,3 +3980,18 @@
 - [x] Fix Bug 4: acceptTeacherInvite used random openId format — changed to local:<email> format
 - [x] Write vitest tests (20 tests) for all three creation flows in directorAccess.test.ts
 - [x] Update todo.md and save checkpoint
+
+## Feature: Admin Role Management (Reassign/Demote/Promote)
+
+- [x] Backend: admin.updateUserRole procedure (admin-only, validates role enum, writes audit log entry) — implemented as director.updateUserRole extended to all 6 roles
+- [x] Backend: admin.listAllUsers procedure (paginated, filterable by role/tenant, returns id/name/email/role/position/tenant) — implemented as director.listAllUsersForAdmin
+- [x] Frontend: Role Management page in secure admin panel (/seba/roles)
+- [x] Frontend: User table with columns: name, email, current role, tenant, actions
+- [x] Frontend: Role filter tabs: All / Director / Head of Study / Territorial Director / Teacher / User
+- [x] Frontend: Inline role selector per user row (dropdown with all valid roles)
+- [x] Frontend: Confirm dialog before role change ("Promote X from teacher to director?")
+- [x] Frontend: Success/error toast after role change
+- [x] Frontend: Add "Role Management" link to secure admin dropdown in NavBar
+- [x] Add i18n keys for role management UI (EN/ES/CA)
+- [x] Write vitest tests for admin.updateUserRole (happy path, self-demotion guard, non-admin guard) — 30 tests in server/roleManagement.test.ts
+- [x] Update todo.md and save checkpoint
