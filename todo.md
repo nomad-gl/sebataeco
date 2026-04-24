@@ -4199,11 +4199,11 @@
 - [x] Tests: vitest for checkIn, notifyAbsence, getAttendanceRegister, alarm logic (6147 tests passing)
 
 ## Teacher Profile Enhancement (post-attendance delivery)
-- [ ] Schema: add teacher_subjects table (userId, subject, level, notes) and teacher_schedule table (userId, semester, dayOfWeek, lessonSlot, startTime, endTime, subject)
-- [ ] Migration: apply new tables to DB
-- [ ] Server: tRPC procedures — setTeacherSubjects, getTeacherSubjects, setTeacherSchedule, getTeacherSchedule, getTeachingHoursSummary (weekly/semester/year, over/under hours vs calendar)
-- [ ] Director/HoS UI: subject+level assignment panel in teacher registration/approval flow (DirectorApprovals.tsx)
-- [ ] Director/HoS UI: teaching hours dashboard (weekly/semester/year totals, over/under indicator per teacher)
-- [ ] Teacher profile page: show assigned subjects+levels, scheduled days/lessons per semester with times
-- [ ] Hours calculation: derive contracted hours from school calendar events; compare against scheduled hours
-- [ ] Translation keys for all new strings (EN/ES/CA)
+- [x] Schema: add teacher_subjects table (userId, subject, level, notes) and teacher_schedule table (userId, semester, dayOfWeek, lessonSlot, startTime, endTime, subject)
+- [x] Migration: apply new tables to DB
+- [x] Server: tRPC procedures — getSubjects, addSubject, updateSubject, deleteSubject, getSchedule, addScheduleSlot, updateScheduleSlot, deleteScheduleSlot, getTeachingHoursSummary, getTeacherRoster
+- [x] Director/HoS UI: DirectorTeacherProfiles.tsx — full subject+level assignment panel, schedule management, hours analytics
+- [x] Director/HoS UI: teaching hours dashboard (weekly/semester/year totals, over/under indicator per teacher) — in DirectorTeacherProfiles.tsx
+- [x] Teacher profile page: TeacherProfileView.tsx — shows assigned subjects+levels, scheduled days/lessons per semester with times, hours summary
+- [x] Hours calculation: derives contracted hours from school calendar events; compares against scheduled hours with over/under indicator
+- [x] Translation keys for all new strings (EN/ES/CA) — all tp_* keys added to I18nContext.tsx

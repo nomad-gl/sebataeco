@@ -1888,3 +1888,47 @@ export const attendanceDailyComments = mysqlTable("attendance_daily_comments", {
 });
 export type AttendanceDailyComment = typeof attendanceDailyComments.$inferSelect;
 export type InsertAttendanceDailyComment = typeof attendanceDailyComments.$inferInsert;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Teacher Profile Enhancement
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * teacher_subjects — subjects and levels a teacher is qualified/assigned to teach.
+ * Managed by director/HoS; visible to the teacher in their profile.
+ */
+export const teacherSubjects = mysqlTable("teacher_subjects", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  subject: varchar("subject", { length: 128 }).notNull(),
+  level: varchar("level", { length: 128 }).notNull(),
+  notes: varchar("notes", { length: 512 }),
+  tenantId: int("tenantId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type TeacherSubject = typeof teacherSubjects.$inferSelect;
+export type InsertTeacherSubject = typeof teacherSubjects.$inferInsert;
+
+/**
+ * teacher_schedule — per-semester lesson slots assigned to a teacher.
+ * Each row represents one lesson slot (day + period + time) for one semester.
+ * Hours are derived from (endTime - startTime) for analytics.
+ */
+export const teacherSchedule = mysqlTable("teacher_schedule", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  semester: mysqlEnum("semester", ["1", "2", "full_year"]).notNull(),
+  academicYear: varchar("academic_year", { length: 9 }).notNull(),
+  dayOfWeek: mysqlEnum("day_of_week", ["monday", "tuesday", "wednesday", "thursday", "friday"]).notNull(),
+  lessonSlot: varchar("lesson_slot", { length: 64 }).notNull(),
+  startTime: varchar("start_time", { length: 5 }).notNull(),
+  endTime: varchar("end_time", { length: 5 }).notNull(),
+  subject: varchar("subject", { length: 128 }).notNull(),
+  groupName: varchar("group_name", { length: 128 }),
+  tenantId: int("tenantId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type TeacherScheduleRow = typeof teacherSchedule.$inferSelect;
+export type InsertTeacherScheduleRow = typeof teacherSchedule.$inferInsert;

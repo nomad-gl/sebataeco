@@ -25,6 +25,7 @@ import { whatsNewRouter } from "./routers/whatsNew";
 import { selfHealRouter } from "./routers/selfHeal";
 import { assignmentRequestsRouter } from "./routers/assignmentRequests";
 import { teacherAttendanceRouter } from "./routers/teacherAttendance";
+import { teacherProfileRouter } from "./routers/teacherProfile";
 import { directorRouter } from "./routers/director";
 import { hosRouter } from "./routers/hos";
 import { wakeWordsRouter } from "./routers/wakeWords";
@@ -147,6 +148,7 @@ export const appRouter = router({
   territorialDirector: territorialDirectorRouter,
   assignmentRequests: assignmentRequestsRouter,
   teacherAttendance: teacherAttendanceRouter,
+  teacherProfile: teacherProfileRouter,
 });
 
 export type AppRouter = typeof appRouter;
