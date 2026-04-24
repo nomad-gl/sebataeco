@@ -4234,3 +4234,6 @@
 
 ## NavBar Teacher Dropdown Scroll
 - [x] Teacher dropdown: add max-height + overflow-y-auto so the list scrolls when it overflows the viewport (applied to all 5 dropdowns: Teacher, Situació, Admin, HoS, Director)
+
+## Create Class Group Form
+- [x] Assessment Title input: change placeholder to 'e.g. Science / LOMLOE Mid-Term Assessment'
