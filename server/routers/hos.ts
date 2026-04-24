@@ -580,8 +580,8 @@ export const hosRouter = router({
       note: z.string().max(512).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      if (ctx.user.role !== "head_of_study" && ctx.user.role !== "admin") {
-        throw new Error("Only a Head of Study can submit teacher requests.");
+      if (ctx.user.role !== "head_of_study" && ctx.user.role !== "admin" && ctx.user.role !== "director") {
+        throw new Error("Only a Head of Study or Director can submit teacher requests.");
       }
       if (!ctx.user.tenantId) {
         throw new Error("You must be assigned to a school before submitting teachers.");

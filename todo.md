@@ -4158,3 +4158,6 @@
 - [x] Notify HoS when teacher submission is approved or rejected (in-app notification)
 - [x] Show pending teacher submissions badge on Director Approvals nav item
 - [x] Allow HoS to cancel a pending teacher submission
+- [x] Add "Add Teacher" link to Director dropdown navigation in NavBar.tsx
+- [x] Add back button to HosAddTeacher page
+- [x] Adjust HosAddTeacher page to allow Director to submit teachers (role check update)

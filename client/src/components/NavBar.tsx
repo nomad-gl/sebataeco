@@ -280,6 +280,7 @@ export default function NavBar() {
     { href: "/director/settings",  label: t("dir_settings"),         icon: SettingsIcon },
     { href: "/director/users",     label: t("dir_users_nav"),        icon: UserCog },
     { href: "/director/approvals",  label: t("dir_approvals"),        icon: ClipboardList },
+    { href: "/head-of-study/add-teacher", label: t("dir_add_teacher"),   icon: UserPlus },
     { href: "/attendance",           label: t("nav_attendance"),       icon: ClipboardList },
     { href: "/school-calendar",      label: t("nav_school_calendar"),  icon: CalendarDays },
     { href: "/connect",             label: t("nav_connect"),          icon: Wifi },

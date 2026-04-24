@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useLocation } from "wouter";
 
 type StatusKey = "pending" | "approved" | "rejected";
 
@@ -33,12 +34,17 @@ function StatusBadge({ status }: { status: StatusKey }) {
 export default function HosAddTeacher() {
   const { t } = useI18n();
   const { user } = useAuth();
+  const [, navigate] = useLocation();
+  const isDirector = user?.role === "director" || user?.role === "admin";
   const [teacherName, setTeacherName] = useState("");
   const [teacherEmail, setTeacherEmail] = useState("");
   const [note, setNote] = useState("");
   const utils = trpc.useUtils();
 
   const { data: mySubmissions = [], isLoading: loadingSubmissions } = trpc.hos.listMyTeacherSubmissions.useQuery();
+
+  // Directors can also submit teacher requests on behalf of a HoS
+  const canSubmit_ = user?.role === "head_of_study" || user?.role === "director" || user?.role === "admin";
 
   const submitMutation = trpc.hos.submitTeacher.useMutation({
     onSuccess: () => {
@@ -81,6 +87,15 @@ export default function HosAddTeacher() {
   return (
     <DashboardLayout>
       <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
+        {/* Back button */}
+        <button
+          onClick={() => navigate(isDirector ? "/director/approvals" : "/head-of-study/assign-users")}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-2"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          {isDirector ? "Back to Approvals" : "Back"}
+        </button>
+
         {/* Header */}
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-primary/10">
