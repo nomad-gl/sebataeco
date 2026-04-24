@@ -58,6 +58,14 @@ export default function HosAddTeacher() {
     },
   });
 
+  const cancelMutation = trpc.hos.cancelPendingTeacher.useMutation({
+    onSuccess: () => {
+      toast.success("Submission cancelled.");
+      utils.hos.listMyTeacherSubmissions.invalidate();
+    },
+    onError: (err: { message: string }) => toast.error(err.message),
+  });
+
   const handleSubmit = () => {
     if (!teacherName.trim() || !teacherEmail.trim()) return;
     submitMutation.mutate({
@@ -179,7 +187,22 @@ export default function HosAddTeacher() {
                         {sub.reviewedAt && ` · Reviewed ${new Date(sub.reviewedAt).toLocaleDateString()}`}
                       </p>
                     </div>
-                    <StatusBadge status={sub.pts_status as StatusKey} />
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      <StatusBadge status={sub.pts_status as StatusKey} />
+                      {sub.pts_status === "pending" && (
+                        <button
+                          onClick={() => {
+                            if (confirm(`Cancel submission for ${sub.teacherName}?`)) {
+                              cancelMutation.mutate({ submissionId: sub.id });
+                            }
+                          }}
+                          disabled={cancelMutation.isPending}
+                          className="text-xs text-destructive hover:underline disabled:opacity-50"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

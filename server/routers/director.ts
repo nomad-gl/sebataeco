@@ -21,6 +21,7 @@ import crypto from "crypto";
 import { passwordResetTokens } from "../../drizzle/schema";
 import { appSettings, schoolSettings, adminAuditLogs, roleChangeAudit, pendingTeacherSubmissions, tenants } from "../../drizzle/schema";
 import { notifyOwner } from "../_core/notification";
+import { createNotification } from "./notifications";
 import { generateDirectorReportPdf } from "../directorReportPdf";
 import { storagePut } from "../storage";
 import bcrypt from "bcryptjs";
@@ -1286,6 +1287,15 @@ export const directorRouter = router({
         details: JSON.stringify({ teacherEmail: submission.teacherEmail, newUserId }),
       });
 
+      // Notify the Head of Study who submitted this request
+      void createNotification({
+        userId: String(submission.submittedByUserId),
+        type: "teacher_submission_approved",
+        title: "Teacher submission approved",
+        body: `Your submission for ${submission.teacherName} (${submission.teacherEmail}) has been approved. Their account has been created and credentials emailed.`,
+        link: "/head-of-study/add-teacher",
+      });
+
       return { success: true, tempPassword, teacherEmail: submission.teacherEmail };
     }),
 
@@ -1326,6 +1336,39 @@ export const directorRouter = router({
         details: JSON.stringify({ reason: input.reason }),
       });
 
+      // Notify the Head of Study who submitted this request
+      // Re-fetch submission to get submittedByUserId and teacherName
+      const [fullSub] = await db
+        .select({ submittedByUserId: pendingTeacherSubmissions.submittedByUserId, teacherName: pendingTeacherSubmissions.teacherName, teacherEmail: pendingTeacherSubmissions.teacherEmail })
+        .from(pendingTeacherSubmissions)
+        .where(eq(pendingTeacherSubmissions.id, input.submissionId))
+        .limit(1);
+      if (fullSub) {
+        void createNotification({
+          userId: String(fullSub.submittedByUserId),
+          type: "teacher_submission_rejected",
+          title: "Teacher submission rejected",
+          body: `Your submission for ${fullSub.teacherName} (${fullSub.teacherEmail}) was rejected.${
+            input.reason ? ` Reason: ${input.reason}` : ""
+          }`,
+          link: "/head-of-study/add-teacher",
+        });
+      }
+
       return { success: true };
+    }),
+
+  /**
+   * Count pending teacher submissions for the badge on the Approvals nav item.
+   */
+  pendingTeacherSubmissionsCount: adminProcedure
+    .query(async () => {
+      const db = await getDb();
+      if (!db) return { count: 0 };
+      const [row] = await db
+        .select({ count: count() })
+        .from(pendingTeacherSubmissions)
+        .where(eq(pendingTeacherSubmissions.pts_status, "pending"));
+      return { count: row?.count ?? 0 };
     }),
 });

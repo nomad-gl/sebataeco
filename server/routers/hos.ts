@@ -634,4 +634,31 @@ export const hosRouter = router({
       .orderBy(pendingTeacherSubmissions.createdAt);
     return rows;
   }),
+
+  /**
+   * Cancel (delete) a pending teacher submission — only allowed by the submitter, and only while still pending.
+   */
+  cancelPendingTeacher: protectedProcedure
+    .input(z.object({ submissionId: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      if (ctx.user.role !== "head_of_study" && ctx.user.role !== "admin") {
+        throw new Error("Not authorised.");
+      }
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const [submission] = await db
+        .select()
+        .from(pendingTeacherSubmissions)
+        .where(eq(pendingTeacherSubmissions.id, input.submissionId))
+        .limit(1);
+      if (!submission) throw new Error("Submission not found.");
+      if (submission.pts_status !== "pending") throw new Error("Only pending submissions can be cancelled.");
+      if (ctx.user.role !== "admin" && submission.submittedByUserId !== ctx.user.id) {
+        throw new Error("You can only cancel your own submissions.");
+      }
+      await db
+        .delete(pendingTeacherSubmissions)
+        .where(eq(pendingTeacherSubmissions.id, input.submissionId));
+      return { success: true };
+    }),
 });

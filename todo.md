@@ -4146,9 +4146,15 @@
 - [x] Password Management: show revealed temp password with eye/copy button after reset
 - [x] Password Management: allow admin to set a custom password (typed) instead of auto-generated
 - [x] Password Management: add single-click Copy Credentials button (email + password) in revealed password badge
-- [ ] Add pendingTeacherSubmissions table to schema for HoS teacher creation workflow
-- [ ] Add backend procedures: HoS submits new teacher, Director lists/approves/rejects pending teachers
-- [ ] Build HoS UI: Add Teacher form (name, email, note) with pending submissions list
-- [ ] Build Director UI: Pending Teacher Approvals card with approve/reject and auto-account creation
-- [ ] Add "Add Teachers" nav link to HoS sidebar in DashboardLayout
-- [ ] Add "Pending Teacher Approvals" nav link to Director sidebar in DashboardLayout
+- [x] Add pendingTeacherSubmissions table to schema for HoS teacher creation workflow
+- [x] Add backend procedures: HoS submits new teacher, Director lists/approves/rejects pending teachers
+- [x] Build HoS UI: Add Teacher form (name, email, note) with pending submissions list
+- [x] Build Director UI: Pending Teacher Approvals card with approve/reject and auto-account creation
+- [x] Add "Add Teachers" nav link to HoS sidebar in DashboardLayout
+- [x] Add "Pending Teacher Approvals" nav link to Director sidebar in DashboardLayout
+- [x] Notify HoS when teacher submission is approved or rejected (in-app notification)
+- [x] Show pending teacher submissions badge on Director Approvals nav item
+- [x] Allow HoS to cancel a pending teacher submission
+- [x] Notify HoS when teacher submission is approved or rejected (in-app notification)
+- [x] Show pending teacher submissions badge on Director Approvals nav item
+- [x] Allow HoS to cancel a pending teacher submission

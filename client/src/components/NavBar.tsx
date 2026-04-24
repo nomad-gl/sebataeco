@@ -191,6 +191,14 @@ export default function NavBar() {
   });
   const pendingAssignCount = pendingAssignData?.count ?? 0;
 
+  // Pending teacher submissions badge (Director/Admin)
+  const { data: pendingTeacherSubData } = trpc.director.pendingTeacherSubmissionsCount.useQuery(undefined, {
+    enabled: !!user && isDirectorOrAdmin,
+    refetchInterval: 30_000,
+  });
+  const pendingTeacherSubCount = pendingTeacherSubData?.count ?? 0;
+  const totalApprovalsCount = pendingAssignCount + pendingTeacherSubCount;
+
   // Items before Teacher dropdown (Home removed — logo already links to /)
   const mainNavItemsBefore = [
     { href: "/chat",           label: t("nav_chat"),           icon: MessageCircle },
@@ -792,9 +800,9 @@ export default function NavBar() {
                             {pendingInviteCount > 9 ? "9+" : pendingInviteCount}
                           </span>
                         )}
-                        {href === "/director/approvals" && pendingAssignCount > 0 && (
+                        {href === "/director/approvals" && totalApprovalsCount > 0 && (
                           <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white leading-none">
-                            {pendingAssignCount > 9 ? "9+" : pendingAssignCount}
+                            {totalApprovalsCount > 9 ? "9+" : totalApprovalsCount}
                           </span>
                         )}
                       </Link>
