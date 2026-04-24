@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckCircle2, XCircle, ClipboardList, UserPlus, Eye, EyeOff, Copy } from "lucide-react";
+import { CheckCircle2, XCircle, ClipboardList, UserPlus, Eye, EyeOff, Copy, Pencil } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useI18n } from "@/contexts/I18nContext";
 import { trpc } from "@/lib/trpc";
@@ -18,7 +18,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Pencil } from "lucide-react";
 
 interface PendingRequest {
   id: number;
@@ -105,8 +104,8 @@ export default function DirectorApprovals() {
   // ── Teacher submission mutations ──────────────────────────────────────────
   const approveTeacherMutation = trpc.director.approvePendingTeacher.useMutation({
     onSuccess: (data, variables) => {
-      toast.success("Teacher approved", {
-        description: `Account created and credentials emailed to ${data.teacherEmail}.`,
+      toast.success(t("dir_ts_approved_toast"), {
+        description: t("dir_ts_approved_toast_desc").replace("{email}", data.teacherEmail),
       });
       setRevealedPasswords((prev) => ({
         ...prev,
@@ -119,7 +118,7 @@ export default function DirectorApprovals() {
 
   const editTeacherMutation = trpc.director.editPendingTeacher.useMutation({
     onSuccess: () => {
-      toast.success("Submission updated");
+      toast.success(t("dir_ts_updated_toast"));
       setEditDialogOpen(false);
       setEditingSubmission(null);
       utils.director.listPendingTeacherSubmissions.invalidate();
@@ -129,7 +128,7 @@ export default function DirectorApprovals() {
 
   const rejectTeacherMutation = trpc.director.rejectPendingTeacher.useMutation({
     onSuccess: () => {
-      toast.success("Teacher submission rejected");
+      toast.success(t("dir_ts_rejected_toast"));
       setTeacherRejectDialogOpen(false);
       setTeacherRejectionReason("");
       setTeacherRejectingId(null);
@@ -191,8 +190,14 @@ export default function DirectorApprovals() {
 
   const copyCredentials = (email: string, password: string) => {
     navigator.clipboard.writeText(`Email: ${email}\nPassword: ${password}`).then(() =>
-      toast.success("Credentials copied to clipboard")
+      toast.success(t("dir_ts_copy_both_toast"))
     );
+  };
+
+  const statusLabel = (status: TeacherSubmission["pts_status"]) => {
+    if (status === "approved") return t("dir_ts_status_approved");
+    if (status === "rejected") return t("dir_ts_status_rejected");
+    return t("dir_ts_status_pending");
   };
 
   return (
@@ -224,7 +229,7 @@ export default function DirectorApprovals() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <p className="text-sm text-muted-foreground">Loading…</p>
+              <p className="text-sm text-muted-foreground">{t("dir_ts_loading")}</p>
             ) : (pendingRequests as unknown as PendingRequest[]).length === 0 ? (
               <div className="flex flex-col items-center gap-3 py-10 text-muted-foreground">
                 <CheckCircle2 className="w-10 h-10 text-green-500/40" />
@@ -295,22 +300,20 @@ export default function DirectorApprovals() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <UserPlus className="w-4 h-4" />
-              Teacher Submissions
+              {t("dir_ts_title")}
               {pendingTeacherCount > 0 && (
                 <Badge variant="destructive" className="text-xs">{pendingTeacherCount}</Badge>
               )}
             </CardTitle>
-            <CardDescription>
-              New teacher accounts submitted by Heads of Study for your approval.
-            </CardDescription>
+            <CardDescription>{t("dir_ts_desc")}</CardDescription>
           </CardHeader>
           <CardContent>
             {loadingTeachers ? (
-              <p className="text-sm text-muted-foreground">Loading…</p>
+              <p className="text-sm text-muted-foreground">{t("dir_ts_loading")}</p>
             ) : (teacherSubmissions as unknown as TeacherSubmission[]).length === 0 ? (
               <div className="flex flex-col items-center gap-3 py-10 text-muted-foreground">
                 <CheckCircle2 className="w-10 h-10 text-green-500/40" />
-                <p className="text-sm">No teacher submissions pending.</p>
+                <p className="text-sm">{t("dir_ts_empty")}</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -320,19 +323,19 @@ export default function DirectorApprovals() {
                     <div key={sub.id} className="rounded-lg border bg-muted/20 p-4 space-y-3">
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
                         <div>
-                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Teacher</p>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">{t("dir_ts_col_teacher")}</p>
                           <p className="font-medium">{sub.teacherName}</p>
                           <p className="text-xs text-muted-foreground">{sub.teacherEmail}</p>
                         </div>
                         <div>
-                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Submitted by</p>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">{t("dir_ts_col_submitted_by")}</p>
                           <p className="font-medium">{sub.submittedByName ?? sub.submittedByEmail ?? "Unknown"}</p>
                           {sub.submittedByEmail && sub.submittedByName && (
                             <p className="text-xs text-muted-foreground">{sub.submittedByEmail}</p>
                           )}
                         </div>
                         <div>
-                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Status</p>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">{t("dir_ts_col_status")}</p>
                           <Badge
                             variant={
                               sub.pts_status === "approved"
@@ -343,7 +346,7 @@ export default function DirectorApprovals() {
                             }
                             className="text-xs"
                           >
-                            {sub.pts_status.charAt(0).toUpperCase() + sub.pts_status.slice(1)}
+                            {statusLabel(sub.pts_status)}
                           </Badge>
                           <p className="text-xs text-muted-foreground mt-0.5">
                             {new Date(sub.createdAt).toLocaleDateString()}
@@ -358,7 +361,7 @@ export default function DirectorApprovals() {
                       )}
 
                       {sub.rejectionReason && (
-                        <p className="text-xs text-destructive">Rejected: {sub.rejectionReason}</p>
+                        <p className="text-xs text-destructive">{t("dir_ts_rejected_prefix")} {sub.rejectionReason}</p>
                       )}
 
                       {/* Revealed password badge */}
@@ -375,18 +378,18 @@ export default function DirectorApprovals() {
                             {revealed.visible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                           </button>
                           <button
-                            onClick={() => navigator.clipboard.writeText(revealed.password).then(() => toast.success("Password copied"))}
+                            onClick={() => navigator.clipboard.writeText(revealed.password).then(() => toast.success(t("dir_ts_copy_pwd")))}
                             className="text-muted-foreground hover:text-foreground"
-                            title="Copy password"
+                            title={t("dir_ts_copy_pwd")}
                           >
                             <Copy className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => copyCredentials(sub.teacherEmail, revealed.password)}
                             className="text-xs px-1.5 py-0.5 rounded bg-primary text-primary-foreground hover:bg-primary/90"
-                            title="Copy email + password"
+                            title={t("dir_ts_copy_both_toast")}
                           >
-                            Both
+                            {t("dir_ts_copy_both")}
                           </button>
                           <button
                             onClick={() => setRevealedPasswords((p) => { const n = { ...p }; delete n[sub.id]; return n; })}
@@ -407,7 +410,7 @@ export default function DirectorApprovals() {
                             disabled={approveTeacherMutation.isPending}
                           >
                             <CheckCircle2 className="w-3.5 h-3.5" />
-                            Approve
+                            {t("dir_ts_approve")}
                           </Button>
                           <Button
                             size="sm"
@@ -416,7 +419,7 @@ export default function DirectorApprovals() {
                             onClick={() => openEditDialog(sub)}
                           >
                             <Pencil className="w-3.5 h-3.5" />
-                            Edit
+                            {t("dir_ts_edit")}
                           </Button>
                           <Button
                             size="sm"
@@ -426,7 +429,7 @@ export default function DirectorApprovals() {
                             disabled={rejectTeacherMutation.isPending}
                           >
                             <XCircle className="w-3.5 h-3.5" />
-                            Reject
+                            {t("dir_ts_reject")}
                           </Button>
                         </div>
                       )}
@@ -458,13 +461,13 @@ export default function DirectorApprovals() {
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>{t("dir_approvals_cancel")}</Button>
             <Button
               variant="destructive"
               onClick={confirmReject}
               disabled={rejectMutation.isPending}
             >
-              {rejectMutation.isPending ? "Rejecting…" : t("dir_approvals_reject")}
+              {rejectMutation.isPending ? t("dir_approvals_rejecting") : t("dir_approvals_reject")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -474,49 +477,49 @@ export default function DirectorApprovals() {
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Teacher Submission</DialogTitle>
+            <DialogTitle>{t("dir_ts_edit_dialog_title")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label htmlFor="edit-teacher-name">Teacher Name</Label>
+              <Label htmlFor="edit-teacher-name">{t("dir_ts_edit_name_label")}</Label>
               <Input
                 id="edit-teacher-name"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                placeholder="Full name"
+                placeholder={t("dir_ts_edit_name_placeholder")}
                 maxLength={255}
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="edit-teacher-email">Teacher Email</Label>
+              <Label htmlFor="edit-teacher-email">{t("dir_ts_edit_email_label")}</Label>
               <Input
                 id="edit-teacher-email"
                 type="email"
                 value={editEmail}
                 onChange={(e) => setEditEmail(e.target.value)}
-                placeholder="teacher@school.cat"
+                placeholder={t("dir_ts_edit_email_placeholder")}
                 maxLength={255}
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="edit-teacher-note">Note (optional)</Label>
+              <Label htmlFor="edit-teacher-note">{t("dir_ts_edit_note_label")}</Label>
               <Textarea
                 id="edit-teacher-note"
                 value={editNote}
                 onChange={(e) => setEditNote(e.target.value)}
-                placeholder="Any additional context…"
+                placeholder={t("dir_ts_edit_note_placeholder")}
                 rows={2}
                 maxLength={512}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>{t("dir_ts_edit_cancel")}</Button>
             <Button
               onClick={confirmEdit}
               disabled={editTeacherMutation.isPending || !editName.trim() || !editEmail.trim()}
             >
-              {editTeacherMutation.isPending ? "Saving…" : "Save Changes"}
+              {editTeacherMutation.isPending ? t("dir_ts_edit_saving") : t("dir_ts_edit_save")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -526,26 +529,26 @@ export default function DirectorApprovals() {
       <Dialog open={teacherRejectDialogOpen} onOpenChange={setTeacherRejectDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Reject Teacher Submission</DialogTitle>
+            <DialogTitle>{t("dir_ts_reject_dialog_title")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-2 py-2">
-            <Label>Reason (optional)</Label>
+            <Label>{t("dir_ts_reject_reason_label")}</Label>
             <Textarea
               value={teacherRejectionReason}
               onChange={(e) => setTeacherRejectionReason(e.target.value)}
-              placeholder="e.g. Email address already in use, please resubmit with correct details."
+              placeholder={t("dir_ts_reject_reason_placeholder")}
               rows={3}
               maxLength={512}
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setTeacherRejectDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setTeacherRejectDialogOpen(false)}>{t("dir_ts_reject_cancel")}</Button>
             <Button
               variant="destructive"
               onClick={confirmTeacherReject}
               disabled={rejectTeacherMutation.isPending}
             >
-              {rejectTeacherMutation.isPending ? "Rejecting…" : "Reject Submission"}
+              {rejectTeacherMutation.isPending ? t("dir_ts_reject_confirming") : t("dir_ts_reject_confirm")}
             </Button>
           </DialogFooter>
         </DialogContent>
