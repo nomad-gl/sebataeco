@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { LevelCombobox } from "@/components/LevelCombobox";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
@@ -92,10 +93,9 @@ function CreateGroupDialog({
           </div>
           <div className="space-y-1.5">
             <Label className="text-white/70">{t("groups_level")} *</Label>
-            <Input
+            <LevelCombobox
               value={level}
-              onChange={(e) => {
-                const newLevel = e.target.value;
+              onChange={(newLevel) => {
                 setLevel(newLevel);
                 // Auto-fill Assessment Title only if user hasn't customised it
                 if (!assessmentTitleEditedRef.current) {
@@ -103,7 +103,6 @@ function CreateGroupDialog({
                 }
               }}
               placeholder={t("groups_level_placeholder")}
-              className="bg-white/5 border-white/10 text-white placeholder:text-white/30"
             />
           </div>
           <div className="space-y-1.5">

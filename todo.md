@@ -4240,3 +4240,6 @@
 
 ## Create Class Group — Assessment Title Auto-fill
 - [x] Groups.tsx: when user selects/types a Level, auto-populate Assessment Title with that value (only if Assessment Title is still empty or matches the previous level value)
+
+## Create Class Group — Level Combobox
+- [x] Groups.tsx: replace Level plain-text input with a combobox showing common Spanish/Catalan school levels (Infantil, 1r–6è Primària, 1r–4t ESO, 1r–2n Batxillerat, CFGM, CFGS) while still allowing free-text entry
