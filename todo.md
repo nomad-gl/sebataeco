@@ -4207,3 +4207,9 @@
 - [x] Teacher profile page: TeacherProfileView.tsx — shows assigned subjects+levels, scheduled days/lessons per semester with times, hours summary
 - [x] Hours calculation: derives contracted hours from school calendar events; compares against scheduled hours with over/under indicator
 - [x] Translation keys for all new strings (EN/ES/CA) — all tp_* keys added to I18nContext.tsx
+
+## Approval Flow Shortcut + Conflict Detection + Sign-in Options
+- [x] Server: add conflict detection to addScheduleSlot — reject if same teacher has overlapping day/time in same semester/year
+- [x] Client: DirectorApprovals.tsx — add "Set Subjects & Schedule" button after approving a teacher (opens inline panel or navigates to /director/teacher-profiles?teacher=userId)
+- [x] Client: Sign-in/login page — after successful login, show two options: "Continue to SEBA AI" and "Go to sebasnap.com"
+- [x] i18n: add conflict detection error key and sign-in destination choice keys to EN/ES/CA

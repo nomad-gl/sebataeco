@@ -177,6 +177,45 @@ export const teacherProfileRouter = router({
       const tenantId = ctx.user.tenantId;
       if (!tenantId) throw new TRPCError({ code: "BAD_REQUEST", message: "No tenant" });
       const db = await getDb(); if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      // ── Conflict detection ──────────────────────────────────────────────────
+      // Fetch all existing slots for this teacher on the same day/semester/year
+      const existingSlots = await db
+        .select()
+        .from(teacherSchedule)
+        .where(
+          and(
+            eq(teacherSchedule.userId, input.userId),
+            eq(teacherSchedule.dayOfWeek, input.dayOfWeek),
+            eq(teacherSchedule.semester, input.semester),
+            eq(teacherSchedule.academicYear, input.academicYear)
+          )
+        );
+
+      const newStart = toMinutes(input.startTime);
+      const newEnd = toMinutes(input.endTime);
+      if (newEnd <= newStart) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "tp_conflict_end_before_start",
+        });
+      }
+
+      const conflict = existingSlots.find((slot) => {
+        const s = toMinutes(slot.startTime);
+        const e = toMinutes(slot.endTime);
+        // Overlapping if new interval intersects existing interval
+        return newStart < e && newEnd > s;
+      });
+
+      if (conflict) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: `tp_conflict_overlap|${conflict.subject}|${conflict.startTime}-${conflict.endTime}`,
+        });
+      }
+      // ────────────────────────────────────────────────────────────────────────
+
       await db.insert(teacherSchedule).values({
         userId: input.userId,
         semester: input.semester,

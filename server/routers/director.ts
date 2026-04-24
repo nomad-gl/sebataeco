@@ -1298,7 +1298,7 @@ export const directorRouter = router({
         link: "/head-of-study/add-teacher",
       });
 
-      return { success: true, tempPassword, teacherEmail: submission.teacherEmail };
+      return { success: true, tempPassword, teacherEmail: submission.teacherEmail, newUserId };
     }),
 
   /**

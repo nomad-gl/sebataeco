@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { CheckCircle2, XCircle, ClipboardList, UserPlus, Eye, EyeOff, Copy, Pencil } from "lucide-react";
+import { CheckCircle2, XCircle, ClipboardList, UserPlus, Eye, EyeOff, Copy, Pencil, BookOpen } from "lucide-react";
+import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useI18n } from "@/contexts/I18nContext";
 import { trpc } from "@/lib/trpc";
@@ -51,6 +52,7 @@ interface TeacherSubmission {
 export default function DirectorApprovals() {
   const { t } = useI18n();
   const utils = trpc.useUtils();
+  const [, navigate] = useLocation();
 
   // ── Assignment request state ──────────────────────────────────────────────
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -62,6 +64,7 @@ export default function DirectorApprovals() {
   const [teacherRejectingId, setTeacherRejectingId] = useState<number | null>(null);
   const [teacherRejectionReason, setTeacherRejectionReason] = useState("");
   const [revealedPasswords, setRevealedPasswords] = useState<Record<number, { password: string; visible: boolean }>>({});
+  const [justApprovedTeacher, setJustApprovedTeacher] = useState<{ userId: number; name: string } | null>(null);
 
   // ── Edit submission state ─────────────────────────────────────────────────
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -111,6 +114,12 @@ export default function DirectorApprovals() {
         ...prev,
         [variables.submissionId]: { password: data.tempPassword, visible: false },
       }));
+      // Track the newly approved teacher for the shortcut button
+      const subs = (teacherSubmissions as unknown as TeacherSubmission[]);
+      const approvedSub = subs.find((s) => s.id === variables.submissionId);
+      if (data.newUserId) {
+        setJustApprovedTeacher({ userId: data.newUserId, name: approvedSub?.teacherName ?? data.teacherEmail });
+      }
       utils.director.listPendingTeacherSubmissions.invalidate();
     },
     onError: (err: { message: string }) => toast.error(err.message),
@@ -308,6 +317,36 @@ export default function DirectorApprovals() {
             <CardDescription>{t("dir_ts_desc")}</CardDescription>
           </CardHeader>
           <CardContent>
+            {/* Shortcut banner: appears after a teacher is approved */}
+            {justApprovedTeacher && (
+              <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                  <span>
+                    {t("dir_ts_approved_shortcut_msg").replace("{name}", justApprovedTeacher.name)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5"
+                    onClick={() => navigate(`/director/teacher-profiles?teacher=${justApprovedTeacher.userId}`)}
+                  >
+                    <BookOpen className="w-3.5 h-3.5" />
+                    {t("dir_ts_set_subjects_schedule")}
+                  </Button>
+                  <button
+                    onClick={() => setJustApprovedTeacher(null)}
+                    className="text-muted-foreground hover:text-foreground"
+                    title="Dismiss"
+                  >
+                    <XCircle className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
             {loadingTeachers ? (
               <p className="text-sm text-muted-foreground">{t("dir_ts_loading")}</p>
             ) : (teacherSubmissions as unknown as TeacherSubmission[]).length === 0 ? (

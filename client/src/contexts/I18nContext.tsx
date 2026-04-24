@@ -3098,6 +3098,17 @@ export const translations = {
     lang_english_uk: "English (UK)",
     // Groups page
     groups_no_groups: "No groups found",
+    // Timetable conflict detection
+    tp_conflict_end_before_start: "End time must be after start time",
+    tp_conflict_overlap: "Conflicts with existing lesson: {subject} ({time})",
+    // Director Approvals shortcut
+    dir_ts_approved_shortcut_msg: "{name} has been approved. Set up their subjects and schedule?",
+    dir_ts_set_subjects_schedule: "Set Subjects & Schedule",
+    // Sign-in destination choice
+    signin_welcome_back: "You're signed in!",
+    signin_choose_destination: "Where would you like to go?",
+    signin_continue_seba: "Continue to SEBA AI",
+    signin_go_sebasnap: "Go to sebasnap.com",
   },
   es: {
     // NavBar
@@ -6165,6 +6176,17 @@ export const translations = {
     lang_english_uk: "Ingl\u00e9s (Reino Unido)",
     // Groups page
     groups_no_groups: "No se encontraron grupos",
+    // Timetable conflict detection
+    tp_conflict_end_before_start: "La hora de fin debe ser posterior a la de inicio",
+    tp_conflict_overlap: "Conflicto con una clase existente: {subject} ({time})",
+    // Director Approvals shortcut
+    dir_ts_approved_shortcut_msg: "{name} ha sido aprobado/a. ¿Configurar sus asignaturas y horario?",
+    dir_ts_set_subjects_schedule: "Asignar asignaturas y horario",
+    // Sign-in destination choice
+    signin_welcome_back: "¡Has iniciado sesión!",
+    signin_choose_destination: "¿A dónde quieres ir?",
+    signin_continue_seba: "Continuar en SEBA AI",
+    signin_go_sebasnap: "Ir a sebasnap.com",
   },
   ca: {
     // NavBar
@@ -9235,6 +9257,17 @@ export const translations = {
     lang_english_uk: "Anglès (Regne Unit)",
     // Groups page
     groups_no_groups: "No s'han trobat grups",
+    // Timetable conflict detection
+    tp_conflict_end_before_start: "L'hora de fi ha de ser posterior a la d'inici",
+    tp_conflict_overlap: "Conflicte amb una classe existent: {subject} ({time})",
+    // Director Approvals shortcut
+    dir_ts_approved_shortcut_msg: "{name} ha estat aprovat/ada. Voleu configurar les seves assignatures i horari?",
+    dir_ts_set_subjects_schedule: "Assignar assignatures i horari",
+    // Sign-in destination choice
+    signin_welcome_back: "Heu iniciat la sessió!",
+    signin_choose_destination: "On voleu anar?",
+    signin_continue_seba: "Continuar a SEBA AI",
+    signin_go_sebasnap: "Anar a sebasnap.com",
   },
 } as const;
 
