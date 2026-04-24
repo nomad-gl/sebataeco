@@ -4219,3 +4219,10 @@
 - [x] DirectorTeacherProfiles: when navigated via ?teacher=userId from DirectorApprovals, show a "Back to Approvals" contextual link in the page header
 - [x] DirectorTeacherProfiles: highlight the pre-selected teacher row/card with a subtle "new" badge when arriving from the approval shortcut
 - [x] i18n: reused existing add_teacher_back_approvals key (EN/ES/CA) — no new key needed
+
+## Schedule Slot Edit + Timetable Grid + Welcome Email
+- [x] DirectorTeacherProfiles: add Edit button to each existing schedule slot card (opens schedule dialog pre-filled, calls updateScheduleSlot)
+- [x] DirectorTeacherProfiles: add visual timetable grid view (days as columns Mon–Fri, time rows) as a toggle alternative to the list view in the Schedule tab
+- [x] DirectorApprovals: add "Send Welcome Email" button in the approval shortcut banner that emails the newly approved teacher their login credentials
+- [x] Server: add sendWelcomeEmail tRPC procedure (director router) that sends an email to the teacher with their temp password
+- [x] i18n: add tp_view_grid, tp_view_list, dir_ts_send_welcome_email, dir_ts_welcome_email_sent keys (EN/ES/CA)

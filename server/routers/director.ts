@@ -1483,4 +1483,48 @@ export const directorRouter = router({
         i18nAutoFixStatus.running = false;
       }
     }),
+
+  /**
+   * Resend welcome email with a fresh temp password to a newly approved teacher.
+   * Used from the approval shortcut banner in DirectorApprovals.
+   */
+  sendWelcomeEmail: adminProcedure
+    .input(z.object({ userId: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      const [targetUser] = await db
+        .select({ id: users.id, name: users.name, displayName: users.displayName, email: users.email, role: users.role, tenantId: users.tenantId, schoolName: users.schoolName })
+        .from(users)
+        .where(eq(users.id, input.userId))
+        .limit(1);
+      if (!targetUser) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+      if (!targetUser.email) throw new TRPCError({ code: "BAD_REQUEST", message: "User has no email address" });
+
+      // Generate a fresh temp password and reset mustChangePassword
+      const tempPassword = crypto.randomBytes(9).toString("base64url").slice(0, 12);
+      const hash = await bcrypt.hash(tempPassword, 12);
+      await db.update(users).set({ passwordHash: hash, mustChangePassword: true }).where(eq(users.id, input.userId));
+
+      // Audit log
+      await db.insert(adminAuditLogs).values({
+        userId: ctx.user.id,
+        action: "send_welcome_email",
+        resource: "user",
+        resourceId: String(input.userId),
+        details: JSON.stringify({ targetUserId: input.userId, email: targetUser.email }),
+      });
+
+      // Send the welcome email with credentials
+      await sendTempPasswordEmail({
+        to: targetUser.email,
+        name: targetUser.name ?? targetUser.displayName ?? targetUser.email,
+        tempPassword,
+        schoolName: targetUser.schoolName ?? null,
+        loginUrl: "https://aina.forum/login",
+        role: targetUser.role ?? "teacher",
+      });
+
+      return { success: true, email: targetUser.email };
+    }),
 });

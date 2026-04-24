@@ -3109,6 +3109,10 @@ export const translations = {
     signin_choose_destination: "Where would you like to go?",
     signin_continue_seba: "Continue to SEBA AI",
     signin_go_sebasnap: "Go to sebasnap.com",
+    tp_view_list: "List view",
+    tp_view_grid: "Grid view",
+    dir_ts_send_welcome_email: "Send Welcome Email",
+    dir_ts_welcome_email_sent: "Welcome email sent to {email}",
   },
   es: {
     // NavBar
@@ -6187,6 +6191,10 @@ export const translations = {
     signin_choose_destination: "¿A dónde quieres ir?",
     signin_continue_seba: "Continuar en SEBA AI",
     signin_go_sebasnap: "Ir a sebasnap.com",
+    tp_view_list: "Vista de lista",
+    tp_view_grid: "Vista de cuadrícula",
+    dir_ts_send_welcome_email: "Enviar correo de bienvenida",
+    dir_ts_welcome_email_sent: "Correo de bienvenida enviado a {email}",
   },
   ca: {
     // NavBar
@@ -9268,6 +9276,10 @@ export const translations = {
     signin_choose_destination: "On voleu anar?",
     signin_continue_seba: "Continuar a SEBA AI",
     signin_go_sebasnap: "Anar a sebasnap.com",
+    tp_view_list: "Vista de llista",
+    tp_view_grid: "Vista de quadrícula",
+    dir_ts_send_welcome_email: "Enviar correu de benvinguda",
+    dir_ts_welcome_email_sent: "Correu de benvinguda enviat a {email}",
   },
 } as const;
 

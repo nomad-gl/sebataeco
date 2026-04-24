@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import {
   BookOpen, Clock, Plus, Trash2, Edit2, ChevronDown, ChevronUp,
   User, Calendar, TrendingUp, TrendingDown, Minus, AlertTriangle,
+  LayoutGrid, List, Mail,
 } from "lucide-react";
 
 const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
@@ -38,6 +39,8 @@ export default function DirectorTeacherProfiles() {
   const [newlyApprovedId, setNewlyApprovedId] = useState<number | null>(null);
   // Inline slot error for conflict feedback
   const [slotError, setSlotError] = useState<string | null>(null);
+  // Schedule view toggle: "list" (default) or "grid"
+  const [scheduleView, setScheduleView] = useState<"list" | "grid">("list");
 
   // Pre-select teacher from ?teacher= query param (set by approval shortcut)
   useEffect(() => {
@@ -159,6 +162,20 @@ export default function DirectorTeacherProfiles() {
     setEditSlot(null);
     setSlotError(null);
     setSlotForm({ semester: "1", dayOfWeek: "monday", lessonSlot: "", startTime: "09:00", endTime: "10:00", subject: "", groupName: "" });
+    setScheduleDialog(true);
+  }
+  function openEditSlot(slot: { id: number; semester: string; dayOfWeek: string; lessonSlot: string; startTime: string; endTime: string; subject: string; groupName: string | null }) {
+    setEditSlot({ id: slot.id });
+    setSlotError(null);
+    setSlotForm({
+      semester: slot.semester as typeof SEMESTERS[number],
+      dayOfWeek: slot.dayOfWeek as typeof DAYS[number],
+      lessonSlot: slot.lessonSlot,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      subject: slot.subject,
+      groupName: slot.groupName ?? "",
+    });
     setScheduleDialog(true);
   }
   function submitSlot() {
@@ -318,14 +335,37 @@ export default function DirectorTeacherProfiles() {
 
                 {/* Schedule Tab */}
                 <TabsContent value="schedule" className="space-y-3 mt-4">
-                  <div className="flex justify-end">
+                  <div className="flex items-center justify-between gap-2">
+                    {/* View toggle */}
+                    <div className="flex items-center gap-1 border rounded-md p-0.5">
+                      <Button
+                        variant={scheduleView === "list" ? "secondary" : "ghost"}
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => setScheduleView("list")}
+                        title={t("tp_view_list")}
+                      >
+                        <List className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant={scheduleView === "grid" ? "secondary" : "ghost"}
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => setScheduleView("grid")}
+                        title={t("tp_view_grid")}
+                      >
+                        <LayoutGrid className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                     <Button size="sm" onClick={() => openAddSlot(selectedTeacherId)}>
                       <Plus className="h-4 w-4 mr-1" />{t("tp_add_slot")}
                     </Button>
                   </div>
+
                   {!schedule?.length ? (
                     <div className="text-muted-foreground text-sm text-center py-8">{t("tp_no_schedule")}</div>
-                  ) : (
+                  ) : scheduleView === "list" ? (
+                    /* ── List view ── */
                     <div className="space-y-3">
                       {DAYS.map((day) => {
                         const daySlots = scheduleByDay[day];
@@ -346,15 +386,55 @@ export default function DirectorTeacherProfiles() {
                                       {slot.groupName && <Badge variant="outline" className="text-xs">{slot.groupName}</Badge>}
                                       <Badge variant="secondary" className="text-xs">{t(`tp_sem_${slot.semester}`)}</Badge>
                                     </div>
-                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive shrink-0" onClick={() => deleteSlotMutation.mutate({ id: slot.id })}>
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                    </Button>
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditSlot(slot)}>
+                                        <Edit2 className="h-3.5 w-3.5" />
+                                      </Button>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteSlotMutation.mutate({ id: slot.id })}>
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </div>
                                   </div>
                                 ))}
                             </CardContent>
                           </Card>
                         );
                       })}
+                    </div>
+                  ) : (
+                    /* ── Grid view ── */
+                    <div className="overflow-x-auto">
+                      <div className="grid min-w-[480px]" style={{ gridTemplateColumns: "auto repeat(5, 1fr)", gap: "2px" }}>
+                        {/* Header row */}
+                        <div className="" />
+                        {DAYS.map((d) => (
+                          <div key={d} className="text-center text-xs font-semibold py-1.5 bg-muted rounded-sm capitalize">{t(`tp_day_${d}`)}</div>
+                        ))}
+                        {/* Collect all unique time slots sorted */}
+                        {Array.from(new Set(schedule!.map((s) => `${s.startTime}–${s.endTime}`))).sort().map((timeRange) => (
+                          <>
+                            {/* Time label */}
+                            <div key={`label-${timeRange}`} className="text-xs text-muted-foreground pr-2 py-1.5 flex items-center whitespace-nowrap">{timeRange}</div>
+                            {/* Day cells */}
+                            {DAYS.map((day) => {
+                              const [start, end] = timeRange.split("–");
+                              const slot = schedule!.find((s) => s.dayOfWeek === day && s.startTime === start && s.endTime === end);
+                              return slot ? (
+                                <div
+                                  key={`${day}-${timeRange}`}
+                                  className="bg-primary/10 border border-primary/20 rounded-sm px-1.5 py-1 text-xs cursor-pointer hover:bg-primary/20 transition-colors"
+                                  onClick={() => openEditSlot(slot)}
+                                >
+                                  <p className="font-medium truncate">{slot.subject}</p>
+                                  {slot.groupName && <p className="text-muted-foreground truncate">{slot.groupName}</p>}
+                                </div>
+                              ) : (
+                                <div key={`${day}-${timeRange}`} className="bg-muted/30 rounded-sm" />
+                              );
+                            })}
+                          </>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </TabsContent>

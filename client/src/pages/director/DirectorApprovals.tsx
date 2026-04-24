@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckCircle2, XCircle, ClipboardList, UserPlus, Eye, EyeOff, Copy, Pencil, BookOpen } from "lucide-react";
+import { CheckCircle2, XCircle, ClipboardList, UserPlus, Eye, EyeOff, Copy, Pencil, BookOpen, Mail } from "lucide-react";
 import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useI18n } from "@/contexts/I18nContext";
@@ -65,6 +65,17 @@ export default function DirectorApprovals() {
   const [teacherRejectionReason, setTeacherRejectionReason] = useState("");
   const [revealedPasswords, setRevealedPasswords] = useState<Record<number, { password: string; visible: boolean }>>({});
   const [justApprovedTeacher, setJustApprovedTeacher] = useState<{ userId: number; name: string } | null>(null);
+  const [welcomeEmailSent, setWelcomeEmailSent] = useState(false);
+
+  const sendWelcomeEmailMutation = trpc.director.sendWelcomeEmail.useMutation({
+    onSuccess: (data) => {
+      setWelcomeEmailSent(true);
+      toast.success(t("dir_ts_welcome_email_sent").replace("{email}", data.email));
+    },
+    onError: (err) => {
+      toast.error(err.message);
+    },
+  });
 
   // ── Edit submission state ─────────────────────────────────────────────────
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -331,13 +342,23 @@ export default function DirectorApprovals() {
                     size="sm"
                     variant="outline"
                     className="gap-1.5"
+                    onClick={() => sendWelcomeEmailMutation.mutate({ userId: justApprovedTeacher.userId })}
+                    disabled={sendWelcomeEmailMutation.isPending || welcomeEmailSent}
+                  >
+                    <Mail className="w-3.5 h-3.5" />
+                    {welcomeEmailSent ? t("dir_ts_welcome_email_sent").replace("{email}", "").trim() : t("dir_ts_send_welcome_email")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5"
                     onClick={() => navigate(`/director/teacher-profiles?teacher=${justApprovedTeacher.userId}`)}
                   >
                     <BookOpen className="w-3.5 h-3.5" />
                     {t("dir_ts_set_subjects_schedule")}
                   </Button>
                   <button
-                    onClick={() => setJustApprovedTeacher(null)}
+                    onClick={() => { setJustApprovedTeacher(null); setWelcomeEmailSent(false); }}
                     className="text-muted-foreground hover:text-foreground"
                     title="Dismiss"
                   >
