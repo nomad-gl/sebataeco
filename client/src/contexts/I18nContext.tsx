@@ -3127,6 +3127,15 @@ export const translations = {
     tp_contracted_hours_placeholder: "e.g. 18",
     tp_contracted_hours_saved: "Contracted hours updated.",
     tp_contracted_hours_current: "Current target",
+    tp_filter_temp_only: "Temp only",
+    tp_filter_temp_active: "Showing temp",
+    tp_copy_schedule_btn: "Copy From…",
+    tp_copy_schedule_title: "Copy Schedule From Another Teacher",
+    tp_copy_schedule_from: "Copy from",
+    tp_copy_schedule_overwrite: "Replace existing slots",
+    tp_copy_schedule_confirm: "Copy Schedule",
+    tp_copy_schedule_success: "Schedule copied successfully.",
+    tp_copy_schedule_empty: "That teacher has no schedule slots for this year.",
   },
   es: {
     // NavBar
@@ -6223,6 +6232,15 @@ export const translations = {
     tp_contracted_hours_placeholder: "p.ej. 18",
     tp_contracted_hours_saved: "Horas contratadas actualizadas.",
     tp_contracted_hours_current: "Objetivo actual",
+    tp_filter_temp_only: "Solo temporales",
+    tp_filter_temp_active: "Mostrando temp.",
+    tp_copy_schedule_btn: "Copiar de…",
+    tp_copy_schedule_title: "Copiar horario de otro docente",
+    tp_copy_schedule_from: "Copiar de",
+    tp_copy_schedule_overwrite: "Reemplazar franjas existentes",
+    tp_copy_schedule_confirm: "Copiar horario",
+    tp_copy_schedule_success: "Horario copiado correctamente.",
+    tp_copy_schedule_empty: "Ese docente no tiene franjas para este año.",
   },
   ca: {
     // NavBar
@@ -9322,6 +9340,15 @@ export const translations = {
     tp_contracted_hours_placeholder: "p.ex. 18",
     tp_contracted_hours_saved: "Hores contractades actualitzades.",
     tp_contracted_hours_current: "Objectiu actual",
+    tp_filter_temp_only: "Només temporals",
+    tp_filter_temp_active: "Mostrant temp.",
+    tp_copy_schedule_btn: "Copiar de…",
+    tp_copy_schedule_title: "Copiar horari d'un altre docent",
+    tp_copy_schedule_from: "Copiar de",
+    tp_copy_schedule_overwrite: "Substituir franges existents",
+    tp_copy_schedule_confirm: "Copiar horari",
+    tp_copy_schedule_success: "Horari copiat correctament.",
+    tp_copy_schedule_empty: "Aquest docent no té franges per a aquest any.",
   },
 } as const;
 

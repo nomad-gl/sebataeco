@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import {
   BookOpen, Clock, Plus, Trash2, Edit2, ChevronDown, ChevronUp,
   User, Calendar, TrendingUp, TrendingDown, Minus, AlertTriangle,
-  LayoutGrid, List, Mail,
+  LayoutGrid, List, Mail, Copy,
 } from "lucide-react";
 
 const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
@@ -44,6 +44,10 @@ export default function DirectorTeacherProfiles() {
   // Semester filter: "all" | "1" | "2" | "full_year"
   const [semesterFilter, setSemesterFilter] = useState<"all" | "1" | "2" | "full_year">("all");
   const [contractedHoursInput, setContractedHoursInput] = useState<string>("");
+  const [showTempOnly, setShowTempOnly] = useState(false);
+  const [copyScheduleDialog, setCopyScheduleDialog] = useState(false);
+  const [copyFromTeacherId, setCopyFromTeacherId] = useState<number | null>(null);
+  const [copyOverwrite, setCopyOverwrite] = useState(false);
 
   // Pre-select teacher from ?teacher= query param (set by approval shortcut)
   useEffect(() => {
@@ -152,6 +156,21 @@ export default function DirectorTeacherProfiles() {
     onSuccess: () => {
       toast.success(t("tp_contracted_hours_saved"));
       utils.teacherProfile.getTeacherRoster.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const copyScheduleMutation = trpc.teacherProfile.copySchedule.useMutation({
+    onSuccess: (data) => {
+      if (data.copied === 0) {
+        toast.info(t("tp_copy_schedule_empty"));
+      } else {
+        toast.success(t("tp_copy_schedule_success"));
+        refetchSchedule();
+      }
+      setCopyScheduleDialog(false);
+      setCopyFromTeacherId(null);
+      setCopyOverwrite(false);
     },
     onError: (e) => toast.error(e.message),
   });
@@ -267,13 +286,27 @@ export default function DirectorTeacherProfiles() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Teacher Roster */}
         <div className="lg:col-span-1 space-y-3">
-          <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">{t("tp_roster")}</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">{t("tp_roster")}</h2>
+            {roster && roster.some((t) => t.isPermanent === false) && (
+              <button
+                onClick={() => setShowTempOnly((v) => !v)}
+                className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
+                  showTempOnly
+                    ? "bg-amber-100 border-amber-400 text-amber-700 dark:bg-amber-900/30 dark:border-amber-500 dark:text-amber-300"
+                    : "border-border text-muted-foreground hover:border-amber-400 hover:text-amber-600"
+                }`}
+              >
+                {showTempOnly ? t("tp_filter_temp_active") : t("tp_filter_temp_only")}
+              </button>
+            )}
+          </div>
           {rosterLoading ? (
             <div className="text-muted-foreground text-sm">{t("loading")}</div>
           ) : !roster?.length ? (
             <div className="text-muted-foreground text-sm">{t("tp_no_teachers")}</div>
           ) : (
-            roster.map((teacher) => (
+            roster.filter((t) => !showTempOnly || t.isPermanent === false).map((teacher) => (
               <Card
                 key={teacher.id}
                 className={`cursor-pointer transition-colors ${selectedTeacherId === teacher.id ? "ring-2 ring-primary" : "hover:bg-accent/50"} ${newlyApprovedId === teacher.id ? "ring-2 ring-green-500" : ""}`}
@@ -432,9 +465,14 @@ export default function DirectorTeacherProfiles() {
                         <LayoutGrid className="h-3.5 w-3.5" />
                       </Button>
                     </div>
-                    <Button size="sm" onClick={() => openAddSlot(selectedTeacherId)}>
-                      <Plus className="h-4 w-4 mr-1" />{t("tp_add_slot")}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" variant="outline" onClick={() => setCopyScheduleDialog(true)}>
+                        <Copy className="h-4 w-4 mr-1" />{t("tp_copy_schedule_btn")}
+                      </Button>
+                      <Button size="sm" onClick={() => openAddSlot(selectedTeacherId)}>
+                        <Plus className="h-4 w-4 mr-1" />{t("tp_add_slot")}
+                      </Button>
+                    </div>
                   </div>
 
                   {/* Semester filter */}
@@ -740,6 +778,64 @@ export default function DirectorTeacherProfiles() {
           <DialogFooter>
             <Button variant="outline" onClick={() => { setScheduleDialog(false); setSlotError(null); }}>{t("cancel")}</Button>
             <Button onClick={submitSlot} disabled={!slotForm.lessonSlot || !slotForm.subject || addSlotMutation.isPending}>{t("save")}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Copy Schedule Dialog */}
+      <Dialog open={copyScheduleDialog} onOpenChange={(o) => { setCopyScheduleDialog(o); if (!o) { setCopyFromTeacherId(null); setCopyOverwrite(false); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("tp_copy_schedule_title")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">{t("tp_copy_schedule_from")}</label>
+              <Select
+                value={copyFromTeacherId ? String(copyFromTeacherId) : ""}
+                onValueChange={(v) => setCopyFromTeacherId(Number(v))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="—" />
+                </SelectTrigger>
+                <SelectContent>
+                  {roster?.filter((teacher) => teacher.id !== selectedTeacherId).map((teacher) => (
+                    <SelectItem key={teacher.id} value={String(teacher.id)}>
+                      {teacher.displayName || teacher.email}
+                      {teacher.isPermanent === false && (
+                        <span className="ml-1.5 text-xs text-amber-500">{t("tp_non_permanent")}</span>
+                      )}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={copyOverwrite}
+                onChange={(e) => setCopyOverwrite(e.target.checked)}
+                className="rounded border-border"
+              />
+              {t("tp_copy_schedule_overwrite")}
+            </label>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCopyScheduleDialog(false)}>{t("cancel")}</Button>
+            <Button
+              disabled={!copyFromTeacherId || copyScheduleMutation.isPending}
+              onClick={() => {
+                if (!copyFromTeacherId || !selectedTeacherId || !academicYear) return;
+                copyScheduleMutation.mutate({
+                  fromUserId: copyFromTeacherId,
+                  toUserId: selectedTeacherId,
+                  academicYear,
+                  overwrite: copyOverwrite,
+                });
+              }}
+            >
+              {t("tp_copy_schedule_confirm")}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

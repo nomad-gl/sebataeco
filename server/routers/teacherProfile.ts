@@ -532,4 +532,51 @@ export const teacherProfileRouter = router({
 
       return { success: true };
     }),
+
+  copySchedule: protectedProcedure
+    .input(z.object({
+      fromUserId: z.number().int().positive(),
+      toUserId: z.number().int().positive(),
+      academicYear: z.string(),
+      overwrite: z.boolean().optional().default(false),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      if (!isDirectorOrHos(ctx.user.role, ctx.user.position ?? "")) {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+      const tenantId = ctx.user.tenantId;
+      if (!tenantId) throw new TRPCError({ code: "BAD_REQUEST", message: "No tenant" });
+      const db = await getDb(); if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      // Verify both teachers belong to this tenant
+      const [fromTeacher, toTeacher] = await Promise.all([
+        db.select({ id: users.id }).from(users).where(and(eq(users.id, input.fromUserId), eq(users.tenantId, tenantId))).limit(1),
+        db.select({ id: users.id }).from(users).where(and(eq(users.id, input.toUserId), eq(users.tenantId, tenantId))).limit(1),
+      ]);
+      if (!fromTeacher.length || !toTeacher.length) throw new TRPCError({ code: "NOT_FOUND", message: "Teacher not found" });
+
+      // Fetch source slots
+      const sourceSlots = await db
+        .select()
+        .from(teacherSchedule)
+        .where(and(eq(teacherSchedule.userId, input.fromUserId), eq(teacherSchedule.academicYear, input.academicYear)));
+
+      if (!sourceSlots.length) return { copied: 0 };
+
+      // Optionally delete existing slots for target teacher
+      if (input.overwrite) {
+        await db.delete(teacherSchedule).where(
+          and(eq(teacherSchedule.userId, input.toUserId), eq(teacherSchedule.academicYear, input.academicYear))
+        );
+      }
+
+      // Insert copied slots
+      const newSlots = sourceSlots.map(({ id: _id, userId: _uid, createdAt: _ca, ...rest }) => ({
+        ...rest,
+        userId: input.toUserId,
+      }));
+      await db.insert(teacherSchedule).values(newSlots);
+
+      return { copied: newSlots.length };
+    }),
 });

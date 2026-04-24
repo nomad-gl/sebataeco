@@ -4256,3 +4256,9 @@
 - [x] Server: add setContractedHours mutation to teacherProfile router (takes userId: number, contractedWeeklyMinutes: number | null)
 - [x] Client: DirectorTeacherProfiles Hours tab — add contracted hours input (number field in hours, converts to minutes for storage) with Save button; auto-syncs when teacher changes; Clear button removes target
 - [x] i18n: add tp_contracted_hours_label, tp_contracted_hours_placeholder, tp_contracted_hours_saved, tp_contracted_hours_current keys (EN/ES/CA)
+
+## Temporary Staff Filter + Copy Schedule
+- [x] DirectorTeacherProfiles: add "Show temporary only" filter toggle above the teacher roster list
+- [x] Server: add copySchedule tRPC mutation (director/HoS only) — copies all schedule slots from one teacher to another for the same academic year
+- [x] Client: DirectorTeacherProfiles Schedule tab — add "Copy Schedule From…" button that opens a teacher picker dialog with overwrite option
+- [x] i18n: add tp_filter_temp_only, tp_filter_temp_active, tp_copy_schedule_btn, tp_copy_schedule_title, tp_copy_schedule_from, tp_copy_schedule_overwrite, tp_copy_schedule_confirm, tp_copy_schedule_success, tp_copy_schedule_empty keys (EN/ES/CA)
