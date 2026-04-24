@@ -467,7 +467,8 @@ export default function NavBar() {
             </div>
             )}
 
-            {/* Teacher dropdown (after Practice, before TA Forum) */}
+            {/* Teacher dropdown (after Practice, before TA Forum) — gated by position */}
+            {isTeacherPos && (
             <div ref={dropRef} className="relative group/teacher">
               <button
                 onClick={() => setDropOpen((o) => !o)}
@@ -515,6 +516,7 @@ export default function NavBar() {
                 </div>
               )}
             </div>
+            )}
 
             {/* Administration dropdown — admin only (system-level, role-gated) */}
             {user?.role === "admin" && (

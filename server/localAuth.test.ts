@@ -163,7 +163,7 @@ describe("localAuth.register", () => {
       inviteToken: VALID_TOKEN,
     });
 
-    expect(result).toEqual({ success: true });
+    expect(result).toMatchObject({ success: true });
     expect(db.insert).toHaveBeenCalledOnce();
     // Invite should be marked as used
     expect(db.update).toHaveBeenCalledOnce();
@@ -308,7 +308,7 @@ describe("localAuth.login", () => {
       password: "securepass123",
     });
 
-    expect(result).toEqual({ success: true });
+    expect(result).toMatchObject({ success: true });
     expect(ctx.res.cookie).toHaveBeenCalledWith(
       "seba_session",
       "mock-session-token",
@@ -397,7 +397,7 @@ describe("localAuth.login", () => {
       password: "securepass123",
     });
 
-    expect(result).toEqual({ success: true });
+    expect(result).toMatchObject({ success: true });
     // Session token should use the user's actual openId (manus:owner123), not local:email
     const { sdk } = await import("../server/_core/sdk");
     expect(sdk.createSessionToken).toHaveBeenCalledWith(

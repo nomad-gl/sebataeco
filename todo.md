@@ -4164,4 +4164,12 @@
 - [x] Director can edit pending teacher submission (name, email, note) before approving
 - [x] Fix Add Teacher page: replace all hardcoded strings with t() translation keys in EN/ES/CA
 - [x] Fix "Add Teacher" nav label: CA → "Afegir docent", ES → "Añadir docente" in both HoS and Director dropdowns
-- [ ] Translate Teacher Submissions card on Director Approvals page (all hardcoded strings → t() keys in EN/ES/CA)
+- [x] Translate Teacher Submissions card on Director Approvals page (all hardcoded strings → t() keys in EN/ES/CA)
+
+## Hardcoded String Audit & Teacher Access (Session follow-up)
+- [ ] Audit all pages/components for hardcoded strings not using t() — grep for JSX text literals
+- [x] Fix FAQ "Is SEBA AI free for teachers?" answer string (not translating) — all 5 FAQ items now use t() keys in EN/ES/CA
+- [ ] Fix all other discovered hardcoded strings and add missing translation keys to EN/ES/CA
+- [x] Ensure approved teachers (role=teacher) have full nav access to all appropriate tools — desktop Teacher dropdown now gated by isTeacherPos (matching mobile); backend access confirmed correct
+- [x] Set up daily automated scan (cron at 05:00 UTC) — server/i18nScan.ts + cron in _core/index.ts + admin tRPC procedures triggerI18nScan + getI18nScanStatus + I18nScanCard in DirectorSettings
+- [x] Hero text CA already correct: home_hero_accent = "Assistent Docent" (line 6351); ES = "Asistente Docente"; EN = "Teaching Assistant" — no change needed

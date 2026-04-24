@@ -26,6 +26,7 @@ import { generateDirectorReportPdf } from "../directorReportPdf";
 import { storagePut } from "../storage";
 import bcrypt from "bcryptjs";
 import { sendTempPasswordEmail } from "../email";
+import { runI18nScanAndNotify, i18nScanStatus } from "../i18nScan";
 
 /** The 8 LOMLOE key competencies */
 const LOMLOE_COMPETENCIES = [
@@ -1399,4 +1400,24 @@ export const directorRouter = router({
         .where(eq(pendingTeacherSubmissions.id, input.submissionId));
       return { success: true };
     }),
+
+  /**
+   * Trigger an on-demand i18n hardcoded string scan and return the result.
+   * Admin-only. Also sends an owner notification if issues are found.
+   */
+  triggerI18nScan: adminProcedure.mutation(async () => {
+    await runI18nScanAndNotify();
+    return i18nScanStatus.lastResult ?? { summary: "No result yet", scannedFiles: 0, hardcodedStrings: [], missingKeys: [], unusedKeys: [], ranAt: new Date() };
+  }),
+
+  /**
+   * Return the status of the last i18n scan without triggering a new one.
+   */
+  getI18nScanStatus: adminProcedure.query(() => {
+    return {
+      lastRunAt: i18nScanStatus.lastRunAt,
+      lastError: i18nScanStatus.lastError,
+      lastResult: i18nScanStatus.lastResult,
+    };
+  }),
 });

@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/contexts/I18nContext";
 import { trpc } from "@/lib/trpc";
-import { Settings, Users, Shield, Loader2, Check, Upload, Trash2, ImageIcon, Building2 } from "lucide-react";
+import { Settings, Users, Shield, Loader2, Check, Upload, Trash2, ImageIcon, Building2, ScanSearch, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -416,8 +416,77 @@ export default function DirectorSettings() {
           </CardContent>
         </Card>
 
+        {/* ── i18n Hardcoded String Scan ── */}
+        <I18nScanCard />
+
         <p className="text-xs text-muted-foreground text-right">Powered by SEBA</p>
       </div>
     </DashboardLayout>
+  );
+}
+
+/** Standalone i18n scan card — admin only */
+function I18nScanCard() {
+  const { t } = useI18n();
+  const { data: status, refetch: refetchStatus } = trpc.director.getI18nScanStatus.useQuery(undefined, { refetchOnWindowFocus: false });
+  const triggerMutation = trpc.director.triggerI18nScan.useMutation({
+    onSuccess: () => { refetchStatus(); toast.success("i18n scan complete — check notifications for the report."); },
+    onError: () => toast.error("i18n scan failed."),
+  });
+
+  const result = status?.lastResult;
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ScanSearch className="w-5 h-5 text-muted-foreground" />
+            <CardTitle className="text-base">i18n Hardcoded String Scanner</CardTitle>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={triggerMutation.isPending}
+            onClick={() => triggerMutation.mutate()}
+          >
+            {triggerMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <RefreshCw className="w-4 h-4 mr-1" />}
+            Run scan now
+          </Button>
+        </div>
+        <CardDescription>
+          Runs daily at 05:00 UTC. Detects hardcoded (untranslated) strings in the client source and reports missing/unused i18n keys. Results are sent as an owner notification.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2 text-sm">
+        {status?.lastRunAt ? (
+          <>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Check className="w-4 h-4 text-green-500" />
+              Last run: {new Date(status.lastRunAt).toLocaleString()}
+            </div>
+            {result && (
+              <div className="rounded-md bg-muted p-3 text-xs font-mono whitespace-pre-wrap break-all">
+                {result.summary}
+                {result.hardcodedStrings.length > 0 && (
+                  <div className="mt-2 text-yellow-600 dark:text-yellow-400">
+                    Top issues:{"\n"}
+                    {result.hardcodedStrings.slice(0, 5).map((s, i) => (
+                      <div key={i}>{s.file}:{s.line} — "{s.text}"</div>
+                    ))}
+                    {result.hardcodedStrings.length > 5 && <div>…and {result.hardcodedStrings.length - 5} more</div>}
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        ) : (
+          <p className="text-muted-foreground">No scan has run yet. Click "Run scan now" to trigger the first scan.</p>
+        )}
+        {status?.lastError && (
+          <p className="text-destructive text-xs">Last error: {status.lastError}</p>
+        )}
+      </CardContent>
+    </Card>
   );
 }

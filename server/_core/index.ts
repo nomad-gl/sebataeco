@@ -12,6 +12,7 @@ import cron from "node-cron";
 import { runRetentionPurge } from "../routers/privacy";
 import { runAuditRetentionPurge, auditRetentionStatus } from "../routers/audit";
 import { runBiasScan, biasScanStatus } from "../biasScan";
+import { runI18nScanAndNotify } from "../i18nScan";
 import { startHealthMonitor } from "../selfHeal";
 import { getDb } from "../db";
 import { questionTranslations } from "../../drizzle/schema";
@@ -272,6 +273,11 @@ async function startServer() {
       auditRetentionStatus.lastError = err instanceof Error ? err.message : String(err);
       console.error("[AuditRetention] Purge failed:", err);
     }
+  });
+
+  // Daily i18n hardcoded string scan at 05:00 UTC
+  cron.schedule("0 5 * * *", async () => {
+    await runI18nScanAndNotify();
   });
 
   // 24-hour bias scan at 04:00 UTC — scans all unresolved bias flags and auto-applies fixes

@@ -208,28 +208,7 @@ export default function Home() {
         <h2 className="text-2xl font-bold mb-8 text-center">
           {t("faq_title")}
         </h2>
-        {([
-          {
-            q: "Què és SEBA AI (Aina)?",
-            a: "SEBA AI, també conegut com Aina, és un assistent d'intel·ligència artificial per a docents d'educació primària i secundària a Espanya. Genera activitats, avaluacions i materials pedagògics alineats amb les 8 competències clau de la LOMLOE en català, castellà i anglès.",
-          },
-          {
-            q: "Està alineat amb la LOMLOE?",
-            a: "Sí. Tot el contingut generat per SEBA AI (Aina) segueix les 8 competències clau de la Llei Orgànica 3/2020 (LOMLOE): comunicació lingüística, plurilingüe, matemàtica, digital, personal-social-i-aprendre-a-aprendre, ciutadana, emprenedora i consciència i expressió culturals.",
-          },
-          {
-            q: "¿Está disponible en castellano?",
-            a: "Sí. SEBA AI (Aina) está disponible en catalán, castellano e inglés. Puedes cambiar el idioma en cualquier momento desde la configuración.",
-          },
-          {
-            q: "Is SEBA AI free for teachers?",
-            a: "SEBA AI (Aina) is free for teachers who receive an invitation from their school Director. Contact your Director or email hello@sebaenquiries.com to request access.",
-          },
-          {
-            q: "Com puc accedir a SEBA AI (Aina)?",
-            a: "Els docents necessiten una invitació del Director del centre. Un cop rebuda, podeu registrar-vos a sebataeco.com o aina.forum i accedir a totes les funcionalitats gratuïtament.",
-          },
-        ] as { q: string; a: string }[]).map(({ q, a }) => (
+        {([1, 2, 3, 4, 5] as const).map((n) => ({ q: t(`faq_q${n}` as Parameters<typeof t>[0]), a: t(`faq_a${n}` as Parameters<typeof t>[0]) })).map(({ q, a }) => (
           <div
             key={q}
             className="mb-6 border-b border-border pb-6 last:border-0"

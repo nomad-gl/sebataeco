@@ -1,0 +1,1259 @@
+{
+  "scanned_at": "2026-04-24T12:06:04.217618Z",
+  "total_issues": 179,
+  "issues": [
+    {
+      "file": "components/AinaProfilePanel.tsx",
+      "line": 206,
+      "type": "jsx_text",
+      "text": "Salamandra",
+      "raw_line": "          🔬 Powered by <strong>Salamandra</strong> &amp; <strong>Àguila</strong> · Barcelona Supercomputing Center (BSC)"
+    },
+    {
+      "file": "components/CallHistoryPanel.tsx",
+      "line": 171,
+      "type": "prop_string",
+      "text": "View call chat",
+      "raw_line": "                          title=\"View call chat\""
+    },
+    {
+      "file": "components/DMPanel.tsx",
+      "line": 235,
+      "type": "prop_string",
+      "text": "Send message",
+      "raw_line": "            title=\"Send message\""
+    },
+    {
+      "file": "components/Footer.tsx",
+      "line": 18,
+      "type": "prop_string",
+      "text": "Ministerio de Educación y Formación Profesional – LOMLOE",
+      "raw_line": "            title=\"Ministerio de Educación y Formación Profesional – LOMLOE\""
+    },
+    {
+      "file": "components/Footer.tsx",
+      "line": 38,
+      "type": "prop_string",
+      "text": "Salamandra — Barcelona Supercomputing Center (BSC)",
+      "raw_line": "                title=\"Salamandra — Barcelona Supercomputing Center (BSC)\""
+    },
+    {
+      "file": "components/NavBar.tsx",
+      "line": 947,
+      "type": "prop_string",
+      "text": "Install AINA as an app",
+      "raw_line": "                title=\"Install AINA as an app\""
+    },
+    {
+      "file": "components/NavBar.tsx",
+      "line": 1560,
+      "type": "jsx_text",
+      "text": "Select territory...",
+      "raw_line": "                      <option value=\"\">Select territory...</option>"
+    },
+    {
+      "file": "components/NavBar.tsx",
+      "line": 1616,
+      "type": "prop_string",
+      "text": "Copy credentials",
+      "raw_line": "                        title=\"Copy credentials\""
+    },
+    {
+      "file": "components/NavBar.tsx",
+      "line": 1705,
+      "type": "prop_string",
+      "text": "Copy link",
+      "raw_line": "                      title=\"Copy link\""
+    },
+    {
+      "file": "components/PreCallScreen.tsx",
+      "line": 953,
+      "type": "prop_string",
+      "text": "Toggle mirror mode",
+      "raw_line": "              title=\"Toggle mirror mode\""
+    },
+    {
+      "file": "components/PreCallScreen.tsx",
+      "line": 1102,
+      "type": "jsx_text",
+      "text": "Microphone",
+      "raw_line": "              <span>Microphone</span>"
+    },
+    {
+      "file": "components/SebaMeet.tsx",
+      "line": 1469,
+      "type": "prop_string",
+      "text": "Participants",
+      "raw_line": "              title=\"Participants\""
+    },
+    {
+      "file": "components/SebaMeet.tsx",
+      "line": 1522,
+      "type": "prop_string",
+      "text": "Host options",
+      "raw_line": "                              title=\"Host options\""
+    },
+    {
+      "file": "components/SebaMeet.tsx",
+      "line": 1555,
+      "type": "jsx_text",
+      "text": "Recording",
+      "raw_line": "          <span>Recording</span>"
+    },
+    {
+      "file": "components/SebaMeet.tsx",
+      "line": 1612,
+      "type": "prop_string",
+      "text": "Type a message…",
+      "raw_line": "              placeholder=\"Type a message…\""
+    },
+    {
+      "file": "components/SebaMeet.tsx",
+      "line": 1733,
+      "type": "prop_string",
+      "text": "Background & filter settings",
+      "raw_line": "              title=\"Background & filter settings\""
+    },
+    {
+      "file": "components/SebaMeet.tsx",
+      "line": 1744,
+      "type": "prop_string",
+      "text": "Mute all participants",
+      "raw_line": "              title=\"Mute all participants\""
+    },
+    {
+      "file": "components/SebaMeet.tsx",
+      "line": 1794,
+      "type": "prop_string",
+      "text": "Subtitle language",
+      "raw_line": "              title=\"Subtitle language\""
+    },
+    {
+      "file": "components/SebaMeet.tsx",
+      "line": 1830,
+      "type": "prop_string",
+      "text": "End call",
+      "raw_line": "            title=\"End call\""
+    },
+    {
+      "file": "components/SebaMeet.tsx",
+      "line": 2019,
+      "type": "jsx_text",
+      "text": "Duration",
+      "raw_line": "                <span>Duration</span>"
+    },
+    {
+      "file": "components/SebaMeet.tsx",
+      "line": 2024,
+      "type": "jsx_text",
+      "text": "Participants",
+      "raw_line": "                <span>Participants</span>"
+    },
+    {
+      "file": "components/SebaMeet.tsx",
+      "line": 2030,
+      "type": "jsx_text",
+      "text": "Avg quality",
+      "raw_line": "                  <span>Avg quality</span>"
+    },
+    {
+      "file": "components/ui/command.tsx",
+      "line": 33,
+      "type": "prop_string",
+      "text": "Command Palette",
+      "raw_line": "  title = \"Command Palette\","
+    },
+    {
+      "file": "components/ui/sidebar.tsx",
+      "line": 201,
+      "type": "jsx_text",
+      "text": "Displays the mobile sidebar.",
+      "raw_line": "            <SheetDescription>Displays the mobile sidebar.</SheetDescription>"
+    },
+    {
+      "file": "components/ui/sidebar.tsx",
+      "line": 299,
+      "type": "prop_string",
+      "text": "Toggle Sidebar",
+      "raw_line": "      title=\"Toggle Sidebar\""
+    },
+    {
+      "file": "lib/exportUtils.ts",
+      "line": 445,
+      "type": "jsx_text",
+      "text": "Year / Class:",
+      "raw_line": "            <td class=\"meta-label\">Year / Class:</td>"
+    },
+    {
+      "file": "lib/exportUtils.ts",
+      "line": 449,
+      "type": "jsx_text",
+      "text": "Student Name:",
+      "raw_line": "            <td class=\"meta-label\">Student Name:</td>"
+    },
+    {
+      "file": "pages/AdminErrors.tsx",
+      "line": 45,
+      "type": "jsx_text",
+      "text": "Error Log",
+      "raw_line": "            <TabsTrigger value=\"errors\">Error Log</TabsTrigger>"
+    },
+    {
+      "file": "pages/AdminErrors.tsx",
+      "line": 46,
+      "type": "jsx_text",
+      "text": "Fix History",
+      "raw_line": "            <TabsTrigger value=\"fixes\">Fix History</TabsTrigger>"
+    },
+    {
+      "file": "pages/AdminErrors.tsx",
+      "line": 47,
+      "type": "jsx_text",
+      "text": "Health Check",
+      "raw_line": "            <TabsTrigger value=\"health\">Health Check</TabsTrigger>"
+    },
+    {
+      "file": "pages/Challenge.tsx",
+      "line": 1374,
+      "type": "prop_string",
+      "text": "Search words or clues…",
+      "raw_line": "                      placeholder=\"Search words or clues…\""
+    },
+    {
+      "file": "pages/ChangePassword.tsx",
+      "line": 95,
+      "type": "prop_string",
+      "text": "Enter the temporary password you were given",
+      "raw_line": "                    placeholder=\"Enter the temporary password you were given\""
+    },
+    {
+      "file": "pages/ChangePassword.tsx",
+      "line": 120,
+      "type": "prop_string",
+      "text": "At least 8 characters",
+      "raw_line": "                    placeholder=\"At least 8 characters\""
+    },
+    {
+      "file": "pages/ChangePassword.tsx",
+      "line": 145,
+      "type": "prop_string",
+      "text": "Repeat your new password",
+      "raw_line": "                    placeholder=\"Repeat your new password\""
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 419,
+      "type": "prop_string",
+      "text": "Type your message here.",
+      "raw_line": "                    placeholder=\"Type your message here.\""
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 426,
+      "type": "prop_string",
+      "text": "Select a fruit",
+      "raw_line": "                      <SelectValue placeholder=\"Select a fruit\" />"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 444,
+      "type": "jsx_text",
+      "text": "Radio Group",
+      "raw_line": "                  <Label>Radio Group</Label>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 461,
+      "type": "jsx_text",
+      "text": "Input OTP",
+      "raw_line": "                  <Label>Input OTP</Label>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 474,
+      "type": "jsx_text",
+      "text": "Date Time Picker",
+      "raw_line": "                  <Label>Date Time Picker</Label>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 487,
+      "type": "jsx_text",
+      "text": "Select date and time",
+      "raw_line": "                          <span>Select date and time</span>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 537,
+      "type": "jsx_text",
+      "text": "Searchable Dropdown",
+      "raw_line": "                  <Label>Searchable Dropdown</Label>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 562,
+      "type": "prop_string",
+      "text": "Search frameworks...",
+      "raw_line": "                        <CommandInput placeholder=\"Search frameworks...\" />"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 564,
+      "type": "jsx_text",
+      "text": "No framework found",
+      "raw_line": "                          <CommandEmpty>No framework found</CommandEmpty>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 709,
+      "type": "jsx_text",
+      "text": "Progress",
+      "raw_line": "                  <Label>Progress</Label>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 728,
+      "type": "jsx_text",
+      "text": "Skeleton",
+      "raw_line": "                  <Label>Skeleton</Label>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 737,
+      "type": "jsx_text",
+      "text": "Pagination",
+      "raw_line": "                  <Label>Pagination</Label>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 782,
+      "type": "jsx_text",
+      "text": "A list of your recent invoices.",
+      "raw_line": "                    <TableCaption>A list of your recent invoices.</TableCaption>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 795,
+      "type": "jsx_text",
+      "text": "Credit Card",
+      "raw_line": "                        <TableCell>Credit Card</TableCell>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 807,
+      "type": "jsx_text",
+      "text": "Bank Transfer",
+      "raw_line": "                        <TableCell>Bank Transfer</TableCell>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 846,
+      "type": "jsx_text",
+      "text": "Breadcrumb",
+      "raw_line": "                  <Label>Breadcrumb</Label>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 860,
+      "type": "jsx_text",
+      "text": "Breadcrumb",
+      "raw_line": "                        <BreadcrumbPage>Breadcrumb</BreadcrumbPage>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 875,
+      "type": "jsx_text",
+      "text": "Heads up!",
+      "raw_line": "                <AlertTitle>Heads up!</AlertTitle>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 896,
+      "type": "jsx_text",
+      "text": "Password",
+      "raw_line": "                <TabsTrigger value=\"password\">Password</TabsTrigger>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 897,
+      "type": "jsx_text",
+      "text": "Settings",
+      "raw_line": "                <TabsTrigger value=\"settings\">Settings</TabsTrigger>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 914,
+      "type": "jsx_text",
+      "text": "Save changes",
+      "raw_line": "                    <Button>Save changes</Button>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 921,
+      "type": "jsx_text",
+      "text": "Password",
+      "raw_line": "                    <CardTitle>Password</CardTitle>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 937,
+      "type": "jsx_text",
+      "text": "Save password",
+      "raw_line": "                    <Button>Save password</Button>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 944,
+      "type": "jsx_text",
+      "text": "Settings",
+      "raw_line": "                    <CardTitle>Settings</CardTitle>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 964,
+      "type": "jsx_text",
+      "text": "Is it accessible?",
+      "raw_line": "                <AccordionTrigger>Is it accessible?</AccordionTrigger>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 970,
+      "type": "jsx_text",
+      "text": "Is it styled?",
+      "raw_line": "                <AccordionTrigger>Is it styled?</AccordionTrigger>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 977,
+      "type": "jsx_text",
+      "text": "Is it animated?",
+      "raw_line": "                <AccordionTrigger>Is it animated?</AccordionTrigger>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 1029,
+      "type": "jsx_text",
+      "text": "Test Input",
+      "raw_line": "                        <DialogTitle>Test Input</DialogTitle>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 1039,
+      "type": "prop_string",
+      "text": "Type something...",
+      "raw_line": "                            placeholder=\"Type something...\""
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 1065,
+      "type": "jsx_text",
+      "text": "Edit profile",
+      "raw_line": "                        <SheetTitle>Edit profile</SheetTitle>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 1080,
+      "type": "jsx_text",
+      "text": "Are you absolutely sure?",
+      "raw_line": "                        <DrawerTitle>Are you absolutely sure?</DrawerTitle>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 1113,
+      "type": "jsx_text",
+      "text": "Add to library",
+      "raw_line": "                      <p>Add to library</p>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 1132,
+      "type": "jsx_text",
+      "text": "My Account",
+      "raw_line": "                      <DropdownMenuLabel>My Account</DropdownMenuLabel>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 1236,
+      "type": "jsx_text",
+      "text": "Toggle Group",
+      "raw_line": "                  <Label>Toggle Group</Label>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 1262,
+      "type": "jsx_text",
+      "text": "Aspect Ratio (16/9)",
+      "raw_line": "                  <Label>Aspect Ratio (16/9)</Label>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 1271,
+      "type": "jsx_text",
+      "text": "Scroll Area",
+      "raw_line": "                  <Label>Scroll Area</Label>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 1319,
+      "type": "jsx_text",
+      "text": "Sonner Toast",
+      "raw_line": "                  <Label>Sonner Toast</Label>"
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 1413,
+      "type": "prop_string",
+      "text": "Try sending a message...",
+      "raw_line": "                    placeholder=\"Try sending a message...\""
+    },
+    {
+      "file": "pages/ComponentShowcase.tsx",
+      "line": 1432,
+      "type": "jsx_text",
+      "text": "Shadcn/ui Component Showcase",
+      "raw_line": "          <p>Shadcn/ui Component Showcase</p>"
+    },
+    {
+      "file": "pages/DirectorInviteAccept.tsx",
+      "line": 132,
+      "type": "prop_string",
+      "text": "Your full name",
+      "raw_line": "                placeholder=\"Your full name\""
+    },
+    {
+      "file": "pages/DirectorInviteAccept.tsx",
+      "line": 158,
+      "type": "prop_string",
+      "text": "Minimum 8 characters",
+      "raw_line": "                placeholder=\"Minimum 8 characters\""
+    },
+    {
+      "file": "pages/Dpa.tsx",
+      "line": 323,
+      "type": "jsx_text",
+      "text": "Ensure a lawful basis for processing personal data before instructing the Processor.",
+      "raw_line": "            <li>Ensure a lawful basis for processing personal data before instructing the Processor.</li>"
+    },
+    {
+      "file": "pages/Dpa.tsx",
+      "line": 324,
+      "type": "jsx_text",
+      "text": "Ensure that data subjects have been provided with the information required by Articles 13 and 14 GDPR.",
+      "raw_line": "            <li>Ensure that data subjects have been provided with the information required by Articles 13 and 14 GDPR.</li>"
+    },
+    {
+      "file": "pages/Dpa.tsx",
+      "line": 325,
+      "type": "jsx_text",
+      "text": "Ensure that student data uses pseudonymous identifiers and does not include unnecessary personal information.",
+      "raw_line": "            <li>Ensure that student data uses pseudonymous identifiers and does not include unnecessary personal information.</li>"
+    },
+    {
+      "file": "pages/Dpa.tsx",
+      "line": 326,
+      "type": "jsx_text",
+      "text": "Not instruct the Processor to process special category data unless a specific legal basis under Article 9 GDPR applies.",
+      "raw_line": "            <li>Not instruct the Processor to process special category data unless a specific legal basis under Article 9 GDPR applies.</li>"
+    },
+    {
+      "file": "pages/Dpa.tsx",
+      "line": 327,
+      "type": "jsx_text",
+      "text": "Promptly notify the Processor of any data subject requests received directly by the Controller.",
+      "raw_line": "            <li>Promptly notify the Processor of any data subject requests received directly by the Controller.</li>"
+    },
+    {
+      "file": "pages/Dpa.tsx",
+      "line": 328,
+      "type": "jsx_text",
+      "text": "Ensure that any person accessing the platform is bound by appropriate confidentiality obligations.",
+      "raw_line": "            <li>Ensure that any person accessing the platform is bound by appropriate confidentiality obligations.</li>"
+    },
+    {
+      "file": "pages/GroupProgress.tsx",
+      "line": 609,
+      "type": "jsx_text",
+      "text": "AINA | TA — LOMLOE Teaching Assistant &nbsp;|&nbsp; Powered by SEBA",
+      "raw_line": "  <footer>AINA | TA — LOMLOE Teaching Assistant &nbsp;|&nbsp; Powered by SEBA</footer>"
+    },
+    {
+      "file": "pages/Groups.tsx",
+      "line": 336,
+      "type": "prop_string",
+      "text": "Search by name or email…",
+      "raw_line": "            placeholder=\"Search by name or email…\""
+    },
+    {
+      "file": "pages/Home.tsx",
+      "line": 116,
+      "type": "prop_string",
+      "text": "Ministerio de Educación y Formación Profesional – LOMLOE",
+      "raw_line": "              title=\"Ministerio de Educación y Formación Profesional – LOMLOE\""
+    },
+    {
+      "file": "pages/IndividualPlans.tsx",
+      "line": 473,
+      "type": "prop_string",
+      "text": "Filter by student name…",
+      "raw_line": "                    placeholder=\"Filter by student name…\""
+    },
+    {
+      "file": "pages/IndividualPlans.tsx",
+      "line": 554,
+      "type": "jsx_text",
+      "text": "Fill in the student details, then generate or write the plan content.",
+      "raw_line": "                    <CardDescription>Fill in the student details, then generate or write the plan content.</CardDescription>"
+    },
+    {
+      "file": "pages/IndividualPlans.tsx",
+      "line": 563,
+      "type": "jsx_text",
+      "text": "Year Group",
+      "raw_line": "                        <Label>Year Group</Label>"
+    },
+    {
+      "file": "pages/IndividualPlans.tsx",
+      "line": 565,
+      "type": "prop_string",
+      "text": "Select year group",
+      "raw_line": "                          <SelectTrigger><SelectValue placeholder=\"Select year group\" /></SelectTrigger>"
+    },
+    {
+      "file": "pages/IndividualPlans.tsx",
+      "line": 570,
+      "type": "jsx_text",
+      "text": "Subject / Area",
+      "raw_line": "                        <Label>Subject / Area</Label>"
+    },
+    {
+      "file": "pages/IndividualPlans.tsx",
+      "line": 572,
+      "type": "prop_string",
+      "text": "Select subject",
+      "raw_line": "                          <SelectTrigger><SelectValue placeholder=\"Select subject\" /></SelectTrigger>"
+    },
+    {
+      "file": "pages/IndividualPlans.tsx",
+      "line": 577,
+      "type": "jsx_text",
+      "text": "LOMLOE Competencies",
+      "raw_line": "                        <Label>LOMLOE Competencies</Label>"
+    },
+    {
+      "file": "pages/IndividualPlans.tsx",
+      "line": 579,
+      "type": "prop_string",
+      "text": "Select competency",
+      "raw_line": "                          <SelectTrigger><SelectValue placeholder=\"Select competency\" /></SelectTrigger>"
+    },
+    {
+      "file": "pages/IndividualPlans.tsx",
+      "line": 584,
+      "type": "jsx_text",
+      "text": "Plan Duration",
+      "raw_line": "                        <Label>Plan Duration</Label>"
+    },
+    {
+      "file": "pages/IndividualPlans.tsx",
+      "line": 588,
+      "type": "jsx_text",
+      "text": "Language",
+      "raw_line": "                        <Label>Language</Label>"
+    },
+    {
+      "file": "pages/IndividualPlans.tsx",
+      "line": 616,
+      "type": "jsx_text",
+      "text": "Learning Goals",
+      "raw_line": "                      <Label>Learning Goals</Label>"
+    },
+    {
+      "file": "pages/IndividualPlans.tsx",
+      "line": 628,
+      "type": "jsx_text",
+      "text": "Plan Content (editable)",
+      "raw_line": "                        <Label>Plan Content (editable)</Label>"
+    },
+    {
+      "file": "pages/IndividualPlans.tsx",
+      "line": 718,
+      "type": "prop_string",
+      "text": "Filter by student name…",
+      "raw_line": "                    placeholder=\"Filter by student name…\""
+    },
+    {
+      "file": "pages/IndividualPlans.tsx",
+      "line": 799,
+      "type": "jsx_text",
+      "text": "Fill in the lesson details, then generate or write the plan content.",
+      "raw_line": "                    <CardDescription>Fill in the lesson details, then generate or write the plan content.</CardDescription>"
+    },
+    {
+      "file": "pages/IndividualPlans.tsx",
+      "line": 808,
+      "type": "jsx_text",
+      "text": "Year Group",
+      "raw_line": "                        <Label>Year Group</Label>"
+    },
+    {
+      "file": "pages/IndividualPlans.tsx",
+      "line": 810,
+      "type": "prop_string",
+      "text": "Select year group",
+      "raw_line": "                          <SelectTrigger><SelectValue placeholder=\"Select year group\" /></SelectTrigger>"
+    },
+    {
+      "file": "pages/IndividualPlans.tsx",
+      "line": 817,
+      "type": "prop_string",
+      "text": "Select subject",
+      "raw_line": "                          <SelectTrigger><SelectValue placeholder=\"Select subject\" /></SelectTrigger>"
+    },
+    {
+      "file": "pages/IndividualPlans.tsx",
+      "line": 822,
+      "type": "jsx_text",
+      "text": "Lesson Topic",
+      "raw_line": "                        <Label>Lesson Topic</Label>"
+    },
+    {
+      "file": "pages/IndividualPlans.tsx",
+      "line": 826,
+      "type": "jsx_text",
+      "text": "LOMLOE Competencies",
+      "raw_line": "                        <Label>LOMLOE Competencies</Label>"
+    },
+    {
+      "file": "pages/IndividualPlans.tsx",
+      "line": 828,
+      "type": "prop_string",
+      "text": "Select competency",
+      "raw_line": "                          <SelectTrigger><SelectValue placeholder=\"Select competency\" /></SelectTrigger>"
+    },
+    {
+      "file": "pages/IndividualPlans.tsx",
+      "line": 837,
+      "type": "jsx_text",
+      "text": "Language",
+      "raw_line": "                        <Label>Language</Label>"
+    },
+    {
+      "file": "pages/IndividualPlans.tsx",
+      "line": 864,
+      "type": "jsx_text",
+      "text": "Learning Objectives",
+      "raw_line": "                      <Label>Learning Objectives</Label>"
+    },
+    {
+      "file": "pages/IndividualPlans.tsx",
+      "line": 876,
+      "type": "jsx_text",
+      "text": "Lesson Plan Content (editable)",
+      "raw_line": "                        <Label>Lesson Plan Content (editable)</Label>"
+    },
+    {
+      "file": "pages/IndividualPlans.tsx",
+      "line": 1007,
+      "type": "jsx_text",
+      "text": "Delete Learning Plan?",
+      "raw_line": "            <AlertDialogTitle>Delete Learning Plan?</AlertDialogTitle>"
+    },
+    {
+      "file": "pages/IndividualPlans.tsx",
+      "line": 1008,
+      "type": "jsx_text",
+      "text": "This action cannot be undone. The plan will be permanently deleted.",
+      "raw_line": "            <AlertDialogDescription>This action cannot be undone. The plan will be permanently deleted.</AlertDialogDescription>"
+    },
+    {
+      "file": "pages/IndividualPlans.tsx",
+      "line": 1023,
+      "type": "jsx_text",
+      "text": "Delete Lesson Plan?",
+      "raw_line": "            <AlertDialogTitle>Delete Lesson Plan?</AlertDialogTitle>"
+    },
+    {
+      "file": "pages/IndividualPlans.tsx",
+      "line": 1024,
+      "type": "jsx_text",
+      "text": "This action cannot be undone. The plan will be permanently deleted.",
+      "raw_line": "            <AlertDialogDescription>This action cannot be undone. The plan will be permanently deleted.</AlertDialogDescription>"
+    },
+    {
+      "file": "pages/MaterialView.tsx",
+      "line": 622,
+      "type": "prop_string",
+      "text": "Add teacher notes…",
+      "raw_line": "                placeholder=\"Add teacher notes…\""
+    },
+    {
+      "file": "pages/MyMaterials.tsx",
+      "line": 350,
+      "type": "prop_string",
+      "text": "Search materials...",
+      "raw_line": "              placeholder=\"Search materials...\""
+    },
+    {
+      "file": "pages/Presentation.tsx",
+      "line": 852,
+      "type": "prop_string",
+      "text": "Describe the image to generate…",
+      "raw_line": "                          placeholder=\"Describe the image to generate…\""
+    },
+    {
+      "file": "pages/Presentation.tsx",
+      "line": 991,
+      "type": "prop_string",
+      "text": "Select subject",
+      "raw_line": "                      <SelectValue placeholder=\"Select subject\" />"
+    },
+    {
+      "file": "pages/Presentation.tsx",
+      "line": 1002,
+      "type": "prop_string",
+      "text": "Select year group",
+      "raw_line": "                      <SelectValue placeholder=\"Select year group\" />"
+    },
+    {
+      "file": "pages/Privacy.tsx",
+      "line": 283,
+      "type": "jsx_text",
+      "text": "Manus Platform — EEA data centres (production database &amp; auth)",
+      "raw_line": "                <span>Manus Platform — EEA data centres (production database &amp; auth)</span>"
+    },
+    {
+      "file": "pages/Privacy.tsx",
+      "line": 287,
+      "type": "jsx_text",
+      "text": "Nuvulus Public Cloud — 3 interconnected data centres within Catalonia, operated by Sercom under Spanish/EU jurisdiction",
+      "raw_line": "                <span>Nuvulus Public Cloud — 3 interconnected data centres within Catalonia, operated by Sercom under Spanish/EU jurisdiction</span>"
+    },
+    {
+      "file": "pages/Privacy.tsx",
+      "line": 291,
+      "type": "jsx_text",
+      "text": "BSC Salamandra 2 &amp; Àguila via Hugging Face — EEA data centres; no personal data transmitted",
+      "raw_line": "                <span>BSC Salamandra 2 &amp; Àguila via Hugging Face — EEA data centres; no personal data transmitted</span>"
+    },
+    {
+      "file": "pages/Privacy.tsx",
+      "line": 425,
+      "type": "prop_string",
+      "text": "DELETE MY DATA",
+      "raw_line": "                placeholder=\"DELETE MY DATA\""
+    },
+    {
+      "file": "pages/RoleManagement.tsx",
+      "line": 415,
+      "type": "jsx_text",
+      "text": "Select the school to assign the selected users to. Their role will remain unchanged.",
+      "raw_line": "            <DialogDescription>Select the school to assign the selected users to. Their role will remain unchanged.</DialogDescription>"
+    },
+    {
+      "file": "pages/RoleManagement.tsx",
+      "line": 420,
+      "type": "prop_string",
+      "text": "Select a school...",
+      "raw_line": "                <SelectValue placeholder=\"Select a school...\" />"
+    },
+    {
+      "file": "pages/RoleManagement.tsx",
+      "line": 526,
+      "type": "prop_string",
+      "text": "Position (optional)",
+      "raw_line": "                              placeholder=\"Position (optional)\""
+    },
+    {
+      "file": "pages/RoleManagement.tsx",
+      "line": 533,
+      "type": "prop_string",
+      "text": "School name (optional)",
+      "raw_line": "                              placeholder=\"School name (optional)\""
+    },
+    {
+      "file": "pages/RoleManagement.tsx",
+      "line": 628,
+      "type": "prop_string",
+      "text": "Edit user",
+      "raw_line": "                            title=\"Edit user\""
+    },
+    {
+      "file": "pages/RoleManagement.tsx",
+      "line": 663,
+      "type": "prop_string",
+      "text": "Search by name, email or school…",
+      "raw_line": "                placeholder=\"Search by name, email or school…\""
+    },
+    {
+      "file": "pages/RoleManagement.tsx",
+      "line": 688,
+      "type": "prop_string",
+      "text": "Confirm bulk reset",
+      "raw_line": "                    title=\"Confirm bulk reset\""
+    },
+    {
+      "file": "pages/RoleManagement.tsx",
+      "line": 755,
+      "type": "prop_string",
+      "text": "Select all",
+      "raw_line": "                          title=\"Select all\""
+    },
+    {
+      "file": "pages/RoleManagement.tsx",
+      "line": 854,
+      "type": "prop_string",
+      "text": "Copy password only",
+      "raw_line": "                                    title=\"Copy password only\""
+    },
+    {
+      "file": "pages/RoleManagement.tsx",
+      "line": 867,
+      "type": "prop_string",
+      "text": "Copy email and password together",
+      "raw_line": "                                    title=\"Copy email and password together\""
+    },
+    {
+      "file": "pages/RoleManagement.tsx",
+      "line": 900,
+      "type": "prop_string",
+      "text": "Min 6 characters",
+      "raw_line": "                                      placeholder=\"Min 6 characters\""
+    },
+    {
+      "file": "pages/RoleManagement.tsx",
+      "line": 922,
+      "type": "prop_string",
+      "text": "Yes, set password",
+      "raw_line": "                                    title=\"Yes, set password\""
+    },
+    {
+      "file": "pages/RoleManagement.tsx",
+      "line": 1000,
+      "type": "prop_string",
+      "text": "All municipalities…",
+      "raw_line": "                    <SelectValue placeholder=\"All municipalities…\" />"
+    },
+    {
+      "file": "pages/RoleManagement.tsx",
+      "line": 1084,
+      "type": "prop_string",
+      "text": "Select location…",
+      "raw_line": "                    <SelectValue placeholder=\"Select location…\" />"
+    },
+    {
+      "file": "pages/RoleManagement.tsx",
+      "line": 1101,
+      "type": "prop_string",
+      "text": "Select language…",
+      "raw_line": "                    <SelectValue placeholder=\"Select language…\" />"
+    },
+    {
+      "file": "pages/Settings.tsx",
+      "line": 364,
+      "type": "prop_string",
+      "text": "At least 8 characters",
+      "raw_line": "                  placeholder=\"At least 8 characters\""
+    },
+    {
+      "file": "pages/SituacioGenerator.tsx",
+      "line": 257,
+      "type": "jsx_text",
+      "text": "Powered by SEBA",
+      "raw_line": "<p class=\"powered\">Powered by SEBA</p>"
+    },
+    {
+      "file": "pages/StudentProgress.tsx",
+      "line": 1008,
+      "type": "jsx_text",
+      "text": "AINA | TA — LOMLOE Teaching Assistant &nbsp;|&nbsp; Powered by SEBA",
+      "raw_line": "  <footer>AINA | TA — LOMLOE Teaching Assistant &nbsp;|&nbsp; Powered by SEBA</footer>"
+    },
+    {
+      "file": "pages/TeacherInviteAccept.tsx",
+      "line": 127,
+      "type": "prop_string",
+      "text": "Your full name",
+      "raw_line": "                placeholder=\"Your full name\""
+    },
+    {
+      "file": "pages/TeacherInviteAccept.tsx",
+      "line": 153,
+      "type": "prop_string",
+      "text": "Minimum 8 characters",
+      "raw_line": "                placeholder=\"Minimum 8 characters\""
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 553,
+      "type": "jsx_text",
+      "text": "Assign User to School",
+      "raw_line": "                  <DialogTitle>Assign User to School</DialogTitle>"
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 554,
+      "type": "jsx_text",
+      "text": "Move an unassigned user into a school in Catalonia.",
+      "raw_line": "                  <DialogDescription>Move an unassigned user into a school in Catalonia.</DialogDescription>"
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 568,
+      "type": "prop_string",
+      "text": "Enter display name",
+      "raw_line": "                            placeholder=\"Enter display name\""
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 588,
+      "type": "prop_string",
+      "text": "Select a user",
+      "raw_line": "                        <SelectTrigger><SelectValue placeholder=\"Select a user\" /></SelectTrigger>"
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 597,
+      "type": "prop_string",
+      "text": "Edit name",
+      "raw_line": "                                title=\"Edit name\""
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 767,
+      "type": "jsx_text",
+      "text": "Create New Tenant",
+      "raw_line": "                  <DialogTitle>Create New Tenant</DialogTitle>"
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 768,
+      "type": "jsx_text",
+      "text": "Create a new school or organisation and assign a director/owner.",
+      "raw_line": "                  <DialogDescription>Create a new school or organisation and assign a director/owner.</DialogDescription>"
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 810,
+      "type": "jsx_text",
+      "text": "Owner / Director",
+      "raw_line": "                        <Label>Owner / Director</Label>"
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 838,
+      "type": "jsx_text",
+      "text": "Select Existing User",
+      "raw_line": "                          <Label>Select Existing User</Label>"
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 840,
+      "type": "prop_string",
+      "text": "Select the director/owner",
+      "raw_line": "                            <SelectTrigger><SelectValue placeholder=\"Select the director/owner\" /></SelectTrigger>"
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 881,
+      "type": "prop_string",
+      "text": "Min. 8 characters",
+      "raw_line": "                                placeholder=\"Min. 8 characters\""
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 945,
+      "type": "jsx_text",
+      "text": "Total Tenants",
+      "raw_line": "                <CardDescription>Total Tenants</CardDescription>"
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 951,
+      "type": "jsx_text",
+      "text": "Total Assigned Users",
+      "raw_line": "                <CardDescription>Total Assigned Users</CardDescription>"
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 959,
+      "type": "jsx_text",
+      "text": "Unassigned Users",
+      "raw_line": "                <CardDescription>Unassigned Users</CardDescription>"
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 979,
+      "type": "jsx_text",
+      "text": "Each row represents one school or organisation.",
+      "raw_line": "                  <CardDescription>Each row represents one school or organisation.</CardDescription>"
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 987,
+      "type": "prop_string",
+      "text": "Search schools…",
+      "raw_line": "                      placeholder=\"Search schools…\""
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 999,
+      "type": "prop_string",
+      "text": "All municipalities",
+      "raw_line": "                      <SelectValue placeholder=\"All municipalities\" />"
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 1019,
+      "type": "prop_string",
+      "text": "Director status",
+      "raw_line": "                      <SelectValue placeholder=\"Director status\" />"
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 1058,
+      "type": "jsx_text",
+      "text": "School / Organisation",
+      "raw_line": "                      <TableHead>School / Organisation</TableHead>"
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 1060,
+      "type": "jsx_text",
+      "text": "Territory",
+      "raw_line": "                      <TableHead>Territory</TableHead>"
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 1138,
+      "type": "prop_string",
+      "text": "Search by name or email…",
+      "raw_line": "                                    placeholder=\"Search by name or email…\""
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 1177,
+      "type": "prop_string",
+      "text": "Change owner",
+      "raw_line": "                                  title=\"Change owner\""
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 1252,
+      "type": "prop_string",
+      "text": "Invite / Grant Territorial Director",
+      "raw_line": "                              title=\"Invite / Grant Territorial Director\""
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 1262,
+      "type": "prop_string",
+      "text": "Assign to Territory",
+      "raw_line": "                              title=\"Assign to Territory\""
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 1308,
+      "type": "jsx_text",
+      "text": "Last Active",
+      "raw_line": "                      <TableHead>Last Active</TableHead>"
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 1343,
+      "type": "prop_string",
+      "text": "Edit name",
+      "raw_line": "                                title=\"Edit name\""
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 1363,
+      "type": "prop_string",
+      "text": "Delete user",
+      "raw_line": "                            title=\"Delete user\""
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 1489,
+      "type": "prop_string",
+      "text": "Select a territory",
+      "raw_line": "                <SelectTrigger><SelectValue placeholder=\"Select a territory\" /></SelectTrigger>"
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 1544,
+      "type": "jsx_text",
+      "text": "Grant Territorial Director Role",
+      "raw_line": "                  <DialogTitle>Grant Territorial Director Role</DialogTitle>"
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 1557,
+      "type": "prop_string",
+      "text": "Type at least 3 characters…",
+      "raw_line": "                        placeholder=\"Type at least 3 characters…\""
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 1609,
+      "type": "prop_string",
+      "text": "Select a territory",
+      "raw_line": "                      <SelectTrigger><SelectValue placeholder=\"Select a territory\" /></SelectTrigger>"
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 1798,
+      "type": "jsx_text",
+      "text": "Target User",
+      "raw_line": "                        <TableHead>Target User</TableHead>"
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 1799,
+      "type": "jsx_text",
+      "text": "Role Change",
+      "raw_line": "                        <TableHead>Role Change</TableHead>"
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 1800,
+      "type": "jsx_text",
+      "text": "Territory",
+      "raw_line": "                        <TableHead>Territory</TableHead>"
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 1801,
+      "type": "jsx_text",
+      "text": "Performed By",
+      "raw_line": "                        <TableHead>Performed By</TableHead>"
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 1884,
+      "type": "jsx_text",
+      "text": "Add Territory Assignment",
+      "raw_line": "            <DialogTitle>Add Territory Assignment</DialogTitle>"
+    },
+    {
+      "file": "pages/TenantManagement.tsx",
+      "line": 1892,
+      "type": "prop_string",
+      "text": "Select a territory",
+      "raw_line": "              <SelectTrigger><SelectValue placeholder=\"Select a territory\" /></SelectTrigger>"
+    },
+    {
+      "file": "pages/TerritorialDirectorOverview.tsx",
+      "line": 183,
+      "type": "prop_string",
+      "text": "Search schools…",
+      "raw_line": "                  placeholder=\"Search schools…\""
+    },
+    {
+      "file": "pages/admin/AdminWakeWords.tsx",
+      "line": 317,
+      "type": "jsx_text",
+      "text": "Recognition confidence",
+      "raw_line": "                    <span>Recognition confidence</span>"
+    }
+  ]
+}
