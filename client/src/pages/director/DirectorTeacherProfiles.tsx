@@ -282,6 +282,27 @@ export default function DirectorTeacherProfiles() {
                       )}
                     </div>
                   )}
+                  {/* Weekly hours progress bar */}
+                  {teacher.contractedWeeklyMinutes != null && teacher.contractedWeeklyMinutes > 0 && (
+                    <div className="mt-2.5 space-y-1">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>{t("tp_hours_progress_label")}</span>
+                        <span>{teacher.weeklyHours} / {Math.round(teacher.contractedWeeklyMinutes / 60 * 10) / 10}h</span>
+                      </div>
+                      <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${
+                            teacher.weeklyMinutes >= teacher.contractedWeeklyMinutes
+                              ? "bg-green-500"
+                              : teacher.weeklyMinutes >= teacher.contractedWeeklyMinutes * 0.75
+                              ? "bg-primary"
+                              : "bg-amber-500"
+                          }`}
+                          style={{ width: `${Math.min(100, Math.round((teacher.weeklyMinutes / teacher.contractedWeeklyMinutes) * 100))}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))

@@ -67,6 +67,7 @@ export const users = mysqlTable("users", {
    * Used to render the hours progress bar in the Director's Teacher Profiles page.
    * NULL = no target set (progress bar hidden).
    */
+  /** @migration 0047 */
   contractedWeeklyMinutes: int("contractedWeeklyMinutes"),
 });
 

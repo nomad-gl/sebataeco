@@ -3113,6 +3113,11 @@ export const translations = {
     tp_view_grid: "Grid view",
     dir_ts_send_welcome_email: "Send Welcome Email",
     dir_ts_welcome_email_sent: "Welcome email sent to {email}",
+    tp_filter_all_semesters: "All",
+    tp_filter_sem1: "Semester 1",
+    tp_filter_sem2: "Semester 2",
+    tp_filter_full_year: "Full Year",
+    tp_hours_progress_label: "Weekly hours",
   },
   es: {
     // NavBar
@@ -6195,6 +6200,11 @@ export const translations = {
     tp_view_grid: "Vista de cuadrícula",
     dir_ts_send_welcome_email: "Enviar correo de bienvenida",
     dir_ts_welcome_email_sent: "Correo de bienvenida enviado a {email}",
+    tp_filter_all_semesters: "Todos",
+    tp_filter_sem1: "Semestre 1",
+    tp_filter_sem2: "Semestre 2",
+    tp_filter_full_year: "Año completo",
+    tp_hours_progress_label: "Horas semanales",
   },
   ca: {
     // NavBar
@@ -9280,6 +9290,11 @@ export const translations = {
     tp_view_grid: "Vista de quadrícula",
     dir_ts_send_welcome_email: "Enviar correu de benvinguda",
     dir_ts_welcome_email_sent: "Correu de benvinguda enviat a {email}",
+    tp_filter_all_semesters: "Tots",
+    tp_filter_sem1: "Semestre 1",
+    tp_filter_sem2: "Semestre 2",
+    tp_filter_full_year: "Any complet",
+    tp_hours_progress_label: "Hores setmanals",
   },
 } as const;
 

@@ -448,6 +448,7 @@ export const teacherProfileRouter = router({
           email: users.email,
           role: users.role,
           position: users.position,
+          contractedWeeklyMinutes: users.contractedWeeklyMinutes,
         })
         .from(users)
         .where(
@@ -486,6 +487,7 @@ export const teacherProfileRouter = router({
             weeklyMinutes,
             weeklyHours: fmtHours(weeklyMinutes),
             scheduleSlots: slots.length,
+            contractedWeeklyMinutes: t.contractedWeeklyMinutes ?? null,
           };
         })
       );
