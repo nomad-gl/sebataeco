@@ -4213,3 +4213,9 @@
 - [x] Client: DirectorApprovals.tsx — add "Set Subjects & Schedule" button after approving a teacher (opens inline panel or navigates to /director/teacher-profiles?teacher=userId)
 - [x] Client: Sign-in/login page — after successful login, show two options: "Continue to SEBA AI" and "Go to sebasnap.com"
 - [x] i18n: add conflict detection error key and sign-in destination choice keys to EN/ES/CA
+
+## Follow-up: Conflict Detection UX + Approval Navigation Polish
+- [x] DirectorTeacherProfiles: surface tp_conflict_overlap / tp_conflict_end_before_start error messages inline in the schedule slot form (not just a generic toast)
+- [x] DirectorTeacherProfiles: when navigated via ?teacher=userId from DirectorApprovals, show a "Back to Approvals" contextual link in the page header
+- [x] DirectorTeacherProfiles: highlight the pre-selected teacher row/card with a subtle "new" badge when arriving from the approval shortcut
+- [x] i18n: reused existing add_teacher_back_approvals key (EN/ES/CA) — no new key needed

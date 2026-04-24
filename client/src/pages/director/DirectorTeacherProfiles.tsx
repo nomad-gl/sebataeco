@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -28,9 +29,31 @@ const currentAcademicYear = (() => {
 export default function DirectorTeacherProfiles() {
   const { t } = useI18n();
   const { user } = useAuth();
+  const [, navigate] = useLocation();
   const [selectedTeacherId, setSelectedTeacherId] = useState<number | null>(null);
   const [academicYear, setAcademicYear] = useState(currentAcademicYear);
   const [expandedTeacher, setExpandedTeacher] = useState<number | null>(null);
+  // Track if we arrived from the approval shortcut
+  const [fromApprovals, setFromApprovals] = useState(false);
+  const [newlyApprovedId, setNewlyApprovedId] = useState<number | null>(null);
+  // Inline slot error for conflict feedback
+  const [slotError, setSlotError] = useState<string | null>(null);
+
+  // Pre-select teacher from ?teacher= query param (set by approval shortcut)
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const teacherParam = params.get("teacher");
+      if (teacherParam) {
+        const id = parseInt(teacherParam, 10);
+        if (!isNaN(id)) {
+          setSelectedTeacherId(id);
+          setFromApprovals(true);
+          setNewlyApprovedId(id);
+        }
+      }
+    } catch { /* ignore */ }
+  }, []);
 
   // Subject dialog
   const [subjectDialog, setSubjectDialog] = useState(false);
@@ -86,8 +109,21 @@ export default function DirectorTeacherProfiles() {
   });
 
   const addSlotMutation = trpc.teacherProfile.addScheduleSlot.useMutation({
-    onSuccess: () => { toast.success(t("tp_slot_added")); setScheduleDialog(false); refetchSchedule(); },
-    onError: (e) => toast.error(e.message),
+    onSuccess: () => { toast.success(t("tp_slot_added")); setScheduleDialog(false); setSlotError(null); refetchSchedule(); },
+    onError: (e) => {
+      // Parse structured conflict messages for inline display
+      const msg = e.message;
+      if (msg.startsWith("tp_conflict_end_before_start")) {
+        setSlotError(t("tp_conflict_end_before_start"));
+      } else if (msg.startsWith("tp_conflict_overlap|")) {
+        const parts = msg.split("|");
+        const subject = parts[1] ?? "";
+        const time = parts[2] ?? "";
+        setSlotError(t("tp_conflict_overlap").replace("{subject}", subject).replace("{time}", time));
+      } else {
+        setSlotError(msg);
+      }
+    },
   });
   const updateSlotMutation = trpc.teacherProfile.updateScheduleSlot.useMutation({
     onSuccess: () => { toast.success(t("tp_slot_updated")); setScheduleDialog(false); refetchSchedule(); },
@@ -121,6 +157,7 @@ export default function DirectorTeacherProfiles() {
   function openAddSlot(teacherId: number) {
     setSelectedTeacherId(teacherId);
     setEditSlot(null);
+    setSlotError(null);
     setSlotForm({ semester: "1", dayOfWeek: "monday", lessonSlot: "", startTime: "09:00", endTime: "10:00", subject: "", groupName: "" });
     setScheduleDialog(true);
   }
@@ -148,6 +185,17 @@ export default function DirectorTeacherProfiles() {
 
   return (
     <div className="container py-6 space-y-6">
+      {/* Back to Approvals contextual link — shown when navigated from approval shortcut */}
+      {fromApprovals && (
+        <button
+          onClick={() => navigate("/director/approvals")}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ChevronUp className="w-4 h-4 rotate-[-90deg]" />
+          {t("add_teacher_back_approvals")}
+        </button>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -177,7 +225,7 @@ export default function DirectorTeacherProfiles() {
             roster.map((teacher) => (
               <Card
                 key={teacher.id}
-                className={`cursor-pointer transition-colors ${selectedTeacherId === teacher.id ? "ring-2 ring-primary" : "hover:bg-accent/50"}`}
+                className={`cursor-pointer transition-colors ${selectedTeacherId === teacher.id ? "ring-2 ring-primary" : "hover:bg-accent/50"} ${newlyApprovedId === teacher.id ? "ring-2 ring-green-500" : ""}`}
                 onClick={() => setSelectedTeacherId(teacher.id)}
               >
                 <CardContent className="p-4">
@@ -185,7 +233,12 @@ export default function DirectorTeacherProfiles() {
                     <div className="flex items-center gap-2 min-w-0">
                       <User className="h-4 w-4 text-muted-foreground shrink-0" />
                       <div className="min-w-0">
-                        <p className="font-medium text-sm truncate">{teacher.displayName || teacher.name}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-medium text-sm truncate">{teacher.displayName || teacher.name}</p>
+                          {newlyApprovedId === teacher.id && (
+                            <Badge className="text-[10px] px-1.5 py-0 bg-green-500 text-white shrink-0">New</Badge>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground truncate">{teacher.email}</p>
                       </div>
                     </div>
@@ -456,9 +509,15 @@ export default function DirectorTeacherProfiles() {
               <Input value={slotForm.groupName} onChange={(e) => setSlotForm((f) => ({ ...f, groupName: e.target.value }))} placeholder={t("tp_group_placeholder")} />
             </div>
           </div>
+          {slotError && (
+            <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>{slotError}</span>
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setScheduleDialog(false)}>{t("cancel")}</Button>
-            <Button onClick={submitSlot} disabled={!slotForm.lessonSlot || !slotForm.subject}>{t("save")}</Button>
+            <Button variant="outline" onClick={() => { setScheduleDialog(false); setSlotError(null); }}>{t("cancel")}</Button>
+            <Button onClick={submitSlot} disabled={!slotForm.lessonSlot || !slotForm.subject || addSlotMutation.isPending}>{t("save")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
