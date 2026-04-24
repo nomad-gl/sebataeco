@@ -1835,3 +1835,56 @@ export const pendingTeacherSubmissions = mysqlTable("pending_teacher_submissions
 });
 export type PendingTeacherSubmission = typeof pendingTeacherSubmissions.$inferSelect;
 export type InsertPendingTeacherSubmission = typeof pendingTeacherSubmissions.$inferInsert;
+
+/**
+ * teacher_attendance — daily check-in record per teacher per date.
+ * One row per (userId, date) pair; upserted when a teacher checks in.
+ */
+export const teacherAttendance = mysqlTable("teacher_attendance", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  attendanceDate: date("attendanceDate").notNull(),
+  status: mysqlEnum("att_status", ["present", "absent_notified", "absent_alarm"]).default("present").notNull(),
+  checkInAt: timestamp("checkInAt"),
+  notes: varchar("notes", { length: 512 }),
+  tenantId: int("tenantId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type TeacherAttendance = typeof teacherAttendance.$inferSelect;
+export type InsertTeacherAttendance = typeof teacherAttendance.$inferInsert;
+
+/**
+ * teacher_absence_notifications — advance absence requests submitted by teachers.
+ */
+export const teacherAbsenceNotifications = mysqlTable("teacher_absence_notifications", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  absenceDate: date("absenceDate").notNull(),
+  reason: varchar("reason", { length: 512 }).notNull(),
+  absenceStatus: mysqlEnum("absence_status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  reviewedByUserId: int("reviewedByUserId"),
+  reviewedAt: timestamp("reviewedAt"),
+  reviewNote: varchar("reviewNote", { length: 512 }),
+  tenantId: int("tenantId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type TeacherAbsenceNotification = typeof teacherAbsenceNotifications.$inferSelect;
+export type InsertTeacherAbsenceNotification = typeof teacherAbsenceNotifications.$inferInsert;
+
+/**
+ * attendance_daily_comments — director/HoS notes and system alarm entries.
+ */
+export const attendanceDailyComments = mysqlTable("attendance_daily_comments", {
+  id: int("id").autoincrement().primaryKey(),
+  commentDate: date("commentDate").notNull(),
+  authorId: int("authorId"),
+  comment: text("comment").notNull(),
+  isAlarm: boolean("isAlarm").default(false).notNull(),
+  acknowledged: boolean("acknowledged").default(false).notNull(),
+  tenantId: int("tenantId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type AttendanceDailyComment = typeof attendanceDailyComments.$inferSelect;
+export type InsertAttendanceDailyComment = typeof attendanceDailyComments.$inferInsert;

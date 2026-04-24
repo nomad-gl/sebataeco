@@ -13,6 +13,7 @@ import { runRetentionPurge } from "../routers/privacy";
 import { runAuditRetentionPurge, auditRetentionStatus } from "../routers/audit";
 import { runBiasScan, biasScanStatus } from "../biasScan";
 import { runI18nScanAndNotify } from "../i18nScan";
+import { runAttendanceAlarmForTenant } from "../routers/teacherAttendance";
 import { startHealthMonitor } from "../selfHeal";
 import { getDb } from "../db";
 import { questionTranslations } from "../../drizzle/schema";
@@ -278,6 +279,33 @@ async function startServer() {
   // Daily i18n hardcoded string scan at 05:00 UTC
   cron.schedule("0 5 * * *", async () => {
     await runI18nScanAndNotify();
+  });
+
+  // Teacher attendance alarm at 09:00 local school time (UTC+1 = 08:00 UTC, adjust as needed)
+  // Fires at 08:00 UTC (= 09:00 CET / Spain school time)
+  cron.schedule("0 8 * * 1-5", async () => {
+    console.log("[AttendanceAlarm] Running 09:00 attendance check...");
+    try {
+      const db = await getDb();
+      if (!db) return;
+      const { users } = await import("../../drizzle/schema");
+      const { eq, isNotNull } = await import("drizzle-orm");
+      // Get all unique tenantIds that have at least one teacher
+      const tenants = await db
+        .selectDistinct({ tenantId: users.tenantId })
+        .from(users)
+        .where(eq(users.position, "teacher"));
+      const today = new Date().toISOString().slice(0, 10);
+      let totalAlarms = 0;
+      for (const { tenantId } of tenants) {
+        if (!tenantId) continue;
+        const count = await runAttendanceAlarmForTenant(tenantId, today);
+        totalAlarms += count;
+      }
+      console.log(`[AttendanceAlarm] Done. ${totalAlarms} alarm(s) created across ${tenants.length} school(s).`);
+    } catch (err) {
+      console.error("[AttendanceAlarm] Error:", err);
+    }
   });
 
   // 24-hour bias scan at 04:00 UTC — scans all unresolved bias flags and auto-applies fixes

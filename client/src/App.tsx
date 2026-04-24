@@ -55,6 +55,8 @@ import DirectorReports from "./pages/director/DirectorReports";
 import DirectorSettings from "./pages/director/DirectorSettings";
 import DirectorUsers from "./pages/director/DirectorUsers";
 import DirectorApprovals from "./pages/director/DirectorApprovals";
+import DirectorTeacherAttendance from "./pages/director/DirectorTeacherAttendance";
+import TeacherAttendance from "./pages/teacher/TeacherAttendance";
 import HosProgress from "./pages/hos/HosProgress";
 import HosGroups from "./pages/hos/HosGroups";
 import HosTimetable from "./pages/hos/HosTimetable";
@@ -185,6 +187,8 @@ function Router() {
         <Route path="/director/settings" component={DirectorSettings} />
         <Route path="/director/users" component={DirectorUsers} />
         <Route path="/director/approvals" component={DirectorApprovals} />
+        <Route path="/director/teacher-attendance" component={DirectorTeacherAttendance} />
+        <Route path="/teacher/attendance" component={TeacherAttendance} />
         <Route path="/head-of-study/progress" component={HosProgress} />
         <Route path="/head-of-study/groups" component={HosGroups} />
         <Route path="/head-of-study/timetable" component={HosTimetable} />

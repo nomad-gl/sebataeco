@@ -4178,3 +4178,32 @@
 - [x] Server: add autoFixI18nKeys tRPC procedure — detect missing keys, AI-translate to EN/ES/CA, patch I18nContext.tsx
 - [x] Client: add "Auto-fix missing keys" button to I18nScanCard with progress indicator and result summary
 - [x] Re-run scan after auto-fix to confirm zero missing keys (auto-triggered after each fix)
+
+## Teacher Attendance Daily Register
+- [x] DB: teacherAttendance table (id, userId, date, status: present|absent_notified|absent_unnotified, checkInAt, notes)
+- [x] DB: teacherAbsenceNotifications table (id, userId, date, reason, notifiedAt, approvedBy)
+- [x] DB: attendanceDailyComments table (id, date, authorId, comment, isAlarm, createdAt)
+- [x] Server: checkIn procedure (teacher marks themselves present)
+- [x] Server: notifyAbsence procedure (teacher pre-notifies absence for a future date)
+- [x] Server: getAttendanceRegister procedure (director/HoS — full daily register with status per teacher)
+- [x] Server: addDailyComment procedure (director/HoS — add comment to daily log)
+- [x] Server: getDailyComments procedure (director/HoS — get all comments for a date)
+- [x] Server: 09:00 daily alarm cron — detect teachers who haven't checked in and have no absence notification, insert alarm comment, send owner notification
+- [x] Server: getUnacknowledgedAlarms procedure (for popup — returns today's unacknowledged alarm entries)
+- [x] Server: acknowledgeAlarm procedure (director/HoS dismisses popup)
+- [x] Client: Teacher self-check-in page (/teacher/attendance) with check-in button and advance absence form
+- [x] Client: Director/HoS register view (/director/teacher-attendance) — live table, status badges, daily comments panel, alarm popup
+- [x] Client: Alarm popup component — appears for director/HoS when unacknowledged alarms exist
+- [x] NavBar: add Attendance link for teachers and director/HoS
+- [x] i18n: add all attendance keys to EN/ES/CA
+- [x] Tests: vitest for checkIn, notifyAbsence, getAttendanceRegister, alarm logic (6147 tests passing)
+
+## Teacher Profile Enhancement (post-attendance delivery)
+- [ ] Schema: add teacher_subjects table (userId, subject, level, notes) and teacher_schedule table (userId, semester, dayOfWeek, lessonSlot, startTime, endTime, subject)
+- [ ] Migration: apply new tables to DB
+- [ ] Server: tRPC procedures — setTeacherSubjects, getTeacherSubjects, setTeacherSchedule, getTeacherSchedule, getTeachingHoursSummary (weekly/semester/year, over/under hours vs calendar)
+- [ ] Director/HoS UI: subject+level assignment panel in teacher registration/approval flow (DirectorApprovals.tsx)
+- [ ] Director/HoS UI: teaching hours dashboard (weekly/semester/year totals, over/under indicator per teacher)
+- [ ] Teacher profile page: show assigned subjects+levels, scheduled days/lessons per semester with times
+- [ ] Hours calculation: derive contracted hours from school calendar events; compare against scheduled hours
+- [ ] Translation keys for all new strings (EN/ES/CA)

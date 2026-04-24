@@ -24,6 +24,7 @@ import { dpaRouter } from "./routers/dpa";
 import { whatsNewRouter } from "./routers/whatsNew";
 import { selfHealRouter } from "./routers/selfHeal";
 import { assignmentRequestsRouter } from "./routers/assignmentRequests";
+import { teacherAttendanceRouter } from "./routers/teacherAttendance";
 import { directorRouter } from "./routers/director";
 import { hosRouter } from "./routers/hos";
 import { wakeWordsRouter } from "./routers/wakeWords";
@@ -145,6 +146,7 @@ export const appRouter = router({
   tenants: tenantsRouter,
   territorialDirector: territorialDirectorRouter,
   assignmentRequests: assignmentRequestsRouter,
+  teacherAttendance: teacherAttendanceRouter,
 });
 
 export type AppRouter = typeof appRouter;

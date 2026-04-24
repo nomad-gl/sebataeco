@@ -7,7 +7,7 @@ import {
   Presentation as PresentationIcon, Globe, Users, MessagesSquare, Bell, Download,
   CalendarDays, FileText, Settings as SettingsIcon, ShieldAlert, Lock, HelpCircle,
   BarChart3, UserCheck, BookCheck, GraduationCap, Mic,
-  ClipboardList, Banknote, UserCog, FolderOpen, Building2, Wrench, Music, Wifi, LogOut, LogIn,
+  ClipboardList, ClipboardCheck, Banknote, UserCog, FolderOpen, Building2, Wrench, Music, Wifi, LogOut, LogIn,
   UserPlus, Copy, CheckCircle2, MapPin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -256,6 +256,7 @@ export default function NavBar() {
     { href: "/head-of-study/groups",              label: t("hos_groups"),              icon: Users },
     { href: "/head-of-study/timetable",           label: t("hos_timetable"),           icon: CalendarDays },
     { href: "/head-of-study/attendance",          label: t("hos_attendance"),          icon: UserCheck },
+    { href: "/director/teacher-attendance",         label: t("nav_director_teacher_attendance"), icon: ClipboardList },
     { href: "/head-of-study/assessment-calendar", label: t("hos_assessment_calendar"), icon: BookOpen },
     { href: "/head-of-study/curriculum",          label: t("hos_curriculum"),          icon: BookCheck },
     { href: "/head-of-study/reports",             label: t("hos_reports"),             icon: Download },
@@ -280,6 +281,7 @@ export default function NavBar() {
     { href: "/director/settings",  label: t("dir_settings"),         icon: SettingsIcon },
     { href: "/director/users",     label: t("dir_users_nav"),        icon: UserCog },
     { href: "/director/approvals",  label: t("dir_approvals"),        icon: ClipboardList },
+    { href: "/director/teacher-attendance", label: t("nav_director_teacher_attendance"), icon: ClipboardList },
     { href: "/head-of-study/add-teacher", label: t("dir_add_teacher"),   icon: UserPlus },
     { href: "/attendance",           label: t("nav_attendance"),       icon: ClipboardList },
     { href: "/school-calendar",      label: t("nav_school_calendar"),  icon: CalendarDays },
@@ -302,6 +304,7 @@ export default function NavBar() {
     { href: "/questions",     label: t("nav_questions"),     icon: BookOpen },
     { href: "/progress",      label: t("nav_group_progress"), icon: TrendingUp },
     { href: "/attendance",   label: t("nav_attendance"),   icon: UserCheck },
+    { href: "/teacher-attendance",  label: t("nav_teacher_attendance"),  icon: ClipboardCheck },
     { href: "/forum",         label: t("nav_forum"),         icon: MessagesSquare },
     { href: "/connect",       label: t("nav_connect"),       icon: Wifi },
     { href: "/lesson-planner",  label: t("nav_lesson_planner"),  icon: FileText },
