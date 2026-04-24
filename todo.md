@@ -4163,3 +4163,4 @@
 - [x] Adjust HosAddTeacher page to allow Director to submit teachers (role check update)
 - [x] Director can edit pending teacher submission (name, email, note) before approving
 - [x] Fix Add Teacher page: replace all hardcoded strings with t() translation keys in EN/ES/CA
+- [x] Fix "Add Teacher" nav label: CA → "Afegir docent", ES → "Añadir docente" in both HoS and Director dropdowns

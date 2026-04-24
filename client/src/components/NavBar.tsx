@@ -261,7 +261,7 @@ export default function NavBar() {
     { href: "/head-of-study/reports",             label: t("hos_reports"),             icon: Download },
     { href: "/head-of-study/settings",            label: t("hos_settings"),            icon: SettingsIcon },
     { href: "/head-of-study/assign-users",        label: t("hos_assign_users"),        icon: UserPlus },
-    { href: "/head-of-study/add-teacher",          label: "Add Teacher",                icon: UserPlus },
+    { href: "/head-of-study/add-teacher",          label: t("dir_add_teacher"),          icon: UserPlus },
     { href: "/school-calendar",                   label: t("nav_school_calendar"),     icon: CalendarDays },
     { href: "/connect",                           label: t("nav_connect"),             icon: Wifi },
   ];
