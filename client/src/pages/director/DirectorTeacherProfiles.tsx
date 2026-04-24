@@ -41,6 +41,8 @@ export default function DirectorTeacherProfiles() {
   const [slotError, setSlotError] = useState<string | null>(null);
   // Schedule view toggle: "list" (default) or "grid"
   const [scheduleView, setScheduleView] = useState<"list" | "grid">("list");
+  // Semester filter: "all" | "1" | "2" | "full_year"
+  const [semesterFilter, setSemesterFilter] = useState<"all" | "1" | "2" | "full_year">("all");
 
   // Pre-select teacher from ?teacher= query param (set by approval shortcut)
   useEffect(() => {
@@ -187,16 +189,22 @@ export default function DirectorTeacherProfiles() {
     }
   }
 
-  // Group schedule by day
+  // Filtered schedule (by semester)
+  const filteredSchedule = useMemo(() => {
+    if (!schedule) return [];
+    if (semesterFilter === "all") return schedule;
+    return schedule.filter((s) => s.semester === semesterFilter);
+  }, [schedule, semesterFilter]);
+
+  // Group filtered schedule by day
   const scheduleByDay = useMemo(() => {
-    if (!schedule) return {};
-    const map: Record<string, typeof schedule> = {};
-    for (const slot of schedule) {
+    const map: Record<string, typeof filteredSchedule> = {};
+    for (const slot of filteredSchedule) {
       if (!map[slot.dayOfWeek]) map[slot.dayOfWeek] = [];
       map[slot.dayOfWeek].push(slot);
     }
     return map;
-  }, [schedule]);
+  }, [filteredSchedule]);
 
   const selectedTeacher = roster?.find((t) => t.id === selectedTeacherId);
 
@@ -362,6 +370,23 @@ export default function DirectorTeacherProfiles() {
                     </Button>
                   </div>
 
+                  {/* Semester filter */}
+                  <div className="flex items-center gap-1 flex-wrap">
+                    {(["all", "1", "2", "full_year"] as const).map((val) => (
+                      <button
+                        key={val}
+                        onClick={() => setSemesterFilter(val)}
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors border ${
+                          semesterFilter === val
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-transparent text-muted-foreground border-border hover:border-primary/50 hover:text-foreground"
+                        }`}
+                      >
+                        {val === "all" ? t("tp_filter_all_semesters") : val === "full_year" ? t("tp_filter_full_year") : val === "1" ? t("tp_filter_sem1") : t("tp_filter_sem2")}
+                      </button>
+                    ))}
+                  </div>
+
                   {!schedule?.length ? (
                     <div className="text-muted-foreground text-sm text-center py-8">{t("tp_no_schedule")}</div>
                   ) : scheduleView === "list" ? (
@@ -411,14 +436,14 @@ export default function DirectorTeacherProfiles() {
                           <div key={d} className="text-center text-xs font-semibold py-1.5 bg-muted rounded-sm capitalize">{t(`tp_day_${d}`)}</div>
                         ))}
                         {/* Collect all unique time slots sorted */}
-                        {Array.from(new Set(schedule!.map((s) => `${s.startTime}–${s.endTime}`))).sort().map((timeRange) => (
+                        {Array.from(new Set(filteredSchedule.map((s) => `${s.startTime}–${s.endTime}`))).sort().map((timeRange) => (
                           <>
                             {/* Time label */}
                             <div key={`label-${timeRange}`} className="text-xs text-muted-foreground pr-2 py-1.5 flex items-center whitespace-nowrap">{timeRange}</div>
                             {/* Day cells */}
                             {DAYS.map((day) => {
                               const [start, end] = timeRange.split("–");
-                              const slot = schedule!.find((s) => s.dayOfWeek === day && s.startTime === start && s.endTime === end);
+                              const slot = filteredSchedule.find((s) => s.dayOfWeek === day && s.startTime === start && s.endTime === end);
                               return slot ? (
                                 <div
                                   key={`${day}-${timeRange}`}

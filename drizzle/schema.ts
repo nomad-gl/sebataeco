@@ -62,6 +62,12 @@ export const users = mysqlTable("users", {
    * Cleared to false once the user successfully changes their password.
    */
   mustChangePassword: boolean("mustChangePassword").default(false).notNull(),
+  /**
+   * Target contracted weekly teaching minutes for this teacher.
+   * Used to render the hours progress bar in the Director's Teacher Profiles page.
+   * NULL = no target set (progress bar hidden).
+   */
+  contractedWeeklyMinutes: int("contractedWeeklyMinutes"),
 });
 
 export type User = typeof users.$inferSelect;

@@ -4226,3 +4226,8 @@
 - [x] DirectorApprovals: add "Send Welcome Email" button in the approval shortcut banner that emails the newly approved teacher their login credentials
 - [x] Server: add sendWelcomeEmail tRPC procedure (director router) that sends an email to the teacher with their temp password
 - [x] i18n: add tp_view_grid, tp_view_list, dir_ts_send_welcome_email, dir_ts_welcome_email_sent keys (EN/ES/CA)
+
+## Semester Filter + Hours Progress Bar
+- [ ] DirectorTeacherProfiles: add semester filter toggle (All / Semester 1 / Semester 2 / Full Year) above the schedule view, filtering both list and grid views
+- [ ] DirectorTeacherProfiles: add weekly hours progress bar to each teacher roster card (used vs. contracted hours), using data already available from the hoursSummary query or roster
+- [ ] i18n: add tp_filter_all_semesters, tp_filter_sem1, tp_filter_sem2, tp_filter_full_year, tp_hours_progress_label keys (EN/ES/CA)
