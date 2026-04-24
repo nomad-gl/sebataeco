@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/contexts/I18nContext";
 import { trpc } from "@/lib/trpc";
-import { Settings, Users, Shield, Loader2, Check, Upload, Trash2, ImageIcon, Building2, ScanSearch, RefreshCw } from "lucide-react";
+import { Settings, Users, Shield, Loader2, Check, Upload, Trash2, ImageIcon, Building2, ScanSearch, RefreshCw, Wrench, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -428,63 +428,198 @@ export default function DirectorSettings() {
 /** Standalone i18n scan card — admin only */
 function I18nScanCard() {
   const { t } = useI18n();
-  const { data: status, refetch: refetchStatus } = trpc.director.getI18nScanStatus.useQuery(undefined, { refetchOnWindowFocus: false });
+  const [autoFixRunning, setAutoFixRunning] = useState(false);
+  const { data: status, refetch: refetchStatus } = trpc.director.getI18nScanStatus.useQuery(
+    undefined,
+    { refetchOnWindowFocus: false, refetchInterval: autoFixRunning ? 2000 : false }
+  );
+
   const triggerMutation = trpc.director.triggerI18nScan.useMutation({
-    onSuccess: () => { refetchStatus(); toast.success("i18n scan complete — check notifications for the report."); },
-    onError: () => toast.error("i18n scan failed."),
+    onSuccess: () => {
+      refetchStatus();
+      toast.success("Scan complete — check notifications for the full report.");
+    },
+    onError: () => toast.error("Scan failed. Check server logs."),
+  });
+
+  const autoFixMutation = trpc.director.autoFixI18nKeys.useMutation({
+    onMutate: () => setAutoFixRunning(true),
+    onSuccess: (data) => {
+      setAutoFixRunning(false);
+      refetchStatus();
+      if (data.fixedKeys === 0 && data.errors.length === 0) {
+        toast.success("No missing keys to fix — everything is up to date!");
+      } else if (data.errors.length > 0) {
+        toast.error(`Auto-fix completed with ${data.errors.length} error(s). See details below.`);
+      } else {
+        toast.success(`Auto-fix complete: ${data.fixedKeys} key${data.fixedKeys !== 1 ? "s" : ""} added to EN/ES/CA.`);
+      }
+    },
+    onError: (err) => {
+      setAutoFixRunning(false);
+      toast.error(`Auto-fix failed: ${err.message}`);
+    },
   });
 
   const result = status?.lastResult;
+  const autoFix = status?.autoFix;
+  const lastAutoFix = autoFix?.lastResult;
+  const isBusy = triggerMutation.isPending || autoFixMutation.isPending || !!autoFix?.running;
+  const hasMissingKeys = (result?.missingKeys?.length ?? 0) > 0;
 
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <ScanSearch className="w-5 h-5 text-muted-foreground" />
             <CardTitle className="text-base">i18n Hardcoded String Scanner</CardTitle>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={triggerMutation.isPending}
-            onClick={() => triggerMutation.mutate()}
-          >
-            {triggerMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <RefreshCw className="w-4 h-4 mr-1" />}
-            Run scan now
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Auto-fix button — only enabled when there are missing keys */}
+            <Button
+              size="sm"
+              variant={hasMissingKeys ? "default" : "outline"}
+              disabled={isBusy || !hasMissingKeys}
+              onClick={() => autoFixMutation.mutate({})}
+              title={hasMissingKeys ? `Fix ${result?.missingKeys?.length} missing key(s) automatically` : "No missing keys to fix"}
+            >
+              {autoFixMutation.isPending || autoFix?.running ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-1" />
+              ) : (
+                <Wrench className="w-4 h-4 mr-1" />
+              )}
+              {autoFixMutation.isPending || autoFix?.running ? "Fixing…" : `Auto-fix${hasMissingKeys ? ` (${result?.missingKeys?.length})` : ""}`}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={isBusy}
+              onClick={() => triggerMutation.mutate()}
+            >
+              {triggerMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <RefreshCw className="w-4 h-4 mr-1" />}
+              Run scan
+            </Button>
+          </div>
         </div>
         <CardDescription>
-          Runs daily at 05:00 UTC. Detects hardcoded (untranslated) strings in the client source and reports missing/unused i18n keys. Results are sent as an owner notification.
+          Runs daily at 05:00 UTC. Detects hardcoded strings and missing i18n keys. The Auto-fix button translates missing keys via AI and patches <code>I18nContext.tsx</code> automatically.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-2 text-sm">
+
+      <CardContent className="space-y-3 text-sm">
+        {/* ── Last scan result ── */}
         {status?.lastRunAt ? (
-          <>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Check className="w-4 h-4 text-green-500" />
-              Last run: {new Date(status.lastRunAt).toLocaleString()}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs">
+              <Check className="w-3.5 h-3.5 text-green-500" />
+              Last scan: {new Date(status.lastRunAt).toLocaleString()}
             </div>
             {result && (
-              <div className="rounded-md bg-muted p-3 text-xs font-mono whitespace-pre-wrap break-all">
-                {result.summary}
+              <div className="rounded-md border bg-muted/50 p-3 text-xs space-y-2">
+                {/* Summary row */}
+                <div className="flex flex-wrap gap-3">
+                  <span className={`flex items-center gap-1 ${
+                    result.hardcodedStrings.length > 0 ? "text-yellow-600 dark:text-yellow-400" : "text-green-600 dark:text-green-400"
+                  }`}>
+                    {result.hardcodedStrings.length > 0
+                      ? <AlertTriangle className="w-3.5 h-3.5" />
+                      : <CheckCircle2 className="w-3.5 h-3.5" />}
+                    {result.hardcodedStrings.length} hardcoded string{result.hardcodedStrings.length !== 1 ? "s" : ""}
+                  </span>
+                  <span className={`flex items-center gap-1 ${
+                    result.missingKeys.length > 0 ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"
+                  }`}>
+                    {result.missingKeys.length > 0
+                      ? <XCircle className="w-3.5 h-3.5" />
+                      : <CheckCircle2 className="w-3.5 h-3.5" />}
+                    {result.missingKeys.length} missing key{result.missingKeys.length !== 1 ? "s" : ""}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {result.unusedKeys.length} unused key{result.unusedKeys.length !== 1 ? "s" : ""}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {result.scannedFiles} files scanned
+                  </span>
+                </div>
+
+                {/* Missing keys list with per-key fix option */}
+                {result.missingKeys.length > 0 && (
+                  <div>
+                    <p className="font-semibold text-red-600 dark:text-red-400 mb-1">Missing keys:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {result.missingKeys.slice(0, 20).map((k) => (
+                        <button
+                          key={k}
+                          onClick={() => autoFixMutation.mutate({ keys: [k] })}
+                          disabled={isBusy}
+                          className="font-mono bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded px-1.5 py-0.5 hover:bg-red-200 dark:hover:bg-red-800/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title={`Click to auto-fix just this key`}
+                        >
+                          {k}
+                        </button>
+                      ))}
+                      {result.missingKeys.length > 20 && (
+                        <span className="text-muted-foreground">…+{result.missingKeys.length - 20} more</span>
+                      )}
+                    </div>
+                    <p className="text-muted-foreground mt-1">Click a key to fix just that one, or use Auto-fix to fix all at once.</p>
+                  </div>
+                )}
+
+                {/* Top hardcoded strings */}
                 {result.hardcodedStrings.length > 0 && (
-                  <div className="mt-2 text-yellow-600 dark:text-yellow-400">
-                    Top issues:{"\n"}
-                    {result.hardcodedStrings.slice(0, 5).map((s, i) => (
-                      <div key={i}>{s.file}:{s.line} — "{s.text}"</div>
-                    ))}
-                    {result.hardcodedStrings.length > 5 && <div>…and {result.hardcodedStrings.length - 5} more</div>}
+                  <div>
+                    <p className="font-semibold text-yellow-600 dark:text-yellow-400 mb-1">Top hardcoded strings:</p>
+                    <div className="font-mono space-y-0.5">
+                      {result.hardcodedStrings.slice(0, 5).map((s, i) => (
+                        <div key={i} className="text-muted-foreground">
+                          <span className="text-foreground">{s.file}:{s.line}</span> — "{s.text.slice(0, 60)}{s.text.length > 60 ? "…" : ""}"
+                        </div>
+                      ))}
+                      {result.hardcodedStrings.length > 5 && (
+                        <div className="text-muted-foreground">…and {result.hardcodedStrings.length - 5} more</div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
             )}
-          </>
+          </div>
         ) : (
-          <p className="text-muted-foreground">No scan has run yet. Click "Run scan now" to trigger the first scan.</p>
+          <p className="text-muted-foreground">No scan has run yet. Click "Run scan" to trigger the first scan.</p>
         )}
+
+        {/* ── Auto-fix result ── */}
+        {lastAutoFix && (
+          <div className={`rounded-md border p-3 text-xs space-y-1 ${
+            lastAutoFix.errors.length > 0
+              ? "border-destructive/50 bg-destructive/5"
+              : "border-green-500/30 bg-green-500/5"
+          }`}>
+            <div className="flex items-center gap-1.5 font-semibold">
+              {lastAutoFix.errors.length > 0
+                ? <XCircle className="w-3.5 h-3.5 text-destructive" />
+                : <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />}
+              Auto-fix ran at {new Date(lastAutoFix.ranAt).toLocaleString()}
+            </div>
+            {lastAutoFix.fixedKeys > 0 && (
+              <p className="text-green-700 dark:text-green-300">
+                ✓ Added {lastAutoFix.fixedKeys} key{lastAutoFix.fixedKeys !== 1 ? "s" : ""} to EN/ES/CA: {lastAutoFix.keys.slice(0, 8).join(", ")}{lastAutoFix.keys.length > 8 ? ` +${lastAutoFix.keys.length - 8} more` : ""}
+              </p>
+            )}
+            {lastAutoFix.errors.map((e, i) => (
+              <p key={i} className="text-destructive">{e}</p>
+            ))}
+          </div>
+        )}
+
+        {/* Scan error */}
         {status?.lastError && (
-          <p className="text-destructive text-xs">Last error: {status.lastError}</p>
+          <p className="text-destructive text-xs">Scan error: {status.lastError}</p>
+        )}
+        {autoFix?.lastError && (
+          <p className="text-destructive text-xs">Auto-fix error: {autoFix.lastError}</p>
         )}
       </CardContent>
     </Card>

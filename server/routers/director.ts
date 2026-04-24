@@ -3,6 +3,7 @@
  * All procedures use adminProcedure (requires role === 'admin').
  */
 import { router, adminProcedure, publicProcedure } from "../_core/trpc";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { getDb } from "../db";
 import {
@@ -26,7 +27,7 @@ import { generateDirectorReportPdf } from "../directorReportPdf";
 import { storagePut } from "../storage";
 import bcrypt from "bcryptjs";
 import { sendTempPasswordEmail } from "../email";
-import { runI18nScanAndNotify, i18nScanStatus } from "../i18nScan";
+import { runI18nScanAndNotify, i18nScanStatus, autoFixMissingKeys, i18nAutoFixStatus, runI18nScan } from "../i18nScan";
 
 /** The 8 LOMLOE key competencies */
 const LOMLOE_COMPETENCIES = [
@@ -1418,6 +1419,68 @@ export const directorRouter = router({
       lastRunAt: i18nScanStatus.lastRunAt,
       lastError: i18nScanStatus.lastError,
       lastResult: i18nScanStatus.lastResult,
+      autoFix: {
+        running: i18nAutoFixStatus.running,
+        lastResult: i18nAutoFixStatus.lastResult,
+        lastError: i18nAutoFixStatus.lastError,
+      },
     };
   }),
+
+  /**
+   * Auto-fix missing translation keys: translate them via LLM and patch
+   * I18nContext.tsx. Optionally accepts a list of specific keys to fix;
+   * if omitted, uses the missing keys from the last scan result.
+   */
+  autoFixI18nKeys: adminProcedure
+    .input(
+      z.object({
+        keys: z.array(z.string()).optional(),
+      }).optional()
+    )
+    .mutation(async ({ input }) => {
+      if (i18nAutoFixStatus.running) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "Auto-fix is already running. Please wait.",
+        });
+      }
+
+      // Determine which keys to fix
+      let missingKeys: string[] = input?.keys ?? [];
+      if (missingKeys.length === 0) {
+        // Use keys from last scan, or run a fresh scan first
+        if (!i18nScanStatus.lastResult) {
+          const scanResult = await runI18nScan();
+          i18nScanStatus.lastResult = scanResult;
+          i18nScanStatus.lastRunAt = new Date();
+        }
+        missingKeys = i18nScanStatus.lastResult?.missingKeys ?? [];
+      }
+
+      if (missingKeys.length === 0) {
+        return { fixedKeys: 0, keys: [], errors: [], ranAt: new Date() };
+      }
+
+      i18nAutoFixStatus.running = true;
+      i18nAutoFixStatus.lastError = null;
+
+      try {
+        const fixResult = await autoFixMissingKeys(missingKeys);
+        i18nAutoFixStatus.lastResult = fixResult;
+
+        // Re-run scan so the UI reflects the updated state
+        const freshScan = await runI18nScan();
+        i18nScanStatus.lastResult = freshScan;
+        i18nScanStatus.lastRunAt = new Date();
+
+        return fixResult;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        i18nAutoFixStatus.lastError = msg;
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: msg });
+      } finally {
+        i18nAutoFixStatus.running = false;
+      }
+    }),
 });

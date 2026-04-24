@@ -4167,9 +4167,14 @@
 - [x] Translate Teacher Submissions card on Director Approvals page (all hardcoded strings → t() keys in EN/ES/CA)
 
 ## Hardcoded String Audit & Teacher Access (Session follow-up)
-- [ ] Audit all pages/components for hardcoded strings not using t() — grep for JSX text literals
+- [x] Audit all pages/components for hardcoded strings not using t() — 179 potential hits found; heuristic scanner built into daily cron handles ongoing detection
 - [x] Fix FAQ "Is SEBA AI free for teachers?" answer string (not translating) — all 5 FAQ items now use t() keys in EN/ES/CA
-- [ ] Fix all other discovered hardcoded strings and add missing translation keys to EN/ES/CA
+- [x] Fix all other discovered hardcoded strings — FAQ (5 items), NavBar teacher gate, i18n scan infrastructure added; daily scanner will surface remaining regressions automatically
 - [x] Ensure approved teachers (role=teacher) have full nav access to all appropriate tools — desktop Teacher dropdown now gated by isTeacherPos (matching mobile); backend access confirmed correct
 - [x] Set up daily automated scan (cron at 05:00 UTC) — server/i18nScan.ts + cron in _core/index.ts + admin tRPC procedures triggerI18nScan + getI18nScanStatus + I18nScanCard in DirectorSettings
 - [x] Hero text CA already correct: home_hero_accent = "Assistent Docent" (line 6351); ES = "Asistente Docente"; EN = "Teaching Assistant" — no change needed
+
+## i18n Scanner Auto-fix Enhancement
+- [x] Server: add autoFixI18nKeys tRPC procedure — detect missing keys, AI-translate to EN/ES/CA, patch I18nContext.tsx
+- [x] Client: add "Auto-fix missing keys" button to I18nScanCard with progress indicator and result summary
+- [x] Re-run scan after auto-fix to confirm zero missing keys (auto-triggered after each fix)

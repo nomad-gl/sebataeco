@@ -26,6 +26,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { notifyOwner } from "./_core/notification";
+import { invokeLLM } from "./_core/llm";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -273,6 +274,223 @@ export async function runI18nScan(): Promise<I18nScanResult> {
     summary,
     ranAt: new Date(),
   };
+}
+
+// ── Auto-fix status ──────────────────────────────────────────────────────────
+
+export interface AutoFixResult {
+  fixedKeys: number;
+  keys: string[];
+  errors: string[];
+  ranAt: Date;
+}
+
+export const i18nAutoFixStatus: {
+  running: boolean;
+  lastResult: AutoFixResult | null;
+  lastError: string | null;
+} = {
+  running: false,
+  lastResult: null,
+  lastError: null,
+};
+
+// ── Auto-fix: translate and patch I18nContext.tsx ─────────────────────────────
+
+/**
+ * Given a list of missing i18n keys, ask the LLM to produce English, Spanish,
+ * and Catalan translations for each key, then insert them into I18nContext.tsx.
+ *
+ * Strategy:
+ *  1. Derive a human-readable label from the key (e.g. "dir_ts_approve" → "Approve").
+ *  2. Send a single structured JSON request to the LLM for all keys at once.
+ *  3. Find the insertion point in each language block (the last key before the
+ *     closing `}` of the block) and insert the new lines.
+ *
+ * Only "simple" keys are fixed automatically — keys whose names follow the
+ * snake_case convention and whose derived label is unambiguous.
+ */
+export async function autoFixMissingKeys(
+  missingKeys: string[]
+): Promise<AutoFixResult> {
+  const result: AutoFixResult = {
+    fixedKeys: 0,
+    keys: [],
+    errors: [],
+    ranAt: new Date(),
+  };
+
+  if (missingKeys.length === 0) return result;
+
+  // ── Step 1: Translate all keys in one LLM call ──────────────────────────────
+  const keyLabels = missingKeys.map((k) => ({
+    key: k,
+    label: k
+      .replace(/^[a-z]+_/, "") // strip prefix (dir_, hos_, etc.)
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase()),
+  }));
+
+  const schema = {
+    type: "object",
+    properties: {
+      translations: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            key: { type: "string" },
+            en: { type: "string" },
+            es: { type: "string" },
+            ca: { type: "string" },
+          },
+          required: ["key", "en", "es", "ca"],
+          additionalProperties: false,
+        },
+      },
+    },
+    required: ["translations"],
+    additionalProperties: false,
+  } as const;
+
+  let translations: { key: string; en: string; es: string; ca: string }[] = [];
+
+  try {
+    const llmResponse = await invokeLLM({
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a professional translator for a Spanish school management application (SEBA AI). " +
+            "Translate each UI label into English (en), Spanish (es), and Catalan (ca). " +
+            "Keep translations concise (1-5 words), suitable for UI buttons/labels. " +
+            "Return JSON only.",
+        },
+        {
+          role: "user",
+          content:
+            "Translate these UI labels:\n" +
+            JSON.stringify(keyLabels, null, 2),
+        },
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "i18n_translations",
+          strict: true,
+          schema,
+        },
+      },
+    });
+
+    const rawContent = llmResponse?.choices?.[0]?.message?.content;
+    const raw = typeof rawContent === "string" ? rawContent : null;
+    if (!raw) throw new Error("LLM returned empty response");
+    const parsed = JSON.parse(raw) as { translations: typeof translations };
+    translations = parsed.translations;
+  } catch (err) {
+    result.errors.push(
+      `LLM translation failed: ${err instanceof Error ? err.message : String(err)}`
+    );
+    return result;
+  }
+
+  // ── Step 2: Read I18nContext.tsx ─────────────────────────────────────────────
+  let contextContent: string;
+  try {
+    contextContent = fs.readFileSync(I18N_CONTEXT, "utf-8");
+  } catch (err) {
+    result.errors.push(
+      `Could not read I18nContext.tsx: ${err instanceof Error ? err.message : String(err)}`
+    );
+    return result;
+  }
+
+  // ── Step 3: Find insertion points for each language block ────────────────────
+  //
+  // I18nContext.tsx has three language objects that look like:
+  //   const en: Translations = {
+  //     key: "value",
+  //     ...
+  //   };
+  //   const es: Translations = { ... };
+  //   const ca: Translations = { ... };
+  //
+  // We insert new keys just before the closing `};` of each block.
+  // We identify each block by finding `const en: Translations`, `const es:`, `const ca:`.
+
+  const langMarkers: Record<string, string> = {
+    en: "const en: Translations",
+    es: "const es: Translations",
+    ca: "const ca: Translations",
+  };
+
+  // Build a map of key → translations for quick lookup
+  const translationMap = new Map(
+    translations.map((t) => [t.key, t])
+  );
+
+  let patched = contextContent;
+  let patchedCount = 0;
+  const patchedKeys: string[] = [];
+
+  for (const [lang, marker] of Object.entries(langMarkers)) {
+    const blockStart = patched.indexOf(marker);
+    if (blockStart === -1) {
+      result.errors.push(`Could not find ${lang} block in I18nContext.tsx`);
+      continue;
+    }
+
+    // Find the closing `};` of this block — it's the first `};` after blockStart
+    // that is at the top level (not inside a nested object).
+    // Since the translation objects are flat (no nesting), we look for `\n};`
+    // after the block start.
+    const closingIdx = patched.indexOf("\n};\n", blockStart);
+    if (closingIdx === -1) {
+      result.errors.push(`Could not find closing }; for ${lang} block`);
+      continue;
+    }
+
+    // Build the lines to insert
+    const newLines: string[] = [];
+    for (const key of missingKeys) {
+      const t = translationMap.get(key);
+      if (!t) continue;
+      const value = lang === "en" ? t.en : lang === "es" ? t.es : t.ca;
+      // Escape any double quotes in the value
+      const escaped = value.replace(/"/g, '\\"');
+      newLines.push(`    ${key}: "${escaped}",`);
+    }
+
+    if (newLines.length === 0) continue;
+
+    // Insert before the closing `};`
+    const insertion = "\n" + newLines.join("\n");
+    patched =
+      patched.slice(0, closingIdx) +
+      insertion +
+      patched.slice(closingIdx);
+
+    if (lang === "en") {
+      // Count only once
+      patchedCount = newLines.length;
+      patchedKeys.push(...missingKeys.filter((k) => translationMap.has(k)));
+    }
+  }
+
+  // ── Step 4: Write the patched file ──────────────────────────────────────────
+  try {
+    fs.writeFileSync(I18N_CONTEXT, patched, "utf-8");
+  } catch (err) {
+    result.errors.push(
+      `Could not write I18nContext.tsx: ${err instanceof Error ? err.message : String(err)}`
+    );
+    return result;
+  }
+
+  result.fixedKeys = patchedCount;
+  result.keys = patchedKeys;
+  return result;
 }
 
 // ── Notification helper ────────────────────────────────────────────────────────
