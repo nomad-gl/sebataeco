@@ -4321,3 +4321,30 @@
 - [x] i18n: add payback_title, payback_opportunity_found, payback_schedule_btn, payback_no_opportunity, payback_under_hours_note keys (EN/ES/CA)
 - [x] i18n: add notif_bell_title, notif_accept_change, notif_decline_change, notif_response_sent, notif_cover_assigned, notif_cover_request, notif_payback_scheduled keys (EN/ES/CA)
 - [x] i18n: add hour_adj_log_title, hour_adj_extra, hour_adj_payback, hour_adj_comment keys (EN/ES/CA)
+
+## ZER (Zona Escolar Rural) Dual-Role Director
+
+### Phase 1 — DB
+- [ ] DB: add `isZer` boolean column (default false) to tenants table
+- [ ] DB: add `zerActsAsHos` boolean column (default false) to users table (per-director opt-in)
+- [ ] DB: apply migration
+
+### Phase 2 — Server
+- [ ] Server: tenants.setZerStatus mutation (admin/director) — toggle isZer on the tenant
+- [ ] Server: tenants.getZerStatus query — returns { isZer, zerActsAsHos } for current user's tenant
+- [ ] Server: tenants.setZerActsAsHos mutation (director only) — toggle zerActsAsHos on the calling director user
+- [ ] Server: extend protectedProcedure HoS guard so a director with zerActsAsHos=true passes HoS-only checks
+- [ ] Server: expose isZer + zerActsAsHos in auth.me response so frontend can react
+
+### Phase 3 — Client
+- [ ] Client: Director Settings page — ZER section: "This school is a ZER school" toggle (sets isZer on tenant); below it show "Act as Head of Study" toggle (sets zerActsAsHos, only visible when isZer=true)
+- [ ] Client: NavBar — when director has zerActsAsHos=true, show HoS menu items in addition to director items
+- [ ] Client: Route guards — HoS-only routes (/head-of-study/*) accessible to ZER director acting as HoS
+- [ ] Client: Visual indicator — small "ZER" badge next to director's name/role in NavBar profile area when zerActsAsHos is active
+
+### Phase 4 — i18n
+- [ ] i18n: add zer_section_title, zer_school_label, zer_school_hint, zer_acts_as_hos_label, zer_acts_as_hos_hint, zer_badge keys (EN/ES/CA)
+
+### Phase 5 — Tests & QA
+- [ ] Vitest: ZER dual-role logic tests (guard bypass, toggle mutations)
+- [ ] TypeScript: 0 errors

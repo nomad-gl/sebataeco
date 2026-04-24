@@ -85,7 +85,8 @@ export default function MySituacions() {
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<"mine" | "shared">("mine");
 
-  const isHos = user?.role === "admin" || user?.role === "head_of_study";
+  const isZerHos = user?.role === "director" && !!(user as { zerActsAsHos?: boolean }).zerActsAsHos;
+  const isHos = user?.role === "admin" || user?.role === "head_of_study" || isZerHos;
 
   const { data: rawMine = [], isLoading: loadingMine } = trpc.lomloe.getMySituacions.useQuery();
   const { data: rawShared = [], isLoading: loadingShared } = trpc.lomloe.getSharedSituacions.useQuery(

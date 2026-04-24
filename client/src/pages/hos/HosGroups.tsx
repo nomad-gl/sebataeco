@@ -57,11 +57,13 @@ export default function HosGroups() {
   const { user, loading: authLoading } = useAuth();
   const [, navigate] = useLocation();
 
+  // ZER directors who act as HoS are also allowed
+  const isZerHos = user?.role === "director" && !!(user as { zerActsAsHos?: boolean }).zerActsAsHos;
   useEffect(() => {
-    if (!authLoading && user && user.role !== "admin" && user.role !== "head_of_study") {
+    if (!authLoading && user && user.role !== "admin" && user.role !== "head_of_study" && !isZerHos) {
       navigate("/");
     }
-  }, [authLoading, user, navigate]);
+  }, [authLoading, user, navigate, isZerHos]);
 
   const [academicYear] = useState("2025-26");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -141,7 +143,7 @@ export default function HosGroups() {
   }
 
   if (authLoading || (!user && !authLoading)) return null;
-  if (user?.role !== "admin" && user?.role !== "head_of_study") return null;
+  if (user?.role !== "admin" && user?.role !== "head_of_study" && !isZerHos) return null;
 
   return (
     <DashboardLayout>

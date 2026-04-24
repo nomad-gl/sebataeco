@@ -2,7 +2,7 @@
  * Director router — admin-only procedures for school-level oversight.
  * All procedures use adminProcedure (requires role === 'admin').
  */
-import { router, adminProcedure, publicProcedure } from "../_core/trpc";
+import { router, adminProcedure, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { getDb } from "../db";
@@ -1527,5 +1527,85 @@ export const directorRouter = router({
       });
 
       return { success: true, email: targetUser.email };
+    }),
+
+  // ─── ZER (Zona Escolar Rural) dual-role procedures ──────────────────────────
+
+  /**
+   * getZerStatus — returns the ZER configuration for the current user's tenant.
+   * Available to any authenticated user so the frontend can react accordingly.
+   */
+  getZerStatus: protectedProcedure.query(async ({ ctx }) => {
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+    if (!ctx.user.tenantId) return { isZer: false, zerActsAsHos: false };
+    const [tenant] = await db
+      .select({ isZer: tenants.isZer })
+      .from(tenants)
+      .where(eq(tenants.id, ctx.user.tenantId))
+      .limit(1);
+    return {
+      isZer: tenant?.isZer ?? false,
+      zerActsAsHos: ctx.user.zerActsAsHos ?? false,
+    };
+  }),
+
+  /**
+   * setZerStatus — admin or director can mark their school as a ZER school.
+   * Directors can only update their own tenant; admins can target any tenant.
+   */
+  setZerStatus: protectedProcedure
+    .input(z.object({ isZer: z.boolean(), tenantId: z.number().optional() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      const isAdmin = ctx.user.role === "admin";
+      const isDirector = ctx.user.role === "director";
+      if (!isAdmin && !isDirector) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only admins or directors can set ZER status" });
+      }
+      // Directors can only update their own tenant
+      const targetTenantId = isAdmin && input.tenantId ? input.tenantId : ctx.user.tenantId;
+      if (!targetTenantId) throw new TRPCError({ code: "BAD_REQUEST", message: "No tenant associated" });
+      await db.update(tenants).set({ isZer: input.isZer }).where(eq(tenants.id, targetTenantId));
+      // If ZER is being disabled, also clear zerActsAsHos for all directors in this tenant
+      if (!input.isZer) {
+        await db
+          .update(users)
+          .set({ zerActsAsHos: false })
+          .where(and(eq(users.tenantId, targetTenantId), eq(users.role, "director")));
+      }
+      return { success: true, isZer: input.isZer };
+    }),
+
+  /**
+   * setZerActsAsHos — director opts in/out of acting as head of study.
+   * Only available when the school is a ZER school.
+   */
+  setZerActsAsHos: protectedProcedure
+    .input(z.object({ zerActsAsHos: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      if (ctx.user.role !== "director" && ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only directors can toggle ZER HoS role" });
+      }
+      if (!ctx.user.tenantId) throw new TRPCError({ code: "BAD_REQUEST", message: "No tenant associated" });
+      // Verify the school is actually a ZER school before allowing opt-in
+      if (input.zerActsAsHos) {
+        const [tenant] = await db
+          .select({ isZer: tenants.isZer })
+          .from(tenants)
+          .where(eq(tenants.id, ctx.user.tenantId))
+          .limit(1);
+        if (!tenant?.isZer) {
+          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "School is not registered as a ZER school" });
+        }
+      }
+      await db
+        .update(users)
+        .set({ zerActsAsHos: input.zerActsAsHos })
+        .where(eq(users.id, ctx.user.id));
+      return { success: true, zerActsAsHos: input.zerActsAsHos };
     }),
 });

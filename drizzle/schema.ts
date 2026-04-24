@@ -77,6 +77,13 @@ export const users = mysqlTable("users", {
    */
   /** @migration 0048 */
   isPermanent: boolean("isPermanent").default(true),
+  /**
+   * ZER (Zona Escolar Rural) opt-in per director.
+   * When true AND the school tenant has isZer=true, this director also has
+   * head-of-study capabilities without a separate HoS account.
+   * @migration 0052
+   */
+  zerActsAsHos: boolean("zerActsAsHos").default(false).notNull(),
 });
 
 export type User = typeof users.$inferSelect;
@@ -1685,6 +1692,12 @@ export const tenants = mysqlTable("tenants", {
   ownerUserId: int("ownerUserId"),
   /** FK to territories.id — the geographic territory this school belongs to */
   territoryId: int("territoryId"),
+  /**
+   * Whether this school is recognised as a Zona Escolar Rural (ZER).
+   * When true, directors of this school may optionally act as head of study.
+   * @migration 0052
+   */
+  isZer: boolean("isZer").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

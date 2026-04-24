@@ -16,15 +16,36 @@ export default function DirectorSettings() {
   const { t } = useI18n();
   const { user, loading: authLoading } = useAuth();
   const [, navigate] = useLocation();
-  useEffect(() => { if (!authLoading && user && user.role !== "admin") navigate("/"); }, [authLoading, user, navigate]);
+  // Allow both admins and directors to access this settings page
+  useEffect(() => {
+    if (!authLoading && user && user.role !== "admin" && user.role !== "director") navigate("/");
+  }, [authLoading, user, navigate]);
   if (authLoading || (!user && !authLoading)) return null;
-  if (user?.role !== "admin") return null;
+  if (user?.role !== "admin" && user?.role !== "director") return null;
 
   const utils = trpc.useUtils();
-  const { data: users, isLoading: usersLoading } = trpc.director.getUsersForAdmin.useQuery();
-  const { data: settings, isLoading: settingsLoading } = trpc.director.getSchoolSettings.useQuery();
-  const { data: branding, isLoading: brandingLoading } = trpc.director.getSchoolBranding.useQuery();
-  const { data: loginBg } = trpc.director.getLoginBackground.useQuery();
+  const isAdmin = user?.role === "admin";
+  const { data: users, isLoading: usersLoading } = trpc.director.getUsersForAdmin.useQuery(undefined, { enabled: isAdmin });
+  const { data: settings, isLoading: settingsLoading } = trpc.director.getSchoolSettings.useQuery(undefined, { enabled: isAdmin });
+  const { data: branding, isLoading: brandingLoading } = trpc.director.getSchoolBranding.useQuery(undefined, { enabled: isAdmin });
+  const { data: loginBg } = trpc.director.getLoginBackground.useQuery(undefined, { enabled: isAdmin });
+
+  // ZER status — available to directors and admins
+  const { data: zerStatus, isLoading: zerLoading } = trpc.director.getZerStatus.useQuery();
+  const setZerStatusMutation = trpc.director.setZerStatus.useMutation({
+    onSuccess: (data) => {
+      utils.director.getZerStatus.invalidate();
+      toast.success(data.isZer ? t("zer_enabled_toast") : t("zer_disabled_toast"));
+    },
+    onError: (err) => toast.error(err.message),
+  });
+  const setZerActsAsHosMutation = trpc.director.setZerActsAsHos.useMutation({
+    onSuccess: (data) => {
+      utils.director.getZerStatus.invalidate();
+      toast.success(data.zerActsAsHos ? t("zer_hos_enabled_toast") : t("zer_hos_disabled_toast"));
+    },
+    onError: (err) => toast.error(err.message),
+  });
 
   const updateRoleMutation = trpc.director.updateUserRole.useMutation({
     onSuccess: () => { utils.director.getUsersForAdmin.invalidate(); toast.success(t("dir_settings_role_updated")); },
@@ -416,8 +437,81 @@ export default function DirectorSettings() {
           </CardContent>
         </Card>
 
+        {/* ── ZER (Zona Escolar Rural) Dual-Role ── */}
+        <Card className="border-green-500/30">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-green-500/10">
+                <Building2 className="w-4 h-4 text-green-500" />
+              </div>
+              <div>
+                <CardTitle className="text-base">{t("zer_section_title")}</CardTitle>
+                <CardDescription className="text-xs mt-0.5">{t("zer_section_desc")}</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {zerLoading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading...
+              </div>
+            ) : (
+              <>
+                {/* ZER school toggle */}
+                <div className="flex items-center justify-between rounded-lg border border-border p-3">
+                  <div>
+                    <p className="text-sm font-medium">{t("zer_school_label")}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{t("zer_school_hint")}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant={zerStatus?.isZer ? "default" : "outline"}
+                    className={zerStatus?.isZer ? "bg-green-600 hover:bg-green-700 text-white" : "bg-transparent"}
+                    disabled={setZerStatusMutation.isPending}
+                    onClick={() => setZerStatusMutation.mutate({ isZer: !zerStatus?.isZer })}
+                  >
+                    {zerStatus?.isZer ? (
+                      <><Check className="h-3.5 w-3.5 mr-1" />{t("zer_enabled")}</>
+                    ) : (
+                      t("zer_disabled")
+                    )}
+                  </Button>
+                </div>
+
+                {/* Act as HoS toggle — only visible when school is ZER */}
+                {zerStatus?.isZer && user?.role === "director" && (
+                  <div className="flex items-center justify-between rounded-lg border border-green-500/30 bg-green-500/5 p-3">
+                    <div>
+                      <p className="text-sm font-medium">{t("zer_acts_as_hos_label")}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{t("zer_acts_as_hos_hint")}</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={zerStatus?.zerActsAsHos ? "default" : "outline"}
+                      className={zerStatus?.zerActsAsHos ? "bg-green-600 hover:bg-green-700 text-white" : "bg-transparent"}
+                      disabled={setZerActsAsHosMutation.isPending}
+                      onClick={() => setZerActsAsHosMutation.mutate({ zerActsAsHos: !zerStatus?.zerActsAsHos })}
+                    >
+                      {zerStatus?.zerActsAsHos ? (
+                        <><Check className="h-3.5 w-3.5 mr-1" />{t("zer_acts_as_hos_active")}</>
+                      ) : (
+                        t("zer_acts_as_hos_inactive")
+                      )}
+                    </Button>
+                  </div>
+                )}
+
+                {/* Info note when ZER is off */}
+                {!zerStatus?.isZer && (
+                  <p className="text-xs text-muted-foreground italic">{t("zer_not_zer_note")}</p>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+
         {/* ── i18n Hardcoded String Scan ── */}
-        <I18nScanCard />
+        {isAdmin && <I18nScanCard />}
 
         <p className="text-xs text-muted-foreground text-right">Powered by SEBA</p>
       </div>

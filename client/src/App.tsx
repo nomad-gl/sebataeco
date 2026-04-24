@@ -94,6 +94,7 @@ import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { useI18n } from "./contexts/I18nContext";
+import { trpc } from "@/lib/trpc";
 import { GlobalCallListener } from "./components/GlobalCallListener";
 
 /**
@@ -118,21 +119,29 @@ function MustChangePasswordGuard() {
   return null;
 }
 
-/** Wraps a component and redirects to / with a toast if the user lacks admin or head_of_study role. */
+/** Wraps a component and redirects to / with a toast if the user lacks admin or head_of_study role.
+ * ZER directors who have opted in to act as HoS are also permitted. */
 function HosOrAdminRoute({ component: Component }: { component: React.ComponentType }) {
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
   const { t } = useI18n();
-  const hasPermission = !user || user.role === "admin" || user.role === "head_of_study";
+  // Query ZER status so ZER directors can access HoS routes
+  const { data: zerStatus, isLoading: zerLoading } = trpc.director.getZerStatus.useQuery(undefined, {
+    enabled: !!user && user.role === "director",
+    staleTime: 60_000,
+  });
+  const isZerHos = !!zerStatus?.isZer && !!zerStatus?.zerActsAsHos && user?.role === "director";
+  const hasPermission = !user || user.role === "admin" || user.role === "head_of_study" || isZerHos;
+  const stillChecking = loading || (user?.role === "director" && zerLoading);
 
   useEffect(() => {
-    if (!loading && user && !hasPermission) {
+    if (!stillChecking && user && !hasPermission) {
       toast.error(t("situacio_no_permission"), { duration: 5000 });
       navigate("/");
     }
-  }, [loading, user, hasPermission, navigate, t]);
+  }, [stillChecking, user, hasPermission, navigate, t]);
 
-  if (loading) return null;
+  if (stillChecking) return null;
   if (!hasPermission) return null;
   return <Component />;
 }

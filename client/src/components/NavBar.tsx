@@ -141,6 +141,13 @@ export default function NavBar() {
   const isTeacherPos    = pos === "teacher" || pos === "director";
   const isSituacioPos   = pos === "head_of_study" || pos === "director";
 
+  // ZER dual-role: query status so we can show the badge
+  const { data: zerStatus } = trpc.director.getZerStatus.useQuery(undefined, {
+    enabled: !!user && (user.role === "director" || user.role === "admin"),
+    staleTime: 60_000,
+  });
+  const isZerHos = !!zerStatus?.isZer && !!zerStatus?.zerActsAsHos && user?.role === "director";
+
   const { data: unreadCount = 0 } = trpc.notifications.getUnreadCount.useQuery(undefined, {
     enabled: !!user,
     refetchInterval: 30_000,
@@ -1032,6 +1039,12 @@ export default function NavBar() {
 
             {user && (
               <div className="flex items-center gap-1.5">
+                {/* ZER badge — shown when director is acting as HoS */}
+                {isZerHos && (
+                  <span className="hidden lg:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-600 text-[10px] font-bold border border-green-500/30" title="ZER — Acting as Head of Study">
+                    ZER
+                  </span>
+                )}
                 {/* Avatar circle with initials */}
                 <div
                   className={cn(
