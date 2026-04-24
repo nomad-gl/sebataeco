@@ -440,7 +440,7 @@ export default function NavBar() {
                   ref={situacioMenuRef}
                   role="menu"
                   aria-label={t("nav_situacio_nav")}
-                  className="absolute left-0 top-full mt-1 w-52 bg-white border border-border rounded-xl shadow-lg py-1 z-50"
+                  className="absolute left-0 top-full mt-1 w-52 bg-white border border-border rounded-xl shadow-lg py-1 z-50 max-h-[70vh] overflow-y-auto"
                   onKeyDown={(e) => {
                     const items = situacioMenuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]');
                     if (!items?.length) return;
@@ -495,7 +495,7 @@ export default function NavBar() {
               </button>
 
               {dropOpen && (
-                <div className="absolute right-0 top-full mt-1 w-52 bg-white border border-border rounded-xl shadow-lg py-1 z-50">
+                <div className="absolute right-0 top-full mt-1 w-52 bg-white border border-border rounded-xl shadow-lg py-1 z-50 max-h-[70vh] overflow-y-auto">
                   {teacherItems.map(({ href, label, icon: Icon }) => {
                     const active = location === href || (href !== "/" && location.startsWith(href));
                     const isConnect = href === "/connect";
@@ -696,7 +696,7 @@ export default function NavBar() {
                   ref={hosMenuRef}
                   role="menu"
                   aria-label={t("nav_head_of_study")}
-                  className="absolute right-0 top-full mt-1 w-56 bg-white border border-border rounded-xl shadow-lg py-1 z-50"
+                  className="absolute right-0 top-full mt-1 w-56 bg-white border border-border rounded-xl shadow-lg py-1 z-50 max-h-[70vh] overflow-y-auto"
                   onKeyDown={(e) => {
                     const items = hosMenuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]');
                     if (!items?.length) return;
@@ -778,7 +778,7 @@ export default function NavBar() {
                   ref={directorMenuRef}
                   role="menu"
                   aria-label={t("nav_director")}
-                  className="absolute right-0 top-full mt-1 w-56 bg-white border border-border rounded-xl shadow-lg py-1 z-50"
+                  className="absolute right-0 top-full mt-1 w-56 bg-white border border-border rounded-xl shadow-lg py-1 z-50 max-h-[70vh] overflow-y-auto"
                   onKeyDown={(e) => {
                     const items = directorMenuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]');
                     if (!items?.length) return;

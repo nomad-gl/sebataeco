@@ -4231,3 +4231,6 @@
 - [x] DirectorTeacherProfiles: add semester filter toggle (All / Semester 1 / Semester 2 / Full Year) above the schedule view, filtering both list and grid views
 - [x] DirectorTeacherProfiles: add weekly hours progress bar to each teacher roster card (used vs. contracted hours) — contractedWeeklyMinutes added to users table, migration applied
 - [x] i18n: add tp_filter_all_semesters, tp_filter_sem1, tp_filter_sem2, tp_filter_full_year, tp_hours_progress_label keys (EN/ES/CA)
+
+## NavBar Teacher Dropdown Scroll
+- [x] Teacher dropdown: add max-height + overflow-y-auto so the list scrolls when it overflows the viewport (applied to all 5 dropdowns: Teacher, Situació, Admin, HoS, Director)
