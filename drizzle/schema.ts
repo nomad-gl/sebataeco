@@ -1797,3 +1797,41 @@ export const assignmentRequests = mysqlTable("assignment_requests", {
 });
 export type AssignmentRequest = typeof assignmentRequests.$inferSelect;
 export type InsertAssignmentRequest = typeof assignmentRequests.$inferInsert;
+
+/**
+ * pending_teacher_submissions — new teacher accounts submitted by a Head of Study
+ * for Director approval before the account is actually created.
+ *
+ * Workflow:
+ *   1. HoS fills in name + email (+ optional note) → status = 'pending'
+ *   2. Director approves → status = 'approved', a local user account is created
+ *                          and a temp-password email is sent to the teacher.
+ *      Director rejects  → status = 'rejected', optional reason stored.
+ */
+export const pendingTeacherSubmissions = mysqlTable("pending_teacher_submissions", {
+  id: int("id").autoincrement().primaryKey(),
+  /** The Head of Study who submitted the request */
+  submittedByUserId: int("submittedByUserId").notNull(),
+  /** The school (tenant) the new teacher should be added to */
+  tenantId: int("tenantId").notNull(),
+  /** Proposed teacher full name */
+  teacherName: varchar("teacherName", { length: 255 }).notNull(),
+  /** Proposed teacher email — will become their login */
+  teacherEmail: varchar("teacherEmail", { length: 255 }).notNull(),
+  /** Optional subject / note from the HoS */
+  note: varchar("note", { length: 512 }),
+  /** Workflow status */
+  pts_status: mysqlEnum("pts_status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  /** Optional reason from the Director when rejecting */
+  rejectionReason: varchar("rejectionReason", { length: 512 }),
+  /** Director or admin who reviewed the submission */
+  reviewedByUserId: int("reviewedByUserId"),
+  /** When the submission was reviewed */
+  reviewedAt: timestamp("reviewedAt"),
+  /** The user account created on approval */
+  createdUserId: int("createdUserId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type PendingTeacherSubmission = typeof pendingTeacherSubmissions.$inferSelect;
+export type InsertPendingTeacherSubmission = typeof pendingTeacherSubmissions.$inferInsert;

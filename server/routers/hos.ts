@@ -9,6 +9,7 @@ import {
   users,
   assessmentEvents,
   lessonPlans,
+  pendingTeacherSubmissions,
 } from "../../drizzle/schema";
 import { eq, and, gte, lte, inArray } from "drizzle-orm";
 
@@ -564,4 +565,73 @@ export const hosRouter = router({
       }
       return rows;
     }),
+
+  // ─── Teacher submission workflow ─────────────────────────────────────────────
+
+  /**
+   * Submit a new teacher for Director approval.
+   * The Head of Study provides the proposed teacher's name and email.
+   * A pending_teacher_submissions row is created; no user account is created yet.
+   */
+  submitTeacher: protectedProcedure
+    .input(z.object({
+      teacherName: z.string().min(1).max(255),
+      teacherEmail: z.string().email().max(255),
+      note: z.string().max(512).optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      if (ctx.user.role !== "head_of_study" && ctx.user.role !== "admin") {
+        throw new Error("Only a Head of Study can submit teacher requests.");
+      }
+      if (!ctx.user.tenantId) {
+        throw new Error("You must be assigned to a school before submitting teachers.");
+      }
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      // Check for an existing pending submission for this email in this school
+      const existing = await db
+        .select({ id: pendingTeacherSubmissions.id })
+        .from(pendingTeacherSubmissions)
+        .where(
+          and(
+            eq(pendingTeacherSubmissions.teacherEmail, input.teacherEmail.toLowerCase()),
+            eq(pendingTeacherSubmissions.tenantId, ctx.user.tenantId),
+            eq(pendingTeacherSubmissions.pts_status, "pending"),
+          )
+        )
+        .limit(1);
+      if (existing.length > 0) {
+        throw new Error("A pending submission already exists for this email address.");
+      }
+      await db.insert(pendingTeacherSubmissions).values({
+        submittedByUserId: ctx.user.id,
+        tenantId: ctx.user.tenantId,
+        teacherName: input.teacherName.trim(),
+        teacherEmail: input.teacherEmail.toLowerCase().trim(),
+        note: input.note ?? null,
+        pts_status: "pending",
+      });
+      return { success: true };
+    }),
+
+  /**
+   * List all teacher submissions made by the current HoS (or all for admin).
+   */
+  listMyTeacherSubmissions: protectedProcedure.query(async ({ ctx }) => {
+    if (ctx.user.role !== "head_of_study" && ctx.user.role !== "admin") {
+      return [];
+    }
+    const db = await getDb();
+    if (!db) return [];
+    const rows = await db
+      .select()
+      .from(pendingTeacherSubmissions)
+      .where(
+        ctx.user.role === "admin"
+          ? undefined
+          : eq(pendingTeacherSubmissions.submittedByUserId, ctx.user.id)
+      )
+      .orderBy(pendingTeacherSubmissions.createdAt);
+    return rows;
+  }),
 });

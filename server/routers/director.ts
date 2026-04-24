@@ -19,7 +19,7 @@ import {
 import { count, eq, gte, sql, desc, and, lt, inArray, isNotNull, isNull, gt } from "drizzle-orm";
 import crypto from "crypto";
 import { passwordResetTokens } from "../../drizzle/schema";
-import { appSettings, schoolSettings, adminAuditLogs, roleChangeAudit } from "../../drizzle/schema";
+import { appSettings, schoolSettings, adminAuditLogs, roleChangeAudit, pendingTeacherSubmissions, tenants } from "../../drizzle/schema";
 import { notifyOwner } from "../_core/notification";
 import { generateDirectorReportPdf } from "../directorReportPdf";
 import { storagePut } from "../storage";
@@ -1170,5 +1170,162 @@ export const directorRouter = router({
         role: targetUser.role ?? "user",
       });
       return { success: true, tempPassword, email: targetUser.email };
+    }),
+
+  // ─── Pending Teacher Submissions (Director approval) ──────────────────────────
+
+  /**
+   * List all pending teacher submissions for the Director's school.
+   * Admins see all submissions across all schools.
+   */
+  listPendingTeacherSubmissions: adminProcedure.query(async ({ ctx }) => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+    const submittedBy = users;
+    const rows = await db
+      .select({
+        id: pendingTeacherSubmissions.id,
+        teacherName: pendingTeacherSubmissions.teacherName,
+        teacherEmail: pendingTeacherSubmissions.teacherEmail,
+        note: pendingTeacherSubmissions.note,
+        pts_status: pendingTeacherSubmissions.pts_status,
+        rejectionReason: pendingTeacherSubmissions.rejectionReason,
+        reviewedAt: pendingTeacherSubmissions.reviewedAt,
+        createdAt: pendingTeacherSubmissions.createdAt,
+        tenantId: pendingTeacherSubmissions.tenantId,
+        submittedByUserId: pendingTeacherSubmissions.submittedByUserId,
+        submittedByName: submittedBy.name,
+        submittedByEmail: submittedBy.email,
+      })
+      .from(pendingTeacherSubmissions)
+      .leftJoin(submittedBy, eq(pendingTeacherSubmissions.submittedByUserId, submittedBy.id))
+      .orderBy(pendingTeacherSubmissions.createdAt);
+    return rows;
+  }),
+
+  /**
+   * Approve a pending teacher submission.
+   * Creates a local user account with a temp password, assigns to the school,
+   * sets role=teacher, and emails the new teacher their credentials.
+   */
+  approvePendingTeacher: adminProcedure
+    .input(z.object({ submissionId: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const [submission] = await db
+        .select()
+        .from(pendingTeacherSubmissions)
+        .where(eq(pendingTeacherSubmissions.id, input.submissionId))
+        .limit(1);
+      if (!submission) throw new Error("Submission not found.");
+      if (submission.pts_status !== "pending") throw new Error("Submission is no longer pending.");
+
+      // Check email not already taken
+      const [existingUser] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.email, submission.teacherEmail))
+        .limit(1);
+      if (existingUser) throw new Error("A user with this email already exists.");
+
+      // Get school name for the email
+      const [tenant] = await db
+        .select({ name: tenants.name })
+        .from(tenants)
+        .where(eq(tenants.id, submission.tenantId))
+        .limit(1);
+
+      // Generate temp password
+      const tempPassword = crypto.randomBytes(8).toString("base64url").slice(0, 12);
+      const passwordHash = await bcrypt.hash(tempPassword, 10);
+
+      // Create user account
+      const [insertResult] = await db.insert(users).values({
+        openId: `local_${crypto.randomUUID()}`,
+        name: submission.teacherName,
+        email: submission.teacherEmail,
+        loginMethod: "local",
+        role: "teacher",
+        position: "teacher",
+        tenantId: submission.tenantId,
+        schoolName: tenant?.name ?? null,
+        passwordHash,
+        mustChangePassword: true,
+        displayName: submission.teacherName,
+      });
+      const newUserId = (insertResult as unknown as { insertId: number }).insertId;
+
+      // Mark submission as approved
+      await db
+        .update(pendingTeacherSubmissions)
+        .set({
+          pts_status: "approved",
+          reviewedByUserId: ctx.user.id,
+          reviewedAt: new Date(),
+          createdUserId: newUserId,
+        })
+        .where(eq(pendingTeacherSubmissions.id, input.submissionId));
+
+      // Send temp password email
+      void sendTempPasswordEmail({
+        to: submission.teacherEmail,
+        name: submission.teacherName,
+        tempPassword,
+        schoolName: tenant?.name ?? null,
+        loginUrl: "https://aina.forum/login",
+        role: "teacher",
+      });
+
+      // Audit log
+      await db.insert(adminAuditLogs).values({
+        userId: ctx.user.id,
+        action: "approve_teacher_submission",
+        resource: "pending_teacher_submissions",
+        resourceId: String(input.submissionId),
+        details: JSON.stringify({ teacherEmail: submission.teacherEmail, newUserId }),
+      });
+
+      return { success: true, tempPassword, teacherEmail: submission.teacherEmail };
+    }),
+
+  /**
+   * Reject a pending teacher submission with an optional reason.
+   */
+  rejectPendingTeacher: adminProcedure
+    .input(z.object({
+      submissionId: z.number().int().positive(),
+      reason: z.string().max(512).optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const [submission] = await db
+        .select({ id: pendingTeacherSubmissions.id, pts_status: pendingTeacherSubmissions.pts_status })
+        .from(pendingTeacherSubmissions)
+        .where(eq(pendingTeacherSubmissions.id, input.submissionId))
+        .limit(1);
+      if (!submission) throw new Error("Submission not found.");
+      if (submission.pts_status !== "pending") throw new Error("Submission is no longer pending.");
+
+      await db
+        .update(pendingTeacherSubmissions)
+        .set({
+          pts_status: "rejected",
+          rejectionReason: input.reason ?? null,
+          reviewedByUserId: ctx.user.id,
+          reviewedAt: new Date(),
+        })
+        .where(eq(pendingTeacherSubmissions.id, input.submissionId));
+
+      await db.insert(adminAuditLogs).values({
+        userId: ctx.user.id,
+        action: "reject_teacher_submission",
+        resource: "pending_teacher_submissions",
+        resourceId: String(input.submissionId),
+        details: JSON.stringify({ reason: input.reason }),
+      });
+
+      return { success: true };
     }),
 });

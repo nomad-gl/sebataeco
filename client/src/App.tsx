@@ -64,6 +64,7 @@ import HosCurriculum from "./pages/hos/HosCurriculum";
 import HosReports from "./pages/hos/HosReports";
 import HosSettings from "./pages/hos/HosSettings";
 import HosAssignUsers from "./pages/hos/HosAssignUsers";
+import HosAddTeacher from "./pages/hos/HosAddTeacher";
 import SituacioGenerator from "./pages/SituacioGenerator";
 import MySituacions from "./pages/MySituacions";
 import AdminEnrolment from "./pages/admin/AdminEnrolment";
@@ -193,6 +194,7 @@ function Router() {
         <Route path="/head-of-study/reports" component={HosReports} />
         <Route path="/head-of-study/settings" component={HosSettings} />
         <Route path="/head-of-study/assign-users" component={HosAssignUsers} />
+        <Route path="/head-of-study/add-teacher" component={HosAddTeacher} />
         <Route path="/situacio">
           <HosOrAdminRoute component={SituacioGenerator} />
         </Route>
