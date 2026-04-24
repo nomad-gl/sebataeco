@@ -57,7 +57,9 @@ import DirectorUsers from "./pages/director/DirectorUsers";
 import DirectorApprovals from "./pages/director/DirectorApprovals";
 import DirectorTeacherAttendance from "./pages/director/DirectorTeacherAttendance";
 import DirectorTeacherProfiles from "./pages/director/DirectorTeacherProfiles";
+import DirectorCoverRequests from "./pages/director/DirectorCoverRequests";
 import TeacherAttendance from "./pages/teacher/TeacherAttendance";
+import RegisterPage from "./pages/RegisterPage";
 import TeacherProfileView from "./pages/teacher/TeacherProfileView";
 import HosProgress from "./pages/hos/HosProgress";
 import HosGroups from "./pages/hos/HosGroups";
@@ -191,8 +193,10 @@ function Router() {
         <Route path="/director/approvals" component={DirectorApprovals} />
         <Route path="/director/teacher-attendance" component={DirectorTeacherAttendance} />
         <Route path="/director/teacher-profiles" component={DirectorTeacherProfiles} />
+        <Route path="/director/cover-requests" component={DirectorCoverRequests} />
         <Route path="/teacher/attendance" component={TeacherAttendance} />
         <Route path="/teacher/profile" component={TeacherProfileView} />
+        <Route path="/teacher/register" component={RegisterPage} />
         <Route path="/head-of-study/progress" component={HosProgress} />
         <Route path="/head-of-study/groups" component={HosGroups} />
         <Route path="/head-of-study/timetable" component={HosTimetable} />

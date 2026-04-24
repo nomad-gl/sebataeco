@@ -4271,3 +4271,53 @@
 - [x] Client: LessonPlanner.tsx — add differentiation to LessonFormState, planToForm, formToSave; add Section 7 card with three colour-coded tier panels (blue/advanced, green/standard, amber/slower)
 - [x] Client: LessonPlanner.tsx — add differentiation table to the print HTML builder
 - [x] i18n: add lp_differentiation, lp_diff_advanced, lp_diff_standard, lp_diff_slower, lp_diff_objectives, lp_diff_activities, lp_diff_assessment keys (EN/ES/CA)
+
+## Attendance Register & AI Cover Teacher System
+
+### Phase 1 — DB Schema
+- [x] DB: add class_register table (id, classGroupId, lessonDate, assignedTeacherId, markedByTeacherId, markedAt, isAbsence, absenceReason enum: absent/sick/holiday, notes)
+- [x] DB: add cover_assignment table (id, registerId, coverTeacherId, confirmedByDirectorId, confirmedAt, status enum: pending/confirmed/declined, paybackScheduled bool, paybackSessionId nullable FK)
+- [x] DB: add hour_adjustment table (id, userId, adjustmentMinutes, reason, relatedRegisterId nullable, createdAt, createdByUserId)
+- [x] DB: add teacher_notification table (id, userId, type, title, body, relatedRegisterId nullable, relatedCoverAssignmentId nullable, isRead bool, requiresResponse bool, response enum: accepted/declined/null, respondedAt, createdAt)
+- [x] DB: apply all migrations via Node.js scripts
+
+### Phase 2 — Server: Register Router
+- [x] Server: register.markRegister mutation — marks teacher present (attendance), detects if markedBy ≠ assigned teacher, logs in-absence-of, notifies director
+- [x] Server: register.getRegisterStatus query — returns register state for a classGroup + date
+- [x] Server: register.listRegisters query — director view: all registers with in-absence-of flags, date/time stamps
+- [x] Server: register.getAbsenceLog query — director view: log of all absence events with timestamps
+
+### Phase 3 — Server: Cover Router
+- [x] Server: cover.findCoverCandidates query — AI-ranked: (1) subject-matching available teachers, (2) topic-specific teachers not listed for generalised subject, (3) any available teacher by timetable; returns ranked list with reasoning
+- [x] Server: cover.assignCover mutation — director confirms cover teacher; creates cover_assignment record; creates hour_adjustment record with comment; triggers payback scan
+- [x] Server: cover.findPaybackOpportunity query — AI scans future calendar for a slot where cover teacher is free and absent teacher has a class, to schedule payback; skips if cover teacher is under contracted hours
+- [x] Server: cover.schedulePayback mutation — creates payback cover_assignment and hour_adjustment records; notifies both teachers
+- [x] Server: cover.notifyTeachers mutation — sends teacher_notification records to all involved teachers with requiresResponse=true
+- [x] Server: cover.respondToNotification mutation — teacher accepts/declines; response logged; director notified of response
+- [x] Server: cover.listPendingCovers query — director view: all pending cover assignments awaiting confirmation
+
+### Phase 4 — Client: Teacher Register UI
+- [x] Client: new RegisterPage.tsx (route /teacher/register) — teacher selects class group + date, clicks "Mark Register"; auto-marks teacher present
+- [x] Client: RegisterPage.tsx — if markedBy ≠ assigned teacher: show amber "In Absence Of [Teacher Name]" banner with date/time stamp
+- [x] Client: RegisterPage.tsx — show current register status (who marked, when, absence flag)
+- [x] Client: add "Register" link to Teacher NavBar dropdown
+
+### Phase 5 — Client: Director Cover Management UI
+- [x] Client: new DirectorCoverRequests.tsx (route /director/cover-requests) — lists all pending cover requests with in-absence-of log
+- [x] Client: DirectorCoverRequests.tsx — cover confirmation dialog: shows AI-ranked teacher candidates with availability info and AI reasoning; director selects and confirms
+- [x] Client: DirectorCoverRequests.tsx — payback opportunities panel: shows AI-identified future payback slots with accept/dismiss
+- [x] Client: DirectorTeacherProfiles.tsx Hours tab — show hour_adjustment log entries for the selected teacher (date, minutes, reason, type: extra/payback)
+- [x] Client: add "Cover Requests" link to Director NavBar dropdown
+
+### Phase 6 — Client: Teacher Notification Panel
+- [x] Client: add notification bell/badge to NavBar showing unread teacher_notification count
+- [x] Client: new NotificationsPanel.tsx — slide-out panel listing all notifications; unread highlighted
+- [x] Client: NotificationsPanel.tsx — for requiresResponse notifications: show "Accept Change" and "Decline" buttons
+- [x] Client: NotificationsPanel.tsx — after response, show confirmation and update badge count
+
+### Phase 7 — i18n
+- [x] i18n: add register_page_title, register_mark_btn, register_already_marked, register_in_absence_of, register_absence_reason, register_notes keys (EN/ES/CA)
+- [x] i18n: add cover_requests_title, cover_confirm_title, cover_candidate_subject_match, cover_candidate_topic_match, cover_candidate_available, cover_assign_btn, cover_assigned_success keys (EN/ES/CA)
+- [x] i18n: add payback_title, payback_opportunity_found, payback_schedule_btn, payback_no_opportunity, payback_under_hours_note keys (EN/ES/CA)
+- [x] i18n: add notif_bell_title, notif_accept_change, notif_decline_change, notif_response_sent, notif_cover_assigned, notif_cover_request, notif_payback_scheduled keys (EN/ES/CA)
+- [x] i18n: add hour_adj_log_title, hour_adj_extra, hour_adj_payback, hour_adj_comment keys (EN/ES/CA)

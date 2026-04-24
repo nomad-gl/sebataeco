@@ -1952,3 +1952,141 @@ export const teacherSchedule = mysqlTable("teacher_schedule", {
 });
 export type TeacherScheduleRow = typeof teacherSchedule.$inferSelect;
 export type InsertTeacherScheduleRow = typeof teacherSchedule.$inferInsert;
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Attendance Register & Cover Teacher System
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * class_register — one row per class session, recording who marked the register
+ * and whether the assigned teacher was present or absent.
+ *
+ * When markedByTeacherId ≠ assignedTeacherId the isAbsence flag is set to true
+ * and the director is notified automatically.
+ */
+export const classRegister = mysqlTable("class_register", {
+  id: int("id").autoincrement().primaryKey(),
+  /** FK → class_groups.id */
+  classGroupId: int("classGroupId").notNull(),
+  /** The date of the lesson (YYYY-MM-DD) */
+  lessonDate: date("lessonDate").notNull(),
+  /** FK → users.id — the teacher who should have taught this class */
+  assignedTeacherId: int("assignedTeacherId").notNull(),
+  /** FK → users.id — the teacher who actually marked the register */
+  markedByTeacherId: int("markedByTeacherId").notNull(),
+  /** When the register was marked */
+  markedAt: timestamp("markedAt").defaultNow().notNull(),
+  /** True when markedBy ≠ assigned (i.e. the assigned teacher was absent) */
+  isAbsence: boolean("isAbsence").default(false).notNull(),
+  /** Reason for absence — only set when isAbsence = true */
+  absenceReason: mysqlEnum("absence_reason", ["absent", "sick", "holiday", "other"]),
+  /** Free-text notes added by the marking teacher or director */
+  notes: varchar("notes", { length: 1024 }),
+  /** Tenant isolation */
+  tenantId: int("tenantId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type ClassRegister = typeof classRegister.$inferSelect;
+export type InsertClassRegister = typeof classRegister.$inferInsert;
+
+/**
+ * cover_assignment — records which teacher was assigned to cover an absent
+ * teacher's class, as confirmed by the director.
+ *
+ * A payback row is a second cover_assignment where the roles are reversed:
+ * the originally absent teacher covers a future session for the cover teacher.
+ */
+export const coverAssignment = mysqlTable("cover_assignment", {
+  id: int("id").autoincrement().primaryKey(),
+  /** FK → class_register.id — the absence event this cover is for */
+  registerId: int("registerId").notNull(),
+  /** FK → users.id — the teacher assigned to cover */
+  coverTeacherId: int("coverTeacherId").notNull(),
+  /** FK → users.id — the director who confirmed this cover */
+  confirmedByDirectorId: int("confirmedByDirectorId"),
+  /** When the director confirmed */
+  confirmedAt: timestamp("confirmedAt"),
+  /** Workflow status */
+  status: mysqlEnum("cover_status", ["pending", "confirmed", "declined"]).default("pending").notNull(),
+  /** Whether a payback session has been scheduled for this cover */
+  paybackScheduled: boolean("paybackScheduled").default(false).notNull(),
+  /** FK → cover_assignment.id — the payback assignment (self-referential) */
+  paybackSessionId: int("paybackSessionId"),
+  /** AI reasoning text shown to the director when suggesting this teacher */
+  aiReasoning: text("aiReasoning"),
+  /** Tenant isolation */
+  tenantId: int("tenantId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type CoverAssignment = typeof coverAssignment.$inferSelect;
+export type InsertCoverAssignment = typeof coverAssignment.$inferInsert;
+
+/**
+ * hour_adjustment — audit log of every change to a teacher's teaching contact
+ * hours (extra cover hours added, payback hours deducted, etc.).
+ *
+ * This table never modifies the schedule directly; it is an additive ledger.
+ * The net balance is computed at query time by summing adjustmentMinutes.
+ */
+export const hourAdjustment = mysqlTable("hour_adjustment", {
+  id: int("id").autoincrement().primaryKey(),
+  /** FK → users.id — the teacher whose hours are being adjusted */
+  userId: int("userId").notNull(),
+  /** Positive = extra hours added; negative = hours deducted (payback) */
+  adjustmentMinutes: int("adjustmentMinutes").notNull(),
+  /** Human-readable reason (auto-generated or director-edited) */
+  reason: varchar("reason", { length: 512 }).notNull(),
+  /** Type of adjustment for display and filtering */
+  adjustmentType: mysqlEnum("adj_type", ["extra_cover", "payback", "manual"]).default("manual").notNull(),
+  /** FK → class_register.id — the absence event that triggered this adjustment */
+  relatedRegisterId: int("relatedRegisterId"),
+  /** FK → cover_assignment.id — the cover assignment that triggered this */
+  relatedCoverAssignmentId: int("relatedCoverAssignmentId"),
+  /** FK → users.id — who created this record (director or system) */
+  createdByUserId: int("createdByUserId").notNull(),
+  /** Tenant isolation */
+  tenantId: int("tenantId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type HourAdjustment = typeof hourAdjustment.$inferSelect;
+export type InsertHourAdjustment = typeof hourAdjustment.$inferInsert;
+
+/**
+ * teacher_notification — in-app notifications sent to teachers when a cover
+ * assignment is created, a payback is scheduled, or a response is required.
+ *
+ * requiresResponse = true means the notification has Accept / Decline buttons.
+ * Once the teacher responds, response and respondedAt are set.
+ */
+export const teacherNotification = mysqlTable("teacher_notification", {
+  id: int("id").autoincrement().primaryKey(),
+  /** FK → users.id — the recipient teacher */
+  userId: int("userId").notNull(),
+  /** Notification category for icon/colour selection */
+  type: mysqlEnum("notif_type", ["cover_request", "cover_assigned", "payback_scheduled", "register_absence", "cover_response", "general"]).default("general").notNull(),
+  /** Short title shown in the notification bell */
+  title: varchar("title", { length: 256 }).notNull(),
+  /** Full notification body */
+  body: text("body").notNull(),
+  /** FK → class_register.id */
+  relatedRegisterId: int("relatedRegisterId"),
+  /** FK → cover_assignment.id */
+  relatedCoverAssignmentId: int("relatedCoverAssignmentId"),
+  /** Whether the teacher has opened/read this notification */
+  isRead: boolean("isRead").default(false).notNull(),
+  /** Whether this notification requires an Accept/Decline response */
+  requiresResponse: boolean("requiresResponse").default(false).notNull(),
+  /** Teacher's response (null until responded) */
+  response: mysqlEnum("notif_response", ["accepted", "declined"]),
+  /** When the teacher responded */
+  respondedAt: timestamp("respondedAt"),
+  /** Tenant isolation */
+  tenantId: int("tenantId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type TeacherNotification = typeof teacherNotification.$inferSelect;
+export type InsertTeacherNotification = typeof teacherNotification.$inferInsert;

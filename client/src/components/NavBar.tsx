@@ -7,7 +7,7 @@ import {
   Presentation as PresentationIcon, Globe, Users, MessagesSquare, Bell, Download,
   CalendarDays, FileText, Settings as SettingsIcon, ShieldAlert, Lock, HelpCircle,
   BarChart3, UserCheck, BookCheck, GraduationCap, Mic,
-  ClipboardList, ClipboardCheck, Banknote, UserCog, FolderOpen, Building2, Wrench, Music, Wifi, LogOut, LogIn,
+  ClipboardList, ClipboardCheck, Banknote, UserCog, FolderOpen, Building2, Wrench, Music, Wifi, LogOut, LogIn, AlertTriangle,
   UserPlus, Copy, CheckCircle2, MapPin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -284,6 +284,7 @@ export default function NavBar() {
     { href: "/director/approvals",  label: t("dir_approvals"),        icon: ClipboardList },
     { href: "/director/teacher-attendance", label: t("nav_director_teacher_attendance"), icon: ClipboardList },
     { href: "/director/teacher-profiles",   label: t("nav_director_teacher_profiles"),   icon: BookOpen },
+    { href: "/director/cover-requests",     label: t("cover_requests_title"),            icon: AlertTriangle },
     { href: "/head-of-study/add-teacher", label: t("dir_add_teacher"),   icon: UserPlus },
     { href: "/attendance",           label: t("nav_attendance"),       icon: ClipboardList },
     { href: "/school-calendar",      label: t("nav_school_calendar"),  icon: CalendarDays },
@@ -307,6 +308,7 @@ export default function NavBar() {
     { href: "/progress",      label: t("nav_group_progress"), icon: TrendingUp },
     { href: "/attendance",   label: t("nav_attendance"),   icon: UserCheck },
     { href: "/teacher/attendance",  label: t("nav_teacher_attendance"),  icon: ClipboardCheck },
+    { href: "/teacher/register",     label: t("register_page_title"),    icon: ClipboardList },
     { href: "/teacher/profile",      label: t("nav_teacher_profiles"),   icon: BookOpen },
     { href: "/forum",         label: t("nav_forum"),         icon: MessagesSquare },
     { href: "/connect",       label: t("nav_connect"),       icon: Wifi },

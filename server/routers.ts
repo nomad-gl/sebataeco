@@ -42,6 +42,8 @@ import { localAuthRouter } from "./routers/localAuth";
 import { ilpRouter, lessonPlanRouter } from "./routers/individualPlans";
 import { tenantsRouter } from "./routers/tenants";
 import { territorialDirectorRouter } from "./routers/territorialDirector";
+import { registerRouter } from "./routers/register";
+import { coverRouter } from "./routers/cover";
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -149,6 +151,8 @@ export const appRouter = router({
   assignmentRequests: assignmentRequestsRouter,
   teacherAttendance: teacherAttendanceRouter,
   teacherProfile: teacherProfileRouter,
+  register: registerRouter,
+  cover: coverRouter,
 });
 
 export type AppRouter = typeof appRouter;

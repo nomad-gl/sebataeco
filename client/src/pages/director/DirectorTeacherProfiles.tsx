@@ -17,6 +17,7 @@ import {
   User, Calendar, TrendingUp, TrendingDown, Minus, AlertTriangle,
   LayoutGrid, List, Mail, Copy,
 } from "lucide-react";
+import { HourAdjustmentsLog } from "@/components/HourAdjustmentsLog";
 
 const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
 const SEMESTERS = ["1", "2", "full_year"] as const;
@@ -666,6 +667,18 @@ export default function DirectorTeacherProfiles() {
                           </div>
                         </CardContent>
                       </Card>
+
+                      {/* Cover/Payback Hour Adjustments */}
+                      {selectedTeacherId && (
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">{t("hour_adj_log_title")}</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <HourAdjustmentsLog userId={selectedTeacherId} />
+                          </CardContent>
+                        </Card>
+                      )}
 
                       {/* Per-semester breakdown */}
                       {hoursSummary.semesterSummary.length > 0 && (
