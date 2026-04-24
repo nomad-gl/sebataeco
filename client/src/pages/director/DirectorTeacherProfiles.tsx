@@ -43,6 +43,7 @@ export default function DirectorTeacherProfiles() {
   const [scheduleView, setScheduleView] = useState<"list" | "grid">("list");
   // Semester filter: "all" | "1" | "2" | "full_year"
   const [semesterFilter, setSemesterFilter] = useState<"all" | "1" | "2" | "full_year">("all");
+  const [contractedHoursInput, setContractedHoursInput] = useState<string>("");
 
   // Pre-select teacher from ?teacher= query param (set by approval shortcut)
   useEffect(() => {
@@ -147,6 +148,14 @@ export default function DirectorTeacherProfiles() {
     onError: (e) => toast.error(e.message),
   });
 
+  const setContractedHoursMutation = trpc.teacherProfile.setContractedHours.useMutation({
+    onSuccess: () => {
+      toast.success(t("tp_contracted_hours_saved"));
+      utils.teacherProfile.getTeacherRoster.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   function openAddSubject(teacherId: number) {
     setSelectedTeacherId(teacherId);
     setEditSubject(null);
@@ -215,6 +224,15 @@ export default function DirectorTeacherProfiles() {
   }, [filteredSchedule]);
 
   const selectedTeacher = roster?.find((t) => t.id === selectedTeacherId);
+
+  // Sync contracted hours input when selected teacher changes
+  useEffect(() => {
+    if (selectedTeacher?.contractedWeeklyMinutes != null) {
+      setContractedHoursInput(String(Math.round(selectedTeacher.contractedWeeklyMinutes / 60 * 10) / 10));
+    } else {
+      setContractedHoursInput("");
+    }
+  }, [selectedTeacherId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="container py-6 space-y-6">
@@ -519,6 +537,56 @@ export default function DirectorTeacherProfiles() {
                     <div className="text-muted-foreground text-sm text-center py-8">{t("loading")}</div>
                   ) : (
                     <>
+                      {/* Contracted Hours Setting */}
+                      <Card>
+                        <CardContent className="p-4">
+                          <p className="text-sm font-medium mb-3">{t("tp_contracted_hours_label")}</p>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              min="0"
+                              max="60"
+                              step="0.5"
+                              className="flex h-9 w-28 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                              placeholder={t("tp_contracted_hours_placeholder")}
+                              value={contractedHoursInput}
+                              onChange={(e) => setContractedHoursInput(e.target.value)}
+                            />
+                            <span className="text-sm text-muted-foreground">h/week</span>
+                            <Button
+                              size="sm"
+                              disabled={setContractedHoursMutation.isPending}
+                              onClick={() => {
+                                const hours = parseFloat(contractedHoursInput);
+                                const minutes = isNaN(hours) || contractedHoursInput === "" ? null : Math.round(hours * 60);
+                                setContractedHoursMutation.mutate({ userId: selectedTeacherId!, contractedWeeklyMinutes: minutes });
+                              }}
+                            >
+                              {t("save")}
+                            </Button>
+                            {selectedTeacher?.contractedWeeklyMinutes != null && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-muted-foreground text-xs"
+                                disabled={setContractedHoursMutation.isPending}
+                                onClick={() => {
+                                  setContractedHoursInput("");
+                                  setContractedHoursMutation.mutate({ userId: selectedTeacherId!, contractedWeeklyMinutes: null });
+                                }}
+                              >
+                                {t("cancel")}
+                              </Button>
+                            )}
+                          </div>
+                          {selectedTeacher?.contractedWeeklyMinutes != null && (
+                            <p className="text-xs text-muted-foreground mt-2">
+                              {t("tp_contracted_hours_current")}: {Math.round(selectedTeacher.contractedWeeklyMinutes / 60 * 10) / 10}h/week
+                            </p>
+                          )}
+                        </CardContent>
+                      </Card>
+
                       {/* Summary Cards */}
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                         <Card>

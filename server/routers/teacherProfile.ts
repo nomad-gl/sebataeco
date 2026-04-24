@@ -514,4 +514,22 @@ export const teacherProfileRouter = router({
 
       return { success: true };
     }),
+
+  setContractedHours: protectedProcedure
+    .input(z.object({ userId: z.number().int().positive(), contractedWeeklyMinutes: z.number().int().min(0).nullable() }))
+    .mutation(async ({ ctx, input }) => {
+      if (!isDirectorOrHos(ctx.user.role, ctx.user.position ?? "")) {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+      const tenantId = ctx.user.tenantId;
+      if (!tenantId) throw new TRPCError({ code: "BAD_REQUEST", message: "No tenant" });
+      const db = await getDb(); if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      await db
+        .update(users)
+        .set({ contractedWeeklyMinutes: input.contractedWeeklyMinutes })
+        .where(and(eq(users.id, input.userId), eq(users.tenantId, tenantId)));
+
+      return { success: true };
+    }),
 });

@@ -3123,6 +3123,10 @@ export const translations = {
     tp_set_non_permanent: "Mark as Temporary",
     tp_set_permanent_success: "Teacher marked as permanent staff.",
     tp_set_non_permanent_success: "Teacher marked as temporary staff.",
+    tp_contracted_hours_label: "Contracted Weekly Hours",
+    tp_contracted_hours_placeholder: "e.g. 18",
+    tp_contracted_hours_saved: "Contracted hours updated.",
+    tp_contracted_hours_current: "Current target",
   },
   es: {
     // NavBar
@@ -6215,6 +6219,10 @@ export const translations = {
     tp_set_non_permanent: "Marcar como temporal",
     tp_set_permanent_success: "Docente marcado como personal fijo.",
     tp_set_non_permanent_success: "Docente marcado como personal temporal.",
+    tp_contracted_hours_label: "Horas semanales contratadas",
+    tp_contracted_hours_placeholder: "p.ej. 18",
+    tp_contracted_hours_saved: "Horas contratadas actualizadas.",
+    tp_contracted_hours_current: "Objetivo actual",
   },
   ca: {
     // NavBar
@@ -9310,6 +9318,10 @@ export const translations = {
     tp_set_non_permanent: "Marcar com a temporal",
     tp_set_permanent_success: "Docent marcat com a personal fix.",
     tp_set_non_permanent_success: "Docent marcat com a personal temporal.",
+    tp_contracted_hours_label: "Hores setmanals contractades",
+    tp_contracted_hours_placeholder: "p.ex. 18",
+    tp_contracted_hours_saved: "Hores contractades actualitzades.",
+    tp_contracted_hours_current: "Objectiu actual",
   },
 } as const;
 

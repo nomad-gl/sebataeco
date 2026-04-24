@@ -4251,3 +4251,8 @@
 - [x] Client: show amber "Temp" badge next to teacher name in DirectorTeacherProfiles roster cards, detail panel header, and DirectorUsers table
 - [x] Client: show badge in HoS teacher-facing views (HosGroups tutor select, HosTimetable teacher select)
 - [x] i18n: add tp_non_permanent, tp_set_permanent, tp_set_non_permanent, tp_set_permanent_success, tp_set_non_permanent_success keys (EN/ES/CA)
+
+## Contracted Weekly Hours Input (Hours Tab)
+- [x] Server: add setContractedHours mutation to teacherProfile router (takes userId: number, contractedWeeklyMinutes: number | null)
+- [x] Client: DirectorTeacherProfiles Hours tab — add contracted hours input (number field in hours, converts to minutes for storage) with Save button; auto-syncs when teacher changes; Clear button removes target
+- [x] i18n: add tp_contracted_hours_label, tp_contracted_hours_placeholder, tp_contracted_hours_saved, tp_contracted_hours_current keys (EN/ES/CA)
