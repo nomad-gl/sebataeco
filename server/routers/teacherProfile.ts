@@ -449,6 +449,7 @@ export const teacherProfileRouter = router({
           role: users.role,
           position: users.position,
           contractedWeeklyMinutes: users.contractedWeeklyMinutes,
+          isPermanent: users.isPermanent,
         })
         .from(users)
         .where(
@@ -488,10 +489,29 @@ export const teacherProfileRouter = router({
             weeklyHours: fmtHours(weeklyMinutes),
             scheduleSlots: slots.length,
             contractedWeeklyMinutes: t.contractedWeeklyMinutes ?? null,
+            isPermanent: t.isPermanent ?? true,
           };
         })
       );
 
       return results;
+    }),
+
+  setTeacherPermanent: protectedProcedure
+    .input(z.object({ userId: z.number().int().positive(), isPermanent: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      if (!isDirectorOrHos(ctx.user.role, ctx.user.position ?? "")) {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+      const tenantId = ctx.user.tenantId;
+      if (!tenantId) throw new TRPCError({ code: "BAD_REQUEST", message: "No tenant" });
+      const db = await getDb(); if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      await db
+        .update(users)
+        .set({ isPermanent: input.isPermanent })
+        .where(and(eq(users.id, input.userId), eq(users.tenantId, tenantId)));
+
+      return { success: true };
     }),
 });

@@ -3118,6 +3118,11 @@ export const translations = {
     tp_filter_sem2: "Semester 2",
     tp_filter_full_year: "Full Year",
     tp_hours_progress_label: "Weekly hours",
+    tp_non_permanent: "Temp",
+    tp_set_permanent: "Mark as Permanent",
+    tp_set_non_permanent: "Mark as Temporary",
+    tp_set_permanent_success: "Teacher marked as permanent staff.",
+    tp_set_non_permanent_success: "Teacher marked as temporary staff.",
   },
   es: {
     // NavBar
@@ -6205,6 +6210,11 @@ export const translations = {
     tp_filter_sem2: "Semestre 2",
     tp_filter_full_year: "Año completo",
     tp_hours_progress_label: "Horas semanales",
+    tp_non_permanent: "Temporal",
+    tp_set_permanent: "Marcar como fijo",
+    tp_set_non_permanent: "Marcar como temporal",
+    tp_set_permanent_success: "Docente marcado como personal fijo.",
+    tp_set_non_permanent_success: "Docente marcado como personal temporal.",
   },
   ca: {
     // NavBar
@@ -9295,6 +9305,11 @@ export const translations = {
     tp_filter_sem2: "Semestre 2",
     tp_filter_full_year: "Any complet",
     tp_hours_progress_label: "Hores setmanals",
+    tp_non_permanent: "Temporal",
+    tp_set_permanent: "Marcar com a fix",
+    tp_set_non_permanent: "Marcar com a temporal",
+    tp_set_permanent_success: "Docent marcat com a personal fix.",
+    tp_set_non_permanent_success: "Docent marcat com a personal temporal.",
   },
 } as const;
 

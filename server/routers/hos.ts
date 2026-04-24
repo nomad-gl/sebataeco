@@ -132,7 +132,7 @@ export const hosRouter = router({
     const db = await getDb();
     if (!db) return [];
     return db
-      .select({ id: users.id, name: users.name, email: users.email })
+      .select({ id: users.id, name: users.name, email: users.email, isPermanent: users.isPermanent })
       .from(users);
   }),
 

@@ -766,6 +766,7 @@ export const directorRouter = router({
         lastSignedIn: users.lastSignedIn,
         createdAt: users.createdAt,
         deactivatedAt: users.deactivatedAt,
+        isPermanent: users.isPermanent,
       })
       .from(users)
       .where(isNotNull(users.passwordHash))

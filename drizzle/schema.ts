@@ -69,6 +69,14 @@ export const users = mysqlTable("users", {
    */
   /** @migration 0047 */
   contractedWeeklyMinutes: int("contractedWeeklyMinutes"),
+  /**
+   * Whether this teacher is a permanent (fixed) member of staff.
+   * Set to false for substitute / temporary teachers.
+   * Directors and HoS see a visual badge when this is false.
+   * NULL treated as true (permanent) for backwards compatibility.
+   */
+  /** @migration 0048 */
+  isPermanent: boolean("isPermanent").default(true),
 });
 
 export type User = typeof users.$inferSelect;

@@ -139,6 +139,14 @@ export default function DirectorTeacherProfiles() {
     onError: (e) => toast.error(e.message),
   });
 
+  const setPermanentMutation = trpc.teacherProfile.setTeacherPermanent.useMutation({
+    onSuccess: (_, vars) => {
+      toast.success(vars.isPermanent ? t("tp_set_permanent_success") : t("tp_set_non_permanent_success"));
+      utils.teacherProfile.getTeacherRoster.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   function openAddSubject(teacherId: number) {
     setSelectedTeacherId(teacherId);
     setEditSubject(null);
@@ -263,6 +271,9 @@ export default function DirectorTeacherProfiles() {
                           {newlyApprovedId === teacher.id && (
                             <Badge className="text-[10px] px-1.5 py-0 bg-green-500 text-white shrink-0">New</Badge>
                           )}
+                          {teacher.isPermanent === false && (
+                            <Badge className="text-[10px] px-1.5 py-0 bg-amber-500/20 text-amber-400 border border-amber-500/40 shrink-0">{t("tp_non_permanent")}</Badge>
+                          )}
                         </div>
                         <p className="text-xs text-muted-foreground truncate">{teacher.email}</p>
                       </div>
@@ -317,8 +328,25 @@ export default function DirectorTeacherProfiles() {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="font-semibold text-lg">{selectedTeacher?.displayName || selectedTeacher?.name}</h2>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2 min-w-0">
+                  <h2 className="font-semibold text-lg truncate">{selectedTeacher?.displayName || selectedTeacher?.name}</h2>
+                  {selectedTeacher?.isPermanent === false && (
+                    <Badge className="text-[10px] px-1.5 py-0 bg-amber-500/20 text-amber-400 border border-amber-500/40 shrink-0">{t("tp_non_permanent")}</Badge>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs shrink-0"
+                  disabled={setPermanentMutation.isPending}
+                  onClick={() => setPermanentMutation.mutate({
+                    userId: selectedTeacherId!,
+                    isPermanent: !(selectedTeacher?.isPermanent ?? true),
+                  })}
+                >
+                  {selectedTeacher?.isPermanent === false ? t("tp_set_permanent") : t("tp_set_non_permanent")}
+                </Button>
               </div>
 
               <Tabs defaultValue="subjects">

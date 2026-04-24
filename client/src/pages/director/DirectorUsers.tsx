@@ -314,7 +314,12 @@ export default function DirectorUsers() {
                                 : <User className="h-4 w-4 text-muted-foreground" />
                               }
                             </div>
-                            <span className="font-medium">{user.displayName ?? "—"}</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-medium">{user.displayName ?? "—"}</span>
+                              {user.isPermanent === false && (
+                                <Badge className="text-[10px] px-1.5 py-0 bg-amber-500/20 text-amber-400 border border-amber-500/40 shrink-0">{t("tp_non_permanent")}</Badge>
+                              )}
+                            </div>
                           </div>
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">{user.email ?? "—"}</td>

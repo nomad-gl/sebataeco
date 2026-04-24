@@ -339,7 +339,12 @@ export default function HosGroups() {
                   <SelectItem value="none">{t("hos_no_tutor")}</SelectItem>
                   {teachers.map((teacher) => (
                     <SelectItem key={teacher.id} value={String(teacher.id)}>
-                      {teacher.name ?? teacher.email ?? `User #${teacher.id}`}
+                      <span className="flex items-center gap-1.5">
+                        {teacher.name ?? teacher.email ?? `User #${teacher.id}`}
+                        {teacher.isPermanent === false && (
+                          <Badge className="text-[10px] px-1 py-0 bg-amber-500/20 text-amber-400 border border-amber-500/40">{t("tp_non_permanent")}</Badge>
+                        )}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>

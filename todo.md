@@ -4243,3 +4243,11 @@
 
 ## Create Class Group — Level Combobox
 - [x] Groups.tsx: replace Level plain-text input with a combobox showing common Spanish/Catalan school levels (Infantil, 1r–6è Primària, 1r–4t ESO, 1r–2n Batxillerat, CFGM, CFGS) while still allowing free-text entry
+
+## Non-Permanent Staff Indicator
+- [x] DB: add isPermanent boolean column (nullable, default null) to users table, migration applied via scripts/migrate-is-permanent.mjs
+- [x] Server: expose isPermanent in getTeacherRoster and listLocalUsers; add setTeacherPermanent tRPC mutation (director/HoS only)
+- [x] Client: DirectorTeacherProfiles — toggle button in teacher detail panel header ("Mark as Temporary" / "Mark as Permanent")
+- [x] Client: show amber "Temp" badge next to teacher name in DirectorTeacherProfiles roster cards, detail panel header, and DirectorUsers table
+- [x] Client: show badge in HoS teacher-facing views (HosGroups tutor select, HosTimetable teacher select)
+- [x] i18n: add tp_non_permanent, tp_set_permanent, tp_set_non_permanent, tp_set_permanent_success, tp_set_non_permanent_success keys (EN/ES/CA)
