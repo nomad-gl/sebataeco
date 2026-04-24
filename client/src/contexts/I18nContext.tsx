@@ -3136,6 +3136,13 @@ export const translations = {
     tp_copy_schedule_confirm: "Copy Schedule",
     tp_copy_schedule_success: "Schedule copied successfully.",
     tp_copy_schedule_empty: "That teacher has no schedule slots for this year.",
+    lp_differentiation: "Differentiated Instruction",
+    lp_diff_advanced: "Advanced Learners",
+    lp_diff_standard: "Standard Learners",
+    lp_diff_slower: "Slower Learners",
+    lp_diff_objectives: "Objectives",
+    lp_diff_activities: "Activities",
+    lp_diff_assessment: "Assessment Scaffolding",
   },
   es: {
     // NavBar
@@ -6241,6 +6248,13 @@ export const translations = {
     tp_copy_schedule_confirm: "Copiar horario",
     tp_copy_schedule_success: "Horario copiado correctamente.",
     tp_copy_schedule_empty: "Ese docente no tiene franjas para este año.",
+    lp_differentiation: "Instrucción Diferenciada",
+    lp_diff_advanced: "Alumnos Avanzados",
+    lp_diff_standard: "Alumnos Nivel Estándar",
+    lp_diff_slower: "Alumnos con Ritmo Más Lento",
+    lp_diff_objectives: "Objetivos",
+    lp_diff_activities: "Actividades",
+    lp_diff_assessment: "Andamiaje de Evaluación",
   },
   ca: {
     // NavBar
@@ -9349,6 +9363,13 @@ export const translations = {
     tp_copy_schedule_confirm: "Copiar horari",
     tp_copy_schedule_success: "Horari copiat correctament.",
     tp_copy_schedule_empty: "Aquest docent no té franges per a aquest any.",
+    lp_differentiation: "Instrucció Diferenciada",
+    lp_diff_advanced: "Alumnes Avançats",
+    lp_diff_standard: "Alumnes Nivell Estàndard",
+    lp_diff_slower: "Alumnes amb Ritme Més Lent",
+    lp_diff_objectives: "Objectius",
+    lp_diff_activities: "Activitats",
+    lp_diff_assessment: "Bastida d'Avaluació",
   },
 } as const;
 

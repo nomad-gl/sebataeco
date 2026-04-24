@@ -686,6 +686,11 @@ export const lessonPlans = mysqlTable("lesson_plans", {
   procedures: text("procedures"),
   /** JSON array of LOMLOE competency codes covered */
   competencies: text("competencies"),
+  /**
+   * JSON: differentiated instruction for three learner tiers.
+   * Shape: { advanced: { objectives, activities, assessment }, standard: { ... }, slower: { ... } }
+   */
+  differentiation: text("differentiation"),
   /** Whether this plan was AI-generated */
   aiGenerated: boolean("aiGenerated").default(false).notNull(),
   /** Whether this plan is saved as a reusable template */

@@ -364,6 +364,10 @@ export const lessonPlanRouter = router({
       const systemPrompt = `You are an expert LOMLOE-aligned teacher and educational designer in Catalonia, Spain.
 You create detailed, differentiated individual lesson plans tailored to a single student's needs.
 Your lessons are engaging, practical, and aligned to the eight LOMLOE key competencies.
+Every lesson plan MUST include a dedicated section on differentiated instruction that caters for the three learner ability levels present in every mixed-ability classroom:
+- Advanced learners: extension tasks, higher-order thinking, independent challenge activities
+- Standard/average learners: core lesson activities aligned to the main objectives
+- Slower learners: scaffolded support, simplified instructions, visual aids, additional processing time, and peer/teacher assistance strategies
 Always write in ${lang}.`;
 
       const userPrompt = `Create a detailed Individual Lesson Plan for the following student and lesson:
@@ -388,10 +392,13 @@ Please produce a well-structured lesson plan in Markdown format with the followi
    - **Main Activity** — step-by-step differentiated instruction for this student
    - **Consolidation** — activity to reinforce learning
    - **Wrap-Up / Reflection** (5 min) — closing activity and self-assessment prompt
-5. **Differentiation Strategies** — specific adaptations for this student's needs
-6. **Assessment** — how you will assess achievement of objectives during/after the lesson
-7. **Extension Activity** — optional challenge for if the student finishes early
-8. **Teacher Notes** — any additional notes or reminders
+5. **Differentiated Instruction by Learner Tier** — three clearly labelled sub-sections:
+   - **🔵 Advanced Learners** — specific objectives, extension/challenge activities, and assessment tasks for students working above grade level
+   - **🟢 Standard / Average Learners** — core objectives, main activities, and standard assessment tasks aligned to the lesson
+   - **🟡 Slower Learners** — simplified objectives, scaffolded activities (visual aids, sentence frames, step-by-step guides), modified assessment tasks, and teacher/peer support strategies
+6. **Assessment** — how you will assess achievement of objectives during/after the lesson for the whole class
+7. **Extension Activity** — optional challenge for advanced learners who finish early
+8. **Teacher Notes** — any additional notes, reminders, or classroom management tips
 
 Write in a professional, practical tone suitable for classroom use.`;
 

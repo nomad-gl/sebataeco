@@ -4262,3 +4262,12 @@
 - [x] Server: add copySchedule tRPC mutation (director/HoS only) — copies all schedule slots from one teacher to another for the same academic year
 - [x] Client: DirectorTeacherProfiles Schedule tab — add "Copy Schedule From…" button that opens a teacher picker dialog with overwrite option
 - [x] i18n: add tp_filter_temp_only, tp_filter_temp_active, tp_copy_schedule_btn, tp_copy_schedule_title, tp_copy_schedule_from, tp_copy_schedule_overwrite, tp_copy_schedule_confirm, tp_copy_schedule_success, tp_copy_schedule_empty keys (EN/ES/CA)
+
+## Differentiated Lesson Plans (Learner Ability Tiers)
+- [x] DB: add differentiation column (text, nullable) to lesson_plans table; migration applied via scripts/migrate-differentiation.mjs
+- [x] Server: update planner.ts AI prompt and JSON schema to include differentiation object (advanced/standard/slower, each with objectives/activities/assessment)
+- [x] Server: update planner.ts saveLessonPlan input schema to accept differentiation field
+- [x] Server: update individualPlans.ts generateAI prompt to include three-tier differentiation section in the Markdown output
+- [x] Client: LessonPlanner.tsx — add differentiation to LessonFormState, planToForm, formToSave; add Section 7 card with three colour-coded tier panels (blue/advanced, green/standard, amber/slower)
+- [x] Client: LessonPlanner.tsx — add differentiation table to the print HTML builder
+- [x] i18n: add lp_differentiation, lp_diff_advanced, lp_diff_standard, lp_diff_slower, lp_diff_objectives, lp_diff_activities, lp_diff_assessment keys (EN/ES/CA)

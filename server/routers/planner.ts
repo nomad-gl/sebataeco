@@ -728,6 +728,7 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
       spaces: z.string().nullish(),
       procedures: z.string().nullish(),
       competencies: z.string().nullish(),
+      differentiation: z.string().nullish(),
       aiGenerated: z.boolean().nullish(),
       calendarEventId: z.number().nullish(),
       sessionTime: z.string().nullish(),
@@ -902,7 +903,7 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
 
       const resp = await invokeLLM({
         messages: [
-          { role: "system", content: "You are a LOMLOE curriculum expert. Generate complete, detailed lesson plans with specific activities for each stage. Every field must be filled with real, curriculum-aligned content appropriate for the subject, year group and lesson title provided. When existing field values are provided, preserve them exactly and only generate content for the empty fields." },
+          { role: "system", content: "You are a LOMLOE curriculum expert. Generate complete, detailed lesson plans with specific activities for each stage. Every field must be filled with real, curriculum-aligned content appropriate for the subject, year group and lesson title provided. When existing field values are provided, preserve them exactly and only generate content for the empty fields. You MUST include a differentiation section that caters for three distinct learner ability levels present in every mixed-ability classroom: (1) Advanced learners who need extension and challenge, (2) Standard/average learners who follow the core lesson, and (3) Slower learners who need additional scaffolding, simplified instructions, and more processing time." },
           { role: "user", content: `Generate a complete LOMLOE lesson plan for:
 - Title: "${input.title}"
 - Subject: ${input.subject}
@@ -913,7 +914,9 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
 - Academic Year: ${input.academicYear ?? "2025-2026"}
 - Key Competencies: ${(input.competencies ?? []).join(", ") || "Mixed"}${skipNote}
 
-Generate a detailed lesson plan with specific activities for each procedure stage. The procedures array MUST have at least 4 stages with real activity descriptions.` },
+Generate a detailed lesson plan with specific activities for each procedure stage. The procedures array MUST have at least 4 stages with real activity descriptions.
+
+The differentiation field MUST contain tailored content for all three learner tiers — advanced, standard, and slower — each with their own objectives, activities, and assessment scaffolding.` },
         ],
         response_format: {
           type: "json_schema",
@@ -947,8 +950,45 @@ Generate a detailed lesson plan with specific activities for each procedure stag
                   },
                 },
                 competencies: { type: "array", items: { type: "string" } },
+                differentiation: {
+                  type: "object",
+                  properties: {
+                    advanced: {
+                      type: "object",
+                      properties: {
+                        objectives: { type: "string", description: "Specific learning objectives for advanced learners" },
+                        activities: { type: "string", description: "Extension activities and challenges for advanced learners" },
+                        assessment: { type: "string", description: "Assessment tasks and success criteria for advanced learners" },
+                      },
+                      required: ["objectives", "activities", "assessment"],
+                      additionalProperties: false,
+                    },
+                    standard: {
+                      type: "object",
+                      properties: {
+                        objectives: { type: "string", description: "Core learning objectives for standard/average learners" },
+                        activities: { type: "string", description: "Main lesson activities for standard/average learners" },
+                        assessment: { type: "string", description: "Assessment tasks and success criteria for standard/average learners" },
+                      },
+                      required: ["objectives", "activities", "assessment"],
+                      additionalProperties: false,
+                    },
+                    slower: {
+                      type: "object",
+                      properties: {
+                        objectives: { type: "string", description: "Simplified learning objectives for slower learners" },
+                        activities: { type: "string", description: "Scaffolded activities with additional support for slower learners" },
+                        assessment: { type: "string", description: "Modified assessment tasks with extra scaffolding for slower learners" },
+                      },
+                      required: ["objectives", "activities", "assessment"],
+                      additionalProperties: false,
+                    },
+                  },
+                  required: ["advanced", "standard", "slower"],
+                  additionalProperties: false,
+                },
               },
-              required: ["skills", "systems", "specificCompetences", "saberesBasicos", "learningOutcomes", "evaluationCriteria", "previousKnowledge", "materials", "spaces", "procedures", "competencies"],
+              required: ["skills", "systems", "specificCompetences", "saberesBasicos", "learningOutcomes", "evaluationCriteria", "previousKnowledge", "materials", "spaces", "procedures", "competencies", "differentiation"],
               additionalProperties: false,
             },
           },
@@ -991,6 +1031,7 @@ Generate a detailed lesson plan with specific activities for each procedure stag
         spaces: hasSpaces ? (ex.spaces ?? "Classroom") : (generated.spaces ?? "Classroom"),
         procedures: hasProcedures ? ex.procedures! : JSON.stringify(generated.procedures ?? []),
         competencies: JSON.stringify(generated.competencies ?? []),
+        differentiation: generated.differentiation ? JSON.stringify(generated.differentiation) : null,
         aiGenerated: true,
         ...(input.sessionTime ? { sessionTime: input.sessionTime } : {}),
       };
