@@ -855,6 +855,20 @@ Return the best opportunity or null if none found.`;
         );
       }
 
+      // Owner/director notification fallback for teacher response
+      try {
+        await notifyOwner({
+          title: `Cover Response: ${teacherName} has ${responseText}`,
+          content:
+            `Teacher: ${teacherName}\n` +
+            `Response: ${responseText.toUpperCase()}\n` +
+            `Assignment: "${notif.title}"\n` +
+            `The in-app notification has been updated for all directors.`,
+        });
+      } catch {
+        // Non-critical: owner notification failure should not block the response
+      }
+
       return { success: true, response: input.response };
     }),
 

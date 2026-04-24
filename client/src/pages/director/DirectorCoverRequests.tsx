@@ -86,7 +86,7 @@ function CoverConfirmDialog({
 
   const assignCover = trpc.cover.assignCover.useMutation({
     onSuccess: () => {
-      toast.success(t("cover_assigned_success"));
+      toast.success(`${t("cover_assigned_success")} — ${t("cover_director_notified")}`);
       onConfirmed();
     },
     onError: (err) => toast.error(err.message),

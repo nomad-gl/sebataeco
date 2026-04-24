@@ -4352,9 +4352,9 @@
 ## Educació Infantil (Decree 21/2023 / LOMLOE)
 
 ### Phase 1 — Knowledge Bank
-- [ ] Knowledge bank: add 4 Eixos × 2 cycles (0-3, 3-6) = 8 Infantil blocks to lomloeKnowledgeBank.ts
-- [ ] Questions: add 8 MCQ questions per block × 8 blocks = 64 Infantil questions with explanations
-- [ ] Stage field: add "infantil" as a valid stage alongside existing stages in knowledge bank types
+- [x] Knowledge bank: add 4 Eixos × 2 cycles (0-3, 3-6) = 8 Infantil blocks to lomloeKnowledgeBank.ts
+- [x] Questions: add 8 MCQ questions per block × 8 blocks = 64 Infantil questions with explanations
+- [x] Stage field: add "infantil" as a valid stage alongside existing stages in knowledge bank types
 
 ### Phase 2 — Server
 - [x] Server: lomloe.getQuestions — extend to accept stage="infantil" and cycle="0-3"|"3-6" filters
@@ -4362,28 +4362,28 @@
 - [x] Server: lomloe.getStats — include Infantil blocks in coverage metrics
 
 ### Phase 3 — Client
-- [ ] Client: CompetencySelector — add "Educació Infantil" stage option with cycle selector (0-3 / 3-6)
-- [ ] Client: Home page — add Infantil section with 4 eix cards in same style as existing 8 competency cards
-- [ ] Client: Practice page — support Infantil stage/cycle/eix selection
-- [ ] Client: Question Library — add Infantil filter options
-- [ ] Client: Create Materials — add Infantil stage option in subject/competency selector
-- [ ] Client: Presentation — add Infantil stage option
+- [x] Client: CompetencySelector — add "Educació Infantil" stage option with cycle selector (0-3 / 3-6)
+- [x] Client: Home page — add Infantil section with 4 eix cards in same style as existing 8 competency cards
+- [x] Client: Practice page — support Infantil stage/cycle/eix selection
+- [x] Client: Question Library — add Infantil filter options
+- [x] Client: Create Materials — add Infantil stage option in subject/competency selector
+- [x] Client: Presentation — add Infantil stage option
 
 ### Phase 4 — Follow-up 3: Cover Notification Fallback
-- [ ] Server: cover.assignCover — after assigning cover, call notifyOwner with cover details
-- [ ] Server: cover.respondToNotification — after teacher responds, call notifyOwner with response
-- [ ] Client: DirectorCoverRequests — show "Director notified by email" confirmation after cover assignment
+- [x] Server: cover.assignCover — after assigning cover, call notifyOwner with cover details
+- [x] Server: cover.respondToNotification — after teacher responds, call notifyOwner with response
+- [x] Client: DirectorCoverRequests — show "Director notified by email" confirmation after cover assignment
 
 ### Phase 5 — i18n & QA
 - [x] i18n: add infantil_stage, infantil_cycle_03, infantil_cycle_36, eix_1_title through eix_4_title, eix descriptions (EN/ES/CA)
-- [ ] Tests: update vitest to cover Infantil knowledge bank queries
-- [ ] TypeScript: 0 errors
+- [x] Tests: update vitest to cover Infantil knowledge bank queries
+- [x] TypeScript: 0 errors
 
 ## SEBA Platform Rebranding (hide Manus identifier)
-- [ ] Replace all visible "Manus" / "manus.im" / "manus.space" references in UI with "SEBA Platform"
-- [ ] OAuth login page: replace any Manus branding text with SEBA Platform
-- [ ] Footer: ensure "Powered by SEBA" is shown; remove any Manus attribution
-- [ ] NavBar: ensure app title shows SEBA branding only
-- [ ] Error pages / loading states: remove any Manus references
-- [ ] HTML <title> and meta tags: ensure no Manus references visible to end users
-- [ ] Help / About pages: replace platform references with SEBA Platform
+- [x] Replace all visible "Manus" / "manus.im" / "manus.space" references in UI with "SEBA Platform"
+- [x] OAuth login page: replace any Manus branding text with SEBA Platform
+- [x] Footer: ensure "Powered by SEBA" is shown; remove any Manus attribution
+- [x] NavBar: ensure app title shows SEBA branding only
+- [x] Error pages / loading states: remove any Manus references
+- [x] HTML <title> and meta tags: ensure no Manus references visible to end users
+- [x] Help / About pages: replace platform references with SEBA Platform
