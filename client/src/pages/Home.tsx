@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { MessageCircle, Dumbbell, LayoutDashboard, ArrowRight, BookOpen, Download } from "lucide-react";
+import { MessageCircle, Dumbbell, LayoutDashboard, ArrowRight, BookOpen, Download, Baby } from "lucide-react";
 import { usePwaInstall } from "@/hooks/usePwaInstall";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ export default function Home() {
 
   const { data: competencies } = trpc.lomloe.getCompetencies.useQuery();
   const { data: stats } = trpc.lomloe.getStats.useQuery();
+  const { data: eixos } = trpc.lomloe.getEixMeta.useQuery();
   const { state: pwaState, install: pwaInstall } = usePwaInstall();
 
   const features = [
@@ -197,6 +198,53 @@ export default function Home() {
         </div>
         </div>
       </ParallaxSection>
+
+      {/* Educació Infantil Eixos section */}
+      <section className="container py-14">
+        <div className="flex items-center gap-3 mb-2">
+          <Baby className="w-6 h-6 text-pink-500" />
+          <h2 className="text-2xl font-bold">{t("infantil_section_title")}</h2>
+        </div>
+        <p className="text-muted-foreground mb-2 text-sm">{t("infantil_section_subtitle")}</p>
+        <div className="flex items-center gap-2 mb-6">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-pink-100 text-pink-700 border border-pink-200">Decret 21/2023</span>
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200">LOMLOE</span>
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200">0–6 {t("infantil_years")}</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {eixos?.map((eix) => (
+            <Link key={eix.code} href={`/infantil/practice?eix=${eix.code}`}>
+              <Card className="h-full hover:shadow-xl transition-all hover:-translate-y-0.5 cursor-pointer group overflow-hidden border-pink-100">
+                <CardContent className="p-5">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="text-2xl">{eix.emoji}</span>
+                    <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-pink-100 text-pink-700">{eix.code}</span>
+                  </div>
+                  <h3 className="font-semibold text-sm mb-1 group-hover:text-pink-600 transition-colors leading-snug">
+                    {eix.name}
+                  </h3>
+                  <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed italic">
+                    {eix.catalan}
+                  </p>
+                </CardContent>
+                <div className="h-1 w-0 group-hover:w-full transition-all duration-300 bg-pink-400" />
+              </Card>
+            </Link>
+          ))}
+        </div>
+        <div className="mt-6 flex gap-3">
+          <Link href="/infantil/practice">
+            <Button variant="outline" size="sm" className="gap-2">
+              <Dumbbell className="w-4 h-4" /> {t("infantil_practice_btn")}
+            </Button>
+          </Link>
+          <Link href="/chat">
+            <Button variant="ghost" size="sm" className="gap-2">
+              <MessageCircle className="w-4 h-4" /> {t("infantil_ask_aina_btn")}
+            </Button>
+          </Link>
+        </div>
+      </section>
 
       {/* ── SEO: keyword-rich FAQ section (visible, accessible, schema-backed) ── */}
       <section

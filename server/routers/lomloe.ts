@@ -10,6 +10,14 @@ import {
   type CompetencyCode,
   type YearGroup,
 } from "../knowledge/lomloeKnowledgeBank";
+import {
+  getInfantilQuestions,
+  getInfantilCoverageStats,
+  EIX_META,
+  INFANTIL_QUESTIONS,
+  type EixCode,
+  type InfantilCycle,
+} from "../knowledge/infantilKnowledgeBank";
 import { invokeLLM, type Message, type TextContent, type ImageContent } from "../_core/llm";
 import { ainaTranslateBatch } from "../ainaTranslation";
 import { getAinaProfile, upsertAinaProfile, rateMessage, getUserRatings, saveQuestionAnswer, getQuestionAnalytics, getPendingQuestions, reviewQuestion } from "../db";
@@ -19,6 +27,8 @@ import { eq, and, inArray } from "drizzle-orm";
 
 const CompetencyCodeSchema = z.enum(["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"]);
 const YearGroupSchema = z.enum(["junior", "primary", "secondary"]);
+const EixCodeSchema = z.enum(["EIX1", "EIX2", "EIX3", "EIX4"]);
+const InfantilCycleSchema = z.enum(["0-3", "3-6"]);
 
 /**
  * Returns a copy of the question with its options shuffled into a random order
@@ -558,7 +568,8 @@ export const lomloeRouter = router({
   • **CC** — Competencia Ciudadana (Civic Competence)
   • **CE** — Competencia Emprendedora (Entrepreneurial Competence)
   • **CCEC** — Competencia en Conciencia y Expresión Culturales
-- You know the LOMLOE's key articles: Art. 1 (principles), Art. 17 (primary objectives), Art. 23 (secondary objectives), Art. 25 (evaluation), Real Decreto 157/2022 (primary curriculum), Real Decreto 217/2022 (secondary curriculum).
+- You know the LOMLOE's key articles: Art. 1 (principles), Art. 17 (primary objectives), Art. 23 (secondary objectives), Art. 25 (evaluation), Real Decreto 157/2022 (primary curriculum), Real Decreto 217/2022 (secondary curriculum), Real Decreto 95/2022 (early childhood national minimum), and Decree 21/2023 (Catalan Educació Infantil 0–6).
+- You have deep knowledge of the Educació Infantil stage (0–6 years) under Decree 21/2023 (Catalonia), including its 4 Eixos de Desenvolupament i Aprenentatge: Eix 1 (Autonomia i confiança), Eix 2 (Comunicació amb diferents llenguatges), Eix 3 (Descoberta de l'entorn), Eix 4 (Diversitat del món). You understand the differences between the primer cicle (0–3) and segon cicle (3–6), including their specific competències específiques and sabers.
 - You can suggest lesson plans, activities, assessment rubrics, differentiation strategies, and cross-curricular links.
 - You understand the realities of Spanish classrooms: mixed abilities, time pressures, curriculum demands, and the transition from LOMCE to LOMLOE.
 - You are familiar with the Situaciones de Aprendizaje (learning situations) methodology central to LOMLOE.
@@ -1349,4 +1360,52 @@ Return ONLY a valid JSON object (no markdown, no code fences) with exactly these
         .where(and(eq(savedSituacions.id, input.id), eq(savedSituacions.userId, ctx.user.id)));
       return { success: true };
     }),
+
+  // ─── Educació Infantil (Decree 21/2023) ──────────────────────────────────
+
+  /** Get all 4 Eix metadata entries for the Infantil stage */
+  getEixMeta: publicProcedure.query(() => {
+    return Object.values(EIX_META);
+  }),
+
+  /** Get Infantil questions filtered by eix and/or cycle */
+  getInfantilQuestions: publicProcedure
+    .input(
+      z.object({
+        eix: EixCodeSchema.nullish(),
+        cycle: InfantilCycleSchema.nullish(),
+        shuffle: z.boolean().default(true),
+        limit: z.number().min(1).max(50).default(24),
+      })
+    )
+    .query(({ input }) => {
+      let questions = getInfantilQuestions(
+        input.eix as EixCode | undefined,
+        input.cycle as InfantilCycle | undefined
+      );
+      if (input.shuffle) {
+        questions = [...questions].sort(() => Math.random() - 0.5);
+      }
+      return questions.slice(0, input.limit).map(shuffleQuestion);
+    }),
+
+  /** Coverage stats for the Infantil knowledge bank */
+  getInfantilStats: publicProcedure.query(() => {
+    const stats = getInfantilCoverageStats();
+    const breakdown = Object.entries(EIX_META).map(([code, meta]) => ({
+      code,
+      name: meta.name,
+      catalan: meta.catalan,
+      emoji: meta.emoji,
+      total: Object.values(stats[code] ?? {}).reduce((a, b) => a + b, 0),
+      cycle03: stats[code]?.["0-3"] ?? 0,
+      cycle36: stats[code]?.["3-6"] ?? 0,
+    }));
+    return {
+      totalQuestions: INFANTIL_QUESTIONS.length,
+      totalEixos: 4,
+      cycles: ["0-3", "3-6"],
+      breakdown,
+    };
+  }),
 });

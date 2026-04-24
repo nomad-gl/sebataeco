@@ -280,7 +280,7 @@ export default function Privacy() {
             <div className="rounded-md border border-border/50 bg-background/60 divide-y divide-border/40 text-xs">
               <div className="flex items-start gap-2 px-3 py-2">
                 <span className="font-semibold text-foreground shrink-0 w-28">Primary</span>
-                <span>Manus Platform — EEA data centres (production database &amp; auth)</span>
+                <span>SEBA Platform — EEA data centres (production database &amp; auth)</span>
               </div>
               <div className="flex items-start gap-2 px-3 py-2">
                 <span className="font-semibold text-foreground shrink-0 w-28">Target</span>

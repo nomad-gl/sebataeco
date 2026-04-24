@@ -11,7 +11,7 @@ export const getLoginUrl = (returnPath?: string) => {
 };
 
 /**
- * Returns the full Manus OAuth URL.
+ * Returns the SEBA Platform OAuth URL.
  * Kept only for the OAuth callback flow — do NOT use for regular sign-in links.
  */
 export const getOAuthUrl = (returnPath?: string) => {

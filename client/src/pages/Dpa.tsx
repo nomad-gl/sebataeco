@@ -256,14 +256,14 @@ export default function Dpa() {
           <div className="rounded-lg border border-green-200/60 bg-green-50/30 dark:bg-green-900/10 p-4 flex gap-3">
             <Globe className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
             <p className="text-sm text-muted-foreground">
-              All personal data processed by AINA | TA is stored and processed exclusively within the <strong className="text-foreground">European Economic Area (EEA)</strong>. Primary infrastructure runs on the Manus Platform (EEA data centres). Where technically feasible, data is hosted on the <strong className="text-foreground">Núvol Públic de Catalunya</strong> (Catalan Public Cloud), in accordance with Catalan data sovereignty principles.
+              All personal data processed by AINA | TA is stored and processed exclusively within the <strong className="text-foreground">European Economic Area (EEA)</strong>. Primary infrastructure runs on the SEBA Platform (EEA data centres). Where technically feasible, data is hosted on the <strong className="text-foreground">Núvol Públic de Catalunya</strong> (Catalan Public Cloud), in accordance with Catalan data sovereignty principles.
             </p>
           </div>
           {/* Infrastructure breakdown */}
           <div className="rounded-md border border-border/50 divide-y divide-border/40 text-sm">
             <div className="flex items-start gap-3 px-4 py-3">
               <span className="font-semibold text-foreground shrink-0 w-32">Primary</span>
-              <span className="text-muted-foreground">Manus Platform — EEA data centres (production database &amp; authentication)</span>
+              <span className="text-muted-foreground">SEBA Platform — EEA data centres (production database &amp; authentication)</span>
             </div>
             <div className="flex items-start gap-3 px-4 py-3">
               <span className="font-semibold text-foreground shrink-0 w-32">Target</span>
@@ -284,7 +284,7 @@ export default function Dpa() {
           <DpaTable
             headers={["Sub-processor", "Role", "Location", "Transfer Safeguard"]}
             rows={[
-              ["Manus Platform", "Infrastructure hosting, OAuth authentication, database services", "EEA", "EEA-based processing"],
+              ["SEBA Platform", "Infrastructure hosting, OAuth authentication, database services", "EEA", "EEA-based processing"],
               ["Hugging Face", "Neural machine translation for question bank localisation", "EEA (EU data centres)", "EEA-based; no personal data transmitted"],
               ["BSC (Barcelona Supercomputing Center)", "Salamandra LLM framework; model weights", "Spain (EEA)", "EEA-based processing"],
               ["ip-api.com", "IP geolocation for Catalan dialect detection", "EEA", "Only IP address transmitted; not linked to user accounts"],
@@ -403,7 +403,7 @@ export default function Dpa() {
         {/* Appendix B */}
         <Section id="appendix-b" title="Appendix B: Data Flow Diagram (Narrative)">
           <ol className="space-y-2 text-sm text-muted-foreground list-decimal list-inside leading-relaxed">
-            <li><strong className="text-foreground">Teacher logs in</strong> via OAuth 2.0 (Manus identity provider). No password is stored by the Processor.</li>
+            <li><strong className="text-foreground">Teacher logs in</strong> via OAuth 2.0 (SEBA Platform identity provider). No password is stored by the Processor.</li>
             <li><strong className="text-foreground">Teacher creates content</strong> (lesson plans, calendars, materials). Content is stored in the EEA-hosted database.</li>
             <li><strong className="text-foreground">Teacher initiates AI interaction</strong> (chat with Aina, material generation, assessment). The request is sent to the server, which calls the LLM inference endpoint. No personal data is included in the LLM prompt beyond what the teacher explicitly provides.</li>
             <li><strong className="text-foreground">AI response is generated</strong> and passed through the bias detection module before being returned to the teacher.</li>

@@ -18,6 +18,7 @@ import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../_core/trpc";
 import { getDb } from "../db";
 import { invokeLLM } from "../_core/llm";
+import { notifyOwner } from "../_core/notification";
 import {
   classRegister,
   coverAssignment,
@@ -432,6 +433,23 @@ Return JSON only.`;
         requiresResponse: false,
         tenantId,
       });
+
+      // Owner/director notification fallback (ensures director is alerted even when not logged in)
+      try {
+        await notifyOwner({
+          title: `Cover Assigned: ${className} - ${dateStr}`,
+          content:
+            `Cover teacher: ${coverName}\n` +
+            `Absent teacher: ${absentName}\n` +
+            `Class: ${className}\n` +
+            `Date: ${dateStr}\n` +
+            `Duration: ${durationMinutes} min\n` +
+            (input.directorComment ? `Director note: ${input.directorComment}\n` : "") +
+            `Both teachers have been notified in-app. A payback opportunity scan will run automatically.`,
+        });
+      } catch {
+        // Non-critical: owner notification failure should not block the cover assignment
+      }
 
       return {
         coverAssignmentId,
