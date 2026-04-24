@@ -1371,4 +1371,32 @@ export const directorRouter = router({
         .where(eq(pendingTeacherSubmissions.pts_status, "pending"));
       return { count: row?.count ?? 0 };
     }),
+
+  editPendingTeacher: adminProcedure
+    .input(z.object({
+      submissionId: z.number().int().positive(),
+      teacherName: z.string().min(1).max(255),
+      teacherEmail: z.string().email().max(255),
+      note: z.string().max(512).optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const [existing] = await db
+        .select({ id: pendingTeacherSubmissions.id, status: pendingTeacherSubmissions.pts_status })
+        .from(pendingTeacherSubmissions)
+        .where(eq(pendingTeacherSubmissions.id, input.submissionId))
+        .limit(1);
+      if (!existing) throw new Error("Submission not found.");
+      if (existing.status !== "pending") throw new Error("Only pending submissions can be edited.");
+      await db
+        .update(pendingTeacherSubmissions)
+        .set({
+          teacherName: input.teacherName.trim(),
+          teacherEmail: input.teacherEmail.toLowerCase().trim(),
+          note: input.note ?? null,
+        })
+        .where(eq(pendingTeacherSubmissions.id, input.submissionId));
+      return { success: true };
+    }),
 });

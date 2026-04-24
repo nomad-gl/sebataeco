@@ -4161,3 +4161,4 @@
 - [x] Add "Add Teacher" link to Director dropdown navigation in NavBar.tsx
 - [x] Add back button to HosAddTeacher page
 - [x] Adjust HosAddTeacher page to allow Director to submit teachers (role check update)
+- [x] Director can edit pending teacher submission (name, email, note) before approving

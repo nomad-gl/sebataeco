@@ -17,6 +17,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Pencil } from "lucide-react";
 
 interface PendingRequest {
   id: number;
@@ -61,6 +63,13 @@ export default function DirectorApprovals() {
   const [teacherRejectingId, setTeacherRejectingId] = useState<number | null>(null);
   const [teacherRejectionReason, setTeacherRejectionReason] = useState("");
   const [revealedPasswords, setRevealedPasswords] = useState<Record<number, { password: string; visible: boolean }>>({});
+
+  // ── Edit submission state ─────────────────────────────────────────────────
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingSubmission, setEditingSubmission] = useState<TeacherSubmission | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editNote, setEditNote] = useState("");
 
   // ── Queries ───────────────────────────────────────────────────────────────
   const { data: pendingRequests = [], isLoading } = trpc.assignmentRequests.listPending.useQuery();
@@ -108,6 +117,16 @@ export default function DirectorApprovals() {
     onError: (err: { message: string }) => toast.error(err.message),
   });
 
+  const editTeacherMutation = trpc.director.editPendingTeacher.useMutation({
+    onSuccess: () => {
+      toast.success("Submission updated");
+      setEditDialogOpen(false);
+      setEditingSubmission(null);
+      utils.director.listPendingTeacherSubmissions.invalidate();
+    },
+    onError: (err: { message: string }) => toast.error(err.message),
+  });
+
   const rejectTeacherMutation = trpc.director.rejectPendingTeacher.useMutation({
     onSuccess: () => {
       toast.success("Teacher submission rejected");
@@ -129,6 +148,24 @@ export default function DirectorApprovals() {
   const confirmReject = () => {
     if (!rejectingId) return;
     rejectMutation.mutate({ requestId: rejectingId, reason: rejectionReason.trim() || undefined });
+  };
+
+  const openEditDialog = (sub: TeacherSubmission) => {
+    setEditingSubmission(sub);
+    setEditName(sub.teacherName);
+    setEditEmail(sub.teacherEmail);
+    setEditNote(sub.note ?? "");
+    setEditDialogOpen(true);
+  };
+
+  const confirmEdit = () => {
+    if (!editingSubmission) return;
+    editTeacherMutation.mutate({
+      submissionId: editingSubmission.id,
+      teacherName: editName.trim(),
+      teacherEmail: editEmail.trim(),
+      note: editNote.trim() || undefined,
+    });
   };
 
   const openTeacherRejectDialog = (id: number) => {
@@ -362,7 +399,7 @@ export default function DirectorApprovals() {
                       )}
 
                       {sub.pts_status === "pending" && (
-                        <div className="flex gap-2 pt-1">
+                        <div className="flex flex-wrap gap-2 pt-1">
                           <Button
                             size="sm"
                             className="gap-1.5"
@@ -371,6 +408,15 @@ export default function DirectorApprovals() {
                           >
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5"
+                            onClick={() => openEditDialog(sub)}
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                            Edit
                           </Button>
                           <Button
                             size="sm"
@@ -419,6 +465,58 @@ export default function DirectorApprovals() {
               disabled={rejectMutation.isPending}
             >
               {rejectMutation.isPending ? "Rejecting…" : t("dir_approvals_reject")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit teacher submission dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Teacher Submission</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-teacher-name">Teacher Name</Label>
+              <Input
+                id="edit-teacher-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Full name"
+                maxLength={255}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-teacher-email">Teacher Email</Label>
+              <Input
+                id="edit-teacher-email"
+                type="email"
+                value={editEmail}
+                onChange={(e) => setEditEmail(e.target.value)}
+                placeholder="teacher@school.cat"
+                maxLength={255}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-teacher-note">Note (optional)</Label>
+              <Textarea
+                id="edit-teacher-note"
+                value={editNote}
+                onChange={(e) => setEditNote(e.target.value)}
+                placeholder="Any additional context…"
+                rows={2}
+                maxLength={512}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+            <Button
+              onClick={confirmEdit}
+              disabled={editTeacherMutation.isPending || !editName.trim() || !editEmail.trim()}
+            >
+              {editTeacherMutation.isPending ? "Saving…" : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>
