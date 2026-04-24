@@ -4237,3 +4237,6 @@
 
 ## Create Class Group Form
 - [x] Assessment Title input: change placeholder to 'e.g. Science / LOMLOE Mid-Term Assessment'
+
+## Create Class Group — Assessment Title Auto-fill
+- [x] Groups.tsx: when user selects/types a Level, auto-populate Assessment Title with that value (only if Assessment Title is still empty or matches the previous level value)

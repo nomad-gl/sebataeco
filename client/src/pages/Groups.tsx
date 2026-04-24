@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
@@ -58,13 +58,15 @@ function CreateGroupDialog({
   const [className, setClassName] = useState("");
   const [level, setLevel] = useState("");
   const [assessmentTitle, setAssessmentTitle] = useState("");
+  // Track whether the user has manually edited assessmentTitle so we don't overwrite their input
+  const assessmentTitleEditedRef = useRef(false);
 
   const createMutation = trpc.groups.create.useMutation({
     onSuccess: () => {
       toast.success(t("groups_created"));
       onCreated();
       onClose();
-      setClassName(""); setLevel(""); setAssessmentTitle("");
+      setClassName(""); setLevel(""); setAssessmentTitle(""); assessmentTitleEditedRef.current = false;
     },
     onError: () => toast.error(t("groups_create_failed")),
   });
@@ -92,7 +94,14 @@ function CreateGroupDialog({
             <Label className="text-white/70">{t("groups_level")} *</Label>
             <Input
               value={level}
-              onChange={(e) => setLevel(e.target.value)}
+              onChange={(e) => {
+                const newLevel = e.target.value;
+                setLevel(newLevel);
+                // Auto-fill Assessment Title only if user hasn't customised it
+                if (!assessmentTitleEditedRef.current) {
+                  setAssessmentTitle(newLevel);
+                }
+              }}
               placeholder={t("groups_level_placeholder")}
               className="bg-white/5 border-white/10 text-white placeholder:text-white/30"
             />
@@ -101,7 +110,10 @@ function CreateGroupDialog({
             <Label className="text-white/70">{t("groups_assessment_title")} *</Label>
             <Input
               value={assessmentTitle}
-              onChange={(e) => setAssessmentTitle(e.target.value)}
+              onChange={(e) => {
+                assessmentTitleEditedRef.current = true;
+                setAssessmentTitle(e.target.value);
+              }}
               placeholder={t("groups_assessment_title_placeholder")}
               className="bg-white/5 border-white/10 text-white placeholder:text-white/30"
             />
