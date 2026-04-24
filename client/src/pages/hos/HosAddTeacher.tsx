@@ -43,13 +43,10 @@ export default function HosAddTeacher() {
 
   const { data: mySubmissions = [], isLoading: loadingSubmissions } = trpc.hos.listMyTeacherSubmissions.useQuery();
 
-  // Directors can also submit teacher requests on behalf of a HoS
-  const canSubmit_ = user?.role === "head_of_study" || user?.role === "director" || user?.role === "admin";
-
   const submitMutation = trpc.hos.submitTeacher.useMutation({
     onSuccess: () => {
-      toast.success("Teacher submitted for approval", {
-        description: "The Director will review your request shortly.",
+      toast.success(t("add_teacher_submitted_toast"), {
+        description: t("add_teacher_submitted_desc"),
       });
       setTeacherName("");
       setTeacherEmail("");
@@ -58,7 +55,7 @@ export default function HosAddTeacher() {
     },
     onError: (err: { message: string }) => {
       const msg = err.message.includes("already exists")
-        ? "A pending submission already exists for this email address."
+        ? t("add_teacher_duplicate_error")
         : err.message;
       toast.error(msg);
     },
@@ -66,7 +63,7 @@ export default function HosAddTeacher() {
 
   const cancelMutation = trpc.hos.cancelPendingTeacher.useMutation({
     onSuccess: () => {
-      toast.success("Submission cancelled.");
+      toast.success(t("add_teacher_cancelled_toast"));
       utils.hos.listMyTeacherSubmissions.invalidate();
     },
     onError: (err: { message: string }) => toast.error(err.message),
@@ -93,7 +90,7 @@ export default function HosAddTeacher() {
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-2"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-          {isDirector ? "Back to Approvals" : "Back"}
+          {isDirector ? t("add_teacher_back_approvals") : t("add_teacher_back")}
         </button>
 
         {/* Header */}
@@ -102,9 +99,9 @@ export default function HosAddTeacher() {
             <UserPlus className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Add Teacher</h1>
+            <h1 className="text-2xl font-bold text-foreground">{t("add_teacher_title")}</h1>
             <p className="text-sm text-muted-foreground">
-              Submit a new teacher for Director approval. An account will be created once approved.
+              {t("add_teacher_subtitle")}
             </p>
           </div>
         </div>
@@ -112,42 +109,42 @@ export default function HosAddTeacher() {
         {/* Submission form */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">New Teacher Request</CardTitle>
+            <CardTitle className="text-base">{t("add_teacher_form_title")}</CardTitle>
             <CardDescription>
-              Fill in the teacher's details. The Director will review and approve or reject the request.
+              {t("add_teacher_form_desc")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="teacher-name">Full Name <span className="text-destructive">*</span></Label>
+                <Label htmlFor="teacher-name">{t("add_teacher_name_label")} <span className="text-destructive">*</span></Label>
                 <Input
                   id="teacher-name"
                   value={teacherName}
                   onChange={(e) => setTeacherName(e.target.value)}
-                  placeholder="e.g. Maria García"
+                  placeholder={t("add_teacher_name_placeholder")}
                   maxLength={255}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="teacher-email">Email Address <span className="text-destructive">*</span></Label>
+                <Label htmlFor="teacher-email">{t("add_teacher_email_label")} <span className="text-destructive">*</span></Label>
                 <Input
                   id="teacher-email"
                   type="email"
                   value={teacherEmail}
                   onChange={(e) => setTeacherEmail(e.target.value)}
-                  placeholder="e.g. m.garcia@school.cat"
+                  placeholder={t("add_teacher_email_placeholder")}
                   maxLength={255}
                 />
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="note">Note (optional)</Label>
+              <Label htmlFor="note">{t("add_teacher_note_label")}</Label>
               <Textarea
                 id="note"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="e.g. Joining as Maths teacher for Year 3 from September"
+                placeholder={t("add_teacher_note_placeholder")}
                 rows={3}
                 maxLength={512}
               />
@@ -158,7 +155,7 @@ export default function HosAddTeacher() {
               className="w-full sm:w-auto gap-2"
             >
               <Send className="w-4 h-4" />
-              {submitMutation.isPending ? "Submitting…" : "Submit for Approval"}
+              {submitMutation.isPending ? t("add_teacher_submitting") : t("add_teacher_submit")}
             </Button>
           </CardContent>
         </Card>
@@ -170,7 +167,7 @@ export default function HosAddTeacher() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <ClipboardList className="w-4 h-4" />
-              My Submissions
+              {t("add_teacher_history_title")}
             </CardTitle>
             <CardDescription>
               {mySubmissions.length} submission{mySubmissions.length !== 1 ? "s" : ""}
@@ -180,7 +177,7 @@ export default function HosAddTeacher() {
             {loadingSubmissions ? (
               <p className="text-sm text-muted-foreground">Loading…</p>
             ) : mySubmissions.length === 0 ? (
-              <p className="text-sm text-muted-foreground italic">No submissions yet.</p>
+              <p className="text-sm text-muted-foreground italic">{t("add_teacher_no_submissions")}</p>
             ) : (
               <div className="space-y-3">
                 {[...mySubmissions].reverse().map((sub) => (
@@ -195,11 +192,11 @@ export default function HosAddTeacher() {
                         <p className="text-xs text-muted-foreground italic">"{sub.note}"</p>
                       )}
                       {sub.rejectionReason && (
-                        <p className="text-xs text-destructive">Rejected: {sub.rejectionReason}</p>
+                        <p className="text-xs text-destructive">{t("add_teacher_rejected_prefix")} {sub.rejectionReason}</p>
                       )}
                       <p className="text-xs text-muted-foreground">
-                        Submitted {new Date(sub.createdAt).toLocaleDateString()}
-                        {sub.reviewedAt && ` · Reviewed ${new Date(sub.reviewedAt).toLocaleDateString()}`}
+                        {t("add_teacher_submitted_on")} {new Date(sub.createdAt).toLocaleDateString()}
+                        {sub.reviewedAt && ` · ${t("add_teacher_reviewed_on")} ${new Date(sub.reviewedAt).toLocaleDateString()}`}
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-2 shrink-0">
@@ -207,14 +204,14 @@ export default function HosAddTeacher() {
                       {sub.pts_status === "pending" && (
                         <button
                           onClick={() => {
-                            if (confirm(`Cancel submission for ${sub.teacherName}?`)) {
+                            if (confirm(`${t("add_teacher_cancel_confirm")} ${sub.teacherName}?`)) {
                               cancelMutation.mutate({ submissionId: sub.id });
                             }
                           }}
                           disabled={cancelMutation.isPending}
                           className="text-xs text-destructive hover:underline disabled:opacity-50"
                         >
-                          Cancel
+                          {t("add_teacher_cancel_btn")}
                         </button>
                       )}
                     </div>
