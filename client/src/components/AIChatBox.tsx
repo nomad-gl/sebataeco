@@ -647,19 +647,36 @@ export function AIChatBox({
     const audio = new Audio(dataUrl);
     neuralAudioRef.current = audio;
     audio.playbackRate = speechRate;
-    audio.onended = () => {
+
+    // Safety watchdog: if audio never fires onended/onerror (e.g. autoplay policy
+    // or silent network failure), force-restart wake listeners after 30 s.
+    const watchdog = setTimeout(() => {
+      if (neuralAudioRef.current === audio) {
+        neuralAudioRef.current = null;
+        setIsSpeaking(false);
+        forceRestartRef.current?.();
+      }
+    }, 30_000);
+
+    const cleanup = () => {
+      clearTimeout(watchdog);
       neuralAudioRef.current = null;
       setIsSpeaking(false);
       setTimeout(() => { forceRestartRef.current?.(); }, 400);
     };
-    audio.onerror = () => {
-      neuralAudioRef.current = null;
-      setIsSpeaking(false);
-      setTimeout(() => { forceRestartRef.current?.(); }, 400);
-    };
+
+    audio.onended = cleanup;
+    audio.onerror = cleanup;
     audio.play().catch(() => {
+      clearTimeout(watchdog);
       neuralAudioRef.current = null;
       setIsSpeaking(false);
+      // Autoplay blocked — fall back to browser TTS and still restart wake listeners
+      if (!cancelledRef.current) {
+        playBrowserTTS(text, langCode);
+      } else {
+        setTimeout(() => { forceRestartRef.current?.(); }, 400);
+      }
     });
   }, [ttsVoice, ttsMutation, playBrowserTTS, speechRate]);
 
@@ -778,6 +795,12 @@ export function AIChatBox({
   }, [unlockSpeechSynthesis, isImageRequest, extractImagePrompt, generateImageMutation, onSendMessage, t]);
 
   const handleWakeTranscript = useCallback((text: string) => {
+    // Immediately clear the "recording" visual state so the UI doesn't appear
+    // stuck while the LLM processes the response. The wake hook resets its own
+    // internal state in onend, but React batching can delay the render update.
+    // Calling forceRestart here ensures the status label flips back to
+    // "listening" (or "starting") before the LLM round-trip completes.
+    setTimeout(() => { forceRestartRef.current?.(); }, 50);
     autoSubmitTranscript(text);
   }, [autoSubmitTranscript]);
 

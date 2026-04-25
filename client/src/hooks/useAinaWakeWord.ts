@@ -202,6 +202,14 @@ export function useAinaWakeWord({
 
     let finalTranscript = "";
 
+    // Safety watchdog: if the input session runs for more than 8 s without
+    // ending (e.g. browser keeps the mic open indefinitely), force-stop it
+    // so AINA doesn't appear permanently stuck in "recording" state.
+    const inputWatchdog = setTimeout(() => {
+      console.warn("[Aina] Input session watchdog fired — forcing stop");
+      try { rec.stop(); } catch { /* ignore */ }
+    }, 8000);
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rec.onresult = (e: any) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -213,6 +221,7 @@ export function useAinaWakeWord({
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rec.onerror = (e: any) => {
+      clearTimeout(inputWatchdog);
       console.warn("[Aina] Input session error:", e.error);
       if (e.error === "not-allowed" || e.error === "service-not-allowed") {
         setPermissionError("Microphone access denied. Please allow microphone access in your browser settings.");
@@ -225,6 +234,7 @@ export function useAinaWakeWord({
     };
 
     rec.onend = () => {
+      clearTimeout(inputWatchdog);
       inputRef.current = null;
       setIsListening(false);
       activatingRef.current = false;
@@ -245,6 +255,7 @@ export function useAinaWakeWord({
     try {
       rec.start();
     } catch (err) {
+      clearTimeout(inputWatchdog);
       console.warn("[Aina] Input session start failed:", err);
       inputRef.current = null;
       setIsListening(false);
