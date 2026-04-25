@@ -213,7 +213,7 @@ export default function Home() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {eixos?.map((eix) => (
-            <Link key={eix.code} href={`/infantil/practice?eix=${eix.code}`}>
+            <Link key={eix.code} href={`/infantil/eixos#${eix.code.toLowerCase()}`}>
               <Card className="h-full hover:shadow-xl transition-all hover:-translate-y-0.5 cursor-pointer group overflow-hidden border-pink-100">
                 <CardContent className="p-5">
                   <div className="flex items-center gap-3 mb-3">

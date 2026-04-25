@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Baby, BookOpen, ChevronDown, ChevronUp, Dumbbell, MessageCircle, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -364,6 +364,19 @@ export default function InfantilEixos() {
   const { t } = useI18n();
   useDocumentTitle("Educació Infantil · Eixos de Desenvolupament · Decret 21/2023");
 
+  // Scroll to the anchor eix on load (e.g. /infantil/eixos#eix1)
+  useEffect(() => {
+    const hash = window.location.hash.replace("#", "");
+    if (hash) {
+      // Slight delay to allow the page to render fully before scrolling
+      const timer = setTimeout(() => {
+        const el = document.getElementById(hash);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
   return (
     <div className="bg-background flex flex-col min-h-screen">
       <NavBar />
@@ -447,7 +460,9 @@ export default function InfantilEixos() {
         {/* EIX cards */}
         <div className="space-y-6 mb-14">
           {EIX_DATA.map((eix) => (
-            <EixCard key={eix.code} eix={eix} />
+            <div key={eix.code} id={eix.code.toLowerCase()}>
+              <EixCard eix={eix} />
+            </div>
           ))}
         </div>
 
