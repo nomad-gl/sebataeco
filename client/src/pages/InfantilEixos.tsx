@@ -22,16 +22,23 @@ interface EixDetail {
   borderColor: string;
   textColor: string;
   badgeBg: string;
+  /** Canonical Catalan subtitle — always shown in Catalan per Decree 21/2023 */
   catalan: string;
-  name: string;
-  description: string;
+  /** UI name key for translation */
+  nameKey: string;
+  /** UI description key for translation */
+  descKey: string;
+  /** Canonical Catalan saber area name */
   saberAreaName: string;
   competencies: { code: string; text: string }[];
   sabers03: string[];
   sabers36: string[];
-  pedagogicalFocus: string;
+  /** Pedagogical focus key for translation */
+  pedagogicalFocusKey: string;
 }
 
+// Canonical curriculum content stays in Catalan per Decree 21/2023.
+// Only UI chrome (headings, labels, buttons) is translated.
 const EIX_DATA: EixDetail[] = [
   {
     code: "EIX1",
@@ -42,9 +49,8 @@ const EIX_DATA: EixDetail[] = [
     textColor: "text-pink-700 dark:text-pink-300",
     badgeBg: "bg-pink-100 text-pink-700 border-pink-200",
     catalan: "Un infant que creix amb autonomia i confiança",
-    name: "Growing with Autonomy & Confidence",
-    description:
-      "Body awareness, movement, self-care, emotional wellbeing, and the progressive construction of a positive self-image. Children develop autonomy in everyday routines and learn to trust their own capabilities.",
+    nameKey: "eix1_name",
+    descKey: "eix1_desc",
     saberAreaName: "Cos, moviment i autonomia",
     competencies: [
       {
@@ -70,8 +76,7 @@ const EIX_DATA: EixDetail[] = [
       "Adquisició progressiva d'autonomia en situacions quotidianes",
       "Descobriment i reconeixement de la pròpia imatge i la de les persones de l'entorn",
     ],
-    pedagogicalFocus:
-      "Free movement, autonomous play, sensorimotor exploration, and wellbeing routines are the primary vehicles for learning in this axis. The curriculum explicitly rejects comparison and competition, favouring inclusive environments where every child feels valued and safe.",
+    pedagogicalFocusKey: "eix1_pedagogical",
   },
   {
     code: "EIX2",
@@ -82,9 +87,8 @@ const EIX_DATA: EixDetail[] = [
     textColor: "text-teal-700 dark:text-teal-300",
     badgeBg: "bg-teal-100 text-teal-700 border-teal-200",
     catalan: "Un infant que es comunica amb diferents llenguatges",
-    name: "Communicating with Different Languages",
-    description:
-      "Oral and written language, mathematical language, artistic and creative expression, body language, and digital literacy. Children explore multiple ways of expressing and communicating ideas, emotions, and experiences.",
+    nameKey: "eix2_name",
+    descKey: "eix2_desc",
     saberAreaName: "Comunicació i representació de la realitat",
     competencies: [
       {
@@ -118,8 +122,7 @@ const EIX_DATA: EixDetail[] = [
       "Expressió plàstica, musical i corporal",
       "Ús d'eines digitals bàsiques per a la comunicació i la creació",
     ],
-    pedagogicalFocus:
-      "Language-rich environments, storytelling, creative play, and digital exploration underpin this axis. Catalan is the vehicular language, and multilingual awareness is fostered from the earliest stages. Artistic expression — drawing, music, movement — is treated as a full language system.",
+    pedagogicalFocusKey: "eix2_pedagogical",
   },
   {
     code: "EIX3",
@@ -130,9 +133,8 @@ const EIX_DATA: EixDetail[] = [
     textColor: "text-green-700 dark:text-green-300",
     badgeBg: "bg-green-100 text-green-700 border-green-200",
     catalan: "Un infant que descobreix l'entorn amb curiositat",
-    name: "Discovering the Environment with Curiosity",
-    description:
-      "Mathematical thinking, scientific inquiry, exploration of the natural world, logical reasoning, and the development of habits of sustainability and care for the environment.",
+    nameKey: "eix3_name",
+    descKey: "eix3_desc",
     saberAreaName: "Descoberta de l'entorn",
     competencies: [
       {
@@ -158,8 +160,7 @@ const EIX_DATA: EixDetail[] = [
       "Observació i exploració de l'entorn planificant la pròpia acció",
       "Indagació en el medi natural: cura, valoració i respecte",
     ],
-    pedagogicalFocus:
-      "Inquiry-based learning, hands-on experimentation, and outdoor exploration are central. Children are encouraged to ask questions, test hypotheses, and develop a sense of wonder. Sustainability and care for the natural world are woven throughout both cycles.",
+    pedagogicalFocusKey: "eix3_pedagogical",
   },
   {
     code: "EIX4",
@@ -170,9 +171,8 @@ const EIX_DATA: EixDetail[] = [
     textColor: "text-purple-700 dark:text-purple-300",
     badgeBg: "bg-purple-100 text-purple-700 border-purple-200",
     catalan: "Un infant que forma part de la diversitat del món",
-    name: "Being Part of a Diverse World",
-    description:
-      "Social relationships, cultural diversity, democratic values, community belonging, gender equality, and appreciation of the social and cultural environment. Children build their identity through respectful relationships with others.",
+    nameKey: "eix4_name",
+    descKey: "eix4_desc",
     saberAreaName: "La vida amb els altres / Interacció social i cultural en l'entorn",
     competencies: [
       {
@@ -198,25 +198,27 @@ const EIX_DATA: EixDetail[] = [
       "Participació en celebracions i tradicions culturals de l'entorn",
       "Coneixement de la realitat lingüística de l'aula i l'entorn proper",
     ],
-    pedagogicalFocus:
-      "Democratic values, gender equality, and cultural diversity are not add-ons but central to this axis. Children learn to recognise and celebrate difference, build empathy, and participate in community life. Family-school partnership is especially emphasised in the 0–3 cycle.",
+    pedagogicalFocusKey: "eix4_pedagogical",
   },
 ];
 
-const PEDAGOGICAL_PRINCIPLES = [
-  { n: 1, text: "Child as protagonist of their own learning" },
-  { n: 2, text: "Wellbeing, enjoyment and learning as inseparable" },
-  { n: 3, text: "Meaningful, functional, contextualised situations" },
-  { n: 4, text: "Respect for different rhythms and developmental stages" },
-  { n: 5, text: "Play as the primary vehicle for learning" },
-  { n: 6, text: "Observation and documentation as pedagogical tools" },
-  { n: 7, text: "Family-school partnership" },
-  { n: 8, text: "Inclusive approach — diversity as enrichment" },
-  { n: 9, text: "Creativity and critical thinking from the earliest stages" },
-  { n: 10, text: "Language-rich environment (Catalan as vehicular language)" },
-];
+// Pedagogical principles — canonical Catalan content per Decree 21/2023
+// (translated via i18n keys eix_principle_1 … eix_principle_10)
+const PRINCIPLE_KEYS = [
+  "eix_principle_1",
+  "eix_principle_2",
+  "eix_principle_3",
+  "eix_principle_4",
+  "eix_principle_5",
+  "eix_principle_6",
+  "eix_principle_7",
+  "eix_principle_8",
+  "eix_principle_9",
+  "eix_principle_10",
+] as const;
 
 function EixCard({ eix }: { eix: EixDetail }) {
+  const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -239,13 +241,13 @@ function EixCard({ eix }: { eix: EixDetail }) {
               </span>
             </div>
             <h2 className={`text-xl font-bold leading-snug mb-1 ${eix.textColor}`}>
-              {eix.name}
+              {t(eix.nameKey as any)}
             </h2>
             <p className={`text-sm font-medium italic mb-2 ${eix.textColor} opacity-80`}>
               {eix.catalan}
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              {eix.description}
+              {t(eix.descKey as any)}
             </p>
           </div>
         </div>
@@ -256,7 +258,7 @@ function EixCard({ eix }: { eix: EixDetail }) {
         <div className="flex items-center gap-2 mb-4">
           <BookOpen className="w-4 h-4 text-muted-foreground shrink-0" />
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            Àrea de sabers:
+            {t("eix_saber_area_label")}
           </span>
           <span className={`text-xs font-bold ${eix.textColor}`}>{eix.saberAreaName}</span>
         </div>
@@ -264,7 +266,7 @@ function EixCard({ eix }: { eix: EixDetail }) {
         {/* Competències específiques */}
         <div className="mb-4">
           <h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">
-            Competències específiques
+            {t("eix_competencies_title")}
           </h3>
           <div className="space-y-2">
             {eix.competencies.map((ce) => (
@@ -287,7 +289,7 @@ function EixCard({ eix }: { eix: EixDetail }) {
           className={`flex items-center gap-2 text-sm font-semibold ${eix.textColor} hover:opacity-80 transition-opacity mb-3`}
         >
           {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          {expanded ? "Amaga els sabers per cicle" : "Mostra els sabers per cicle"}
+          {expanded ? t("eix_hide_sabers") : t("eix_show_sabers")}
         </button>
 
         {expanded && (
@@ -296,14 +298,14 @@ function EixCard({ eix }: { eix: EixDetail }) {
             <div className={`rounded-lg border ${eix.borderColor} p-4`}>
               <div className="flex items-center gap-2 mb-3">
                 <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${eix.badgeBg}`}>
-                  Primer cicle
+                  {t("eix_primer_cicle")}
                 </span>
                 <span className="text-xs text-muted-foreground font-medium">0–3 anys</span>
               </div>
               <ul className="space-y-1.5">
                 {eix.sabers03.map((s) => (
                   <li key={s} className="flex gap-2 text-sm">
-                    <span className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0`} style={{ background: eix.color }} />
+                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: eix.color }} />
                     <span className="leading-relaxed">{s}</span>
                   </li>
                 ))}
@@ -314,7 +316,7 @@ function EixCard({ eix }: { eix: EixDetail }) {
             <div className={`rounded-lg border ${eix.borderColor} p-4`}>
               <div className="flex items-center gap-2 mb-3">
                 <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${eix.badgeBg}`}>
-                  Segon cicle
+                  {t("eix_segon_cicle")}
                 </span>
                 <span className="text-xs text-muted-foreground font-medium">3–6 anys</span>
               </div>
@@ -333,10 +335,10 @@ function EixCard({ eix }: { eix: EixDetail }) {
         {/* Pedagogical focus */}
         <div className={`mt-4 rounded-lg border ${eix.borderColor} p-4 ${eix.bgLight}`}>
           <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-1">
-            Enfocament pedagògic
+            {t("eix_enfocament_label")}
           </p>
           <p className="text-sm leading-relaxed text-muted-foreground italic">
-            {eix.pedagogicalFocus}
+            {t(eix.pedagogicalFocusKey as any)}
           </p>
         </div>
 
@@ -345,13 +347,13 @@ function EixCard({ eix }: { eix: EixDetail }) {
           <Link href={`/infantil/practice?eix=${eix.code}`}>
             <Button size="sm" variant="outline" className={`gap-2 border ${eix.borderColor} ${eix.textColor}`}>
               <Dumbbell className="w-3.5 h-3.5" />
-              Practica {eix.code}
+              {t("eix_practica_btn")} {eix.code}
             </Button>
           </Link>
           <Link href="/chat">
             <Button size="sm" variant="ghost" className="gap-2">
               <MessageCircle className="w-3.5 h-3.5" />
-              Pregunta a Aina
+              {t("eix_ask_aina_btn")}
             </Button>
           </Link>
         </div>
@@ -368,7 +370,6 @@ export default function InfantilEixos() {
   useEffect(() => {
     const hash = window.location.hash.replace("#", "");
     if (hash) {
-      // Slight delay to allow the page to render fully before scrolling
       const timer = setTimeout(() => {
         const el = document.getElementById(hash);
         if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -389,20 +390,18 @@ export default function InfantilEixos() {
         className="border-b border-border"
       >
         <div className="container py-12 sm:py-16 lg:py-20">
-          <BackButton href="/" label={t("nav_home") || "Inici"} className="text-white/80 hover:text-white mb-6" />
+          <BackButton href="/" label={t("nav_home")} className="text-white/80 hover:text-white mb-6" />
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 text-white text-sm font-semibold mb-5 backdrop-blur-sm">
               <Baby className="w-4 h-4" />
-              Educació Infantil · 0–6 anys
+              {t("eix_hero_badge")}
             </div>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight mb-4">
-              Els 4 Eixos de{" "}
-              <span className="text-pink-300">Desenvolupament</span>
+              {t("eix_hero_title_1")}{" "}
+              <span className="text-pink-300">{t("eix_hero_title_2")}</span>
             </h1>
             <p className="text-white/85 text-base sm:text-lg leading-relaxed mb-6 max-w-2xl">
-              El Decret 21/2023 de la Generalitat de Catalunya estructura l'etapa d'Educació Infantil
-              al voltant de quatre eixos de desenvolupament i aprenentatge, en coherència amb la LOMLOE
-              (Llei Orgànica 3/2020).
+              {t("eix_hero_desc")}
             </p>
             <div className="flex flex-wrap gap-2">
               <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-pink-500/80 text-white backdrop-blur-sm">
@@ -412,7 +411,7 @@ export default function InfantilEixos() {
                 LOMLOE
               </span>
               <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-white/20 text-white backdrop-blur-sm">
-                Primer cicle 0–3 · Segon cicle 3–6
+                {t("eix_badge_primer_cicle")}
               </span>
             </div>
           </div>
@@ -424,10 +423,10 @@ export default function InfantilEixos() {
         <div className="container py-5">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
             {[
-              { label: "Eixos de Desenvolupament", value: "4" },
-              { label: "Cicles", value: "2" },
-              { label: "Competències específiques", value: "10" },
-              { label: "Àrees de sabers", value: "4" },
+              { label: t("eix_stat_eixos"), value: "4" },
+              { label: t("eix_stat_cicles"), value: "2" },
+              { label: t("eix_stat_competencies"), value: "10" },
+              { label: t("eix_stat_areas"), value: "4" },
             ].map(({ label, value }) => (
               <div key={label} className="flex flex-col items-center gap-1">
                 <span className="text-2xl font-extrabold text-pink-600">{value}</span>
@@ -443,17 +442,12 @@ export default function InfantilEixos() {
 
         {/* Intro paragraph */}
         <div className="mb-10 max-w-3xl">
-          <h2 className="text-2xl font-bold mb-3">Estructura curricular</h2>
+          <h2 className="text-2xl font-bold mb-3">{t("eix_intro_title")}</h2>
           <p className="text-muted-foreground leading-relaxed mb-3">
-            A diferència de les etapes posteriors, l'Educació Infantil no s'organitza en àrees
-            curriculars sinó en <strong>eixos de desenvolupament i aprenentatge</strong>. Cada eix
-            integra competències específiques, criteris d'avaluació i sabers curriculars, i s'aplica
-            de manera diferenciada als dos cicles de l'etapa.
+            {t("eix_intro_p1")}
           </p>
           <p className="text-muted-foreground leading-relaxed">
-            Els quatre eixos no són compartiments estancs: el currículum promou un enfocament
-            globalitzador on els aprenentatges es produeixen de manera integrada, a través del joc,
-            la descoberta i la vida quotidiana.
+            {t("eix_intro_p2")}
           </p>
         </div>
 
@@ -468,20 +462,20 @@ export default function InfantilEixos() {
 
         {/* Pedagogical principles */}
         <section className="mb-14">
-          <h2 className="text-2xl font-bold mb-2">10 Principis pedagògics del Decret 21/2023</h2>
+          <h2 className="text-2xl font-bold mb-2">{t("eix_principles_title")}</h2>
           <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
-            Aquests principis travessen tots quatre eixos i orienten la pràctica docent a l'etapa d'Educació Infantil.
+            {t("eix_principles_desc")}
           </p>
           <div className="grid sm:grid-cols-2 gap-3">
-            {PEDAGOGICAL_PRINCIPLES.map(({ n, text }) => (
+            {PRINCIPLE_KEYS.map((key, i) => (
               <div
-                key={n}
+                key={key}
                 className="flex items-start gap-3 p-4 rounded-lg border border-border bg-card"
               >
                 <span className="flex-shrink-0 w-7 h-7 rounded-full bg-pink-100 text-pink-700 text-xs font-bold flex items-center justify-center border border-pink-200">
-                  {n}
+                  {i + 1}
                 </span>
-                <p className="text-sm leading-relaxed">{text}</p>
+                <p className="text-sm leading-relaxed">{t(key as any)}</p>
               </div>
             ))}
           </div>
@@ -489,31 +483,31 @@ export default function InfantilEixos() {
 
         {/* Cycle comparison table */}
         <section className="mb-14">
-          <h2 className="text-2xl font-bold mb-2">Comparativa dels dos cicles</h2>
+          <h2 className="text-2xl font-bold mb-2">{t("eix_comparison_title")}</h2>
           <p className="text-muted-foreground text-sm mb-6">
-            Tots dos cicles comparteixen els mateixos quatre eixos, però amb competències específiques i sabers diferenciats.
+            {t("eix_comparison_desc")}
           </p>
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/50">
-                  <th className="text-left p-4 font-semibold text-muted-foreground w-1/3">Aspecte</th>
-                  <th className="text-left p-4 font-semibold text-pink-700">Primer cicle (0–3)</th>
-                  <th className="text-left p-4 font-semibold text-purple-700">Segon cicle (3–6)</th>
+                  <th className="text-left p-4 font-semibold text-muted-foreground w-1/3">{t("eix_table_aspect")}</th>
+                  <th className="text-left p-4 font-semibold text-pink-700">{t("eix_table_primer")}</th>
+                  <th className="text-left p-4 font-semibold text-purple-700">{t("eix_table_segon")}</th>
                 </tr>
               </thead>
               <tbody>
                 {[
-                  ["Denominació", "Llar d'infants", "Parvulari / Preschool"],
-                  ["Llei marc", "LOMLOE + RD 95/2022 + Decret 21/2023", "LOMLOE + RD 95/2022 + Decret 21/2023"],
-                  ["Comunicació", "Gestual, corporal i oral emergent", "Oral, escrita emergent, digital bàsic"],
-                  ["Matemàtiques", "Quantitat i numeració en joc", "Nombre, mesura, espai i classificació"],
-                  ["Entorn", "Exploració sensoriomotriu", "Indagació, experimentació, sostenibilitat"],
-                  ["Social", "Vincles afectius i família", "Grups socials, diversitat, valors democràtics"],
-                  ["Avaluació", "Observació i documentació", "Observació, documentació i portafolis"],
-                ].map(([aspect, c03, c36]) => (
-                  <tr key={aspect} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                    <td className="p-4 font-medium">{aspect}</td>
+                  ["eix_row_denominacio", "Llar d'infants", "Parvulari / Preschool"],
+                  ["eix_row_llei", "LOMLOE + RD 95/2022 + Decret 21/2023", "LOMLOE + RD 95/2022 + Decret 21/2023"],
+                  ["eix_row_comunicacio", "Gestual, corporal i oral emergent", "Oral, escrita emergent, digital bàsic"],
+                  ["eix_row_matematiques", "Quantitat i numeració en joc", "Nombre, mesura, espai i classificació"],
+                  ["eix_row_entorn", "Exploració sensoriomotriu", "Indagació, experimentació, sostenibilitat"],
+                  ["eix_row_social", "Vincles afectius i família", "Grups socials, diversitat, valors democràtics"],
+                  ["eix_row_avaluacio", "Observació i documentació", "Observació, documentació i portafolis"],
+                ].map(([aspectKey, c03, c36]) => (
+                  <tr key={aspectKey} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                    <td className="p-4 font-medium">{t(aspectKey as any)}</td>
                     <td className="p-4 text-muted-foreground">{c03}</td>
                     <td className="p-4 text-muted-foreground">{c36}</td>
                   </tr>
@@ -526,27 +520,27 @@ export default function InfantilEixos() {
         {/* CTA section */}
         <section className="rounded-xl border border-pink-200 bg-pink-50 dark:bg-pink-950/30 dark:border-pink-800 p-8 text-center">
           <Baby className="w-10 h-10 text-pink-500 mx-auto mb-3" />
-          <h2 className="text-xl font-bold mb-2">Posa a prova els teus coneixements</h2>
+          <h2 className="text-xl font-bold mb-2">{t("eix_cta_title")}</h2>
           <p className="text-muted-foreground text-sm mb-5 max-w-md mx-auto">
-            Practica preguntes sobre els quatre eixos del Decret 21/2023, filtrades per cicle i eix.
+            {t("eix_cta_desc")}
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Link href="/infantil/practice">
               <Button className="gap-2 bg-pink-600 hover:bg-pink-700 text-white">
                 <Dumbbell className="w-4 h-4" />
-                Pràctica Educació Infantil
+                {t("eix_cta_practice_btn")}
               </Button>
             </Link>
             <Link href="/chat">
               <Button variant="outline" className="gap-2 border-pink-300 text-pink-700 hover:bg-pink-100">
                 <MessageCircle className="w-4 h-4" />
-                Pregunta a Aina
+                {t("eix_ask_aina_btn")}
               </Button>
             </Link>
           </div>
           <p className="text-xs text-muted-foreground mt-5 flex items-center justify-center gap-1">
             <ExternalLink className="w-3 h-3" />
-            Font: Decret 21/2023, de 7 de febrer, d'ordenació dels ensenyaments de l'educació infantil (DOGC)
+            {t("eix_source_label")}
           </p>
         </section>
       </div>

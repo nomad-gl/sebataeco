@@ -4446,3 +4446,10 @@
 ### QA
 - [x] TypeScript: 0 errors
 - [x] Vitest: tests for deadline calculation, escalation logic, Infantil progress queries
+
+## TTS Voice Quality Improvement (CA/ES)
+- [x] Route CA/ES TTS through OpenAI tts-1-hd neural backend (instead of browser Web Speech API)
+- [x] Switch CA/ES default voice to nova (warmer, more expressive cadence)
+- [x] Voice preview in picker also uses neural TTS for CA/ES
+- [x] Amber warning dot and "no voices" notice suppressed for CA/ES (neural TTS doesn't need browser voices)
+- [x] Updated voice picker descriptions to reflect neural TTS quality (EN/ES/CA)

@@ -197,8 +197,18 @@ export function AIChatBox({
   /** Derive the best default voice for a given language code */
   const defaultVoiceForLang = (langCode: string): TtsVoice => {
     const l = langCode.toLowerCase().split(/[-_]/)[0];
-    return (l === "es" || l === "ca") ? "shimmer" : "nova";
+    // nova: warm, expressive, natural cadence — works well for ES and CA
+    return (l === "es" || l === "ca") ? "nova" : "nova";
   };
+
+  /** True when the active language is Catalan or Spanish — use neural TTS */
+  const isNeuralLang = (langCode: string) => {
+    const l = langCode.toLowerCase().split(/[-_]/)[0];
+    return l === "ca" || l === "es";
+  };
+
+  // Ref to the currently playing neural audio element so we can stop it
+  const neuralAudioRef = useRef<HTMLAudioElement | null>(null);
 
   /** Selected TTS voice — persisted to localStorage */
   const [ttsVoice, setTtsVoice] = useState<TtsVoice>(() => {
@@ -291,6 +301,7 @@ export function AIChatBox({
   // tRPC mutations for voice pipeline
   const uploadAudioMutation = trpc.voice.uploadAudio.useMutation();
   const transcribeMutation = trpc.voice.transcribe.useMutation();
+  const ttsMutation = trpc.voice.tts.useMutation();
 
   // ─── Image generation + file upload ─────────────────────────────────────────
   const generateImageMutation = trpc.aina.generateImage.useMutation();
@@ -444,7 +455,7 @@ export function AIChatBox({
 
   // ─── TTS playback via browser Web Speech API ─────────────────────────────────
 
-  /** Cache ref kept for API compatibility — browser TTS does not need pre-caching */
+  /** Cache for neural TTS audio data URLs (keyed by text+voice+lang) */
   const ttsCacheRef = useRef<Map<string, string>>(new Map());
 
   /** Which voice ID is currently being previewed (null = none) */
@@ -452,35 +463,45 @@ export function AIChatBox({
 
   const stopVoicePreview = useCallback(() => {
     if (hasSpeechSynthesis) window.speechSynthesis.cancel();
+    if (neuralAudioRef.current) { neuralAudioRef.current.pause(); neuralAudioRef.current = null; }
     setPreviewingVoice(null);
   }, [hasSpeechSynthesis]);
 
-  const playVoicePreview = useCallback((voiceId: string, sampleText: string) => {
+  const playVoicePreview = useCallback(async (voiceId: string, sampleText: string) => {
     stopVoicePreview();
-    if (!hasSpeechSynthesis) return;
     setPreviewingVoice(voiceId);
     const langCode = document.documentElement.lang || navigator.language || "en";
+    if (isNeuralLang(langCode)) {
+      // Use neural TTS for CA/ES preview
+      try {
+        const result = await ttsMutation.mutateAsync({
+          text: sampleText,
+          lang: langCode,
+          voice: voiceId as "nova" | "shimmer" | "alloy" | "fable",
+        });
+        const dataUrl = `data:${result.mimeType};base64,${result.audioBase64}`;
+        const audio = new Audio(dataUrl);
+        neuralAudioRef.current = audio;
+        audio.onended = () => setPreviewingVoice(null);
+        audio.onerror = () => setPreviewingVoice(null);
+        audio.play().catch(() => setPreviewingVoice(null));
+      } catch {
+        setPreviewingVoice(null);
+      }
+      return;
+    }
+    // English: use browser Web Speech
+    if (!hasSpeechSynthesis) { setPreviewingVoice(null); return; }
     const voices = window.speechSynthesis.getVoices();
     const l = langCode.split("-")[0];
-    // Use the same lifelike voice priority for ca/es previews
-    let voice: SpeechSynthesisVoice | null = null;
-    if (l === "ca" || l === "es") {
-      voice = voices.find(v => v.lang.startsWith(l) && /google/i.test(v.name) && /neural|natural|enhanced/i.test(v.name))
-        ?? voices.find(v => v.lang.startsWith(l) && /microsoft/i.test(v.name) && /neural/i.test(v.name))
-        ?? voices.find(v => v.lang.startsWith(l) && /google/i.test(v.name))
-        ?? voices.find(v => v.lang.startsWith(l) && /microsoft/i.test(v.name))
-        ?? voices.find(v => v.lang.startsWith(l))
-        ?? voices[0] ?? null;
-    } else {
-      voice = voices.find(v => v.lang.startsWith(l)) ?? voices[0] ?? null;
-    }
+    const voice = voices.find(v => v.lang.startsWith(l)) ?? voices[0] ?? null;
     const u = new SpeechSynthesisUtterance(sampleText);
     u.lang = langCode; u.rate = 1.0;
     if (voice) u.voice = voice;
     u.onend = () => setPreviewingVoice(null);
     u.onerror = () => setPreviewingVoice(null);
     window.speechSynthesis.speak(u);
-  }, [hasSpeechSynthesis, stopVoicePreview]);
+  }, [hasSpeechSynthesis, stopVoicePreview, ttsMutation]);
 
   // Flag to cancel in-flight TTS requests
   const cancelledRef = useRef(false);
@@ -506,6 +527,8 @@ export function AIChatBox({
   const stopSpeaking = useCallback(() => {
     cancelledRef.current = true;
     if (hasSpeechSynthesis) window.speechSynthesis.cancel();
+    // Stop any in-progress neural audio
+    if (neuralAudioRef.current) { neuralAudioRef.current.pause(); neuralAudioRef.current = null; }
     setIsSpeaking(false);
     // Give the browser ~400ms to release the audio device before restarting wake listeners
     setTimeout(() => { forceRestartRef.current?.(); }, 400);
@@ -516,6 +539,7 @@ export function AIChatBox({
     return () => {
       cancelledRef.current = true;
       if (hasSpeechSynthesis) window.speechSynthesis.cancel();
+      if (neuralAudioRef.current) { neuralAudioRef.current.pause(); neuralAudioRef.current = null; }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -597,12 +621,55 @@ export function AIChatBox({
     }
   }, [hasSpeechSynthesis, speechRate]);
 
+  /**
+   * Neural TTS path — calls the server-side OpenAI tts-1-hd API.
+   * Used for Catalan and Spanish to deliver a natural, human-sounding voice.
+   */
+  const playNeuralTTS = useCallback(async (text: string, langCode: string) => {
+    const cacheKey = `${ttsVoice}:${langCode}:${text.slice(0, 120)}`;
+    let dataUrl = ttsCacheRef.current.get(cacheKey);
+    if (!dataUrl) {
+      try {
+        const result = await ttsMutation.mutateAsync({
+          text: text.slice(0, 4096),
+          lang: langCode,
+          voice: ttsVoice as "nova" | "shimmer" | "alloy" | "fable",
+        });
+        dataUrl = `data:${result.mimeType};base64,${result.audioBase64}`;
+        ttsCacheRef.current.set(cacheKey, dataUrl);
+      } catch {
+        // Neural TTS failed — fall back to browser Web Speech
+        if (!cancelledRef.current) playBrowserTTS(text, langCode);
+        return;
+      }
+    }
+    if (cancelledRef.current) { setIsSpeaking(false); return; }
+    const audio = new Audio(dataUrl);
+    neuralAudioRef.current = audio;
+    audio.playbackRate = speechRate;
+    audio.onended = () => {
+      neuralAudioRef.current = null;
+      setIsSpeaking(false);
+      setTimeout(() => { forceRestartRef.current?.(); }, 400);
+    };
+    audio.onerror = () => {
+      neuralAudioRef.current = null;
+      setIsSpeaking(false);
+      setTimeout(() => { forceRestartRef.current?.(); }, 400);
+    };
+    audio.play().catch(() => {
+      neuralAudioRef.current = null;
+      setIsSpeaking(false);
+    });
+  }, [ttsVoice, ttsMutation, playBrowserTTS, speechRate]);
+
   const playTTS = useCallback((text: string) => {
     if (!ttsEnabled || !text.trim()) return;
 
     // Stop any currently playing speech
     cancelledRef.current = true;
     if (hasSpeechSynthesis) window.speechSynthesis.cancel();
+    if (neuralAudioRef.current) { neuralAudioRef.current.pause(); neuralAudioRef.current = null; }
 
     cancelledRef.current = false;
     setIsSpeaking(true);
@@ -621,8 +688,13 @@ export function AIChatBox({
     if (!plainText) { setIsSpeaking(false); return; }
 
     const langCode = document.documentElement.lang || navigator.language || "en";
-    playBrowserTTS(plainText, langCode);
-  }, [ttsEnabled, hasSpeechSynthesis, playBrowserTTS]);
+    // CA/ES: use neural OpenAI TTS for a natural, human-sounding voice
+    if (isNeuralLang(langCode)) {
+      playNeuralTTS(plainText, langCode);
+    } else {
+      playBrowserTTS(plainText, langCode);
+    }
+  }, [ttsEnabled, hasSpeechSynthesis, playBrowserTTS, playNeuralTTS]);
 
   // Auto-play TTS when a new assistant message finishes streaming
   // We watch the content of the last assistant message + isLoading so we
@@ -1439,7 +1511,7 @@ export function AIChatBox({
               size="icon"
               variant="ghost"
               onClick={() => { setTtsEnabled(v => !v); if (isSpeaking) stopSpeaking(); }}
-              title={ttsEnabled && !browserVoicesAvailable ? t("tts_no_voice_toggle") : ttsEnabled ? `Voice responses: ON (${ttsVoice.charAt(0).toUpperCase() + ttsVoice.slice(1)}) — click to mute` : "Voice responses: OFF — click to enable"}
+              title={ttsEnabled ? `Voice responses: ON (${ttsVoice.charAt(0).toUpperCase() + ttsVoice.slice(1)}) — click to mute` : "Voice responses: OFF — click to enable"}
               className={cn(
                 "h-[38px] w-[38px]",
                 ttsEnabled
@@ -1449,8 +1521,8 @@ export function AIChatBox({
             >
               {ttsEnabled ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
             </Button>
-            {/* Amber dot warning when TTS is on but no voices available */}
-            {ttsEnabled && !browserVoicesAvailable && (
+            {/* Amber dot warning: only for English when no browser voices are available (CA/ES use neural TTS) */}
+            {ttsEnabled && !browserVoicesAvailable && !isNeuralLang(document.documentElement.lang || navigator.language || "en") && (
               <span className="absolute top-1 right-1 size-2 rounded-full bg-amber-400 ring-1 ring-black/30" aria-hidden="true" />
             )}
           </div>
@@ -1487,7 +1559,7 @@ export function AIChatBox({
                   <div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-widest text-white/40 border-b border-white/10">
                     {t("tts_voice_label")}
                   </div>
-                  {!browserVoicesAvailable && (
+                  {!browserVoicesAvailable && !isNeuralLang(document.documentElement.lang || navigator.language || "en") && (
                     <div className="px-3 py-2.5 text-[11px] text-amber-300/80 flex items-start gap-2 border-b border-white/10">
                       <span className="mt-0.5 shrink-0">⚠</span>
                       <span>{t("tts_no_voice_notice")}</span>
@@ -1537,19 +1609,20 @@ export function AIChatBox({
                         <span className="text-sm font-medium">{t(v.labelKey)}</span>
                         <span className="text-[11px] text-white/40 mt-0.5">{t(v.descKey)}</span>
                       </button>
-                      {/* Preview play/stop button — disabled when no voices available */}
+                      {/* Preview play/stop button — always enabled for CA/ES (neural TTS), disabled only for EN without browser voices */}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (!browserVoicesAvailable) return;
+                          const usingNeural = isNeuralLang(document.documentElement.lang || navigator.language || "en");
+                          if (!usingNeural && !browserVoicesAvailable) return;
                           if (previewingVoice === v.id) {
                             stopVoicePreview();
                           } else {
-                            playVoicePreview(v.id, t("tts_voice_preview_sample"));
+                            void playVoicePreview(v.id, t("tts_voice_preview_sample"));
                           }
                         }}
-                        disabled={!browserVoicesAvailable}
-                        title={!browserVoicesAvailable ? t("tts_no_voice_toggle") : previewingVoice === v.id ? "Stop preview" : `Preview ${t(v.labelKey)} voice`}
+                        disabled={!isNeuralLang(document.documentElement.lang || navigator.language || "en") && !browserVoicesAvailable}
+                        title={!isNeuralLang(document.documentElement.lang || navigator.language || "en") && !browserVoicesAvailable ? t("tts_no_voice_toggle") : previewingVoice === v.id ? "Stop preview" : `Preview ${t(v.labelKey)} voice`}
                         className={cn(
                           "shrink-0 w-7 h-7 flex items-center justify-center rounded-md transition-colors",
                           browserVoicesAvailable
