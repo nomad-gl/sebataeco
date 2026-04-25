@@ -51,7 +51,7 @@ type AbsenceRow = {
   assignedName: string;
   markerName: string;
   hasCover: boolean;
-  coverAssignment: { id: number; coverTeacherId: number; status: string } | null;
+  coverAssignment: { id: number; coverTeacherId: number; status: string; deadlineAt?: Date | string | null; escalationSentAt?: Date | string | null } | null;
 };
 
 type CoverCandidate = {
@@ -413,6 +413,24 @@ export default function DirectorCoverRequests() {
                         {t("cover_confirm_title")}
                       </Button>
                     )}
+                    {row.hasCover && row.coverAssignment?.deadlineAt && !row.coverAssignment?.escalationSentAt && (() => {
+                      const deadline = new Date(row.coverAssignment!.deadlineAt as string);
+                      const remaining = deadline.getTime() - Date.now();
+                      if (remaining > 0) {
+                        const mins = Math.ceil(remaining / 60000);
+                        return (
+                          <span className="flex items-center gap-1 text-xs text-amber-400">
+                            <Clock className="h-3 w-3" />
+                            {t("cover_deadline_remaining").replace("{n}", String(mins))}
+                          </span>
+                        );
+                      }
+                      return (
+                        <Badge variant="outline" className="text-red-400 border-red-500/50 text-xs">
+                          {t("cover_deadline_expired")}
+                        </Badge>
+                      );
+                    })()}
                   </div>
                 </div>
 

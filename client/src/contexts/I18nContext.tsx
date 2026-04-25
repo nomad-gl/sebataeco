@@ -3249,6 +3249,10 @@ export const translations = {
     cover_deadline_saved: "Deadline updated to {n} minutes.",
     cover_deadline_current: "Current deadline: {n} minutes.",
     cover_deadline_invalid: "Please enter a value between 5 and 120 minutes.",
+    cover_deadline_remaining: "{n} min remaining",
+    cover_deadline_expired: "Deadline Expired",
+    cover_escalated: "Escalated",
+    cover_escalated_next_candidate: "Next candidate suggested",
     practice_check: "Check Answer",
   },
   es: {
@@ -6468,6 +6472,10 @@ export const translations = {
     cover_deadline_saved: "Plazo actualizado a {n} minutos.",
     cover_deadline_current: "Plazo actual: {n} minutos.",
     cover_deadline_invalid: "Por favor, introduce un valor entre 5 y 120 minutos.",
+    cover_deadline_remaining: "{n} min restantes",
+    cover_deadline_expired: "Plazo Expirado",
+    cover_escalated: "Escalado",
+    cover_escalated_next_candidate: "Siguiente candidato sugerido",
     practice_check: "Comprobar Respuesta",
   },
   ca: {
@@ -9690,6 +9698,10 @@ export const translations = {
     cover_deadline_saved: "Termini actualitzat a {n} minuts.",
     cover_deadline_current: "Termini actual: {n} minuts.",
     cover_deadline_invalid: "Si us plau, introdueix un valor entre 5 i 120 minuts.",
+    cover_deadline_remaining: "{n} min restants",
+    cover_deadline_expired: "Termini Expirat",
+    cover_escalated: "Escalat",
+    cover_escalated_next_candidate: "Següent candidat suggerit",
     practice_check: "Comprovar Resposta",
   },
 } as const;

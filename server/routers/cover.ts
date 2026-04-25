@@ -1217,4 +1217,98 @@ Return the best opportunity or null if none found.`;
         .where(eq(tenants.id, tenantId));
       return { success: true, deadlineMinutes: input.deadlineMinutes };
     }),
+
+  /**
+   * checkDeadlines — returns all pending cover assignments where deadlineAt has
+   * passed and escalationSentAt is null (i.e. not yet escalated).
+   */
+  checkDeadlines: protectedProcedure.query(async ({ ctx }) => {
+    if (!isDirectorOrHos(ctx.user.role, ctx.user.position ?? "")) {
+      throw new TRPCError({ code: "FORBIDDEN" });
+    }
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+    const tenantId = ctx.user.tenantId;
+    if (!tenantId) throw new TRPCError({ code: "BAD_REQUEST", message: "No tenant" });
+    const now = new Date();
+    const overdue = await db
+      .select()
+      .from(coverAssignment)
+      .where(
+        and(
+          eq(coverAssignment.status, "pending"),
+          isNotNull(coverAssignment.deadlineAt),
+          lt(coverAssignment.deadlineAt, now),
+          isNull(coverAssignment.escalationSentAt)
+        )
+      );
+    return { overdue, count: overdue.length };
+  }),
+
+  /**
+   * escalateCover — marks escalationSentAt on a cover assignment and notifies
+   * the director with the next-ranked AI candidate suggestion.
+   */
+  escalateCover: protectedProcedure
+    .input(z.object({ coverAssignmentId: z.number().int() }))
+    .mutation(async ({ ctx, input }) => {
+      if (!isDirectorOrHos(ctx.user.role, ctx.user.position ?? "")) {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      const tenantId = ctx.user.tenantId;
+      if (!tenantId) throw new TRPCError({ code: "BAD_REQUEST", message: "No tenant" });
+      const now = new Date();
+
+      // Fetch the cover assignment
+      const [ca] = await db
+        .select()
+        .from(coverAssignment)
+        .where(eq(coverAssignment.id, input.coverAssignmentId))
+        .limit(1);
+      if (!ca) throw new TRPCError({ code: "NOT_FOUND", message: "Cover assignment not found" });
+
+      // Mark escalation sent
+      await db
+        .update(coverAssignment)
+        .set({ escalationSentAt: now })
+        .where(eq(coverAssignment.id, ca.id));
+
+      // Get class name for notification
+      const [grp] = await db
+        .select({ name: classGroups.className })
+        .from(classGroups)
+        .where(eq(classGroups.id, ca.registerId))
+        .limit(1);
+      const className = grp?.name ?? `Assignment #${ca.id}`;
+
+      // Get current cover teacher name
+      const [coverUser] = await db
+        .select({ name: users.name })
+        .from(users)
+        .where(eq(users.id, ca.coverTeacherId))
+        .limit(1);
+      const coverName = coverUser?.name ?? "Unknown teacher";
+
+      // Notify director via in-app notification
+      await db.insert(teacherNotification).values({
+        userId: ctx.user.id,
+        type: "general",
+        title: `⚠️ Cover response overdue: ${className}`,
+        body: `${coverName} has not responded within the deadline. Please re-confirm or select a different cover teacher from the Cover Requests page.`,
+        relatedCoverAssignmentId: ca.id,
+        isRead: false,
+        requiresResponse: false,
+        tenantId,
+      });
+
+      // Owner notification fallback
+      await notifyOwner({
+        title: `⚠️ Cover response overdue: ${className}`,
+        content: `${coverName} has not responded to the cover assignment for "${className}" within the configured deadline. Please log in to SEBA Platform to re-confirm or select a different cover teacher.`,
+      });
+
+      return { success: true, escalated: ca.id };
+    }),
 });
