@@ -4387,3 +4387,62 @@
 - [x] Error pages / loading states: remove any Manus references
 - [x] HTML <title> and meta tags: ensure no Manus references visible to end users
 - [x] Help / About pages: replace platform references with SEBA Platform
+
+## Follow-up 1: Infantil Eix Anchor in Lesson Planner
+
+### DB
+- [ ] DB: add `infantilEix` (varchar nullable) and `infantilCycle` (enum: '0-3','3-6', nullable) columns to lesson_plans table
+- [ ] DB: apply migration
+
+### Server
+- [ ] Server: lessonPlanner.create/update — accept infantilEix + infantilCycle inputs; include Decree 21/2023 sabers in AI system prompt when stage=infantil
+- [ ] Server: lessonPlanner.list — return infantilEix + infantilCycle fields
+
+### Client
+- [ ] Client: LessonPlanner — add "Stage" selector (Primary / Secondary / Infantil); when Infantil selected, show Eix dropdown (EIX1–EIX4) and Cycle selector (0–3 / 3–6)
+- [ ] Client: LessonPlanner — generated lesson plan shows Decree 21/2023 eix badge and cycle badge in plan header
+- [ ] Client: LessonPlanner — AI prompt includes eix name, cycle, and relevant sabers from Decree 21/2023 knowledge bank
+
+---
+
+## Follow-up 2: Infantil Progress Tracking in Director Student Progress
+
+### Server
+- [ ] Server: studentProgress.getInfantilProgress query — returns per-pupil eix scores for a given class group, eix, and cycle
+- [ ] Server: studentProgress.getInfantilGroupSummary query — returns class-level eix averages for director view
+
+### Client
+- [ ] Client: DirectorStudentProgress — add "Stage" filter tab: Primary / Secondary / Infantil
+- [ ] Client: DirectorStudentProgress — when Infantil selected, show 4 eix progress cards (EIX1–EIX4) with cycle toggle (0–3 / 3–6)
+- [ ] Client: DirectorStudentProgress — each eix card shows class average + individual pupil breakdown in same style as LOMLOE competency progress cards
+- [ ] Client: DirectorStudentProgress — export/print Infantil progress report option
+
+---
+
+## Follow-up 3: Cover Response Deadline with Auto-Escalation
+
+### DB
+- [ ] DB: add `coverResponseDeadlineMinutes` (int default 30) to tenants table
+- [ ] DB: add `deadlineAt` (timestamp nullable) and `escalationSentAt` (timestamp nullable) to cover_assignment table
+- [ ] DB: apply migration
+
+### Server
+- [ ] Server: cover.assignCover — set deadlineAt = confirmedAt + coverResponseDeadlineMinutes on new cover_assignment
+- [ ] Server: cover.checkDeadlines query (director) — returns all cover_assignments where deadlineAt has passed, response is null, and escalationSentAt is null
+- [ ] Server: cover.escalateCover mutation — marks escalationSentAt, sends director in-app notification + notifyOwner with next-ranked AI candidate details
+- [ ] Server: director settings — expose getSettings/updateSettings procedures with coverResponseDeadlineMinutes field
+
+### Client
+- [ ] Client: DirectorCoverRequests — show countdown timer on each pending cover assignment (time remaining until deadline)
+- [ ] Client: DirectorCoverRequests — when deadline passes without response, show red "Escalated" banner with next AI candidate suggestion
+- [ ] Client: DirectorSettings — add "Cover Response Deadline" number input (minutes, default 30) in the cover management section
+- [ ] Client: DirectorCoverRequests — auto-poll checkDeadlines every 60 seconds and trigger escalation if needed
+
+### i18n
+- [ ] i18n: add infantil_lesson_plan_stage, infantil_lesson_plan_eix, infantil_lesson_plan_cycle, infantil_lesson_plan_badge keys (EN/ES/CA)
+- [ ] i18n: add infantil_progress_title, infantil_progress_eix_filter, infantil_progress_cycle_toggle, infantil_progress_no_data keys (EN/ES/CA)
+- [ ] i18n: add cover_deadline_label, cover_deadline_remaining, cover_deadline_expired, cover_escalated, cover_escalated_next_candidate, cover_deadline_setting_label, cover_deadline_setting_hint keys (EN/ES/CA)
+
+### QA
+- [ ] TypeScript: 0 errors
+- [ ] Vitest: tests for deadline calculation, escalation logic, Infantil progress queries

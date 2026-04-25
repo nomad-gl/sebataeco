@@ -30,6 +30,17 @@ export default function DirectorSettings() {
   const { data: branding, isLoading: brandingLoading } = trpc.director.getSchoolBranding.useQuery(undefined, { enabled: isAdmin });
   const { data: loginBg } = trpc.director.getLoginBackground.useQuery(undefined, { enabled: isAdmin });
 
+  // Cover response deadline — available to directors and admins
+  const { data: deadlineSetting } = trpc.cover.getCoverDeadlineSetting.useQuery();
+  const [deadlineInput, setDeadlineInput] = useState<string>("");
+  const setDeadlineMutation = trpc.cover.setCoverDeadlineSetting.useMutation({
+    onSuccess: (data) => {
+      utils.cover.getCoverDeadlineSetting.invalidate();
+      toast.success(t("cover_deadline_saved").replace("{n}", String(data.deadlineMinutes)));
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   // ZER status — available to directors and admins
   const { data: zerStatus, isLoading: zerLoading } = trpc.director.getZerStatus.useQuery();
   const setZerStatusMutation = trpc.director.setZerStatus.useMutation({
@@ -507,6 +518,49 @@ export default function DirectorSettings() {
                 )}
               </>
             )}
+          </CardContent>
+        </Card>
+
+        {/* ── Cover Response Deadline ── */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Settings className="h-4 w-4 text-primary" />
+              {t("cover_deadline_title")}
+            </CardTitle>
+            <CardDescription className="text-xs">{t("cover_deadline_desc")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-3">
+              <Input
+                type="number"
+                min={5}
+                max={120}
+                placeholder={String(deadlineSetting?.deadlineMinutes ?? 30)}
+                value={deadlineInput}
+                onChange={(e) => setDeadlineInput(e.target.value)}
+                className="w-28 text-sm"
+              />
+              <span className="text-sm text-muted-foreground">{t("cover_deadline_minutes_label")}</span>
+              <Button
+                size="sm"
+                disabled={setDeadlineMutation.isPending || !deadlineInput}
+                onClick={() => {
+                  const val = parseInt(deadlineInput, 10);
+                  if (isNaN(val) || val < 5 || val > 120) {
+                    toast.error(t("cover_deadline_invalid"));
+                    return;
+                  }
+                  setDeadlineMutation.mutate({ deadlineMinutes: val });
+                  setDeadlineInput("");
+                }}
+              >
+                {t("save")}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              {t("cover_deadline_current").replace("{n}", String(deadlineSetting?.deadlineMinutes ?? 30))}
+            </p>
           </CardContent>
         </Card>
 

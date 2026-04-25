@@ -1608,4 +1608,55 @@ export const directorRouter = router({
         .where(eq(users.id, ctx.user.id));
       return { success: true, zerActsAsHos: input.zerActsAsHos };
     }),
+
+  // ─── Infantil Progress (Follow-up 2) ─────────────────────────────────────────
+
+  /**
+   * Returns lesson plan counts per Eix de Desenvolupament (EIX1–EIX4) for both
+   * Infantil cycles, grouped by class group. Used by the Director Student Progress
+   * page to show an Infantil-specific progress view anchored to Decree 21/2023.
+   */
+  getInfantilProgress: adminProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+
+    const EIXOS = ["EIX1", "EIX2", "EIX3", "EIX4"] as const;
+    const CYCLES = ["0-3", "3-6"] as const;
+
+    // Fetch all lesson plans that have an infantilEix set
+    const infantilPlans = await db
+      .select({
+        id: lessonPlans.id,
+        infantilEix: lessonPlans.infantilEix,
+        infantilCycle: lessonPlans.infantilCycle,
+        yearGroup: lessonPlans.yearGroup,
+        userId: lessonPlans.userId,
+        calendarEventId: lessonPlans.calendarEventId,
+      })
+      .from(lessonPlans)
+      .where(isNotNull(lessonPlans.infantilEix));
+
+    // Aggregate by eix + cycle
+    const totals: Record<string, Record<string, number>> = {};
+    for (const plan of infantilPlans) {
+      const eix = plan.infantilEix ?? "unknown";
+      const cycle = plan.infantilCycle ?? "unknown";
+      const key = `${eix}::${cycle}`;
+      totals[key] = (totals[key] ?? 0) as any;
+      (totals[key] as any) = ((totals[key] as any) || 0) + 1;
+    }
+
+    // Build structured summary
+    const eixSummary = EIXOS.map(eix => ({
+      eix,
+      cycle03: (infantilPlans.filter(p => p.infantilEix === eix && p.infantilCycle === "0-3").length),
+      cycle36: (infantilPlans.filter(p => p.infantilEix === eix && p.infantilCycle === "3-6").length),
+      total: infantilPlans.filter(p => p.infantilEix === eix).length,
+    }));
+
+    const totalInfantilPlans = infantilPlans.length;
+    const teacherCount = new Set(infantilPlans.map(p => p.userId)).size;
+
+    return { eixSummary, totalInfantilPlans, teacherCount };
+  }),
 });

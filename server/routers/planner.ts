@@ -732,6 +732,10 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
       aiGenerated: z.boolean().nullish(),
       calendarEventId: z.number().nullish(),
       sessionTime: z.string().nullish(),
+      /** Educació Infantil: Eix de Desenvolupament (EIX1–EIX4) */
+      infantilEix: z.string().nullish(),
+      /** Educació Infantil: cycle ('0-3' or '3-6') */
+      infantilCycle: z.string().nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -739,6 +743,9 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
       const { id, ...rawData } = input;
       // Strip null values for update — Drizzle set() does not accept null for non-nullable columns
       const updateData = Object.fromEntries(Object.entries(rawData).filter(([, v]) => v !== null));
+      // Ensure infantilEix/infantilCycle are included (they may be null to clear them)
+      if ('infantilEix' in rawData) updateData.infantilEix = rawData.infantilEix ?? null;
+      if ('infantilCycle' in rawData) updateData.infantilCycle = rawData.infantilCycle ?? null;
       if (id) {
         await db.update(lessonPlans).set(updateData).where(and(eq(lessonPlans.id, id), eq(lessonPlans.userId, ctx.user.id)));
         return { id };
@@ -841,6 +848,10 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
       /** Calendar event this plan is linked to — used for auto-numbering */
       calendarEventId: z.number().nullish(),
       lessonDate: z.string().nullish(),
+      /** Educació Infantil: Eix de Desenvolupament (EIX1–EIX4, Decree 21/2023). NULL for non-Infantil plans. */
+      infantilEix: z.string().nullish(),
+      /** Educació Infantil: cycle ('0-3' or '3-6'). NULL for non-Infantil plans. */
+      infantilCycle: z.string().nullish(),
       /** Existing field values — any non-empty field will be preserved and excluded from AI generation */
       existing: z.object({
         skills: z.string().nullish(),
@@ -903,7 +914,7 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
 
       const resp = await invokeLLM({
         messages: [
-          { role: "system", content: "You are a LOMLOE curriculum expert. Generate complete, detailed lesson plans with specific activities for each stage. Every field must be filled with real, curriculum-aligned content appropriate for the subject, year group and lesson title provided. When existing field values are provided, preserve them exactly and only generate content for the empty fields. You MUST include a differentiation section that caters for three distinct learner ability levels present in every mixed-ability classroom: (1) Advanced learners who need extension and challenge, (2) Standard/average learners who follow the core lesson, and (3) Slower learners who need additional scaffolding, simplified instructions, and more processing time." },
+          { role: "system", content: `You are a LOMLOE curriculum expert specialising in Spanish and Catalan education. Generate complete, detailed lesson plans with specific activities for each stage. Every field must be filled with real, curriculum-aligned content appropriate for the subject, year group and lesson title provided. When existing field values are provided, preserve them exactly and only generate content for the empty fields. You MUST include a differentiation section that caters for three distinct learner ability levels present in every mixed-ability classroom: (1) Advanced learners who need extension and challenge, (2) Standard/average learners who follow the core lesson, and (3) Slower learners who need additional scaffolding, simplified instructions, and more processing time.${input.infantilEix ? `\n\nThis is an EDUCACIÓ INFANTIL lesson plan governed by Catalan Decree 21/2023 (LOMLOE). The lesson is anchored to ${input.infantilEix} (${input.infantilCycle === "0-3" ? "Primer cicle 0–3 anys" : "Segon cicle 3–6 anys"}). Align all sabers, competences, learning outcomes and activities to the specific Decree 21/2023 sabers for this eix and cycle. Use age-appropriate language and play-based, experiential learning approaches.` : ""}` },
           { role: "user", content: `Generate a complete LOMLOE lesson plan for:
 - Title: "${input.title}"
 - Subject: ${input.subject}
@@ -912,7 +923,7 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
 - Unit: ${input.unit ?? "N/A"}
 - Lesson Number: ${input.lessonNumber ?? "N/A"}
 - Academic Year: ${input.academicYear ?? "2025-2026"}
-- Key Competencies: ${(input.competencies ?? []).join(", ") || "Mixed"}${skipNote}
+- Key Competencies: ${(input.competencies ?? []).join(", ") || "Mixed"}${input.infantilEix ? `\n- Educació Infantil Eix: ${input.infantilEix}` : ""}${input.infantilCycle ? `\n- Educació Infantil Cycle: ${input.infantilCycle === "0-3" ? "Primer cicle (0–3 anys)" : "Segon cicle (3–6 anys)"}` : ""}${skipNote}
 
 Generate a detailed lesson plan with specific activities for each procedure stage. The procedures array MUST have at least 4 stages with real activity descriptions.
 
@@ -1034,10 +1045,13 @@ The differentiation field MUST contain tailored content for all three learner ti
         differentiation: generated.differentiation ? JSON.stringify(generated.differentiation) : null,
         aiGenerated: true,
         ...(input.sessionTime ? { sessionTime: input.sessionTime } : {}),
+        ...(input.infantilEix !== undefined ? { infantilEix: input.infantilEix ?? null } : {}),
+        ...(input.infantilCycle !== undefined ? { infantilCycle: input.infantilCycle ?? null } : {}),
       };
 
       // If an existing plan ID is supplied, UPDATE it rather than inserting a new row
       if (input.id) {
+        // Persist Infantil eix/cycle alongside AI-generated fields
         await db.update(lessonPlans).set(generatedFields).where(and(eq(lessonPlans.id, input.id), eq(lessonPlans.userId, ctx.user.id)));
         // Return generatedFields (JSON-stringified) so the frontend planToForm/planToLessonForm
         // parseJsonField calls work correctly when using the response directly (cache bypass)

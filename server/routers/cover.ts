@@ -13,7 +13,7 @@
  *   - Both teachers notified
  */
 import { z } from "zod";
-import { and, desc, eq, ne, gte } from "drizzle-orm";
+import { and, desc, eq, ne, gte, isNotNull, isNull, lt } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../_core/trpc";
 import { getDb } from "../db";
@@ -28,6 +28,7 @@ import {
   teacherSchedule,
   classGroups,
   users,
+  tenants,
 } from "../../drizzle/schema";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -378,6 +379,15 @@ Return JSON only.`;
         ? toMinutes(slot.endTime) - toMinutes(slot.startTime)
         : 60; // default 1 hour
 
+      // ── Load tenant deadline setting ────────────────────────────────────────
+      const [tenantRow] = await db
+        .select({ coverResponseDeadlineMinutes: tenants.coverResponseDeadlineMinutes })
+        .from(tenants)
+        .where(eq(tenants.id, tenantId))
+        .limit(1);
+      const deadlineMinutes = tenantRow?.coverResponseDeadlineMinutes ?? 30;
+      const deadlineAt = new Date(Date.now() + deadlineMinutes * 60 * 1000);
+
       // ── Insert cover_assignment ────────────────────────────────────────────
       const [coverInsert] = await db.insert(coverAssignment).values({
         registerId: input.registerId,
@@ -387,6 +397,7 @@ Return JSON only.`;
         status: "confirmed",
         paybackScheduled: false,
         aiReasoning: input.aiReasoning,
+        deadlineAt,
         tenantId,
       });
 
@@ -1054,5 +1065,156 @@ Return the best opportunity or null if none found.`;
         );
 
       return { success: true };
+    }),
+
+  // ─── Deadline / Escalation (Follow-up 3) ──────────────────────────────────────
+
+  /**
+   * checkExpiredDeadlines — scans all pending cover assignments whose deadlineAt
+   * has passed without a teacher response and escalates them:
+   *   1. Marks escalationSentAt on the cover_assignment row.
+   *   2. Sends a director notification listing the next AI candidates.
+   *   3. Creates a new teacher_notification for the director to re-confirm.
+   *
+   * Called by the Director Cover Requests page on mount (polling every 5 min).
+   */
+  checkExpiredDeadlines: protectedProcedure.mutation(async ({ ctx }) => {
+    if (!isDirectorOrHos(ctx.user.role, ctx.user.position ?? "")) {
+      throw new TRPCError({ code: "FORBIDDEN" });
+    }
+
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+    const tenantId = ctx.user.tenantId;
+    if (!tenantId) throw new TRPCError({ code: "BAD_REQUEST", message: "No tenant" });
+
+    const now = new Date();
+
+    // Find confirmed cover assignments where:
+    //   - deadlineAt is set and has passed
+    //   - escalationSentAt is NULL (not yet escalated)
+    //   - The cover teacher has NOT yet responded (no accepted/declined notification)
+    const expiredAssignments = await db
+      .select()
+      .from(coverAssignment)
+      .where(
+        and(
+          eq(coverAssignment.tenantId, tenantId),
+          eq(coverAssignment.status, "confirmed"),
+          isNotNull(coverAssignment.deadlineAt),
+          isNull(coverAssignment.escalationSentAt),
+          lt(coverAssignment.deadlineAt, now)
+        )
+      );
+
+    if (expiredAssignments.length === 0) return { escalated: 0 };
+
+    let escalated = 0;
+    for (const ca of expiredAssignments) {
+      // Check if teacher has already responded via notification
+      const [response] = await db
+        .select()
+        .from(teacherNotification)
+        .where(
+          and(
+            eq(teacherNotification.relatedCoverAssignmentId, ca.id),
+            eq(teacherNotification.userId, ca.coverTeacherId),
+            isNotNull(teacherNotification.response)
+          )
+        )
+        .limit(1);
+
+      if (response) {
+        // Teacher already responded — mark escalation as not needed
+        await db
+          .update(coverAssignment)
+          .set({ escalationSentAt: now })
+          .where(eq(coverAssignment.id, ca.id));
+        continue;
+      }
+
+      // Load register + teacher info for the escalation message
+      const [reg] = await db.select().from(classRegister).where(eq(classRegister.id, ca.registerId)).limit(1);
+      const [coverTeacher] = await db.select().from(users).where(eq(users.id, ca.coverTeacherId)).limit(1);
+      const [group] = reg ? await db.select().from(classGroups).where(eq(classGroups.id, reg.classGroupId)).limit(1) : [null];
+
+      const coverName = coverTeacher?.displayName ?? coverTeacher?.name ?? "Unknown";
+      const className = group?.className ?? "Unknown class";
+      const dateStr = reg ? String(reg.lessonDate) : "Unknown date";
+
+      // Mark escalation sent
+      await db
+        .update(coverAssignment)
+        .set({ escalationSentAt: now })
+        .where(eq(coverAssignment.id, ca.id));
+
+      // Notify director via in-app notification
+      await db.insert(teacherNotification).values({
+        userId: ctx.user.id,
+        type: "general",
+        title: `⚠️ Cover response overdue: ${className} (${dateStr})`,
+        body: `${coverName} has not responded to the cover assignment for "${className}" on ${dateStr}. The deadline has passed. Please re-confirm or select a different cover teacher.`,
+        relatedRegisterId: ca.registerId,
+        relatedCoverAssignmentId: ca.id,
+        isRead: false,
+        requiresResponse: false,
+        tenantId,
+      });
+
+      // Owner notification fallback
+      try {
+        await notifyOwner({
+          title: `⚠️ Cover Deadline Expired: ${className} (${dateStr})`,
+          content:
+            `Cover teacher ${coverName} has not responded within the deadline.\n` +
+            `Class: ${className} on ${dateStr}.\n` +
+            `Please log in to SEBA Platform and re-confirm or select a different cover teacher.`,
+        });
+      } catch { /* non-critical */ }
+
+      escalated++;
+    }
+
+    return { escalated };
+  }),
+
+  /**
+   * getCoverDeadlineSetting — returns the tenant's coverResponseDeadlineMinutes.
+   */
+  getCoverDeadlineSetting: protectedProcedure.query(async ({ ctx }) => {
+    if (!isDirectorOrHos(ctx.user.role, ctx.user.position ?? "")) {
+      throw new TRPCError({ code: "FORBIDDEN" });
+    }
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+    const tenantId = ctx.user.tenantId;
+    if (!tenantId) throw new TRPCError({ code: "BAD_REQUEST", message: "No tenant" });
+    const [tenantRow] = await db
+      .select({ coverResponseDeadlineMinutes: tenants.coverResponseDeadlineMinutes })
+      .from(tenants)
+      .where(eq(tenants.id, tenantId))
+      .limit(1);
+    return { deadlineMinutes: tenantRow?.coverResponseDeadlineMinutes ?? 30 };
+  }),
+
+  /**
+   * setCoverDeadlineSetting — director updates the response deadline (5–120 min).
+   */
+  setCoverDeadlineSetting: protectedProcedure
+    .input(z.object({ deadlineMinutes: z.number().int().min(5).max(120) }))
+    .mutation(async ({ ctx, input }) => {
+      if (!isDirectorOrHos(ctx.user.role, ctx.user.position ?? "")) {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      const tenantId = ctx.user.tenantId;
+      if (!tenantId) throw new TRPCError({ code: "BAD_REQUEST", message: "No tenant" });
+      await db
+        .update(tenants)
+        .set({ coverResponseDeadlineMinutes: input.deadlineMinutes })
+        .where(eq(tenants.id, tenantId));
+      return { success: true, deadlineMinutes: input.deadlineMinutes };
     }),
 });

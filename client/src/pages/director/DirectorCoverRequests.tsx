@@ -7,7 +7,7 @@
  *  - Cover confirmation dialog
  *  - Payback opportunity panel (after cover is confirmed)
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -302,9 +302,27 @@ function PaybackPanel({ coverAssignmentId }: { coverAssignmentId: number }) {
 export default function DirectorCoverRequests() {
   const { t } = useI18n();
   const [confirmingRegisterId, setConfirmingRegisterId] = useState<number | null>(null);
+  const [escalationCount, setEscalationCount] = useState(0);
   const utils = trpc.useUtils();
 
   const { data: pendingCovers, isLoading, refetch } = trpc.cover.listPendingCovers.useQuery();
+  const checkDeadlines = trpc.cover.checkExpiredDeadlines.useMutation({
+    onSuccess: (result) => {
+      if (result.escalated > 0) {
+        setEscalationCount(prev => prev + result.escalated);
+        refetch();
+        toast.warning(t("cover_deadline_escalated").replace("{n}", String(result.escalated)));
+      }
+    },
+  });
+
+  // Poll for expired deadlines every 5 minutes
+  useEffect(() => {
+    checkDeadlines.mutate();
+    const interval = setInterval(() => checkDeadlines.mutate(), 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const confirmingRow = pendingCovers?.find((r) => r.id === confirmingRegisterId);
 
@@ -326,6 +344,19 @@ export default function DirectorCoverRequests() {
           Refresh
         </Button>
       </div>
+
+      {/* Escalation banner */}
+      {escalationCount > 0 && (
+        <div className="rounded-lg border border-red-500/40 bg-red-950/20 p-3 flex items-center gap-3 text-sm">
+          <AlertTriangle className="h-4 w-4 text-red-400 shrink-0" />
+          <p className="text-red-300">
+            {t("cover_deadline_escalated").replace("{n}", String(escalationCount))}
+          </p>
+          <Button size="sm" variant="outline" className="ml-auto text-xs" onClick={() => setEscalationCount(0)}>
+            Dismiss
+          </Button>
+        </div>
+      )}
 
       {/* List */}
       {isLoading ? (

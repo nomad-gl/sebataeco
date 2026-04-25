@@ -708,6 +708,10 @@ export const lessonPlans = mysqlTable("lesson_plans", {
   sessionTime: varchar("sessionTime", { length: 32 }),
   /** Calendar event this lesson plan is linked to (optional) */
   calendarEventId: int("calendarEventId"),
+  /** Educació Infantil: Eix de Desenvolupament code (EIX1–EIX4, Decree 21/2023). NULL for non-Infantil plans. */
+  infantilEix: varchar("infantilEix", { length: 8 }),
+  /** Educació Infantil: cycle ('0-3' or '3-6'). NULL for non-Infantil plans. */
+  infantilCycle: varchar("infantilCycle", { length: 8 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   /** Tenant isolation key */
@@ -1698,6 +1702,8 @@ export const tenants = mysqlTable("tenants", {
    * @migration 0052
    */
   isZer: boolean("isZer").default(false).notNull(),
+  /** Minutes a teacher has to respond to cover before auto-escalation. Default 30. @migration 0055 */
+  coverResponseDeadlineMinutes: int("coverResponseDeadlineMinutes").default(30).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -2029,6 +2035,10 @@ export const coverAssignment = mysqlTable("cover_assignment", {
   paybackSessionId: int("paybackSessionId"),
   /** AI reasoning text shown to the director when suggesting this teacher */
   aiReasoning: text("aiReasoning"),
+  /** When the teacher's response is due. NULL = no deadline. @migration 0055 */
+  deadlineAt: timestamp("deadlineAt"),
+  /** When the escalation notification was sent to the director. NULL = not escalated. @migration 0055 */
+  escalationSentAt: timestamp("escalationSentAt"),
   /** Tenant isolation */
   tenantId: int("tenantId").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

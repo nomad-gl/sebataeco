@@ -59,6 +59,14 @@ export default function DirectorStudentProgress() {
   if (user?.role !== "admin") return null;
 
   const { data, isLoading } = trpc.director.getSchoolWideStudentProgress.useQuery();
+  const { data: infantilData, isLoading: infantilLoading } = trpc.director.getInfantilProgress.useQuery();
+
+  const EIXOS = [
+    { code: "EIX1", label: "Eix 1 — Identitat i Autonomia", color: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200" },
+    { code: "EIX2", label: "Eix 2 — Descoberta de l'Entorn", color: "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200" },
+    { code: "EIX3", label: "Eix 3 — Comunicació i Llenguatges", color: "bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200" },
+    { code: "EIX4", label: "Eix 4 — Convivència", color: "bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-200" },
+  ];
 
   const hasData = data && data.groups.length > 0;
   const hasActivity = hasData && data.groups.some(g => g.totalActivities > 0);
@@ -246,6 +254,66 @@ export default function DirectorStudentProgress() {
               <GraduationCap className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
               <p>{t("dir_progress_lomloe_note")}</p>
             </div>
+
+            {/* ─── Educació Infantil Progress (Decree 21/2023) ─────────────────── */}
+            <Card className="border-amber-200 bg-amber-50/30 dark:bg-amber-950/20 dark:border-amber-800">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <span className="text-lg">🧒</span>
+                  {t("infantil_progress_title")}
+                </CardTitle>
+                <CardDescription className="text-xs">{t("infantil_progress_desc")}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {infantilLoading ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" /> {t("loading")}</div>
+                ) : !infantilData || infantilData.totalInfantilPlans === 0 ? (
+                  <div className="text-sm text-muted-foreground py-4 text-center">{t("infantil_progress_empty")}</div>
+                ) : (
+                  <>
+                    {/* Summary stats */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+                      <div className="rounded-lg border bg-background p-3 text-center">
+                        <p className="text-2xl font-bold text-amber-600">{infantilData.totalInfantilPlans}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{t("infantil_progress_total_plans")}</p>
+                      </div>
+                      <div className="rounded-lg border bg-background p-3 text-center">
+                        <p className="text-2xl font-bold text-amber-600">{infantilData.teacherCount}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{t("infantil_progress_teachers")}</p>
+                      </div>
+                      <div className="rounded-lg border bg-background p-3 text-center col-span-2 sm:col-span-1">
+                        <p className="text-2xl font-bold text-amber-600">{infantilData.eixSummary.filter(e => e.total > 0).length}/4</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{t("infantil_progress_eixos_covered")}</p>
+                      </div>
+                    </div>
+                    {/* Per-eix breakdown */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {EIXOS.map(eix => {
+                        const entry = infantilData.eixSummary.find(e => e.eix === eix.code);
+                        return (
+                          <div key={eix.code} className="rounded-lg border bg-background p-3">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge className={`text-xs ${eix.color}`}>{eix.code}</Badge>
+                              <span className="text-xs font-medium truncate">{eix.label}</span>
+                            </div>
+                            <div className="flex gap-4 text-xs text-muted-foreground">
+                              <span>👶 {t("infantil_cycle_03")}: <strong className="text-foreground">{entry?.cycle03 ?? 0}</strong></span>
+                              <span>👧 {t("infantil_cycle_36")}: <strong className="text-foreground">{entry?.cycle36 ?? 0}</strong></span>
+                            </div>
+                            <div className="mt-1.5 h-1.5 rounded-full bg-muted overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-amber-400 transition-all"
+                                style={{ width: `${Math.min(100, ((entry?.total ?? 0) / Math.max(1, infantilData.totalInfantilPlans)) * 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
           </>
         )}
 

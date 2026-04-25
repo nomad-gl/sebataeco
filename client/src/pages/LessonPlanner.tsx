@@ -26,8 +26,18 @@ import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 
 const COMPETENCIES = ["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"];
-const YEAR_GROUPS = ["1st Primary", "2nd Primary", "3rd Primary", "4th Primary", "5th Primary", "6th Primary", "1st Secondary", "2nd Secondary", "3rd Secondary", "4th Secondary"];
+const YEAR_GROUPS = ["Infantil (0-3)", "Infantil (3-6)", "1st Primary", "2nd Primary", "3rd Primary", "4th Primary", "5th Primary", "6th Primary", "1st Secondary", "2nd Secondary", "3rd Secondary", "4th Secondary"];
 const SUBJECTS = ["English", "Maths", "Science", "Social Studies", "Art", "PE", "Music", "Technology", "Spanish", "Catalan"];
+const INFANTIL_EIXOS = [
+  { code: "EIX1", label: "EIX1 – Descoberta d'un mateix i dels altres" },
+  { code: "EIX2", label: "EIX2 – Descoberta de l'entorn" },
+  { code: "EIX3", label: "EIX3 – Comunicació i llenguatges" },
+  { code: "EIX4", label: "EIX4 – Benestar i salut" },
+];
+const INFANTIL_CYCLES = [
+  { value: "0-3", label: "Primer cicle (0–3 anys)" },
+  { value: "3-6", label: "Segon cicle (3–6 anys)" },
+];
 const CURRENT_YEAR = new Date().getFullYear();
 const ACADEMIC_YEARS = [`${CURRENT_YEAR - 1}-${CURRENT_YEAR}`, `${CURRENT_YEAR}-${CURRENT_YEAR + 1}`];
 
@@ -61,6 +71,10 @@ type LessonFormState = {
     standard: { objectives: string; activities: string; assessment: string };
     slower: { objectives: string; activities: string; assessment: string };
   } | null;
+  /** Educació Infantil eix (EIX1–EIX4) — null for non-Infantil plans */
+  infantilEix: string | null;
+  /** Educació Infantil cycle ('0-3' or '3-6') — null for non-Infantil plans */
+  infantilCycle: string | null;
 };
 
 const emptyForm = (): LessonFormState => {
@@ -90,6 +104,8 @@ const emptyForm = (): LessonFormState => {
     procedures: [{ timing: "10 min", stage: "Warm-up", activities: "", grouping: "Whole class" }],
     competencies: [],
     differentiation: null,
+    infantilEix: null,
+    infantilCycle: null,
   };
 };
 
@@ -120,6 +136,8 @@ function planToForm(plan: any): LessonFormState {
     materials: plan.materials ?? "",
     spaces: plan.spaces ?? "Classroom",
     procedures: parseJsonField(plan.procedures, [{ timing: "10 min", stage: "Warm-up", activities: "", grouping: "Whole class" }]),
+    infantilEix: (plan as any).infantilEix ?? null,
+    infantilCycle: (plan as any).infantilCycle ?? null,
     competencies: parseJsonField(plan.competencies, []),
     differentiation: parseJsonField(plan.differentiation, null),
   };
@@ -1275,6 +1293,37 @@ export default function LessonPlanner() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Infantil Eix Section — shown when yearGroup starts with 'Infantil' */}
+            {(form.yearGroup === "Infantil (0-3)" || form.yearGroup === "Infantil (3-6)") && (
+              <Card className="border-amber-200 bg-amber-50/30 dark:bg-amber-950/20 dark:border-amber-800">
+                <CardHeader className="pb-2"><CardTitle className="text-sm text-amber-700 dark:text-amber-400 uppercase tracking-wide">🧒 Educació Infantil · Decret 21/2023</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <Label>{t("infantil_lesson_plan_eix")}</Label>
+                      <Select value={form.infantilEix ?? ""} onValueChange={v => setField("infantilEix", v || null)}>
+                        <SelectTrigger><SelectValue placeholder={t("infantil_lesson_plan_eix")} /></SelectTrigger>
+                        <SelectContent>{INFANTIL_EIXOS.map(e => <SelectItem key={e.code} value={e.code}>{e.label}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>{t("infantil_lesson_plan_cycle")}</Label>
+                      <Select value={form.infantilCycle ?? form.yearGroup === "Infantil (0-3)" ? "0-3" : "3-6"} onValueChange={v => setField("infantilCycle", v || null)}>
+                        <SelectTrigger><SelectValue placeholder={t("infantil_lesson_plan_cycle")} /></SelectTrigger>
+                        <SelectContent>{INFANTIL_CYCLES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  {form.infantilEix && (
+                    <div className="mt-2 flex gap-2">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">{form.infantilEix}</span>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">{form.yearGroup === "Infantil (0-3)" ? "Primer cicle (0–3)" : "Segon cicle (3–6)"}</span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Section 2: Skills & Systems */}
             <Card>
