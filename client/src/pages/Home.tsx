@@ -247,30 +247,37 @@ export default function Home() {
       </section>
 
       {/* ── SEO: keyword-rich FAQ section (visible, accessible, schema-backed) ── */}
-      <section
-        aria-label="Preguntes freqüents sobre SEBA AI i Aina"
-        className="container py-16 max-w-3xl mx-auto"
-        itemScope
-        itemType="https://schema.org/FAQPage"
+      <ParallaxSection
+        imageUrl={HERO_BG}
+        speed={0.25}
+        overlayClass="bg-black/65"
+        className="border-y border-border"
       >
-        <h2 className="text-2xl font-bold mb-8 text-center">
-          {t("faq_title")}
-        </h2>
-        {([1, 2, 3, 4, 5] as const).map((n) => ({ q: t(`faq_q${n}` as Parameters<typeof t>[0]), a: t(`faq_a${n}` as Parameters<typeof t>[0]) })).map(({ q, a }) => (
-          <div
-            key={q}
-            className="mb-6 border-b border-border pb-6 last:border-0"
-            itemScope
-            itemProp="mainEntity"
-            itemType="https://schema.org/Question"
-          >
-            <h3 className="font-semibold text-base mb-2" itemProp="name">{q}</h3>
-            <div itemScope itemProp="acceptedAnswer" itemType="https://schema.org/Answer">
-              <p className="text-sm text-muted-foreground leading-relaxed" itemProp="text">{a}</p>
+        <section
+          aria-label="Preguntes freqüents sobre SEBA AI i Aina"
+          className="container py-16 max-w-3xl mx-auto"
+          itemScope
+          itemType="https://schema.org/FAQPage"
+        >
+          <h2 className="text-2xl font-bold mb-8 text-center text-white">
+            {t("faq_title")}
+          </h2>
+          {([1, 2, 3, 4, 5] as const).map((n) => ({ q: t(`faq_q${n}` as Parameters<typeof t>[0]), a: t(`faq_a${n}` as Parameters<typeof t>[0]) })).map(({ q, a }) => (
+            <div
+              key={q}
+              className="mb-6 border-b border-white/20 pb-6 last:border-0"
+              itemScope
+              itemProp="mainEntity"
+              itemType="https://schema.org/Question"
+            >
+              <h3 className="font-semibold text-base mb-2 text-white" itemProp="name">{q}</h3>
+              <div itemScope itemProp="acceptedAnswer" itemType="https://schema.org/Answer">
+                <p className="text-sm text-white/75 leading-relaxed" itemProp="text">{a}</p>
+              </div>
             </div>
-          </div>
-        ))}
-      </section>
+          ))}
+        </section>
+      </ParallaxSection>
 
       {/* ── SEO: keyword cloud (visually subtle, semantically rich) ── */}
       <div className="sr-only" aria-hidden="true">

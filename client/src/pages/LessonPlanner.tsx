@@ -1176,9 +1176,14 @@ export default function LessonPlanner() {
                     </SheetContent>
                   </Sheet>
                 )}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <BookOpen className="w-5 h-5 text-primary" />
                   <h1 className="text-lg sm:text-xl font-bold">{t("lp_title")}</h1>
+                  {form.infantilEix && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-pink-100 text-pink-700 border border-pink-200 dark:bg-pink-900/40 dark:text-pink-300 dark:border-pink-700">
+                      🧒 {form.infantilEix}{form.infantilCycle ? ` · ${form.infantilCycle}` : ""}
+                    </span>
+                  )}
                 </div>
                 {isDirty && <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">{t("lp_unsaved")}</Badge>}
               </div>

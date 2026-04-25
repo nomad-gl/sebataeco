@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { useI18n } from "@/contexts/I18nContext";
 import { trpc } from "@/lib/trpc";
-import { GraduationCap, Loader2, Users, TrendingUp, AlertCircle } from "lucide-react";
+import { GraduationCap, Loader2, Users, TrendingUp, AlertCircle, Printer } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -258,11 +258,35 @@ export default function DirectorStudentProgress() {
             {/* ─── Educació Infantil Progress (Decree 21/2023) ─────────────────── */}
             <Card className="border-amber-200 bg-amber-50/30 dark:bg-amber-950/20 dark:border-amber-800">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <span className="text-lg">🧒</span>
-                  {t("infantil_progress_title")}
-                </CardTitle>
-                <CardDescription className="text-xs">{t("infantil_progress_desc")}</CardDescription>
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <span className="text-lg">🧒</span>
+                      {t("infantil_progress_title")}
+                    </CardTitle>
+                    <CardDescription className="text-xs mt-0.5">{t("infantil_progress_desc")}</CardDescription>
+                  </div>
+                  {infantilData && infantilData.totalInfantilPlans > 0 && (
+                    <button
+                      onClick={() => {
+                        const win = window.open("", "_blank");
+                        if (!win) return;
+                        const rows = EIXOS.map(eix => {
+                          const entry = infantilData.eixSummary.find(e => e.eix === eix.code);
+                          return `<tr><td style="padding:6px 10px;border:1px solid #e5e7eb">${eix.code}</td><td style="padding:6px 10px;border:1px solid #e5e7eb">${eix.label}</td><td style="padding:6px 10px;border:1px solid #e5e7eb;text-align:center">${entry?.cycle03 ?? 0}</td><td style="padding:6px 10px;border:1px solid #e5e7eb;text-align:center">${entry?.cycle36 ?? 0}</td><td style="padding:6px 10px;border:1px solid #e5e7eb;text-align:center">${entry?.total ?? 0}</td></tr>`;
+                        }).join("");
+                        win.document.write(`<!DOCTYPE html><html><head><title>Educació Infantil Progress Report</title><style>body{font-family:sans-serif;padding:24px;color:#111}h1{font-size:18px;margin-bottom:4px}p{color:#666;font-size:13px;margin-bottom:16px}table{border-collapse:collapse;width:100%}th{background:#fef3c7;padding:8px 10px;border:1px solid #e5e7eb;text-align:left;font-size:13px}td{font-size:13px}.footer{margin-top:20px;font-size:11px;color:#9ca3af}</style></head><body><h1>🧒 Educació Infantil — Progress Report</h1><p>Decret 21/2023 · ${infantilData.totalInfantilPlans} lesson plans · ${infantilData.teacherCount} teachers · Generated ${new Date().toLocaleDateString()}</p><table><thead><tr><th>Eix</th><th>Description</th><th>Cycle 0–3</th><th>Cycle 3–6</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table><p class="footer">Powered by SEBA Platform</p></body></html>`);
+                        win.document.close();
+                        win.print();
+                      }}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md border border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors dark:border-amber-700 dark:text-amber-300 dark:bg-amber-900/30 dark:hover:bg-amber-900/50"
+                      title="Print / Export Infantil Progress Report"
+                    >
+                      <Printer className="w-3.5 h-3.5" />
+                      Print Report
+                    </button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 {infantilLoading ? (

@@ -13,6 +13,7 @@ import OfflineBanner from "./components/OfflineBanner";
 import Chat from "./pages/Chat";
 import Practice from "./pages/Practice";
 import InfantilPractice from "./pages/InfantilPractice";
+import InfantilEixos from "./pages/InfantilEixos";
 import Admin from "./pages/Admin";
 import AdminErrors from "./pages/AdminErrors";
 import Create from "./pages/Create";
@@ -158,6 +159,7 @@ function Router() {
         <Route path="/chat" component={Chat} />
         <Route path="/practice" component={Practice} />
         <Route path="/infantil/practice" component={InfantilPractice} />
+        <Route path="/infantil/eixos" component={InfantilEixos} />
         <Route path="/admin" component={Admin} />
         <Route path="/admin/errors" component={AdminErrors} />
         <Route path="/admin/enrolment" component={AdminEnrolment} />

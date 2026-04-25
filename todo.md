@@ -4392,7 +4392,7 @@
 
 ### DB
 - [x] DB: add `infantilEix` (varchar nullable) and `infantilCycle` (enum: '0-3','3-6', nullable) columns to lesson_plans table
-- [ ] DB: apply migration
+- [x] DB: apply migration
 
 ### Server
 - [x] Server: lessonPlanner.create/update — accept infantilEix + infantilCycle inputs; include Decree 21/2023 sabers in AI system prompt when stage=infantil
@@ -4424,7 +4424,7 @@
 ### DB
 - [x] DB: add `coverResponseDeadlineMinutes` (int default 30) to tenants table
 - [x] DB: add `deadlineAt` (timestamp nullable) and `escalationSentAt` (timestamp nullable) to cover_assignment table
-- [ ] DB: apply migration
+- [x] DB: apply migration
 
 ### Server
 - [x] Server: cover.assignCover — set deadlineAt = confirmedAt + coverResponseDeadlineMinutes on new cover_assignment

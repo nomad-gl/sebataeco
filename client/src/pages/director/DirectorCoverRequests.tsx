@@ -303,6 +303,7 @@ export default function DirectorCoverRequests() {
   const { t } = useI18n();
   const [confirmingRegisterId, setConfirmingRegisterId] = useState<number | null>(null);
   const [escalationCount, setEscalationCount] = useState(0);
+  const [, setTick] = useState(0); // 1-second tick to keep countdown timers live
   const utils = trpc.useUtils();
 
   const { data: pendingCovers, isLoading, refetch } = trpc.cover.listPendingCovers.useQuery();
@@ -322,6 +323,12 @@ export default function DirectorCoverRequests() {
     const interval = setInterval(() => checkDeadlines.mutate(), 5 * 60 * 1000);
     return () => clearInterval(interval);
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 1-second tick to keep countdown timers live without re-fetching from server
+  useEffect(() => {
+    const tick = setInterval(() => setTick(n => n + 1), 1000);
+    return () => clearInterval(tick);
   }, []);
 
   const confirmingRow = pendingCovers?.find((r) => r.id === confirmingRegisterId);
@@ -417,11 +424,14 @@ export default function DirectorCoverRequests() {
                       const deadline = new Date(row.coverAssignment!.deadlineAt as string);
                       const remaining = deadline.getTime() - Date.now();
                       if (remaining > 0) {
-                        const mins = Math.ceil(remaining / 60000);
+                        const totalSecs = Math.ceil(remaining / 1000);
+                        const mm = String(Math.floor(totalSecs / 60)).padStart(2, "0");
+                        const ss = String(totalSecs % 60).padStart(2, "0");
+                        const isUrgent = remaining < 5 * 60 * 1000; // < 5 min
                         return (
-                          <span className="flex items-center gap-1 text-xs text-amber-400">
+                          <span className={`flex items-center gap-1 text-xs font-mono ${ isUrgent ? "text-red-400 animate-pulse" : "text-amber-400" }`}>
                             <Clock className="h-3 w-3" />
-                            {t("cover_deadline_remaining").replace("{n}", String(mins))}
+                            {mm}:{ss}
                           </span>
                         );
                       }

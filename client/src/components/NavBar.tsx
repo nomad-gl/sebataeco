@@ -8,7 +8,7 @@ import {
   CalendarDays, FileText, Settings as SettingsIcon, ShieldAlert, Lock, HelpCircle,
   BarChart3, UserCheck, BookCheck, GraduationCap, Mic,
   ClipboardList, ClipboardCheck, Banknote, UserCog, FolderOpen, Building2, Wrench, Music, Wifi, LogOut, LogIn, AlertTriangle,
-  UserPlus, Copy, CheckCircle2, MapPin, Baby,
+  UserPlus, Copy, CheckCircle2, MapPin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -209,7 +209,6 @@ export default function NavBar() {
   // Items before Teacher dropdown (Home removed — logo already links to /)
   const mainNavItemsBefore = [
     { href: "/chat",           label: t("nav_chat"),           icon: MessageCircle },
-    { href: "/infantil/practice", label: t("infantil_section_title"), icon: Baby },
   ];
 
   // Situació dropdown items — gated to admin/head_of_study
