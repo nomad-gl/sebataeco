@@ -2035,7 +2035,7 @@ export const coverAssignment = mysqlTable("cover_assignment", {
   /** When the director confirmed */
   confirmedAt: timestamp("confirmedAt"),
   /** Workflow status */
-  status: mysqlEnum("cover_status", ["pending", "confirmed", "declined"]).default("pending").notNull(),
+  status: mysqlEnum("cover_status", ["pending", "confirmed", "declined", "cancelled"]).default("pending").notNull(),
   /** Whether a payback session has been scheduled for this cover */
   paybackScheduled: boolean("paybackScheduled").default(false).notNull(),
   /** FK → cover_assignment.id — the payback assignment (self-referential) */
@@ -2046,6 +2046,12 @@ export const coverAssignment = mysqlTable("cover_assignment", {
   deadlineAt: timestamp("deadlineAt"),
   /** When the escalation notification was sent to the director. NULL = not escalated. @migration 0055 */
   escalationSentAt: timestamp("escalationSentAt"),
+  /** When the cover was cancelled by the Director. NULL = not cancelled. @migration 0054 */
+  cancelledAt: timestamp("cancelledAt"),
+  /** FK → users.id — the Director who cancelled. @migration 0054 */
+  cancelledByUserId: int("cancelledByUserId"),
+  /** Reason given by the Director for cancelling. @migration 0054 */
+  cancelReason: text("cancelReason"),
   /** Tenant isolation */
   tenantId: int("tenantId").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

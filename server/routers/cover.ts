@@ -19,6 +19,7 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { getDb } from "../db";
 import { invokeLLM } from "../_core/llm";
 import { notifyOwner } from "../_core/notification";
+import { sendCoverCancellationEmail } from "../email";
 import {
   classRegister,
   coverAssignment,
@@ -1244,6 +1245,177 @@ Return the best opportunity or null if none found.`;
       );
     return { overdue, count: overdue.length };
   }),
+
+  /**
+   * cancelCoverRequest — Director cancels a confirmed cover assignment.
+   * - Marks the cover_assignment as cancelled with reason and timestamp
+   * - Reverses the extra_cover hour_adjustment for the cover teacher
+   * - Sends in-app notifications + emails (Reply-To Director's address) to both teachers
+   */
+  cancelCoverRequest: protectedProcedure
+    .input(
+      z.object({
+        coverAssignmentId: z.number().int(),
+        reason: z.string().min(1, "A reason is required"),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (!isDirectorOrHos(ctx.user.role, ctx.user.position ?? "")) {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      const tenantId = ctx.user.tenantId;
+      if (!tenantId) throw new TRPCError({ code: "BAD_REQUEST", message: "No tenant" });
+
+      // 1. Load cover assignment
+      const [ca] = await db
+        .select()
+        .from(coverAssignment)
+        .where(and(eq(coverAssignment.id, input.coverAssignmentId), eq(coverAssignment.tenantId, tenantId)))
+        .limit(1);
+      if (!ca) throw new TRPCError({ code: "NOT_FOUND", message: "Cover assignment not found" });
+      if (ca.status === "cancelled") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Cover assignment is already cancelled" });
+      }
+
+      // 2. Load register, class, and teacher details
+      const [reg] = await db
+        .select()
+        .from(classRegister)
+        .where(and(eq(classRegister.id, ca.registerId), eq(classRegister.tenantId, tenantId)))
+        .limit(1);
+      if (!reg) throw new TRPCError({ code: "NOT_FOUND", message: "Register entry not found" });
+
+      const [group] = await db
+        .select({ className: classGroups.className })
+        .from(classGroups)
+        .where(eq(classGroups.id, reg.classGroupId))
+        .limit(1);
+      const className = group?.className ?? "Unknown class";
+      const dateStr = String(reg.lessonDate);
+
+      const [coverTeacher] = await db
+        .select({ id: users.id, name: users.name, displayName: users.displayName, email: users.email })
+        .from(users)
+        .where(eq(users.id, ca.coverTeacherId))
+        .limit(1);
+      const [absentTeacher] = await db
+        .select({ id: users.id, name: users.name, displayName: users.displayName, email: users.email })
+        .from(users)
+        .where(eq(users.id, reg.assignedTeacherId))
+        .limit(1);
+
+      const directorName = ctx.user.displayName ?? ctx.user.name ?? "Director";
+      const directorEmail = ctx.user.email ?? null;
+
+      const [tenant] = await db
+        .select({ name: tenants.name })
+        .from(tenants)
+        .where(eq(tenants.id, tenantId))
+        .limit(1);
+      const schoolName = tenant?.name ?? null;
+
+      // 3. Mark cover assignment as cancelled
+      await db
+        .update(coverAssignment)
+        .set({
+          status: "cancelled",
+          cancelledAt: new Date(),
+          cancelledByUserId: ctx.user.id,
+          cancelReason: input.reason,
+        })
+        .where(eq(coverAssignment.id, ca.id));
+
+      // 4. Reverse the extra_cover hour_adjustment
+      await db
+        .delete(hourAdjustment)
+        .where(
+          and(
+            eq(hourAdjustment.relatedCoverAssignmentId, ca.id),
+            eq(hourAdjustment.adjustmentType, "extra_cover"),
+            eq(hourAdjustment.tenantId, tenantId)
+          )
+        );
+
+      // 5. In-app notification: cover teacher
+      const coverName = coverTeacher?.displayName ?? coverTeacher?.name ?? "Unknown";
+      const absentName = absentTeacher?.displayName ?? absentTeacher?.name ?? "Unknown";
+
+      if (coverTeacher) {
+        await db.insert(teacherNotification).values({
+          userId: coverTeacher.id,
+          type: "general",
+          title: `Cover cancelled: ${className} on ${dateStr}`,
+          body: `Your cover assignment for "${className}" on ${dateStr} has been cancelled by ${directorName}. Reason: ${input.reason}`,
+          relatedCoverAssignmentId: ca.id,
+          isRead: false,
+          requiresResponse: false,
+          tenantId,
+        });
+      }
+
+      // 6. In-app notification: absent teacher
+      if (absentTeacher) {
+        await db.insert(teacherNotification).values({
+          userId: absentTeacher.id,
+          type: "general",
+          title: `Cover arrangement cancelled: ${className} on ${dateStr}`,
+          body: `The cover arrangement for your class "${className}" on ${dateStr} has been cancelled by ${directorName}. Your original lesson plan and calendar entry have been reinstated. Reason: ${input.reason}`,
+          relatedCoverAssignmentId: ca.id,
+          isRead: false,
+          requiresResponse: false,
+          tenantId,
+        });
+      }
+
+      // 7. Email notifications — Reply-To set to Director's address
+      if (coverTeacher?.email) {
+        await sendCoverCancellationEmail({
+          to: coverTeacher.email,
+          recipientName: coverName,
+          role: "cover",
+          className,
+          lessonDate: dateStr,
+          cancelReason: input.reason,
+          directorName,
+          directorEmail,
+          schoolName,
+        });
+      }
+      if (absentTeacher?.email) {
+        await sendCoverCancellationEmail({
+          to: absentTeacher.email,
+          recipientName: absentName,
+          role: "absent",
+          className,
+          lessonDate: dateStr,
+          cancelReason: input.reason,
+          directorName,
+          directorEmail,
+          schoolName,
+        });
+      }
+
+      // 8. Owner notification
+      try {
+        await notifyOwner({
+          title: `Cover Cancelled: ${className} - ${dateStr}`,
+          content:
+            `Director: ${directorName}\n` +
+            `Cover teacher: ${coverName}\n` +
+            `Absent teacher: ${absentName}\n` +
+            `Class: ${className}\n` +
+            `Date: ${dateStr}\n` +
+            `Reason: ${input.reason}\n` +
+            `Both teachers notified by in-app notification and email.`,
+        });
+      } catch {
+        // Non-critical
+      }
+
+      return { success: true, coverAssignmentId: ca.id, coverName, absentName, className, dateStr };
+    }),
 
   /**
    * escalateCover — marks escalationSentAt on a cover assignment and notifies

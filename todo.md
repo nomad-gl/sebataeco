@@ -4478,3 +4478,10 @@
 - [ ] Add CUTCG member number input field to profile settings UI
 - [ ] Display member number alongside CUTCG badge in NavBar and staff directory
 - [ ] Director creates teacher: send credentials email from Director's own school email address (not default system sender)
+
+## Cover Request Cancellation
+- [ ] Add cancelCoverRequest backend procedure (Director only, requires reason)
+- [ ] Reinstate original calendar event and lesson plan on cancellation
+- [ ] Notify covering teacher, absent teacher, and HoS by email and in-app on cancellation
+- [ ] Add Cancel button + reason dialog to Director cover requests UI
+- [ ] Show cancellation reason and status in cover request history

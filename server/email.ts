@@ -422,3 +422,87 @@ export async function sendTempPasswordEmail(opts: {
     return { sent: false, smtpNotConfigured: false, error: err?.message };
   }
 }
+
+// ─── Cover Cancellation Email ─────────────────────────────────────────────────
+
+function coverCancellationHtml(opts: {
+  recipientName: string;
+  role: "cover" | "absent";
+  className: string;
+  lessonDate: string;
+  cancelReason: string;
+  directorName: string;
+  directorEmail?: string | null;
+  schoolName?: string | null;
+}): string {
+  const roleMsg =
+    opts.role === "cover"
+      ? `Your cover assignment for <strong>${opts.className}</strong> on <strong>${opts.lessonDate}</strong> has been cancelled by the Director.`
+      : `The cover arrangement for your class <strong>${opts.className}</strong> on <strong>${opts.lessonDate}</strong> has been cancelled by the Director. Your original lesson plan and calendar entry have been reinstated.`;
+
+  const school = opts.schoolName
+    ? `<div class="school-badge">🏫 ${opts.schoolName}</div>`
+    : "";
+
+  return htmlWrapper(`
+    <p class="greeting">Cover Cancellation Notice</p>
+    ${school}
+    <p class="text">${roleMsg}</p>
+    <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:14px 18px;margin:0 0 20px;font-size:14px;color:#991b1b;line-height:1.6">
+      <strong>Reason given by ${opts.directorName}:</strong><br/>
+      ${opts.cancelReason}
+    </div>
+    <p class="text" style="font-size:13px;color:#6b7280;">
+      If you have any questions, please contact ${opts.directorName}${opts.directorEmail ? ` at <a href="mailto:${opts.directorEmail}" style="color:#1d4ed8">${opts.directorEmail}</a>` : ""} directly.
+    </p>
+    <p class="expiry">This is an automated notification from SEBA AI Studio.</p>
+  `);
+}
+
+export interface SendCoverCancellationResult {
+  sent: boolean;
+  smtpNotConfigured: boolean;
+  error?: string;
+}
+
+/**
+ * Send a cover cancellation notification email to an affected teacher.
+ * The Director's email is set as Reply-To so the teacher can reply directly.
+ * Returns a result object — never throws.
+ */
+export async function sendCoverCancellationEmail(opts: {
+  to: string;
+  recipientName: string;
+  /** "cover" = the teacher who was assigned to cover; "absent" = the originally absent teacher */
+  role: "cover" | "absent";
+  className: string;
+  lessonDate: string;
+  cancelReason: string;
+  directorName: string;
+  directorEmail?: string | null;
+  schoolName?: string | null;
+}): Promise<SendCoverCancellationResult> {
+  const transport = createTransport();
+  if (!transport) {
+    console.warn("[Email] SMTP not configured — skipping cover cancellation email.");
+    return { sent: false, smtpNotConfigured: true };
+  }
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+  const subject = `Cover cancelled: ${opts.className} on ${opts.lessonDate}`;
+  try {
+    await transport.sendMail({
+      from: `"SEBA AI Studio" <${from}>`,
+      ...(opts.directorEmail
+        ? { replyTo: `"${opts.directorName}" <${opts.directorEmail}>` }
+        : {}),
+      to: opts.to,
+      subject,
+      html: coverCancellationHtml(opts),
+    });
+    console.log(`[Email] Cover cancellation email sent to ${opts.to}`);
+    return { sent: true, smtpNotConfigured: false };
+  } catch (err: any) {
+    console.error("[Email] Failed to send cover cancellation email:", err?.message ?? err);
+    return { sent: false, smtpNotConfigured: false, error: err?.message };
+  }
+}

@@ -32,6 +32,7 @@ import {
   Sparkles,
   User,
   Users,
+  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -51,7 +52,7 @@ type AbsenceRow = {
   assignedName: string;
   markerName: string;
   hasCover: boolean;
-  coverAssignment: { id: number; coverTeacherId: number; status: string; deadlineAt?: Date | string | null; escalationSentAt?: Date | string | null } | null;
+  coverAssignment: { id: number; coverTeacherId: number; status: string; deadlineAt?: Date | string | null; escalationSentAt?: Date | string | null; cancelledAt?: Date | string | null; cancelReason?: string | null } | null;
 };
 
 type CoverCandidate = {
@@ -302,6 +303,8 @@ function PaybackPanel({ coverAssignmentId }: { coverAssignmentId: number }) {
 export default function DirectorCoverRequests() {
   const { t } = useI18n();
   const [confirmingRegisterId, setConfirmingRegisterId] = useState<number | null>(null);
+  const [cancellingAssignmentId, setCancellingAssignmentId] = useState<number | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
   const [escalationCount, setEscalationCount] = useState(0);
   const [, setTick] = useState(0); // 1-second tick to keep countdown timers live
   const utils = trpc.useUtils();
@@ -332,6 +335,16 @@ export default function DirectorCoverRequests() {
   }, []);
 
   const confirmingRow = pendingCovers?.find((r) => r.id === confirmingRegisterId);
+
+  const cancelCover = trpc.cover.cancelCoverRequest.useMutation({
+    onSuccess: (result) => {
+      toast.success(`Cover cancelled for ${result.className} on ${result.dateStr}. Both teachers notified.`);
+      setCancellingAssignmentId(null);
+      setCancelReason("");
+      utils.cover.listPendingCovers.invalidate();
+    },
+    onError: (err) => toast.error(err.message),
+  });
 
   return (
     <div className="container max-w-3xl py-8 space-y-6">
@@ -420,6 +433,17 @@ export default function DirectorCoverRequests() {
                         {t("cover_confirm_title")}
                       </Button>
                     )}
+                    {row.hasCover && row.coverAssignment && row.coverAssignment.status !== "cancelled" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs text-red-400 border-red-500/40 hover:bg-red-950/30 hover:text-red-300"
+                        onClick={() => setCancellingAssignmentId(row.coverAssignment!.id)}
+                      >
+                        <XCircle className="h-3.5 w-3.5 mr-1" />
+                        Cancel Cover
+                      </Button>
+                    )}
                     {row.hasCover && row.coverAssignment?.deadlineAt && !row.coverAssignment?.escalationSentAt && (() => {
                       const deadline = new Date(row.coverAssignment!.deadlineAt as string);
                       const remaining = deadline.getTime() - Date.now();
@@ -474,6 +498,53 @@ export default function DirectorCoverRequests() {
             utils.cover.listPendingCovers.invalidate();
           }}
         />
+      )}
+
+      {/* Cancel cover dialog */}
+      {cancellingAssignmentId !== null && (
+        <Dialog open onOpenChange={(open) => { if (!open) { setCancellingAssignmentId(null); setCancelReason(""); } }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-red-400">
+                <XCircle className="h-5 w-5" />
+                Cancel Cover Assignment
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <p className="text-sm text-muted-foreground">
+                This will cancel the cover assignment and notify both the cover teacher and the originally absent teacher by email and in-app notification. The original calendar and lesson plan will be reinstated.
+              </p>
+              <div className="space-y-1.5">
+                <Label htmlFor="cancel-reason" className="text-sm font-medium">
+                  Reason for cancellation <span className="text-red-400">*</span>
+                </Label>
+                <Textarea
+                  id="cancel-reason"
+                  placeholder="e.g. The absent teacher has returned, the lesson is no longer required..."
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  rows={3}
+                  className="resize-none"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setCancellingAssignmentId(null); setCancelReason(""); }}>
+                Keep Cover
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={!cancelReason.trim() || cancelCover.isPending}
+                onClick={() => {
+                  if (!cancelReason.trim()) return;
+                  cancelCover.mutate({ coverAssignmentId: cancellingAssignmentId, reason: cancelReason.trim() });
+                }}
+              >
+                {cancelCover.isPending ? "Cancelling..." : "Cancel Cover & Notify Teachers"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
