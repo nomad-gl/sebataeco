@@ -1060,6 +1060,9 @@ export default function LessonPlanner() {
   const [aiSessionTime, setAiSessionTime] = useState(""); // e.g. 09:00-10:00
   const [aiUnit, setAiUnit] = useState("");
   const [aiCalendarId, setAiCalendarId] = useState<string>("");
+  const [aiInfantilEix, setAiInfantilEix] = useState("");
+  const [aiInfantilCycle, setAiInfantilCycle] = useState("");
+  const [aiCurriculumYear, setAiCurriculumYear] = useState("");
   const [showExportAllDialog, setShowExportAllDialog] = useState(false);
   const [exportAllCalendarId, setExportAllCalendarId] = useState<string>("");
   const [isExportingAll, setIsExportingAll] = useState(false);
@@ -1792,6 +1795,45 @@ export default function LessonPlanner() {
               )}
             </div>
 
+            {/* Curriculum Year */}
+            <div>
+              <Label>Curriculum Year <span className="text-muted-foreground font-normal text-xs">(optional)</span></Label>
+              <Input value={aiCurriculumYear} onChange={e => setAiCurriculumYear(e.target.value)} placeholder="e.g. 2025-2026" />
+              <p className="text-xs text-muted-foreground mt-1">Anchors the AI to the correct academic year context for lesson sequencing.</p>
+            </div>
+
+            {/* Educació Infantil mode */}
+            <div className="rounded-md border border-pink-200 bg-pink-50 dark:bg-pink-950/20 dark:border-pink-800 p-3 space-y-3">
+              <p className="text-xs font-semibold text-pink-800 dark:text-pink-300">Educació Infantil (Decret 21/2023) <span className="font-normal">— optional</span></p>
+              <p className="text-xs text-pink-700 dark:text-pink-400">Select an Eix to generate play-based Infantil activities aligned to Decret 21/2023 instead of standard LOMLOE lessons.</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Eix de Desenvolupament</Label>
+                  <Select value={aiInfantilEix} onValueChange={v => setAiInfantilEix(v === "none" ? "" : v)}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="None (LOMLOE mode)" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None (LOMLOE mode)</SelectItem>
+                      <SelectItem value="EIX1">EIX1 — Descoberta d'un mateix</SelectItem>
+                      <SelectItem value="EIX2">EIX2 — Descoberta de l'entorn</SelectItem>
+                      <SelectItem value="EIX3">EIX3 — Comunicació i llenguatges</SelectItem>
+                      <SelectItem value="EIX4">EIX4 — Benestar i salut</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Cycle</Label>
+                  <Select value={aiInfantilCycle} onValueChange={v => setAiInfantilCycle(v === "none" ? "" : v)}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select cycle" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Not specified</SelectItem>
+                      <SelectItem value="0-3">Primer cicle (0–3 anys)</SelectItem>
+                      <SelectItem value="3-6">Segon cicle (3–6 anys)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
             {/* Competencies */}
             <div>
               <Label className="mb-2 block">{t("lp_focus_competencies")}</Label>
@@ -1835,6 +1877,9 @@ export default function LessonPlanner() {
                 unit: aiUnit || undefined,
                 sessionTime: aiSessionTime || undefined,
                 existing: existingSnapshot,
+                infantilEix: aiInfantilEix || undefined,
+                infantilCycle: aiInfantilCycle || undefined,
+                academicYear: aiCurriculumYear || undefined,
               });
             }} disabled={aiMutation.isPending} className="gap-1">
               <SebaSymbol className="w-4 h-4" />

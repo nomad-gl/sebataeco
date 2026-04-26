@@ -302,7 +302,7 @@ export default function SchoolCalendar() {
   const [form, setForm] = useState({ eventType: "lesson", title: "", description: "", competency: "", yearGroup: "", subject: "", startTime: "", endTime: "", repeat: "none" as "none" | "weekly" | "fortnightly" });
 
   // AI infill form
-  const [aiForm, setAiForm] = useState({ sessionsPerWeek: 3, terms: DEFAULT_TERMS });
+  const [aiForm, setAiForm] = useState({ sessionsPerWeek: 3, terms: DEFAULT_TERMS, infantilEix: "", infantilCycle: "", curriculumYear: "" });
 
   // ── Day Panel (click a calendar day to see/edit its events) ───────────────
   const [dayPanelDate, setDayPanelDate] = useState<string | null>(null);
@@ -1223,6 +1223,9 @@ export default function SchoolCalendar() {
         endDate,
         lessonDays: cal.lessonDays ?? undefined,
         region: (cal as any).region ?? "catalonia",
+        infantilEix: aiForm.infantilEix || undefined,
+        infantilCycle: aiForm.infantilCycle || undefined,
+        curriculumYear: aiForm.curriculumYear || cal.academicYear || undefined,
       });
     } else {
       const validTerms = aiForm.terms.filter(t => t.start && t.end);
@@ -1242,6 +1245,9 @@ export default function SchoolCalendar() {
         endDate: validTerms.length === 0 ? calEnd : undefined,
         lessonDays: cal.lessonDays ?? undefined,
         region: (cal as any).region ?? "catalonia",
+        infantilEix: aiForm.infantilEix || undefined,
+        infantilCycle: aiForm.infantilCycle || undefined,
+        curriculumYear: aiForm.curriculumYear || cal.academicYear || undefined,
       });
     }
   };
@@ -3133,6 +3139,47 @@ export default function SchoolCalendar() {
             </div>
           )}
           <div className="space-y-4">
+            {/* Curriculum Year */}
+            <div>
+              <Label>Curriculum Year</Label>
+              <Input
+                placeholder={selectedCalendar?.academicYear ?? "e.g. 2025-2026"}
+                value={aiForm.curriculumYear}
+                onChange={e => setAiForm(f => ({ ...f, curriculumYear: e.target.value }))}
+              />
+              <p className="text-xs text-muted-foreground mt-1">Leave blank to use the calendar's academic year. Helps the AI anchor lesson sequencing to the correct year.</p>
+            </div>
+            {/* Educació Infantil mode */}
+            <div className="rounded-md border border-pink-200 bg-pink-50 p-3 space-y-3">
+              <p className="text-xs font-semibold text-pink-800">Educació Infantil (Decret 21/2023) — optional</p>
+              <p className="text-xs text-pink-700">Select an Eix to switch to play-based Infantil activity generation instead of LOMLOE lesson generation.</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Eix de Desenvolupament</Label>
+                  <Select value={aiForm.infantilEix} onValueChange={v => setAiForm(f => ({ ...f, infantilEix: v === "none" ? "" : v }))}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="None (LOMLOE mode)" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None (LOMLOE mode)</SelectItem>
+                      <SelectItem value="EIX1">EIX1 — Descoberta d'un mateix</SelectItem>
+                      <SelectItem value="EIX2">EIX2 — Descoberta de l'entorn</SelectItem>
+                      <SelectItem value="EIX3">EIX3 — Comunicació i llenguatges</SelectItem>
+                      <SelectItem value="EIX4">EIX4 — Benestar i salut</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Cycle</Label>
+                  <Select value={aiForm.infantilCycle} onValueChange={v => setAiForm(f => ({ ...f, infantilCycle: v === "none" ? "" : v }))}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select cycle" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Not specified</SelectItem>
+                      <SelectItem value="0-3">Primer cicle (0–3 anys)</SelectItem>
+                      <SelectItem value="3-6">Segon cicle (3–6 anys)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
             <div>
               <Label>{t("cal_sessions_per_week")}</Label>
               <Select value={String(aiForm.sessionsPerWeek)} onValueChange={v => setAiForm(f => ({ ...f, sessionsPerWeek: Number(v) }))}>

@@ -377,6 +377,12 @@ export const plannerRouter = router({
       lessonDays: z.string().nullish(),
       /** Spanish autonomous community — used to tailor Catalan/regional curriculum preferences */
       region: z.string().nullish(),
+      /** Educació Infantil: Eix de Desenvolupament (EIX1–EIX4) — when set, switches LLM to Decret 21/2023 mode */
+      infantilEix: z.string().nullish(),
+      /** Educació Infantil: cycle ('0-3' or '3-6') */
+      infantilCycle: z.string().nullish(),
+      /** Curriculum calendar year label (e.g. '2025-2026') — used to anchor lesson sequencing in the correct year */
+      curriculumYear: z.string().nullish(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -484,22 +490,42 @@ export const plannerRouter = router({
         ? `\n\nREGIONAL CONTEXT — CATALONIA:\n- This calendar is for a school in Catalonia. Integrate Catalan cultural references, local geography, Catalan history, and Catalan language awareness where appropriate.\n- Prioritise the Competència en comunicació lingüística (CCL) with a focus on Catalan language contexts.\n- Reference the Curriculum Català (Decret 175/2022) alongside LOMLOE where relevant.\n- Include references to Catalan festivals, traditions, and local contexts in lesson titles and saberes básicos where pedagogically appropriate.`
         : "";
 
-      try {
-        const resp = await llmWithTimeout(invokeLLM({
-          messages: [
-            {
-              role: "system",
-              content: `You are a LOMLOE curriculum planning expert specialising in Spanish primary and secondary education. Generate detailed, pedagogically sound lesson sequences fully aligned with the Spanish LOMLOE law (Ley Orgánica 3/2020). You MUST rotate through ALL 8 key competencies (CCL, CP, STEM, CD, CPSAA, CC, CE, CCEC) across the lesson sequence so that every competency appears at least once. Return only valid JSON.`,
-            },
-            {
-              role: "user",
-              content: `Generate a sequence of ${selectedDays.length} LOMLOE-aligned lessons for:
+      // ── Infantil mode: Decret 21/2023 axis-based activities ──────────────────
+      const isInfantil = !!(input.infantilEix);
+      const eixLabels: Record<string, string> = {
+        EIX1: "EIX1 – Descoberta d'un mateix i dels altres (Self-discovery and relationships)",
+        EIX2: "EIX2 – Descoberta de l'entorn (Discovering the environment)",
+        EIX3: "EIX3 – Comunicació i llenguatges (Communication and languages)",
+        EIX4: "EIX4 – Benestar i salut (Wellbeing and health)",
+      };
+      const eixLabel = input.infantilEix ? (eixLabels[input.infantilEix] ?? input.infantilEix) : "";
+      const cycleLabel = input.infantilCycle === "0-3" ? "Primer cicle (0–3 anys)" : input.infantilCycle === "3-6" ? "Segon cicle (3–6 anys)" : "";
+      const curriculumYearNote = input.curriculumYear ? `\n- Curriculum Year: ${input.curriculumYear}` : input.academicYear ? `\n- Curriculum Year: ${input.academicYear}` : "";
+
+      const systemPrompt = isInfantil
+        ? `You are an expert in Catalan Educació Infantil (0–6 years) curriculum, specialising in Decret 21/2023 (LOMLOE). Generate play-based, experiential, age-appropriate activity sequences fully aligned with the four developmental axes of Decret 21/2023. Each activity must be rooted in the specific eix and cycle provided. Return only valid JSON.`
+        : `You are a LOMLOE curriculum planning expert specialising in Spanish primary and secondary education. Generate detailed, pedagogically sound lesson sequences fully aligned with the Spanish LOMLOE law (Ley Orgánica 3/2020). You MUST rotate through ALL 8 key competencies (CCL, CP, STEM, CD, CPSAA, CC, CE, CCEC) across the lesson sequence so that every competency appears at least once. Return only valid JSON.`;
+
+      const userPrompt = isInfantil
+        ? `Generate a sequence of ${selectedDays.length} Decret 21/2023-aligned Educació Infantil activities for:
+- Eix de Desenvolupament: ${eixLabel}
+- Cycle: ${cycleLabel}
+- Year Group: ${input.yearGroup}${curriculumYearNote}${input.topicDescription ? `\n- Theme / Topic: ${input.topicDescription}\n\nIMPORTANT: All activities MUST be scoped to this theme. Each title, saber, learning outcome and evaluation criterion must directly relate to it.` : ""}
+${regionalNote}
+
+Each activity must include:
+- A SPECIFIC, DESCRIPTIVE activity title that names the exact play/exploration being done (e.g. "Exploring Textures: Sensory Tray Play", "My Emotions: Mirror and Puppet Role-Play", "Nature Walk: Observing Seasonal Changes"). NEVER use generic titles like "Activity 1" or "Infantil Lesson". Each title must be unique.
+- The primary Decret 21/2023 eix (use the eix code: EIX1, EIX2, EIX3, or EIX4)
+- 1-2 specific sabers from Decret 21/2023 relevant to this activity
+- 2-3 saberes bàsics (basic knowledge/skills from the eix)
+- 2 learning outcomes starting with "L'infant serà capaç de..." (or "El niño/a será capaz de..." for Spanish)
+- 1-2 evaluation criteria starting with "L'infant demostra..." (or "El niño/a demuestra...")
+
+Return JSON: {"lessons":[{"title":"...","competency":"EIX1","specificCompetences":["Saber 1.1"],"saberesBasicos":["...","..."],"learningOutcomes":["L'infant serà capaç de..."],"evaluationCriteria":["L'infant demostra..."]},...]}`
+        : `Generate a sequence of ${selectedDays.length} LOMLOE-aligned lessons for:
 - Subject: ${input.subject}
 - Year Group: ${input.yearGroup}
-- Academic Year: ${input.academicYear}${input.topicDescription ? `
-- Topic / Unit: ${input.topicDescription}
-
-IMPORTANT: All lessons MUST be scoped to the topic/unit described above. Each lesson title, saberes básicos, learning outcomes, and evaluation criteria must directly relate to this specific topic.` : ""}
+- Academic Year: ${input.academicYear}${curriculumYearNote}${input.topicDescription ? `\n- Topic / Unit: ${input.topicDescription}\n\nIMPORTANT: All lessons MUST be scoped to the topic/unit described above. Each lesson title, saberes básicos, learning outcomes, and evaluation criteria must directly relate to this specific topic.` : ""}
 ${regionalNote}
 
 COMPETENCY ROTATION RULE: You MUST cycle through all 8 LOMLOE key competencies in order — CCL, CP, STEM, CD, CPSAA, CC, CE, CCEC — repeating the cycle if there are more than 8 lessons. Do NOT assign the same competency to consecutive lessons.
@@ -522,7 +548,18 @@ Each lesson must include:
 - 2 learning outcomes starting with "Students will be able to..."
 - 1-2 evaluation criteria starting with "Students demonstrate..."
 
-Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences":["CCL-1"],"saberesBasicos":["...","..."],"learningOutcomes":["Students will be able to..."],"evaluationCriteria":["Students demonstrate..."]},...]}`,
+Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences":["CCL-1"],"saberesBasicos":["...","..."],"learningOutcomes":["Students will be able to..."],"evaluationCriteria":["Students demonstrate..."]},...]}`;
+
+      try {
+        const resp = await llmWithTimeout(invokeLLM({
+          messages: [
+            {
+              role: "system",
+              content: systemPrompt,
+            },
+            {
+              role: "user",
+              content: userPrompt,
             },
           ],
           response_format: {
@@ -671,6 +708,8 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
           lessonDate: lessonDateStr,
           lessonNumber: lessonNum,
           ...(defaultSessionTime ? { sessionTime: defaultSessionTime } : {}),
+          ...(input.infantilEix ? { infantilEix: input.infantilEix } : {}),
+          ...(input.infantilCycle ? { infantilCycle: input.infantilCycle } : {}),
         });
       }
 

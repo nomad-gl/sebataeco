@@ -4459,3 +4459,15 @@
 - [x] Add "Practise this principle" button on each principle card (filtered practice session link)
 - [x] Add expandable detail panel per principle with classroom examples and DOGC article link
 - [x] Add CUTCG badge to teacher profile card and staff directory
+
+## AI Generation — Infantil Calendar & Lesson Plans
+
+- [ ] Add tRPC procedure: infantil.aiGenerateCalendar — generates a week/month of themed calendar events aligned to Decret 21/2023 axes
+- [ ] Add tRPC procedure: infantil.aiGenerateLessonPlan — generates a full lesson plan for a given axis, principle, and age group
+- [ ] Add "Generate with AI" button and modal to the Infantil Calendar page
+- [ ] Add "Generate with AI" button and modal to the Infantil Lesson Plans page
+- [ ] AI calendar output: title, date, axis tag, learning objective, materials, duration
+- [ ] AI lesson plan output: title, objective, axis, principle, activities (intro/main/close), assessment, duration
+- [ ] All AI output in the user's selected language (CA/ES/EN)
+- [ ] Save generated content to the database (calendar_events / lesson_plans tables)
+- [ ] Include curriculum calendar year in AI generation prompt (academic year context for lesson sequencing)
