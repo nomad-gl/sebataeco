@@ -161,7 +161,14 @@ export default function DirectorStaff() {
                                   {(member.name ?? member.email ?? "?").charAt(0).toUpperCase()}
                                 </div>
                                 <div className="min-w-0">
-                                  <p className="font-medium text-foreground truncate">{member.name ?? t("dir_unknown_teacher")}</p>
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <p className="font-medium text-foreground truncate">{member.name ?? t("dir_unknown_teacher")}</p>
+                                    {pos === "teacher" && (
+                                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700 shrink-0">
+                                        CUTCG
+                                      </span>
+                                    )}
+                                  </div>
                                   {member.email && (
                                     <p className="text-xs text-muted-foreground truncate">{member.email}</p>
                                   )}
@@ -254,7 +261,12 @@ export default function DirectorStaff() {
                               {(teacher.name ?? teacher.email ?? "?").charAt(0).toUpperCase()}
                             </div>
                             <div className="min-w-0">
-                              <p className="font-medium text-foreground truncate">{teacher.name ?? teacher.email ?? t("dir_unknown_teacher")}</p>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <p className="font-medium text-foreground truncate">{teacher.name ?? teacher.email ?? t("dir_unknown_teacher")}</p>
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700 shrink-0">
+                                  CUTCG
+                                </span>
+                              </div>
                               {teacher.email && teacher.name && (
                                 <p className="text-xs text-muted-foreground truncate">{teacher.email}</p>
                               )}

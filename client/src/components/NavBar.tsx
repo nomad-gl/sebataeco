@@ -1045,6 +1045,15 @@ export default function NavBar() {
                     ZER
                   </span>
                 )}
+                {/* CUTCG professional body badge */}
+                <span className={cn(
+                  "hidden lg:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0",
+                  isClassroomPage
+                    ? "bg-white/15 text-white border-white/30"
+                    : "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700"
+                )} title="Col·legi Unificat de Titulats en Ciències de l'Educació de Girona">
+                  CUTCG
+                </span>
                 {/* Avatar circle with initials */}
                 <div
                   className={cn(
@@ -1463,12 +1472,17 @@ export default function NavBar() {
                     {(user.name ?? user.email ?? "?").slice(0, 2).toUpperCase()}
                   </div>
                   <div className="min-w-0">
-                    <p className={cn(
-                      "text-sm font-semibold truncate",
-                      isClassroomPage ? "text-white" : "text-foreground"
-                    )}>
-                      {user.name ?? user.email ?? ""}
-                    </p>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <p className={cn(
+                        "text-sm font-semibold truncate",
+                        isClassroomPage ? "text-white" : "text-foreground"
+                      )}>
+                        {user.name ?? user.email ?? ""}
+                      </p>
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700 shrink-0">
+                        CUTCG
+                      </span>
+                    </div>
                     {user.name && user.email && (
                       <p className={cn(
                         "text-xs truncate",

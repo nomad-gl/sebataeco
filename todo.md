@@ -4453,3 +4453,9 @@
 - [x] Voice preview in picker also uses neural TTS for CA/ES
 - [x] Amber warning dot and "no voices" notice suppressed for CA/ES (neural TTS doesn't need browser voices)
 - [x] Updated voice picker descriptions to reflect neural TTS quality (EN/ES/CA)
+
+## Decret 21/2023 Principles — Enhancements
+
+- [x] Add "Practise this principle" button on each principle card (filtered practice session link)
+- [x] Add expandable detail panel per principle with classroom examples and DOGC article link
+- [x] Add CUTCG badge to teacher profile card and staff directory

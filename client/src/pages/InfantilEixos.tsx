@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Baby, BookOpen, ChevronDown, ChevronUp, Dumbbell, MessageCircle, ExternalLink } from "lucide-react";
+import { Baby, BookOpen, ChevronDown, ChevronUp, Dumbbell, MessageCircle, ExternalLink, GraduationCap, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,9 @@ import { useI18n } from "@/contexts/I18nContext";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 const HERO_BG = "/manus-storage/hero-bg_a767782c.jpg";
+
+// DOGC article anchor links for each principle (Decret 21/2023, DOGC núm. 8085)
+const DOGC_BASE = "https://portaldogc.gencat.cat/utilsEADOP/PDF/8085/1939488.pdf";
 
 type EixCode = "EIX1" | "EIX2" | "EIX3" | "EIX4";
 
@@ -35,6 +38,15 @@ interface EixDetail {
   sabers36: string[];
   /** Pedagogical focus key for translation */
   pedagogicalFocusKey: string;
+}
+
+interface PrincipleDetail {
+  key: string;
+  exampleKey: string;
+  /** DOGC article number for deep-link */
+  dogcArticle: number;
+  /** Practice filter tag passed to /infantil/practice */
+  practiceTag: string;
 }
 
 // Canonical curriculum content stays in Catalan per Decree 21/2023.
@@ -203,19 +215,18 @@ const EIX_DATA: EixDetail[] = [
 ];
 
 // Pedagogical principles — canonical Catalan content per Decree 21/2023
-// (translated via i18n keys eix_principle_1 … eix_principle_10)
-const PRINCIPLE_KEYS = [
-  "eix_principle_1",
-  "eix_principle_2",
-  "eix_principle_3",
-  "eix_principle_4",
-  "eix_principle_5",
-  "eix_principle_6",
-  "eix_principle_7",
-  "eix_principle_8",
-  "eix_principle_9",
-  "eix_principle_10",
-] as const;
+const PRINCIPLES: PrincipleDetail[] = [
+  { key: "eix_principle_1", exampleKey: "eix_principle_1_example", dogcArticle: 6,  practiceTag: "play" },
+  { key: "eix_principle_2", exampleKey: "eix_principle_2_example", dogcArticle: 6,  practiceTag: "wellbeing" },
+  { key: "eix_principle_3", exampleKey: "eix_principle_3_example", dogcArticle: 6,  practiceTag: "active" },
+  { key: "eix_principle_4", exampleKey: "eix_principle_4_example", dogcArticle: 6,  practiceTag: "inclusion" },
+  { key: "eix_principle_5", exampleKey: "eix_principle_5_example", dogcArticle: 6,  practiceTag: "holistic" },
+  { key: "eix_principle_6", exampleKey: "eix_principle_6_example", dogcArticle: 6,  practiceTag: "context" },
+  { key: "eix_principle_7", exampleKey: "eix_principle_7_example", dogcArticle: 6,  practiceTag: "collaborative" },
+  { key: "eix_principle_8", exampleKey: "eix_principle_8_example", dogcArticle: 6,  practiceTag: "observation" },
+  { key: "eix_principle_9", exampleKey: "eix_principle_9_example", dogcArticle: 6,  practiceTag: "family" },
+  { key: "eix_principle_10", exampleKey: "eix_principle_10_example", dogcArticle: 6, practiceTag: "transition" },
+];
 
 function EixCard({ eix }: { eix: EixDetail }) {
   const { t } = useI18n();
@@ -362,6 +373,69 @@ function EixCard({ eix }: { eix: EixDetail }) {
   );
 }
 
+/** Expandable card for a single pedagogical principle */
+function PrincipleCard({ principle, index }: { principle: PrincipleDetail; index: number }) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="rounded-lg border border-border bg-card overflow-hidden">
+      {/* Header row — always visible */}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-start gap-3 p-4 text-left hover:bg-muted/40 transition-colors"
+        aria-expanded={open}
+      >
+        <span className="flex-shrink-0 w-7 h-7 rounded-full bg-pink-100 text-pink-700 text-xs font-bold flex items-center justify-center border border-pink-200 mt-0.5">
+          {index + 1}
+        </span>
+        <p className="text-sm leading-relaxed flex-1">{t(principle.key as any)}</p>
+        <span className="ml-2 shrink-0 text-muted-foreground">
+          {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </span>
+      </button>
+
+      {/* Expanded detail panel */}
+      {open && (
+        <div className="border-t border-border bg-muted/20 px-4 pb-4 pt-3 space-y-3">
+          {/* Classroom example */}
+          <div className="flex gap-2 items-start">
+            <Lightbulb className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-1">
+                {t("eix_principle_example_label")}
+              </p>
+              <p className="text-sm leading-relaxed text-foreground">
+                {t(principle.exampleKey as any)}
+              </p>
+            </div>
+          </div>
+
+          {/* Action row */}
+          <div className="flex flex-wrap gap-2 pt-1">
+            <Link href={`/infantil/practice?principle=${principle.practiceTag}`}>
+              <Button size="sm" variant="outline" className="gap-2 border-pink-200 text-pink-700 hover:bg-pink-50">
+                <GraduationCap className="w-3.5 h-3.5" />
+                {t("eix_principle_practice_btn")}
+              </Button>
+            </Link>
+            <a
+              href={DOGC_BASE}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button size="sm" variant="ghost" className="gap-2 text-muted-foreground hover:text-foreground">
+                <ExternalLink className="w-3.5 h-3.5" />
+                {t("eix_principle_dogc_btn")}
+              </Button>
+            </a>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function InfantilEixos() {
   const { t } = useI18n();
   useDocumentTitle("Educació Infantil · Eixos de Desenvolupament · Decret 21/2023");
@@ -467,16 +541,8 @@ export default function InfantilEixos() {
             {t("eix_principles_desc")}
           </p>
           <div className="grid sm:grid-cols-2 gap-3">
-            {PRINCIPLE_KEYS.map((key, i) => (
-              <div
-                key={key}
-                className="flex items-start gap-3 p-4 rounded-lg border border-border bg-card"
-              >
-                <span className="flex-shrink-0 w-7 h-7 rounded-full bg-pink-100 text-pink-700 text-xs font-bold flex items-center justify-center border border-pink-200">
-                  {i + 1}
-                </span>
-                <p className="text-sm leading-relaxed">{t(key as any)}</p>
-              </div>
+            {PRINCIPLES.map((principle, i) => (
+              <PrincipleCard key={principle.key} principle={principle} index={i} />
             ))}
           </div>
         </section>
