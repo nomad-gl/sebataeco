@@ -44,10 +44,19 @@ export default function HosAddTeacher() {
   const { data: mySubmissions = [], isLoading: loadingSubmissions } = trpc.hos.listMyTeacherSubmissions.useQuery();
 
   const submitMutation = trpc.hos.submitTeacher.useMutation({
-    onSuccess: () => {
-      toast.success(t("add_teacher_submitted_toast"), {
-        description: t("add_teacher_submitted_desc"),
-      });
+    onSuccess: (data) => {
+      if ((data as any).autoApproved) {
+        // Director: account created immediately
+        toast.success("Teacher account created!", {
+          description: `${teacherEmail.trim()} has been added and sent their login credentials by email.`,
+          duration: 8000,
+        });
+      } else {
+        // Head of Study: pending approval
+        toast.success(t("add_teacher_submitted_toast"), {
+          description: t("add_teacher_submitted_desc"),
+        });
+      }
       setTeacherName("");
       setTeacherEmail("");
       setNote("");
@@ -101,7 +110,9 @@ export default function HosAddTeacher() {
           <div>
             <h1 className="text-2xl font-bold text-foreground">{t("add_teacher_title")}</h1>
             <p className="text-sm text-muted-foreground">
-              {t("add_teacher_subtitle")}
+              {isDirector
+                ? "Add a teacher directly to your school. The account is created instantly and credentials are emailed."
+                : t("add_teacher_subtitle")}
             </p>
           </div>
         </div>
@@ -155,7 +166,9 @@ export default function HosAddTeacher() {
               className="w-full sm:w-auto gap-2"
             >
               <Send className="w-4 h-4" />
-              {submitMutation.isPending ? t("add_teacher_submitting") : t("add_teacher_submit")}
+              {submitMutation.isPending
+                ? (isDirector ? "Creating account…" : t("add_teacher_submitting"))
+                : (isDirector ? "Add Teacher" : t("add_teacher_submit"))}
             </Button>
           </CardContent>
         </Card>

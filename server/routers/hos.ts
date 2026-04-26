@@ -10,8 +10,13 @@ import {
   assessmentEvents,
   lessonPlans,
   pendingTeacherSubmissions,
+  tenants,
+  adminAuditLogs,
 } from "../../drizzle/schema";
 import { eq, and, gte, lte, inArray } from "drizzle-orm";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
+import { sendTempPasswordEmail } from "../email";
 
 // ─── Timetable ────────────────────────────────────────────────────────────────
 
@@ -588,7 +593,83 @@ export const hosRouter = router({
       }
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      // Check for an existing pending submission for this email in this school
+
+      const isDirector = ctx.user.role === "director" || ctx.user.role === "admin";
+
+      // ── Director / Admin: skip the pending queue and create the account immediately ──
+      if (isDirector) {
+        // Check email not already taken
+        const [existingUser] = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(eq(users.email, input.teacherEmail.toLowerCase().trim()))
+          .limit(1);
+        if (existingUser) throw new Error("A user with this email already exists.");
+
+        // Get school name for the welcome email
+        const [tenant] = await db
+          .select({ name: tenants.name })
+          .from(tenants)
+          .where(eq(tenants.id, ctx.user.tenantId))
+          .limit(1);
+
+        // Generate temp password
+        const tempPassword = crypto.randomBytes(8).toString("base64url").slice(0, 12);
+        const passwordHash = await bcrypt.hash(tempPassword, 10);
+
+        // Create user account
+        const [insertResult] = await db.insert(users).values({
+          openId: `local_${crypto.randomUUID()}`,
+          name: input.teacherName.trim(),
+          email: input.teacherEmail.toLowerCase().trim(),
+          loginMethod: "local",
+          role: "teacher",
+          position: "teacher",
+          tenantId: ctx.user.tenantId,
+          schoolName: tenant?.name ?? null,
+          passwordHash,
+          mustChangePassword: true,
+          displayName: input.teacherName.trim(),
+        });
+        const newUserId = (insertResult as unknown as { insertId: number }).insertId;
+
+        // Also create a record in pending_teacher_submissions (already approved) for audit history
+        const [subResult] = await db.insert(pendingTeacherSubmissions).values({
+          submittedByUserId: ctx.user.id,
+          tenantId: ctx.user.tenantId,
+          teacherName: input.teacherName.trim(),
+          teacherEmail: input.teacherEmail.toLowerCase().trim(),
+          note: input.note ?? null,
+          pts_status: "approved",
+          reviewedByUserId: ctx.user.id,
+          reviewedAt: new Date(),
+          createdUserId: newUserId,
+        });
+        const submissionId = (subResult as unknown as { insertId: number }).insertId;
+
+        // Send welcome email with temp password
+        void sendTempPasswordEmail({
+          to: input.teacherEmail.toLowerCase().trim(),
+          name: input.teacherName.trim(),
+          tempPassword,
+          schoolName: tenant?.name ?? null,
+          loginUrl: "https://aina.forum/login",
+          role: "teacher",
+        });
+
+        // Audit log
+        void db.insert(adminAuditLogs).values({
+          userId: ctx.user.id,
+          action: "director_create_teacher",
+          resource: "pending_teacher_submissions",
+          resourceId: String(submissionId),
+          details: JSON.stringify({ teacherEmail: input.teacherEmail, newUserId }),
+        });
+
+        return { success: true, autoApproved: true, tempPassword, teacherEmail: input.teacherEmail.toLowerCase().trim(), newUserId };
+      }
+
+      // ── Head of Study: create pending submission for Director approval ──
       const existing = await db
         .select({ id: pendingTeacherSubmissions.id })
         .from(pendingTeacherSubmissions)
@@ -611,7 +692,7 @@ export const hosRouter = router({
         note: input.note ?? null,
         pts_status: "pending",
       });
-      return { success: true };
+      return { success: true, autoApproved: false };
     }),
 
   /**
