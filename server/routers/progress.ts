@@ -1174,7 +1174,7 @@ Use a professional, analytical tone. Format with clear headings.`;
         description: z.string().nullish(),
         competency: z.string().nullish(),
         assignmentType: z.enum(["worksheet", "essay", "quiz", "project", "presentation", "research", "creative", "debate", "experiment", "other"]).default("worksheet"),
-        yearGroup: z.enum(["junior", "primary", "secondary"]).nullish(),
+        yearGroup: z.enum(["infantil", "junior", "primary", "secondary"]).nullish(),
         difficulty: z.enum(["easy", "medium", "hard"]).default("medium"),
         uiLang: z.enum(["en", "es", "ca"]).default("en"),
         competencyScores: z.array(z.object({ code: z.string(), average: z.number().nullable() })).nullish(),
@@ -1182,7 +1182,8 @@ Use a professional, analytical tone. Format with clear headings.`;
     )
     .mutation(async ({ input }) => {
       const competencyName = input.competency ? (COMPETENCY_NAMES[input.competency] ?? input.competency) : "all LOMLOE competencies";
-      const yearGroupLabel = input.yearGroup === "junior" ? "Primary Years 3\u20134 (ages 8\u201310)"
+      const yearGroupLabel = input.yearGroup === "infantil" ? "Educació Infantil (ages 0–6, Decret 21/2023)"
+        : input.yearGroup === "junior" ? "Primary Years 3\u20134 (ages 8\u201310)"
         : input.yearGroup === "primary" ? "Upper Primary Years 5\u20136 (ages 10\u201312)"
         : input.yearGroup === "secondary" ? "Secondary Years 7\u201310 (ages 12\u201316)"
         : "mixed year groups";

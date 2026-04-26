@@ -315,7 +315,7 @@ export const directorRouter = router({
         subjectCoverage: complianceData.subjectCoverage,
         classGroups: classGroupsData.map((g) => ({
           className: g.className,
-          yearGroup: (g.yearGroup ?? "secondary") as "junior" | "primary" | "secondary",
+          yearGroup: (g.yearGroup ?? "secondary") as "infantil" | "junior" | "primary" | "secondary",
           academicYear: g.academicYear ?? "2025-26",
           studentCount: g.studentCount ?? 0,
         })),

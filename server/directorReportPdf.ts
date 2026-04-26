@@ -38,16 +38,16 @@ export interface DirectorReportData {
   }[];
   classGroups?: {
     className: string;
-    yearGroup: "junior" | "primary" | "secondary";
+    yearGroup: "infantil" | "junior" | "primary" | "secondary";
     academicYear: string;
     studentCount: number;
   }[];
 }
 
 const YEAR_GROUP_LABELS: Record<string, Record<string, string>> = {
-  en: { junior: "Junior (Yr 3–4)", primary: "Primary (Yr 5–6)", secondary: "Secondary (Yr 7–10)" },
-  es: { junior: "Junior (3.º–4.º)", primary: "Primaria (5.º–6.º)", secondary: "Secundaria (7.º–10.º)" },
-  ca: { junior: "Junior (3r–4t)", primary: "Primària (5è–6è)", secondary: "Secundària (7è–10è)" },
+  en: { infantil: "Infantil (0–6)", junior: "Junior (Yr 3–4)", primary: "Primary (Yr 5–6)", secondary: "Secondary (Yr 7–10)" },
+  es: { infantil: "Infantil (0–6)", junior: "Junior (3.º–4.º)", primary: "Primaria (5.º–6.º)", secondary: "Secundaria (7.º–10.º)" },
+  ca: { infantil: "Infantil (0–6)", junior: "Junior (3r–4t)", primary: "Primària (5è–6è)", secondary: "Secundària (7è–10è)" },
 };
 
 const LABELS = {

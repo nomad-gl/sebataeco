@@ -22,12 +22,14 @@ import PreCallScreen, { VideoBackground, VideoFilter } from "@/components/PreCal
 import { SebaMeet } from "@/components/SebaMeet";
 
 const YEAR_GROUP_LABELS: Record<string, string> = {
+  infantil: "Educació Infantil (0–6)",
   junior: "Junior (Yr 3–4)",
   primary: "Primary (Yr 5–6)",
   secondary: "Secondary (Yr 7–10)",
 };
 
 const YEAR_GROUP_COLORS: Record<string, string> = {
+  infantil: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
   junior: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
   primary: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
   secondary: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
@@ -36,7 +38,7 @@ const YEAR_GROUP_COLORS: Record<string, string> = {
 type GroupForm = {
   id?: number;
   className: string;
-  yearGroup: "junior" | "primary" | "secondary";
+  yearGroup: "infantil" | "junior" | "primary" | "secondary";
   academicYear: string;
   formTutorId: number | null;
   studentCount: number;
@@ -45,7 +47,7 @@ type GroupForm = {
 
 const EMPTY_FORM: GroupForm = {
   className: "",
-  yearGroup: "secondary",
+  yearGroup: "secondary" as "infantil" | "junior" | "primary" | "secondary",
   academicYear: "2025-26",
   formTutorId: null,
   studentCount: 0,
@@ -115,7 +117,7 @@ export default function HosGroups() {
     setForm({
       id: g.id,
       className: g.className,
-      yearGroup: (g.yearGroup ?? "secondary") as "junior" | "primary" | "secondary",
+      yearGroup: (g.yearGroup ?? "secondary") as "infantil" | "junior" | "primary" | "secondary",
       academicYear: g.academicYear ?? "2025-26",
       formTutorId: g.formTutorId ?? null,
       studentCount: g.studentCount ?? 0,
@@ -167,7 +169,7 @@ export default function HosGroups() {
 
         {/* Stats row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {(["junior", "primary", "secondary"] as const).map((yg) => {
+          {(["infantil", "junior", "primary", "secondary"] as const).map((yg) => {
             const count = groups.filter((g) => (g.yearGroup ?? "secondary") === yg).length;
             return (
               <Card key={yg} className="text-center py-4">
@@ -305,12 +307,13 @@ export default function HosGroups() {
                 <Label>{t("hos_year_group")}</Label>
                 <Select
                   value={form.yearGroup}
-                  onValueChange={(v) => setForm((f) => ({ ...f, yearGroup: v as "junior" | "primary" | "secondary" }))}
+                  onValueChange={(v) => setForm((f) => ({ ...f, yearGroup: v as "infantil" | "junior" | "primary" | "secondary" }))}
                 >
                   <SelectTrigger className="h-9 text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="infantil">Educació Infantil (0–6)</SelectItem>
                     <SelectItem value="junior">Junior (Yr 3–4)</SelectItem>
                     <SelectItem value="primary">Primary (Yr 5–6)</SelectItem>
                     <SelectItem value="secondary">Secondary (Yr 7–10)</SelectItem>

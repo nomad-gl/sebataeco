@@ -26,7 +26,7 @@ import { generatedQuestions, questionTranslations, savedSituacions } from "../..
 import { eq, and, inArray } from "drizzle-orm";
 
 const CompetencyCodeSchema = z.enum(["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"]);
-const YearGroupSchema = z.enum(["junior", "primary", "secondary"]);
+const YearGroupSchema = z.enum(["infantil", "junior", "primary", "secondary"]);
 const EixCodeSchema = z.enum(["EIX1", "EIX2", "EIX3", "EIX4"]);
 const InfantilCycleSchema = z.enum(["0-3", "3-6"]);
 
@@ -459,6 +459,7 @@ export const lomloeRouter = router({
       name: COMPETENCY_META[code as CompetencyCode]?.name ?? code,
       emoji: COMPETENCY_META[code as CompetencyCode]?.emoji ?? "",
       total: Object.values(yearData).reduce((a, b) => a + b, 0) + Object.values(dbCounts[code] ?? {}).reduce((a, b) => a + b, 0),
+      infantil: (yearData["infantil"] ?? 0) + (dbCounts[code]?.["infantil"] ?? 0),
       junior: (yearData["junior"] ?? 0) + (dbCounts[code]?.["junior"] ?? 0),
       primary: (yearData["primary"] ?? 0) + (dbCounts[code]?.["primary"] ?? 0),
       secondary: (yearData["secondary"] ?? 0) + (dbCounts[code]?.["secondary"] ?? 0),

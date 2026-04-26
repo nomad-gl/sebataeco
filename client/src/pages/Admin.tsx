@@ -12,7 +12,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { getLoginUrl } from "@/const";
 import { useI18n } from "@/contexts/I18nContext";
 
-const YEAR_GROUPS = ["junior", "primary", "secondary"] as const;
+const YEAR_GROUPS = ["infantil", "junior", "primary", "secondary"] as const;
 const ADMIN_PIN = "2024";
 
 export default function Admin() {
@@ -113,7 +113,8 @@ export default function Admin() {
     CPSAA: "#ef4444", CC: "#06b6d4", CE: "#f97316", CCEC: "#ec4899",
   };
 
-  const YEAR_GROUP_LABELS = {
+  const YEAR_GROUP_LABELS: Record<string, string> = {
+    infantil: `Educació Infantil (0–6)`,
     junior: `${t("admin_junior")} (3–4)`,
     primary: `${t("admin_primary")} (5–6)`,
     secondary: `${t("admin_secondary")} (7–10)`,

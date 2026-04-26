@@ -20,7 +20,7 @@ import { COMPETENCY_META, getQuestions, type CompetencyCode, type YearGroup } fr
 import { createNotification } from "./notifications";
 
 const CompetencyCodeSchema = z.enum(["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"]);
-const YearGroupSchema = z.enum(["junior", "primary", "secondary"]);
+const YearGroupSchema = z.enum(["infantil", "junior", "primary", "secondary"]);
 
 function generateRoomCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";

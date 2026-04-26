@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
-type YearGroup = "junior" | "primary" | "secondary";
+type YearGroup = "infantil" | "junior" | "primary" | "secondary";
 
 interface Props {
   selectedCompetency?: CompetencyCode;
@@ -23,10 +23,11 @@ export default function CompetencySelector({
   const { t } = useI18n();
   const { data: competencies } = trpc.lomloe.getCompetencies.useQuery();
 
-  const YEAR_GROUPS: { value: YearGroup; labelKey: "comp_junior" | "comp_primary" | "comp_secondary" }[] = [
-    { value: "junior", labelKey: "comp_junior" },
-    { value: "primary", labelKey: "comp_primary" },
-    { value: "secondary", labelKey: "comp_secondary" },
+  const YEAR_GROUPS: { value: YearGroup; label: string }[] = [
+    { value: "infantil", label: "Infantil (0–6)" },
+    { value: "junior", label: t("comp_junior") },
+    { value: "primary", label: t("comp_primary") },
+    { value: "secondary", label: t("comp_secondary") },
   ];
 
   return (
@@ -48,7 +49,7 @@ export default function CompetencySelector({
           >
             {t("comp_all")}
           </button>
-          {YEAR_GROUPS.map(({ value, labelKey }) => (
+          {YEAR_GROUPS.map(({ value, label }) => (
             <button
               key={value}
               onClick={() => onYearGroupChange(selectedYearGroup === value ? undefined : value)}
@@ -59,7 +60,7 @@ export default function CompetencySelector({
                   : "bg-white text-muted-foreground border-border hover:border-primary hover:text-primary"
               )}
             >
-              {t(labelKey)}
+              {label}
             </button>
           ))}
         </div>

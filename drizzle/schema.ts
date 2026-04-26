@@ -194,8 +194,8 @@ export const classGroups = mysqlTable("class_groups", {
   level: varchar("level", { length: 64 }).notNull(),
   assessmentTitle: varchar("assessmentTitle", { length: 255 }).notNull(),
   /** HOS fields — added in migration 0033 */
-  /** Year group: junior | primary | secondary */
-  yearGroup: mysqlEnum("yearGroup", ["junior", "primary", "secondary"]).default("secondary"),
+  /** Year group: infantil | junior | primary | secondary */
+  yearGroup: mysqlEnum("yearGroup", ["infantil", "junior", "primary", "secondary"]).default("secondary"),
   /** Academic year e.g. "2025-26" */
   academicYear: varchar("academicYear", { length: 16 }).default("2025-26"),
   /** FK to users.id — form tutor */

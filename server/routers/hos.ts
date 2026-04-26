@@ -392,7 +392,7 @@ export const hosRouter = router({
       z.object({
         id: z.number().optional(),
         className: z.string().min(1).max(128),
-        yearGroup: z.enum(["junior", "primary", "secondary"]).default("secondary"),
+        yearGroup: z.enum(["infantil", "junior", "primary", "secondary"]).default("secondary"),
         academicYear: z.string().default("2025-26"),
         formTutorId: z.number().nullable().optional(),
         studentCount: z.number().min(0).max(999).default(0),
