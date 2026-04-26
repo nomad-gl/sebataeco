@@ -60,7 +60,7 @@ export const dialectOverrides: Record<CatalanDialect, PartialTranslations> = {
     nav_practice:         "Practicar",
     nav_head_of_study:    "Cap d'Estudis",
     nav_progress:         "Progrés",
-    nav_teacher:          "Docent",
+    nav_teacher:          "Docent (CUTCG)",
     nav_sign_in:          "Iniciar sessió",
     nav_sign_out:         "Tancar sessió",
 
