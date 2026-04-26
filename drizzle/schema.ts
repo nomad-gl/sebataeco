@@ -84,6 +84,13 @@ export const users = mysqlTable("users", {
    * @migration 0052
    */
   zerActsAsHos: boolean("zerActsAsHos").default(false).notNull(),
+  /**
+   * CUTCG (Col·legi Oficial de Doctors i Llicenciats en Filosofia i Lletres i en Ciències de Catalunya)
+   * membership number for teachers. Displayed alongside the CUTCG badge.
+   * NULL = not a CUTCG member or number not provided.
+   * @migration 0053
+   */
+  cutcgMemberNumber: varchar("cutcgMemberNumber", { length: 32 }),
 });
 
 export type User = typeof users.$inferSelect;

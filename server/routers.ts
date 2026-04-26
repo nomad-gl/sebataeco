@@ -66,6 +66,17 @@ export const appRouter = router({
         return { success: true };
       }),
 
+    setCutcgMemberNumber: protectedProcedure
+      .input(z.object({ memberNumber: z.string().max(32).nullable() }))
+      .mutation(async ({ ctx, input }) => {
+        const dbConn = await getDb();
+        if (!dbConn) return { success: false };
+        const { users } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        await dbConn.update(users).set({ cutcgMemberNumber: input.memberNumber }).where(eq(users.id, ctx.user.id));
+        return { success: true };
+      }),
+
     /**
      * Change the current user's password.
      * If mustChangePassword is true, clears the flag after a successful change.

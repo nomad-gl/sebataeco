@@ -4471,3 +4471,9 @@
 - [ ] All AI output in the user's selected language (CA/ES/EN)
 - [ ] Save generated content to the database (calendar_events / lesson_plans tables)
 - [ ] Include curriculum calendar year in AI generation prompt (academic year context for lesson sequencing)
+
+## CUTCG Member Number
+- [ ] Add cutcgMemberNumber column to user_profiles table in DB schema
+- [ ] Add tRPC procedure to save and read cutcgMemberNumber
+- [ ] Add CUTCG member number input field to profile settings UI
+- [ ] Display member number alongside CUTCG badge in NavBar and staff directory

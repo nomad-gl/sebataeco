@@ -24,6 +24,7 @@ import {
   KeyRound,
   Eye,
   EyeOff,
+  BadgeCheck,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -442,6 +443,88 @@ function AccountSecurityCard({ t }: { t: (k: TranslationKey) => string }) {
   );
 }
 
+// ── CUTCG Professional Membership card ─────────────────────────────────────
+function CutcgMemberCard({ t, user }: { t: (k: TranslationKey) => string; user: any }) {
+  const [memberNumber, setMemberNumber] = useState<string>(() => user?.cutcgMemberNumber ?? "");
+  const [saved, setSaved] = useState(false);
+
+  const saveMutation = trpc.auth.setCutcgMemberNumber.useMutation({
+    onSuccess: () => {
+      setSaved(true);
+      toast.success("CUTCG member number saved.");
+      setTimeout(() => setSaved(false), 2500);
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const handleSave = () => {
+    saveMutation.mutate({ memberNumber: memberNumber.trim() || null });
+  };
+
+  const handleClear = () => {
+    setMemberNumber("");
+    saveMutation.mutate({ memberNumber: null });
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <BadgeCheck className="w-4 h-4 text-emerald-600" />
+          <CardTitle className="text-base">CUTCG Professional Membership</CardTitle>
+        </div>
+        <CardDescription className="text-sm leading-relaxed">
+          Store your Col·legi Oficial de Doctors i Llicenciats (CUTCG) membership number. It will be displayed alongside your CUTCG badge in the staff directory and your profile.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="cutcg-number" className="text-xs font-medium">CUTCG Member Number</Label>
+          <div className="flex gap-2">
+            <Input
+              id="cutcg-number"
+              value={memberNumber}
+              onChange={(e) => setMemberNumber(e.target.value)}
+              placeholder="e.g. 12345"
+              className="h-9 text-sm max-w-[200px]"
+              maxLength={32}
+            />
+            <Button
+              size="sm"
+              onClick={handleSave}
+              disabled={saveMutation.isPending}
+              className="gap-1.5 h-9"
+            >
+              {saved ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
+              {saved ? "Saved" : "Save"}
+            </Button>
+            {memberNumber && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleClear}
+                disabled={saveMutation.isPending}
+                className="gap-1.5 h-9"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Clear
+              </Button>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">Leave blank if you are not a CUTCG member or prefer not to display your number.</p>
+        </div>
+        {memberNumber && (
+          <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 dark:border-emerald-800 px-3 py-2">
+            <BadgeCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="text-xs font-medium text-emerald-800 dark:text-emerald-300">CUTCG</span>
+            <span className="text-xs text-emerald-700 dark:text-emerald-400">#{memberNumber}</span>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Main page ────────────────────────────────────────────────────────────────
 export default function Settings() {
   const { t } = useI18n();
@@ -529,6 +612,9 @@ export default function Settings() {
 
             {/* ── Account Security card ── */}
             <AccountSecurityCard t={t} />
+
+            {/* ── CUTCG Professional Membership card ── */}
+            <CutcgMemberCard t={t} user={user} />
 
             {/* ── Branding card ── */}
             <Card>

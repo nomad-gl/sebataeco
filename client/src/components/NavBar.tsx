@@ -1047,12 +1047,12 @@ export default function NavBar() {
                 )}
                 {/* CUTCG professional body badge */}
                 <span className={cn(
-                  "hidden lg:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0",
+                  "hidden lg:inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0",
                   isClassroomPage
                     ? "bg-white/15 text-white border-white/30"
                     : "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700"
                 )} title="Col·legi Unificat de Titulats en Ciències de l'Educació de Girona">
-                  CUTCG
+                  CUTCG{(user as any).cutcgMemberNumber ? <span className="opacity-75">#{(user as any).cutcgMemberNumber}</span> : null}
                 </span>
                 {/* Avatar circle with initials */}
                 <div
@@ -1479,8 +1479,8 @@ export default function NavBar() {
                       )}>
                         {user.name ?? user.email ?? ""}
                       </p>
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700 shrink-0">
-                        CUTCG
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700 shrink-0">
+                        CUTCG{(user as any).cutcgMemberNumber ? <span className="opacity-75">#{(user as any).cutcgMemberNumber}</span> : null}
                       </span>
                     </div>
                     {user.name && user.email && (
