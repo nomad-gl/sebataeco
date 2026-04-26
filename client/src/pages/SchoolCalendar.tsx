@@ -68,7 +68,7 @@ const EVENT_COLORS: Record<string, string> = {
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const COMPETENCIES = ["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"];
-const YEAR_GROUPS = ["Infantil (0-3)", "Infantil (3-6)", "P3", "P4", "P5", "1st Primary", "2nd Primary", "3rd Primary", "4th Primary", "5th Primary", "6th Primary", "1st Secondary", "2nd Secondary", "3rd Secondary", "4th Secondary"];
+const YEAR_GROUPS = ["Infantil (0-3)", "Infantil (3-6)", "I3", "I4", "I5", "1st Primary", "2nd Primary", "3rd Primary", "4th Primary", "5th Primary", "6th Primary", "1st Secondary", "2nd Secondary", "3rd Secondary", "4th Secondary"];
 const SUBJECTS = ["English", "Maths", "Science", "Social Studies", "Art", "PE", "Music", "Technology", "Spanish", "Catalan"];
 
 type CalEvent = {

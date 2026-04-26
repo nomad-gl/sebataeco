@@ -65,7 +65,7 @@ type ILPStatus = "draft" | "active" | "completed" | "archived";
 type LessonStatus = "draft" | "ready" | "delivered";
 
 const YEAR_GROUPS = [
-  "Infantil 3", "Infantil 4", "Infantil 5",
+  "I3", "I4", "I5",
   "1r Primària", "2n Primària", "3r Primària", "4t Primària", "5è Primària", "6è Primària",
   "1r ESO", "2n ESO", "3r ESO", "4t ESO",
   "1r Batxillerat", "2n Batxillerat",
