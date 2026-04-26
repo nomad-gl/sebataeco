@@ -317,6 +317,8 @@ function tempPasswordHtml(opts: {
   schoolName: string | null;
   loginUrl: string;
   role: string;
+  directorName?: string | null;
+  directorEmail?: string | null;
 }): string {
   const school = opts.schoolName
     ? `<div class="school-badge">🏫 ${opts.schoolName}</div>`
@@ -331,11 +333,18 @@ function tempPasswordHtml(opts: {
       : opts.role === "head_of_study"
       ? "Head of Study"
       : "User";
+  const createdByBlock = opts.directorName
+    ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 16px;margin:0 0 20px;font-size:14px;color:#166534;line-height:1.6">
+        <strong>Added by:</strong> ${opts.directorName}${opts.directorEmail ? ` &lt;<a href="mailto:${opts.directorEmail}" style="color:#166534">${opts.directorEmail}</a>&gt;` : ""}
+        ${opts.schoolName ? `<br/><strong>School:</strong> ${opts.schoolName}` : ""}
+       </div>`
+    : "";
   return htmlWrapper(`
     <p class="greeting">Welcome to SEBA AI Studio, ${opts.name}!</p>
     ${school}
+    ${createdByBlock}
     <p class="text">
-      An administrator has created a <strong>${roleLabel}</strong> account for you on
+      ${opts.directorName ? `<strong>${opts.directorName}</strong> has created a` : "An administrator has created a"} <strong>${roleLabel}</strong> account for you on
       SEBA AI Studio. Use the credentials below to sign in for the first time.
       You will be asked to choose a new password immediately after logging in.
     </p>
@@ -371,6 +380,10 @@ export async function sendTempPasswordEmail(opts: {
   schoolName: string | null;
   loginUrl: string;
   role: string;
+  /** Director's display name — personalises the email body and subject */
+  directorName?: string | null;
+  /** Director's email — set as Reply-To so the new teacher can reply directly */
+  directorEmail?: string | null;
 }): Promise<SendTempPasswordResult> {
   const transport = createTransport();
   if (!transport) {
@@ -379,12 +392,18 @@ export async function sendTempPasswordEmail(opts: {
   }
 
   const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+  const schoolPart = opts.schoolName ? ` at ${opts.schoolName}` : "";
+  const subject = opts.directorName
+    ? `${opts.directorName} has added you to SEBA AI Studio${schoolPart} — your login credentials`
+    : "Your SEBA AI Studio account is ready — temporary password inside";
 
   try {
     await transport.sendMail({
       from: `"SEBA AI Studio" <${from}>`,
+      // Reply-To set to the Director's address so replies go directly to them
+      ...(opts.directorEmail ? { replyTo: `"${opts.directorName ?? "Director"}" <${opts.directorEmail}>` } : {}),
       to: opts.to,
-      subject: "Your SEBA AI Studio account is ready — temporary password inside",
+      subject,
       html: tempPasswordHtml({
         name: opts.name,
         email: opts.to,
@@ -392,6 +411,8 @@ export async function sendTempPasswordEmail(opts: {
         schoolName: opts.schoolName,
         loginUrl: opts.loginUrl,
         role: opts.role,
+        directorName: opts.directorName,
+        directorEmail: opts.directorEmail,
       }),
     });
     console.log(`[Email] Temp-password email sent to ${opts.to}`);

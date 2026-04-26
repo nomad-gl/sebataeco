@@ -4477,3 +4477,4 @@
 - [ ] Add tRPC procedure to save and read cutcgMemberNumber
 - [ ] Add CUTCG member number input field to profile settings UI
 - [ ] Display member number alongside CUTCG badge in NavBar and staff directory
+- [ ] Director creates teacher: send credentials email from Director's own school email address (not default system sender)

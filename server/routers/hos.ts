@@ -647,7 +647,7 @@ export const hosRouter = router({
         });
         const submissionId = (subResult as unknown as { insertId: number }).insertId;
 
-        // Send welcome email with temp password
+        // Send welcome email with temp password — personalised with Director's name and email
         void sendTempPasswordEmail({
           to: input.teacherEmail.toLowerCase().trim(),
           name: input.teacherName.trim(),
@@ -655,6 +655,8 @@ export const hosRouter = router({
           schoolName: tenant?.name ?? null,
           loginUrl: "https://aina.forum/login",
           role: "teacher",
+          directorName: ctx.user.name ?? ctx.user.displayName ?? null,
+          directorEmail: ctx.user.email ?? null,
         });
 
         // Audit log
