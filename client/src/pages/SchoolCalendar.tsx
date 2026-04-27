@@ -1388,7 +1388,7 @@ export default function SchoolCalendar() {
   const regenEventMutation = trpc.infantil.regenerateSingleEvent.useMutation({
     onSuccess: () => {
       toast.success(t("cal_regen_event_success"));
-      utils.planner.getCalendarEvents.invalidate();
+      utils.planner.listCalendarEvents.invalidate();
       setShowRegenModal(false);
       setRegenTheme("");
       setRegenEventId(null);
