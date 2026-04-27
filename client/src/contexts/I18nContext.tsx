@@ -3130,6 +3130,7 @@ export const translations = {
     dir_ts_approved_shortcut_msg: "{name} has been approved. Set up their subjects and schedule?",
     dir_ts_set_subjects_schedule: "Set Subjects & Schedule",
     // Sign-in destination choice
+    signin_welcome_name: "Welcome back, {name}!",
     signin_welcome_back: "You're signed in!",
     signin_choose_destination: "Where would you like to go?",
     signin_continue_seba: "Continue to SEBA AI",
@@ -6545,6 +6546,7 @@ export const translations = {
     dir_ts_approved_shortcut_msg: "{name} ha sido aprobado/a. ¿Configurar sus asignaturas y horario?",
     dir_ts_set_subjects_schedule: "Asignar asignaturas y horario",
     // Sign-in destination choice
+    signin_welcome_name: "¡Bienvenido/a de nuevo, {name}!",
     signin_welcome_back: "¡Has iniciado sesión!",
     signin_choose_destination: "¿A dónde quieres ir?",
     signin_continue_seba: "Continuar en SEBA AI",
@@ -9963,6 +9965,7 @@ export const translations = {
     dir_ts_approved_shortcut_msg: "{name} ha estat aprovat/ada. Voleu configurar les seves assignatures i horari?",
     dir_ts_set_subjects_schedule: "Assignar assignatures i horari",
     // Sign-in destination choice
+    signin_welcome_name: "Benvingut/da de nou, {name}!",
     signin_welcome_back: "Heu iniciat la sessió!",
     signin_choose_destination: "On voleu anar?",
     signin_continue_seba: "Continuar a SEBA AI",

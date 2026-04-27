@@ -241,12 +241,33 @@ function Router() {
   );
 }
 
+/** Fires a personalised welcome toast once after a successful login. */
+function WelcomeToast() {
+  const { t } = useI18n();
+  useEffect(() => {
+    const name = sessionStorage.getItem("seba:welcome_name");
+    if (name) {
+      sessionStorage.removeItem("seba:welcome_name");
+      // Small delay so the page has rendered before the toast appears
+      setTimeout(() => {
+        toast.success(t("signin_welcome_name").replace("{name}", name), {
+          duration: 5000,
+          position: "top-center",
+        });
+      }, 600);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return null;
+}
+
 function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster />
+          <WelcomeToast />
           <FirstLaunchLanguagePicker />
           <CatalanDialectDetector />
           <UpdateBanner />

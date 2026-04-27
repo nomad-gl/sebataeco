@@ -461,7 +461,7 @@ export const localAuthRouter = router({
         maxAge: ONE_YEAR_MS,
       });
 
-      return { success: true, mustChangePassword: user.mustChangePassword ?? false };
+      return { success: true, mustChangePassword: user.mustChangePassword ?? false, displayName: user.displayName ?? user.name ?? normalised };
     }),
 
   /**

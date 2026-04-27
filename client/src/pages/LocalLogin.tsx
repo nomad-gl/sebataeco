@@ -54,6 +54,7 @@ export default function LocalLogin() {
   const [showLoginPw, setShowLoginPw] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [showDestinationChoice, setShowDestinationChoice] = useState(false);
+  const [welcomeName, setWelcomeName] = useState("");
 
   // ── Redirect if already authenticated ─────────────────────────────────────
   useEffect(() => {
@@ -89,7 +90,12 @@ export default function LocalLogin() {
         // Force password change before accessing the app
         window.location.href = `/change-password?next=${encodeURIComponent(returnPath)}`;
       } else {
-        // Show destination choice instead of immediate redirect
+        // Store the name so the destination page can show a welcome toast
+        const firstName = (data.displayName ?? "").split(" ")[0] || data.displayName || "";
+        if (firstName) {
+          sessionStorage.setItem("seba:welcome_name", firstName);
+        }
+        setWelcomeName(firstName);
         setShowDestinationChoice(true);
       }
     },
@@ -175,7 +181,9 @@ export default function LocalLogin() {
                     <CheckCircle2 className="w-12 h-12 text-green-400" />
                   </div>
                   <div>
-                    <p className="text-white font-semibold text-lg">{t("signin_welcome_back")}</p>
+                    <p className="text-white font-semibold text-lg">
+                      {welcomeName ? t("signin_welcome_name").replace("{name}", welcomeName) : t("signin_welcome_back")}
+                    </p>
                     <p className="text-white/60 text-sm mt-1">{t("signin_choose_destination")}</p>
                   </div>
                   <div className="flex flex-col gap-3">
