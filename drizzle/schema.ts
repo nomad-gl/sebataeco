@@ -211,6 +211,12 @@ export const classGroups = mysqlTable("class_groups", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   /** Tenant isolation key */
   tenantId: int("tenantId"),
+  /**
+   * Soft-delete timestamp. NULL = active. Non-null = deleted (hidden from normal views).
+   * Set instead of hard-deleting so groups can be restored.
+   * @migration 0060
+   */
+  deletedAt: timestamp("deletedAt"),
 });
 
 export type ClassGroup = typeof classGroups.$inferSelect;

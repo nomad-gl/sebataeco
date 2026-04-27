@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Users, Plus, Trash2, Mail, BookOpen, Calendar, ChevronRight,
   UserPlus, Send, Loader2, AlertCircle, GraduationCap, ClipboardList, TrendingUp,
-  Pencil, Check, X, Upload, Search, BarChart2
+  Pencil, Check, X, Upload, Search, BarChart2, RotateCcw, AlertTriangle
 } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "@/contexts/I18nContext";
@@ -649,6 +649,120 @@ function ChallengeHistoryTab({ group }: { group: Group }) {
   );
 }
 
+// ── Recently Deleted Section ─────────────────────────────────────────────────
+function RecentlyDeletedSection() {
+  const { t } = useI18n();
+  const utils = trpc.useUtils();
+  const [expanded, setExpanded] = useState(false);
+  const [confirmPermanentId, setConfirmPermanentId] = useState<number | null>(null);
+
+  const { data: deleted = [], isLoading } = trpc.groups.listDeleted.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
+
+  const restoreMutation = trpc.groups.restore.useMutation({
+    onSuccess: () => {
+      utils.groups.list.invalidate();
+      utils.groups.listDeleted.invalidate();
+      toast.success(t("groups_restored"));
+    },
+    onError: () => toast.error(t("groups_restore_failed")),
+  });
+
+  const permanentDeleteMutation = trpc.groups.permanentDelete.useMutation({
+    onSuccess: () => {
+      utils.groups.listDeleted.invalidate();
+      setConfirmPermanentId(null);
+      toast.success(t("groups_permanently_deleted"));
+    },
+    onError: () => toast.error(t("groups_delete_failed")),
+  });
+
+  if (isLoading || deleted.length === 0) return null;
+
+  return (
+    <div className="mt-6">
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="flex items-center gap-2 text-sm text-white/50 hover:text-white/80 transition-colors"
+      >
+        <Trash2 className="w-4 h-4" />
+        <span>{t("groups_recently_deleted")} ({deleted.length})</span>
+        <ChevronRight className={`w-4 h-4 transition-transform ${expanded ? "rotate-90" : ""}`} />
+      </button>
+
+      {expanded && (
+        <div className="mt-3 space-y-2">
+          <p className="text-xs text-white/40 mb-3">{t("groups_recently_deleted_hint")}</p>
+          {deleted.map((g) => (
+            <div
+              key={g.id}
+              className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3"
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-white/70 truncate">{g.className}</p>
+                <p className="text-xs text-white/40 truncate">{g.level} &middot; {(g as any).studentCount ?? 0} {t("groups_students_count")}</p>
+                {g.deletedAt && (
+                  <p className="text-xs text-white/30 mt-0.5">
+                    {t("groups_deleted_on")} {new Date(g.deletedAt).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => restoreMutation.mutate({ id: g.id })}
+                  disabled={restoreMutation.isPending}
+                  className="border-teal-500/40 text-teal-300 hover:text-teal-200 hover:bg-teal-600/20 bg-transparent h-8 px-3 text-xs"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+                  {t("groups_restore")}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setConfirmPermanentId(g.id)}
+                  className="text-red-400 hover:text-red-300 hover:bg-red-400/10 h-8 px-3 text-xs"
+                >
+                  <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                  {t("groups_delete_permanently")}
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Permanent delete confirmation dialog */}
+      <Dialog open={confirmPermanentId !== null} onOpenChange={(open) => { if (!open) setConfirmPermanentId(null); }}>
+        <DialogContent className="bg-gray-900 border-white/10 text-white max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-400">
+              <AlertTriangle className="w-5 h-5" />
+              {t("groups_delete_permanently")}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-white/70 text-sm py-2">{t("groups_permanent_delete_confirm")}</p>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setConfirmPermanentId(null)} className="text-white/60 hover:text-white">
+              {t("cancel")}
+            </Button>
+            <Button
+              onClick={() => confirmPermanentId !== null && permanentDeleteMutation.mutate({ id: confirmPermanentId })}
+              disabled={permanentDeleteMutation.isPending}
+              className="bg-red-600 hover:bg-red-500 text-white"
+            >
+              {permanentDeleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Trash2 className="w-4 h-4 mr-2" />}
+              {t("groups_delete_permanently")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 // ── Main Groups Page ──────────────────────────────────────────────────────────
 export default function Groups() {
   const { t } = useI18n();
@@ -664,6 +778,7 @@ export default function Groups() {
   const deleteMutation = trpc.groups.delete.useMutation({
     onSuccess: () => {
       utils.groups.list.invalidate();
+      utils.groups.listDeleted.invalidate();
       if (selectedGroupId === deleteMutation.variables?.id) setSelectedGroupId(null);
       toast.success(t("groups_deleted"));
     },
@@ -859,6 +974,9 @@ export default function Groups() {
           </div>
         </div>
       </div>
+
+      {/* Recently Deleted section — shown below the group list sidebar */}
+      <RecentlyDeletedSection />
 
       <CreateGroupDialog
         open={showCreate}

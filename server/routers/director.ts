@@ -312,7 +312,14 @@ export const directorRouter = router({
           return { competencyCoverage, subjectCoverage };
         })(),
         db.select().from(appSettings),
-        db.select().from(schoolSettings).where(eq(schoolSettings.id, 1)),
+        (async () => {
+          // Prefer tenant-scoped row; fall back to the legacy singleton (id = 1)
+          if (tid != null) {
+            const tenantRows = await db.select().from(schoolSettings).where(eq(schoolSettings.tenantId, tid));
+            if (tenantRows.length > 0) return tenantRows;
+          }
+          return db.select().from(schoolSettings).where(eq(schoolSettings.id, 1));
+        })(),
         db.select({
           id: classGroups.id,
           className: classGroups.className,
@@ -737,7 +744,14 @@ export const directorRouter = router({
   getSchoolBranding: adminProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     if (!db) return { id: 1, schoolName: null, logoUrl: null, logoKey: null, updatedAt: new Date() };
-    const rows = await db.select().from(schoolSettings).where(eq(schoolSettings.id, 1));
+    const tid = ctx.tenantId;
+    // Try tenant-scoped row first, then fall back to legacy singleton
+    let rows = tid != null
+      ? await db.select().from(schoolSettings).where(eq(schoolSettings.tenantId, tid))
+      : [];
+    if (rows.length === 0) {
+      rows = await db.select().from(schoolSettings).where(eq(schoolSettings.id, 1));
+    }
     if (rows.length === 0) {
       await db.insert(schoolSettings).values({ id: 1 });
       return { id: 1, schoolName: null, logoUrl: null, logoKey: null, updatedAt: new Date() };

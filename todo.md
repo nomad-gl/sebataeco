@@ -4663,3 +4663,18 @@
 
 ## Feature: Lesson Plan Modal - View Original Document
 - [x] Add "View Original Document" button to per-teacher lesson plan modal that opens the full plan in a new tab
+
+## Soft-Delete for Class Groups (Option C)
+
+- [x] DB migration: add `deletedAt` timestamp column to `class_groups` table
+- [x] Update `deleteGroup` tRPC procedure to set `deletedAt` instead of hard-deleting
+- [x] Add `restoreGroup` tRPC procedure to clear `deletedAt`
+- [x] Update all `class_groups` queries to filter out `deletedAt IS NOT NULL` rows
+- [x] Add "Recently Deleted" section in My Classes page with restore button
+- [x] i18n keys for soft-delete/restore in EN/ES/CA
+- [ ] Partial recovery: re-insert deleted class_groups rows once user provides class names
+
+## Fix: Director Name/Title/School not showing in Export School Report PDF Preview
+
+- [x] Investigate why director name, title, school are not visible in the PDF preview on DirectorOverview page
+- [x] Fix the PDF generation / preview to correctly render director info in the header

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { eq, and, desc, max, inArray } from "drizzle-orm";
+import { eq, and, desc, max, inArray, isNull, isNotNull, sql } from "drizzle-orm";
 import { getDb } from "../db";
 import { protectedProcedure, router } from "../_core/trpc";
 import { buildTenantWhere, getTenantIdForInsert } from "../tenantFilter";
@@ -24,7 +24,12 @@ export const groupsRouter = router({
     const rows = await db
       .select()
       .from(classGroups)
-      .where(tenantWhere ?? eq(classGroups.userId, ctx.user.id))
+      .where(
+        and(
+          tenantWhere ?? eq(classGroups.userId, ctx.user.id),
+          isNull(classGroups.deletedAt)
+        )
+      )
       .orderBy(desc(classGroups.createdAt));
     // Fetch counts for all groups in one pass
     const countMap: Record<number, number> = {};
@@ -87,7 +92,7 @@ export const groupsRouter = router({
       return { success: true };
     }),
 
-  /** Delete a group and all its students, messages, and challenge logs */
+  /** Soft-delete a group — sets deletedAt instead of permanently removing it */
   delete: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
@@ -100,13 +105,80 @@ export const groupsRouter = router({
         .where(and(eq(classGroups.id, input.id), eq(classGroups.userId, ctx.user.id)));
       if (!group) throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
 
-      // Cascade delete children
+      // Soft-delete: stamp deletedAt instead of hard-deleting
+      await db
+        .update(classGroups)
+        .set({ deletedAt: new Date() })
+        .where(eq(classGroups.id, input.id));
+      return { success: true };
+    }),
+
+  /** Restore a soft-deleted group — clears deletedAt */
+  restore: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      const [group] = await db
+        .select()
+        .from(classGroups)
+        .where(and(eq(classGroups.id, input.id), eq(classGroups.userId, ctx.user.id)));
+      if (!group) throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
+      await db
+        .update(classGroups)
+        .set({ deletedAt: null })
+        .where(eq(classGroups.id, input.id));
+      return { success: true };
+    }),
+
+  /** Permanently delete a soft-deleted group and all its data (irreversible) */
+  permanentDelete: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      const [group] = await db
+        .select()
+        .from(classGroups)
+        .where(and(eq(classGroups.id, input.id), eq(classGroups.userId, ctx.user.id)));
+      if (!group) throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
+      if (!group.deletedAt) throw new TRPCError({ code: "BAD_REQUEST", message: "Group must be soft-deleted first" });
+
       await db.delete(groupStudents).where(eq(groupStudents.groupId, input.id));
       await db.delete(groupMessages).where(eq(groupMessages.groupId, input.id));
       await db.delete(groupChallengeLog).where(eq(groupChallengeLog.groupId, input.id));
       await db.delete(classGroups).where(eq(classGroups.id, input.id));
       return { success: true };
     }),
+
+  /** List soft-deleted groups (for the Recently Deleted section) */
+  listDeleted: protectedProcedure.query(async ({ ctx }) => {
+    const db = await getDb();
+    if (!db) return [];
+    const tenantWhere = buildTenantWhere(ctx.user, classGroups);
+    const rows = await db
+      .select()
+      .from(classGroups)
+      .where(
+        and(
+          tenantWhere ?? eq(classGroups.userId, ctx.user.id),
+          isNotNull(classGroups.deletedAt)
+        )
+      )
+      .orderBy(desc(classGroups.deletedAt));
+    // Attach student counts
+    const countMap: Record<number, number> = {};
+    if (rows.length) {
+      const allSt = await db
+        .select({ groupId: groupStudents.groupId })
+        .from(groupStudents)
+        .where(inArray(groupStudents.groupId, rows.map((r) => r.id)));
+      for (const s of allSt) {
+        countMap[s.groupId] = (countMap[s.groupId] ?? 0) + 1;
+      }
+    }
+    return rows.map((r) => ({ ...r, studentCount: countMap[r.id] ?? 0 }));
+  }),
 
   // -- Students -------------------------------------------------------------
 
