@@ -4630,3 +4630,8 @@
 ## Fix: Print Report Layout
 - [x] Keep summary (chart + competency table) and grade badge on one page — remove page-break-before from overall section, instead keep everything together on page 1
 - [x] Replace "Student: [name]" line under the date with class name and level details
+
+## Feature: Group Progress Line Chart
+- [x] Backend: tRPC procedure returning monthly average competency scores for a group (Sep–Jun academic year)
+- [x] Frontend: Recharts line chart on group progress page with fixed Sep–Jun x-axis, one line per competency, toggle by competency
+- [x] Chart shows current academic year; months with no data show as gaps (no interpolation)

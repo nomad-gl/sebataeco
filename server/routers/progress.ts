@@ -1660,4 +1660,70 @@ Format your response exactly as:
         .where(eq(progressWorksheets.id, input.worksheetId));
       return { ok: true };
     }),
+
+  /**
+   * Returns monthly average competency scores for a group over the current academic year
+   * (September of the current/previous year → June of the following year).
+   * The x-axis is always fixed to 10 months: Sep, Oct, Nov, Dec, Jan, Feb, Mar, Apr, May, Jun.
+   * Months with no data return null for each competency.
+   */
+  getGroupProgressTimeline: protectedProcedure
+    .input(z.object({ groupId: z.number() }))
+    .query(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      // Verify group belongs to this teacher
+      const [group] = await db
+        .select()
+        .from(classGroups)
+        .where(and(eq(classGroups.id, input.groupId), eq(classGroups.userId, ctx.user.id)));
+      if (!group) throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
+
+      // Determine academic year boundaries: Sep 1 → Jun 30
+      const now = new Date();
+      const sepMonth = 8; // 0-indexed
+      const academicYearStart = now.getMonth() >= sepMonth
+        ? new Date(now.getFullYear(), sepMonth, 1)
+        : new Date(now.getFullYear() - 1, sepMonth, 1);
+      const academicYearEnd = new Date(academicYearStart.getFullYear() + 1, 5, 30, 23, 59, 59);
+
+      const records = await db
+        .select()
+        .from(studentProgress)
+        .where(
+          and(
+            eq(studentProgress.groupId, input.groupId),
+            sql`${studentProgress.recordedAt} >= ${academicYearStart}`,
+            sql`${studentProgress.recordedAt} <= ${academicYearEnd}`
+          )
+        );
+
+      // Fixed 10 academic months: Sep(8)…Dec(11), Jan(0)…Jun(5)
+      const ACADEMIC_MONTHS = [8, 9, 10, 11, 0, 1, 2, 3, 4, 5];
+      const MONTH_LABELS = ["Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+
+      // Build lookup: month → competency → {sum, count}
+      const monthlyTotals: Record<number, Record<string, { sum: number; count: number }>> = {};
+      for (const m of ACADEMIC_MONTHS) monthlyTotals[m] = {};
+
+      for (const r of records) {
+        const m = new Date(r.recordedAt).getMonth();
+        if (!(m in monthlyTotals)) continue;
+        if (!monthlyTotals[m][r.competency]) monthlyTotals[m][r.competency] = { sum: 0, count: 0 };
+        monthlyTotals[m][r.competency].sum += r.score;
+        monthlyTotals[m][r.competency].count += 1;
+      }
+
+      const timeline = ACADEMIC_MONTHS.map((m, i) => {
+        const entry: Record<string, number | string | null> = { month: MONTH_LABELS[i] };
+        for (const code of ALL_COMPETENCIES) {
+          const t = monthlyTotals[m][code];
+          entry[code] = t ? Math.round(t.sum / t.count) : null;
+        }
+        return entry;
+      });
+
+      return { timeline, academicYear: `${academicYearStart.getFullYear()}/${academicYearStart.getFullYear() + 1}` };
+    }),
 });

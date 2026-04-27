@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
+  LineChart, Line, Legend,
 } from "recharts";
 import { useState as _useState } from "react";
 import {
@@ -64,6 +65,15 @@ export default function GroupProgress() {
   >(null);
 
   const utils = trpc.useUtils();
+
+  const [activeComps, setActiveComps] = useState<string[]>(
+    ["CCL","CP","STEM","CD","CPSAA","CC","CE","CCEC"]
+  );
+
+  const timelineQ = trpc.progress.getGroupProgressTimeline.useQuery(
+    { groupId: gId },
+    { enabled: !!user && gId > 0 }
+  );
 
   const summaryQ = trpc.progress.getGroupSummary.useQuery(
     { groupId: gId },
@@ -251,6 +261,90 @@ export default function GroupProgress() {
                   <div className="h-[260px] flex items-center justify-center text-white/40 text-sm">
                     {t("gp_no_data")}
                   </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* ── Progress Timeline Line Chart ── */}
+            <Card className="bg-white/10 border-white/20 text-white">
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex-1">
+                    <CardTitle className="text-white text-base flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-teal-400" />
+                      {t("gp_progress_timeline")}
+                      {timelineQ.data?.academicYear && (
+                        <span className="text-white/40 text-xs font-normal ml-1">{timelineQ.data.academicYear}</span>
+                      )}
+                    </CardTitle>
+                    <p className="text-white/40 text-xs mt-0.5">{t("gp_progress_timeline_sub")}</p>
+                  </div>
+                  {/* Competency toggle chips */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {(["CCL","CP","STEM","CD","CPSAA","CC","CE","CCEC"] as const).map((code, i) => (
+                      <button
+                        key={code}
+                        onClick={() => setActiveComps((prev) =>
+                          prev.includes(code) ? (prev.length > 1 ? prev.filter((c) => c !== code) : prev) : [...prev, code]
+                        )}
+                        className={`px-2 py-0.5 rounded-full text-xs font-semibold border transition-all ${
+                          activeComps.includes(code)
+                            ? "border-transparent text-white"
+                            : "border-white/20 text-white/30 bg-transparent"
+                        }`}
+                        style={activeComps.includes(code) ? { background: COMP_COLORS[i % COMP_COLORS.length] } : {}}
+                      >
+                        {code}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {timelineQ.isLoading ? (
+                  <div className="h-[280px] flex items-center justify-center">
+                    <Loader2 className="w-6 h-6 animate-spin text-teal-400" />
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <LineChart
+                      data={timelineQ.data?.timeline ?? []}
+                      margin={{ top: 8, right: 16, left: -20, bottom: 4 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                      <XAxis
+                        dataKey="month"
+                        tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 11 }}
+                        interval={0}
+                      />
+                      <YAxis
+                        domain={[0, 100]}
+                        tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10 }}
+                        tickCount={6}
+                      />
+                      <Tooltip
+                        contentStyle={{ background: "#1e293b", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 8, fontSize: 12 }}
+                        labelStyle={{ color: "#fff", fontWeight: 600 }}
+                        itemStyle={{ color: "#94a3b8" }}
+                        formatter={(value: unknown) => value === null ? ["—", ""] : [String(value) + "%", ""]}
+                      />
+                      {(["CCL","CP","STEM","CD","CPSAA","CC","CE","CCEC"] as const).map((code, i) =>
+                        activeComps.includes(code) ? (
+                          <Line
+                            key={code}
+                            type="monotone"
+                            dataKey={code}
+                            name={code}
+                            stroke={COMP_COLORS[i % COMP_COLORS.length]}
+                            strokeWidth={2}
+                            dot={{ r: 3, fill: COMP_COLORS[i % COMP_COLORS.length] }}
+                            activeDot={{ r: 5 }}
+                            connectNulls={false}
+                          />
+                        ) : null
+                      )}
+                    </LineChart>
+                  </ResponsiveContainer>
                 )}
               </CardContent>
             </Card>
