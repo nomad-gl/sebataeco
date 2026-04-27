@@ -4485,3 +4485,4 @@
 - [ ] Notify covering teacher, absent teacher, and HoS by email and in-app on cancellation
 - [ ] Add Cancel button + reason dialog to Director cover requests UI
 - [ ] Show cancellation reason and status in cover request history
+- [x] Fix "An internal error occurred" on Add Teacher page (Director path)

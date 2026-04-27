@@ -47,8 +47,8 @@ export default function HosAddTeacher() {
     onSuccess: (data) => {
       if ((data as any).autoApproved) {
         // Director: account created immediately
-        toast.success("Teacher account created!", {
-          description: `${teacherEmail.trim()} has been added and sent their login credentials by email.`,
+        toast.success(t("add_teacher_director_toast"), {
+          description: t("add_teacher_director_toast_desc").replace("{email}", teacherEmail.trim()),
           duration: 8000,
         });
       } else {
@@ -65,7 +65,11 @@ export default function HosAddTeacher() {
     onError: (err: { message: string }) => {
       const msg = err.message.includes("already exists")
         ? t("add_teacher_duplicate_error")
-        : err.message;
+        : err.message.includes("assigned to a school")
+          ? t("add_teacher_no_school_error")
+          : err.message.includes("pending submission already exists")
+            ? t("add_teacher_pending_exists_error")
+            : err.message;
       toast.error(msg);
     },
   });
@@ -111,7 +115,7 @@ export default function HosAddTeacher() {
             <h1 className="text-2xl font-bold text-foreground">{t("add_teacher_title")}</h1>
             <p className="text-sm text-muted-foreground">
               {isDirector
-                ? "Add a teacher directly to your school. The account is created instantly and credentials are emailed."
+                ? t("add_teacher_director_subtitle")
                 : t("add_teacher_subtitle")}
             </p>
           </div>
@@ -167,8 +171,8 @@ export default function HosAddTeacher() {
             >
               <Send className="w-4 h-4" />
               {submitMutation.isPending
-                ? (isDirector ? "Creating account…" : t("add_teacher_submitting"))
-                : (isDirector ? "Add Teacher" : t("add_teacher_submit"))}
+                ? (isDirector ? t("add_teacher_director_submitting") : t("add_teacher_submitting"))
+                : (isDirector ? t("add_teacher_director_submit") : t("add_teacher_submit"))}
             </Button>
           </CardContent>
         </Card>

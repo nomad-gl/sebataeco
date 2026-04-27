@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import {
@@ -586,10 +587,10 @@ export const hosRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       if (ctx.user.role !== "head_of_study" && ctx.user.role !== "admin" && ctx.user.role !== "director") {
-        throw new Error("Only a Head of Study or Director can submit teacher requests.");
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only a Head of Study or Director can submit teacher requests." });
       }
       if (!ctx.user.tenantId) {
-        throw new Error("You must be assigned to a school before submitting teachers.");
+        throw new TRPCError({ code: "BAD_REQUEST", message: "You must be assigned to a school before submitting teachers." });
       }
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
@@ -604,7 +605,7 @@ export const hosRouter = router({
           .from(users)
           .where(eq(users.email, input.teacherEmail.toLowerCase().trim()))
           .limit(1);
-        if (existingUser) throw new Error("A user with this email already exists.");
+        if (existingUser) throw new TRPCError({ code: "BAD_REQUEST", message: "A user with this email already exists." });
 
         // Get school name for the welcome email
         const [tenant] = await db
@@ -684,7 +685,7 @@ export const hosRouter = router({
         )
         .limit(1);
       if (existing.length > 0) {
-        throw new Error("A pending submission already exists for this email address.");
+        throw new TRPCError({ code: "BAD_REQUEST", message: "A pending submission already exists for this email address." });
       }
       await db.insert(pendingTeacherSubmissions).values({
         submittedByUserId: ctx.user.id,
@@ -725,19 +726,19 @@ export const hosRouter = router({
     .input(z.object({ submissionId: z.number().int().positive() }))
     .mutation(async ({ input, ctx }) => {
       if (ctx.user.role !== "head_of_study" && ctx.user.role !== "admin") {
-        throw new Error("Not authorised.");
+        throw new TRPCError({ code: "FORBIDDEN", message: "Not authorised." });
       }
       const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
       const [submission] = await db
         .select()
         .from(pendingTeacherSubmissions)
         .where(eq(pendingTeacherSubmissions.id, input.submissionId))
         .limit(1);
-      if (!submission) throw new Error("Submission not found.");
-      if (submission.pts_status !== "pending") throw new Error("Only pending submissions can be cancelled.");
+      if (!submission) throw new TRPCError({ code: "NOT_FOUND", message: "Submission not found." });
+      if (submission.pts_status !== "pending") throw new TRPCError({ code: "BAD_REQUEST", message: "Only pending submissions can be cancelled." });
       if (ctx.user.role !== "admin" && submission.submittedByUserId !== ctx.user.id) {
-        throw new Error("You can only cancel your own submissions.");
+        throw new TRPCError({ code: "FORBIDDEN", message: "You can only cancel your own submissions." });
       }
       await db
         .delete(pendingTeacherSubmissions)

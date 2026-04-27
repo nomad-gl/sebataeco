@@ -338,7 +338,7 @@ export default function DirectorCoverRequests() {
 
   const cancelCover = trpc.cover.cancelCoverRequest.useMutation({
     onSuccess: (result) => {
-      toast.success(`Cover cancelled for ${result.className} on ${result.dateStr}. Both teachers notified.`);
+      toast.success(t("cover_cancel_toast").replace("{className}", result.className).replace("{dateStr}", result.dateStr));
       setCancellingAssignmentId(null);
       setCancelReason("");
       utils.cover.listPendingCovers.invalidate();
@@ -441,7 +441,7 @@ export default function DirectorCoverRequests() {
                         onClick={() => setCancellingAssignmentId(row.coverAssignment!.id)}
                       >
                         <XCircle className="h-3.5 w-3.5 mr-1" />
-                        Cancel Cover
+                        {t("cover_cancel_btn")}
                       </Button>
                     )}
                     {row.hasCover && row.coverAssignment?.deadlineAt && !row.coverAssignment?.escalationSentAt && (() => {
@@ -507,20 +507,20 @@ export default function DirectorCoverRequests() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-red-400">
                 <XCircle className="h-5 w-5" />
-                Cancel Cover Assignment
+                {t("cover_cancel_title")}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-3 py-2">
               <p className="text-sm text-muted-foreground">
-                This will cancel the cover assignment and notify both the cover teacher and the originally absent teacher by email and in-app notification. The original calendar and lesson plan will be reinstated.
+                {t("cover_cancel_desc")}
               </p>
               <div className="space-y-1.5">
                 <Label htmlFor="cancel-reason" className="text-sm font-medium">
-                  Reason for cancellation <span className="text-red-400">*</span>
+                  {t("cover_cancel_reason_label")} <span className="text-red-400">*</span>
                 </Label>
                 <Textarea
                   id="cancel-reason"
-                  placeholder="e.g. The absent teacher has returned, the lesson is no longer required..."
+                  placeholder={t("cover_cancel_reason_placeholder")}
                   value={cancelReason}
                   onChange={(e) => setCancelReason(e.target.value)}
                   rows={3}
@@ -530,7 +530,7 @@ export default function DirectorCoverRequests() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => { setCancellingAssignmentId(null); setCancelReason(""); }}>
-                Keep Cover
+                {t("cover_cancel_keep_btn")}
               </Button>
               <Button
                 variant="destructive"
@@ -540,7 +540,7 @@ export default function DirectorCoverRequests() {
                   cancelCover.mutate({ coverAssignmentId: cancellingAssignmentId, reason: cancelReason.trim() });
                 }}
               >
-                {cancelCover.isPending ? "Cancelling..." : "Cancel Cover & Notify Teachers"}
+                {cancelCover.isPending ? t("cover_cancel_confirming") : t("cover_cancel_confirm_btn")}
               </Button>
             </DialogFooter>
           </DialogContent>

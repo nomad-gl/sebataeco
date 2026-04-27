@@ -451,7 +451,7 @@ function CutcgMemberCard({ t, user }: { t: (k: TranslationKey) => string; user: 
   const saveMutation = trpc.auth.setCutcgMemberNumber.useMutation({
     onSuccess: () => {
       setSaved(true);
-      toast.success("CUTCG member number saved.");
+      toast.success(t("cutcg_saved_toast"));
       setTimeout(() => setSaved(false), 2500);
     },
     onError: (err) => toast.error(err.message),
@@ -471,21 +471,21 @@ function CutcgMemberCard({ t, user }: { t: (k: TranslationKey) => string; user: 
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <BadgeCheck className="w-4 h-4 text-emerald-600" />
-          <CardTitle className="text-base">CUTCG Professional Membership</CardTitle>
+          <CardTitle className="text-base">{t("cutcg_card_title")}</CardTitle>
         </div>
         <CardDescription className="text-sm leading-relaxed">
-          Store your Col·legi Oficial de Doctors i Llicenciats (CUTCG) membership number. It will be displayed alongside your CUTCG badge in the staff directory and your profile.
+          {t("cutcg_card_desc")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-1.5">
-          <Label htmlFor="cutcg-number" className="text-xs font-medium">CUTCG Member Number</Label>
+          <Label htmlFor="cutcg-number" className="text-xs font-medium">{t("cutcg_label")}</Label>
           <div className="flex gap-2">
             <Input
               id="cutcg-number"
               value={memberNumber}
               onChange={(e) => setMemberNumber(e.target.value)}
-              placeholder="e.g. 12345"
+              placeholder={t("cutcg_placeholder")}
               className="h-9 text-sm max-w-[200px]"
               maxLength={32}
             />
@@ -496,7 +496,7 @@ function CutcgMemberCard({ t, user }: { t: (k: TranslationKey) => string; user: 
               className="gap-1.5 h-9"
             >
               {saved ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
-              {saved ? "Saved" : "Save"}
+              {saved ? t("cutcg_saved_btn") : t("cutcg_save_btn")}
             </Button>
             {memberNumber && (
               <Button
@@ -507,11 +507,11 @@ function CutcgMemberCard({ t, user }: { t: (k: TranslationKey) => string; user: 
                 className="gap-1.5 h-9"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                Clear
+                {t("cutcg_clear_btn")}
               </Button>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">Leave blank if you are not a CUTCG member or prefer not to display your number.</p>
+          <p className="text-xs text-muted-foreground">{t("cutcg_blank_hint")}</p>
         </div>
         {memberNumber && (
           <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 dark:border-emerald-800 px-3 py-2">

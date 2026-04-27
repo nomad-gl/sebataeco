@@ -25,17 +25,19 @@ interface EixDetail {
   borderColor: string;
   textColor: string;
   badgeBg: string;
-  /** Canonical Catalan subtitle — always shown in Catalan per Decree 21/2023 */
-  catalan: string;
+  /** i18n key for the axis subtitle */
+  catalanKey: string;
   /** UI name key for translation */
   nameKey: string;
   /** UI description key for translation */
   descKey: string;
-  /** Canonical Catalan saber area name */
-  saberAreaName: string;
+  /** i18n key for saber area name */
+  saberAreaKey: string;
   competencies: { code: string; text: string }[];
-  sabers03: string[];
-  sabers36: string[];
+  /** i18n keys for sabers 0–3 */
+  sabers03Keys: string[];
+  /** i18n keys for sabers 3–6 */
+  sabers36Keys: string[];
   /** Pedagogical focus key for translation */
   pedagogicalFocusKey: string;
 }
@@ -60,10 +62,10 @@ const EIX_DATA: EixDetail[] = [
     borderColor: "border-pink-200 dark:border-pink-800",
     textColor: "text-pink-700 dark:text-pink-300",
     badgeBg: "bg-pink-100 text-pink-700 border-pink-200",
-    catalan: "Un infant que creix amb autonomia i confiança",
+    catalanKey: "eix1_catalan",
     nameKey: "eix1_name",
     descKey: "eix1_desc",
-    saberAreaName: "Cos, moviment i autonomia",
+    saberAreaKey: "eix1_saber_area",
     competencies: [
       {
         code: "CE1.1",
@@ -74,20 +76,8 @@ const EIX_DATA: EixDetail[] = [
         text: "Adquirir habilitats de cura personal i autonomia en situacions quotidianes, per avançar en l'autoregulació i el benestar personal",
       },
     ],
-    sabers03: [
-      "Gaudi i benestar en el moviment lliure i el joc autònom",
-      "Descobriment d'objectes de manera activa i autònoma",
-      "Exploració i coneixement global i segmentari del cos",
-      "Adaptació del propi moviment en relació amb els altres",
-      "Curiositat i interès en l'exploració sensoriomotriu",
-    ],
-    sabers36: [
-      "Exploració i reconeixement del propi cos a través dels sentits",
-      "Construcció progressiva d'una autoimatge positiva",
-      "Respecte pel propi cos i pels cossos dels altres",
-      "Adquisició progressiva d'autonomia en situacions quotidianes",
-      "Descobriment i reconeixement de la pròpia imatge i la de les persones de l'entorn",
-    ],
+    sabers03Keys: ["eix1_saber03_1", "eix1_saber03_2", "eix1_saber03_3", "eix1_saber03_4", "eix1_saber03_5"],
+    sabers36Keys: ["eix1_saber36_1", "eix1_saber36_2", "eix1_saber36_3", "eix1_saber36_4", "eix1_saber36_5"],
     pedagogicalFocusKey: "eix1_pedagogical",
   },
   {
@@ -98,10 +88,10 @@ const EIX_DATA: EixDetail[] = [
     borderColor: "border-teal-200 dark:border-teal-800",
     textColor: "text-teal-700 dark:text-teal-300",
     badgeBg: "bg-teal-100 text-teal-700 border-teal-200",
-    catalan: "Un infant que es comunica amb diferents llenguatges",
+    catalanKey: "eix2_catalan",
     nameKey: "eix2_name",
     descKey: "eix2_desc",
-    saberAreaName: "Comunicació i representació de la realitat",
+    saberAreaKey: "eix2_saber_area",
     competencies: [
       {
         code: "CE2.1",
@@ -120,20 +110,8 @@ const EIX_DATA: EixDetail[] = [
         text: "Iniciar-se en l'ús de recursos digitals, per explorar i comunicar-se en entorns digitals",
       },
     ],
-    sabers03: [
-      "Comunicació gestual, corporal i oral",
-      "Escolta i comprensió de missatges orals simples",
-      "Exploració de materials gràfics i plàstics",
-      "Iniciació al contacte amb la llengua escrita (llibres, imatges)",
-    ],
-    sabers36: [
-      "Expressió oral en situacions quotidianes i de joc",
-      "Comprensió de textos orals i escrits de l'entorn",
-      "Iniciació a la lectura i escriptura emergent",
-      "Exploració de la llengua escrita com a sistema de representació",
-      "Expressió plàstica, musical i corporal",
-      "Ús d'eines digitals bàsiques per a la comunicació i la creació",
-    ],
+    sabers03Keys: ["eix2_saber03_1", "eix2_saber03_2", "eix2_saber03_3", "eix2_saber03_4"],
+    sabers36Keys: ["eix2_saber36_1", "eix2_saber36_2", "eix2_saber36_3", "eix2_saber36_4", "eix2_saber36_5", "eix2_saber36_6"],
     pedagogicalFocusKey: "eix2_pedagogical",
   },
   {
@@ -144,10 +122,10 @@ const EIX_DATA: EixDetail[] = [
     borderColor: "border-green-200 dark:border-green-800",
     textColor: "text-green-700 dark:text-green-300",
     badgeBg: "bg-green-100 text-green-700 border-green-200",
-    catalan: "Un infant que descobreix l'entorn amb curiositat",
+    catalanKey: "eix3_catalan",
     nameKey: "eix3_name",
     descKey: "eix3_desc",
-    saberAreaName: "Descoberta de l'entorn",
+    saberAreaKey: "eix3_saber_area",
     competencies: [
       {
         code: "CE3.1",
@@ -158,20 +136,8 @@ const EIX_DATA: EixDetail[] = [
         text: "Observar i explorar l'entorn natural, establint relacions de causa-efecte, per iniciar hàbits de sostenibilitat i cura del medi",
       },
     ],
-    sabers03: [
-      "Exploració d'objectes i materials de l'entorn proper",
-      "Descoberta de les propietats dels objectes (forma, color, mida, textura)",
-      "Iniciació a la quantitat i la numeració en situacions quotidianes",
-      "Descoberta dels efectes de les pròpies accions en el medi natural",
-    ],
-    sabers36: [
-      "Exploració i classificació d'objectes per atributs",
-      "Iniciació al nombre, la mesura i l'espai",
-      "Ús d'instruments analògics i digitals per a la recollida de dades",
-      "Experimentació amb elements naturals (aigua, terra, aire)",
-      "Observació i exploració de l'entorn planificant la pròpia acció",
-      "Indagació en el medi natural: cura, valoració i respecte",
-    ],
+    sabers03Keys: ["eix3_saber03_1", "eix3_saber03_2", "eix3_saber03_3", "eix3_saber03_4"],
+    sabers36Keys: ["eix3_saber36_1", "eix3_saber36_2", "eix3_saber36_3", "eix3_saber36_4", "eix3_saber36_5", "eix3_saber36_6"],
     pedagogicalFocusKey: "eix3_pedagogical",
   },
   {
@@ -182,10 +148,10 @@ const EIX_DATA: EixDetail[] = [
     borderColor: "border-purple-200 dark:border-purple-800",
     textColor: "text-purple-700 dark:text-purple-300",
     badgeBg: "bg-purple-100 text-purple-700 border-purple-200",
-    catalan: "Un infant que forma part de la diversitat del món",
+    catalanKey: "eix4_catalan",
     nameKey: "eix4_name",
     descKey: "eix4_desc",
-    saberAreaName: "La vida amb els altres / Interacció social i cultural en l'entorn",
+    saberAreaKey: "eix4_saber_area",
     competencies: [
       {
         code: "CE4.1",
@@ -196,20 +162,8 @@ const EIX_DATA: EixDetail[] = [
         text: "Apreciar progressivament l'entorn social i cultural proper i la seva diversitat, mostrant interès i respecte per conviure",
       },
     ],
-    sabers03: [
-      "Identificació dels primers vincles afectius",
-      "Disposició per establir relacions afectuoses i respectuoses",
-      "Transició progressiva del grup familiar al grup social",
-      "Reconeixement de la família com a nucli central de convivència",
-    ],
-    sabers36: [
-      "Reconeixement de pertinença a diferents grups socials",
-      "Observació i identificació de l'entorn social: escola, carrer, barri",
-      "Identificació i rebuig d'estereotips de gènere",
-      "Reconeixement d'elements de l'entorn sociocultural (festes, tradicions)",
-      "Participació en celebracions i tradicions culturals de l'entorn",
-      "Coneixement de la realitat lingüística de l'aula i l'entorn proper",
-    ],
+    sabers03Keys: ["eix4_saber03_1", "eix4_saber03_2", "eix4_saber03_3", "eix4_saber03_4"],
+    sabers36Keys: ["eix4_saber36_1", "eix4_saber36_2", "eix4_saber36_3", "eix4_saber36_4", "eix4_saber36_5", "eix4_saber36_6"],
     pedagogicalFocusKey: "eix4_pedagogical",
   },
 ];
@@ -255,7 +209,7 @@ function EixCard({ eix }: { eix: EixDetail }) {
               {t(eix.nameKey as any)}
             </h2>
             <p className={`text-sm font-medium italic mb-2 ${eix.textColor} opacity-80`}>
-              {eix.catalan}
+              {t(eix.catalanKey as any)}
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed">
               {t(eix.descKey as any)}
@@ -271,7 +225,7 @@ function EixCard({ eix }: { eix: EixDetail }) {
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             {t("eix_saber_area_label")}
           </span>
-          <span className={`text-xs font-bold ${eix.textColor}`}>{eix.saberAreaName}</span>
+          <span className={`text-xs font-bold ${eix.textColor}`}>{t(eix.saberAreaKey as any)}</span>
         </div>
 
         {/* Competències específiques */}
@@ -314,10 +268,10 @@ function EixCard({ eix }: { eix: EixDetail }) {
                 <span className="text-xs text-muted-foreground font-medium">0–3 anys</span>
               </div>
               <ul className="space-y-1.5">
-                {eix.sabers03.map((s) => (
-                  <li key={s} className="flex gap-2 text-sm">
+                {eix.sabers03Keys.map((k) => (
+                  <li key={k} className="flex gap-2 text-sm">
                     <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: eix.color }} />
-                    <span className="leading-relaxed">{s}</span>
+                    <span className="leading-relaxed">{t(k as any)}</span>
                   </li>
                 ))}
               </ul>
@@ -332,10 +286,10 @@ function EixCard({ eix }: { eix: EixDetail }) {
                 <span className="text-xs text-muted-foreground font-medium">3–6 anys</span>
               </div>
               <ul className="space-y-1.5">
-                {eix.sabers36.map((s) => (
-                  <li key={s} className="flex gap-2 text-sm">
+                {eix.sabers36Keys.map((k) => (
+                  <li key={k} className="flex gap-2 text-sm">
                     <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: eix.color }} />
-                    <span className="leading-relaxed">{s}</span>
+                    <span className="leading-relaxed">{t(k as any)}</span>
                   </li>
                 ))}
               </ul>
@@ -563,19 +517,19 @@ export default function InfantilEixos() {
                 </tr>
               </thead>
               <tbody>
-                {[
-                  ["eix_row_denominacio", "Llar d'infants", "Parvulari / Preschool"],
-                  ["eix_row_llei", "LOMLOE + RD 95/2022 + Decret 21/2023", "LOMLOE + RD 95/2022 + Decret 21/2023"],
-                  ["eix_row_comunicacio", "Gestual, corporal i oral emergent", "Oral, escrita emergent, digital bàsic"],
-                  ["eix_row_matematiques", "Quantitat i numeració en joc", "Nombre, mesura, espai i classificació"],
-                  ["eix_row_entorn", "Exploració sensoriomotriu", "Indagació, experimentació, sostenibilitat"],
-                  ["eix_row_social", "Vincles afectius i família", "Grups socials, diversitat, valors democràtics"],
-                  ["eix_row_avaluacio", "Observació i documentació", "Observació, documentació i portafolis"],
-                ].map(([aspectKey, c03, c36]) => (
+                {([
+                  ["eix_row_denominacio", "eix_row_val_denominacio_03", "eix_row_val_denominacio_36"],
+                  ["eix_row_llei", "eix_row_val_llei_03", "eix_row_val_llei_36"],
+                  ["eix_row_comunicacio", "eix_row_val_comunicacio_03", "eix_row_val_comunicacio_36"],
+                  ["eix_row_matematiques", "eix_row_val_matematiques_03", "eix_row_val_matematiques_36"],
+                  ["eix_row_entorn", "eix_row_val_entorn_03", "eix_row_val_entorn_36"],
+                  ["eix_row_social", "eix_row_val_social_03", "eix_row_val_social_36"],
+                  ["eix_row_avaluacio", "eix_row_val_avaluacio_03", "eix_row_val_avaluacio_36"],
+                ] as const).map(([aspectKey, val03Key, val36Key]) => (
                   <tr key={aspectKey} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                    <td className="p-4 font-medium">{t(aspectKey as any)}</td>
-                    <td className="p-4 text-muted-foreground">{c03}</td>
-                    <td className="p-4 text-muted-foreground">{c36}</td>
+                    <td className="p-2 sm:p-4 font-medium text-xs sm:text-sm">{t(aspectKey)}</td>
+                    <td className="p-2 sm:p-4 text-muted-foreground text-xs sm:text-sm">{t(val03Key)}</td>
+                    <td className="p-2 sm:p-4 text-muted-foreground text-xs sm:text-sm">{t(val36Key)}</td>
                   </tr>
                 ))}
               </tbody>
