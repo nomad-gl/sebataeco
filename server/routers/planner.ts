@@ -117,7 +117,7 @@ export const plannerRouter = router({
       try {
         const yearMatch = input.academicYear.match(/^(\d{4})/);
         const startYear = yearMatch ? parseInt(yearMatch[1]) : new Date().getFullYear();
-        const rangeStart = input.startDate ?? `${startYear}-09-01`;
+        const rangeStart = input.startDate ?? `${startYear}-09-08`;
         const rangeEnd   = input.endDate   ?? `${startYear + 1}-06-30`;
 
         const region = (input.region as SpanishRegion | null) ?? "catalonia";

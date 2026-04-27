@@ -242,6 +242,10 @@ export default function SchoolCalendar() {
   const [showMicPanel, setShowMicPanel] = useState(false);
   const [showCreateCalDialog, setShowCreateCalDialog] = useState(false);
   const [showEditCalDialog, setShowEditCalDialog] = useState(false);
+  const [showTotalEventsSheet, setShowTotalEventsSheet] = useState(false);
+  const [showAiEventsSheet, setShowAiEventsSheet] = useState(false);
+  const [showHolidaysSheet, setShowHolidaysSheet] = useState(false);
+  const [customSubjectInput, setCustomSubjectInput] = useState("");
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [editingEvent, setEditingEvent] = useState<CalEvent | null>(null);
   const [showTermView, setShowTermView] = useState(false);
@@ -1881,9 +1885,9 @@ export default function SchoolCalendar() {
 
               {/* ── Stats ────────────────────────────────────────────────── */}
               <div className="grid grid-cols-3 gap-3">
-                <Card><CardContent className="pt-3 pb-3 text-center"><div className="text-xl font-bold">{totalEvents}</div><div className="text-xs text-muted-foreground">{t("cal_total_events")}</div></CardContent></Card>
-                <Card><CardContent className="pt-3 pb-3 text-center"><div className="text-xl font-bold text-teal-600">{aiEvents}</div><div className="text-xs text-muted-foreground">{t("cal_ai_generated")}</div></CardContent></Card>
-                <Card><CardContent className="pt-3 pb-3 text-center"><div className="text-xl font-bold text-red-600">{holidays}</div><div className="text-xs text-muted-foreground">{t("cal_holidays")}</div></CardContent></Card>
+                <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setShowTotalEventsSheet(true)}><CardContent className="pt-3 pb-3 text-center"><div className="text-xl font-bold">{totalEvents}</div><div className="text-xs text-muted-foreground">{t("cal_total_events")}</div></CardContent></Card>
+                <Card className="cursor-pointer hover:border-teal-400/50 transition-colors" onClick={() => setShowAiEventsSheet(true)}><CardContent className="pt-3 pb-3 text-center"><div className="text-xl font-bold text-teal-600">{aiEvents}</div><div className="text-xs text-muted-foreground">{t("cal_ai_generated")}</div></CardContent></Card>
+                <Card className="cursor-pointer hover:border-red-400/50 transition-colors" onClick={() => setShowHolidaysSheet(true)}><CardContent className="pt-3 pb-3 text-center"><div className="text-xl font-bold text-red-600">{holidays}</div><div className="text-xs text-muted-foreground">{t("cal_holidays")}</div></CardContent></Card>
               </div>
 
               {/* ── Per-term coverage badges ──────────────────────────────── */}
@@ -2410,10 +2414,52 @@ export default function SchoolCalendar() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label><BookOpen className="w-3.5 h-3.5 inline mr-1" /> {t("cal_subject")}</Label>
-                <Select value={calForm.subject} onValueChange={v => setCalForm(f => ({ ...f, subject: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                </Select>
+                {/* Tag-style subject input */}
+                <div className="space-y-1.5">
+                  <div className="flex flex-wrap gap-1.5 min-h-[2rem] p-1.5 border rounded-md bg-background">
+                    {(calForm.subject ? calForm.subject.split(",").map(s => s.trim()).filter(Boolean) : []).map(s => (
+                      <span key={s} className="inline-flex items-center gap-0.5 bg-primary/10 text-primary text-xs font-medium px-2 py-0.5 rounded-full">
+                        {s}
+                        <button type="button" className="ml-0.5 hover:text-destructive" onClick={() => setCalForm(f => ({ ...f, subject: f.subject.split(",").map(x => x.trim()).filter(x => x && x !== s).join(", ") }))}><X className="w-3 h-3" /></button>
+                      </span>
+                    ))}
+                    {(calForm.subject ? calForm.subject.split(",").map(s => s.trim()).filter(Boolean) : []).length === 0 && (
+                      <span className="text-xs text-muted-foreground px-1 py-0.5">{t("cal_subject")}</span>
+                    )}
+                  </div>
+                  <div className="flex gap-1">
+                    <Input
+                      value={customSubjectInput}
+                      onChange={e => setCustomSubjectInput(e.target.value)}
+                      onKeyDown={e => {
+                        if ((e.key === "Enter" || e.key === ",") && customSubjectInput.trim()) {
+                          e.preventDefault();
+                          const existing = calForm.subject ? calForm.subject.split(",").map(s => s.trim()).filter(Boolean) : [];
+                          if (!existing.includes(customSubjectInput.trim())) {
+                            setCalForm(f => ({ ...f, subject: [...existing, customSubjectInput.trim()].join(", ") }));
+                          }
+                          setCustomSubjectInput("");
+                        }
+                      }}
+                      placeholder="Add subject..."
+                      className="h-7 text-xs flex-1"
+                    />
+                    <Button type="button" size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => {
+                      if (!customSubjectInput.trim()) return;
+                      const existing = calForm.subject ? calForm.subject.split(",").map(s => s.trim()).filter(Boolean) : [];
+                      if (!existing.includes(customSubjectInput.trim())) {
+                        setCalForm(f => ({ ...f, subject: [...existing, customSubjectInput.trim()].join(", ") }));
+                      }
+                      setCustomSubjectInput("");
+                    }}><Plus className="w-3 h-3" /></Button>
+                  </div>
+                  {/* Quick-add preset subjects */}
+                  <div className="flex flex-wrap gap-1">
+                    {SUBJECTS.filter(s => !(calForm.subject ? calForm.subject.split(",").map(x => x.trim()) : []).includes(s)).slice(0, 5).map(s => (
+                      <button key={s} type="button" className="text-[10px] text-muted-foreground hover:text-primary border border-dashed rounded px-1.5 py-0.5 transition-colors" onClick={() => setCalForm(f => { const existing = f.subject ? f.subject.split(",").map(x => x.trim()).filter(Boolean) : []; return { ...f, subject: [...existing, s].join(", ") }; })}>{s}</button>
+                    ))}
+                  </div>
+                </div>
               </div>
               <div>
                 <Label><GraduationCap className="w-3.5 h-3.5 inline mr-1" /> {t("cal_year_group")}</Label>
@@ -4234,6 +4280,81 @@ export default function SchoolCalendar() {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* ── Total Events Detail Sheet ─────────────────────────────── */}
+    <Sheet open={showTotalEventsSheet} onOpenChange={setShowTotalEventsSheet}>
+      <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+        <SheetHeader className="mb-4">
+          <SheetTitle className="flex items-center gap-2"><CalendarDays className="w-5 h-5" /> All Events ({totalEvents})</SheetTitle>
+        </SheetHeader>
+        <div className="space-y-2">
+          {events.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">No events yet.</p>}
+          {[...events].sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime()).map(ev => (
+            <div key={ev.id} className="flex items-start gap-3 p-3 rounded-lg border bg-card">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-sm font-medium truncate">{ev.title}</span>
+                  {ev.aiGenerated && <Badge className="text-[10px] px-1.5 py-0 bg-teal-100 text-teal-800 border-teal-200">AI</Badge>}
+                  {ev.eventType === "holiday" && <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-red-600 border-red-300">Holiday</Badge>}
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  {new Date(ev.eventDate).toLocaleDateString(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric" })}
+                  {ev.subject && <span className="ml-2 text-primary/70">{ev.subject}</span>}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </SheetContent>
+    </Sheet>
+
+    {/* ── AI Generated Events Detail Sheet ─────────────────────── */}
+    <Sheet open={showAiEventsSheet} onOpenChange={setShowAiEventsSheet}>
+      <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+        <SheetHeader className="mb-4">
+          <SheetTitle className="flex items-center gap-2 text-teal-600"><SebaSymbol className="w-5 h-5" /> AI Generated ({aiEvents})</SheetTitle>
+        </SheetHeader>
+        <div className="space-y-2">
+          {aiEvents === 0 && <p className="text-sm text-muted-foreground text-center py-8">No AI-generated events yet.</p>}
+          {[...events].filter(e => e.aiGenerated).sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime()).map(ev => (
+            <div key={ev.id} className="flex items-start gap-3 p-3 rounded-lg border bg-teal-50 dark:bg-teal-950/20 border-teal-200 dark:border-teal-800">
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium truncate">{ev.title}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  {new Date(ev.eventDate).toLocaleDateString(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric" })}
+                  {ev.subject && <span className="ml-2 text-teal-700 dark:text-teal-400">{ev.subject}</span>}
+                  {ev.yearGroup && <span className="ml-2 text-muted-foreground">{ev.yearGroup}</span>}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </SheetContent>
+    </Sheet>
+
+    {/* ── Holidays Detail Sheet ─────────────────────────────────── */}
+    <Sheet open={showHolidaysSheet} onOpenChange={setShowHolidaysSheet}>
+      <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+        <SheetHeader className="mb-4">
+          <SheetTitle className="flex items-center gap-2 text-red-600"><CalendarDays className="w-5 h-5" /> Holidays ({holidays})</SheetTitle>
+        </SheetHeader>
+        <div className="space-y-2">
+          {holidays === 0 && <p className="text-sm text-muted-foreground text-center py-8">No holidays recorded yet.</p>}
+          {[...events].filter(e => e.eventType === "holiday").sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime()).map(ev => (
+            <div key={ev.id} className="flex items-start gap-3 p-3 rounded-lg border bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800">
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium truncate">{ev.title}</div>
+                {ev.description && <div className="text-xs text-muted-foreground mt-0.5">{ev.description}</div>}
+                <div className="text-xs text-red-600 dark:text-red-400 mt-0.5">
+                  {new Date(ev.eventDate).toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </SheetContent>
+    </Sheet>
+
     </DashboardLayout>
   );
 }

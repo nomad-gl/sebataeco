@@ -13,10 +13,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { Plus, Trash2, Printer, BookOpen, Save, List, X, Copy, LayoutTemplate, FolderOpen, FileDown, ArrowUpDown, ArrowUp01, CalendarDays, Loader2, RefreshCw, Hash } from "lucide-react";
+import { Plus, Trash2, Printer, BookOpen, Save, List, X, Copy, LayoutTemplate, FolderOpen, FileDown, ArrowUpDown, ArrowUp01, CalendarDays, Loader2, RefreshCw, Hash, ArrowLeft, Sparkles, Pencil } from "lucide-react";
 import { SebaSymbol } from "@/components/SebaSymbol";
 import { useLocation } from "wouter";
-import DashboardLayout from "@/components/DashboardLayout";
+import NavBar from "@/components/NavBar";
 import LogoUploader from "@/components/LogoUploader";
 import { useI18n } from "@/contexts/I18nContext";
 import { useIsMobile } from "@/hooks/useMobile";
@@ -856,6 +856,9 @@ export default function LessonPlanner() {
           toast.success(t("lp_generated_toast"));
         }
       }
+      // Show the "AI generated — all fields are editable" banner
+      setAiGeneratedBanner(true);
+      setTimeout(() => setAiGeneratedBanner(false), 6000);
     },
     onError: (e) => toast.error(e.message),
   });
@@ -1064,6 +1067,9 @@ export default function LessonPlanner() {
   const [aiInfantilCycle, setAiInfantilCycle] = useState("");
   const [aiCurriculumYear, setAiCurriculumYear] = useState("");
   const [showExportAllDialog, setShowExportAllDialog] = useState(false);
+  const [aiGeneratedBanner, setAiGeneratedBanner] = useState(false);
+  const [aiPlanningScope, setAiPlanningScope] = useState<"single" | "semester" | "year">("single");
+  const [aiScopeGenerating, setAiScopeGenerating] = useState(false);
   const [exportAllCalendarId, setExportAllCalendarId] = useState<string>("");
   const [isExportingAll, setIsExportingAll] = useState(false);
 
@@ -1139,46 +1145,40 @@ export default function LessonPlanner() {
   );
 
   return (
-    <DashboardLayout>
-      {/* ── Layout shell: sidebar on desktop, sheet on mobile ── */}
-      <div className="flex h-[calc(100vh-64px)] overflow-hidden">
-
-        {/* Desktop sidebar */}
-        {!isMobile && (
-          <aside className="w-64 border-r flex flex-col shrink-0 overflow-hidden">
-            {plansList}
-          </aside>
-        )}
-
-        {/* Main editor */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-4 sm:p-6 space-y-5 max-w-3xl mx-auto">
+    <div className="min-h-screen bg-background flex flex-col">
+      <NavBar />
+      {/* Main editor */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-4 sm:p-6 space-y-5 max-w-3xl mx-auto">
 
             {/* Toolbar */}
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
               <div className="flex items-center gap-2 flex-wrap">
-                {/* Mobile: plans sheet trigger */}
-                {isMobile && (
-                  <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-                    <SheetTrigger asChild>
-                      <Button variant="outline" size="sm" className="gap-1.5">
-                        <List className="w-4 h-4" />
-                        {t("lp_lesson_plans")}
-                        {plans.length > 0 && (
-                          <Badge variant="secondary" className="text-xs ml-0.5">{plans.length}</Badge>
-                        )}
-                      </Button>
-                    </SheetTrigger>
-                    <SheetContent side="left" className="w-72 p-0 flex flex-col">
-                      <SheetHeader className="sr-only">
-                        <SheetTitle>{t("lp_lesson_plans")}</SheetTitle>
-                      </SheetHeader>
-                      <div className="flex-1 overflow-hidden">
-                        {plansList}
-                      </div>
-                    </SheetContent>
-                  </Sheet>
-                )}
+                {/* Back button */}
+                <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground" onClick={() => navigate("/create")}>
+                  <ArrowLeft className="w-4 h-4" />
+                  {t("lp_back_to_menu")}
+                </Button>
+                {/* Plans sheet trigger (all screen sizes) */}
+                <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-1.5">
+                      <List className="w-4 h-4" />
+                      {t("lp_lesson_plans")}
+                      {plans.length > 0 && (
+                        <Badge variant="secondary" className="text-xs ml-0.5">{plans.length}</Badge>
+                      )}
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-72 p-0 flex flex-col">
+                    <SheetHeader className="sr-only">
+                      <SheetTitle>{t("lp_lesson_plans")}</SheetTitle>
+                    </SheetHeader>
+                    <div className="flex-1 overflow-hidden">
+                      {plansList}
+                    </div>
+                  </SheetContent>
+                </Sheet>
                 <div className="flex items-center gap-2 flex-wrap">
                   <BookOpen className="w-5 h-5 text-primary" />
                   <h1 className="text-lg sm:text-xl font-bold">{t("lp_title")}</h1>
@@ -1238,6 +1238,15 @@ export default function LessonPlanner() {
             </div>
 
             {/* Section 1: Header info */}
+            {/* AI Generated Banner */}
+            {aiGeneratedBanner && (
+              <div className="flex items-center gap-2 rounded-lg border border-green-300 bg-green-50 dark:bg-green-950/30 dark:border-green-700 px-4 py-2.5 text-sm text-green-800 dark:text-green-300 animate-in fade-in slide-in-from-top-2 duration-300">
+                <Pencil className="w-4 h-4 shrink-0" />
+                <span className="font-medium">AI generated</span>
+                <span className="text-green-700 dark:text-green-400">— all fields are editable. Click any field to make changes.</span>
+              </div>
+            )}
+
             <Card>
               <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">{t("lp_section_info")}</CardTitle></CardHeader>
               <CardContent className="space-y-4">
@@ -1682,7 +1691,6 @@ export default function LessonPlanner() {
                 </Button>
               </div>
             )}
-          </div>
         </div>
       </div>
 
@@ -1834,6 +1842,32 @@ export default function LessonPlanner() {
               </div>
             </div>
 
+            {/* Planning Scope */}
+            <div className="rounded-lg border border-teal-200 bg-teal-50/40 dark:bg-teal-950/20 dark:border-teal-800 p-3 space-y-2">
+              <p className="text-xs font-semibold text-teal-800 dark:text-teal-300 uppercase tracking-wide">{t("lp_scope_label")}</p>
+              <div className="grid grid-cols-3 gap-2">
+                {(["single", "semester", "year"] as const).map(scope => (
+                  <button key={scope} type="button"
+                    onClick={() => setAiPlanningScope(scope)}
+                    className={`rounded-lg border p-2 text-xs font-medium text-center transition-colors ${
+                      aiPlanningScope === scope
+                        ? "bg-teal-600 text-white border-teal-600"
+                        : "bg-background border-border hover:bg-accent"
+                    }`}>
+                    {scope === "single" ? t("lp_scope_single") : scope === "semester" ? t("lp_scope_semester") : t("lp_scope_year")}
+                    <div className="text-[10px] font-normal opacity-70 mt-0.5">
+                      {scope === "single" ? t("lp_scope_single_desc") : scope === "semester" ? t("lp_scope_semester_desc") : t("lp_scope_year_desc")}
+                    </div>
+                  </button>
+                ))}
+              </div>
+              {aiPlanningScope !== "single" && (
+                <p className="text-xs text-teal-700 dark:text-teal-400">
+                  {aiPlanningScope === "semester" ? t("lp_scope_semester_info") : t("lp_scope_year_info")}
+                </p>
+              )}
+            </div>
+
             {/* Competencies */}
             <div>
               <Label className="mb-2 block">{t("lp_focus_competencies")}</Label>
@@ -1849,41 +1883,74 @@ export default function LessonPlanner() {
           </div>
           <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
             <Button variant="outline" onClick={() => setShowAiDialog(false)}>{t("cal_cancel")}</Button>
-            <Button onClick={() => {
+<Button onClick={async () => {
               if (!aiTitle.trim()) { toast.error(t("lp_title_required")); return; }
               if (aiDate && !aiCalendarId && (calendars as any[]).length > 0) { toast.error(t("lp_select_calendar")); return; }
-              // Build the existing-fields snapshot from the current form (if a plan is loaded)
-              const existingSnapshot = selectedId && form.title ? {
-                skills: JSON.stringify(form.skills),
-                systems: JSON.stringify(form.systems),
-                specificCompetences: JSON.stringify(form.specificCompetences),
-                saberesBasicos: JSON.stringify(form.saberesBasicos),
-                learningOutcomes: JSON.stringify(form.learningOutcomes),
-                evaluationCriteria: JSON.stringify(form.evaluationCriteria),
-                previousKnowledge: form.previousKnowledge,
-                materials: form.materials,
-                spaces: form.spaces,
-                procedures: JSON.stringify(form.procedures),
-              } : undefined;
-              // Snapshot current form for undo
-              if (selectedId && form.title) preAiSnapshotRef.current = { ...form };
-              aiMutation.mutate({
-                id: selectedId ?? undefined,
-                title: aiTitle,
-                subject: aiSubject,
-                yearGroup: aiYearGroup,
-                duration: aiDuration,
-                competencies: aiComps,
-                unit: aiUnit || undefined,
-                sessionTime: aiSessionTime || undefined,
-                existing: existingSnapshot,
-                infantilEix: aiInfantilEix || undefined,
-                infantilCycle: aiInfantilCycle || undefined,
-                academicYear: aiCurriculumYear || undefined,
-              });
-            }} disabled={aiMutation.isPending} className="gap-1">
+
+              if (aiPlanningScope === "single") {
+                // Single lesson — existing behaviour
+                const existingSnapshot = selectedId && form.title ? {
+                  skills: JSON.stringify(form.skills),
+                  systems: JSON.stringify(form.systems),
+                  specificCompetences: JSON.stringify(form.specificCompetences),
+                  saberesBasicos: JSON.stringify(form.saberesBasicos),
+                  learningOutcomes: JSON.stringify(form.learningOutcomes),
+                  evaluationCriteria: JSON.stringify(form.evaluationCriteria),
+                  previousKnowledge: form.previousKnowledge,
+                  materials: form.materials,
+                  spaces: form.spaces,
+                  procedures: JSON.stringify(form.procedures),
+                } : undefined;
+                if (selectedId && form.title) preAiSnapshotRef.current = { ...form };
+                aiMutation.mutate({
+                  id: selectedId ?? undefined,
+                  title: aiTitle,
+                  subject: aiSubject,
+                  yearGroup: aiYearGroup,
+                  duration: aiDuration,
+                  competencies: aiComps,
+                  unit: aiUnit || undefined,
+                  sessionTime: aiSessionTime || undefined,
+                  existing: existingSnapshot,
+                  infantilEix: aiInfantilEix || undefined,
+                  infantilCycle: aiInfantilCycle || undefined,
+                  academicYear: aiCurriculumYear || undefined,
+                });
+              } else {
+                // Semester (~12) or Whole Year (~24) — generate multiple plans sequentially
+                const totalPlans = aiPlanningScope === "semester" ? 12 : 24;
+                setAiScopeGenerating(true);
+                setShowAiDialog(false);
+                let generatedCount = 0;
+                for (let i = 1; i <= totalPlans; i++) {
+                  const lessonTitle = `${aiTitle} — ${aiSubject} ${i < 10 ? "0" + i : i}`;
+                  toast.info(t("lp_scope_generating").replace("{{current}}", String(i)).replace("{{total}}", String(totalPlans)));
+                  try {
+                    await utils.client.planner.aiGenerateLessonPlan.mutate({
+                      title: lessonTitle,
+                      subject: aiSubject,
+                      yearGroup: aiYearGroup,
+                      duration: aiDuration,
+                      competencies: aiComps,
+                      unit: aiUnit || undefined,
+                      infantilEix: aiInfantilEix || undefined,
+                      infantilCycle: aiInfantilCycle || undefined,
+                      academicYear: aiCurriculumYear || undefined,
+                    });
+                    generatedCount++;
+                    utils.planner.listLessonPlans.invalidate();
+                  } catch (e: any) {
+                    toast.error(`Plan ${i} failed: ${e.message}`);
+                  }
+                }
+                setAiScopeGenerating(false);
+                toast.success(t("lp_scope_done").replace("{{total}}", String(generatedCount)));
+                setAiGeneratedBanner(true);
+                setTimeout(() => setAiGeneratedBanner(false), 6000);
+              }
+            }} disabled={aiMutation.isPending || aiScopeGenerating} className="gap-1">
               <SebaSymbol className="w-4 h-4" />
-              {aiMutation.isPending ? t("lp_generating") : t("lp_generate")}
+              {aiMutation.isPending || aiScopeGenerating ? t("lp_generating") : t("lp_generate")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2228,6 +2295,6 @@ export default function LessonPlanner() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </DashboardLayout>
+    </div>
   );
 }

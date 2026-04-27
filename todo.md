@@ -4726,3 +4726,14 @@
 ## Enhancement: Teacher Navigation — Hide School Calendar
 
 - [x] Hide "School Calendar" from teacher sidebar/dropdown navigation
+
+## Enhancement: Lesson Planner Page- [x] Add whole-year/semester planning scope option to the AI generate dialog
+- [x] Improve layout and formatting of the Lesson Planner page
+- [x] Remove sidebar and add back-to-main-menu button matching existing style
+- [x] Allow inline editing of each section after AI generation completes## Enhancement: School Calendar
+
+- [x] Allow manual addition and deletion of subjects on the Create Calendar form
+- [x] Academic week/year always begins on the first official week of return in September (Sept 8th for 2025)
+- [x] Create detail page for "Total Events" stat card
+- [x] Create detail page for "AI Generated" stat card
+- [x] Create detail page for "Holidays" stat card
