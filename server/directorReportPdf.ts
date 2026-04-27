@@ -42,6 +42,24 @@ export interface DirectorReportData {
     academicYear: string;
     studentCount: number;
   }[];
+  /** School-wide LOMLOE student progress per class group */
+  studentProgress?: {
+    groups: {
+      groupId: number;
+      className: string;
+      level: string;
+      studentCount: number;
+      totalActivities: number;
+      overall: number | null;
+      competencyAverages: { code: string; average: number | null }[];
+    }[];
+    schoolAverages: { code: string; average: number | null }[];
+  };
+  infantilProgress?: {
+    totalInfantilPlans: number;
+    teacherCount: number;
+    eixSummary: { eix: string; cycle03: number; cycle36: number; total: number }[];
+  };
 }
 
 const YEAR_GROUP_LABELS: Record<string, Record<string, string>> = {
@@ -85,6 +103,20 @@ const LABELS = {
     comp_count: "Competencies Covered",
     comp_list: "Competency Codes",
     never: "Never",
+    section_progress: "School-wide Student Progress (LOMLOE)",
+    section_infantil: "Educació Infantil Progress (Decree 21/2023)",
+    progress_class: "Class Group",
+    progress_students: "Students",
+    progress_activities: "Activities",
+    progress_overall: "Overall",
+    progress_no_data: "No data",
+    progress_school_avg: "School Average",
+    progress_legend: "Score legend",
+    infantil_eix: "Eix",
+    infantil_desc: "Description",
+    infantil_cycle03: "Cycle 0–3",
+    infantil_cycle36: "Cycle 3–6",
+    infantil_total: "Total",
     powered_by: "Powered by SEBA",
     lomloe_note: "This report was generated in compliance with LOMLOE (Ley Orgánica 3/2020) requirements for educational transparency and accountability.",
     gap_warning: "Competencies with 0 lesson plans represent curriculum gaps that require attention.",
@@ -123,6 +155,20 @@ const LABELS = {
     comp_count: "Competencias cubiertas",
     comp_list: "Códigos de competencia",
     never: "Nunca",
+    section_progress: "Progreso del Alumnado (LOMLOE)",
+    section_infantil: "Progreso Educación Infantil (Decreto 21/2023)",
+    progress_class: "Grupo",
+    progress_students: "Alumnos",
+    progress_activities: "Actividades",
+    progress_overall: "Global",
+    progress_no_data: "Sin datos",
+    progress_school_avg: "Media del Centro",
+    progress_legend: "Leyenda de puntuación",
+    infantil_eix: "Eix",
+    infantil_desc: "Descripción",
+    infantil_cycle03: "Ciclo 0–3",
+    infantil_cycle36: "Ciclo 3–6",
+    infantil_total: "Total",
     powered_by: "Con tecnología de SEBA",
     lomloe_note: "Este informe ha sido generado en cumplimiento de los requisitos de transparencia y responsabilidad de la LOMLOE (Ley Orgánica 3/2020).",
     gap_warning: "Las competencias con 0 planes de lección representan lagunas curriculares que requieren atención.",
@@ -161,6 +207,20 @@ const LABELS = {
     comp_count: "Competències cobertes",
     comp_list: "Codis de competència",
     never: "Mai",
+    section_progress: "Progrés de l'Alumnat (LOMLOE)",
+    section_infantil: "Progrés Educació Infantil (Decret 21/2023)",
+    progress_class: "Grup",
+    progress_students: "Alumnes",
+    progress_activities: "Activitats",
+    progress_overall: "Global",
+    progress_no_data: "Sense dades",
+    progress_school_avg: "Mitjana del Centre",
+    progress_legend: "Llegenda de puntuació",
+    infantil_eix: "Eix",
+    infantil_desc: "Descripció",
+    infantil_cycle03: "Cicle 0–3",
+    infantil_cycle36: "Cicle 3–6",
+    infantil_total: "Total",
     powered_by: "Impulsat per SEBA",
     lomloe_note: "Aquest informe ha estat generat en compliment dels requisits de transparència i responsabilitat de la LOMLOE (Llei Orgànica 3/2020).",
     gap_warning: "Les competències amb 0 plans de lliçó representen llacunes curriculars que requereixen atenció.",
@@ -462,6 +522,190 @@ export async function generateDirectorReportPdf(data: DirectorReportData): Promi
       doc.text(L.group_total, grpColName, totY, { width: 290 });
       doc.text(String(totalEnrolment), grpColStudents, totY, { width: 80 });
       doc.moveDown(0.6);
+    }
+
+    // ── Student Progress (LOMLOE Competency Heatmap) ─────────────────────────
+    if (data.studentProgress && data.studentProgress.groups.length > 0) {
+      if (doc.y > doc.page.height - 120) doc.addPage();
+      sectionHeader(doc, L.section_progress, pageWidth);
+
+      const LOMLOE_CODES = ["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"];
+      const codeW = 28;
+      const classColW = 110;
+      const studColW = 38;
+      const overallColW = 40;
+      const heatStartX = 40 + classColW + studColW;
+
+      // Helper: fill colour for score
+      const heatFill = (score: number | null): string => {
+        if (score === null) return "#f3f4f6";
+        if (score >= 80) return "#10b981";
+        if (score >= 65) return "#2dd4bf";
+        if (score >= 50) return "#fbbf24";
+        if (score >= 35) return "#f97316";
+        return "#ef4444";
+      };
+      const heatText = (score: number | null): string => {
+        if (score === null) return "—";
+        return String(score);
+      };
+
+      const drawProgressHeader = () => {
+        const y = doc.y;
+        doc.fontSize(6.5).fillColor(MID_GREY).font("Helvetica-Bold");
+        doc.text(L.progress_class, 40, y, { width: classColW });
+        doc.text(L.progress_students, 40 + classColW, y, { width: studColW });
+        LOMLOE_CODES.forEach((code, i) => {
+          doc.text(code, heatStartX + i * codeW, y, { width: codeW - 2 });
+        });
+        doc.text(L.progress_overall, heatStartX + LOMLOE_CODES.length * codeW + 4, y, { width: overallColW });
+        doc.moveDown(0.3);
+        doc.moveTo(40, doc.y).lineTo(40 + pageWidth, doc.y).strokeColor("#e5e7eb").lineWidth(0.5).stroke();
+        doc.moveDown(0.2);
+      };
+      drawProgressHeader();
+
+      for (let i = 0; i < data.studentProgress.groups.length; i++) {
+        const g = data.studentProgress.groups[i];
+        if (doc.y > doc.page.height - 80) {
+          doc.addPage();
+          addFooter(doc, pageWidth, L.powered_by);
+          drawProgressHeader();
+        }
+        const y = doc.y;
+        if (i % 2 === 0) {
+          doc.rect(40, y - 1, pageWidth, 14).fillColor(LIGHT_GREY).fill();
+        }
+        doc.fontSize(7).fillColor("#1f2937").font("Helvetica");
+        doc.text(g.className, 40, y, { width: classColW });
+        doc.text(String(g.studentCount), 40 + classColW, y, { width: studColW });
+        LOMLOE_CODES.forEach((code, ci) => {
+          const entry = g.competencyAverages.find(c => c.code === code);
+          const score = entry?.average ?? null;
+          const cellX = heatStartX + ci * codeW;
+          doc.rect(cellX + 1, y, codeW - 3, 12).fillColor(heatFill(score)).fill();
+          doc.fontSize(6).fillColor(score !== null && score >= 50 ? "#fff" : "#374151").font("Helvetica-Bold")
+            .text(heatText(score), cellX + 1, y + 2, { width: codeW - 3, align: "center" });
+        });
+        const overallX = heatStartX + LOMLOE_CODES.length * codeW + 4;
+        const ov = g.overall;
+        doc.rect(overallX, y, overallColW - 4, 12).fillColor(heatFill(ov)).fill();
+        doc.fontSize(6.5).fillColor(ov !== null && ov >= 50 ? "#fff" : "#374151").font("Helvetica-Bold")
+          .text(ov !== null ? `${ov}%` : "—", overallX, y + 2, { width: overallColW - 4, align: "center" });
+        doc.moveDown(0.55);
+      }
+
+      // School-wide average row
+      doc.moveDown(0.2);
+      doc.moveTo(40, doc.y).lineTo(40 + pageWidth, doc.y).strokeColor(BRAND_BLUE).lineWidth(0.5).stroke();
+      doc.moveDown(0.2);
+      const avgY = doc.y;
+      doc.fontSize(7).fillColor(BRAND_BLUE).font("Helvetica-Bold");
+      doc.text(L.progress_school_avg, 40, avgY, { width: classColW + studColW });
+      LOMLOE_CODES.forEach((code, ci) => {
+        const entry = data.studentProgress!.schoolAverages.find(c => c.code === code);
+        const score = entry?.average ?? null;
+        const cellX = heatStartX + ci * codeW;
+        doc.rect(cellX + 1, avgY, codeW - 3, 12).fillColor(heatFill(score)).fill();
+        doc.fontSize(6).fillColor(score !== null && score >= 50 ? "#fff" : "#374151").font("Helvetica-Bold")
+          .text(heatText(score), cellX + 1, avgY + 2, { width: codeW - 3, align: "center" });
+      });
+      doc.moveDown(0.8);
+
+      // Colour legend
+      const legendItems = [
+        { label: "≥80", fill: "#10b981" },
+        { label: "65–79", fill: "#2dd4bf" },
+        { label: "50–64", fill: "#fbbf24" },
+        { label: "35–49", fill: "#f97316" },
+        { label: "<35", fill: "#ef4444" },
+        { label: L.progress_no_data, fill: "#f3f4f6" },
+      ];
+      doc.fontSize(6.5).fillColor(MID_GREY).font("Helvetica");
+      doc.text(`${L.progress_legend}: `, 40, doc.y, { continued: true });
+      let lx = 40 + 70;
+      const ly = doc.y - 1;
+      legendItems.forEach(item => {
+        doc.rect(lx, ly, 10, 8).fillColor(item.fill).fill();
+        doc.fillColor(MID_GREY).text(` ${item.label}  `, lx + 12, ly + 1, { continued: true });
+        lx += 12 + doc.widthOfString(` ${item.label}  `) + 4;
+      });
+      doc.text("", { continued: false });
+      doc.moveDown(0.5);
+    }
+
+    // ── Educació Infantil Progress ────────────────────────────────────────────
+    if (data.infantilProgress && data.infantilProgress.totalInfantilPlans > 0) {
+      if (doc.y > doc.page.height - 120) doc.addPage();
+      sectionHeader(doc, L.section_infantil, pageWidth);
+
+      const EIXOS = [
+        { code: "EIX1", label: { en: "Identity & Autonomy", es: "Identidad y Autonomía", ca: "Identitat i Autonomia" } },
+        { code: "EIX2", label: { en: "Discovery of the Environment", es: "Descubrimiento del Entorno", ca: "Descoberta de l'Entorn" } },
+        { code: "EIX3", label: { en: "Communication & Languages", es: "Comunicación y Lenguajes", ca: "Comunicació i Llenguatges" } },
+        { code: "EIX4", label: { en: "Coexistence", es: "Convivencia", ca: "Convivència" } },
+      ];
+
+      // Summary stats
+      const infStatY = doc.y;
+      const infColW = pageWidth / 3;
+      const infStats = [
+        { label: "Lesson Plans", value: String(data.infantilProgress.totalInfantilPlans) },
+        { label: "Teachers", value: String(data.infantilProgress.teacherCount) },
+        { label: "Eixos Covered", value: `${data.infantilProgress.eixSummary.filter(e => e.total > 0).length}/4` },
+      ];
+      infStats.forEach((s, i) => {
+        const x = 40 + i * infColW;
+        doc.rect(x + 2, infStatY, infColW - 4, 28).fillColor("#fffbeb").fill();
+        doc.fontSize(13).fillColor("#d97706").font("Helvetica-Bold")
+          .text(s.value, x + 6, infStatY + 3, { width: infColW - 12 });
+        doc.fontSize(6.5).fillColor("#555").font("Helvetica")
+          .text(s.label, x + 6, infStatY + 17, { width: infColW - 12 });
+      });
+      doc.y = infStatY + 32;
+
+      // Eix table
+      const eixColCode = 40;
+      const eixColLabel = 80;
+      const eixColC03 = 340;
+      const eixColC36 = 390;
+      const eixColTotal = 440;
+
+      const drawEixHeader = () => {
+        const y = doc.y;
+        doc.fontSize(7).fillColor(MID_GREY).font("Helvetica-Bold");
+        doc.text(L.infantil_eix, eixColCode, y, { width: 36 });
+        doc.text(L.infantil_desc, eixColLabel, y, { width: 255 });
+        doc.text(L.infantil_cycle03, eixColC03, y, { width: 45 });
+        doc.text(L.infantil_cycle36, eixColC36, y, { width: 45 });
+        doc.text(L.infantil_total, eixColTotal, y, { width: 45 });
+        doc.moveDown(0.3);
+        doc.moveTo(40, doc.y).lineTo(40 + pageWidth, doc.y).strokeColor("#e5e7eb").lineWidth(0.5).stroke();
+        doc.moveDown(0.2);
+      };
+      drawEixHeader();
+
+      for (let i = 0; i < EIXOS.length; i++) {
+        const eix = EIXOS[i];
+        const entry = data.infantilProgress.eixSummary.find(e => e.eix === eix.code);
+        if (doc.y > doc.page.height - 80) {
+          doc.addPage();
+          addFooter(doc, pageWidth, L.powered_by);
+          drawEixHeader();
+        }
+        const y = doc.y;
+        if (i % 2 === 0) {
+          doc.rect(40, y - 1, pageWidth, 13).fillColor("#fffbeb").fill();
+        }
+        doc.fontSize(7.5).fillColor("#1f2937").font("Helvetica");
+        doc.text(eix.code, eixColCode, y, { width: 36 });
+        doc.text(eix.label[data.locale] ?? eix.label.en, eixColLabel, y, { width: 255 });
+        doc.text(String(entry?.cycle03 ?? 0), eixColC03, y, { width: 45 });
+        doc.text(String(entry?.cycle36 ?? 0), eixColC36, y, { width: 45 });
+        doc.text(String(entry?.total ?? 0), eixColTotal, y, { width: 45 });
+        doc.moveDown(0.45);
+      }
+      doc.moveDown(0.5);
     }
 
     // ── LOMLOE compliance note ────────────────────────────────────────────────

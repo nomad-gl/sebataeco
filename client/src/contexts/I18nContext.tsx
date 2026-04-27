@@ -2359,6 +2359,12 @@ export const translations = {
     dir_pdf_generating: "Generating PDF…",
     dir_pdf_error: "Failed to generate PDF. Please try again.",
     dir_pdf_ready: "PDF ready — downloading now",
+    dir_pdf_btn: "Generate PDF Report",
+    dir_pdf_ready_title: "Report ready",
+    dir_pdf_ready_desc: "Your school-wide progress report is downloading now.",
+    dir_pdf_error_title: "PDF generation failed",
+    dir_pdf_generating_title: "Generating your report…",
+    dir_pdf_generating_desc: "This may take a few seconds. The file will download automatically when ready.",
 
     // Director – Admin promotion notification
     dir_admin_promoted_notify_title: "New Admin Promoted",
@@ -5836,6 +5842,12 @@ export const translations = {
     dir_pdf_generating: "Generando PDF…",
     dir_pdf_error: "Error al generar el PDF. Inténtalo de nuevo.",
     dir_pdf_ready: "PDF listo — descargando ahora",
+    dir_pdf_btn: "Generar informe PDF",
+    dir_pdf_ready_title: "Informe listo",
+    dir_pdf_ready_desc: "El informe de progreso escolar se está descargando ahora.",
+    dir_pdf_error_title: "Error al generar el PDF",
+    dir_pdf_generating_title: "Generando el informe…",
+    dir_pdf_generating_desc: "Esto puede tardar unos segundos. El archivo se descargará automáticamente cuando esté listo.",
 
     // Director – Admin promotion notification
     dir_admin_promoted_notify_title: "Nuevo administrador promovido",
@@ -9309,6 +9321,12 @@ export const translations = {
     dir_pdf_generating: "Generant PDF…",
     dir_pdf_error: "Error en generar el PDF. Torna-ho a intentar.",
     dir_pdf_ready: "PDF llest — descarregant ara",
+    dir_pdf_btn: "Generar informe PDF",
+    dir_pdf_ready_title: "Informe llest",
+    dir_pdf_ready_desc: "L'informe de progrés escolar s'està descarregant ara.",
+    dir_pdf_error_title: "Error en generar el PDF",
+    dir_pdf_generating_title: "Generant l'informe…",
+    dir_pdf_generating_desc: "Això pot trigar uns segons. El fitxer es descarregarà automàticament quan estigui llest.",
 
     // Director – Admin promotion notification
     dir_admin_promoted_notify_title: "Nou administrador promogut",

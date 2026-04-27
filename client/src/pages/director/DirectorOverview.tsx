@@ -3,16 +3,18 @@ import { useI18n } from "@/contexts/I18nContext";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   BarChart3, Users, BookOpen, Calendar,
-  AlertTriangle, ShieldCheck, TrendingUp,
+  AlertTriangle, ShieldCheck, TrendingUp, FileDown, Loader2,
 } from "lucide-react";
 import { SebaSymbol } from "@/components/SebaSymbol";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const LOMLOE_COLORS: Record<string, string> = {
   CCL: "bg-blue-500",
@@ -29,6 +31,7 @@ export default function DirectorOverview() {
   const { t } = useI18n();
   const { user, loading: authLoading } = useAuth();
   const [, navigate] = useLocation();
+  const [pdfLocale, setPdfLocale] = useState<"en" | "es" | "ca">("ca");
 
   // Role gate: redirect non-admins
   useEffect(() => {
@@ -42,6 +45,22 @@ export default function DirectorOverview() {
   });
   const { data: trends, isLoading: trendsLoading } = trpc.director.getTrends.useQuery(undefined, {
     enabled: !!user && (user.role === "admin" || user.role === "director"),
+  });
+
+  const generatePdf = trpc.director.generateDirectorPdf.useMutation({
+    onSuccess: (data) => {
+      const a = document.createElement("a");
+      a.href = data.url;
+      a.download = data.filename;
+      a.target = "_blank";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      toast.success(t("dir_pdf_ready_title"), { description: t("dir_pdf_ready_desc") });
+    },
+    onError: (err) => {
+      toast.error(t("dir_pdf_error_title"), { description: err.message });
+    },
   });
 
   if (authLoading || (!user && !authLoading)) return null;
@@ -60,15 +79,53 @@ export default function DirectorOverview() {
     <DashboardLayout>
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-primary/10">
-            <BarChart3 className="w-6 h-6 text-primary" />
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-primary/10">
+              <BarChart3 className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">{t("dir_overview")}</h1>
+              <p className="text-sm text-muted-foreground">{t("dir_overview_desc")}</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">{t("dir_overview")}</h1>
-            <p className="text-sm text-muted-foreground">{t("dir_overview_desc")}</p>
+          {/* Prominent PDF report button */}
+          <div className="flex items-center gap-2">
+            <select
+              value={pdfLocale}
+              onChange={e => setPdfLocale(e.target.value as "en" | "es" | "ca")}
+              className="text-xs border border-border rounded-md px-2 py-1.5 bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              disabled={generatePdf.isPending}
+            >
+              <option value="ca">Català</option>
+              <option value="es">Español</option>
+              <option value="en">English</option>
+            </select>
+            <Button
+              size="default"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md gap-2 px-5"
+              onClick={() => generatePdf.mutate({ locale: pdfLocale })}
+              disabled={generatePdf.isPending}
+            >
+              {generatePdf.isPending ? (
+                <><Loader2 className="w-4 h-4 animate-spin" />{t("dir_pdf_generating")}</>
+              ) : (
+                <><FileDown className="w-4 h-4" />{t("dir_pdf_btn")}</>
+              )}
+            </Button>
           </div>
         </div>
+
+        {/* PDF hero banner — shown while generating */}
+        {generatePdf.isPending && (
+          <div className="rounded-xl border border-primary/30 bg-primary/5 px-5 py-4 flex items-center gap-4">
+            <Loader2 className="w-6 h-6 text-primary animate-spin flex-shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-foreground">{t("dir_pdf_generating_title")}</p>
+              <p className="text-xs text-muted-foreground">{t("dir_pdf_generating_desc")}</p>
+            </div>
+          </div>
+        )}
 
         {/* Stats grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">

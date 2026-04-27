@@ -1,12 +1,14 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useI18n } from "@/contexts/I18nContext";
 import { trpc } from "@/lib/trpc";
-import { GraduationCap, Loader2, Users, TrendingUp, AlertCircle, Printer } from "lucide-react";
+import { GraduationCap, Loader2, Users, TrendingUp, AlertCircle, Printer, FileDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 /** The 8 LOMLOE key competencies in display order */
 const LOMLOE_CODES = ["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"];
@@ -60,6 +62,22 @@ export default function DirectorStudentProgress() {
 
   const { data, isLoading } = trpc.director.getSchoolWideStudentProgress.useQuery();
   const { data: infantilData, isLoading: infantilLoading } = trpc.director.getInfantilProgress.useQuery();
+  const [pdfLocale, setPdfLocale] = useState<"en" | "es" | "ca">("ca");
+  const generatePdf = trpc.director.generateDirectorPdf.useMutation({
+    onSuccess: (result) => {
+      const a = document.createElement("a");
+      a.href = result.url;
+      a.download = result.filename;
+      a.target = "_blank";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      toast.success(t("dir_pdf_ready_title"), { description: t("dir_pdf_ready_desc") });
+    },
+    onError: (err) => {
+      toast.error(t("dir_pdf_error_title"), { description: err.message });
+    },
+  });
 
   const EIXOS = [
     { code: "EIX1", label: "Eix 1 — Identitat i Autonomia", color: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200" },
@@ -75,15 +93,51 @@ export default function DirectorStudentProgress() {
     <DashboardLayout>
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-primary/10">
-            <GraduationCap className="w-6 h-6 text-primary" />
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-primary/10">
+              <GraduationCap className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">{t("dir_student_progress")}</h1>
+              <p className="text-sm text-muted-foreground">{t("dir_student_progress_desc")}</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">{t("dir_student_progress")}</h1>
-            <p className="text-sm text-muted-foreground">{t("dir_student_progress_desc")}</p>
+          {/* PDF report button */}
+          <div className="flex items-center gap-2">
+            <select
+              value={pdfLocale}
+              onChange={e => setPdfLocale(e.target.value as "en" | "es" | "ca")}
+              className="text-xs border border-border rounded-md px-2 py-1.5 bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              disabled={generatePdf.isPending}
+            >
+              <option value="ca">Català</option>
+              <option value="es">Español</option>
+              <option value="en">English</option>
+            </select>
+            <Button
+              size="default"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md gap-2 px-5"
+              onClick={() => generatePdf.mutate({ locale: pdfLocale })}
+              disabled={generatePdf.isPending}
+            >
+              {generatePdf.isPending ? (
+                <><Loader2 className="w-4 h-4 animate-spin" />{t("dir_pdf_generating")}</>
+              ) : (
+                <><FileDown className="w-4 h-4" />{t("dir_pdf_btn")}</>
+              )}
+            </Button>
           </div>
         </div>
+        {generatePdf.isPending && (
+          <div className="rounded-xl border border-primary/30 bg-primary/5 px-5 py-4 flex items-center gap-4">
+            <Loader2 className="w-6 h-6 text-primary animate-spin flex-shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-foreground">{t("dir_pdf_generating_title")}</p>
+              <p className="text-xs text-muted-foreground">{t("dir_pdf_generating_desc")}</p>
+            </div>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="flex items-center justify-center py-20">

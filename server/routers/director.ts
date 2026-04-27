@@ -232,18 +232,19 @@ export const directorRouter = router({
   /** Generate a school-wide director PDF report and return a download URL */
   generateDirectorPdf: adminProcedure
     .input(z.object({ locale: z.enum(["en", "es", "ca"]).default("en") }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
+      const tid = ctx.tenantId;
 
       // Gather all data needed for the report
       const [statsData, staffData, complianceData, settingsRows, schoolSettingsRows, classGroupsData] = await Promise.all([
         (async () => {
           const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
           const [[totalTeachers], [totalLessonPlans], [aiGeneratedPlans], [totalPracticeSessions], [openBiasFlags], [recentScanRuns]] = await Promise.all([
-            db.select({ count: count() }).from(users).where(inArray(users.role, ["user", "teacher"])),
-            db.select({ count: count() }).from(lessonPlans),
-            db.select({ count: count() }).from(lessonPlans).where(eq(lessonPlans.aiGenerated, true)),
+            db.select({ count: count() }).from(users).where(tid != null ? and(inArray(users.role, ["user", "teacher"]), eq(users.tenantId, tid)) : inArray(users.role, ["user", "teacher"])),
+            tid != null ? db.select({ count: count() }).from(lessonPlans).where(eq(lessonPlans.tenantId, tid)) : db.select({ count: count() }).from(lessonPlans),
+            tid != null ? db.select({ count: count() }).from(lessonPlans).where(and(eq(lessonPlans.tenantId, tid), eq(lessonPlans.aiGenerated, true))) : db.select({ count: count() }).from(lessonPlans).where(eq(lessonPlans.aiGenerated, true)),
             db.select({ count: count() }).from(practiceSessions),
             db.select({ count: count() }).from(aiBiasFlags).where(eq(aiBiasFlags.resolved, false)),
             db.select({ count: count() }).from(biasScanRuns).where(gte(biasScanRuns.runAt, thirtyDaysAgo)),
@@ -260,7 +261,9 @@ export const directorRouter = router({
         (async () => {
           const allTeachers = await db
             .select({ id: users.id, name: users.name, email: users.email, lastSignedIn: users.lastSignedIn })
-            .from(users).where(eq(users.role, "user")).orderBy(desc(users.lastSignedIn));
+            .from(users)
+            .where(tid != null ? and(inArray(users.role, ["user", "teacher"]), eq(users.tenantId, tid)) : inArray(users.role, ["user", "teacher"]))
+            .orderBy(desc(users.lastSignedIn));
           return Promise.all(allTeachers.map(async (teacher) => {
             const [[plans], [aiPlansRow]] = await Promise.all([
               db.select({ count: count() }).from(lessonPlans).where(eq(lessonPlans.userId, teacher.id)),
@@ -270,7 +273,10 @@ export const directorRouter = router({
           }));
         })(),
         (async () => {
-          const allPlans = await db.select({ competencies: lessonPlans.competencies, subject: lessonPlans.subject }).from(lessonPlans);
+          const allPlans = await db
+            .select({ competencies: lessonPlans.competencies, subject: lessonPlans.subject })
+            .from(lessonPlans)
+            .where(tid != null ? eq(lessonPlans.tenantId, tid) : undefined);
           const totalPlans = allPlans.length;
           const competencyCounts: Record<string, number> = {};
           for (const { code } of LOMLOE_COMPETENCIES) competencyCounts[code] = 0;
@@ -308,13 +314,95 @@ export const directorRouter = router({
           academicYear: classGroups.academicYear,
           studentCount: classGroups.studentCount,
         }).from(classGroups)
-          .where(eq(classGroups.academicYear, "2025-26"))
+          .where(tid != null
+            ? and(eq(classGroups.academicYear, "2025-26"), eq(classGroups.tenantId, tid))
+            : eq(classGroups.academicYear, "2025-26"))
           .orderBy(classGroups.yearGroup, classGroups.className),
       ]);
 
       const settings: Record<string, string> = {};
       for (const row of settingsRows) settings[row.key] = row.value;
       const schoolBranding = schoolSettingsRows[0] ?? null;
+
+      // ── Student progress heatmap data ────────────────────────────────────────
+      const ALL_LOMLOE_CODES = LOMLOE_COMPETENCIES.map(c => c.code);
+      let studentProgressData: {
+        groups: {
+          groupId: number; className: string; level: string;
+          studentCount: number; totalActivities: number;
+          overall: number | null;
+          competencyAverages: { code: string; average: number | null }[];
+        }[];
+        schoolAverages: { code: string; average: number | null }[];
+      } | undefined;
+      if (classGroupsData.length > 0) {
+        const groupIds = classGroupsData.map(g => g.id);
+        const [allProgressRecords, studentCountRows] = await Promise.all([
+          db.select().from(studentProgress).where(inArray(studentProgress.groupId, groupIds)),
+          db.select({ groupId: groupStudents.groupId, cnt: count() })
+            .from(groupStudents)
+            .where(inArray(groupStudents.groupId, groupIds))
+            .groupBy(groupStudents.groupId),
+        ]);
+        const studentCountMap: Record<number, number> = {};
+        for (const row of studentCountRows) studentCountMap[row.groupId] = row.cnt;
+        const groupSummaries = classGroupsData.map(group => {
+          const groupRecords = allProgressRecords.filter(r => r.groupId === group.id);
+          const totals: Record<string, { sum: number; count: number }> = {};
+          for (const r of groupRecords) {
+            if (!totals[r.competency]) totals[r.competency] = { sum: 0, count: 0 };
+            totals[r.competency].sum += r.score;
+            totals[r.competency].count += 1;
+          }
+          const competencyAverages = ALL_LOMLOE_CODES.map(code => ({
+            code,
+            average: totals[code] ? Math.round(totals[code].sum / totals[code].count) : null,
+          }));
+          const scored = competencyAverages.filter(c => c.average !== null);
+          const overall = scored.length > 0
+            ? Math.round(scored.reduce((s, c) => s + (c.average ?? 0), 0) / scored.length)
+            : null;
+          return {
+            groupId: group.id,
+            className: group.className,
+            level: group.yearGroup ?? "",
+            studentCount: studentCountMap[group.id] ?? group.studentCount ?? 0,
+            totalActivities: groupRecords.length,
+            overall,
+            competencyAverages,
+          };
+        });
+        const schoolTotals: Record<string, { sum: number; count: number }> = {};
+        for (const r of allProgressRecords) {
+          if (!schoolTotals[r.competency]) schoolTotals[r.competency] = { sum: 0, count: 0 };
+          schoolTotals[r.competency].sum += r.score;
+          schoolTotals[r.competency].count += 1;
+        }
+        const schoolAverages = ALL_LOMLOE_CODES.map(code => ({
+          code,
+          average: schoolTotals[code] ? Math.round(schoolTotals[code].sum / schoolTotals[code].count) : null,
+        }));
+        studentProgressData = { groups: groupSummaries, schoolAverages };
+      }
+
+      // ── Infantil progress data ────────────────────────────────────────────────
+      const EIXOS = ["EIX1", "EIX2", "EIX3", "EIX4"] as const;
+      const infantilPlans = await db
+        .select({ id: lessonPlans.id, infantilEix: lessonPlans.infantilEix, infantilCycle: lessonPlans.infantilCycle, userId: lessonPlans.userId })
+        .from(lessonPlans)
+        .where(tid != null
+          ? and(isNotNull(lessonPlans.infantilEix), eq(lessonPlans.tenantId, tid))
+          : isNotNull(lessonPlans.infantilEix));
+      const infantilProgressData = infantilPlans.length > 0 ? {
+        totalInfantilPlans: infantilPlans.length,
+        teacherCount: new Set(infantilPlans.map(p => p.userId)).size,
+        eixSummary: EIXOS.map(eix => ({
+          eix,
+          cycle03: infantilPlans.filter(p => p.infantilEix === eix && p.infantilCycle === "0-3").length,
+          cycle36: infantilPlans.filter(p => p.infantilEix === eix && p.infantilCycle === "3-6").length,
+          total: infantilPlans.filter(p => p.infantilEix === eix).length,
+        })),
+      } : undefined;
 
       const pdfBuffer = await generateDirectorReportPdf({
         schoolName: schoolBranding?.schoolName ?? settings.school_name ?? null,
@@ -331,6 +419,8 @@ export const directorRouter = router({
           academicYear: g.academicYear ?? "2025-26",
           studentCount: g.studentCount ?? 0,
         })),
+        studentProgress: studentProgressData,
+        infantilProgress: infantilProgressData,
       });
 
       const fileKey = `director-reports/seba-director-report-${Date.now()}.pdf`;
