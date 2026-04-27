@@ -284,6 +284,11 @@ export default function SchoolCalendar() {
   const [batchRunning, setBatchRunning] = useState(false);
   const [batchDone, setBatchDone] = useState(false);
 
+  // ── Regen single AI event ─────────────────────────────────────────────────
+  const [showRegenModal, setShowRegenModal] = useState(false);
+  const [regenEventId, setRegenEventId] = useState<number | null>(null);
+  const [regenTheme, setRegenTheme] = useState("");
+
   // ── Swipe navigation ─────────────────────────────────────────────────────────
   const swipeTouchStartX = useRef<number | null>(null);
   const handleSwipeTouchStart = (e: React.TouchEvent) => { swipeTouchStartX.current = e.touches[0].clientX; };
@@ -1379,6 +1384,23 @@ export default function SchoolCalendar() {
     },
     onError: (e) => { toast.error(e.message); setIsPdfExporting(false); },
   });
+
+  const regenEventMutation = trpc.infantil.regenerateSingleEvent.useMutation({
+    onSuccess: () => {
+      toast.success(t("cal_regen_event_success"));
+      utils.planner.getCalendarEvents.invalidate();
+      setShowRegenModal(false);
+      setRegenTheme("");
+      setRegenEventId(null);
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const openRegenModal = (eventId: number) => {
+    setRegenEventId(eventId);
+    setRegenTheme("");
+    setShowRegenModal(true);
+  };
 
   const handleExportPdf = () => {
     if (!selectedCalendarId) return;
@@ -4113,6 +4135,17 @@ export default function SchoolCalendar() {
               >
                 <Copy className="w-3.5 h-3.5" />
               </Button>
+              {detailEvent.eventType === "ai_generated" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 text-teal-700 border-teal-300 hover:bg-teal-50"
+                  title={t("cal_regen_event_btn")}
+                  onClick={() => { const id = detailEvent.id; closeDetail(); setTimeout(() => openRegenModal(id), 50); }}
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant="outline"
@@ -4166,6 +4199,41 @@ export default function SchoolCalendar() {
           </div>
         </>
       )}
+    {/* Regen single AI event modal */}
+    <Dialog open={showRegenModal} onOpenChange={open => { if (!open) { setShowRegenModal(false); setRegenTheme(""); setRegenEventId(null); } }}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <RefreshCw className="w-4 h-4 text-teal-600" />
+            {t("cal_regen_event_title")}
+          </DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">{t("cal_regen_event_desc")}</p>
+        <div className="space-y-2">
+          <Label htmlFor="regen-theme">{t("cal_regen_event_theme_label")}</Label>
+          <Input
+            id="regen-theme"
+            value={regenTheme}
+            onChange={e => setRegenTheme(e.target.value)}
+            placeholder={t("cal_regen_event_theme_placeholder")}
+            disabled={regenEventMutation.isPending}
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setShowRegenModal(false)} disabled={regenEventMutation.isPending}>
+            {t("cancel")}
+          </Button>
+          <Button
+            className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white"
+            disabled={regenEventMutation.isPending || !regenEventId}
+            onClick={() => regenEventId && regenEventMutation.mutate({ eventId: regenEventId, newTheme: regenTheme || undefined })}
+          >
+            {regenEventMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+            {t("cal_regen_event_confirm")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     </DashboardLayout>
   );
 }

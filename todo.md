@@ -4488,3 +4488,5 @@
 - [x] Fix "An internal error occurred" on Add Teacher page (Director path)
 - [x] Fix Add Teacher welcome email not being sent when Director creates a teacher account (SMTP not configured — added auto-redirect to User Management with prefill instead)
 - [x] Auto-copy invite link to clipboard immediately after Director generates it
+- [x] Add Regenerate button to AI-generated calendar events (replace single event with new theme)
+- [x] Extend session cookie lifetime so owner stays signed in automatically (no repeated sign-ins)

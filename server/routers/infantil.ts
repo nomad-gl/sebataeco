@@ -10,6 +10,7 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { schoolCalendarEvents, lessonPlans } from "../../drizzle/schema";
+import { eq } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
 
 // ─── Shared constants ─────────────────────────────────────────────────────────
@@ -151,6 +152,133 @@ Generate 5 daily activity events for this week.`;
         eventsGenerated: events.length,
         eventsSaved: inserted.length,
         events,
+      };
+    }),
+
+  /**
+   * regenerateSingleEvent
+   * Replaces a single AI-generated calendar event with a freshly generated one
+   * using a different (or updated) theme. The existing DB row is updated in-place.
+   */
+  regenerateSingleEvent: protectedProcedure
+    .input(
+      z.object({
+        eventId: z.number().int().positive(),
+        newTheme: z.string().max(128).optional(),
+        language: z.enum(["en", "es", "ca"]).default("ca"),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      // Fetch the existing event to extract its axis / cycle / date context
+      const [existing] = await db
+        .select()
+        .from(schoolCalendarEvents)
+        .where(eq(schoolCalendarEvents.id, input.eventId))
+        .limit(1);
+
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+      if (existing.userId !== ctx.user.id)
+        throw new TRPCError({ code: "FORBIDDEN", message: "Not your event" });
+
+      // Derive eix/cycle from the stored subject / yearGroup fields
+      const eixLabel = existing.subject ?? "Eix de Desenvolupament";
+      const cycleLabel =
+        existing.yearGroup === "infantil-0-3"
+          ? "Primer cicle (0\u20133 anys)"
+          : "Segon cicle (3\u20136 anys)";
+
+      const langInstruction =
+        input.language === "ca"
+          ? "Respond entirely in Catalan (catal\u00e0)."
+          : input.language === "es"
+          ? "Respond entirely in Spanish (castellano)."
+          : "Respond entirely in English.";
+
+      const themeHint = input.newTheme
+        ? `\nNew thematic focus: "${input.newTheme}".`
+        : "\nChoose a fresh, creative theme different from the original.";
+
+      const eventDateStr = existing.eventDate
+        ? new Date(existing.eventDate).toISOString().slice(0, 10)
+        : new Date().toISOString().slice(0, 10);
+
+      const systemPrompt = `You are a specialist in Catalan early childhood education (Educaci\u00f3 Infantil) and Decret 21/2023 (LOMLOE). ${langInstruction}
+Generate exactly 1 replacement calendar event for Educaci\u00f3 Infantil aligned to ${eixLabel} for ${cycleLabel}.${themeHint}
+Return a JSON object with exactly these fields:
+- title: string (max 80 chars, engaging and age-appropriate)
+- learningObjective: string (one sentence, aligned to Decret 21/2023 sabers)
+- materials: string (comma-separated list of simple classroom materials)
+- duration: number (minutes, between 20 and 45)
+- description: string (2\u20133 sentences describing the activity)
+Do not include any text outside the JSON object.`;
+
+      const userPrompt = `Date: ${eventDateStr}\nAxis: ${eixLabel}\nCycle: ${cycleLabel}\nGenerate a single replacement activity event.`;
+
+      let ev: {
+        title: string;
+        learningObjective: string;
+        materials: string;
+        duration: number;
+        description: string;
+      };
+
+      try {
+        const resp = await invokeLLM({
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "infantil_single_event",
+              strict: true,
+              schema: {
+                type: "object",
+                properties: {
+                  title: { type: "string" },
+                  learningObjective: { type: "string" },
+                  materials: { type: "string" },
+                  duration: { type: "number" },
+                  description: { type: "string" },
+                },
+                required: ["title", "learningObjective", "materials", "duration", "description"],
+                additionalProperties: false,
+              },
+            },
+          },
+        });
+
+        const raw = (resp?.choices?.[0]?.message?.content ?? "{}") as string;
+        ev = JSON.parse(raw);
+        if (!ev.title) throw new Error("Missing title");
+      } catch {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "AI generation failed. Please try again.",
+        });
+      }
+
+      // Update the existing row in-place
+      await db
+        .update(schoolCalendarEvents)
+        .set({
+          title: ev.title,
+          description: `[${eixLabel} \u00b7 ${cycleLabel}]\n\nObjective: ${ev.learningObjective}\n\nMaterials: ${ev.materials}\n\nDuration: ${ev.duration} min\n\n${ev.description}`,
+          aiGenerated: true,
+        })
+        .where(eq(schoolCalendarEvents.id, input.eventId));
+
+      return {
+        success: true,
+        event: {
+          id: input.eventId,
+          ...ev,
+          date: eventDateStr,
+        },
       };
     }),
 

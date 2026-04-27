@@ -18,11 +18,53 @@ export async function getDb() {
   return _db;
 }
 
+/**
+ * Reset the cached DB instance so the next call to getDb() creates a fresh
+ * connection pool. Call this whenever a query throws a connection-level error
+ * (e.g. TiDB temporarily unavailable) so the pool is rebuilt on the next request.
+ */
+export function resetDb() {
+  _db = null;
+}
+
+/**
+ * Execute a DB operation with automatic retry on transient connection errors.
+ * Resets the cached pool between attempts so each retry gets a fresh connection.
+ */
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  retries = 3,
+  delayMs = 500
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err: unknown) {
+      lastError = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      const isTransient =
+        msg.includes("TiProxy") ||
+        msg.includes("TiDB") ||
+        msg.includes("ECONNREFUSED") ||
+        msg.includes("ECONNRESET") ||
+        msg.includes("ETIMEDOUT") ||
+        msg.includes("No available");
+      if (!isTransient || attempt === retries) throw err;
+      console.warn(`[Database] Transient error on attempt ${attempt}/${retries}, retrying in ${delayMs}ms...`, msg);
+      resetDb(); // force fresh pool on next getDb() call
+      await new Promise(resolve => setTimeout(resolve, delayMs * attempt));
+    }
+  }
+  throw lastError;
+}
+
 export async function upsertUser(user: InsertUser): Promise<void> {
   if (!user.openId) {
     throw new Error("User openId is required for upsert");
   }
 
+  await withRetry(async () => {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot upsert user: database not available");
@@ -97,18 +139,19 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     console.error("[Database] Failed to upsert user:", error);
     throw error;
   }
+  }); // end withRetry
 }
 
 export async function getUserByOpenId(openId: string) {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get user: database not available");
-    return undefined;
-  }
-
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-
-  return result.length > 0 ? result[0] : undefined;
+  return withRetry(async () => {
+    const db = await getDb();
+    if (!db) {
+      console.warn("[Database] Cannot get user: database not available");
+      return undefined;
+    }
+    const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+    return result.length > 0 ? result[0] : undefined;
+  });
 }
 
 // TODO: add feature queries here as your schema grows.
