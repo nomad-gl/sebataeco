@@ -285,6 +285,7 @@ export default function NavBar() {
     { href: "/director/curriculum",label: t("dir_curriculum"),       icon: BookCheck },
     { href: "/accountability",     label: t("dir_accountability"),   icon: ShieldAlert },
     { href: "/director/progress",  label: t("dir_student_progress"), icon: GraduationCap },
+    { href: "/director/students",   label: t("std_dir_title"),         icon: Users },
     { href: "/director/reports",   label: t("dir_reports"),          icon: Download },
     { href: "/director/settings",  label: t("dir_settings"),         icon: SettingsIcon },
     { href: "/director/users",     label: t("dir_users_nav"),        icon: UserCog },
