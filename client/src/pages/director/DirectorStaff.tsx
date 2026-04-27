@@ -4,13 +4,15 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation, Link } from "wouter";
 import { useEffect, useState } from "react";
-import { UserCheck, Users, BookOpen, Activity, ScanLine, RefreshCw } from "lucide-react";
+import { UserCheck, Users, BookOpen, Activity, ScanLine, RefreshCw, Sparkles, Calendar, Clock, ExternalLink } from "lucide-react";
 import { SebaSymbol } from "@/components/SebaSymbol";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 
 type Position = "unassigned" | "teacher" | "head_of_study" | "director";
@@ -27,6 +29,7 @@ export default function DirectorStaff() {
   const { user, loading: authLoading } = useAuth();
   const [, navigate] = useLocation();
   const [scanOpen, setScanOpen] = useState(false);
+  const [plansModal, setPlansModal] = useState<{ userId: number; name: string; aiOnly: boolean } | null>(null);
 
   useEffect(() => {
     if (!authLoading && user && user.role !== "admin" && user.role !== "director") navigate("/");
@@ -289,9 +292,23 @@ export default function DirectorStaff() {
                             </div>
                           </div>
                         </td>
-                        <td className="py-2.5 pr-4 text-right font-medium">{teacher.plansCreated}</td>
+                        <td className="py-2.5 pr-4 text-right font-medium">
+                          <button
+                            onClick={() => setPlansModal({ userId: teacher.id, name: teacher.name ?? teacher.email ?? t("dir_unknown_teacher"), aiOnly: false })}
+                            className="font-medium text-foreground hover:text-primary hover:underline cursor-pointer transition-colors"
+                            title={t("dir_view_plans")}
+                          >
+                            {teacher.plansCreated}
+                          </button>
+                        </td>
                         <td className="py-2.5 pr-4 text-right">
-                          <Badge variant={teacher.aiPlans > 0 ? "default" : "secondary"} className="text-xs">{teacher.aiPlans}</Badge>
+                          <button
+                            onClick={() => setPlansModal({ userId: teacher.id, name: teacher.name ?? teacher.email ?? t("dir_unknown_teacher"), aiOnly: true })}
+                            className="cursor-pointer"
+                            title={t("dir_view_ai_plans")}
+                          >
+                            <Badge variant={teacher.aiPlans > 0 ? "default" : "secondary"} className="text-xs hover:opacity-80 transition-opacity">{teacher.aiPlans}</Badge>
+                          </button>
                         </td>
                         <td className="py-2.5 text-right text-muted-foreground text-xs">
                           {teacher.lastActive ? new Date(teacher.lastActive).toLocaleDateString() : "—"}
@@ -307,6 +324,116 @@ export default function DirectorStaff() {
 
         <p className="text-xs text-muted-foreground text-right">Powered by SEBA</p>
       </div>
+
+      {/* Teacher Plans Modal */}
+      {plansModal && (
+        <TeacherPlansModal
+          userId={plansModal.userId}
+          teacherName={plansModal.name}
+          aiOnly={plansModal.aiOnly}
+          onClose={() => setPlansModal(null)}
+        />
+      )}
     </DashboardLayout>
+  );
+}
+
+// ─── TeacherPlansModal ────────────────────────────────────────────────────────
+
+function TeacherPlansModal({
+  userId,
+  teacherName,
+  aiOnly,
+  onClose,
+}: {
+  userId: number;
+  teacherName: string;
+  aiOnly: boolean;
+  onClose: () => void;
+}) {
+  const { t } = useI18n();
+  const { data: plans, isLoading } = trpc.director.getTeacherPlans.useQuery(
+    { userId, aiOnly },
+    { enabled: true }
+  );
+
+  return (
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="max-w-2xl w-full">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            {aiOnly ? <Sparkles className="w-4 h-4 text-amber-500" /> : <BookOpen className="w-4 h-4 text-primary" />}
+            {aiOnly ? t("dir_ai_plans_for") : t("dir_plans_for")} {teacherName}
+          </DialogTitle>
+        </DialogHeader>
+        <ScrollArea className="max-h-[60vh] pr-2">
+          {isLoading ? (
+            <div className="space-y-3 py-2">
+              {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16" />)}
+            </div>
+          ) : !plans?.length ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <BookOpen className="w-8 h-8 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">{t("dir_no_plans_found")}</p>
+            </div>
+          ) : (
+            <div className="space-y-2 py-2">
+              {plans.map((plan: NonNullable<typeof plans>[number]) => (
+                <div
+                  key={plan.id}
+                  className="border rounded-lg p-3 hover:bg-muted/40 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-medium text-sm text-foreground truncate">{plan.title}</p>
+                        {plan.aiGenerated && (
+                          <Badge className="bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 text-[10px] px-1.5 py-0">
+                            <Sparkles className="w-2.5 h-2.5 mr-0.5" /> AI
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
+                        {plan.subject && (
+                          <span className="flex items-center gap-1">
+                            <BookOpen className="w-3 h-3" />{plan.subject}
+                          </span>
+                        )}
+                        {plan.yearGroup && <span>{plan.yearGroup}</span>}
+                        {plan.lessonDate && (
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />{plan.lessonDate}
+                          </span>
+                        )}
+                        {plan.duration && (
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />{plan.duration} min
+                          </span>
+                        )}
+                        <span className="ml-auto">{new Date(plan.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                  {plan.learningOutcomes && (() => {
+                    try {
+                      const outcomes: string[] = JSON.parse(plan.learningOutcomes);
+                      if (outcomes.length > 0) return (
+                        <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+                          {outcomes[0]}{outcomes.length > 1 ? ` (+${outcomes.length - 1} more)` : ""}
+                        </p>
+                      );
+                    } catch { /* ignore */ }
+                    return null;
+                  })()}
+                </div>
+              ))}
+            </div>
+          )}
+        </ScrollArea>
+        <p className="text-xs text-muted-foreground text-right pt-1">
+          {plans?.length ?? 0} {aiOnly ? t("dir_ai_plans_count") : t("dir_plans_count")}
+        </p>
+      </DialogContent>
+    </Dialog>
   );
 }

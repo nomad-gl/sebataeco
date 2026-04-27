@@ -67,40 +67,48 @@ export default function DirectorCurriculum() {
             Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20" />)
           ) : (
             <>
-              <Card className="text-center">
-                <CardContent className="pt-4 pb-3">
-                  <p className="text-2xl font-bold text-foreground">{data?.totalPlans ?? 0}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{t("dir_stat_lesson_plans")}</p>
-                </CardContent>
-              </Card>
-              <Card className="text-center">
-                <CardContent className="pt-4 pb-3">
-                  <p className="text-2xl font-bold text-green-500">
-                    {data?.competencies.filter(c => !c.gap).length ?? 0}/8
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">{t("dir_competency_coverage")}</p>
-                </CardContent>
-              </Card>
-              <Card className="text-center">
-                <CardContent className="pt-4 pb-3">
-                  <p className={`text-2xl font-bold ${(data?.gapCount ?? 0) > 0 ? "text-red-500" : "text-green-500"}`}>
-                    {data?.gapCount ?? 0}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">{t("dir_competency_gap_count")}</p>
-                </CardContent>
-              </Card>
-              <Card className="text-center">
-                <CardContent className="pt-4 pb-3">
-                  <p className="text-2xl font-bold text-foreground">{data?.subjectCoverage.length ?? 0}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{t("dir_subjects_active")}</p>
-                </CardContent>
-              </Card>
+              <a href="/director/reports" className="block group">
+                <Card className="text-center transition-all duration-150 hover:shadow-md hover:border-primary/40 group-hover:bg-muted/30 cursor-pointer">
+                  <CardContent className="pt-4 pb-3">
+                    <p className="text-2xl font-bold text-foreground">{data?.totalPlans ?? 0}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{t("dir_stat_lesson_plans")}</p>
+                  </CardContent>
+                </Card>
+              </a>
+              <a href="/director/curriculum#competency-heatmap" className="block group">
+                <Card className="text-center transition-all duration-150 hover:shadow-md hover:border-green-400/40 group-hover:bg-muted/30 cursor-pointer">
+                  <CardContent className="pt-4 pb-3">
+                    <p className="text-2xl font-bold text-green-500">
+                      {data?.competencies.filter(c => !c.gap).length ?? 0}/8
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">{t("dir_competency_coverage")}</p>
+                  </CardContent>
+                </Card>
+              </a>
+              <a href="/director/curriculum#competency-heatmap" className="block group">
+                <Card className="text-center transition-all duration-150 hover:shadow-md hover:border-red-400/40 group-hover:bg-muted/30 cursor-pointer">
+                  <CardContent className="pt-4 pb-3">
+                    <p className={`text-2xl font-bold ${(data?.gapCount ?? 0) > 0 ? "text-red-500" : "text-green-500"}`}>
+                      {data?.gapCount ?? 0}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">{t("dir_competency_gap_count")}</p>
+                  </CardContent>
+                </Card>
+              </a>
+              <a href="/director/curriculum#subject-breakdown" className="block group">
+                <Card className="text-center transition-all duration-150 hover:shadow-md hover:border-primary/40 group-hover:bg-muted/30 cursor-pointer">
+                  <CardContent className="pt-4 pb-3">
+                    <p className="text-2xl font-bold text-foreground">{data?.subjectCoverage.length ?? 0}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{t("dir_subjects_active")}</p>
+                  </CardContent>
+                </Card>
+              </a>
             </>
           )}
         </div>
 
         {/* Competency heatmap */}
-        <Card>
+        <Card id="competency-heatmap">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <BarChart3 className="w-4 h-4 text-primary" />
@@ -158,7 +166,7 @@ export default function DirectorCurriculum() {
 
         {/* Subject coverage breakdown */}
         {!isLoading && (data?.subjectCoverage.length ?? 0) > 0 && (
-          <Card>
+          <Card id="subject-breakdown">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">{t("dir_subject_breakdown")}</CardTitle>
               <p className="text-xs text-muted-foreground">{t("dir_subject_breakdown_desc")}</p>

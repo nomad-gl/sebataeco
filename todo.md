@@ -4644,3 +4644,19 @@
 - [x] Link "Active This Week" card → Director Staff Activity table (anchor to per-teacher table on same page)
 - [x] Link "Lesson Plans" card → Director Reports page (/director/reports)
 - [x] Link "AI-Generated Plans" card → Director Reports page (/director/reports)
+
+## Feature: Per-Teacher Plans Clickable
+- [x] Make "Plans" count badge on per-teacher activity row clickable — opens modal listing that teacher's lesson plans
+- [x] Make "AI Plans" count badge on per-teacher activity row clickable — opens modal filtered to AI-generated plans only
+- [x] Modal shows plan title, subject, date, AI flag; allows director to view full plan content
+- [x] Backend: tRPC procedure to fetch plans for a specific userId (director-only)
+
+## Feature: School Overview & Curriculum Compliance Card Links
+- [x] School Overview: link 6 stat cards to their detail pages (Lesson Plans, AI Plans, Active Teachers, Bias Scans, Competency Coverage, Students/Groups)
+- [x] Curriculum Compliance: link 4 top stat cards to their detail pages
+
+## Feature: Director Report Print Header
+- [x] Add school logo/motif upload to Director report print settings (right side of header)
+- [x] Add director name input field to Director report print settings
+- [x] Add director title/role input field to Director report print settings
+- [x] Show logo (right), director name and title in the printed report header

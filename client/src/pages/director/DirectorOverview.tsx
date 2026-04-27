@@ -32,6 +32,18 @@ export default function DirectorOverview() {
   const { user, loading: authLoading } = useAuth();
   const [, navigate] = useLocation();
   const [pdfLocale, setPdfLocale] = useState<"en" | "es" | "ca">("ca");
+  const [directorName, setDirectorName] = useState("");
+  const [directorTitle, setDirectorTitle] = useState("");
+  const [directorLogoDataUrl, setDirectorLogoDataUrl] = useState<string | null>(null);
+
+  const handleDirectorLogoUpload = (file: File) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setDirectorLogoDataUrl(e.target?.result as string ?? null);
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Role gate: redirect non-admins
   useEffect(() => {
@@ -67,12 +79,12 @@ export default function DirectorOverview() {
   if (user?.role !== "admin" && user?.role !== "director") return null;
 
   const statCards = [
-    { icon: Users, label: t("dir_stat_teachers"), value: stats?.totalTeachers, color: "text-blue-500" },
-    { icon: BookOpen, label: t("dir_stat_lesson_plans"), value: stats?.totalLessonPlans, color: "text-green-500" },
-    { icon: SebaSymbol, label: t("dir_stat_ai_plans"), value: stats?.aiGeneratedPlans, color: "text-purple-500" },
-    { icon: TrendingUp, label: t("dir_stat_practice_sessions"), value: stats?.totalPracticeSessions, color: "text-cyan-500" },
-    { icon: Calendar, label: t("dir_stat_calendar_events"), value: stats?.totalCalendarEvents, color: "text-amber-500" },
-    { icon: AlertTriangle, label: t("dir_stat_open_bias_flags"), value: stats?.openBiasFlags, color: "text-red-500" },
+    { icon: Users, label: t("dir_stat_teachers"), value: stats?.totalTeachers, color: "text-blue-500", href: "/director/staff" },
+    { icon: BookOpen, label: t("dir_stat_lesson_plans"), value: stats?.totalLessonPlans, color: "text-green-500", href: "/director/reports" },
+    { icon: SebaSymbol, label: t("dir_stat_ai_plans"), value: stats?.aiGeneratedPlans, color: "text-purple-500", href: "/director/reports" },
+    { icon: TrendingUp, label: t("dir_stat_practice_sessions"), value: stats?.totalPracticeSessions, color: "text-cyan-500", href: "/director/progress" },
+    { icon: Calendar, label: t("dir_stat_calendar_events"), value: stats?.totalCalendarEvents, color: "text-amber-500", href: "/director/overview" },
+    { icon: AlertTriangle, label: t("dir_stat_open_bias_flags"), value: stats?.openBiasFlags, color: "text-red-500", href: "/director/reports" },
   ];
 
   return (
@@ -89,8 +101,35 @@ export default function DirectorOverview() {
               <p className="text-sm text-muted-foreground">{t("dir_overview_desc")}</p>
             </div>
           </div>
-          {/* Prominent PDF report button */}
-          <div className="flex items-center gap-2">
+          {/* Director report header settings */}
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              <input
+                type="text"
+                placeholder={t("dir_pdf_director_name")}
+                value={directorName}
+                onChange={e => setDirectorName(e.target.value)}
+                className="text-xs border border-border rounded-md px-2 py-1.5 bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary w-36"
+                disabled={generatePdf.isPending}
+              />
+              <input
+                type="text"
+                placeholder={t("dir_pdf_director_title")}
+                value={directorTitle}
+                onChange={e => setDirectorTitle(e.target.value)}
+                className="text-xs border border-border rounded-md px-2 py-1.5 bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary w-36"
+                disabled={generatePdf.isPending}
+              />
+              <label className="cursor-pointer flex items-center gap-1 text-xs border border-border rounded-md px-2 py-1.5 bg-background text-foreground hover:bg-muted/40 transition-colors">
+                {directorLogoDataUrl ? (
+                  <><img src={directorLogoDataUrl} alt="logo" className="w-4 h-4 object-contain rounded" /><span className="text-green-600">{t("dir_pdf_logo_uploaded")}</span></>
+                ) : (
+                  <><FileDown className="w-3.5 h-3.5" />{t("dir_pdf_upload_logo")}</>
+                )}
+                <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleDirectorLogoUpload(f); }} />
+              </label>
+            </div>
+            <div className="flex items-center gap-2">
             <select
               value={pdfLocale}
               onChange={e => setPdfLocale(e.target.value as "en" | "es" | "ca")}
@@ -104,7 +143,7 @@ export default function DirectorOverview() {
             <Button
               size="default"
               className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md gap-2 px-5"
-              onClick={() => generatePdf.mutate({ locale: pdfLocale })}
+              onClick={() => generatePdf.mutate({ locale: pdfLocale, directorName: directorName || null, directorTitle: directorTitle || null, directorLogoUrl: directorLogoDataUrl || null })}
               disabled={generatePdf.isPending}
             >
               {generatePdf.isPending ? (
@@ -113,6 +152,7 @@ export default function DirectorOverview() {
                 <><FileDown className="w-4 h-4" />{t("dir_pdf_btn")}</>
               )}
             </Button>
+            </div>
           </div>
         </div>
 
@@ -129,18 +169,20 @@ export default function DirectorOverview() {
 
         {/* Stats grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-          {statCards.map(({ icon: Icon, label, value, color }) => (
-            <Card key={label} className="text-center">
-              <CardContent className="pt-5 pb-4 px-3">
-                <Icon className={`w-6 h-6 mx-auto mb-2 ${color}`} />
-                {isLoading ? (
-                  <Skeleton className="h-8 w-12 mx-auto mb-1" />
-                ) : (
-                  <p className="text-2xl font-bold text-foreground">{value ?? 0}</p>
-                )}
-                <p className="text-xs text-muted-foreground leading-tight mt-1">{label}</p>
-              </CardContent>
-            </Card>
+          {statCards.map(({ icon: Icon, label, value, color, href }) => (
+            <a key={label} href={href} className="block group">
+              <Card className="text-center transition-all duration-150 hover:shadow-md hover:border-primary/40 group-hover:bg-muted/30 cursor-pointer">
+                <CardContent className="pt-5 pb-4 px-3">
+                  <Icon className={`w-6 h-6 mx-auto mb-2 ${color}`} />
+                  {isLoading ? (
+                    <Skeleton className="h-8 w-12 mx-auto mb-1" />
+                  ) : (
+                    <p className="text-2xl font-bold text-foreground">{value ?? 0}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground leading-tight mt-1">{label}</p>
+                </CardContent>
+              </Card>
+            </a>
           ))}
         </div>
 

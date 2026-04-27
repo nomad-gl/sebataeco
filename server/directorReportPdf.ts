@@ -8,6 +8,9 @@ import PDFDocument from "pdfkit";
 export interface DirectorReportData {
   schoolName?: string | null;
   logoUrl?: string | null;
+  directorName?: string | null;
+  directorTitle?: string | null;
+  directorLogoUrl?: string | null;
   generatedAt: Date;
   locale: "en" | "es" | "ca";
   stats: {
@@ -251,13 +254,26 @@ function addFooter(doc: InstanceType<typeof PDFDocument>, pageWidth: number, pow
 export async function generateDirectorReportPdf(data: DirectorReportData): Promise<Buffer> {
   const L = LABELS[data.locale] ?? LABELS.en;
 
-  // Pre-fetch logo outside the Promise constructor so we can use await
+  // Pre-fetch school logo and director logo outside the Promise constructor
   let logoBuf: Buffer | null = null;
   if (data.logoUrl) {
     try {
       const logoRes = await fetch(data.logoUrl);
       logoBuf = Buffer.from(await logoRes.arrayBuffer());
     } catch { /* skip logo if fetch fails */ }
+  }
+  let directorLogoBuf: Buffer | null = null;
+  if (data.directorLogoUrl) {
+    try {
+      if (data.directorLogoUrl.startsWith("data:")) {
+        // base64 data URL — decode directly
+        const base64 = data.directorLogoUrl.split(",")[1];
+        if (base64) directorLogoBuf = Buffer.from(base64, "base64");
+      } else {
+        const dLogoRes = await fetch(data.directorLogoUrl);
+        directorLogoBuf = Buffer.from(await dLogoRes.arrayBuffer());
+      }
+    } catch { /* skip if fetch fails */ }
   }
 
   return new Promise((resolve, reject) => {
@@ -270,18 +286,43 @@ export async function generateDirectorReportPdf(data: DirectorReportData): Promi
     const pageWidth = doc.page.width - 80;
 
     // ── Cover header ─────────────────────────────────────────────────────────
-    doc.rect(40, 30, pageWidth, 60).fillColor(BRAND_BLUE).fill();
-    // School logo (top-right of header band)
+    doc.rect(40, 30, pageWidth, 70).fillColor(BRAND_BLUE).fill();
+
+    // Right column: director logo + name + title (right-aligned in header band)
+    const rightColWidth = 160;
+    const rightColX = 40 + pageWidth - rightColWidth;
+    let rightContentY = 36;
+    if (directorLogoBuf) {
+      try {
+        doc.image(directorLogoBuf, rightColX + rightColWidth - 52, rightContentY, { width: 48, height: 48, fit: [48, 48] });
+        rightContentY += 4; // align text with image
+      } catch { /* skip */ }
+    }
+    const dirNameX = rightColX;
+    const dirTextWidth = directorLogoBuf ? rightColWidth - 56 : rightColWidth - 4;
+    if (data.directorName) {
+      doc.fontSize(9).fillColor("#fff").font("Helvetica-Bold")
+        .text(data.directorName, dirNameX, rightContentY, { width: dirTextWidth, align: "right" });
+      rightContentY += 13;
+    }
+    if (data.directorTitle) {
+      doc.fontSize(8).fillColor("#c7d2fe").font("Helvetica")
+        .text(data.directorTitle, dirNameX, rightContentY, { width: dirTextWidth, align: "right" });
+    }
+
+    // Left column: school logo + report title + subtitle
+    const leftColWidth = pageWidth - rightColWidth - 12;
     if (logoBuf) {
       try {
-        doc.image(logoBuf, 40 + pageWidth - 56, 34, { width: 52, height: 52, fit: [52, 52] });
-      } catch { /* skip if image format unsupported */ }
+        doc.image(logoBuf, 52, 34, { width: 48, height: 48, fit: [48, 48] });
+      } catch { /* skip */ }
     }
-    const textRight = logoBuf ? pageWidth - 68 : pageWidth - 24;
-    doc.fontSize(18).fillColor("#fff").font("Helvetica-Bold")
-      .text(L.title, 52, 40, { width: textRight });
-    doc.fontSize(10).fillColor("#c7d2fe").font("Helvetica")
-      .text(L.subtitle, 52, 62, { width: textRight });
+    const titleX = logoBuf ? 108 : 52;
+    const titleWidth = leftColWidth - (logoBuf ? 60 : 4);
+    doc.fontSize(16).fillColor("#fff").font("Helvetica-Bold")
+      .text(L.title, titleX, 38, { width: titleWidth });
+    doc.fontSize(9).fillColor("#c7d2fe").font("Helvetica")
+      .text(L.subtitle, titleX, 58, { width: titleWidth });
     doc.moveDown(0.3);
 
     // Meta row

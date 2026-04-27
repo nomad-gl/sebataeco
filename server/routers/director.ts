@@ -232,7 +232,12 @@ export const directorRouter = router({
 
   /** Generate a school-wide director PDF report and return a download URL */
   generateDirectorPdf: adminProcedure
-    .input(z.object({ locale: z.enum(["en", "es", "ca"]).default("en") }))
+    .input(z.object({
+      locale: z.enum(["en", "es", "ca"]).default("en"),
+      directorName: z.string().max(120).nullable().optional(),
+      directorTitle: z.string().max(120).nullable().optional(),
+      directorLogoUrl: z.string().nullable().optional(), // accepts data: URL or https URL
+    }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
@@ -408,6 +413,9 @@ export const directorRouter = router({
       const pdfBuffer = await generateDirectorReportPdf({
         schoolName: schoolBranding?.schoolName ?? settings.school_name ?? null,
         logoUrl: schoolBranding?.logoUrl ?? null,
+        directorName: input.directorName ?? null,
+        directorTitle: input.directorTitle ?? null,
+        directorLogoUrl: input.directorLogoUrl ?? null,
         generatedAt: new Date(),
         locale: input.locale,
         stats: statsData,
@@ -2137,7 +2145,41 @@ export const directorRouter = router({
         lastActive,
         attendanceSummary,
         attendanceRate,
-        recentAttendance,
+          recentAttendance,
       };
+    }),
+
+  /** Fetch lesson plans for a specific teacher (director-only) */
+  getTeacherPlans: adminProcedure
+    .input(z.object({
+      userId: z.number(),
+      aiOnly: z.boolean().optional(),
+    }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const conditions = [eq(lessonPlans.userId, input.userId)];
+      if (input.aiOnly) conditions.push(eq(lessonPlans.aiGenerated, true));
+      const plans = await db
+        .select({
+          id: lessonPlans.id,
+          title: lessonPlans.title,
+          subject: lessonPlans.subject,
+          yearGroup: lessonPlans.yearGroup,
+          lessonDate: lessonPlans.lessonDate,
+          aiGenerated: lessonPlans.aiGenerated,
+          unit: lessonPlans.unit,
+          lessonNumber: lessonPlans.lessonNumber,
+          duration: lessonPlans.duration,
+          competencies: lessonPlans.competencies,
+          learningOutcomes: lessonPlans.learningOutcomes,
+          procedures: lessonPlans.procedures,
+          createdAt: lessonPlans.createdAt,
+        })
+        .from(lessonPlans)
+        .where(and(...conditions))
+        .orderBy(desc(lessonPlans.createdAt))
+        .limit(100);
+      return plans;
     }),
 });
