@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/useMobile";
 import { LayoutDashboard, LogOut, PanelLeft, Users } from "lucide-react";
+import DirectorNotificationBell from "@/components/DirectorNotificationBell";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
@@ -188,6 +189,11 @@ function DashboardLayoutContent({
           </SidebarContent>
 
           <SidebarFooter className="p-3">
+            {user?.role === "admin" && !isCollapsed && (
+              <div className="flex justify-end px-1 pb-2">
+                <DirectorNotificationBell />
+              </div>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-accent/50 transition-colors w-full text-left group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
@@ -241,6 +247,7 @@ function DashboardLayoutContent({
                 </div>
               </div>
             </div>
+            {user?.role === "admin" && <DirectorNotificationBell />}
           </div>
         )}
         <main className="flex-1 p-4">{children}</main>

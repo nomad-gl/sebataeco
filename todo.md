@@ -4495,3 +4495,20 @@
 - [x] Delete all invite history entries when user is deleted from Local Accounts
 - [x] Add search bar to User Management page to filter users by name or email
 - [x] Populate demo data: teachers, students, classes, cover requests, calendar events, lesson plans, attendance (backdated to Sep 8 2025)
+
+## Director Notification System
+- [x] Add director_alerts table (DB migration 0056): id, tenantId, type, title, body, link, severity, isRead, isDismissed, relatedId, createdAt
+- [x] Add getDirectorAlerts tRPC procedure (admin only): returns unread/active alerts for the director's tenant
+- [x] Add getDirectorAlertCount tRPC procedure: returns count of unread alerts
+- [x] Add markAlertRead tRPC procedure: marks a single alert as read
+- [x] Add markAllAlertsRead tRPC procedure: marks all alerts as read
+- [x] Add dismissAlert tRPC procedure: dismisses (hides) an alert
+- [x] Add checkAndCreateAlerts tRPC procedure: scans for unassigned covers and high-absence classes, creates new alert rows if not already alerted
+- [x] Unassigned cover detection: class_register rows with isAbsence=true and no confirmed cover_assignment in the last 24h
+- [x] High absence rate detection: class groups where >25% of students were absent in the last 7 days
+- [x] Add notification bell icon to DashboardLayout header (desktop + mobile) with red badge showing unread count
+- [x] Add director-specific NotificationBell component that polls getDirectorAlertCount every 60s
+- [x] Add /director/notifications page listing all alerts with type icon, severity colour, timestamp, and action links
+- [x] Add i18n keys for all alert types and UI strings (EN/ES/CA)
+- [x] Auto-trigger checkAndCreateAlerts when director visits any /director/* page
+- [x] TypeScript: 0 errors after all changes

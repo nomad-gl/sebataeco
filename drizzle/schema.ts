@@ -2126,3 +2126,32 @@ export const teacherNotification = mysqlTable("teacher_notification", {
 });
 export type TeacherNotification = typeof teacherNotification.$inferSelect;
 export type InsertTeacherNotification = typeof teacherNotification.$inferInsert;
+
+
+/**
+ * director_alerts -- system-generated alerts for school directors.
+ *
+ * Alerts are created automatically when:
+ *   - A teacher absence has no confirmed cover assignment after a threshold period.
+ *   - A class group student absence rate exceeds 25% in the last 7 days.
+ *
+ * Alerts are tenant-scoped and deduplication is enforced via dedupeKey.
+ */
+export const directorAlerts = mysqlTable("director_alerts", {
+  id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenantId").notNull(),
+  type: mysqlEnum("alert_type", ["unassigned_cover", "high_absence_rate"]).notNull(),
+  severity: mysqlEnum("alert_severity", ["info", "warning", "critical"]).default("warning").notNull(),
+  title: varchar("title", { length: 256 }).notNull(),
+  body: text("body").notNull(),
+  link: varchar("link", { length: 512 }),
+  relatedRegisterId: int("relatedRegisterId"),
+  relatedGroupId: int("relatedGroupId"),
+  dedupeKey: varchar("dedupeKey", { length: 256 }).notNull(),
+  isRead: boolean("isRead").default(false).notNull(),
+  isDismissed: boolean("isDismissed").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type DirectorAlert = typeof directorAlerts.$inferSelect;
+export type InsertDirectorAlert = typeof directorAlerts.$inferInsert;

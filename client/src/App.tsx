@@ -60,6 +60,7 @@ import DirectorApprovals from "./pages/director/DirectorApprovals";
 import DirectorTeacherAttendance from "./pages/director/DirectorTeacherAttendance";
 import DirectorTeacherProfiles from "./pages/director/DirectorTeacherProfiles";
 import DirectorCoverRequests from "./pages/director/DirectorCoverRequests";
+import DirectorNotifications from "./pages/director/DirectorNotifications";
 import TeacherAttendance from "./pages/teacher/TeacherAttendance";
 import RegisterPage from "./pages/RegisterPage";
 import TeacherProfileView from "./pages/teacher/TeacherProfileView";
@@ -207,6 +208,7 @@ function Router() {
         <Route path="/director/teacher-attendance" component={DirectorTeacherAttendance} />
         <Route path="/director/teacher-profiles" component={DirectorTeacherProfiles} />
         <Route path="/director/cover-requests" component={DirectorCoverRequests} />
+        <Route path="/director/notifications" component={DirectorNotifications} />
         <Route path="/teacher/attendance" component={TeacherAttendance} />
         <Route path="/teacher/profile" component={TeacherProfileView} />
         <Route path="/teacher/register" component={RegisterPage} />

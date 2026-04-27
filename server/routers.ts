@@ -45,6 +45,7 @@ import { territorialDirectorRouter } from "./routers/territorialDirector";
 import { registerRouter } from "./routers/register";
 import { coverRouter } from "./routers/cover";
 import { infantilRouter } from "./routers/infantil";
+import { directorAlertsRouter } from "./routers/directorAlerts";
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -166,6 +167,7 @@ export const appRouter = router({
   register: registerRouter,
   cover: coverRouter,
   infantil: infantilRouter,
+  directorAlerts: directorAlertsRouter,
 });
 
 export type AppRouter = typeof appRouter;
