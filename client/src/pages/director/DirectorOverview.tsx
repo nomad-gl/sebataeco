@@ -32,20 +32,20 @@ export default function DirectorOverview() {
 
   // Role gate: redirect non-admins
   useEffect(() => {
-    if (!authLoading && user && user.role !== "admin") {
+    if (!authLoading && user && user.role !== "admin" && user.role !== "director") {
       navigate("/");
     }
   }, [authLoading, user, navigate]);
 
   const { data: stats, isLoading } = trpc.director.getStats.useQuery(undefined, {
-    enabled: !!user && user.role === "admin",
+    enabled: !!user && (user.role === "admin" || user.role === "director"),
   });
   const { data: trends, isLoading: trendsLoading } = trpc.director.getTrends.useQuery(undefined, {
-    enabled: !!user && user.role === "admin",
+    enabled: !!user && (user.role === "admin" || user.role === "director"),
   });
 
   if (authLoading || (!user && !authLoading)) return null;
-  if (user?.role !== "admin") return null;
+  if (user?.role !== "admin" && user?.role !== "director") return null;
 
   const statCards = [
     { icon: Users, label: t("dir_stat_teachers"), value: stats?.totalTeachers, color: "text-blue-500" },

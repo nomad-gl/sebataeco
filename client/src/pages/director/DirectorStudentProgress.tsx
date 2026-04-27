@@ -54,9 +54,9 @@ export default function DirectorStudentProgress() {
   const { t } = useI18n();
   const { user, loading: authLoading } = useAuth();
   const [, navigate] = useLocation();
-  useEffect(() => { if (!authLoading && user && user.role !== "admin") navigate("/"); }, [authLoading, user, navigate]);
+  useEffect(() => { if (!authLoading && user && user.role !== "admin" && user.role !== "director") navigate("/"); }, [authLoading, user, navigate]);
   if (authLoading || (!user && !authLoading)) return null;
-  if (user?.role !== "admin") return null;
+  if (user?.role !== "admin" && user?.role !== "director") return null;
 
   const { data, isLoading } = trpc.director.getSchoolWideStudentProgress.useQuery();
   const { data: infantilData, isLoading: infantilLoading } = trpc.director.getInfantilProgress.useQuery();

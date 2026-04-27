@@ -189,7 +189,7 @@ function DashboardLayoutContent({
           </SidebarContent>
 
           <SidebarFooter className="p-3">
-            {user?.role === "admin" && !isCollapsed && (
+            {(user?.role === "admin" || user?.role === "director") && !isCollapsed && (
               <div className="flex justify-end px-1 pb-2">
                 <DirectorNotificationBell />
               </div>
@@ -247,7 +247,7 @@ function DashboardLayoutContent({
                 </div>
               </div>
             </div>
-            {user?.role === "admin" && <DirectorNotificationBell />}
+            {(user?.role === "admin" || user?.role === "director") && <DirectorNotificationBell />}
           </div>
         )}
         <main className="flex-1 p-4">{children}</main>

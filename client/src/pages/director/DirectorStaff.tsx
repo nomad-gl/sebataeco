@@ -29,15 +29,15 @@ export default function DirectorStaff() {
   const [scanOpen, setScanOpen] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && user && user.role !== "admin") navigate("/");
+    if (!authLoading && user && user.role !== "admin" && user.role !== "director") navigate("/");
   }, [authLoading, user, navigate]);
 
   const { data, isLoading } = trpc.director.getStaffActivity.useQuery(undefined, {
-    enabled: !!user && user.role === "admin",
+    enabled: !!user && (user.role === "admin" || user.role === "director"),
   });
 
   const { data: allUsers, isLoading: usersLoading, refetch: refetchUsers } = trpc.director.listUsers.useQuery(undefined, {
-    enabled: !!user && user.role === "admin" && scanOpen,
+    enabled: !!user && (user.role === "admin" || user.role === "director") && scanOpen,
   });
 
   const utils = trpc.useUtils();
@@ -50,7 +50,7 @@ export default function DirectorStaff() {
   });
 
   if (authLoading || (!user && !authLoading)) return null;
-  if (user?.role !== "admin") return null;
+  if (user?.role !== "admin" && user?.role !== "director") return null;
 
   const positionLabel = (p: Position) => {
     const map: Record<Position, string> = {

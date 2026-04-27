@@ -76,11 +76,12 @@ setInterval(() => purgeExpiredInvites().catch(() => {}), TWENTY_FOUR_HOURS_MS).u
 
 export const directorRouter = router({
   /** School-wide overview stats */
-  getStats: adminProcedure.query(async () => {
+  getStats: adminProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
 
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const tid = ctx.tenantId;
 
     const [
       [totalTeachers],
@@ -91,11 +92,11 @@ export const directorRouter = router({
       [openBiasFlags],
       [recentScanRuns],
     ] = await Promise.all([
-      db.select({ count: count() }).from(users).where(inArray(users.role, ["user", "teacher"])),
-      db.select({ count: count() }).from(lessonPlans),
-      db.select({ count: count() }).from(lessonPlans).where(eq(lessonPlans.aiGenerated, true)),
+      db.select({ count: count() }).from(users).where(tid != null ? and(inArray(users.role, ["user", "teacher"]), eq(users.tenantId, tid)) : inArray(users.role, ["user", "teacher"])),
+      tid != null ? db.select({ count: count() }).from(lessonPlans).where(eq(lessonPlans.tenantId, tid)) : db.select({ count: count() }).from(lessonPlans),
+      tid != null ? db.select({ count: count() }).from(lessonPlans).where(and(eq(lessonPlans.tenantId, tid), eq(lessonPlans.aiGenerated, true))) : db.select({ count: count() }).from(lessonPlans).where(eq(lessonPlans.aiGenerated, true)),
       db.select({ count: count() }).from(practiceSessions),
-      db.select({ count: count() }).from(schoolCalendarEvents),
+      tid != null ? db.select({ count: count() }).from(schoolCalendarEvents).where(eq(schoolCalendarEvents.tenantId, tid)) : db.select({ count: count() }).from(schoolCalendarEvents),
       db.select({ count: count() }).from(aiBiasFlags).where(eq(aiBiasFlags.resolved, false)),
       db.select({ count: count() }).from(biasScanRuns).where(gte(biasScanRuns.runAt, thirtyDaysAgo)),
     ]);
@@ -104,7 +105,7 @@ export const directorRouter = router({
     const allPlans = await db
       .select({ competencies: lessonPlans.competencies })
       .from(lessonPlans)
-      .where(sql`${lessonPlans.competencies} IS NOT NULL`);
+      .where(tid != null ? and(eq(lessonPlans.tenantId, tid), sql`${lessonPlans.competencies} IS NOT NULL`) : sql`${lessonPlans.competencies} IS NOT NULL`);
 
     const competencyCounts: Record<string, number> = {};
     for (const { code } of LOMLOE_COMPETENCIES) competencyCounts[code] = 0;
@@ -144,14 +145,15 @@ export const directorRouter = router({
   }),
 
   /** Per-teacher activity breakdown */
-  getStaffActivity: adminProcedure.query(async () => {
+  getStaffActivity: adminProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
+    const tid = ctx.tenantId;
 
     const allTeachers = await db
       .select({ id: users.id, name: users.name, email: users.email, createdAt: users.createdAt, lastSignedIn: users.lastSignedIn })
       .from(users)
-      .where(inArray(users.role, ["user", "teacher"]))
+      .where(tid != null ? and(inArray(users.role, ["user", "teacher"]), eq(users.tenantId, tid)) : inArray(users.role, ["user", "teacher"]))
       .orderBy(desc(users.lastSignedIn));
 
     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -187,17 +189,22 @@ export const directorRouter = router({
   }),
 
   /** Week-over-week trends for lesson plans and AI usage */
-  getTrends: adminProcedure.query(async () => {
+  getTrends: adminProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
+    const tid = ctx.tenantId;
     const weeks: { label: string; plansCreated: number; aiPlans: number }[] = [];
     for (let i = 7; i >= 0; i--) {
       const weekStart = new Date(Date.now() - (i + 1) * 7 * 24 * 60 * 60 * 1000);
       const weekEnd = new Date(Date.now() - i * 7 * 24 * 60 * 60 * 1000);
       const label = weekStart.toLocaleDateString("en-GB", { month: "short", day: "numeric" });
       const [[allRow], [aiRow]] = await Promise.all([
-        db.select({ count: count() }).from(lessonPlans).where(and(gte(lessonPlans.createdAt, weekStart), lt(lessonPlans.createdAt, weekEnd))),
-        db.select({ count: count() }).from(lessonPlans).where(and(gte(lessonPlans.createdAt, weekStart), lt(lessonPlans.createdAt, weekEnd), eq(lessonPlans.aiGenerated, true))),
+        tid != null
+          ? db.select({ count: count() }).from(lessonPlans).where(and(eq(lessonPlans.tenantId, tid), gte(lessonPlans.createdAt, weekStart), lt(lessonPlans.createdAt, weekEnd)))
+          : db.select({ count: count() }).from(lessonPlans).where(and(gte(lessonPlans.createdAt, weekStart), lt(lessonPlans.createdAt, weekEnd))),
+        tid != null
+          ? db.select({ count: count() }).from(lessonPlans).where(and(eq(lessonPlans.tenantId, tid), gte(lessonPlans.createdAt, weekStart), lt(lessonPlans.createdAt, weekEnd), eq(lessonPlans.aiGenerated, true)))
+          : db.select({ count: count() }).from(lessonPlans).where(and(gte(lessonPlans.createdAt, weekStart), lt(lessonPlans.createdAt, weekEnd), eq(lessonPlans.aiGenerated, true))),
       ]);
       weeks.push({ label, plansCreated: allRow?.count ?? 0, aiPlans: aiRow?.count ?? 0 });
     }
@@ -205,14 +212,19 @@ export const directorRouter = router({
   }),
 
   /** Aggregated data for report exports */
-  getReportsData: adminProcedure.query(async () => {
+  getReportsData: adminProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
+    const tid = ctx.tenantId;
     const [allPlans, allScans, allFlags, allTeachers] = await Promise.all([
-      db.select({ id: lessonPlans.id, title: lessonPlans.title, subject: lessonPlans.subject, yearGroup: lessonPlans.yearGroup, competencies: lessonPlans.competencies, aiGenerated: lessonPlans.aiGenerated, createdAt: lessonPlans.createdAt }).from(lessonPlans).orderBy(desc(lessonPlans.createdAt)),
+      tid != null
+        ? db.select({ id: lessonPlans.id, title: lessonPlans.title, subject: lessonPlans.subject, yearGroup: lessonPlans.yearGroup, competencies: lessonPlans.competencies, aiGenerated: lessonPlans.aiGenerated, createdAt: lessonPlans.createdAt }).from(lessonPlans).where(eq(lessonPlans.tenantId, tid)).orderBy(desc(lessonPlans.createdAt))
+        : db.select({ id: lessonPlans.id, title: lessonPlans.title, subject: lessonPlans.subject, yearGroup: lessonPlans.yearGroup, competencies: lessonPlans.competencies, aiGenerated: lessonPlans.aiGenerated, createdAt: lessonPlans.createdAt }).from(lessonPlans).orderBy(desc(lessonPlans.createdAt)),
       db.select().from(biasScanRuns).orderBy(desc(biasScanRuns.runAt)),
       db.select().from(aiBiasFlags).orderBy(desc(aiBiasFlags.createdAt)),
-      db.select({ id: users.id, name: users.name, email: users.email, role: users.role, createdAt: users.createdAt }).from(users),
+      tid != null
+        ? db.select({ id: users.id, name: users.name, email: users.email, role: users.role, createdAt: users.createdAt }).from(users).where(eq(users.tenantId, tid))
+        : db.select({ id: users.id, name: users.name, email: users.email, role: users.role, createdAt: users.createdAt }).from(users),
     ]);
     return { allPlans, allScans, allFlags, allTeachers };
   }),
@@ -327,7 +339,7 @@ export const directorRouter = router({
     }),
 
   /** Get school-wide settings */
-  getSchoolSettings: adminProcedure.query(async () => {
+  getSchoolSettings: adminProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
     const rows = await db.select().from(appSettings);
@@ -349,10 +361,11 @@ export const directorRouter = router({
     }),
 
   /** List all users for admin management */
-  getUsersForAdmin: adminProcedure.query(async () => {
+  getUsersForAdmin: adminProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
-    return db.select({ id: users.id, name: users.name, email: users.email, role: users.role, createdAt: users.createdAt, lastSignedIn: users.lastSignedIn }).from(users).orderBy(desc(users.createdAt));
+    const tid = ctx.tenantId;
+    return db.select({ id: users.id, name: users.name, email: users.email, role: users.role, createdAt: users.createdAt, lastSignedIn: users.lastSignedIn }).from(users).where(tid != null ? eq(users.tenantId, tid) : undefined).orderBy(desc(users.createdAt));
   }),
 
   /** Update a user's role - sends owner notification when promoting to admin */
@@ -426,7 +439,7 @@ export const directorRouter = router({
    * Returns id, displayName, email, role, position, tenantId, lastSignedIn, deactivatedAt,
    * schoolLocation, schoolLanguage.
    */
-  listAllUsersForAdmin: adminProcedure.query(async () => {
+  listAllUsersForAdmin: adminProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
     const { tenants } = await import("../../drizzle/schema");
@@ -454,9 +467,10 @@ export const directorRouter = router({
   }),
 
   /** LOMLOE curriculum compliance — competency gap analysis across all lesson plans */
-  getCurriculumCompliance: adminProcedure.query(async () => {
+  getCurriculumCompliance: adminProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
+    const tid = ctx.tenantId;
 
     const allPlans = await db
       .select({
@@ -469,6 +483,7 @@ export const directorRouter = router({
         createdAt: lessonPlans.createdAt,
       })
       .from(lessonPlans)
+      .where(tid != null ? eq(lessonPlans.tenantId, tid) : undefined)
       .orderBy(desc(lessonPlans.createdAt));
 
     const totalPlans = allPlans.length;
@@ -530,11 +545,12 @@ export const directorRouter = router({
   }),
 
   /** School-wide student progress: per-class competency heatmap for director view */
-  getSchoolWideStudentProgress: adminProcedure.query(async () => {
+  getSchoolWideStudentProgress: adminProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
+    const tid = ctx.tenantId;
 
-    // Get all class groups across all teachers
+    // Get all class groups (scoped to tenant if applicable)
     const allGroups = await db
       .select({
         id: classGroups.id,
@@ -543,6 +559,7 @@ export const directorRouter = router({
         userId: classGroups.userId,
       })
       .from(classGroups)
+      .where(tid != null ? eq(classGroups.tenantId, tid) : undefined)
       .orderBy(classGroups.className);
 
     if (allGroups.length === 0) {
@@ -618,7 +635,7 @@ export const directorRouter = router({
   /**
    * Get the school branding settings (logo, name) from the singleton school_settings row.
    */
-  getSchoolBranding: adminProcedure.query(async () => {
+  getSchoolBranding: adminProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     if (!db) return { id: 1, schoolName: null, logoUrl: null, logoKey: null, updatedAt: new Date() };
     const rows = await db.select().from(schoolSettings).where(eq(schoolSettings.id, 1));
@@ -681,9 +698,10 @@ export const directorRouter = router({
    * List all signed-up users with their position status.
    * Director-only: used for the staff management / member scan panel.
    */
-  listUsers: adminProcedure.query(async () => {
+  listUsers: adminProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
+    const tid = ctx.tenantId;
     const allUsers = await db
       .select({
         id: users.id,
@@ -695,6 +713,7 @@ export const directorRouter = router({
         createdAt: users.createdAt,
       })
       .from(users)
+      .where(tid != null ? eq(users.tenantId, tid) : undefined)
       .orderBy(desc(users.lastSignedIn));
     return allUsers;
   }),
@@ -753,9 +772,10 @@ export const directorRouter = router({
    * Director: list all local (email+password) accounts.
    * Returns id, displayName, email, role, position, lastSignedIn, createdAt.
    */
-  listLocalUsers: adminProcedure.query(async () => {
+  listLocalUsers: adminProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
+    const tid = ctx.tenantId;
     const rows = await db
       .select({
         id: users.id,
@@ -769,7 +789,7 @@ export const directorRouter = router({
         isPermanent: users.isPermanent,
       })
       .from(users)
-      .where(isNotNull(users.passwordHash))
+      .where(tid != null ? and(isNotNull(users.passwordHash), eq(users.tenantId, tid)) : isNotNull(users.passwordHash))
       .orderBy(desc(users.lastSignedIn));
     return rows;
   }),
@@ -1622,7 +1642,7 @@ export const directorRouter = router({
    * Infantil cycles, grouped by class group. Used by the Director Student Progress
    * page to show an Infantil-specific progress view anchored to Decree 21/2023.
    */
-  getInfantilProgress: adminProcedure.query(async () => {
+  getInfantilProgress: adminProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
 

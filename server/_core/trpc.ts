@@ -45,18 +45,29 @@ const requireUser = t.middleware(async opts => {
 
 export const protectedProcedure = t.procedure.use(requireUser);
 
+/** Roles that are allowed to access director/admin-level procedures */
+const ADMIN_ROLES = ['admin', 'director', 'head_of_study'] as const;
+type AdminRole = typeof ADMIN_ROLES[number];
+
 export const adminProcedure = t.procedure.use(
   t.middleware(async opts => {
     const { ctx, next } = opts;
 
-    if (!ctx.user || ctx.user.role !== 'admin') {
+    if (!ctx.user || !(ADMIN_ROLES as readonly string[]).includes(ctx.user.role)) {
       throw new TRPCError({ code: "FORBIDDEN", message: NOT_ADMIN_ERR_MSG });
     }
+
+    // isSuperAdmin = true only for platform-level admins (role === 'admin')
+    // Directors and HoS are scoped to their own tenant
+    const isSuperAdmin = ctx.user.role === 'admin';
+    const tenantId = isSuperAdmin ? null : (ctx.user.tenantId ?? null);
 
     return next({
       ctx: {
         ...ctx,
         user: ctx.user,
+        isSuperAdmin,
+        tenantId,
       },
     });
   }),

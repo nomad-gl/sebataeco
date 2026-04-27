@@ -4527,11 +4527,11 @@
 
 ## Deactivate / Delete Reason Field
 
-- [ ] DB: add `deactivationReason` varchar(512) column to `users` table
+- [x] DB: add `deactivationReason` varchar(512) column to `users` table
 - [x] DB migration: apply ALTER TABLE via webdev_execute_sql
-- [ ] Backend: update `deactivateUser` procedure to accept optional `reason` string and store it
-- [ ] Backend: update `bulkDeactivateUsers` procedure to accept optional `reason` string and store it
-- [ ] Backend: update `deleteLocalUser` procedure to accept optional `reason` string and include it in audit log details
+- [x] Backend: update `deactivateUser` procedure to accept optional `reason` string and store it
+- [x] Backend: update `bulkDeactivateUsers` procedure to accept optional `reason` string and store it
+- [x] Backend: update `deleteLocalUser` procedure to accept optional `reason` string and include it in audit log details
 - [x] Frontend: add reason textarea to single Deactivate confirm dialog
 - [x] Frontend: add reason textarea to bulk Deactivate confirm dialog
 - [x] Frontend: add reason textarea to Delete User confirm dialog

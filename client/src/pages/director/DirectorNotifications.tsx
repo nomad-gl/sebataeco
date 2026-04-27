@@ -90,13 +90,13 @@ export default function DirectorNotifications() {
 
   // Role gate
   useEffect(() => {
-    if (!authLoading && user && user.role !== "admin") navigate("/");
+    if (!authLoading && user && user.role !== "admin" && user.role !== "director") navigate("/");
   }, [authLoading, user, navigate]);
 
   const utils = trpc.useUtils();
 
   const { data: alerts = [], isLoading } = trpc.directorAlerts.getAlerts.useQuery(undefined, {
-    enabled: !!user && user.role === "admin",
+    enabled: !!user && (user.role === "admin" || user.role === "director"),
     staleTime: 10_000,
   });
 
