@@ -1713,13 +1713,10 @@ export const directorRouter = router({
       // 1. Invalidate all password reset tokens
       await db.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, target.id));
 
-      // 2. Mark any unused teacher invites for this email as used (prevents re-use)
+      // 2. Delete ALL teacher invite history rows for this email (user is gone, no need to keep history)
       if (target.email) {
         const { teacherInvites } = await import("../../drizzle/schema");
-        await db
-          .update(teacherInvites)
-          .set({ usedAt: new Date() })
-          .where(and(eq(teacherInvites.email, target.email), isNull(teacherInvites.usedAt)));
+        await db.delete(teacherInvites).where(eq(teacherInvites.email, target.email));
       }
 
       // 3. Log the deletion for audit trail before removing the row
