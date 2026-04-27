@@ -5,7 +5,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import {
   Search, Users, GraduationCap, ChevronLeft, ChevronRight,
-  ExternalLink, BookOpen, Filter, X
+  ExternalLink, BookOpen, Filter, X, ArrowLeft
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -97,7 +97,16 @@ export default function StudentDirectory() {
       <div className="p-4 md:p-6 space-y-5 max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
+          <div className="space-y-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="-ml-1 text-muted-foreground hover:text-foreground"
+              onClick={() => navigate("/director/overview")}
+            >
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              {t("std_dir_back_to_menu")}
+            </Button>
             <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
               <GraduationCap className="w-6 h-6 text-primary" />
               {t("std_dir_title")}
