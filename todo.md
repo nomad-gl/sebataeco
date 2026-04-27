@@ -4552,9 +4552,16 @@
 - [x] i18n: add reason field keys to EN/ES/CA
 
 ## Director PDF Progress Report
-- [ ] Add `generateProgressReport` tRPC procedure in director router — aggregates class groups, student counts, attendance rates, lesson plan counts, cover stats per group
-- [ ] Build server-side PDF using pdfkit with school logo, summary stats, per-class breakdown table, attendance chart data, and "Powered by SEBA" branding
+- [x] Add `generateProgressReport` tRPC procedure in director router — aggregates class groups, student counts, attendance rates, lesson plan counts, cover stats per group
+- [x] Build server-side PDF using pdfkit with school logo, summary stats, per-class breakdown table, attendance chart data, and "Powered by SEBA" branding
 - [x] Add prominent "Generate PDF Report" button to DirectorOverview (hero/header area) and DirectorStudentProgress page
 - [x] Wire button to trigger download via fetch → blob → anchor click pattern
 - [x] Add i18n keys for PDF button and report strings (EN/ES/CA)
 - [x] Write vitest test for the report data aggregation procedure
+
+## Student Progress Summary Cards — Linked
+- [x] Card 1 (Total Classes) → /head-of-study/groups (class groups list)
+- [x] Card 2 (Total Students) → /head-of-study/attendance (student attendance overview)
+- [x] Card 3 (Total Activities) → /director/curriculum (lesson plans / curriculum)
+- [x] Card 4 (School Average %) → /director/reports (school-wide reports)
+- [x] Add hover/active styles to all four cards (cursor-pointer, ring, scale)

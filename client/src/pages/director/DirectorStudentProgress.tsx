@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import { useI18n } from "@/contexts/I18nContext";
 import { trpc } from "@/lib/trpc";
-import { GraduationCap, Loader2, Users, TrendingUp, AlertCircle, Printer, FileDown } from "lucide-react";
+import { GraduationCap, Loader2, Users, TrendingUp, AlertCircle, Printer, FileDown, BookOpen, BarChart3 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -151,35 +151,94 @@ export default function DirectorStudentProgress() {
           </div>
         ) : (
           <>
-            {/* School-wide summary row */}
+            {/* School-wide summary row — each card is a clickable link */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <Card className="bg-primary/5 border-primary/20">
+              {/* Card 1: Total Classes → Class Groups list */}
+              <Card
+                className="bg-primary/5 border-primary/20 cursor-pointer transition-all duration-150 hover:shadow-md hover:scale-[1.02] hover:border-primary/50 active:scale-[0.98] group"
+                onClick={() => navigate("/head-of-study/groups")}
+                role="link"
+                tabIndex={0}
+                onKeyDown={e => e.key === "Enter" && navigate("/head-of-study/groups")}
+                aria-label={t("dir_progress_total_classes")}
+              >
                 <CardContent className="pt-4 pb-3">
-                  <p className="text-2xl font-bold text-primary">{data.groups.length}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{t("dir_progress_total_classes")}</p>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-2xl font-bold text-primary">{data.groups.length}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{t("dir_progress_total_classes")}</p>
+                    </div>
+                    <Users className="w-4 h-4 text-primary/40 group-hover:text-primary/70 transition-colors mt-0.5" />
+                  </div>
+                  <p className="text-[10px] text-primary/60 mt-2 group-hover:text-primary transition-colors">{t("dir_progress_card_view_groups")}</p>
                 </CardContent>
               </Card>
-              <Card className="bg-teal-500/5 border-teal-500/20">
+
+              {/* Card 2: Total Students → Attendance overview */}
+              <Card
+                className="bg-teal-500/5 border-teal-500/20 cursor-pointer transition-all duration-150 hover:shadow-md hover:scale-[1.02] hover:border-teal-500/50 active:scale-[0.98] group"
+                onClick={() => navigate("/head-of-study/attendance")}
+                role="link"
+                tabIndex={0}
+                onKeyDown={e => e.key === "Enter" && navigate("/head-of-study/attendance")}
+                aria-label={t("dir_progress_total_students")}
+              >
                 <CardContent className="pt-4 pb-3">
-                  <p className="text-2xl font-bold text-teal-600">{data.groups.reduce((s, g) => s + g.studentCount, 0)}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{t("dir_progress_total_students")}</p>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-2xl font-bold text-teal-600">{data.groups.reduce((s, g) => s + g.studentCount, 0)}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{t("dir_progress_total_students")}</p>
+                    </div>
+                    <GraduationCap className="w-4 h-4 text-teal-500/40 group-hover:text-teal-500/70 transition-colors mt-0.5" />
+                  </div>
+                  <p className="text-[10px] text-teal-600/60 mt-2 group-hover:text-teal-600 transition-colors">{t("dir_progress_card_view_attendance")}</p>
                 </CardContent>
               </Card>
-              <Card className="bg-amber-500/5 border-amber-500/20">
+
+              {/* Card 3: Total Activities → Curriculum / Lesson Plans */}
+              <Card
+                className="bg-amber-500/5 border-amber-500/20 cursor-pointer transition-all duration-150 hover:shadow-md hover:scale-[1.02] hover:border-amber-500/50 active:scale-[0.98] group"
+                onClick={() => navigate("/director/curriculum")}
+                role="link"
+                tabIndex={0}
+                onKeyDown={e => e.key === "Enter" && navigate("/director/curriculum")}
+                aria-label={t("dir_progress_total_activities")}
+              >
                 <CardContent className="pt-4 pb-3">
-                  <p className="text-2xl font-bold text-amber-600">{data.groups.reduce((s, g) => s + g.totalActivities, 0)}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{t("dir_progress_total_activities")}</p>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-2xl font-bold text-amber-600">{data.groups.reduce((s, g) => s + g.totalActivities, 0)}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{t("dir_progress_total_activities")}</p>
+                    </div>
+                    <BookOpen className="w-4 h-4 text-amber-500/40 group-hover:text-amber-500/70 transition-colors mt-0.5" />
+                  </div>
+                  <p className="text-[10px] text-amber-600/60 mt-2 group-hover:text-amber-600 transition-colors">{t("dir_progress_card_view_curriculum")}</p>
                 </CardContent>
               </Card>
-              <Card className="bg-purple-500/5 border-purple-500/20">
+
+              {/* Card 4: School Average → Reports */}
+              <Card
+                className="bg-purple-500/5 border-purple-500/20 cursor-pointer transition-all duration-150 hover:shadow-md hover:scale-[1.02] hover:border-purple-500/50 active:scale-[0.98] group"
+                onClick={() => navigate("/director/reports")}
+                role="link"
+                tabIndex={0}
+                onKeyDown={e => e.key === "Enter" && navigate("/director/reports")}
+                aria-label={t("dir_progress_school_avg")}
+              >
                 <CardContent className="pt-4 pb-3">
                   {(() => {
                     const scored = data.schoolAverages.filter(c => c.average !== null);
                     const avg = scored.length > 0 ? Math.round(scored.reduce((s, c) => s + (c.average ?? 0), 0) / scored.length) : null;
                     return (
                       <>
-                        <p className="text-2xl font-bold text-purple-600">{avg !== null ? `${avg}%` : "—"}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{t("dir_progress_school_avg")}</p>
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="text-2xl font-bold text-purple-600">{avg !== null ? `${avg}%` : "—"}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{t("dir_progress_school_avg")}</p>
+                          </div>
+                          <BarChart3 className="w-4 h-4 text-purple-500/40 group-hover:text-purple-500/70 transition-colors mt-0.5" />
+                        </div>
+                        <p className="text-[10px] text-purple-600/60 mt-2 group-hover:text-purple-600 transition-colors">{t("dir_progress_card_view_reports")}</p>
                       </>
                     );
                   })()}
