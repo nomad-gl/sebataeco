@@ -18,6 +18,7 @@ import { eq, and, gte, lte, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { sendTempPasswordEmail } from "../email";
+import { buildTenantWhere } from "../tenantFilter";
 
 // ─── Timetable ────────────────────────────────────────────────────────────────
 
@@ -145,12 +146,14 @@ export const hosRouter = router({
   /**
    * Get all class groups across all teachers for the timetable slot assignment dropdown.
    */
-  getAllClassGroups: protectedProcedure.query(async () => {
+  getAllClassGroups: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     if (!db) return [];
+    const tenantWhere = buildTenantWhere(ctx.user, classGroups);
     return db
       .select({ id: classGroups.id, className: classGroups.className, level: classGroups.level })
-      .from(classGroups);
+      .from(classGroups)
+      .where(tenantWhere ?? eq(classGroups.userId, ctx.user.id));
   }),
 
   // ─── Attendance ──────────────────────────────────────────────────────────────

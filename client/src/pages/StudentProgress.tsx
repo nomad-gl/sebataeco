@@ -71,6 +71,19 @@ export default function StudentProgress() {
   const [schoolLogo, setSchoolLogo] = useState<string | null>(
     () => localStorage.getItem("seba_school_logo")
   );
+  // Sign-off state (persisted in localStorage)
+  const [signatureImg, setSignatureImg] = useState<string | null>(
+    () => localStorage.getItem("seba_signature_img")
+  );
+  const [signoffTeacherName, setSignoffTeacherName] = useState<string>(
+    () => localStorage.getItem("seba_signoff_teacher_name") ?? ""
+  );
+  const [signoffJobTitle, setSignoffJobTitle] = useState<string>(
+    () => localStorage.getItem("seba_signoff_job_title") ?? ""
+  );
+  const [signoffSchoolName, setSignoffSchoolName] = useState<string>(
+    () => localStorage.getItem("seba_signoff_school_name") ?? ""
+  );
   // Report editing state
   const [editMode, setEditMode] = useState(false);
   const [editedText, setEditedText] = useState<string | null>(null);
@@ -149,6 +162,8 @@ export default function StudentProgress() {
     { groupId: gId },
     { enabled: !!user && gId > 0 }
   );
+  const groupsListQ = trpc.groups.list.useQuery(undefined, { enabled: !!user });
+  const currentGroup = groupsListQ.data?.find((g) => g.id === gId);
   const assignmentsQ = trpc.progress.listAssignments.useQuery(
     { groupId: gId },
     { enabled: !!user && gId > 0 }
@@ -919,6 +934,67 @@ export default function StudentProgress() {
                         }} />
                       </label>
                     </div>
+
+                    {/* Sign-off fields */}
+                    <div className="space-y-2 p-3 bg-white/5 rounded-lg border border-white/10">
+                      <p className="text-white/50 text-xs font-medium uppercase tracking-wide">{t("gp_print_signoff_title")}</p>
+                      <div className="grid grid-cols-1 gap-2">
+                        <input
+                          type="text"
+                          value={signoffTeacherName}
+                          onChange={(e) => { setSignoffTeacherName(e.target.value); localStorage.setItem("seba_signoff_teacher_name", e.target.value); }}
+                          placeholder={t("gp_print_teacher_name_ph")}
+                          className="w-full bg-white/10 border border-white/20 rounded px-2 py-1.5 text-xs text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-teal-400"
+                        />
+                        <input
+                          type="text"
+                          value={signoffJobTitle}
+                          onChange={(e) => { setSignoffJobTitle(e.target.value); localStorage.setItem("seba_signoff_job_title", e.target.value); }}
+                          placeholder={t("gp_print_job_title_ph")}
+                          className="w-full bg-white/10 border border-white/20 rounded px-2 py-1.5 text-xs text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-teal-400"
+                        />
+                        <input
+                          type="text"
+                          value={signoffSchoolName}
+                          onChange={(e) => { setSignoffSchoolName(e.target.value); localStorage.setItem("seba_signoff_school_name", e.target.value); }}
+                          placeholder={t("gp_print_school_name_ph")}
+                          className="w-full bg-white/10 border border-white/20 rounded px-2 py-1.5 text-xs text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-teal-400"
+                        />
+                      </div>
+                      {/* Signature upload */}
+                      <div className="flex items-center gap-2 mt-1">
+                        <Pencil className="w-3.5 h-3.5 text-white/40 flex-shrink-0" />
+                        <span className="text-white/50 text-xs flex-1">
+                          {signatureImg ? t("gp_print_signature_attached") : t("gp_print_signature")}
+                        </span>
+                        {signatureImg && (
+                          <>
+                            <img src={signatureImg} alt="signature" className="h-8 w-auto rounded bg-white/10 p-0.5" />
+                            <button
+                              className="text-white/40 hover:text-red-400 transition-colors"
+                              onClick={() => { setSignatureImg(null); localStorage.removeItem("seba_signature_img"); }}
+                            ><XIcon className="w-3.5 h-3.5" /></button>
+                          </>
+                        )}
+                        <label className="cursor-pointer">
+                          <span className="text-xs text-teal-400 hover:text-teal-300 underline">
+                            {signatureImg ? t("gp_print_signature_change") : t("gp_print_signature_upload")}
+                          </span>
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                              const b64 = reader.result as string;
+                              setSignatureImg(b64);
+                              localStorage.setItem("seba_signature_img", b64);
+                            };
+                            reader.readAsDataURL(file);
+                            e.target.value = "";
+                          }} />
+                        </label>
+                      </div>
+                    </div>
                     <Button
                       variant="outline"
                       className="w-full border-white/20 text-white hover:bg-white/10 bg-transparent gap-2"
@@ -968,9 +1044,20 @@ ${bars}
                             return `<p>${line.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")}</p>`;
                           })
                           .join("");
+                        const groupName = currentGroup?.className ?? "";
                         const logoHtml = logo
                           ? `<img src="${logo}" alt="School logo" style="max-height:56px;max-width:140px;object-fit:contain;float:right;margin-left:12px" />`
                           : "";
+                        const signatureHtml = signatureImg
+                          ? `<img src="${signatureImg}" alt="Signature" style="max-height:60px;max-width:200px;object-fit:contain;display:block;margin-top:8px" />`
+                          : `<div style="border-bottom:1px solid #555;width:200px;margin-top:32px;"></div>`;
+                        const signoffHtml = (signoffTeacherName || signoffJobTitle || signoffSchoolName || signatureImg)
+                          ? `<div class="signoff">
+  ${signatureHtml}
+  ${signoffTeacherName ? `<p class="signoff-name">${signoffTeacherName}</p>` : ""}
+  ${signoffJobTitle ? `<p class="signoff-meta">${signoffJobTitle}</p>` : ""}
+  ${signoffSchoolName ? `<p class="signoff-meta">${signoffSchoolName}</p>` : ""}
+</div>` : "";
                         const html = `<!DOCTYPE html>
 <html lang="${lang}">
 <head>
@@ -980,7 +1067,8 @@ ${bars}
     @page { size: A4; margin: 20mm 18mm; }
     body { font-family: Georgia, serif; font-size: 12pt; color: #111; line-height: 1.6; }
     header { border-bottom: 2px solid #1e3a5f; padding-bottom: 8px; margin-bottom: 20px; overflow: hidden; }
-    header h1 { font-size: 18pt; margin: 0 0 4px; color: #1e3a5f; }
+    header h1 { font-size: 18pt; margin: 0 0 2px; color: #1e3a5f; }
+    header .class-group { font-size: 11pt; color: #1e3a5f; font-style: italic; margin: 0 0 4px; }
     header .meta { font-size: 10pt; color: #555; }
     .grade-badge { display: inline-block; padding: 4px 12px; border-radius: 4px; font-weight: bold; font-size: 11pt; background: #1e3a5f; color: #fff; margin-bottom: 16px; }
     h2 { font-size: 14pt; color: #1e3a5f; margin-top: 20px; }
@@ -990,20 +1078,28 @@ ${bars}
     th { background: #1e3a5f; color: #fff; padding: 6px 10px; text-align: left; }
     td { border-bottom: 1px solid #ddd; padding: 5px 10px; }
     .chart-title { font-size: 11pt; font-weight: bold; color: #1e3a5f; margin-top: 20px; margin-bottom: 4px; }
-    footer { border-top: 1px solid #ccc; margin-top: 32px; padding-top: 8px; font-size: 9pt; color: #888; text-align: center; }
+    .overall-section { page-break-before: always; padding-top: 12px; }
+    .signoff { margin-top: 48px; border-top: 1px solid #ccc; padding-top: 16px; }
+    .signoff-name { font-weight: bold; font-size: 11pt; margin: 4px 0 0; color: #111; }
+    .signoff-meta { font-size: 10pt; color: #555; margin: 2px 0; }
   </style>
 </head>
 <body>
   <header>
     ${logoHtml}
-    <h1>${studentName} — ${t("gp_print_student_report")}</h1>
-    <div class="meta">${t("gp_print_overall_score")}: ${overall !== null ? overall + "%" : "N/A"} &nbsp;|&nbsp; ${t("gp_print_generated")}: ${date}</div>
+    <h1>${studentName}</h1>
+    ${groupName ? `<p class="class-group">${t("gp_print_class_group")}: ${groupName}</p>` : ""}
+    <div class="meta">${t("gp_print_student_report")} &nbsp;|&nbsp; ${t("gp_print_generated")}: ${date}</div>
   </header>
   <div class="grade-badge">${t("gp_print_lomloe_grade")}: ${grade}</div>
   ${scores.length ? `<div class="chart-title">${t("gp_print_comp_scores")}</div>${chartSvg}` : ""}
   ${scoresTableHtml}
   ${bodyHtml}
-  <footer>AINA | TA — LOMLOE Teaching Assistant &nbsp;|&nbsp; Powered by SEBA</footer>
+  <div class="overall-section">
+    <h2>${t("gp_print_lomloe_grade")}: ${grade}${overall !== null ? ` (${overall}%)` : ""}</h2>
+    <p>${t("gp_print_overall_score")}: ${overall !== null ? overall + "%" : "N/A"}</p>
+  </div>
+  ${signoffHtml}
 </body>
 </html>`;
                         const win = window.open("", "_blank", "width=900,height=700");

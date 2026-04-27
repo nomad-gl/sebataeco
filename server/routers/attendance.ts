@@ -3,6 +3,7 @@ import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { attendanceRecords, attendanceChanges, groupStudents, classGroups, users } from "../../drizzle/schema";
 import { eq, and, desc } from "drizzle-orm";
+import { buildTenantWhere } from "../tenantFilter";
 
 export const attendanceRouter = router({
   /**
@@ -163,12 +164,14 @@ export const attendanceRouter = router({
   /**
    * Get all class groups (for the group selector dropdown).
    */
-  getGroups: protectedProcedure.query(async () => {
+  getGroups: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
+    const tenantWhere = buildTenantWhere(ctx.user, classGroups);
     return db
       .select()
       .from(classGroups)
+      .where(tenantWhere ?? eq(classGroups.userId, ctx.user.id))
       .orderBy(classGroups.yearGroup, classGroups.className);
   }),
 });

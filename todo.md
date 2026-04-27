@@ -4615,3 +4615,14 @@
 - [x] Frontend: editable title field, add/remove/adjust competency score rows in edit mode
 - [x] Frontend: delete activity button with confirmation
 - [x] i18n keys for edit/delete activity UI in EN/ES/CA
+
+## Feature: Print Report Updates
+- [x] Add student class group name under student name in printed report
+- [x] "Overall LOMLOE Grade" section starts on a new page in print
+- [x] Remove "AINA | TA — LOMLOE Teaching Assistant | Powered by SEBA" footer from printed report
+- [x] Add teacher sign-off section: teacher name, job title, school name
+- [x] Allow uploading a custom signature image for the sign-off section
+- [x] i18n keys for sign-off section in EN/ES/CA
+
+## Bug: Class Group Selector
+- [x] Fix: class groups created on My Classes page cannot be selected in the group selector
