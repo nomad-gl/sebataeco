@@ -4607,3 +4607,11 @@
 - [x] Frontend: inline comment editor on each thumbnail (click pencil icon to edit, save on blur/Enter)
 - [x] Frontend: show comment text in the file viewer dialog
 - [x] i18n keys for comment UI in EN/ES/CA
+
+## Feature: Edit Activity History
+- [x] Backend: updateActivity procedure (update title + upsert/delete competency score rows by activityId)
+- [x] Backend: deleteActivity procedure (delete all student_progress rows + worksheets by activityId)
+- [x] Frontend: edit mode toggle on each activity card in history (pencil icon)
+- [x] Frontend: editable title field, add/remove/adjust competency score rows in edit mode
+- [x] Frontend: delete activity button with confirmation
+- [x] i18n keys for edit/delete activity UI in EN/ES/CA

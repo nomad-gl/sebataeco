@@ -20,8 +20,12 @@ import {
 import {
   ArrowLeft, User, TrendingUp, BookOpen, FileText,
   CheckCircle2, Circle, Loader2, Trophy, Star, Download, X, Plus, ImagePlus, X as XIcon,
-  Pencil, Eye, RotateCcw, Save, Paperclip, Upload, ExternalLink, FileImage, File as FileIcon,
+  Pencil, Eye, RotateCcw, Save, Paperclip, Upload, ExternalLink, FileImage, File as FileIcon, Trash2,
 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import NavBar from "@/components/NavBar";
 import { SebaSymbol } from "@/components/SebaSymbol";
 import { Streamdown } from "streamdown";
@@ -486,7 +490,7 @@ export default function StudentProgress() {
                 {records.length === 0 ? (
                   <p className="text-white/40 text-sm text-center py-8">{t("sp_no_history")}</p>
                 ) : (
-                  <ActivityHistoryList records={records} groupId={gId} studentId={sId} t={t} />
+                  <ActivityHistoryList records={records} groupId={gId} studentId={sId} t={t} onMutated={() => recordsQ.refetch()} />
                 )}
               </CardContent>
             </Card>
@@ -1878,54 +1882,292 @@ function WorksheetThumbnails({
   );
 }
 
+// ── Editable activity card ────────────────────────────────────────────────────
+
+type ScoreRow = { competency: string; score: number };
+
+function ActivityCard({
+  activityKey,
+  rows,
+  groupId,
+  studentId,
+  t,
+  onMutated,
+}: {
+  activityKey: string;
+  rows: ProgressRecord[];
+  groupId: number;
+  studentId: number;
+  t: (k: import("@/contexts/I18nContext").TranslationKey) => string;
+  onMutated: () => void;
+}) {
+  const first = rows[0];
+  const activityId = first.activityId;
+  const date = new Date(first.recordedAt).toLocaleDateString();
+
+  const [editing, setEditing] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [draftTitle, setDraftTitle] = useState(first.activityTitle ?? first.activityType);
+  const [draftScores, setDraftScores] = useState<ScoreRow[]>(
+    rows.map((r) => ({ competency: r.competency, score: r.score }))
+  );
+
+  const utils = trpc.useUtils();
+
+  const updateActivity = trpc.progress.updateActivity.useMutation({
+    onSuccess: () => {
+      toast.success(t("sp_history_saved"));
+      utils.progress.getStudentProgress.invalidate();
+      setEditing(false);
+      onMutated();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const deleteActivity = trpc.progress.deleteActivity.useMutation({
+    onSuccess: () => {
+      toast.success(t("sp_history_deleted"));
+      utils.progress.getStudentProgress.invalidate();
+      setConfirmDelete(false);
+      onMutated();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const startEdit = () => {
+    setDraftTitle(first.activityTitle ?? first.activityType);
+    setDraftScores(rows.map((r) => ({ competency: r.competency, score: r.score })));
+    setEditing(true);
+  };
+
+  const addScoreRow = () => {
+    const used = new Set(draftScores.map((s) => s.competency));
+    const next = ALL_COMPETENCIES.find((c) => !used.has(c));
+    if (next) setDraftScores((prev) => [...prev, { competency: next, score: 50 }]);
+  };
+
+  const removeScoreRow = (idx: number) => {
+    if (draftScores.length <= 1) return;
+    setDraftScores((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const updateScoreRow = (idx: number, field: "competency" | "score", value: string | number) => {
+    setDraftScores((prev) =>
+      prev.map((s, i) => (i === idx ? { ...s, [field]: value } : s))
+    );
+  };
+
+  const handleSave = () => {
+    if (!activityId) return;
+    updateActivity.mutate({
+      activityId,
+      groupId,
+      studentId,
+      activityTitle: draftTitle.trim() || first.activityType,
+      scores: draftScores,
+    });
+  };
+
+  const handleDelete = () => {
+    if (!activityId) return;
+    deleteActivity.mutate({ activityId, groupId, studentId });
+  };
+
+  const displayTitle = first.activityTitle ?? first.activityType;
+
+  return (
+    <div className={`p-3 rounded-lg border space-y-2 transition-colors ${
+      editing ? "bg-white/10 border-teal-500/40" : "bg-white/5 border-white/10"
+    }`}>
+      {/* Header */}
+      <div className="flex items-start gap-2">
+        <div className="flex-1 min-w-0">
+          {editing ? (
+            <input
+              value={draftTitle}
+              onChange={(e) => setDraftTitle(e.target.value)}
+              placeholder={t("sp_history_title_label")}
+              className="w-full bg-white/10 border border-white/20 rounded px-2 py-1 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-teal-400"
+            />
+          ) : (
+            <div className="text-sm text-white font-medium truncate">{displayTitle}</div>
+          )}
+          <div className="text-xs text-white/40 mt-0.5">{date}</div>
+        </div>
+
+        {/* Action buttons */}
+        {activityId && (
+          <div className="flex items-center gap-1 shrink-0">
+            {editing ? (
+              <>
+                <Button
+                  size="sm"
+                  onClick={handleSave}
+                  disabled={updateActivity.isPending || draftScores.length === 0}
+                  className="bg-teal-600 hover:bg-teal-500 text-white h-7 px-2 text-xs"
+                >
+                  {updateActivity.isPending
+                    ? <Loader2 className="w-3 h-3 animate-spin" />
+                    : <><Save className="w-3 h-3 mr-1" />{t("sp_history_save")}</>}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setEditing(false)}
+                  className="text-white/50 hover:text-white h-7 px-2 text-xs"
+                >
+                  {t("sp_history_cancel")}
+                </Button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={startEdit}
+                  title={t("sp_history_edit")}
+                  className="p-1.5 rounded hover:bg-white/10 text-white/40 hover:text-teal-400 transition-colors"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmDelete(true)}
+                  title={t("sp_history_delete")}
+                  className="p-1.5 rounded hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Score rows */}
+      {editing ? (
+        <div className="space-y-1.5">
+          {draftScores.map((s, idx) => (
+            <div key={idx} className="flex items-center gap-2">
+              <Select
+                value={s.competency}
+                onValueChange={(v) => updateScoreRow(idx, "competency", v)}
+              >
+                <SelectTrigger className="h-7 w-24 text-xs bg-white/10 border-white/20 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-800 border-white/20">
+                  {ALL_COMPETENCIES.map((c) => (
+                    <SelectItem
+                      key={c}
+                      value={c}
+                      disabled={draftScores.some((r, i) => i !== idx && r.competency === c)}
+                      className="text-white text-xs"
+                    >
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={s.score}
+                onChange={(e) => updateScoreRow(idx, "score", Math.min(100, Math.max(0, Number(e.target.value))))}
+                className="w-16 h-7 bg-white/10 border border-white/20 rounded px-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-teal-400"
+              />
+              <span className="text-xs text-white/40">%</span>
+              <button
+                type="button"
+                onClick={() => removeScoreRow(idx)}
+                disabled={draftScores.length <= 1}
+                className="p-1 rounded hover:bg-red-500/20 text-white/30 hover:text-red-400 disabled:opacity-30 transition-colors"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+          {draftScores.length < ALL_COMPETENCIES.length && (
+            <button
+              type="button"
+              onClick={addScoreRow}
+              className="flex items-center gap-1 text-xs text-teal-400 hover:text-teal-300 transition-colors mt-1"
+            >
+              <Plus className="w-3 h-3" />{t("sp_history_add_competency")}
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {rows.map((r) => (
+            <div key={r.id} className="flex items-center gap-1.5 bg-white/10 rounded px-2 py-0.5">
+              <span className="text-xs font-bold text-white/60">{r.competency}</span>
+              <ScoreBadge score={r.score} />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Worksheet thumbnails */}
+      {activityId && <WorksheetThumbnails activityId={activityId} t={t} />}
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent className="bg-slate-900 border-white/20 text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">{t("sp_history_delete")}</AlertDialogTitle>
+            <AlertDialogDescription className="text-white/60">
+              {t("sp_history_delete_confirm")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-white/10 border-white/20 text-white hover:bg-white/20">
+              {t("sp_history_cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleteActivity.isPending}
+              className="bg-red-600 hover:bg-red-500 text-white"
+            >
+              {deleteActivity.isPending
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : t("sp_history_delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
 function ActivityHistoryList({
   records,
   groupId,
   studentId,
   t,
+  onMutated,
 }: {
   records: ProgressRecord[];
   groupId: number;
   studentId: number;
   t: (k: import("@/contexts/I18nContext").TranslationKey) => string;
+  onMutated: () => void;
 }) {
   const groups = groupRecords(records);
 
   return (
     <div className="space-y-3">
-      {groups.map(({ key, rows }) => {
-        const first = rows[0];
-        const activityId = first.activityId;
-        const title = first.activityTitle ?? first.activityType;
-        const date = new Date(first.recordedAt).toLocaleDateString();
-
-        return (
-          <div key={key} className="p-3 bg-white/5 rounded-lg border border-white/10 space-y-2">
-            {/* Header row */}
-            <div className="flex items-center gap-3">
-              <div className="flex-1">
-                <div className="text-sm text-white font-medium">{title}</div>
-                <div className="text-xs text-white/40">{date}</div>
-              </div>
-            </div>
-
-            {/* Competency score chips */}
-            <div className="flex flex-wrap gap-2">
-              {rows.map((r) => (
-                <div key={r.id} className="flex items-center gap-1.5 bg-white/10 rounded px-2 py-0.5">
-                  <span className="text-xs font-bold text-white/60">{r.competency}</span>
-                  <ScoreBadge score={r.score} />
-                </div>
-              ))}
-            </div>
-
-            {/* Worksheet thumbnails (only if activityId exists) */}
-            {activityId && (
-              <WorksheetThumbnails activityId={activityId} t={t} />
-            )}
-          </div>
-        );
-      })}
+      {groups.map(({ key, rows }) => (
+        <ActivityCard
+          key={key}
+          activityKey={key}
+          rows={rows}
+          groupId={groupId}
+          studentId={studentId}
+          t={t}
+          onMutated={onMutated}
+        />
+      ))}
     </div>
   );
 }

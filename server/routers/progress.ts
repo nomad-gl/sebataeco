@@ -1530,6 +1530,119 @@ Format your response exactly as:
         .orderBy(desc(progressWorksheets.uploadedAt));
     }),
 
+  // ── Activity editing ──────────────────────────────────────────────────────────
+
+  /**
+   * Update the title and competency scores for all student_progress rows
+   * that share the given activityId.
+   * - Rows for competencies in the new list are upserted (update if exists, insert if not).
+   * - Rows for competencies NOT in the new list are deleted.
+   */
+  updateActivity: protectedProcedure
+    .input(
+      z.object({
+        activityId: z.string(),
+        groupId: z.number(),
+        studentId: z.number(),
+        activityTitle: z.string().min(1).max(255),
+        scores: z.array(
+          z.object({
+            competency: z.string(),
+            score: z.number().min(0).max(100),
+          })
+        ).min(1),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      // Load existing rows for this activityId
+      const existing = await db
+        .select()
+        .from(studentProgress)
+        .where(eq(studentProgress.activityId, input.activityId));
+
+      if (existing.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Activity not found" });
+      }
+
+      const activityType = existing[0].activityType;
+      const existingComps = new Set(existing.map((r) => r.competency));
+      const newComps = new Set(input.scores.map((s) => s.competency));
+
+      // Delete rows for competencies that were removed
+      const toDelete = Array.from(existingComps).filter((c) => !newComps.has(c));
+      if (toDelete.length > 0) {
+        for (const comp of toDelete) {
+          await db
+            .delete(studentProgress)
+            .where(
+              and(
+                eq(studentProgress.activityId, input.activityId),
+                eq(studentProgress.competency, comp)
+              )
+            );
+        }
+      }
+
+      // Upsert each score in the new list
+      for (const s of input.scores) {
+        if (existingComps.has(s.competency)) {
+          // Update existing row
+          await db
+            .update(studentProgress)
+            .set({ score: s.score, activityTitle: input.activityTitle })
+            .where(
+              and(
+                eq(studentProgress.activityId, input.activityId),
+                eq(studentProgress.competency, s.competency)
+              )
+            );
+        } else {
+          // Insert new row
+          await db.insert(studentProgress).values({
+            groupId: input.groupId,
+            studentId: input.studentId,
+            activityId: input.activityId,
+            competency: s.competency,
+            score: s.score,
+            activityType,
+            activityTitle: input.activityTitle,
+          });
+        }
+      }
+
+      return { ok: true };
+    }),
+
+  /**
+   * Delete an entire activity (all student_progress rows + all worksheet files)
+   * identified by activityId.
+   */
+  deleteActivity: protectedProcedure
+    .input(
+      z.object({
+        activityId: z.string(),
+        groupId: z.number(),
+        studentId: z.number(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      await db
+        .delete(studentProgress)
+        .where(eq(studentProgress.activityId, input.activityId));
+
+      await db
+        .delete(progressWorksheets)
+        .where(eq(progressWorksheets.activityId, input.activityId));
+
+      return { ok: true };
+    }),
+
   /** Save or update the teacher comment on a worksheet file */
   updateWorksheetComment: protectedProcedure
     .input(
