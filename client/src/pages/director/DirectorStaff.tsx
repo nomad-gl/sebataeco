@@ -2,7 +2,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { useI18n } from "@/contexts/I18nContext";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useEffect, useState } from "react";
 import { UserCheck, Users, BookOpen, Activity, ScanLine, RefreshCw } from "lucide-react";
 import { SebaSymbol } from "@/components/SebaSymbol";
@@ -82,22 +82,38 @@ export default function DirectorStaff() {
             Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20" />)
           ) : (
             <>
-              <Card className="text-center"><CardContent className="pt-4 pb-3">
-                <p className="text-2xl font-bold text-foreground">{data?.totalTeachers ?? 0}</p>
-                <p className="text-xs text-muted-foreground mt-1">{t("dir_total_teachers")}</p>
-              </CardContent></Card>
-              <Card className="text-center"><CardContent className="pt-4 pb-3">
-                <p className="text-2xl font-bold text-primary">{data?.activeThisWeek ?? 0}</p>
-                <p className="text-xs text-muted-foreground mt-1">{t("dir_active_this_week")}</p>
-              </CardContent></Card>
-              <Card className="text-center"><CardContent className="pt-4 pb-3">
-                <p className="text-2xl font-bold text-green-500">{data?.totalPlansCreated ?? 0}</p>
-                <p className="text-xs text-muted-foreground mt-1">{t("dir_stat_lesson_plans")}</p>
-              </CardContent></Card>
-              <Card className="text-center"><CardContent className="pt-4 pb-3">
-                <p className="text-2xl font-bold text-amber-500">{data?.totalAiPlans ?? 0}</p>
-                <p className="text-xs text-muted-foreground mt-1">{t("dir_stat_ai_plans")}</p>
-              </CardContent></Card>
+              <Link href="/director/users">
+                <Card className="text-center cursor-pointer hover:shadow-md hover:border-primary/40 transition-all group">
+                  <CardContent className="pt-4 pb-3">
+                    <p className="text-2xl font-bold text-foreground group-hover:text-primary transition-colors">{data?.totalTeachers ?? 0}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{t("dir_total_teachers")}</p>
+                  </CardContent>
+                </Card>
+              </Link>
+              <a href="#staff-activity-table">
+                <Card className="text-center cursor-pointer hover:shadow-md hover:border-primary/40 transition-all group">
+                  <CardContent className="pt-4 pb-3">
+                    <p className="text-2xl font-bold text-primary group-hover:text-primary/80 transition-colors">{data?.activeThisWeek ?? 0}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{t("dir_active_this_week")}</p>
+                  </CardContent>
+                </Card>
+              </a>
+              <Link href="/director/reports">
+                <Card className="text-center cursor-pointer hover:shadow-md hover:border-green-400/40 transition-all group">
+                  <CardContent className="pt-4 pb-3">
+                    <p className="text-2xl font-bold text-green-500 group-hover:text-green-400 transition-colors">{data?.totalPlansCreated ?? 0}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{t("dir_stat_lesson_plans")}</p>
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link href="/director/reports">
+                <Card className="text-center cursor-pointer hover:shadow-md hover:border-amber-400/40 transition-all group">
+                  <CardContent className="pt-4 pb-3">
+                    <p className="text-2xl font-bold text-amber-500 group-hover:text-amber-400 transition-colors">{data?.totalAiPlans ?? 0}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{t("dir_stat_ai_plans")}</p>
+                  </CardContent>
+                </Card>
+              </Link>
             </>
           )}
         </div>
@@ -222,7 +238,7 @@ export default function DirectorStaff() {
         </Card>
 
         {/* ── Staff Activity Table ─────────────────────────────────────────── */}
-        <Card>
+        <Card id="staff-activity-table">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Activity className="w-4 h-4 text-primary" />

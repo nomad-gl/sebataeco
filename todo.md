@@ -4638,3 +4638,9 @@
 
 ## Feature: Daily Check-in Teacher Name
 - [x] Show logged-in teacher's name under "Today's Status" title on the Daily Check-in page
+
+## Feature: Staff Activity Card Links
+- [x] Link "Total Teachers" card → Director Settings/Users page (/director/settings)
+- [x] Link "Active This Week" card → Director Staff Activity table (anchor to per-teacher table on same page)
+- [x] Link "Lesson Plans" card → Director Reports page (/director/reports)
+- [x] Link "AI-Generated Plans" card → Director Reports page (/director/reports)
