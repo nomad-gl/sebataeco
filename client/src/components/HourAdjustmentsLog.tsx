@@ -3,19 +3,19 @@
  * for a specific teacher. Used in the Director's Teacher Profile → Hours tab.
  */
 import { trpc } from "@/lib/trpc";
-import { useI18n } from "@/contexts/I18nContext";
+import { useI18n, type TranslationKey } from "@/contexts/I18nContext";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Clock, TrendingDown, TrendingUp } from "lucide-react";
 
 type AdjustmentType = "extra_cover" | "payback" | "manual";
 
-function typeBadge(type: AdjustmentType, minutes: number) {
+function typeBadge(type: AdjustmentType, minutes: number, t: (key: TranslationKey) => string) {
   if (type === "extra_cover")
-    return <Badge variant="outline" className="text-amber-400 border-amber-500/50 text-xs">Extra Cover</Badge>;
+    return <Badge variant="outline" className="text-amber-400 border-amber-500/50 text-xs">{t("hour_adj_extra_cover")}</Badge>;
   if (type === "payback")
-    return <Badge variant="outline" className="text-blue-400 border-blue-500/50 text-xs">Payback</Badge>;
-  return <Badge variant="outline" className="text-muted-foreground text-xs">Manual</Badge>;
+    return <Badge variant="outline" className="text-blue-400 border-blue-500/50 text-xs">{t("hour_adj_payback")}</Badge>;
+  return <Badge variant="outline" className="text-muted-foreground text-xs">{t("hour_adj_manual")}</Badge>;
 }
 
 export function HourAdjustmentsLog({ userId }: { userId: number }) {
@@ -27,7 +27,7 @@ export function HourAdjustmentsLog({ userId }: { userId: number }) {
     return (
       <div className="text-sm text-muted-foreground py-4 flex items-center gap-2">
         <Clock className="h-4 w-4 animate-pulse" />
-        Loading hour adjustments...
+        {t("hour_adj_loading")}
       </div>
     );
   }
@@ -35,7 +35,7 @@ export function HourAdjustmentsLog({ userId }: { userId: number }) {
   if (!data || data.adjustments.length === 0) {
     return (
       <div className="text-sm text-muted-foreground py-4 text-center">
-        No hour adjustments recorded.
+        {t("hour_adj_empty")}
       </div>
     );
   }
@@ -61,8 +61,8 @@ export function HourAdjustmentsLog({ userId }: { userId: number }) {
           </p>
           <p className="text-xs text-muted-foreground">
             {isPositive
-              ? "Extra teaching contact hours above contracted schedule"
-              : "Teaching contact hours below contracted schedule"}
+              ? t("hour_adj_above_schedule")
+              : t("hour_adj_below_schedule")}
           </p>
         </div>
       </div>
@@ -81,7 +81,7 @@ export function HourAdjustmentsLog({ userId }: { userId: number }) {
             className="rounded-md border border-border p-3 space-y-1.5"
           >
             <div className="flex items-center justify-between gap-2">
-              {typeBadge(adj.adjustmentType, adj.adjustmentMinutes)}
+              {typeBadge(adj.adjustmentType, adj.adjustmentMinutes, t)}
               <span className={`text-sm font-semibold tabular-nums ${
                 adj.adjustmentMinutes >= 0 ? "text-amber-400" : "text-blue-400"
               }`}>

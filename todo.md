@@ -4477,7 +4477,7 @@
 - [x] Add tRPC procedure to save and read cutcgMemberNumber
 - [x] Add CUTCG member number input field to profile settings UI
 - [x] Display member number alongside CUTCG badge in NavBar and staff directory
-- [ ] Director creates teacher: send credentials email from Director's own school email address (not default system sender)
+- [ ] [BLOCKED - awaiting SMTP credentials] Director creates teacher: send credentials email from Director's own school email address (not default system sender)
 
 ## Cover Request Cancellation
 - [x] Add cancelCoverRequest backend procedure (Director only, requires reason)
@@ -4512,3 +4512,15 @@
 - [x] Add i18n keys for all alert types and UI strings (EN/ES/CA)
 - [x] Auto-trigger checkAndCreateAlerts when director visits any /director/* page
 - [x] TypeScript: 0 errors after all changes
+
+## User Management Improvements (Apr 2026)
+- [x] Backend: add bulkResetPasswords procedure (admin) — generates reset links for all selected users
+- [x] Backend: add deleteTeacherInvite procedure (admin) — deletes a single invite row by id
+- [x] Frontend: add bulk "Reset Passwords" button to the toolbar (appears when users are selected)
+- [x] Frontend: show bulk reset results dialog listing each user's reset URL
+- [x] Frontend: change deactivate button colour to orange/amber (not red/destructive)
+- [x] Frontend: add Delete button to each row in the Invite History card
+- [x] Frontend: confirm dialog before deleting an invite
+- [x] i18n: add keys for bulk reset and invite delete in EN/ES/CA
+- [x] Full i18n audit: replace all remaining hardcoded strings across all pages with t() calls
+- [x] i18n: add missing keys to EN/ES/CA blocks for any newly found hardcoded strings

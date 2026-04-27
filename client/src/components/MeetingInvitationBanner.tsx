@@ -69,7 +69,7 @@ export function MeetingInvitationBanner({ onAccept }: Props) {
             <div className="flex items-center gap-2">
               <SebaSymbol className="w-5 h-5 text-white/80 flex-shrink-0" />
               <div>
-                <p className="text-xs text-white/60 font-medium uppercase tracking-wide">AINA | Meet invitation</p>
+                <p className="text-xs text-white/60 font-medium uppercase tracking-wide">{t("meet_invite_header")}</p>
                 <p className="text-sm font-bold leading-tight">{inv.title}</p>
               </div>
             </div>
@@ -83,7 +83,7 @@ export function MeetingInvitationBanner({ onAccept }: Props) {
 
           {/* From */}
           <p className="text-xs text-white/70 mb-2">
-            From <span className="text-white font-semibold">{inv.fromName}</span>
+            {t("meet_invite_from")} <span className="text-white font-semibold">{inv.fromName}</span>
           </p>
 
           {/* Date/time */}
@@ -113,15 +113,15 @@ export function MeetingInvitationBanner({ onAccept }: Props) {
                 try {
                   const { roomName } = await acceptMut.mutateAsync({ invitationId: inv.id });
                   setDismissed((prev) => new Set(Array.from(prev).concat(inv.id)));
-                  toast.success("Meeting accepted!");
+                  toast.success(t("meet_invite_accepted_toast"));
                   onAccept(roomName, inv.title);
                 } catch {
-                  toast.error("Could not accept invitation");
+                  toast.error(t("meet_invite_accept_error"));
                 }
               }}
             >
               <CheckCircle className="w-3.5 h-3.5" />
-              Accept
+              {t("meet_invite_accept")}
             </Button>
             <Button
               size="sm"
@@ -132,14 +132,14 @@ export function MeetingInvitationBanner({ onAccept }: Props) {
                 try {
                   await declineMut.mutateAsync({ invitationId: inv.id });
                   setDismissed((prev) => new Set(Array.from(prev).concat(inv.id)));
-                  toast.info("Meeting declined");
+                  toast.info(t("meet_invite_declined_toast"));
                 } catch {
-                  toast.error("Could not decline invitation");
+                  toast.error(t("meet_invite_decline_error"));
                 }
               }}
             >
               <XCircle className="w-3.5 h-3.5" />
-              Decline
+              {t("meet_invite_decline")}
             </Button>
           </div>
         </div>

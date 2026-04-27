@@ -9,7 +9,7 @@
  */
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { useI18n } from "@/contexts/I18nContext";
+import { useI18n, type TranslationKey } from "@/contexts/I18nContext";
 import {
   ChevronDown, ChevronRight, Phone, Video,
   PhoneOff, PhoneMissed, MessageSquare, X,
@@ -28,33 +28,35 @@ function formatDuration(seconds: number | null): string {
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
-function formatRelative(date: Date): string {
+// formatRelative is now a hook-friendly function that takes t() as a parameter
+function formatRelative(date: Date, t: (key: TranslationKey) => string): string {
   const diff = Date.now() - date.getTime();
   const mins = Math.floor(diff / 60_000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return t("call_time_just_now");
+  if (mins < 60) return t("call_time_m_ago").replace("{m}", String(mins));
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
+  if (hrs < 24) return t("call_time_h_ago").replace("{h}", String(hrs));
   return date.toLocaleDateString();
 }
 
 /** Inline chat history drawer for a single call */
 function CallChatDrawer({ callId, myId, onClose }: { callId: number; myId: number | null; onClose: () => void }) {
+  const { t } = useI18n();
   const { data, isLoading } = trpc.callChat.getHistory.useQuery({ callId });
 
   return (
     <div className="mt-1 mb-2 mx-4 rounded-lg bg-white/5 border border-white/10 overflow-hidden">
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/10">
-        <span className="text-xs font-semibold text-muted-foreground">Call chat</span>
+        <span className="text-xs font-semibold text-muted-foreground">{t("call_chat_heading")}</span>
         <button onClick={onClose} className="text-muted-foreground hover:text-white transition-colors">
           <X className="w-3 h-3" />
         </button>
       </div>
       <div className="max-h-40 overflow-y-auto p-2 space-y-1.5">
         {isLoading ? (
-          <p className="text-xs text-muted-foreground text-center py-2">Loading…</p>
+          <p className="text-xs text-muted-foreground text-center py-2">{t("call_chat_loading")}</p>
         ) : !data || data.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-2">No messages in this call.</p>
+          <p className="text-xs text-muted-foreground text-center py-2">{t("call_chat_no_messages")}</p>
         ) : (
           data.map((msg) => (
             <div key={msg.id} className={`flex flex-col ${msg.own ? "items-end" : "items-start"}`}>
@@ -151,7 +153,7 @@ export function CallHistoryPanel({ myId, onRejoin }: CallHistoryPanelProps) {
                         ) : null}
                       </div>
                       <p className="text-xs text-muted-foreground/60 mt-0.5">
-                        {formatRelative(new Date(call.startedAt))}
+                        {formatRelative(new Date(call.startedAt), t)}
                       </p>
                     </div>
 

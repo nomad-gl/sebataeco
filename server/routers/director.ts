@@ -1738,4 +1738,79 @@ export const directorRouter = router({
 
       return { success: true, deletedEmail: target.email, deletedName: target.displayName };
     }),
+
+  /**
+   * Director: bulk password reset — generates a reset link for each selected user.
+   * Returns an array of { userId, email, displayName, resetUrl, expiresAt }.
+   */
+  bulkResetPasswords: adminProcedure
+    .input(z.object({
+      userIds: z.array(z.number().int().positive()).min(1).max(200),
+      origin: z.string().url(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const results: Array<{
+        userId: number;
+        email: string | null;
+        displayName: string | null;
+        resetUrl: string;
+        expiresAt: Date;
+      }> = [];
+      for (const userId of input.userIds) {
+        const [user] = await db
+          .select({ id: users.id, displayName: users.displayName, email: users.email })
+          .from(users)
+          .where(and(eq(users.id, userId), isNotNull(users.passwordHash)))
+          .limit(1);
+        if (!user) continue; // skip OAuth-only accounts
+        // Invalidate old tokens
+        await db
+          .update(passwordResetTokens)
+          .set({ usedAt: new Date() })
+          .where(eq(passwordResetTokens.userId, user.id));
+        const token = crypto.randomBytes(48).toString("hex");
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+        await db.insert(passwordResetTokens).values({ userId: user.id, token, expiresAt });
+        const resetUrl = `${input.origin}/reset-password?token=${token}&expiresAt=${expiresAt.getTime()}`;
+        await db.insert(adminAuditLogs).values({
+          userId: ctx.user.id,
+          action: "admin_password_reset",
+          resource: "user",
+          resourceId: String(user.id),
+          details: JSON.stringify({ issuedBy: "director", email: user.email, bulk: true }),
+        });
+        results.push({ userId: user.id, email: user.email, displayName: user.displayName, resetUrl, expiresAt });
+      }
+      return { success: true, results };
+    }),
+
+  /**
+   * Director: delete a single teacher invite row from the invite history.
+   */
+  deleteTeacherInvite: adminProcedure
+    .input(z.object({ inviteId: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const { teacherInvites } = await import("../../drizzle/schema");
+      const [invite] = await db
+        .select({ id: teacherInvites.id, email: teacherInvites.email, tenantId: teacherInvites.tenantId })
+        .from(teacherInvites)
+        .where(eq(teacherInvites.id, input.inviteId))
+        .limit(1);
+      if (!invite) throw new Error("Invite not found");
+      // Tenant guard — director can only delete invites from their own school
+      if (invite.tenantId !== ctx.user.tenantId) throw new Error("Forbidden");
+      await db.delete(teacherInvites).where(eq(teacherInvites.id, input.inviteId));
+      await db.insert(adminAuditLogs).values({
+        userId: ctx.user.id,
+        action: "delete_teacher_invite",
+        resource: "teacher_invite",
+        resourceId: String(input.inviteId),
+        details: JSON.stringify({ deletedEmail: invite.email }),
+      });
+      return { success: true, deletedEmail: invite.email };
+    }),
 });

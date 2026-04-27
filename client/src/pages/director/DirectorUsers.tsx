@@ -1,7 +1,8 @@
 /**
  * DirectorUsers — Director-only page listing all local (email+password) accounts.
- * Features: role selector, deactivate/reactivate, bulk deactivate, invite teacher,
- *           invite history table with Resend button.
+ * Features: role selector, deactivate/reactivate, bulk deactivate, bulk reset passwords,
+ *           invite teacher, invite history table with Resend + Delete buttons.
+ *           Deactivate button is amber/orange; destructive delete is red.
  */
 import { Badge } from "@/components/ui/badge";
 import { InviteCountdown } from "@/components/InviteCountdown";
@@ -39,6 +40,7 @@ import {
   UserX,
   UserCheck,
   Trash2,
+  RotateCcw,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -120,6 +122,11 @@ export default function DirectorUsers() {
   const [confirmResend, setConfirmResend] = useState<InviteRow | null>(null);
   const [resendResult, setResendResult] = useState<{ url: string; expiresAt: Date } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<LocalUser | null>(null);
+  // Bulk reset state
+  const [showBulkResetConfirm, setShowBulkResetConfirm] = useState(false);
+  const [bulkResetResults, setBulkResetResults] = useState<Array<{ userId: number; email: string | null; displayName: string | null; resetUrl: string; expiresAt: Date }> | null>(null);
+  // Invite delete state
+  const [confirmDeleteInvite, setConfirmDeleteInvite] = useState<InviteRow | null>(null);
 
   const { data: users = [], isLoading, refetch } = trpc.director.listLocalUsers.useQuery();
   const { data: invites = [], isLoading: invitesLoading, refetch: refetchInvites } =
@@ -199,6 +206,24 @@ export default function DirectorUsers() {
     onError: (err) => toast.error(err.message),
   });
 
+  const bulkResetMutation = trpc.director.bulkResetPasswords.useMutation({
+    onSuccess: (data) => {
+      setShowBulkResetConfirm(false);
+      setBulkResetResults(data.results.map(r => ({ ...r, expiresAt: new Date(r.expiresAt) })));
+      toast.success(t("dir_users_bulk_reset_toast").replace("{n}", String(data.results.length)));
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const deleteInviteMutation = trpc.director.deleteTeacherInvite.useMutation({
+    onSuccess: (data) => {
+      setConfirmDeleteInvite(null);
+      toast.success(t("dir_invite_delete_toast").replace("{email}", data.deletedEmail ?? "—"));
+      refetchInvites();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   const isDeactivatePending = deactivateMutation.isPending || reactivateMutation.isPending;
 
   const roleMutation = trpc.director.updateUserRole.useMutation({
@@ -274,15 +299,26 @@ export default function DirectorUsers() {
           />
         </div>
         {selected.size > 0 && (
-          <Button
-            variant="destructive"
-            size="sm"
-            className="gap-1.5"
-            onClick={() => setShowBulkConfirm(true)}
-          >
-            <UserX className="h-4 w-4" />
-            {t("dir_users_bulk_deactivate_btn").replace("{n}", String(selected.size))}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 border-amber-500 text-amber-600 hover:bg-amber-50 hover:text-amber-700"
+              onClick={() => setShowBulkConfirm(true)}
+            >
+              <UserX className="h-4 w-4" />
+              {t("dir_users_bulk_deactivate_btn").replace("{n}", String(selected.size))}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 border-blue-500 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+              onClick={() => setShowBulkResetConfirm(true)}
+            >
+              <RotateCcw className="h-4 w-4" />
+              {t("dir_users_bulk_reset_btn").replace("{n}", String(selected.size))}
+            </Button>
+          </div>
         )}
       </div>
 
@@ -414,8 +450,8 @@ export default function DirectorUsers() {
                             )}
                             <Button
                               size="sm"
-                              variant={isDeactivated ? "outline" : "ghost"}
-                              className={`gap-1.5 ${isDeactivated ? "text-green-600 border-green-600 hover:bg-green-50" : "text-destructive hover:text-destructive hover:bg-destructive/10"}`}
+                              variant={isDeactivated ? "outline" : "outline"}
+                              className={`gap-1.5 ${isDeactivated ? "text-green-600 border-green-600 hover:bg-green-50" : "text-amber-600 border-amber-500 hover:bg-amber-50 hover:text-amber-700"}`}
                               onClick={() => setConfirmDeactivate({ user, action: isDeactivated ? "reactivate" : "deactivate" })}
                             >
                               {isDeactivated
@@ -496,7 +532,7 @@ export default function DirectorUsers() {
                       <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatDate(invite.createdAt)}</td>
                       <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatDate(invite.expiresAt)}</td>
                       <td className="px-4 py-3">
-                        <div className="flex justify-end">
+                        <div className="flex justify-end gap-2">
                           <Button
                             size="sm"
                             variant="outline"
@@ -506,6 +542,16 @@ export default function DirectorUsers() {
                           >
                             <RefreshCw className="h-3.5 w-3.5" />
                             {t("dir_invite_resend_btn")}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            title={t("dir_invite_delete_btn")}
+                            onClick={() => setConfirmDeleteInvite(invite)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            {t("dir_invite_delete_btn")}
                           </Button>
                         </div>
                       </td>
@@ -774,6 +820,92 @@ export default function DirectorUsers() {
               {t("dir_users_reset_copy_link")}
             </Button>
             <Button onClick={() => setResetResult(null)}>{t("dir_users_close")}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk reset confirm dialog */}
+      <Dialog open={showBulkResetConfirm} onOpenChange={(open) => !open && setShowBulkResetConfirm(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("dir_users_bulk_reset_confirm_title")}</DialogTitle>
+            <DialogDescription>
+              {t("dir_users_bulk_reset_confirm_desc").replace("{n}", String(selected.size))}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowBulkResetConfirm(false)}>
+              {t("dir_users_cancel")}
+            </Button>
+            <Button
+              disabled={bulkResetMutation.isPending}
+              onClick={() => bulkResetMutation.mutate({ userIds: Array.from(selected), origin: window.location.origin })}
+            >
+              {bulkResetMutation.isPending
+                ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />{t("dir_users_resetting")}</>
+                : t("dir_users_bulk_reset_confirm_btn").replace("{n}", String(selected.size))}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk reset results dialog */}
+      <Dialog open={!!bulkResetResults} onOpenChange={(open) => !open && setBulkResetResults(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{t("dir_users_bulk_reset_done_title")}</DialogTitle>
+            <DialogDescription>{t("dir_users_bulk_reset_done_desc")}</DialogDescription>
+          </DialogHeader>
+          <div className="max-h-80 overflow-y-auto space-y-2">
+            {(bulkResetResults ?? []).map((r) => (
+              <div key={r.userId} className="rounded-md border bg-muted/40 p-3 space-y-1">
+                <p className="text-sm font-medium">{r.displayName ?? r.email ?? `#${r.userId}`}</p>
+                <p className="text-xs font-mono break-all text-muted-foreground select-all">{r.resetUrl}</p>
+                <p className="text-xs text-muted-foreground">{t("dir_users_reset_expires")}: {formatDate(r.expiresAt)}</p>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                const text = (bulkResetResults ?? []).map(r => `${r.displayName ?? r.email}: ${r.resetUrl}`).join("\n");
+                navigator.clipboard.writeText(text);
+                toast.success(t("dir_users_reset_copied"));
+              }}
+            >
+              {t("dir_users_bulk_reset_copy_all")}
+            </Button>
+            <Button onClick={() => { setBulkResetResults(null); setSelected(new Set()); }}>{t("dir_users_close")}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm delete invite dialog */}
+      <Dialog open={!!confirmDeleteInvite} onOpenChange={(open) => !open && setConfirmDeleteInvite(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <Trash2 className="h-5 w-5" />
+              {t("dir_invite_delete_confirm_title")}
+            </DialogTitle>
+            <DialogDescription>
+              {t("dir_invite_delete_confirm_desc").replace("{email}", confirmDeleteInvite?.email ?? "—")}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setConfirmDeleteInvite(null)}>
+              {t("dir_users_cancel")}
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleteInviteMutation.isPending}
+              onClick={() => confirmDeleteInvite && deleteInviteMutation.mutate({ inviteId: confirmDeleteInvite.id })}
+            >
+              {deleteInviteMutation.isPending
+                ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />{t("dir_users_resetting")}</>
+                : <><Trash2 className="h-4 w-4 mr-1" />{t("dir_invite_delete_confirm_btn")}</>}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
