@@ -4493,3 +4493,5 @@
 - [x] Show temporary welcome message with user's name after successful sign-in
 - [x] Add Remove User button with confirmation dialog to User Management page (delete user + credentials)
 - [x] Delete all invite history entries when user is deleted from Local Accounts
+- [ ] Add search bar to User Management page to filter users by name or email
+- [x] Populate demo data: teachers, students, classes, cover requests, calendar events, lesson plans, attendance (backdated to Sep 8 2025)

@@ -91,7 +91,7 @@ export const directorRouter = router({
       [openBiasFlags],
       [recentScanRuns],
     ] = await Promise.all([
-      db.select({ count: count() }).from(users).where(eq(users.role, "user")),
+      db.select({ count: count() }).from(users).where(inArray(users.role, ["user", "teacher"])),
       db.select({ count: count() }).from(lessonPlans),
       db.select({ count: count() }).from(lessonPlans).where(eq(lessonPlans.aiGenerated, true)),
       db.select({ count: count() }).from(practiceSessions),
@@ -151,7 +151,7 @@ export const directorRouter = router({
     const allTeachers = await db
       .select({ id: users.id, name: users.name, email: users.email, createdAt: users.createdAt, lastSignedIn: users.lastSignedIn })
       .from(users)
-      .where(eq(users.role, "user"))
+      .where(inArray(users.role, ["user", "teacher"]))
       .orderBy(desc(users.lastSignedIn));
 
     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -229,7 +229,7 @@ export const directorRouter = router({
         (async () => {
           const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
           const [[totalTeachers], [totalLessonPlans], [aiGeneratedPlans], [totalPracticeSessions], [openBiasFlags], [recentScanRuns]] = await Promise.all([
-            db.select({ count: count() }).from(users).where(eq(users.role, "user")),
+            db.select({ count: count() }).from(users).where(inArray(users.role, ["user", "teacher"])),
             db.select({ count: count() }).from(lessonPlans),
             db.select({ count: count() }).from(lessonPlans).where(eq(lessonPlans.aiGenerated, true)),
             db.select({ count: count() }).from(practiceSessions),
