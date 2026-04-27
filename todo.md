@@ -4600,3 +4600,10 @@
 - [x] Frontend ManualScoreEntry: drag & drop zone + file picker (PDF + photos) with upload on submit
 - [x] Frontend activity history: thumbnail strip per activity row, clickable to open full viewer
 - [x] i18n keys for upload UI in EN/ES/CA
+
+## Feature: Worksheet File Annotations
+- [x] DB migration 0059: add `comment` text column to progress_worksheets
+- [x] Backend: add `updateWorksheetComment` tRPC procedure
+- [x] Frontend: inline comment editor on each thumbnail (click pencil icon to edit, save on blur/Enter)
+- [x] Frontend: show comment text in the file viewer dialog
+- [x] i18n keys for comment UI in EN/ES/CA

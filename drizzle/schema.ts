@@ -2184,6 +2184,9 @@ export const progressWorksheets = mysqlTable("progress_worksheets", {
   mimeType: varchar("mimeType", { length: 128 }).notNull(),
   /** File size in bytes */
   fileSize: int("fileSize"),
+  /** Optional teacher annotation / comment on this worksheet file */
+  /** @migration 0059 */
+  comment: text("comment"),
   uploadedAt: timestamp("uploadedAt").defaultNow().notNull(),
 });
 export type ProgressWorksheet = typeof progressWorksheets.$inferSelect;

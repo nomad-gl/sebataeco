@@ -1529,4 +1529,22 @@ Format your response exactly as:
         )
         .orderBy(desc(progressWorksheets.uploadedAt));
     }),
+
+  /** Save or update the teacher comment on a worksheet file */
+  updateWorksheetComment: protectedProcedure
+    .input(
+      z.object({
+        worksheetId: z.number(),
+        comment: z.string().max(2000),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      await db
+        .update(progressWorksheets)
+        .set({ comment: input.comment || null })
+        .where(eq(progressWorksheets.id, input.worksheetId));
+      return { ok: true };
+    }),
 });

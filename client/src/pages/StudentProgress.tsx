@@ -1665,35 +1665,113 @@ function WorksheetThumbnails({
   activityId: string;
   t: (k: import("@/contexts/I18nContext").TranslationKey) => string;
 }) {
-  const [viewerFile, setViewerFile] = useState<{ url: string; name: string; mimeType: string } | null>(null);
+  const [viewerFile, setViewerFile] = useState<{
+    id: number; url: string; name: string; mimeType: string; comment: string | null;
+  } | null>(null);
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+  const [commentDraft, setCommentDraft] = useState("");
+  const utils = trpc.useUtils();
+
   const worksheetsQ = trpc.progress.getWorksheets.useQuery({ activityId }, { enabled: !!activityId });
   const files = worksheetsQ.data ?? [];
+
+  const saveComment = trpc.progress.updateWorksheetComment.useMutation({
+    onSuccess: () => {
+      toast.success(t("sp_worksheet_comment_saved"));
+      utils.progress.getWorksheets.invalidate({ activityId });
+      setEditingCommentId(null);
+      // Update viewer if open
+      setViewerFile((prev) => prev ? { ...prev, comment: commentDraft } : prev);
+    },
+  });
+
+  const startEdit = (f: { id: number; comment: string | null }) => {
+    setEditingCommentId(f.id);
+    setCommentDraft(f.comment ?? "");
+  };
+
+  const commitEdit = (id: number) => {
+    saveComment.mutate({ worksheetId: id, comment: commentDraft });
+  };
 
   if (files.length === 0) return null;
 
   return (
     <>
-      <div className="flex flex-wrap gap-2 mt-2">
+      <div className="flex flex-wrap gap-3 mt-2">
         {files.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            title={f.fileName}
-            onClick={() => setViewerFile({ url: f.fileUrl, name: f.fileName, mimeType: f.mimeType })}
-            className="relative group w-14 h-14 rounded-lg overflow-hidden border border-white/20 hover:border-teal-400 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-400"
-          >
-            {f.mimeType.startsWith("image/") ? (
-              <img src={f.fileUrl} alt={f.fileName} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-white/10 flex flex-col items-center justify-center gap-1">
-                <FileIcon className="w-5 h-5 text-white/50" />
-                <span className="text-[9px] text-white/40">{f.fileName.split(".").pop()?.toUpperCase()}</span>
+          <div key={f.id} className="flex flex-col gap-1 max-w-[120px]">
+            {/* Thumbnail */}
+            <button
+              type="button"
+              title={f.fileName}
+              onClick={() => setViewerFile({ id: f.id, url: f.fileUrl, name: f.fileName, mimeType: f.mimeType, comment: f.comment ?? null })}
+              className="relative group w-20 h-20 rounded-lg overflow-hidden border border-white/20 hover:border-teal-400 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-400"
+            >
+              {f.mimeType.startsWith("image/") ? (
+                <img src={f.fileUrl} alt={f.fileName} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-white/10 flex flex-col items-center justify-center gap-1">
+                  <FileIcon className="w-5 h-5 text-white/50" />
+                  <span className="text-[9px] text-white/40">{f.fileName.split(".").pop()?.toUpperCase()}</span>
+                </div>
+              )}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                <Eye className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
+            </button>
+
+            {/* Comment area */}
+            {editingCommentId === f.id ? (
+              <div className="flex flex-col gap-1">
+                <textarea
+                  autoFocus
+                  value={commentDraft}
+                  onChange={(e) => setCommentDraft(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); commitEdit(f.id); } if (e.key === "Escape") setEditingCommentId(null); }}
+                  placeholder={t("sp_worksheet_comment_placeholder")}
+                  className="w-20 text-[10px] bg-white/10 border border-white/20 rounded p-1 text-white placeholder:text-white/30 resize-none focus:outline-none focus:ring-1 focus:ring-teal-400"
+                  rows={3}
+                />
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => commitEdit(f.id)}
+                    disabled={saveComment.isPending}
+                    className="flex-1 text-[9px] bg-teal-600 hover:bg-teal-500 text-white rounded px-1 py-0.5 flex items-center justify-center gap-0.5"
+                  >
+                    {saveComment.isPending ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Save className="w-2.5 h-2.5" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingCommentId(null)}
+                    className="text-[9px] text-white/40 hover:text-white/70 rounded px-1 py-0.5"
+                  >
+                    <X className="w-2.5 h-2.5" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => startEdit(f)}
+                className="w-20 text-left text-[10px] rounded px-1 py-0.5 hover:bg-white/10 transition-colors group/comment"
+                title={t("sp_worksheet_add_comment")}
+              >
+                {f.comment ? (
+                  <span className="text-white/60 line-clamp-2 flex items-start gap-0.5">
+                    <Pencil className="w-2.5 h-2.5 mt-0.5 shrink-0 opacity-0 group-hover/comment:opacity-60 transition-opacity" />
+                    {f.comment}
+                  </span>
+                ) : (
+                  <span className="text-white/25 italic flex items-center gap-0.5">
+                    <Pencil className="w-2.5 h-2.5 opacity-0 group-hover/comment:opacity-60 transition-opacity" />
+                    {t("sp_worksheet_add_comment")}
+                  </span>
+                )}
+              </button>
             )}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-              <Eye className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-            </div>
-          </button>
+          </div>
         ))}
       </div>
 
@@ -1715,14 +1793,70 @@ function WorksheetThumbnails({
               </a>
             </DialogTitle>
           </DialogHeader>
-          <div className="mt-2 max-h-[70vh] overflow-auto rounded-lg">
+
+          {/* Comment section inside viewer */}
+          {viewerFile && (
+            <div className="border-t border-white/10 pt-3 pb-1">
+              <div className="flex items-start gap-2">
+                <Pencil className="w-3.5 h-3.5 text-teal-400 mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <p className="text-xs text-white/50 mb-1">{t("sp_worksheet_comment_label")}</p>
+                  {editingCommentId === viewerFile.id ? (
+                    <div className="flex flex-col gap-2">
+                      <textarea
+                        autoFocus
+                        value={commentDraft}
+                        onChange={(e) => setCommentDraft(e.target.value)}
+                        placeholder={t("sp_worksheet_comment_placeholder")}
+                        className="w-full text-sm bg-white/10 border border-white/20 rounded p-2 text-white placeholder:text-white/30 resize-none focus:outline-none focus:ring-1 focus:ring-teal-400"
+                        rows={3}
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => commitEdit(viewerFile.id)}
+                          disabled={saveComment.isPending}
+                          className="bg-teal-600 hover:bg-teal-500 text-white text-xs h-7"
+                        >
+                          {saveComment.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Save className="w-3 h-3 mr-1" />}
+                          Save
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setEditingCommentId(null)}
+                          className="text-white/50 hover:text-white text-xs h-7"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => startEdit(viewerFile)}
+                      className="w-full text-left text-sm rounded p-2 hover:bg-white/10 transition-colors border border-dashed border-white/20 hover:border-white/40"
+                    >
+                      {viewerFile.comment ? (
+                        <span className="text-white/70">{viewerFile.comment}</span>
+                      ) : (
+                        <span className="text-white/30 italic">{t("sp_worksheet_comment_placeholder")}</span>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-2 max-h-[60vh] overflow-auto rounded-lg">
             {viewerFile?.mimeType.startsWith("image/") ? (
               <img src={viewerFile.url} alt={viewerFile.name} className="w-full rounded-lg" />
             ) : viewerFile?.mimeType === "application/pdf" ? (
               <iframe
                 src={viewerFile.url}
                 title={viewerFile.name}
-                className="w-full h-[65vh] rounded-lg border-0"
+                className="w-full h-[55vh] rounded-lg border-0"
               />
             ) : (
               <div className="flex flex-col items-center justify-center py-12 gap-4">
