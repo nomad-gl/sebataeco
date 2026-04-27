@@ -4462,29 +4462,29 @@
 
 ## AI Generation — Infantil Calendar & Lesson Plans
 
-- [ ] Add tRPC procedure: infantil.aiGenerateCalendar — generates a week/month of themed calendar events aligned to Decret 21/2023 axes
-- [ ] Add tRPC procedure: infantil.aiGenerateLessonPlan — generates a full lesson plan for a given axis, principle, and age group
-- [ ] Add "Generate with AI" button and modal to the Infantil Calendar page
-- [ ] Add "Generate with AI" button and modal to the Infantil Lesson Plans page
-- [ ] AI calendar output: title, date, axis tag, learning objective, materials, duration
-- [ ] AI lesson plan output: title, objective, axis, principle, activities (intro/main/close), assessment, duration
-- [ ] All AI output in the user's selected language (CA/ES/EN)
-- [ ] Save generated content to the database (calendar_events / lesson_plans tables)
-- [ ] Include curriculum calendar year in AI generation prompt (academic year context for lesson sequencing)
+- [x] Add tRPC procedure: infantil.aiGenerateCalendar — generates a week/month of themed calendar events aligned to Decret 21/2023 axes
+- [x] Add tRPC procedure: infantil.aiGenerateLessonPlan — generates a full lesson plan for a given axis, principle, and age group
+- [x] Add "Generate with AI" button and modal to the Infantil Calendar page
+- [x] Add "Generate with AI" button and modal to the Infantil Lesson Plans page
+- [x] AI calendar output: title, date, axis tag, learning objective, materials, duration
+- [x] AI lesson plan output: title, objective, axis, principle, activities (intro/main/close), assessment, duration
+- [x] All AI output in the user's selected language (CA/ES/EN)
+- [x] Save generated content to the database (calendar_events / lesson_plans tables)
+- [x] Include curriculum calendar year in AI generation prompt (academic year context for lesson sequencing)
 
 ## CUTCG Member Number
-- [ ] Add cutcgMemberNumber column to user_profiles table in DB schema
-- [ ] Add tRPC procedure to save and read cutcgMemberNumber
-- [ ] Add CUTCG member number input field to profile settings UI
-- [ ] Display member number alongside CUTCG badge in NavBar and staff directory
+- [x] Add cutcgMemberNumber column to user_profiles table in DB schema
+- [x] Add tRPC procedure to save and read cutcgMemberNumber
+- [x] Add CUTCG member number input field to profile settings UI
+- [x] Display member number alongside CUTCG badge in NavBar and staff directory
 - [ ] Director creates teacher: send credentials email from Director's own school email address (not default system sender)
 
 ## Cover Request Cancellation
-- [ ] Add cancelCoverRequest backend procedure (Director only, requires reason)
-- [ ] Reinstate original calendar event and lesson plan on cancellation
-- [ ] Notify covering teacher, absent teacher, and HoS by email and in-app on cancellation
-- [ ] Add Cancel button + reason dialog to Director cover requests UI
-- [ ] Show cancellation reason and status in cover request history
+- [x] Add cancelCoverRequest backend procedure (Director only, requires reason)
+- [x] Reinstate original calendar event and lesson plan on cancellation
+- [x] Notify covering teacher, absent teacher, and HoS by email and in-app on cancellation
+- [x] Add Cancel button + reason dialog to Director cover requests UI
+- [x] Show cancellation reason and status in cover request history
 - [x] Fix "An internal error occurred" on Add Teacher page (Director path)
 - [x] Fix Add Teacher welcome email not being sent when Director creates a teacher account (SMTP not configured — added auto-redirect to User Management with prefill instead)
 - [x] Auto-copy invite link to clipboard immediately after Director generates it

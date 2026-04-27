@@ -450,6 +450,7 @@ export const teacherProfileRouter = router({
           position: users.position,
           contractedWeeklyMinutes: users.contractedWeeklyMinutes,
           isPermanent: users.isPermanent,
+          cutcgMemberNumber: users.cutcgMemberNumber,
         })
         .from(users)
         .where(

@@ -468,6 +468,22 @@ export default function DirectorCoverRequests() {
                   </div>
                 </div>
 
+                {/* Cancellation reason (shown when cover is cancelled) */}
+                {row.hasCover && row.coverAssignment?.status === "cancelled" && (
+                  <div className="flex items-start gap-2 border-t border-red-500/20 pt-2 mt-1">
+                    <XCircle className="h-3.5 w-3.5 text-red-400 shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-red-400">{t("cover_cancel_history_label")}</p>
+                      {row.coverAssignment.cancelReason && (
+                        <p className="text-xs text-muted-foreground italic mt-0.5">{row.coverAssignment.cancelReason}</p>
+                      )}
+                      {row.coverAssignment.cancelledAt && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{new Date(row.coverAssignment.cancelledAt as string).toLocaleString()}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Notes */}
                 {row.notes && (
                   <p className="text-xs text-muted-foreground border-t border-border pt-2 italic">
@@ -475,8 +491,8 @@ export default function DirectorCoverRequests() {
                   </p>
                 )}
 
-                {/* Payback panel (shown when cover is confirmed) */}
-                {row.hasCover && row.coverAssignment && (
+                {/* Payback panel (shown when cover is confirmed and not cancelled) */}
+                {row.hasCover && row.coverAssignment && row.coverAssignment.status !== "cancelled" && (
                   <PaybackPanel coverAssignmentId={row.coverAssignment.id} />
                 )}
               </CardContent>

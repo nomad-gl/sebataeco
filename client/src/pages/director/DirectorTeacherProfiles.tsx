@@ -326,6 +326,9 @@ export default function DirectorTeacherProfiles() {
                           {teacher.isPermanent === false && (
                             <Badge className="text-[10px] px-1.5 py-0 bg-amber-500/20 text-amber-400 border border-amber-500/40 shrink-0">{t("tp_non_permanent")}</Badge>
                           )}
+                          {(teacher as any).cutcgMemberNumber && (
+                            <Badge className="text-[10px] px-1.5 py-0 bg-blue-500/20 text-blue-400 border border-blue-500/40 shrink-0">CUTCG #{(teacher as any).cutcgMemberNumber}</Badge>
+                          )}
                         </div>
                         <p className="text-xs text-muted-foreground truncate">{teacher.email}</p>
                       </div>
@@ -385,6 +388,9 @@ export default function DirectorTeacherProfiles() {
                   <h2 className="font-semibold text-lg truncate">{selectedTeacher?.displayName || selectedTeacher?.name}</h2>
                   {selectedTeacher?.isPermanent === false && (
                     <Badge className="text-[10px] px-1.5 py-0 bg-amber-500/20 text-amber-400 border border-amber-500/40 shrink-0">{t("tp_non_permanent")}</Badge>
+                  )}
+                  {(selectedTeacher as any)?.cutcgMemberNumber && (
+                    <Badge className="text-[10px] px-1.5 py-0 bg-blue-500/20 text-blue-400 border border-blue-500/40 shrink-0">CUTCG #{(selectedTeacher as any).cutcgMemberNumber}</Badge>
                   )}
                 </div>
                 <Button

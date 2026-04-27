@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Baby, BookOpen, ChevronDown, ChevronUp, Dumbbell, MessageCircle, ExternalLink, GraduationCap, Lightbulb } from "lucide-react";
+import { Baby, BookOpen, ChevronDown, ChevronUp, Dumbbell, MessageCircle, ExternalLink, GraduationCap, Lightbulb, Sparkles, CalendarDays, FileText, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,12 @@ import ParallaxSection from "@/components/ParallaxSection";
 import { Link } from "wouter";
 import { useI18n } from "@/contexts/I18nContext";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const HERO_BG = "/manus-storage/hero-bg_a767782c.jpg";
 
@@ -390,8 +396,203 @@ function PrincipleCard({ principle, index }: { principle: PrincipleDetail; index
   );
 }
 
+
+// ─── AI Generation Modals ────────────────────────────────────────────────────
+
+function AiCalendarModal({ onClose }: { onClose: () => void }) {
+  const { t, lang } = useI18n();
+  const [eix, setEix] = useState<"EIX1" | "EIX2" | "EIX3" | "EIX4">("EIX1");
+  const [cycle, setCycle] = useState<"0-3" | "3-6">("3-6");
+  const [weekStart, setWeekStart] = useState(() => {
+    const d = new Date();
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    d.setDate(diff);
+    return d.toISOString().slice(0, 10);
+  });
+  const [theme, setTheme] = useState("");
+  const [academicYear] = useState(() => {
+    const y = new Date().getFullYear();
+    const m = new Date().getMonth();
+    return m >= 8 ? `${y}-${y + 1}` : `${y - 1}-${y}`;
+  });
+  const [done, setDone] = useState(false);
+  const [count, setCount] = useState(0);
+
+  const generate = trpc.infantil.aiGenerateCalendar.useMutation({
+    onSuccess: (data) => { setCount(data.eventsGenerated); setDone(true); },
+    onError: (err) => toast.error(err.message || t("infantil_ai_gen_error")),
+  });
+
+  return (
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <CalendarDays className="h-5 w-5 text-pink-500" />
+            {t("infantil_ai_gen_calendar_btn")}
+          </DialogTitle>
+        </DialogHeader>
+        {done ? (
+          <div className="py-4 space-y-3 text-center">
+            <CheckCircle2 className="h-10 w-10 text-green-500 mx-auto" />
+            <p className="font-medium">{t("infantil_ai_gen_success_calendar").replace("{count}", String(count))}</p>
+            <div className="flex justify-center gap-2 pt-2">
+              <Button variant="outline" onClick={onClose}>{t("infantil_ai_gen_cancel_btn")}</Button>
+              <Button asChild className="bg-pink-600 hover:bg-pink-700 text-white">
+                <a href="/school-calendar">{t("infantil_ai_gen_view_calendar")}</a>
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>{t("infantil_ai_gen_eix_label")}</Label>
+              <Select value={eix} onValueChange={(v) => setEix(v as typeof eix)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="EIX1">EIX1 — Descoberta d’un mateix i dels altres</SelectItem>
+                  <SelectItem value="EIX2">EIX2 — Descoberta de l’entorn</SelectItem>
+                  <SelectItem value="EIX3">EIX3 — Comunicació i representació</SelectItem>
+                  <SelectItem value="EIX4">EIX4 — Benestar i salut</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("infantil_ai_gen_cycle_label")}</Label>
+              <Select value={cycle} onValueChange={(v) => setCycle(v as typeof cycle)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0-3">{t("infantil_ai_gen_cycle_03")}</SelectItem>
+                  <SelectItem value="3-6">{t("infantil_ai_gen_cycle_36")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("infantil_ai_gen_week_label")}</Label>
+              <Input type="date" value={weekStart} onChange={(e) => setWeekStart(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("infantil_ai_gen_theme_label")}</Label>
+              <Input placeholder={t("infantil_ai_gen_theme_placeholder")} value={theme} onChange={(e) => setTheme(e.target.value)} />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={onClose}>{t("infantil_ai_gen_cancel_btn")}</Button>
+              <Button
+                className="bg-pink-600 hover:bg-pink-700 text-white"
+                disabled={generate.isPending || !weekStart}
+                onClick={() => generate.mutate({ eix, cycle, weekStartDate: weekStart, academicYear, language: lang as "en" | "es" | "ca", theme: theme || undefined })}
+              >
+                <Sparkles className="h-4 w-4 mr-1.5" />
+                {generate.isPending ? t("infantil_ai_gen_generating") : t("infantil_ai_gen_generate_btn")}
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AiLessonModal({ onClose }: { onClose: () => void }) {
+  const { t, lang } = useI18n();
+  const [eix, setEix] = useState<"EIX1" | "EIX2" | "EIX3" | "EIX4">("EIX1");
+  const [cycle, setCycle] = useState<"0-3" | "3-6">("3-6");
+  const [title, setTitle] = useState("");
+  const [principle, setPrinciple] = useState("");
+  const [duration, setDuration] = useState(45);
+  const [academicYear] = useState(() => {
+    const y = new Date().getFullYear();
+    const m = new Date().getMonth();
+    return m >= 8 ? `${y}-${y + 1}` : `${y - 1}-${y}`;
+  });
+  const [done, setDone] = useState(false);
+
+  const generate = trpc.infantil.aiGenerateLessonPlan.useMutation({
+    onSuccess: () => setDone(true),
+    onError: (err) => toast.error(err.message || t("infantil_ai_gen_error")),
+  });
+
+  return (
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-pink-500" />
+            {t("infantil_ai_gen_lesson_btn")}
+          </DialogTitle>
+        </DialogHeader>
+        {done ? (
+          <div className="py-4 space-y-3 text-center">
+            <CheckCircle2 className="h-10 w-10 text-green-500 mx-auto" />
+            <p className="font-medium">{t("infantil_ai_gen_success_lesson")}</p>
+            <div className="flex justify-center gap-2 pt-2">
+              <Button variant="outline" onClick={onClose}>{t("infantil_ai_gen_cancel_btn")}</Button>
+              <Button asChild className="bg-pink-600 hover:bg-pink-700 text-white">
+                <a href="/lesson-planner">{t("infantil_ai_gen_view_lesson")}</a>
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>{t("infantil_ai_gen_eix_label")}</Label>
+              <Select value={eix} onValueChange={(v) => setEix(v as typeof eix)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="EIX1">EIX1 — Descoberta d’un mateix i dels altres</SelectItem>
+                  <SelectItem value="EIX2">EIX2 — Descoberta de l’entorn</SelectItem>
+                  <SelectItem value="EIX3">EIX3 — Comunicació i representació</SelectItem>
+                  <SelectItem value="EIX4">EIX4 — Benestar i salut</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("infantil_ai_gen_cycle_label")}</Label>
+              <Select value={cycle} onValueChange={(v) => setCycle(v as typeof cycle)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0-3">{t("infantil_ai_gen_cycle_03")}</SelectItem>
+                  <SelectItem value="3-6">{t("infantil_ai_gen_cycle_36")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("infantil_ai_gen_title_label")}</Label>
+              <Input placeholder={t("infantil_ai_gen_title_placeholder")} value={title} onChange={(e) => setTitle(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("infantil_ai_gen_principle_label")}</Label>
+              <Input placeholder={t("infantil_ai_gen_principle_placeholder")} value={principle} onChange={(e) => setPrinciple(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("infantil_ai_gen_duration_label")}</Label>
+              <Input type="number" min={10} max={120} value={duration} onChange={(e) => setDuration(Number(e.target.value))} />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={onClose}>{t("infantil_ai_gen_cancel_btn")}</Button>
+              <Button
+                className="bg-pink-600 hover:bg-pink-700 text-white"
+                disabled={generate.isPending}
+                onClick={() => generate.mutate({ eix, cycle, academicYear, language: lang as "en" | "es" | "ca", title: title || undefined, principle: principle || undefined, duration })}
+              >
+                <Sparkles className="h-4 w-4 mr-1.5" />
+                {generate.isPending ? t("infantil_ai_gen_generating") : t("infantil_ai_gen_generate_btn")}
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Main page ───────────────────────────────────────────────────────────────
+
 export default function InfantilEixos() {
   const { t } = useI18n();
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
+  const [showLessonModal, setShowLessonModal] = useState(false);
   useDocumentTitle("Educació Infantil · Eixos de Desenvolupament · Decret 21/2023");
 
   // Scroll to the anchor eix on load (e.g. /infantil/eixos#eix1)
@@ -551,6 +752,22 @@ export default function InfantilEixos() {
                 {t("eix_cta_practice_btn")}
               </Button>
             </Link>
+            <Button
+              variant="outline"
+              className="gap-2 border-pink-300 text-pink-700 hover:bg-pink-100"
+              onClick={() => setShowCalendarModal(true)}
+            >
+              <CalendarDays className="w-4 h-4" />
+              {t("infantil_ai_gen_calendar_btn")}
+            </Button>
+            <Button
+              variant="outline"
+              className="gap-2 border-pink-300 text-pink-700 hover:bg-pink-100"
+              onClick={() => setShowLessonModal(true)}
+            >
+              <FileText className="w-4 h-4" />
+              {t("infantil_ai_gen_lesson_btn")}
+            </Button>
             <Link href="/chat">
               <Button variant="outline" className="gap-2 border-pink-300 text-pink-700 hover:bg-pink-100">
                 <MessageCircle className="w-4 h-4" />
@@ -564,6 +781,10 @@ export default function InfantilEixos() {
           </p>
         </section>
       </div>
+
+      {/* AI Generation Modals */}
+      {showCalendarModal && <AiCalendarModal onClose={() => setShowCalendarModal(false)} />}
+      {showLessonModal && <AiLessonModal onClose={() => setShowLessonModal(false)} />}
     </div>
   );
 }
