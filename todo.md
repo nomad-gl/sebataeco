@@ -4678,3 +4678,8 @@
 
 - [x] Investigate why director name, title, school are not visible in the PDF preview on DirectorOverview page
 - [x] Fix the PDF generation / preview to correctly render director info in the header
+
+## Enhancement: Export School Report PDF — Date & Page Numbers
+
+- [x] Add generation date to the footer of every page in the PDF
+- [x] Add "Page X of Y" to the footer of every page in the PDF

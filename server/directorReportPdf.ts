@@ -244,9 +244,30 @@ function sectionHeader(doc: InstanceType<typeof PDFDocument>, text: string, page
   doc.moveDown(0.5);
 }
 
-function addFooter(doc: InstanceType<typeof PDFDocument>, pageWidth: number, poweredBy: string) {
+function addFooter(
+  doc: InstanceType<typeof PDFDocument>,
+  pageWidth: number,
+  poweredBy: string,
+  pageNum?: number,
+  totalPages?: number,
+  dateStr?: string,
+) {
   const footerY = doc.page.height - 40;
   doc.moveTo(40, footerY).lineTo(40 + pageWidth, footerY).strokeColor(BRAND_BLUE).lineWidth(0.5).stroke();
+
+  // Left: generation date
+  if (dateStr) {
+    doc.fontSize(7).fillColor(MID_GREY).font("Helvetica")
+      .text(dateStr, 40, footerY + 6, { width: pageWidth / 2, align: "left" });
+  }
+
+  // Centre: page number
+  if (pageNum != null && totalPages != null) {
+    doc.fontSize(7).fillColor(MID_GREY).font("Helvetica")
+      .text(`${pageNum} / ${totalPages}`, 40, footerY + 6, { width: pageWidth, align: "center" });
+  }
+
+  // Right: powered-by
   doc.fontSize(7).fillColor(MID_GREY).font("Helvetica")
     .text(poweredBy, 40, footerY + 6, { width: pageWidth, align: "right" });
 }
@@ -278,12 +299,19 @@ export async function generateDirectorReportPdf(data: DirectorReportData): Promi
 
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
-    const doc = new PDFDocument({ margin: 40, size: "A4" });
+    // bufferPages: true lets us iterate all pages at the end to stamp footers
+    const doc = new PDFDocument({ margin: 40, size: "A4", bufferPages: true });
     doc.on("data", (c: Buffer) => chunks.push(c));
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
     const pageWidth = doc.page.width - 80;
+
+    // Pre-compute the date string once for use in every footer
+    const footerDateStr = data.generatedAt.toLocaleDateString(
+      data.locale === "ca" ? "ca-ES" : data.locale === "es" ? "es-ES" : "en-GB",
+      { day: "2-digit", month: "long", year: "numeric" },
+    );
 
     // ── Cover header ─────────────────────────────────────────────────────────
     doc.rect(40, 30, pageWidth, 70).fillColor(BRAND_BLUE).fill();
@@ -389,7 +417,6 @@ export async function generateDirectorReportPdf(data: DirectorReportData): Promi
     for (const comp of data.competencyCoverage) {
       if (doc.y > doc.page.height - 80) {
         doc.addPage();
-        addFooter(doc, pageWidth, L.powered_by);
         drawCompHeader();
       }
       const y = doc.y;
@@ -449,7 +476,6 @@ export async function generateDirectorReportPdf(data: DirectorReportData): Promi
         const t = data.staffActivity[i];
         if (doc.y > doc.page.height - 80) {
           doc.addPage();
-          addFooter(doc, pageWidth, L.powered_by);
           drawStaffHeader();
         }
         const y = doc.y;
@@ -497,7 +523,6 @@ export async function generateDirectorReportPdf(data: DirectorReportData): Promi
         const s = data.subjectCoverage[i];
         if (doc.y > doc.page.height - 80) {
           doc.addPage();
-          addFooter(doc, pageWidth, L.powered_by);
           drawSubjectHeader();
         }
         const y = doc.y;
@@ -539,7 +564,6 @@ export async function generateDirectorReportPdf(data: DirectorReportData): Promi
         const g = data.classGroups[i];
         if (doc.y > doc.page.height - 80) {
           doc.addPage();
-          addFooter(doc, pageWidth, L.powered_by);
           drawGroupHeader();
         }
         const y = doc.y;
@@ -610,7 +634,6 @@ export async function generateDirectorReportPdf(data: DirectorReportData): Promi
         const g = data.studentProgress.groups[i];
         if (doc.y > doc.page.height - 80) {
           doc.addPage();
-          addFooter(doc, pageWidth, L.powered_by);
           drawProgressHeader();
         }
         const y = doc.y;
@@ -731,7 +754,6 @@ export async function generateDirectorReportPdf(data: DirectorReportData): Promi
         const entry = data.infantilProgress.eixSummary.find(e => e.eix === eix.code);
         if (doc.y > doc.page.height - 80) {
           doc.addPage();
-          addFooter(doc, pageWidth, L.powered_by);
           drawEixHeader();
         }
         const y = doc.y;
@@ -755,8 +777,13 @@ export async function generateDirectorReportPdf(data: DirectorReportData): Promi
     doc.fontSize(7).fillColor("#166534").font("Helvetica-Oblique")
       .text(L.lomloe_note, 46, doc.y - 22, { width: pageWidth - 12 });
 
-    // Footer on last page
-    addFooter(doc, pageWidth, L.powered_by);
+    // ── Stamp footers on every buffered page ─────────────────────────────────
+    const range = doc.bufferedPageRange();
+    const totalPages = range.count;
+    for (let i = 0; i < totalPages; i++) {
+      doc.switchToPage(range.start + i);
+      addFooter(doc, pageWidth, L.powered_by, i + 1, totalPages, footerDateStr);
+    }
 
     doc.end();
   });
