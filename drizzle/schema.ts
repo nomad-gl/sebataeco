@@ -281,9 +281,11 @@ export const studentProgress = mysqlTable("student_progress", {
   /** Activity type: challenge, assignment, practice */
   activityType: varchar("activityType", { length: 32 }).notNull(),
   activityTitle: varchar("activityTitle", { length: 255 }),
+  /** UUID shared across all competency rows from the same logScores call — used to group worksheet files */
+  /** @migration 0058 */
+  activityId: varchar("activityId", { length: 64 }),
   recordedAt: timestamp("recordedAt").defaultNow().notNull(),
 });
-
 export type StudentProgress = typeof studentProgress.$inferSelect;
 export type InsertStudentProgress = typeof studentProgress.$inferInsert;
 
@@ -2158,3 +2160,31 @@ export const directorAlerts = mysqlTable("director_alerts", {
 });
 export type DirectorAlert = typeof directorAlerts.$inferSelect;
 export type InsertDirectorAlert = typeof directorAlerts.$inferInsert;
+
+/**
+ * progress_worksheets -- files (PDFs, photos) uploaded alongside a manual score entry.
+ *
+ * Multiple files can be attached to the same logical "activity log" identified by
+ * activityId (a shared UUID stored on the student_progress rows that belong to the
+ * same logScores call).
+ */
+export const progressWorksheets = mysqlTable("progress_worksheets", {
+  id: int("id").autoincrement().primaryKey(),
+  /** UUID shared by all student_progress rows created in the same logScores call */
+  activityId: varchar("activityId", { length: 64 }).notNull(),
+  groupId: int("groupId").notNull(),
+  studentId: int("studentId").notNull(),
+  /** S3 key */
+  fileKey: varchar("fileKey", { length: 512 }).notNull(),
+  /** Public S3 URL */
+  fileUrl: varchar("fileUrl", { length: 1024 }).notNull(),
+  /** Original filename */
+  fileName: varchar("fileName", { length: 255 }).notNull(),
+  /** MIME type: image/jpeg, image/png, application/pdf, etc. */
+  mimeType: varchar("mimeType", { length: 128 }).notNull(),
+  /** File size in bytes */
+  fileSize: int("fileSize"),
+  uploadedAt: timestamp("uploadedAt").defaultNow().notNull(),
+});
+export type ProgressWorksheet = typeof progressWorksheets.$inferSelect;
+export type InsertProgressWorksheet = typeof progressWorksheets.$inferInsert;

@@ -4593,3 +4593,10 @@
 - [x] Add duplicate name check in bulkAddStudents procedure (skip or report duplicates)
 - [x] Add i18n error key for duplicate student name in EN/ES/CA
 - [x] Show clear error toast on frontend when duplicate is detected
+
+## Feature: Worksheet File Upload on Manual Score Card
+- [x] DB migration 0058: add activityId column to student_progress and create progress_worksheets table
+- [x] Backend: logScores returns activityId; uploadWorksheet and getWorksheets tRPC procedures
+- [x] Frontend ManualScoreEntry: drag & drop zone + file picker (PDF + photos) with upload on submit
+- [x] Frontend activity history: thumbnail strip per activity row, clickable to open full viewer
+- [x] i18n keys for upload UI in EN/ES/CA

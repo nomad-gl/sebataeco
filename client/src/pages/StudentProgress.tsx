@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -19,7 +20,7 @@ import {
 import {
   ArrowLeft, User, TrendingUp, BookOpen, FileText,
   CheckCircle2, Circle, Loader2, Trophy, Star, Download, X, Plus, ImagePlus, X as XIcon,
-  Pencil, Eye, RotateCcw, Save,
+  Pencil, Eye, RotateCcw, Save, Paperclip, Upload, ExternalLink, FileImage, File as FileIcon,
 } from "lucide-react";
 import NavBar from "@/components/NavBar";
 import { SebaSymbol } from "@/components/SebaSymbol";
@@ -234,9 +235,12 @@ export default function StudentProgress() {
     onError: () => toast.error(t("sp_pdf_export_failed")),
   });
 
+  const [lastActivityId, setLastActivityId] = useState<string | null>(null);
+
   const logScore = trpc.progress.logScores.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast.success(t("sp_score_logged"));
+      setLastActivityId(data.activityId);
       utils.progress.getStudentSummary.invalidate({ groupId: gId, studentId: sId });
       utils.progress.getStudentProgress.invalidate({ groupId: gId, studentId: sId });
     },
@@ -463,6 +467,9 @@ export default function StudentProgress() {
                     })
                   }
                   loading={logScore.isPending}
+                  groupId={gId}
+                  studentId={sId}
+                  lastActivityId={lastActivityId}
                   t={t}
                 />
               </CardContent>
@@ -479,20 +486,7 @@ export default function StudentProgress() {
                 {records.length === 0 ? (
                   <p className="text-white/40 text-sm text-center py-8">{t("sp_no_history")}</p>
                 ) : (
-                  <div className="space-y-2">
-                    {records.map((r) => (
-                      <div key={r.id} className="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/10">
-                        <div className="w-14 text-center">
-                          <span className="text-xs font-bold text-white/60 bg-white/10 px-2 py-0.5 rounded">{r.competency}</span>
-                        </div>
-                        <div className="flex-1">
-                          <div className="text-sm text-white font-medium">{r.activityTitle ?? r.activityType}</div>
-                          <div className="text-xs text-white/40">{new Date(r.recordedAt).toLocaleDateString()}</div>
-                        </div>
-                        <ScoreBadge score={r.score} />
-                      </div>
-                    ))}
-                  </div>
+                  <ActivityHistoryList records={records} groupId={gId} studentId={sId} t={t} />
                 )}
               </CardContent>
             </Card>
@@ -1035,20 +1029,40 @@ ${bars}
 
 const ALL_COMPETENCIES = ["CCL","CP","STEM","CD","CPSAA","CC","CE","CCEC"];
 
+type PendingFile = { name: string; base64: string; mimeType: string; previewUrl?: string; size: number };
+
 function ManualScoreEntry({
   onSubmit,
   loading,
+  groupId,
+  studentId,
+  lastActivityId,
   t,
 }: {
   onSubmit: (rows: { competency: string; score: number }[], title: string) => void;
   loading: boolean;
+  groupId: number;
+  studentId: number;
+  lastActivityId: string | null;
   t: (k: import("@/contexts/I18nContext").TranslationKey) => string;
 }) {
   const [rows, setRows] = useState([{ competency: "CCL", score: "75" }]);
   const [title, setTitle] = useState("");
+  const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const utils = trpc.useUtils();
+
+  const uploadWorksheet = trpc.progress.uploadWorksheet.useMutation({
+    onSuccess: () => {
+      toast.success(t("sp_worksheet_upload_done"));
+      utils.progress.getStudentWorksheets.invalidate({ groupId, studentId });
+    },
+    onError: () => toast.error(t("sp_worksheet_upload_error")),
+  });
 
   const addRow = () => {
-    // Pick first competency not already in the list, or default to CCL
     const used = new Set(rows.map((r) => r.competency));
     const next = ALL_COMPETENCIES.find((c) => !used.has(c)) ?? "CCL";
     setRows((prev) => [...prev, { competency: next, score: "75" }]);
@@ -1059,13 +1073,62 @@ function ManualScoreEntry({
   const updateRow = (idx: number, field: "competency" | "score", value: string) =>
     setRows((prev) => prev.map((r, i) => (i === idx ? { ...r, [field]: value } : r)));
 
-  const handleSubmit = () => {
+  const handleFile = (file: File) => {
+    const ALLOWED = ["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"];
+    if (!ALLOWED.includes(file.type)) { toast.error(t("sp_worksheet_invalid_type")); return; }
+    if (file.size > 16 * 1024 * 1024) { toast.error(t("sp_worksheet_too_large")); return; }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      const base64 = dataUrl.split(",")[1];
+      const previewUrl = file.type.startsWith("image/") ? dataUrl : undefined;
+      setPendingFiles((prev) => [...prev, { name: file.name, base64, mimeType: file.type, previewUrl, size: file.size }]);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    Array.from(e.dataTransfer.files).forEach(handleFile);
+  };
+
+  const removePending = (idx: number) => setPendingFiles((prev) => prev.filter((_, i) => i !== idx));
+
+  const handleSubmit = async () => {
     const parsed = rows.map((r) => ({ competency: r.competency, score: parseInt(r.score) || 0 }));
     onSubmit(parsed, title);
-    // Reset after submit
     setRows([{ competency: "CCL", score: "75" }]);
     setTitle("");
+    // Files will be uploaded once lastActivityId is set (via useEffect below)
   };
+
+  // After logScores resolves and lastActivityId is updated, upload pending files
+  const prevActivityId = useRef<string | null>(null);
+  useEffect(() => {
+    if (!lastActivityId || lastActivityId === prevActivityId.current) return;
+    if (pendingFiles.length === 0) return;
+    prevActivityId.current = lastActivityId;
+    const uploadAll = async () => {
+      for (let i = 0; i < pendingFiles.length; i++) {
+        setUploadingIdx(i);
+        try {
+          await uploadWorksheet.mutateAsync({
+            activityId: lastActivityId,
+            groupId,
+            studentId,
+            fileName: pendingFiles[i].name,
+            fileBase64: pendingFiles[i].base64,
+            mimeType: pendingFiles[i].mimeType,
+            fileSize: pendingFiles[i].size,
+          });
+        } catch { /* already toasted */ }
+      }
+      setUploadingIdx(null);
+      setPendingFiles([]);
+    };
+    uploadAll();
+  }, [lastActivityId]);
 
   return (
     <div className="space-y-3">
@@ -1120,6 +1183,70 @@ function ManualScoreEntry({
             )}
           </div>
         ))}
+      </div>
+
+      {/* Worksheet file upload zone */}
+      <div className="space-y-2">
+        <Label className="text-white/70 text-xs flex items-center gap-1">
+          <Paperclip className="w-3 h-3" />{t("sp_worksheet_upload_label")}
+        </Label>
+
+        {/* Drop zone */}
+        <div
+          className={`relative border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
+            isDragging ? "border-teal-400 bg-teal-400/10" : "border-white/20 hover:border-white/40 hover:bg-white/5"
+          }`}
+          onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <Upload className="w-5 h-5 mx-auto mb-1 text-white/40" />
+          <p className="text-xs text-white/50">{t("sp_worksheet_drop_hint")}</p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/*,application/pdf"
+            className="hidden"
+            onChange={(e) => Array.from(e.target.files ?? []).forEach(handleFile)}
+          />
+        </div>
+
+        {/* Pending file thumbnails */}
+        {pendingFiles.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {pendingFiles.map((f, idx) => (
+              <div key={idx} className="relative group">
+                {f.previewUrl ? (
+                  <img
+                    src={f.previewUrl}
+                    alt={f.name}
+                    className="w-16 h-16 object-cover rounded-lg border border-white/20"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-lg border border-white/20 bg-white/10 flex flex-col items-center justify-center gap-1">
+                    <FileIcon className="w-5 h-5 text-white/50" />
+                    <span className="text-[9px] text-white/40 truncate w-12 text-center">{f.name.split(".").pop()?.toUpperCase()}</span>
+                  </div>
+                )}
+                {uploadingIdx === idx && (
+                  <div className="absolute inset-0 rounded-lg bg-black/60 flex items-center justify-center">
+                    <Loader2 className="w-4 h-4 text-white animate-spin" />
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); removePending(idx); }}
+                  className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X className="w-2.5 h-2.5" />
+                </button>
+                <div className="absolute bottom-0 left-0 right-0 text-[9px] text-white/60 truncate px-1 bg-black/40 rounded-b-lg">{f.name}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Add competency + Submit */}
@@ -1503,6 +1630,168 @@ function AssignmentRow({
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Activity History with worksheet thumbnails ─────────────────────────────
+
+type ProgressRecord = {
+  id: number;
+  competency: string;
+  score: number;
+  activityType: string;
+  activityTitle: string | null;
+  activityId: string | null;
+  recordedAt: Date;
+};
+
+/** Group progress records by activityId (or by id if no activityId) */
+function groupRecords(records: ProgressRecord[]) {
+  const groups: Map<string, ProgressRecord[]> = new Map();
+  for (const r of records) {
+    const key = r.activityId ?? `solo-${r.id}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(r);
+  }
+  // Return as array ordered by the first record's recordedAt (desc)
+  return Array.from(groups.entries()).map(([key, rows]) => ({ key, rows }));
+}
+
+function WorksheetThumbnails({
+  activityId,
+  t,
+}: {
+  activityId: string;
+  t: (k: import("@/contexts/I18nContext").TranslationKey) => string;
+}) {
+  const [viewerFile, setViewerFile] = useState<{ url: string; name: string; mimeType: string } | null>(null);
+  const worksheetsQ = trpc.progress.getWorksheets.useQuery({ activityId }, { enabled: !!activityId });
+  const files = worksheetsQ.data ?? [];
+
+  if (files.length === 0) return null;
+
+  return (
+    <>
+      <div className="flex flex-wrap gap-2 mt-2">
+        {files.map((f) => (
+          <button
+            key={f.id}
+            type="button"
+            title={f.fileName}
+            onClick={() => setViewerFile({ url: f.fileUrl, name: f.fileName, mimeType: f.mimeType })}
+            className="relative group w-14 h-14 rounded-lg overflow-hidden border border-white/20 hover:border-teal-400 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-400"
+          >
+            {f.mimeType.startsWith("image/") ? (
+              <img src={f.fileUrl} alt={f.fileName} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-white/10 flex flex-col items-center justify-center gap-1">
+                <FileIcon className="w-5 h-5 text-white/50" />
+                <span className="text-[9px] text-white/40">{f.fileName.split(".").pop()?.toUpperCase()}</span>
+              </div>
+            )}
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+              <Eye className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {/* File viewer dialog */}
+      <Dialog open={!!viewerFile} onOpenChange={(o) => { if (!o) setViewerFile(null); }}>
+        <DialogContent className="max-w-3xl bg-slate-900 border-white/20 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-white text-sm flex items-center gap-2">
+              <Paperclip className="w-4 h-4 text-teal-400" />
+              {viewerFile?.name}
+              <a
+                href={viewerFile?.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-auto text-teal-400 hover:text-teal-300"
+                title={t("sp_worksheet_view")}
+              >
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-2 max-h-[70vh] overflow-auto rounded-lg">
+            {viewerFile?.mimeType.startsWith("image/") ? (
+              <img src={viewerFile.url} alt={viewerFile.name} className="w-full rounded-lg" />
+            ) : viewerFile?.mimeType === "application/pdf" ? (
+              <iframe
+                src={viewerFile.url}
+                title={viewerFile.name}
+                className="w-full h-[65vh] rounded-lg border-0"
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 gap-4">
+                <FileIcon className="w-12 h-12 text-white/30" />
+                <a
+                  href={viewerFile?.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-teal-400 hover:underline text-sm"
+                >
+                  {t("sp_worksheet_view")}
+                </a>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+function ActivityHistoryList({
+  records,
+  groupId,
+  studentId,
+  t,
+}: {
+  records: ProgressRecord[];
+  groupId: number;
+  studentId: number;
+  t: (k: import("@/contexts/I18nContext").TranslationKey) => string;
+}) {
+  const groups = groupRecords(records);
+
+  return (
+    <div className="space-y-3">
+      {groups.map(({ key, rows }) => {
+        const first = rows[0];
+        const activityId = first.activityId;
+        const title = first.activityTitle ?? first.activityType;
+        const date = new Date(first.recordedAt).toLocaleDateString();
+
+        return (
+          <div key={key} className="p-3 bg-white/5 rounded-lg border border-white/10 space-y-2">
+            {/* Header row */}
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <div className="text-sm text-white font-medium">{title}</div>
+                <div className="text-xs text-white/40">{date}</div>
+              </div>
+            </div>
+
+            {/* Competency score chips */}
+            <div className="flex flex-wrap gap-2">
+              {rows.map((r) => (
+                <div key={r.id} className="flex items-center gap-1.5 bg-white/10 rounded px-2 py-0.5">
+                  <span className="text-xs font-bold text-white/60">{r.competency}</span>
+                  <ScoreBadge score={r.score} />
+                </div>
+              ))}
+            </div>
+
+            {/* Worksheet thumbnails (only if activityId exists) */}
+            {activityId && (
+              <WorksheetThumbnails activityId={activityId} t={t} />
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { randomUUID } from "crypto";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../_core/trpc";
 import { invokeLLM } from "../_core/llm";
@@ -16,6 +17,7 @@ import {
   groupChallengeLog,
   classChallenges,
   challengeParticipants,
+  progressWorksheets,
 } from "../../drizzle/schema";
 import { eq, and, desc, inArray, sql } from "drizzle-orm";
 
@@ -44,6 +46,8 @@ export const progressRouter = router({
         activityType: z.enum(["challenge", "assignment", "practice"]),
         activityTitle: z.string().nullish(),
         challengeLogId: z.number().nullish(),
+        /** Optional: caller-supplied activityId (for re-attaching files to an existing entry) */
+        activityId: z.string().nullish(),
         scores: z.array(
           z.object({
             competency: z.string(),
@@ -55,6 +59,9 @@ export const progressRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      // Generate a shared activityId so all competency rows (and any worksheet files)
+      // from this single "Log Score" submission can be grouped together.
+      const activityId = input.activityId ?? randomUUID();
       const rows = input.scores.map((s) => ({
         groupId: input.groupId,
         studentId: input.studentId,
@@ -63,9 +70,10 @@ export const progressRouter = router({
         score: s.score,
         activityType: input.activityType,
         activityTitle: input.activityTitle ?? null,
+        activityId,
       }));
       await db.insert(studentProgress).values(rows);
-      return { ok: true };
+      return { ok: true, activityId };
     }),
 
   /** Get all progress records for a specific student */
@@ -1445,5 +1453,80 @@ Format your response exactly as:
         .where(eq(assignments.id, input.assignmentId));
 
       return { aiFeedback, aiScore };
+    }),
+
+  // ── Worksheet file upload ──────────────────────────────────────────────────
+
+  /** Upload a worksheet file (PDF or image) and attach it to a progress activity */
+  uploadWorksheet: protectedProcedure
+    .input(
+      z.object({
+        activityId: z.string(),
+        groupId: z.number(),
+        studentId: z.number(),
+        fileName: z.string(),
+        /** Base64-encoded file content */
+        fileBase64: z.string(),
+        mimeType: z.string(),
+        fileSize: z.number().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      const MAX_BYTES = 16 * 1024 * 1024; // 16 MB
+      const buf = Buffer.from(input.fileBase64, "base64");
+      if (buf.length > MAX_BYTES) {
+        throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "File exceeds 16 MB limit" });
+      }
+
+      const ext = input.fileName.split(".").pop() ?? "bin";
+      const fileKey = `worksheets/${input.groupId}/${input.studentId}/${input.activityId}-${randomUUID()}.${ext}`;
+      const { url } = await storagePut(fileKey, buf, input.mimeType);
+
+      await db.insert(progressWorksheets).values({
+        activityId: input.activityId,
+        groupId: input.groupId,
+        studentId: input.studentId,
+        fileKey,
+        fileUrl: url,
+        fileName: input.fileName,
+        mimeType: input.mimeType,
+        fileSize: input.fileSize ?? buf.length,
+      });
+
+      return { ok: true, url, fileKey, fileName: input.fileName, mimeType: input.mimeType };
+    }),
+
+  /** List all worksheet files attached to a given activityId */
+  getWorksheets: protectedProcedure
+    .input(z.object({ activityId: z.string() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      return db
+        .select()
+        .from(progressWorksheets)
+        .where(eq(progressWorksheets.activityId, input.activityId))
+        .orderBy(progressWorksheets.uploadedAt);
+    }),
+
+  /** List all worksheet files for a student (across all activities) */
+  getStudentWorksheets: protectedProcedure
+    .input(z.object({ groupId: z.number(), studentId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      return db
+        .select()
+        .from(progressWorksheets)
+        .where(
+          and(
+            eq(progressWorksheets.groupId, input.groupId),
+            eq(progressWorksheets.studentId, input.studentId)
+          )
+        )
+        .orderBy(desc(progressWorksheets.uploadedAt));
     }),
 });
