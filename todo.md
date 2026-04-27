@@ -4716,3 +4716,13 @@
 
 - [x] Fix "Open Bias Flags" stat card linking to a blank screen
 - [x] Fix "Calendar Events" stat card linking to a blank screen
+
+## Bug: PDF Print Preview — Logo/Director Info Not Visible
+
+- [x] Fix school logo/motif not showing in the PDF print preview card
+- [x] Fix director name, role, and school name not showing in the PDF print preview card
+- [x] Ensure auto-prefill from getDirectorInfo works on page load
+
+## Enhancement: Teacher Navigation — Hide School Calendar
+
+- [x] Hide "School Calendar" from teacher sidebar/dropdown navigation

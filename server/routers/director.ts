@@ -777,7 +777,8 @@ export const directorRouter = router({
       .limit(1);
 
     // Fetch school branding for the logo
-    const tid = ctx.tenantId;
+    // ctx.tenantId is null for superadmin (role==='admin'); fall back to the user's own tenantId
+    const tid = ctx.tenantId ?? ctx.user.tenantId ?? null;
     let brandingRows = tid != null
       ? await db.select({ logoUrl: schoolSettings.logoUrl, schoolName: schoolSettings.schoolName }).from(schoolSettings).where(eq(schoolSettings.tenantId, tid))
       : [];

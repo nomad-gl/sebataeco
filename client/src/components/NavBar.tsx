@@ -322,7 +322,6 @@ export default function NavBar() {
     { href: "/connect",       label: t("nav_connect"),       icon: Wifi },
     { href: "/lesson-planner",  label: t("nav_lesson_planner"),  icon: FileText },
     { href: "/individual-plans",  label: t("nav_individual_plans"),  icon: GraduationCap },
-    { href: "/school-calendar",  label: t("nav_school_calendar"),  icon: CalendarDays },
     { href: "/help",             label: t("nav_help"),            icon: HelpCircle },
     { href: "/privacy",           label: t("nav_privacy"),          icon: Lock },
   ];

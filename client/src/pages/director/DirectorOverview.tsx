@@ -62,7 +62,7 @@ export default function DirectorOverview() {
   });
 
   // Fetch director info for auto-prefill
-  const { data: directorInfo } = trpc.director.getDirectorInfo.useQuery(undefined, {
+  const { data: directorInfo, isLoading: directorInfoLoading } = trpc.director.getDirectorInfo.useQuery(undefined, {
     enabled: !!user && (user.role === "admin" || user.role === "director"),
   });
 
@@ -135,17 +135,29 @@ export default function DirectorOverview() {
                 )}
               </div>
               {/* Director name */}
-              <p className="text-sm font-semibold text-foreground text-center leading-tight">
-                {directorName || <span className="text-muted-foreground italic text-xs">{t("dir_pdf_director_name")}</span>}
-              </p>
+              {directorInfoLoading && !prefilled ? (
+                <div className="w-32 h-4 bg-muted animate-pulse rounded" />
+              ) : (
+                <p className="text-sm font-semibold text-foreground text-center leading-tight">
+                  {directorName || <span className="text-muted-foreground italic text-xs">{t("dir_pdf_director_name")}</span>}
+                </p>
+              )}
               {/* Director role */}
-              <p className="text-xs text-muted-foreground text-center">
-                {directorTitle || <span className="italic">{t("dir_pdf_director_title")}</span>}
-              </p>
+              {directorInfoLoading && !prefilled ? (
+                <div className="w-24 h-3 bg-muted animate-pulse rounded" />
+              ) : (
+                <p className="text-xs text-muted-foreground text-center">
+                  {directorTitle || <span className="italic">{t("dir_pdf_director_title")}</span>}
+                </p>
+              )}
               {/* School name */}
-              <p className="text-xs font-medium text-primary text-center">
-                {schoolName || <span className="text-muted-foreground italic">{t("dir_pdf_school_name") ?? "School name"}</span>}
-              </p>
+              {directorInfoLoading && !prefilled ? (
+                <div className="w-28 h-3 bg-muted animate-pulse rounded" />
+              ) : (
+                <p className="text-xs font-medium text-primary text-center">
+                  {schoolName || <span className="text-muted-foreground italic">{t("dir_pdf_school_name") ?? "School name"}</span>}
+                </p>
+              )}
               <p className="text-[10px] text-muted-foreground/60 mt-1">PDF Preview</p>
             </div>
 
