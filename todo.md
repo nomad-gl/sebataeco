@@ -4491,3 +4491,4 @@
 - [x] Add Regenerate button to AI-generated calendar events (replace single event with new theme)
 - [x] Extend session cookie lifetime so owner stays signed in automatically (no repeated sign-ins)
 - [x] Show temporary welcome message with user's name after successful sign-in
+- [x] Add Remove User button with confirmation dialog to User Management page (delete user + credentials)

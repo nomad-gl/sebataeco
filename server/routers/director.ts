@@ -1659,4 +1659,86 @@ export const directorRouter = router({
 
     return { eixSummary, totalInfantilPlans, teacherCount };
   }),
+
+  /**
+   * Director: permanently delete a local user and all their credentials.
+   * Safety guards:
+   *  - Cannot delete yourself
+   *  - Cannot delete the platform owner (openId matches OWNER_OPEN_ID)
+   *  - Cannot delete users from a different tenant
+   *  - Cannot delete users without a local password (OAuth-only accounts)
+   */
+  deleteLocalUser: adminProcedure
+    .input(z.object({ userId: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      const [target] = await db
+        .select({
+          id: users.id,
+          openId: users.openId,
+          email: users.email,
+          displayName: users.displayName,
+          tenantId: users.tenantId,
+          passwordHash: users.passwordHash,
+        })
+        .from(users)
+        .where(eq(users.id, input.userId))
+        .limit(1);
+
+      if (!target) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+
+      // Guard: cannot delete yourself
+      if (target.id === ctx.user.id) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "You cannot delete your own account" });
+      }
+
+      // Guard: cannot delete the platform owner
+      const ownerOpenId = process.env.OWNER_OPEN_ID;
+      if (ownerOpenId && target.openId === ownerOpenId) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "The platform owner account cannot be deleted" });
+      }
+
+      // Guard: must be a local account (has a password)
+      if (!target.passwordHash) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Only local (email/password) accounts can be deleted here" });
+      }
+
+      // Guard: must be in the same tenant
+      if (target.tenantId !== ctx.user.tenantId) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "You can only delete users in your own school" });
+      }
+
+      // 1. Invalidate all password reset tokens
+      await db.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, target.id));
+
+      // 2. Mark any unused teacher invites for this email as used (prevents re-use)
+      if (target.email) {
+        const { teacherInvites } = await import("../../drizzle/schema");
+        await db
+          .update(teacherInvites)
+          .set({ usedAt: new Date() })
+          .where(and(eq(teacherInvites.email, target.email), isNull(teacherInvites.usedAt)));
+      }
+
+      // 3. Log the deletion for audit trail before removing the row
+      await db.insert(adminAuditLogs).values({
+        userId: ctx.user.id,
+        action: "delete_local_user",
+        resource: "user",
+        resourceId: String(target.id),
+        details: JSON.stringify({
+          deletedEmail: target.email,
+          deletedDisplayName: target.displayName,
+          deletedOpenId: target.openId,
+          deletedAt: new Date().toISOString(),
+        }),
+      });
+
+      // 4. Delete the user row (DB-level cascades handle child rows where configured)
+      await db.delete(users).where(eq(users.id, target.id));
+
+      return { success: true, deletedEmail: target.email, deletedName: target.displayName };
+    }),
 });

@@ -38,6 +38,7 @@ import {
   Users,
   UserX,
   UserCheck,
+  Trash2,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -118,6 +119,7 @@ export default function DirectorUsers() {
   // Invite history state
   const [confirmResend, setConfirmResend] = useState<InviteRow | null>(null);
   const [resendResult, setResendResult] = useState<{ url: string; expiresAt: Date } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<LocalUser | null>(null);
 
   const { data: users = [], isLoading, refetch } = trpc.director.listLocalUsers.useQuery();
   const { data: invites = [], isLoading: invitesLoading, refetch: refetchInvites } =
@@ -184,6 +186,15 @@ export default function DirectorUsers() {
       setResendResult({ url: data.inviteUrl, expiresAt: new Date(data.expiresAt) });
       toast.success(t("dir_invite_resend_toast"));
       refetchInvites();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const deleteMutation = trpc.director.deleteLocalUser.useMutation({
+    onSuccess: (data) => {
+      setConfirmDelete(null);
+      toast.success(t("dir_users_delete_toast").replace("{name}", data.deletedName ?? data.deletedEmail ?? ""));
+      refetch();
     },
     onError: (err) => toast.error(err.message),
   });
@@ -411,6 +422,16 @@ export default function DirectorUsers() {
                                 ? <><UserCheck className="h-3.5 w-3.5" />{t("dir_users_reactivate_btn")}</>
                                 : <><UserX className="h-3.5 w-3.5" />{t("dir_users_deactivate_btn")}</>
                               }
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              title={t("dir_users_delete_btn")}
+                              onClick={() => setConfirmDelete(user)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              {t("dir_users_delete_btn")}
                             </Button>
                           </div>
                         </td>
@@ -753,6 +774,38 @@ export default function DirectorUsers() {
               {t("dir_users_reset_copy_link")}
             </Button>
             <Button onClick={() => setResetResult(null)}>{t("dir_users_close")}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm delete user dialog */}
+      <Dialog open={!!confirmDelete} onOpenChange={(open) => !open && setConfirmDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <Trash2 className="h-5 w-5" />
+              {t("dir_users_delete_confirm_title")}
+            </DialogTitle>
+            <DialogDescription>
+              {t("dir_users_delete_confirm_desc").replace("{name}", confirmDelete?.displayName ?? confirmDelete?.email ?? String(confirmDelete?.id ?? ""))}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-md bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive">
+            {t("dir_users_delete_warning")}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setConfirmDelete(null)}>
+              {t("dir_users_cancel")}
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleteMutation.isPending}
+              onClick={() => confirmDelete && deleteMutation.mutate({ userId: confirmDelete.id })}
+            >
+              {deleteMutation.isPending
+                ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />{t("dir_users_resetting")}</>
+                : <><Trash2 className="h-4 w-4 mr-1" />{t("dir_users_delete_confirm_btn")}</>}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
