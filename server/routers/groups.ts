@@ -158,7 +158,7 @@ export const groupsRouter = router({
       z.object({
         groupId: z.number(),
         name: z.string().min(1).max(128),
-        email: z.string().email().max(320),
+        email: z.string().max(320).optional().default(""),
       })
     )
     .mutation(async ({ ctx, input }) => {

@@ -4582,3 +4582,8 @@
 ## My Classes Page Fixes
 - [x] Increase card opacity on all card surfaces in Groups.tsx
 - [x] Make student email field optional in the add-student form
+
+## Add Student Email Optional Fix
+- [x] Fix addStudent Zod schema: make email optional (no .email() validator, allow empty)
+- [x] Fix group_students DB schema: allow email to be empty string (already NOT NULL, keep as is but allow empty)
+- [x] Fix addStudent insert: store empty string when no email provided
