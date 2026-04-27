@@ -2,7 +2,7 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { attendanceRecords, attendanceChanges, groupStudents, classGroups, users } from "../../drizzle/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, isNull } from "drizzle-orm";
 import { buildTenantWhere } from "../tenantFilter";
 
 export const attendanceRouter = router({
@@ -171,7 +171,7 @@ export const attendanceRouter = router({
     return db
       .select()
       .from(classGroups)
-      .where(tenantWhere ?? eq(classGroups.userId, ctx.user.id))
+      .where(and(tenantWhere ?? eq(classGroups.userId, ctx.user.id), isNull(classGroups.deletedAt)))
       .orderBy(classGroups.yearGroup, classGroups.className);
   }),
 });

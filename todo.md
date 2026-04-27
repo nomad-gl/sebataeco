@@ -4686,8 +4686,8 @@
 
 ## Bug: Attendance Register Page
 
-- [ ] Fix class group dropdown not showing available class groups
-- [ ] Review and fix "30-day absence by class" chart/data on the attendance register page
+- [x] Fix class group dropdown not showing available class groups
+- [x] Review and fix "30-day absence by class" chart/data on the attendance register page
 
 ## Enhancement: Student Directory — Back to Main Menu Button
 
@@ -4695,8 +4695,8 @@
 
 ## Bug: Attendance Register Page
 
-- [ ] Fix class group dropdown not showing available class groups
-- [ ] Review and fix "30-day absence by class" chart/data on the attendance register page
+- [x] Fix class group dropdown not showing available class groups
+- [x] Review and fix "30-day absence by class" chart/data on the attendance register page
 
 ## Enhancement: Student Directory — Back to Main Menu Button
 

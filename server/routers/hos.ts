@@ -14,7 +14,7 @@ import {
   tenants,
   adminAuditLogs,
 } from "../../drizzle/schema";
-import { eq, and, gte, lte, inArray } from "drizzle-orm";
+import { eq, and, gte, lte, inArray, isNull } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { sendTempPasswordEmail } from "../email";
@@ -153,7 +153,7 @@ export const hosRouter = router({
     return db
       .select({ id: classGroups.id, className: classGroups.className, level: classGroups.level })
       .from(classGroups)
-      .where(tenantWhere ?? eq(classGroups.userId, ctx.user.id));
+      .where(and(tenantWhere ?? eq(classGroups.userId, ctx.user.id), isNull(classGroups.deletedAt)));
   }),
 
   // ─── Attendance ──────────────────────────────────────────────────────────────
@@ -200,7 +200,7 @@ export const hosRouter = router({
    */
   getAbsenceSummary: protectedProcedure
     .input(z.object({ days: z.number().default(30) }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return [];
 
@@ -209,7 +209,11 @@ export const hosRouter = router({
       const fromStr = fromDate.toISOString().slice(0, 10);
       const toStr = new Date().toISOString().slice(0, 10);
 
-      const groups = await db.select().from(classGroups);
+      const tenantWhere = buildTenantWhere(ctx.user, classGroups);
+      const groups = await db
+        .select()
+        .from(classGroups)
+        .where(and(tenantWhere ?? eq(classGroups.userId, ctx.user.id), isNull(classGroups.deletedAt)));
       const results = [];
 
       for (const group of groups) {
