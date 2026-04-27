@@ -39,7 +39,7 @@ import {
   UserX,
   UserCheck,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -97,6 +97,23 @@ export default function DirectorUsers() {
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteResult, setInviteResult] = useState<{ url: string; expiresAt: Date } | null>(null);
+  const [prefillName, setPrefillName] = useState<string | null>(null);
+  const [fromAddTeacher, setFromAddTeacher] = useState(false);
+
+  // Auto-open invite dialog when navigated from Add Teacher with prefill params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const email = params.get("prefillEmail");
+    const name = params.get("prefillName");
+    if (email) {
+      setInviteEmail(email);
+      setPrefillName(name);
+      setFromAddTeacher(true);
+      setShowInvite(true);
+      // Clean the URL so refreshing doesn't re-trigger
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   // Invite history state
   const [confirmResend, setConfirmResend] = useState<InviteRow | null>(null);
@@ -568,13 +585,25 @@ export default function DirectorUsers() {
       </Dialog>
 
       {/* Invite teacher dialog */}
-      <Dialog open={showInvite} onOpenChange={(open) => { if (!open) { setShowInvite(false); setInviteEmail(""); } }}>
+      <Dialog open={showInvite} onOpenChange={(open) => { if (!open) { setShowInvite(false); setInviteEmail(""); setPrefillName(null); setFromAddTeacher(false); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t("dir_users_invite_title")}</DialogTitle>
             <DialogDescription>{t("dir_users_invite_desc")}</DialogDescription>
           </DialogHeader>
+          {fromAddTeacher && (
+            <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm text-blue-700 dark:text-blue-300 space-y-1">
+              <p className="font-semibold">✅ {prefillName ? `${prefillName} — ` : ""}{t("add_teacher_director_toast")}</p>
+              <p>{t("dir_users_invite_prefill_banner")}</p>
+            </div>
+          )}
           <div className="space-y-2">
+            {fromAddTeacher && prefillName && (
+              <div className="space-y-1">
+                <Label>{t("dir_users_invite_prefill_name_label")}</Label>
+                <div className="rounded-md border bg-muted/50 px-3 py-2 text-sm font-medium">{prefillName}</div>
+              </div>
+            )}
             <Label htmlFor="invite-email">{t("dir_users_invite_email_label")}</Label>
             <Input
               id="invite-email"

@@ -4486,3 +4486,4 @@
 - [ ] Add Cancel button + reason dialog to Director cover requests UI
 - [ ] Show cancellation reason and status in cover request history
 - [x] Fix "An internal error occurred" on Add Teacher page (Director path)
+- [x] Fix Add Teacher welcome email not being sent when Director creates a teacher account (SMTP not configured — added auto-redirect to User Management with prefill instead)

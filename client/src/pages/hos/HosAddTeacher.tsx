@@ -46,11 +46,17 @@ export default function HosAddTeacher() {
   const submitMutation = trpc.hos.submitTeacher.useMutation({
     onSuccess: (data) => {
       if ((data as any).autoApproved) {
-        // Director: account created immediately
+        // Director: account created — show brief toast then redirect to User Management
+        // with prefill params so the Invite Teacher dialog opens automatically
         toast.success(t("add_teacher_director_toast"), {
           description: t("add_teacher_director_toast_desc").replace("{email}", teacherEmail.trim()),
-          duration: 8000,
+          duration: 4000,
         });
+        const params = new URLSearchParams({
+          prefillEmail: teacherEmail.trim(),
+          prefillName: teacherName.trim(),
+        });
+        setTimeout(() => navigate(`/director/users?${params.toString()}`), 1200);
       } else {
         // Head of Study: pending approval
         toast.success(t("add_teacher_submitted_toast"), {

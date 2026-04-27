@@ -226,6 +226,8 @@ export const translations = {
     dir_users_invite_send_btn: "Generate link",
     dir_users_invite_done_title: "Invite link ready",
     dir_users_invite_done_desc: "Share this link with the teacher. It expires in 48 hours and can only be used once.",
+    dir_users_invite_prefill_banner: "Teacher account created successfully. Generate the invite link below, then copy and paste it into your authorised email to send the new teacher their login credentials.",
+    dir_users_invite_prefill_name_label: "Teacher name",
     dir_users_role_updated_toast: "Role updated successfully.",
     dir_users_reactivated_toast: "Account reactivated.",
     // Invite history
@@ -3635,6 +3637,8 @@ export const translations = {
     dir_users_invite_send_btn: "Generar enlace",
     dir_users_invite_done_title: "Enlace de invitación listo",
     dir_users_invite_done_desc: "Comparte este enlace con el docente. Caduca en 48 horas y solo se puede usar una vez.",
+    dir_users_invite_prefill_banner: "Cuenta del docente creada correctamente. Genera el enlace de invitación a continuación, luego cópialo y pégalo en tu correo autorizado para enviar al nuevo docente sus credenciales de acceso.",
+    dir_users_invite_prefill_name_label: "Nombre del docente",
     dir_users_role_updated_toast: "Rol actualizado correctamente.",
     dir_users_reactivated_toast: "Cuenta reactivada.",
     // Invite history
@@ -7016,6 +7020,8 @@ export const translations = {
     dir_users_invite_send_btn: "Generar enllaç",
     dir_users_invite_done_title: "Enllaç d'invitació llest",
     dir_users_invite_done_desc: "Comparteix aquest enllaç amb la professora. Caduca en 48 hores i només es pot usar una vegada.",
+    dir_users_invite_prefill_banner: "Compte del professor creat correctament. Genera l'enllaç d'invitació a continuació, després copia'l i enganxa'l al teu correu autoritzat per enviar al nou professor les seves credencials d'accés.",
+    dir_users_invite_prefill_name_label: "Nom del professor",
     dir_users_role_updated_toast: "Rol actualitzat correctament.",
     dir_users_reactivated_toast: "Compte reactivat.",
     // Invite history
