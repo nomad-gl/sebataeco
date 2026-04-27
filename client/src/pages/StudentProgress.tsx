@@ -1034,6 +1034,7 @@ ${bars}
                           : "";
                         const bodyHtml = (reportText ?? "")
                           .split("\n")
+                          .filter((line) => !/^\s*[Ss]tudent\s*:/i.test(line.trim()))
                           .map((line) => {
                             if (/^#{1,3}\s/.test(line)) {
                               const lvl = line.match(/^(#{1,3})/)?.[1].length ?? 1;
@@ -1078,7 +1079,8 @@ ${bars}
     th { background: #1e3a5f; color: #fff; padding: 6px 10px; text-align: left; }
     td { border-bottom: 1px solid #ddd; padding: 5px 10px; }
     .chart-title { font-size: 11pt; font-weight: bold; color: #1e3a5f; margin-top: 20px; margin-bottom: 4px; }
-    .overall-section { page-break-before: always; padding-top: 12px; }
+    .summary-block { page-break-inside: avoid; }
+    .overall-section { margin-top: 16px; padding-top: 12px; border-top: 1px solid #ddd; }
     .signoff { margin-top: 48px; border-top: 1px solid #ccc; padding-top: 16px; }
     .signoff-name { font-weight: bold; font-size: 11pt; margin: 4px 0 0; color: #111; }
     .signoff-meta { font-size: 10pt; color: #555; margin: 2px 0; }
@@ -1089,16 +1091,18 @@ ${bars}
     ${logoHtml}
     <h1>${studentName}</h1>
     ${groupName ? `<p class="class-group">${t("gp_print_class_group")}: ${groupName}</p>` : ""}
-    <div class="meta">${t("gp_print_student_report")} &nbsp;|&nbsp; ${t("gp_print_generated")}: ${date}</div>
+    <div class="meta">${t("gp_print_generated")}: ${date}${currentGroup?.level ? ` &nbsp;|&nbsp; ${currentGroup.level}` : ""}${currentGroup?.yearGroup ? ` &nbsp;·&nbsp; ${currentGroup.yearGroup}` : ""}</div>
   </header>
-  <div class="grade-badge">${t("gp_print_lomloe_grade")}: ${grade}</div>
-  ${scores.length ? `<div class="chart-title">${t("gp_print_comp_scores")}</div>${chartSvg}` : ""}
-  ${scoresTableHtml}
-  ${bodyHtml}
-  <div class="overall-section">
-    <h2>${t("gp_print_lomloe_grade")}: ${grade}${overall !== null ? ` (${overall}%)` : ""}</h2>
-    <p>${t("gp_print_overall_score")}: ${overall !== null ? overall + "%" : "N/A"}</p>
+  <div class="summary-block">
+    <div class="grade-badge">${t("gp_print_lomloe_grade")}: ${grade}</div>
+    ${scores.length ? `<div class="chart-title">${t("gp_print_comp_scores")}</div>${chartSvg}` : ""}
+    ${scoresTableHtml}
+    <div class="overall-section">
+      <h2>${t("gp_print_lomloe_grade")}: ${grade}${overall !== null ? ` (${overall}%)` : ""}</h2>
+      <p>${t("gp_print_overall_score")}: ${overall !== null ? overall + "%" : "N/A"}</p>
+    </div>
   </div>
+  ${bodyHtml}
   ${signoffHtml}
 </body>
 </html>`;

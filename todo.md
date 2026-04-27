@@ -4626,3 +4626,7 @@
 
 ## Bug: Class Group Selector
 - [x] Fix: class groups created on My Classes page cannot be selected in the group selector
+
+## Fix: Print Report Layout
+- [x] Keep summary (chart + competency table) and grade badge on one page — remove page-break-before from overall section, instead keep everything together on page 1
+- [x] Replace "Student: [name]" line under the date with class name and level details
