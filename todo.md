@@ -4635,3 +4635,6 @@
 - [x] Backend: tRPC procedure returning monthly average competency scores for a group (Sep–Jun academic year)
 - [x] Frontend: Recharts line chart on group progress page with fixed Sep–Jun x-axis, one line per competency, toggle by competency
 - [x] Chart shows current academic year; months with no data show as gaps (no interpolation)
+
+## Feature: Daily Check-in Teacher Name
+- [x] Show logged-in teacher's name under "Today's Status" title on the Daily Check-in page

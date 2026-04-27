@@ -13,6 +13,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -75,6 +76,7 @@ function absenceStatusBadge(status: string) {
 
 export default function TeacherAttendance() {
   const { t } = useI18n();
+  const { user } = useAuth();
   const utils = trpc.useUtils();
 
   // Check-in state
@@ -168,6 +170,9 @@ export default function TeacherAttendance() {
             <Clock className="h-4 w-4" />
             {t("ta_today_status")}
           </CardTitle>
+          {user?.name && (
+            <p className="text-sm text-muted-foreground -mt-1">{user.name}</p>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           {statusLoading ? (
