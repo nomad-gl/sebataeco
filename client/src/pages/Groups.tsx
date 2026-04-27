@@ -162,7 +162,14 @@ function StudentRoster({ group }: { group: Group }) {
       setName(""); setEmail("");
       toast.success(t("groups_student_added"));
     },
-    onError: (err) => toast.error(t("groups_student_add_failed") + ": " + err.message),
+    onError: (err) => {
+      if (err.message.startsWith("DUPLICATE_STUDENT:")) {
+        const dupName = err.message.replace("DUPLICATE_STUDENT:", "");
+        toast.error(t("groups_student_duplicate").replace("{name}", dupName));
+      } else {
+        toast.error(t("groups_student_add_failed") + ": " + err.message);
+      }
+    },
   });
 
   const handleAdd = () => {
@@ -177,7 +184,9 @@ function StudentRoster({ group }: { group: Group }) {
       utils.groups.listStudents.invalidate({ groupId: group.id });
       setBulkOpen(false);
       setBulkText("");
-      toast.success(`${data.added} ${data.added === 1 ? t("groups_student_added_one") : t("groups_student_added_many")}`);  
+      const addedMsg = `${data.added} ${data.added === 1 ? t("groups_student_added_one") : t("groups_student_added_many")}`;
+      const skippedMsg = (data.skipped ?? 0) > 0 ? ` (${data.skipped} ${t("groups_student_duplicate_skipped")})` : "";
+      toast.success(addedMsg + skippedMsg);
     },
     onError: (err) => toast.error(t("groups_bulk_failed") + ": " + err.message),
   });

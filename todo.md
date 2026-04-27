@@ -4587,3 +4587,9 @@
 - [x] Fix addStudent Zod schema: make email optional (no .email() validator, allow empty)
 - [x] Fix group_students DB schema: allow email to be empty string (already NOT NULL, keep as is but allow empty)
 - [x] Fix addStudent insert: store empty string when no email provided
+
+## Duplicate Student Name Check
+- [x] Add duplicate name check in addStudent procedure (case-insensitive, same groupId)
+- [x] Add duplicate name check in bulkAddStudents procedure (skip or report duplicates)
+- [x] Add i18n error key for duplicate student name in EN/ES/CA
+- [x] Show clear error toast on frontend when duplicate is detected

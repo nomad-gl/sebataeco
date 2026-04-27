@@ -171,12 +171,28 @@ export const groupsRouter = router({
         .where(and(eq(classGroups.id, input.groupId), eq(classGroups.userId, ctx.user.id)));
       if (!group) throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
 
-      // Get next student number
-      const existing = await db
-        .select()
+      // Duplicate name check (case-insensitive, same group)
+      const allInGroup = await db
+        .select({ name: groupStudents.name })
         .from(groupStudents)
-        .where(eq(groupStudents.groupId, input.groupId))
-        .orderBy(desc(groupStudents.studentNumber));
+        .where(eq(groupStudents.groupId, input.groupId));
+      const normalised = input.name.trim().toLowerCase();
+      const duplicate = allInGroup.find((s) => s.name.trim().toLowerCase() === normalised);
+      if (duplicate) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: `DUPLICATE_STUDENT:${input.name.trim()}`,
+        });
+      }
+
+      // Get next student number
+      const existing = allInGroup.length > 0
+        ? await db
+            .select({ studentNumber: groupStudents.studentNumber })
+            .from(groupStudents)
+            .where(eq(groupStudents.groupId, input.groupId))
+            .orderBy(desc(groupStudents.studentNumber))
+        : [];
       const nextNumber = existing.length > 0 ? existing[0].studentNumber + 1 : 1;
 
       const result = await db.insert(groupStudents).values({
@@ -239,22 +255,36 @@ export const groupsRouter = router({
         .where(and(eq(classGroups.id, input.groupId), eq(classGroups.userId, ctx.user.id)));
       if (!group) throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
 
-      // Get the current max studentNumber
-      const existing = await db
-        .select()
+      // Get existing names for duplicate check
+      const existingStudents = await db
+        .select({ name: groupStudents.name, studentNumber: groupStudents.studentNumber })
         .from(groupStudents)
         .where(eq(groupStudents.groupId, input.groupId))
         .orderBy(desc(groupStudents.studentNumber));
-      let nextNumber = existing.length > 0 ? existing[0].studentNumber + 1 : 1;
+      const existingNames = new Set(existingStudents.map((s) => s.name.trim().toLowerCase()));
+      let nextNumber = existingStudents.length > 0 ? existingStudents[0].studentNumber + 1 : 1;
 
-      const rows = input.students.map((s) => ({
+      // Filter out duplicates (case-insensitive)
+      const newStudents = input.students.filter((s) => {
+        const n = s.name.trim().toLowerCase();
+        if (existingNames.has(n)) return false;
+        existingNames.add(n); // prevent intra-batch duplicates too
+        return true;
+      });
+      const skipped = input.students.length - newStudents.length;
+
+      if (newStudents.length === 0) {
+        return { added: 0, skipped };
+      }
+
+      const rows = newStudents.map((s) => ({
         groupId: input.groupId,
         studentNumber: nextNumber++,
         name: s.name.trim(),
         email: s.email.trim(),
       }));
       await db.insert(groupStudents).values(rows);
-      return { added: rows.length };
+      return { added: rows.length, skipped };
     }),
 
   /** Remove a student from a group */
