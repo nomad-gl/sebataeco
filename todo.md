@@ -4701,3 +4701,13 @@
 ## Enhancement: Student Directory — Back to Main Menu Button
 
 - [x] Add "Back to Main Menu" button to Student Directory page with consistent styling
+
+## Enhancement: PDF Report Print Preview — Director Info Below Logo
+
+- [x] Auto-prefill director name and director role fields from school settings when preview opens
+- [x] Add school name field below director role in the form
+- [x] Show director name, director role, and school name below the logo/motif in the print preview
+
+## Bug: School Review Page — Lesson Plans Section Empty
+
+- [x] Fix lesson plans section on School Review page showing nothing when clicked

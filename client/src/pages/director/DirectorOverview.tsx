@@ -6,7 +6,7 @@ import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import {
   BarChart3, Users, BookOpen, Calendar,
-  AlertTriangle, ShieldCheck, TrendingUp, FileDown, Loader2,
+  AlertTriangle, ShieldCheck, TrendingUp, FileDown, Loader2, Building2,
 } from "lucide-react";
 import { SebaSymbol } from "@/components/SebaSymbol";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,7 +34,9 @@ export default function DirectorOverview() {
   const [pdfLocale, setPdfLocale] = useState<"en" | "es" | "ca">("ca");
   const [directorName, setDirectorName] = useState("");
   const [directorTitle, setDirectorTitle] = useState("");
+  const [schoolName, setSchoolName] = useState("");
   const [directorLogoDataUrl, setDirectorLogoDataUrl] = useState<string | null>(null);
+  const [prefilled, setPrefilled] = useState(false);
 
   const handleDirectorLogoUpload = (file: File) => {
     if (!file) return;
@@ -58,6 +60,24 @@ export default function DirectorOverview() {
   const { data: trends, isLoading: trendsLoading } = trpc.director.getTrends.useQuery(undefined, {
     enabled: !!user && (user.role === "admin" || user.role === "director"),
   });
+
+  // Fetch director info for auto-prefill
+  const { data: directorInfo } = trpc.director.getDirectorInfo.useQuery(undefined, {
+    enabled: !!user && (user.role === "admin" || user.role === "director"),
+  });
+
+  // Auto-prefill fields once director info is loaded
+  useEffect(() => {
+    if (directorInfo && !prefilled) {
+      if (directorInfo.name) setDirectorName(directorInfo.name);
+      if (directorInfo.position) setDirectorTitle(directorInfo.position);
+      if (directorInfo.schoolName) setSchoolName(directorInfo.schoolName);
+      if (directorInfo.schoolLogoUrl && !directorLogoDataUrl) {
+        setDirectorLogoDataUrl(directorInfo.schoolLogoUrl);
+      }
+      setPrefilled(true);
+    }
+  }, [directorInfo, prefilled, directorLogoDataUrl]);
 
   const generatePdf = trpc.director.generateDirectorPdf.useMutation({
     onSuccess: (data) => {
@@ -101,8 +121,35 @@ export default function DirectorOverview() {
               <p className="text-sm text-muted-foreground">{t("dir_overview_desc")}</p>
             </div>
           </div>
-          {/* Director report header settings */}
-          <div className="flex flex-col items-end gap-2">
+
+          {/* Director report panel */}
+          <div className="flex flex-col items-end gap-3">
+            {/* PDF Preview card — shows logo + director info */}
+            <div className="rounded-xl border border-border bg-card shadow-sm p-4 flex flex-col items-center gap-2 min-w-[220px]">
+              {/* Logo / motif */}
+              <div className="flex items-center justify-center w-16 h-16 rounded-lg bg-muted overflow-hidden">
+                {directorLogoDataUrl ? (
+                  <img src={directorLogoDataUrl} alt="school logo" className="w-full h-full object-contain" />
+                ) : (
+                  <Building2 className="w-8 h-8 text-muted-foreground" />
+                )}
+              </div>
+              {/* Director name */}
+              <p className="text-sm font-semibold text-foreground text-center leading-tight">
+                {directorName || <span className="text-muted-foreground italic text-xs">{t("dir_pdf_director_name")}</span>}
+              </p>
+              {/* Director role */}
+              <p className="text-xs text-muted-foreground text-center">
+                {directorTitle || <span className="italic">{t("dir_pdf_director_title")}</span>}
+              </p>
+              {/* School name */}
+              <p className="text-xs font-medium text-primary text-center">
+                {schoolName || <span className="text-muted-foreground italic">{t("dir_pdf_school_name") ?? "School name"}</span>}
+              </p>
+              <p className="text-[10px] text-muted-foreground/60 mt-1">PDF Preview</p>
+            </div>
+
+            {/* Form fields */}
             <div className="flex items-center gap-2 flex-wrap justify-end">
               <input
                 type="text"
@@ -120,6 +167,14 @@ export default function DirectorOverview() {
                 className="text-xs border border-border rounded-md px-2 py-1.5 bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary w-36"
                 disabled={generatePdf.isPending}
               />
+              <input
+                type="text"
+                placeholder={t("dir_pdf_school_name") ?? "School name"}
+                value={schoolName}
+                onChange={e => setSchoolName(e.target.value)}
+                className="text-xs border border-border rounded-md px-2 py-1.5 bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary w-36"
+                disabled={generatePdf.isPending}
+              />
               <label className="cursor-pointer flex items-center gap-1 text-xs border border-border rounded-md px-2 py-1.5 bg-background text-foreground hover:bg-muted/40 transition-colors">
                 {directorLogoDataUrl ? (
                   <><img src={directorLogoDataUrl} alt="logo" className="w-4 h-4 object-contain rounded" /><span className="text-green-600">{t("dir_pdf_logo_uploaded")}</span></>
@@ -129,29 +184,36 @@ export default function DirectorOverview() {
                 <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleDirectorLogoUpload(f); }} />
               </label>
             </div>
+
             <div className="flex items-center gap-2">
-            <select
-              value={pdfLocale}
-              onChange={e => setPdfLocale(e.target.value as "en" | "es" | "ca")}
-              className="text-xs border border-border rounded-md px-2 py-1.5 bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-              disabled={generatePdf.isPending}
-            >
-              <option value="ca">Català</option>
-              <option value="es">Español</option>
-              <option value="en">English</option>
-            </select>
-            <Button
-              size="default"
-              className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md gap-2 px-5"
-              onClick={() => generatePdf.mutate({ locale: pdfLocale, directorName: directorName || null, directorTitle: directorTitle || null, directorLogoUrl: directorLogoDataUrl || null })}
-              disabled={generatePdf.isPending}
-            >
-              {generatePdf.isPending ? (
-                <><Loader2 className="w-4 h-4 animate-spin" />{t("dir_pdf_generating")}</>
-              ) : (
-                <><FileDown className="w-4 h-4" />{t("dir_pdf_btn")}</>
-              )}
-            </Button>
+              <select
+                value={pdfLocale}
+                onChange={e => setPdfLocale(e.target.value as "en" | "es" | "ca")}
+                className="text-xs border border-border rounded-md px-2 py-1.5 bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                disabled={generatePdf.isPending}
+              >
+                <option value="ca">Català</option>
+                <option value="es">Español</option>
+                <option value="en">English</option>
+              </select>
+              <Button
+                size="default"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md gap-2 px-5"
+                onClick={() => generatePdf.mutate({
+                  locale: pdfLocale,
+                  directorName: directorName || null,
+                  directorTitle: directorTitle || null,
+                  schoolName: schoolName || null,
+                  directorLogoUrl: directorLogoDataUrl || null,
+                })}
+                disabled={generatePdf.isPending}
+              >
+                {generatePdf.isPending ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" />{t("dir_pdf_generating")}</>
+                ) : (
+                  <><FileDown className="w-4 h-4" />{t("dir_pdf_btn")}</>
+                )}
+              </Button>
             </div>
           </div>
         </div>
@@ -248,78 +310,45 @@ export default function DirectorOverview() {
               <>
                 <div className="text-center">
                   <p className="text-2xl font-bold text-foreground">{stats?.openBiasFlags ?? 0}</p>
-                  <p className="text-xs text-muted-foreground">{t("dir_open_bias_flags")}</p>
+                  <p className="text-xs text-muted-foreground">{t("dir_bias_open")}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-bold text-foreground">{stats?.recentScanRuns ?? 0}</p>
-                  <p className="text-xs text-muted-foreground">{t("dir_scans_30d")}</p>
+                  <p className="text-xs text-muted-foreground">{t("dir_bias_recent_scans")}</p>
                 </div>
-                <a href="/accountability" className="text-xs text-primary underline underline-offset-2 ml-auto">
-                  {t("dir_view_accountability")} →
-                </a>
+                {(stats?.openBiasFlags ?? 0) > 0 && (
+                  <Badge variant="destructive" className="text-xs">
+                    <AlertTriangle className="w-3 h-3 mr-1" />
+                    {t("dir_bias_action_needed")}
+                  </Badge>
+                )}
               </>
             )}
           </CardContent>
         </Card>
 
-        {/* Trend sparklines */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Lesson plans trend */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <TrendingUp className="w-4 h-4 text-green-500" />
-                {t("dir_trend_plans")}
-              </CardTitle>
-              <p className="text-xs text-muted-foreground">{t("dir_trend_plans_desc")}</p>
-            </CardHeader>
-            <CardContent>
-              {trendsLoading ? (
-                <div className="h-24 flex items-center justify-center"><Skeleton className="h-20 w-full" /></div>
-              ) : (
-                <ResponsiveContainer width="100%" height={80}>
-                  <LineChart data={(trends?.weeks ?? []).map(w => ({ week: w.label, count: w.plansCreated }))}>
-                    <XAxis dataKey="week" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
-                    <Tooltip
-                      contentStyle={{ fontSize: 11, padding: "4px 8px", borderRadius: 6 }}
-                      formatter={(v: number) => [v, t("dir_stat_lesson_plans")]}
-                    />
-                    <Line type="monotone" dataKey="count" stroke="#22c55e" strokeWidth={2} dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* AI sessions trend */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <SebaSymbol className="w-4 h-4 text-purple-500" />
-                {t("dir_trend_ai")}
-              </CardTitle>
-              <p className="text-xs text-muted-foreground">{t("dir_trend_ai_desc")}</p>
-            </CardHeader>
-            <CardContent>
-              {trendsLoading ? (
-                <div className="h-24 flex items-center justify-center"><Skeleton className="h-20 w-full" /></div>
-              ) : (
-                <ResponsiveContainer width="100%" height={80}>
-                  <LineChart data={(trends?.weeks ?? []).map(w => ({ week: w.label, count: w.aiPlans }))}>
-                    <XAxis dataKey="week" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
-                    <Tooltip
-                      contentStyle={{ fontSize: 11, padding: "4px 8px", borderRadius: 6 }}
-                      formatter={(v: number) => [v, t("dir_trend_ai")]}
-                    />
-                    <Line type="monotone" dataKey="count" stroke="#a855f7" strokeWidth={2} dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        <p className="text-xs text-muted-foreground text-right">Powered by SEBA</p>
+        {/* Activity trend */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <TrendingUp className="w-4 h-4 text-primary" />
+              {t("dir_activity_trend")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {trendsLoading ? (
+              <Skeleton className="h-32 w-full" />
+            ) : (
+              <ResponsiveContainer width="100%" height={120}>
+                <LineChart data={(trends as { date: string; count: number }[] | undefined) ?? []}>
+                  <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="count" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );

@@ -237,6 +237,7 @@ export const directorRouter = router({
       directorName: z.string().max(120).nullable().optional(),
       directorTitle: z.string().max(120).nullable().optional(),
       directorLogoUrl: z.string().nullable().optional(), // accepts data: URL or https URL
+      schoolName: z.string().max(256).nullable().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -418,7 +419,7 @@ export const directorRouter = router({
       } : undefined;
 
       const pdfBuffer = await generateDirectorReportPdf({
-        schoolName: schoolBranding?.schoolName ?? settings.school_name ?? null,
+        schoolName: input.schoolName ?? schoolBranding?.schoolName ?? settings.school_name ?? null,
         logoUrl: schoolBranding?.logoUrl ?? null,
         directorName: input.directorName ?? null,
         directorTitle: input.directorTitle ?? null,
@@ -757,6 +758,44 @@ export const directorRouter = router({
       return { id: 1, schoolName: null, logoUrl: null, logoKey: null, updatedAt: new Date() };
     }
     return rows[0];
+  }),
+
+  /**
+   * Get the current director's name, role/position, and school name for PDF pre-fill.
+   */
+  getDirectorInfo: adminProcedure.query(async ({ ctx }) => {
+    const db = await getDb();
+    if (!db) return { name: null, position: null, schoolName: null, schoolLogoUrl: null };
+
+    // Fetch the director's own user row
+    const [dirUser] = await db
+      .select({ name: users.name, displayName: users.displayName, position: users.position, schoolName: users.schoolName })
+      .from(users)
+      .where(eq(users.id, ctx.user.id))
+      .limit(1);
+
+    // Fetch school branding for the logo
+    const tid = ctx.tenantId;
+    let brandingRows = tid != null
+      ? await db.select({ logoUrl: schoolSettings.logoUrl, schoolName: schoolSettings.schoolName }).from(schoolSettings).where(eq(schoolSettings.tenantId, tid))
+      : [];
+    if (brandingRows.length === 0) {
+      brandingRows = await db.select({ logoUrl: schoolSettings.logoUrl, schoolName: schoolSettings.schoolName }).from(schoolSettings).where(eq(schoolSettings.id, 1));
+    }
+    const branding = brandingRows[0] ?? null;
+
+    const resolvedName = dirUser?.displayName ?? dirUser?.name ?? null;
+    const resolvedSchoolName = dirUser?.schoolName ?? branding?.schoolName ?? null;
+    const positionLabel = dirUser?.position === "director" ? "Director/a" :
+      dirUser?.position === "head_of_study" ? "Cap d'Estudis" :
+      dirUser?.position === "teacher" ? "Mestre/a" : null;
+
+    return {
+      name: resolvedName,
+      position: positionLabel,
+      schoolName: resolvedSchoolName,
+      schoolLogoUrl: branding?.logoUrl ?? null,
+    };
   }),
 
   /**
