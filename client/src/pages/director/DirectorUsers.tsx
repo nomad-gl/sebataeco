@@ -164,8 +164,16 @@ export default function DirectorUsers() {
     onSuccess: (data) => {
       setShowInvite(false);
       setInviteEmail("");
+      setPrefillName(null);
+      setFromAddTeacher(false);
       setInviteResult({ url: data.inviteUrl, expiresAt: new Date(data.expiresAt) });
       refetchInvites();
+      // Auto-copy the link to clipboard immediately
+      navigator.clipboard.writeText(data.inviteUrl).then(() => {
+        toast.success(t("dir_users_reset_copied"));
+      }).catch(() => {
+        // Clipboard write failed (e.g. non-secure context) — user can copy manually
+      });
     },
     onError: (err) => toast.error(err.message),
   });
