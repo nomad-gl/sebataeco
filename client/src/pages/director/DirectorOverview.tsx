@@ -103,7 +103,7 @@ export default function DirectorOverview() {
     { icon: BookOpen, label: t("dir_stat_lesson_plans"), value: stats?.totalLessonPlans, color: "text-green-500", href: "/director/reports" },
     { icon: SebaSymbol, label: t("dir_stat_ai_plans"), value: stats?.aiGeneratedPlans, color: "text-purple-500", href: "/director/reports" },
     { icon: TrendingUp, label: t("dir_stat_practice_sessions"), value: stats?.totalPracticeSessions, color: "text-cyan-500", href: "/director/progress" },
-    { icon: Calendar, label: t("dir_stat_calendar_events"), value: stats?.totalCalendarEvents, color: "text-amber-500", href: "/director/overview" },
+    { icon: Calendar, label: t("dir_stat_calendar_events"), value: stats?.totalCalendarEvents, color: "text-amber-500", href: "/school-calendar" },
     { icon: AlertTriangle, label: t("dir_stat_open_bias_flags"), value: stats?.openBiasFlags, color: "text-red-500", href: "/director/reports" },
   ];
 

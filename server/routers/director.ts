@@ -222,7 +222,9 @@ export const directorRouter = router({
         ? db.select({ id: lessonPlans.id, title: lessonPlans.title, subject: lessonPlans.subject, yearGroup: lessonPlans.yearGroup, competencies: lessonPlans.competencies, aiGenerated: lessonPlans.aiGenerated, createdAt: lessonPlans.createdAt }).from(lessonPlans).where(eq(lessonPlans.tenantId, tid)).orderBy(desc(lessonPlans.createdAt))
         : db.select({ id: lessonPlans.id, title: lessonPlans.title, subject: lessonPlans.subject, yearGroup: lessonPlans.yearGroup, competencies: lessonPlans.competencies, aiGenerated: lessonPlans.aiGenerated, createdAt: lessonPlans.createdAt }).from(lessonPlans).orderBy(desc(lessonPlans.createdAt)),
       db.select().from(biasScanRuns).orderBy(desc(biasScanRuns.runAt)),
-      db.select().from(aiBiasFlags).orderBy(desc(aiBiasFlags.createdAt)),
+      tid != null
+        ? db.select().from(aiBiasFlags).where(eq(aiBiasFlags.tenantId, tid)).orderBy(desc(aiBiasFlags.createdAt))
+        : db.select().from(aiBiasFlags).orderBy(desc(aiBiasFlags.createdAt)),
       tid != null
         ? db.select({ id: users.id, name: users.name, email: users.email, role: users.role, createdAt: users.createdAt }).from(users).where(eq(users.tenantId, tid))
         : db.select({ id: users.id, name: users.name, email: users.email, role: users.role, createdAt: users.createdAt }).from(users),

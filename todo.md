@@ -4711,3 +4711,8 @@
 ## Bug: School Review Page — Lesson Plans Section Empty
 
 - [x] Fix lesson plans section on School Review page showing nothing when clicked
+
+## Bug: School Overview — Blank Screens on Stat Card Links
+
+- [x] Fix "Open Bias Flags" stat card linking to a blank screen
+- [x] Fix "Calendar Events" stat card linking to a blank screen

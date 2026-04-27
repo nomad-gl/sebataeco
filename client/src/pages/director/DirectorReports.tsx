@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import { useI18n } from "@/contexts/I18nContext";
 import { trpc } from "@/lib/trpc";
-import { Download, FileText, Shield, Users, Loader2, BarChart3, FileDown, ChevronDown, ChevronUp, BookOpen, Cpu, Calendar } from "lucide-react";
+import { Download, FileText, Shield, Users, Loader2, BarChart3, FileDown, ChevronDown, ChevronUp, BookOpen, Cpu, Calendar, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +35,7 @@ export default function DirectorReports() {
   const [, navigate] = useLocation();
   const [pdfLoading, setPdfLoading] = useState(false);
   const [lessonPlansExpanded, setLessonPlansExpanded] = useState(true);
+  const [biasExpanded, setBiasExpanded] = useState(true);
 
   useEffect(() => { if (!authLoading && user && user.role !== "admin" && user.role !== "director") navigate("/"); }, [authLoading, user, navigate]);
   if (authLoading || (!user && !authLoading)) return null;
@@ -119,15 +120,7 @@ export default function DirectorReports() {
       label: t("dir_report_scans"),
       onExport: exportBiasScans,
     },
-    {
-      key: "bias_flags",
-      icon: <Shield className="w-5 h-5 text-red-500" />,
-      title: t("dir_report_bias_flags"),
-      desc: t("dir_report_bias_flags_desc"),
-      count: data?.allFlags.length ?? 0,
-      label: t("dir_report_flags"),
-      onExport: exportBiasFlags,
-    },
+
     {
       key: "staff",
       icon: <Users className="w-5 h-5 text-blue-500" />,
@@ -236,8 +229,77 @@ export default function DirectorReports() {
               )}
             </Card>
 
+            {/* Bias Flags — expandable list */}
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-red-500" />
+                    <CardTitle className="text-base">{t("dir_report_bias_flags")}</CardTitle>
+                    <Badge variant="secondary" className="ml-1">{data?.allFlags.length ?? 0} {t("dir_report_flags")}</Badge>
+                    {(data?.allFlags.filter(f => !f.resolved).length ?? 0) > 0 && (
+                      <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                        {data!.allFlags.filter(f => !f.resolved).length} open
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" onClick={exportBiasFlags} disabled={(data?.allFlags.length ?? 0) === 0}>
+                      <Download className="w-3.5 h-3.5 mr-1.5" />
+                      {t("dir_export_csv")}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setBiasExpanded(v => !v)} className="px-2">
+                      {biasExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                </div>
+                <CardDescription className="text-xs">{t("dir_report_bias_flags_desc")}</CardDescription>
+              </CardHeader>
+              {biasExpanded && (
+                <CardContent className="pt-0">
+                  {(data?.allFlags.length ?? 0) === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-10 text-center gap-2">
+                      <Shield className="w-10 h-10 text-muted-foreground/40" />
+                      <p className="text-sm text-muted-foreground">{t("dir_report_no_bias_flags") ?? "No bias flags found for this school."}</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-border rounded-lg border overflow-hidden">
+                      {data!.allFlags.map(flag => (
+                        <div key={flag.id} className="flex items-start justify-between gap-3 px-4 py-3 hover:bg-muted/30 transition-colors">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground line-clamp-2">{flag.flagReason}</p>
+                            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                              <Badge
+                                variant="outline"
+                                className={`text-[10px] px-1.5 py-0 ${
+                                  flag.severity === "high" ? "text-red-600 border-red-300" :
+                                  flag.severity === "medium" ? "text-amber-600 border-amber-300" :
+                                  "text-green-600 border-green-300"
+                                }`}
+                              >
+                                {flag.severity}
+                              </Badge>
+                              {flag.resolved ? (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-green-600 border-green-300">resolved</Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-red-600 border-red-300">open</Badge>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0 mt-0.5">
+                            <Calendar className="w-3 h-3" />
+                            {flag.createdAt ? new Date(flag.createdAt).toLocaleDateString() : "—"}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              )}
+            </Card>
+
             {/* Other export cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {exportCards.map(r => (
                 <Card key={r.key} className="flex flex-col">
                   <CardHeader className="pb-2">
