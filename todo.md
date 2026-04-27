@@ -4660,3 +4660,6 @@
 - [x] Add director name input field to Director report print settings
 - [x] Add director title/role input field to Director report print settings
 - [x] Show logo (right), director name and title in the printed report header
+
+## Feature: Lesson Plan Modal - View Original Document
+- [x] Add "View Original Document" button to per-teacher lesson plan modal that opens the full plan in a new tab

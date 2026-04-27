@@ -387,6 +387,16 @@ function TeacherPlansModal({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-medium text-sm text-foreground truncate">{plan.title}</p>
+                        <a
+                          href={`/lesson-planner?planId=${plan.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ml-auto flex-shrink-0 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                          title={t("dir_view_original_doc")}
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          {t("dir_view_original_doc")}
+                        </a>
                         {plan.aiGenerated && (
                           <Badge className="bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 text-[10px] px-1.5 py-0">
                             <Sparkles className="w-2.5 h-2.5 mr-0.5" /> AI
