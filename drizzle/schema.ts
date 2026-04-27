@@ -22,6 +22,9 @@ export const users = mysqlTable("users", {
   displayName: varchar("displayName", { length: 128 }),
   /** Set by a Director to prevent login without deleting data. NULL = active. */
   deactivatedAt: timestamp("deactivatedAt"),
+  /** Optional reason logged by the Director when deactivating this account. */
+  /** @migration 0057 */
+  deactivationReason: varchar("deactivationReason", { length: 512 }),
   /**
    * Incremented on every "sign out from all devices" action.
    * The current value is embedded in the JWT; any token carrying an older

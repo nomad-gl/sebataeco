@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -127,6 +128,10 @@ export default function DirectorUsers() {
   const [bulkResetResults, setBulkResetResults] = useState<Array<{ userId: number; email: string | null; displayName: string | null; resetUrl: string; expiresAt: Date }> | null>(null);
   // Invite delete state
   const [confirmDeleteInvite, setConfirmDeleteInvite] = useState<InviteRow | null>(null);
+  // Reason fields for deactivate / delete
+  const [deactivateReason, setDeactivateReason] = useState("");
+  const [bulkDeactivateReason, setBulkDeactivateReason] = useState("");
+  const [deleteReason, setDeleteReason] = useState("");
 
   const { data: users = [], isLoading, refetch } = trpc.director.listLocalUsers.useQuery();
   const { data: invites = [], isLoading: invitesLoading, refetch: refetchInvites } =
@@ -593,7 +598,7 @@ export default function DirectorUsers() {
       </Dialog>
 
       {/* Confirm deactivate / reactivate dialog */}
-      <Dialog open={!!confirmDeactivate} onOpenChange={(open) => !open && setConfirmDeactivate(null)}>
+      <Dialog open={!!confirmDeactivate} onOpenChange={(open) => { if (!open) { setConfirmDeactivate(null); setDeactivateReason(""); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
@@ -607,8 +612,26 @@ export default function DirectorUsers() {
                 : t("dir_users_deactivate_confirm_desc").replace("{name}", confirmDeactivate?.user.displayName ?? confirmDeactivate?.user.email ?? String(confirmDeactivate?.user.id ?? ""))}
             </DialogDescription>
           </DialogHeader>
+          {confirmDeactivate?.action !== "reactivate" && (
+            <div className="space-y-1.5">
+              <Label htmlFor="deactivate-reason" className="text-sm">
+                {t("dir_users_reason_label")}
+                <span className="text-muted-foreground ml-1 font-normal">({t("dir_users_reason_optional")})</span>
+              </Label>
+              <Textarea
+                id="deactivate-reason"
+                value={deactivateReason}
+                onChange={(e) => setDeactivateReason(e.target.value)}
+                placeholder={t("dir_users_reason_placeholder")}
+                maxLength={512}
+                rows={3}
+                className="resize-none text-sm"
+              />
+              <p className="text-xs text-muted-foreground text-right">{deactivateReason.length}/512</p>
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setConfirmDeactivate(null)}>
+            <Button variant="ghost" onClick={() => { setConfirmDeactivate(null); setDeactivateReason(""); }}>
               {t("dir_users_cancel")}
             </Button>
             <Button
@@ -619,7 +642,7 @@ export default function DirectorUsers() {
                 if (confirmDeactivate.action === "reactivate") {
                   reactivateMutation.mutate({ userId: confirmDeactivate.user.id });
                 } else {
-                  deactivateMutation.mutate({ userId: confirmDeactivate.user.id });
+                  deactivateMutation.mutate({ userId: confirmDeactivate.user.id, reason: deactivateReason.trim() || undefined });
                 }
               }}
             >
@@ -634,7 +657,7 @@ export default function DirectorUsers() {
       </Dialog>
 
       {/* Bulk deactivate confirm dialog */}
-      <Dialog open={showBulkConfirm} onOpenChange={(open) => !open && setShowBulkConfirm(false)}>
+      <Dialog open={showBulkConfirm} onOpenChange={(open) => { if (!open) { setShowBulkConfirm(false); setBulkDeactivateReason(""); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t("dir_users_bulk_deactivate_confirm_title")}</DialogTitle>
@@ -642,14 +665,30 @@ export default function DirectorUsers() {
               {t("dir_users_bulk_deactivate_confirm_desc").replace("{n}", String(selected.size))}
             </DialogDescription>
           </DialogHeader>
+          <div className="space-y-1.5">
+            <Label htmlFor="bulk-deactivate-reason" className="text-sm">
+              {t("dir_users_reason_label")}
+              <span className="text-muted-foreground ml-1 font-normal">({t("dir_users_reason_optional")})</span>
+            </Label>
+            <Textarea
+              id="bulk-deactivate-reason"
+              value={bulkDeactivateReason}
+              onChange={(e) => setBulkDeactivateReason(e.target.value)}
+              placeholder={t("dir_users_reason_placeholder")}
+              maxLength={512}
+              rows={3}
+              className="resize-none text-sm"
+            />
+            <p className="text-xs text-muted-foreground text-right">{bulkDeactivateReason.length}/512</p>
+          </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setShowBulkConfirm(false)}>
+            <Button variant="ghost" onClick={() => { setShowBulkConfirm(false); setBulkDeactivateReason(""); }}>
               {t("dir_users_cancel")}
             </Button>
             <Button
               variant="destructive"
               disabled={bulkDeactivateMutation.isPending}
-              onClick={() => bulkDeactivateMutation.mutate({ userIds: Array.from(selected) })}
+              onClick={() => bulkDeactivateMutation.mutate({ userIds: Array.from(selected), reason: bulkDeactivateReason.trim() || undefined })}
             >
               {bulkDeactivateMutation.isPending
                 ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />{t("dir_users_resetting")}</>
@@ -911,7 +950,7 @@ export default function DirectorUsers() {
       </Dialog>
 
       {/* Confirm delete user dialog */}
-      <Dialog open={!!confirmDelete} onOpenChange={(open) => !open && setConfirmDelete(null)}>
+      <Dialog open={!!confirmDelete} onOpenChange={(open) => { if (!open) { setConfirmDelete(null); setDeleteReason(""); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="text-destructive flex items-center gap-2">
@@ -925,14 +964,30 @@ export default function DirectorUsers() {
           <div className="rounded-md bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive">
             {t("dir_users_delete_warning")}
           </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="delete-reason" className="text-sm">
+              {t("dir_users_reason_label")}
+              <span className="text-muted-foreground ml-1 font-normal">({t("dir_users_reason_optional")})</span>
+            </Label>
+            <Textarea
+              id="delete-reason"
+              value={deleteReason}
+              onChange={(e) => setDeleteReason(e.target.value)}
+              placeholder={t("dir_users_reason_placeholder")}
+              maxLength={512}
+              rows={3}
+              className="resize-none text-sm"
+            />
+            <p className="text-xs text-muted-foreground text-right">{deleteReason.length}/512</p>
+          </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setConfirmDelete(null)}>
+            <Button variant="ghost" onClick={() => { setConfirmDelete(null); setDeleteReason(""); }}>
               {t("dir_users_cancel")}
             </Button>
             <Button
               variant="destructive"
               disabled={deleteMutation.isPending}
-              onClick={() => confirmDelete && deleteMutation.mutate({ userId: confirmDelete.id })}
+              onClick={() => confirmDelete && deleteMutation.mutate({ userId: confirmDelete.id, reason: deleteReason.trim() || undefined })}
             >
               {deleteMutation.isPending
                 ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />{t("dir_users_resetting")}</>

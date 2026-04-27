@@ -4524,3 +4524,29 @@
 - [x] i18n: add keys for bulk reset and invite delete in EN/ES/CA
 - [x] Full i18n audit: replace all remaining hardcoded strings across all pages with t() calls
 - [x] i18n: add missing keys to EN/ES/CA blocks for any newly found hardcoded strings
+
+## Deactivate / Delete Reason Field
+
+- [ ] DB: add `deactivationReason` varchar(512) column to `users` table
+- [x] DB migration: apply ALTER TABLE via webdev_execute_sql
+- [ ] Backend: update `deactivateUser` procedure to accept optional `reason` string and store it
+- [ ] Backend: update `bulkDeactivateUsers` procedure to accept optional `reason` string and store it
+- [ ] Backend: update `deleteLocalUser` procedure to accept optional `reason` string and include it in audit log details
+- [x] Frontend: add reason textarea to single Deactivate confirm dialog
+- [x] Frontend: add reason textarea to bulk Deactivate confirm dialog
+- [x] Frontend: add reason textarea to Delete User confirm dialog
+- [x] Frontend: display deactivationReason in user detail panel where visible
+- [x] i18n: add reason field keys to EN/ES/CA
+
+## Deactivate / Delete Reason Field
+
+- [x] DB: add deactivationReason varchar(512) column to users table
+- [x] DB migration: apply ALTER TABLE via webdev_execute_sql
+- [x] Backend: update deactivateUser procedure to accept optional reason string and store it
+- [x] Backend: update bulkDeactivateUsers procedure to accept optional reason string and store it
+- [x] Backend: update deleteLocalUser procedure to accept optional reason string and include it in audit log details
+- [x] Frontend: add reason textarea to single Deactivate confirm dialog
+- [x] Frontend: add reason textarea to bulk Deactivate confirm dialog
+- [x] Frontend: add reason textarea to Delete User confirm dialog
+- [x] Frontend: display deactivationReason in user detail panel where visible
+- [x] i18n: add reason field keys to EN/ES/CA

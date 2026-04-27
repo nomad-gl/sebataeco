@@ -826,20 +826,23 @@ export const directorRouter = router({
    * Director: deactivate a local account (prevents login, data preserved).
    */
   deactivateUser: adminProcedure
-    .input(z.object({ userId: z.number().int().positive() }))
+    .input(z.object({
+      userId: z.number().int().positive(),
+      reason: z.string().max(512).optional(),
+    }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       await db
         .update(users)
-        .set({ deactivatedAt: new Date() })
+        .set({ deactivatedAt: new Date(), deactivationReason: input.reason ?? null })
         .where(and(eq(users.id, input.userId), isNotNull(users.passwordHash)));
       await db.insert(adminAuditLogs).values({
         userId: ctx.user.id,
         action: "deactivate_user",
         resource: "user",
         resourceId: String(input.userId),
-        details: JSON.stringify({ targetUserId: input.userId }),
+        details: JSON.stringify({ targetUserId: input.userId, reason: input.reason ?? null }),
       });
       return { success: true };
     }),
@@ -867,7 +870,10 @@ export const directorRouter = router({
     }),
 
   bulkDeactivateUsers: adminProcedure
-    .input(z.object({ userIds: z.array(z.number()).min(1).max(100) }))
+    .input(z.object({
+      userIds: z.array(z.number()).min(1).max(100),
+      reason: z.string().max(512).optional(),
+    }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
@@ -875,7 +881,7 @@ export const directorRouter = router({
       if (safeIds.length === 0) throw new Error("Cannot deactivate your own account");
       await db
         .update(users)
-        .set({ deactivatedAt: new Date() })
+        .set({ deactivatedAt: new Date(), deactivationReason: input.reason ?? null })
         .where(and(inArray(users.id, safeIds), isNotNull(users.passwordHash)));
       for (const userId of safeIds) {
         await db.insert(adminAuditLogs).values({
@@ -883,7 +889,7 @@ export const directorRouter = router({
           action: "deactivate_user",
           resource: "user",
           resourceId: String(userId),
-          details: JSON.stringify({ targetUserId: userId, bulk: true }),
+          details: JSON.stringify({ targetUserId: userId, bulk: true, reason: input.reason ?? null }),
         });
       }
       return { count: safeIds.length };
@@ -1669,7 +1675,10 @@ export const directorRouter = router({
    *  - Cannot delete users without a local password (OAuth-only accounts)
    */
   deleteLocalUser: adminProcedure
-    .input(z.object({ userId: z.number().int().positive() }))
+    .input(z.object({
+      userId: z.number().int().positive(),
+      reason: z.string().max(512).optional(),
+    }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
@@ -1730,6 +1739,7 @@ export const directorRouter = router({
           deletedDisplayName: target.displayName,
           deletedOpenId: target.openId,
           deletedAt: new Date().toISOString(),
+          reason: input.reason ?? null,
         }),
       });
 
