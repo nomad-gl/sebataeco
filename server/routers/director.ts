@@ -16,8 +16,9 @@ import {
   studentProgress,
   groupStudents,
   classGroups,
+  attendanceRecords,
 } from "../../drizzle/schema";
-import { count, eq, gte, sql, desc, and, lt, inArray, isNotNull, isNull, gt } from "drizzle-orm";
+import { count, eq, gte, sql, desc, and, lt, inArray, isNotNull, isNull, gt, like, or, max, avg } from "drizzle-orm";
 import crypto from "crypto";
 import { passwordResetTokens } from "../../drizzle/schema";
 import { appSettings, schoolSettings, adminAuditLogs, roleChangeAudit, pendingTeacherSubmissions, tenants } from "../../drizzle/schema";
@@ -1932,5 +1933,211 @@ export const directorRouter = router({
         details: JSON.stringify({ deletedEmail: invite.email }),
       });
       return { success: true, deletedEmail: invite.email };
+    }),
+
+  // ─── Student Directory ────────────────────────────────────────────────────────
+
+  /**
+   * List all students across all class groups for this tenant.
+   * Supports optional search by name (first or last), pagination, and optional
+   * filtering by yearGroup or academicYear.
+   */
+  listAllStudents: adminProcedure
+    .input(
+      z.object({
+        search: z.string().optional(),
+        yearGroup: z.string().optional(),
+        academicYear: z.string().optional(),
+        page: z.number().int().min(1).default(1),
+        pageSize: z.number().int().min(1).max(200).default(50),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const tid = ctx.tenantId;
+
+      // Build group filter
+      const groupConditions = [];
+      if (tid != null) groupConditions.push(eq(classGroups.tenantId, tid));
+      if (input.yearGroup) groupConditions.push(eq(classGroups.yearGroup, input.yearGroup as "infantil" | "junior" | "primary" | "secondary"));
+      if (input.academicYear) groupConditions.push(eq(classGroups.academicYear, input.academicYear));
+
+      // Get all matching groups
+      const matchingGroups = await db
+        .select({
+          id: classGroups.id,
+          className: classGroups.className,
+          level: classGroups.level,
+          yearGroup: classGroups.yearGroup,
+          academicYear: classGroups.academicYear,
+          formTutorId: classGroups.formTutorId,
+        })
+        .from(classGroups)
+        .where(groupConditions.length > 0 ? and(...groupConditions) : undefined)
+        .orderBy(classGroups.className);
+
+      if (matchingGroups.length === 0) {
+        return { students: [], total: 0, page: input.page, pageSize: input.pageSize };
+      }
+
+      const groupIds = matchingGroups.map(g => g.id);
+      const groupMap = Object.fromEntries(matchingGroups.map(g => [g.id, g]));
+
+      // Build student conditions
+      const studentConditions: ReturnType<typeof eq>[] = [inArray(groupStudents.groupId, groupIds) as ReturnType<typeof eq>];
+      if (input.search && input.search.trim().length > 0) {
+        const pattern = `%${input.search.trim()}%`;
+        studentConditions.push(like(groupStudents.name, pattern) as ReturnType<typeof eq>);
+      }
+
+      // Count total
+      const [{ total }] = await db
+        .select({ total: count() })
+        .from(groupStudents)
+        .where(and(...studentConditions));
+
+      // Fetch page
+      const offset = (input.page - 1) * input.pageSize;
+      const rows = await db
+        .select()
+        .from(groupStudents)
+        .where(and(...studentConditions))
+        .orderBy(groupStudents.name)
+        .limit(input.pageSize)
+        .offset(offset);
+
+      const students = rows.map(s => ({
+        id: s.id,
+        name: s.name,
+        email: s.email,
+        studentNumber: s.studentNumber,
+        groupId: s.groupId,
+        className: groupMap[s.groupId]?.className ?? "",
+        level: groupMap[s.groupId]?.level ?? "",
+        yearGroup: groupMap[s.groupId]?.yearGroup ?? null,
+        academicYear: groupMap[s.groupId]?.academicYear ?? null,
+      }));
+
+      return { students, total, page: input.page, pageSize: input.pageSize };
+    }),
+
+  /**
+   * Get full details for a single student: basic info, class group, progress
+   * summary (per-competency averages), and attendance summary.
+   * Accessible only to directors and heads of study (adminProcedure).
+   */
+  getStudentDetails: adminProcedure
+    .input(z.object({ studentId: z.number().int() }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const tid = ctx.tenantId;
+
+      // Fetch the student row
+      const [student] = await db
+        .select()
+        .from(groupStudents)
+        .where(eq(groupStudents.id, input.studentId));
+      if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Student not found" });
+
+      // Fetch the class group and verify tenant access
+      const [group] = await db
+        .select()
+        .from(classGroups)
+        .where(
+          tid != null
+            ? and(eq(classGroups.id, student.groupId), eq(classGroups.tenantId, tid))
+            : eq(classGroups.id, student.groupId)
+        );
+      if (!group) throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+
+      // Progress: per-competency averages
+      const progressRows = await db
+        .select({
+          competency: studentProgress.competency,
+          avgScore: avg(studentProgress.score),
+          recordCount: count(),
+          lastActive: max(studentProgress.recordedAt),
+        })
+        .from(studentProgress)
+        .where(
+          and(
+            eq(studentProgress.groupId, student.groupId),
+            eq(studentProgress.studentId, student.id)
+          )
+        )
+        .groupBy(studentProgress.competency);
+
+      const competencyAverages = ALL_COMPETENCY_CODES.map(code => {
+        const row = progressRows.find(r => r.competency === code);
+        return {
+          code,
+          average: row ? Math.round(Number(row.avgScore)) : null,
+          recordCount: row?.recordCount ?? 0,
+        };
+      });
+
+      const scoredComps = competencyAverages.filter(c => c.average !== null);
+      const overallAverage = scoredComps.length > 0
+        ? Math.round(scoredComps.reduce((s, c) => s + (c.average ?? 0), 0) / scoredComps.length)
+        : null;
+
+      const lastActive = progressRows.reduce((latest, r) => {
+        if (!r.lastActive) return latest;
+        const d = new Date(r.lastActive);
+        return !latest || d > latest ? d : latest;
+      }, null as Date | null);
+
+      // Attendance summary
+      const attendanceRows = await db
+        .select({ status: attendanceRecords.status, cnt: count() })
+        .from(attendanceRecords)
+        .where(
+          and(
+            eq(attendanceRecords.classGroupId, student.groupId),
+            eq(attendanceRecords.studentId, student.id)
+          )
+        )
+        .groupBy(attendanceRecords.status);
+
+      const attendanceSummary = { present: 0, absent: 0, late: 0, excused: 0, total: 0 };
+      for (const row of attendanceRows) {
+        attendanceSummary[row.status as keyof typeof attendanceSummary] = row.cnt;
+        attendanceSummary.total += row.cnt;
+      }
+      const attendanceRate = attendanceSummary.total > 0
+        ? Math.round((attendanceSummary.present / attendanceSummary.total) * 100)
+        : null;
+
+      // Recent attendance records (last 20)
+      const recentAttendance = await db
+        .select()
+        .from(attendanceRecords)
+        .where(
+          and(
+            eq(attendanceRecords.classGroupId, student.groupId),
+            eq(attendanceRecords.studentId, student.id)
+          )
+        )
+        .orderBy(desc(attendanceRecords.date))
+        .limit(20);
+
+      return {
+        student,
+        group: {
+          id: group.id,
+          className: group.className,
+          level: group.level,
+          yearGroup: group.yearGroup,
+          academicYear: group.academicYear,
+        },
+        competencyAverages,
+        overallAverage,
+        lastActive,
+        attendanceSummary,
+        attendanceRate,
+        recentAttendance,
+      };
     }),
 });

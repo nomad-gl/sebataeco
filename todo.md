@@ -4565,3 +4565,20 @@
 - [x] Card 3 (Total Activities) → /director/curriculum (lesson plans / curriculum)
 - [x] Card 4 (School Average %) → /director/reports (school-wide reports)
 - [x] Add hover/active styles to all four cards (cursor-pointer, ring, scale)
+
+## Student Directory Page
+- [ ] Add listAllStudents procedure to director router (search by name, paginated, tenant-scoped, joined with classGroups for level/yearGroup/className/groupId)
+- [ ] Add getStudentDetails procedure to director router (returns student row + group info + progress summary + attendance summary)
+- [ ] Create StudentDirectory page at /director/students (searchable table with columns: name, year/level, class name, class ID link, details link)
+- [ ] Create StudentDetails page at /director/students/:id (protected, director + HoS only, full profile view)
+- [ ] Register /director/students and /director/students/:id routes in App.tsx
+- [ ] Add "Students" nav entry to director sidebar in NavBar.tsx
+- [x] Add i18n keys for student directory (EN/ES/CA)
+
+## My Classes UI Fixes
+- [ ] Fix completed-task card transparency on My Classes page — cards are too transparent when task is done
+- [x] Make student email field optional in the add-student form
+
+## My Classes Page Fixes
+- [x] Increase card opacity on all card surfaces in Groups.tsx
+- [x] Make student email field optional in the add-student form

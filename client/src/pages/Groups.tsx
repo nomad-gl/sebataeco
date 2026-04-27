@@ -168,8 +168,8 @@ function StudentRoster({ group }: { group: Group }) {
   const handleAdd = () => {
     const cleanName = name.trim();
     const cleanEmail = email.trim();
-    if (!cleanName || !cleanEmail) return;
-    addMutation.mutate({ groupId: group.id, name: cleanName, email: cleanEmail });
+    if (!cleanName) return;
+    addMutation.mutate({ groupId: group.id, name: cleanName, email: cleanEmail || "" });
   };
 
   const bulkMutation = trpc.groups.bulkAddStudents.useMutation({
@@ -256,10 +256,10 @@ function StudentRoster({ group }: { group: Group }) {
   return (
     <div className="space-y-5">
       {/* Add student form */}
-      <Card className="bg-white/5 border-white/10">
+      <Card className="bg-white/15 border-white/20">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm text-white/70 flex items-center gap-2">
+            <CardTitle className="text-sm text-white/80 flex items-center gap-2">
               <UserPlus className="w-4 h-4" /> {t("groups_add_student")}
             </CardTitle>
             <Button
@@ -278,19 +278,19 @@ function StudentRoster({ group }: { group: Group }) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={t("groups_student_name")}
-              className="bg-white/5 border-white/10 text-white placeholder:text-white/30 flex-1"
+              className="bg-white/10 border-white/20 text-white placeholder:text-white/40 flex-1"
             />
             <Input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder={t("groups_student_email")}
+              placeholder={`${t("groups_student_email")} (${t("optional")})`}
               type="text"
               autoComplete="email"
-              className="bg-white/5 border-white/10 text-white placeholder:text-white/30 flex-1"
+              className="bg-white/10 border-white/20 text-white placeholder:text-white/40 flex-1"
             />
             <Button
               onClick={handleAdd}
-              disabled={!name.trim() || !email.trim() || addMutation.isPending}
+              disabled={!name.trim() || addMutation.isPending}
               className="bg-blue-600 hover:bg-blue-500 text-white shrink-0"
             >
               {addMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
@@ -367,9 +367,9 @@ function StudentRoster({ group }: { group: Group }) {
           <p>{t("groups_no_students")}</p>
         </div>
       ) : (
-        <div className="rounded-xl border border-white/10 overflow-hidden">
+          <div className="rounded-xl border border-white/20 overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-white/5 text-white/50 uppercase text-xs tracking-wide">
+            <thead className="bg-white/15 text-white/70 uppercase text-xs tracking-wide">
               <tr>
                 <th className="px-4 py-3 text-left w-12">#</th>
                 <th
@@ -475,7 +475,7 @@ function StudentRoster({ group }: { group: Group }) {
               ))}
             </tbody>
           </table>
-          <div className="px-4 py-2 bg-white/5 text-white/40 text-xs flex items-center justify-between">
+          <div className="px-4 py-2 bg-white/10 text-white/60 text-xs flex items-center justify-between">
             <span>{students.length} {t("groups_students_total")}</span>
             {students.length > 0 && (
               <Button
@@ -515,10 +515,10 @@ function SendMessageTab({ group }: { group: Group }) {
   return (
     <div className="space-y-5">
       {/* Compose */}
-      <Card className="bg-white/5 border-white/10">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm text-white/70 flex items-center gap-2">
-            <Mail className="w-4 h-4" /> {t("groups_compose_message")}
+      <Card className="bg-white/15 border-white/20">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm text-white/80 flex items-center gap-2">
+          <Mail className="w-4 h-4" /> {t("groups_compose_message")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -528,17 +528,17 @@ function SendMessageTab({ group }: { group: Group }) {
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder={t("groups_message_subject_placeholder")}
-              className="bg-white/5 border-white/10 text-white placeholder:text-white/30"
+              className="bg-white/10 border-white/20 text-white placeholder:text-white/40"
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-white/60 text-xs">{t("groups_message_body")}</Label>
+            <Label className="text-white/70 text-xs">{t("groups_message_body")}</Label>
             <Textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
               placeholder={t("groups_message_body_placeholder")}
               rows={4}
-              className="bg-white/5 border-white/10 text-white placeholder:text-white/30 resize-none"
+              className="bg-white/10 border-white/20 text-white placeholder:text-white/40 resize-none"
             />
           </div>
           <div className="flex items-center justify-between">
@@ -569,7 +569,7 @@ function SendMessageTab({ group }: { group: Group }) {
         <div className="space-y-3">
           <p className="text-white/50 text-xs uppercase tracking-wide font-semibold">{t("groups_sent_messages")}</p>
           {messages.map((m) => (
-            <Card key={m.id} className="bg-white/5 border-white/10">
+            <Card key={m.id} className="bg-white/15 border-white/20">
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
@@ -607,7 +607,7 @@ function ChallengeHistoryTab({ group }: { group: Group }) {
       ) : (
         <div className="space-y-3">
           {logs.map((log) => (
-            <Card key={log.id} className="bg-white/5 border-white/10">
+            <Card key={log.id} className="bg-white/15 border-white/20">
               <CardContent className="p-4">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                   <div className="flex-1 min-w-0">
@@ -713,9 +713,9 @@ export default function Groups() {
                 <Loader2 className="w-6 h-6 animate-spin text-white/40" />
               </div>
             ) : groups.length === 0 ? (
-              <Card className="bg-white/5 border-white/10 text-center p-8">
-                <Users className="w-10 h-10 mx-auto mb-3 text-white/20" />
-                <p className="text-white/50 text-sm">{t("groups_empty")}</p>
+              <Card className="bg-white/15 border-white/20 text-center p-8">
+                <Users className="w-10 h-10 mx-auto mb-3 text-white/40" />
+                <p className="text-white/70 text-sm">{t("groups_empty")}</p>
                 <Button
                   onClick={() => setShowCreate(true)}
                   variant="outline"
@@ -732,16 +732,16 @@ export default function Groups() {
                   onClick={() => setSelectedGroupId(g.id)}
                   className={`w-full text-left rounded-xl border p-4 transition-all group ${
                     selectedGroupId === g.id
-                      ? "bg-blue-600/20 border-blue-500/50"
-                      : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20"
+                      ? "bg-blue-600/30 border-blue-500/60"
+                      : "bg-white/15 border-white/25 hover:bg-white/20 hover:border-white/35"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="font-semibold text-white text-sm truncate">{g.className}</p>
-                      <p className="text-white/50 text-xs mt-0.5 truncate">{g.level}</p>
-                      <p className="text-white/40 text-xs mt-1 truncate">{g.assessmentTitle}</p>
-                      <span className="inline-flex items-center gap-1 mt-1.5 text-xs text-white/40">
+                      <p className="text-white/70 text-xs mt-0.5 truncate">{g.level}</p>
+                      <p className="text-white/60 text-xs mt-1 truncate">{g.assessmentTitle}</p>
+                      <span className="inline-flex items-center gap-1 mt-1.5 text-xs text-white/60">
                         <Users className="w-3 h-3" />
                         {(g as any).studentCount ?? 0} student{((g as any).studentCount ?? 0) === 1 ? "" : "s"}
                       </span>
@@ -769,7 +769,7 @@ export default function Groups() {
             ) : (
               <div className="space-y-5">
                 {/* Group header */}
-                <Card className="bg-white/5 border-white/10">
+                <Card className="bg-white/15 border-white/25">
                   <CardContent className="p-5">
                     <div className="flex items-start justify-between gap-4">
                       <div>
