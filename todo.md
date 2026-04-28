@@ -4820,3 +4820,10 @@
 - [x] Admin stub pages: replace hardcoded English strings with t() calls in AdminGovernance.tsx and AdminStaff.tsx
 - [x] Admin stub pages: replace hardcoded English strings with t() calls in AdminFinance.tsx, AdminEnrolment.tsx, AdminFacilities.tsx, AdminDocuments.tsx
 - [x] Key parity verified: EN = ES = CA = 3,493 keys (perfect parity)
+
+## Feature: Director — Delete Calendar with Confirmation
+- [x] Backend: deleteCalendar tRPC procedure already existed (cascades events then calendar row)
+- [x] Frontend: Delete button already present in Edit Calendar dialog
+- [x] Frontend: added showDeleteCalConfirm state and AlertDialog — button now opens confirmation instead of deleting immediately
+- [x] i18n: cal_delete_calendar and cal_delete_calendar_confirm keys already existed in EN/ES/CA
+- [x] TypeScript 0 errors verified

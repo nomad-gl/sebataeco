@@ -242,6 +242,7 @@ export default function SchoolCalendar() {
   const [showMicPanel, setShowMicPanel] = useState(false);
   const [showCreateCalDialog, setShowCreateCalDialog] = useState(false);
   const [showEditCalDialog, setShowEditCalDialog] = useState(false);
+  const [showDeleteCalConfirm, setShowDeleteCalConfirm] = useState(false);
   const [showTotalEventsSheet, setShowTotalEventsSheet] = useState(false);
   const [showAiEventsSheet, setShowAiEventsSheet] = useState(false);
   const [showHolidaysSheet, setShowHolidaysSheet] = useState(false);
@@ -2970,7 +2971,7 @@ export default function SchoolCalendar() {
                   🇨🇦 {seedCatalanHolidaysMutation.isPending ? "..." : t("cal_seed_catalan_holidays")}
                 </Button>
               )}
-              <Button variant="destructive" size="sm" onClick={() => { if (selectedCalendarId) deleteCalMutation.mutate({ id: selectedCalendarId }); setShowEditCalDialog(false); }}>
+              <Button variant="destructive" size="sm" onClick={() => setShowDeleteCalConfirm(true)}>
                 <Trash2 className="w-4 h-4 mr-1" /> {t("cal_delete_calendar")}
               </Button>
             </div>
@@ -3161,6 +3162,31 @@ export default function SchoolCalendar() {
         </DialogContent>
       </Dialog>
 
+      {/* ── Delete Calendar Confirmation AlertDialog ─────────────────────── */}
+      <AlertDialog open={showDeleteCalConfirm} onOpenChange={setShowDeleteCalConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("cal_delete_calendar")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("cal_delete_calendar_confirm")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteCalMutation.isPending}>{t("cal_cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteCalMutation.isPending}
+              onClick={() => {
+                if (selectedCalendarId) {
+                  deleteCalMutation.mutate({ id: selectedCalendarId });
+                  setShowDeleteCalConfirm(false);
+                  setShowEditCalDialog(false);
+                }
+              }}
+            >
+              {deleteCalMutation.isPending ? "..." : t("cal_delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       {/* ── Delete Event / Series AlertDialog ──────────────────────────────── */}
       <AlertDialog open={showDeleteEventDialog} onOpenChange={setShowDeleteEventDialog}>
         <AlertDialogContent>
