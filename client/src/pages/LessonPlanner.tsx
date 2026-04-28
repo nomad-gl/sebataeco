@@ -239,7 +239,7 @@ ${form.differentiation ? `
     <tr>
       <th style="background:#1e40af;color:#fff;padding:6px;text-align:left;font-size:10px;width:33%;">🔵 ${L.lp_diff_advanced ?? 'Advanced Learners'}</th>
       <th style="background:#15803d;color:#fff;padding:6px;text-align:left;font-size:10px;width:33%;">🟢 ${L.lp_diff_standard ?? 'Standard Learners'}</th>
-      <th style="background:#b45309;color:#fff;padding:6px;text-align:left;font-size:10px;width:33%;">🟡 ${L.lp_diff_slower ?? 'Slower Learners'}</th>
+      <th style="background:#b45309;color:#fff;padding:6px;text-align:left;font-size:10px;width:33%;">🟡 ${L.lp_diff_slower ?? 'Assisted Learners'}</th>
     </tr>
   </thead>
   <tbody>
