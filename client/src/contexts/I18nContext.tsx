@@ -3201,7 +3201,7 @@ export const translations = {
     // Image generation confirmation phrases
     aina_image_confirm_1: "Of course! I'm generating that image for you right now — it will appear in just a moment! 🎨",
     aina_image_confirm_2: "On it! Creating your image now… 🖼️",
-    aina_image_confirm_3: "Great idea! Generating your image — hang tight! ✨",
+    aina_image_confirm_3: "Great idea! Generating your image — hang tight! ✦",
     // Register with invite page
     reg_invite_page_subtitle: "Teacher registration — invited access only",
     reg_invite_verifying: "Verifying your invite link…",
@@ -6905,7 +6905,7 @@ export const translations = {
     // Image generation confirmation phrases
     aina_image_confirm_1: "¡Por supuesto! Estoy generando esa imagen ahora mismo — ¡aparecerá en un momento! 🎨",
     aina_image_confirm_2: "¡En ello! Creando tu imagen ahora… 🖼️",
-    aina_image_confirm_3: "¡Buena idea! Generando tu imagen — ¡un momento! ✨",
+    aina_image_confirm_3: "¡Buena idea! Generando tu imagen — ¡un momento! ✦",
     // Register with invite page
     reg_invite_page_subtitle: "Registro de docente — solo con invitación",
     reg_invite_verifying: "Verificando tu enlace de invitación…",
@@ -10609,7 +10609,7 @@ export const translations = {
     // Image generation confirmation phrases
     aina_image_confirm_1: "Per descomptat! Estic generant aquesta imatge ara mateix — apareixerà en un moment! 🎨",
     aina_image_confirm_2: "Ara mateix! Creant la teva imatge… 🖼️",
-    aina_image_confirm_3: "Bona idea! Generant la teva imatge — un moment! ✨",
+    aina_image_confirm_3: "Bona idea! Generant la teva imatge — un moment! ✦",
     // Register with invite page
     reg_invite_page_subtitle: "Registre de professora — només amb invitació",
     reg_invite_verifying: "Verificant el teu enllaç d'invitació…",

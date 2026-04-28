@@ -29,11 +29,11 @@ import {
   ChevronRight,
   Clock,
   RefreshCw,
-  Sparkles,
   User,
   Users,
   XCircle,
 } from "lucide-react";
+import { SebaSymbol } from "@/components/SebaSymbol";
 import { toast } from "sonner";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -149,7 +149,7 @@ function CoverConfirmDialog({
         {loadingCandidates ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
             <RefreshCw className="h-4 w-4 animate-spin" />
-            <Sparkles className="h-4 w-4 text-primary" />
+            <SebaSymbol className="h-4 w-4 text-primary" />
             AI is ranking available teachers...
           </div>
         ) : candidates.length === 0 ? (
@@ -239,7 +239,7 @@ function PaybackPanel({ coverAssignmentId }: { coverAssignmentId: number }) {
         className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
       >
         {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-        <Sparkles className="h-3.5 w-3.5 text-primary" />
+        <SebaSymbol className="h-3.5 w-3.5 text-primary" />
         {t("payback_title")}
       </button>
 

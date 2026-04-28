@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Baby, BookOpen, ChevronDown, ChevronUp, Dumbbell, MessageCircle, ExternalLink, GraduationCap, Lightbulb, Sparkles, CalendarDays, FileText, CheckCircle2 } from "lucide-react";
+import { Baby, BookOpen, ChevronDown, ChevronUp, Dumbbell, MessageCircle, ExternalLink, GraduationCap, Lightbulb, CalendarDays, FileText, CheckCircle2 } from "lucide-react";
+import { SebaSymbol } from "@/components/SebaSymbol";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -483,7 +484,7 @@ function AiCalendarModal({ onClose }: { onClose: () => void }) {
                 disabled={generate.isPending || !weekStart}
                 onClick={() => generate.mutate({ eix, cycle, weekStartDate: weekStart, academicYear, language: lang as "en" | "es" | "ca", theme: theme || undefined })}
               >
-                <Sparkles className="h-4 w-4 mr-1.5" />
+                <SebaSymbol className="h-4 w-4 mr-1.5" />
                 {generate.isPending ? t("infantil_ai_gen_generating") : t("infantil_ai_gen_generate_btn")}
               </Button>
             </DialogFooter>
@@ -576,7 +577,7 @@ function AiLessonModal({ onClose }: { onClose: () => void }) {
                 disabled={generate.isPending}
                 onClick={() => generate.mutate({ eix, cycle, academicYear, language: lang as "en" | "es" | "ca", title: title || undefined, principle: principle || undefined, duration })}
               >
-                <Sparkles className="h-4 w-4 mr-1.5" />
+                <SebaSymbol className="h-4 w-4 mr-1.5" />
                 {generate.isPending ? t("infantil_ai_gen_generating") : t("infantil_ai_gen_generate_btn")}
               </Button>
             </DialogFooter>

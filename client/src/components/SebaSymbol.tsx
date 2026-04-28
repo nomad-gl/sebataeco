@@ -23,7 +23,7 @@ interface SebaSymbolProps {
   bg?: string;
 }
 
-export function SebaSymbol({ className, size, color = "currentColor", bg = "transparent" }: SebaSymbolProps) {
+export function SebaSymbol({ className, size, color = "#dc2626", bg = "transparent" }: SebaSymbolProps) {
   const dim = size ? { width: size, height: size } : {};
   return (
     <svg

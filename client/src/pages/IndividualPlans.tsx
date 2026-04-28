@@ -46,7 +46,6 @@ import {
   Trash2,
   Edit3,
   Printer,
-  Sparkles,
   ChevronLeft,
   User,
   Clock,
@@ -57,6 +56,7 @@ import {
   Mail,
   Send,
 } from "lucide-react";
+import { SebaSymbol } from "@/components/SebaSymbol";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -619,7 +619,7 @@ export default function IndividualPlans() {
 
                     <div className="flex gap-3 pt-2">
                       <Button onClick={handleGenerateIlp} disabled={ilpGenerating} className="flex-1">
-                        {ilpGenerating ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating…</> : <><Sparkles className="w-4 h-4 mr-2" /> Generate with AI</>}
+                        {ilpGenerating ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating…</> : <><SebaSymbol className="w-4 h-4 mr-2" /> Generate with AI</>}
                       </Button>
                     </div>
 
@@ -867,7 +867,7 @@ export default function IndividualPlans() {
 
                     <div className="flex gap-3 pt-2">
                       <Button onClick={handleGenerateLp} disabled={lpGenerating} className="flex-1">
-                        {lpGenerating ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating…</> : <><Sparkles className="w-4 h-4 mr-2" /> Generate with AI</>}
+                        {lpGenerating ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating…</> : <><SebaSymbol className="w-4 h-4 mr-2" /> Generate with AI</>}
                       </Button>
                     </div>
 

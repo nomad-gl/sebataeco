@@ -4,7 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation, Link } from "wouter";
 import { useEffect, useState } from "react";
-import { UserCheck, Users, BookOpen, Activity, ScanLine, RefreshCw, Sparkles, Calendar, Clock, ExternalLink } from "lucide-react";
+import { UserCheck, Users, BookOpen, Activity, ScanLine, RefreshCw, Calendar, Clock, ExternalLink } from "lucide-react";
 import { SebaSymbol } from "@/components/SebaSymbol";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -362,7 +362,7 @@ function TeacherPlansModal({
       <DialogContent className="max-w-2xl w-full">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            {aiOnly ? <Sparkles className="w-4 h-4 text-amber-500" /> : <BookOpen className="w-4 h-4 text-primary" />}
+            {aiOnly ? <SebaSymbol className="w-4 h-4 text-amber-500" /> : <BookOpen className="w-4 h-4 text-primary" />}
             {aiOnly ? t("dir_ai_plans_for") : t("dir_plans_for")} {teacherName}
           </DialogTitle>
         </DialogHeader>
@@ -399,7 +399,7 @@ function TeacherPlansModal({
                         </a>
                         {plan.aiGenerated && (
                           <Badge className="bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 text-[10px] px-1.5 py-0">
-                            <Sparkles className="w-2.5 h-2.5 mr-0.5" /> AI
+                            <SebaSymbol className="w-2.5 h-2.5 mr-0.5" /> AI
                           </Badge>
                         )}
                       </div>

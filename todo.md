@@ -4847,3 +4847,16 @@
 - [x] Audited cover.ts: user queries filter by tenantId + role='teacher' — super-admins (tenantId=null, role='admin') cannot appear
 - [x] ctx.isSuperAdmin=true and ctx.tenantId=null set in trpc.ts adminProcedure middleware for role='admin' users
 - [x] TypeScript 0 errors verified
+
+## Feature: Replace Sparkles with SEBA S Symbol
+- [x] Replaced Sparkles lucide icon with SebaSymbol in IndividualPlans.tsx
+- [x] Replaced Sparkles lucide icon with SebaSymbol in InfantilEixos.tsx
+- [x] Replaced Sparkles lucide icon with SebaSymbol in LessonPlanner.tsx
+- [x] Replaced Sparkles lucide icon with SebaSymbol in DirectorCoverRequests.tsx
+- [x] Replaced Sparkles lucide icon with SebaSymbol in DirectorStaff.tsx
+- [x] Replaced ✨ emoji in I18nContext.tsx chat strings with ✦ (text context — SVG not usable in strings)
+- [x] Updated SebaSymbol default stroke colour to red (#dc2626) as requested
+
+## Feature: Unify AI Generation Buttons in LessonPlanner
+- [x] "AI Generate Plans" toolbar button now opens the same single-plan AI dialog as "Generate with AI"
+- [x] Pre-fills dialog fields from the currently selected plan's form state

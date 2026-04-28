@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { Plus, Trash2, Printer, BookOpen, Save, SaveAll, List, X, Copy, LayoutTemplate, FolderOpen, FileDown, ArrowUpDown, ArrowUp01, CalendarDays, Loader2, RefreshCw, Hash, ArrowLeft, Sparkles, Pencil, Search, SlidersHorizontal, GraduationCap, Clock } from "lucide-react";
+import { Plus, Trash2, Printer, BookOpen, Save, SaveAll, List, X, Copy, LayoutTemplate, FolderOpen, FileDown, ArrowUpDown, ArrowUp01, CalendarDays, Loader2, RefreshCw, Hash, ArrowLeft, Pencil, Search, SlidersHorizontal, GraduationCap, Clock } from "lucide-react";
 import { SebaSymbol } from "@/components/SebaSymbol";
 import { useLocation } from "wouter";
 import NavBar from "@/components/NavBar";
@@ -1477,15 +1477,22 @@ export default function LessonPlanner() {
                 </>
               )}
 
-              {/* AI Generate bulk — shown when a plan is selected */}
+              {/* AI Generate Plans — opens the same single-plan AI dialog as Generate with AI */}
               {selectedId && (
                 <Button variant="ghost" size="sm" onClick={() => {
-                  // Auto-fill the calendar from the currently selected plan
-                  const currentPlan = (plans as any[]).find((p: any) => p.id === selectedId);
-                  if (currentPlan?.calendarId) setBulkAiCalendarId(String(currentPlan.calendarId));
-                  setShowBulkAiDialog(true);
+                  // Pre-fill dialog from current form
+                  if (form.title) {
+                    setAiTitle(form.title);
+                    setAiSubject(form.subject);
+                    setAiYearGroup(form.yearGroup);
+                    setAiDuration(form.duration || 60);
+                    setAiUnit(form.unit || "");
+                    setAiComps(form.competencies || []);
+                    setAiSessionTime(form.sessionTime || "");
+                  }
+                  setShowAiDialog(true);
                 }} className="gap-1 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30 h-8 px-2" title={t("lp_ai_generate_bulk")}>
-                  <Sparkles className="w-4 h-4" />
+                  <SebaSymbol className="w-4 h-4" />
                   <span className="hidden md:inline text-xs">{t("lp_ai_generate_bulk")}</span>
                 </Button>
               )}
@@ -2752,7 +2759,7 @@ export default function LessonPlanner() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-purple-600" />
+              <SebaSymbol className="w-5 h-5 text-purple-600" />
               {t("lp_bulk_ai_title")}
             </DialogTitle>
             <DialogDescription>{t("lp_bulk_ai_desc")}</DialogDescription>
@@ -2907,7 +2914,7 @@ export default function LessonPlanner() {
               }}
               className="gap-1.5 bg-purple-600 hover:bg-purple-700 text-white"
             >
-              <Sparkles className="w-4 h-4" />
+              <SebaSymbol className="w-4 h-4" />
               {bulkAiRunning ? t("lp_bulk_ai_generating") : t("lp_bulk_ai_start")}
             </Button>
           </DialogFooter>
