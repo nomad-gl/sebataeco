@@ -4863,3 +4863,13 @@
 
 ## UX: AI Generate hint in Lesson Plan Editor
 - [x] Add visual hint near the Lesson Information section indicating it is the only required section for AI Generate
+
+## Performance: AI Generate speed improvements in Lesson Plan Editor
+- [ ] Split single monolithic AI generate call into parallel section-group calls (objectives+competencies, activities, assessment, resources)
+- [ ] Add streaming/progressive UI so each section populates as soon as its parallel call completes
+
+## Performance: AI Generate speed improvement (Lesson Plan Editor)
+- [x] Split single sequential LLM call into 3 parallel Promise.all calls (Call A: skills/systems/competencies, Call B: curriculum content/procedures, Call C: differentiation tiers)
+- [x] Total generation time reduced from ~20s (sequential) to ~8s (parallel — max of 3 concurrent calls)
+- [x] Added progressive loading UI in AI dialog showing 3 animated spinners for each parallel stage
+- [x] Added i18n keys for progress UI in English, Spanish, and Catalan

@@ -2203,6 +2203,23 @@ export default function LessonPlanner() {
               </div>
             </div>
           </div>
+          {(aiMutation.isPending || aiScopeGenerating) && (
+            <div className="px-1 pb-1">
+              <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 space-y-2">
+                <p className="text-xs font-semibold text-primary mb-2">{t("lp_ai_parallel_generating")}</p>
+                {([
+                  "lp_ai_stage_core",
+                  "lp_ai_stage_content",
+                  "lp_ai_stage_diff",
+                ] as const).map((key, i) => (
+                  <div key={key} className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span className="inline-block w-3 h-3 rounded-full border-2 border-primary border-t-transparent animate-spin" style={{ animationDelay: `${i * 150}ms` }} />
+                    {t(key)}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
             <Button variant="outline" onClick={() => setShowAiDialog(false)}>{t("cal_cancel")}</Button>
 <Button onClick={async () => {

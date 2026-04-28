@@ -952,33 +952,58 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
         ? `\n\nIMPORTANT: The following fields are already filled by the teacher. You MUST still return them in the JSON but copy the existing values EXACTLY as provided below — do NOT change or regenerate them:\n${skippedFields.map(f => `- ${f}: ${(ex as any)[f]}`).join("\n")}`
         : "";
 
-      const resp = await invokeLLM({
+      // ── Parallel AI generation ─────────────────────────────────────────────
+      // Split the single large LLM call into 3 concurrent calls so the total
+      // wait time is max(A, B, C) instead of A + B + C (~3× speedup).
+      const planContext = `Title: "${input.title}" | Subject: ${input.subject} | Year Group: ${input.yearGroup} | Duration: ${input.duration} min | Unit: ${input.unit ?? "N/A"} | Competencies: ${(input.competencies ?? []).join(", ") || "Mixed"}${input.infantilEix ? ` | Infantil Eix: ${input.infantilEix} (${input.infantilCycle === "0-3" ? "Primer cicle 0–3" : "Segon cicle 3–6"})` : ""}`;
+      const sysBase = `You are a LOMLOE curriculum expert for Catalonia, Spain. Respond ONLY with valid JSON matching the exact schema provided. All content must be curriculum-aligned and specific to: ${planContext}.${input.infantilEix ? ` This is an EDUCACIÓ INFANTIL plan under Catalan Decree 21/2023. Use play-based, experiential approaches appropriate for ${input.infantilCycle === "0-3" ? "0–3 year olds" : "3–6 year olds"}.` : ""}`;
+
+      const parseJSON = (resp: any, fallback: any = {}) => {
+        const raw = resp.choices?.[0]?.message?.content;
+        const content = typeof raw === "string" ? raw : JSON.stringify(raw ?? "{}");
+        const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, content];
+        try { return JSON.parse(jsonMatch[1]?.trim() ?? content); } catch { return fallback; }
+      };
+
+      // Call A: skills + systems + competencies (fast)
+      const callA = invokeLLM({
         messages: [
-          { role: "system", content: `You are a LOMLOE curriculum expert specialising in Spanish and Catalan education. Generate complete, detailed lesson plans with specific activities for each stage. Every field must be filled with real, curriculum-aligned content appropriate for the subject, year group and lesson title provided. When existing field values are provided, preserve them exactly and only generate content for the empty fields. You MUST include a differentiation section that caters for three distinct learner ability levels present in every mixed-ability classroom: (1) Advanced learners who need extension and challenge, (2) Standard/average learners who follow the core lesson, and (3) Assisted Learners who need additional scaffolding, simplified instructions, and more processing time.${input.infantilEix ? `\n\nThis is an EDUCACIÓ INFANTIL lesson plan governed by Catalan Decree 21/2023 (LOMLOE). The lesson is anchored to ${input.infantilEix} (${input.infantilCycle === "0-3" ? "Primer cicle 0–3 anys" : "Segon cicle 3–6 anys"}). Align all sabers, competences, learning outcomes and activities to the specific Decree 21/2023 sabers for this eix and cycle. Use age-appropriate language and play-based, experiential learning approaches.` : ""}` },
-          { role: "user", content: `Generate a complete LOMLOE lesson plan for:
-- Title: "${input.title}"
-- Subject: ${input.subject}
-- Year Group: ${input.yearGroup}
-- Duration: ${input.duration} min
-- Unit: ${input.unit ?? "N/A"}
-- Lesson Number: ${input.lessonNumber ?? "N/A"}
-- Academic Year: ${input.academicYear ?? "2025-2026"}
-- Key Competencies: ${(input.competencies ?? []).join(", ") || "Mixed"}${input.infantilEix ? `\n- Educació Infantil Eix: ${input.infantilEix}` : ""}${input.infantilCycle ? `\n- Educació Infantil Cycle: ${input.infantilCycle === "0-3" ? "Primer cicle (0–3 anys)" : "Segon cicle (3–6 anys)"}` : ""}${skipNote}
-
-Generate a detailed lesson plan with specific activities for each procedure stage. The procedures array MUST have at least 4 stages with real activity descriptions.
-
-The differentiation field MUST contain tailored content for all three learner tiers — advanced, standard, and slower — each with their own objectives, activities, and assessment scaffolding.` },
+          { role: "system", content: sysBase },
+          { role: "user", content: `For the lesson described, generate ONLY the following JSON fields:\n- skills: which of listening/speaking/reading/writing are practised (boolean object)\n- systems: which of grammar/phonology/lexis/function/discourse are addressed (boolean object)\n- competencies: array of LOMLOE competency codes addressed (e.g. ["CCL","STEM"])${skipNote ? `\n\n${skipNote}` : ""}` },
         ],
         response_format: {
           type: "json_schema",
           json_schema: {
-            name: "lesson_plan",
+            name: "lp_core",
             strict: true,
             schema: {
               type: "object",
               properties: {
                 skills: { type: "object", properties: { listening: { type: "boolean" }, speaking: { type: "boolean" }, reading: { type: "boolean" }, writing: { type: "boolean" } }, required: ["listening", "speaking", "reading", "writing"], additionalProperties: false },
                 systems: { type: "object", properties: { grammar: { type: "boolean" }, phonology: { type: "boolean" }, lexis: { type: "boolean" }, function: { type: "boolean" }, discourse: { type: "boolean" } }, required: ["grammar", "phonology", "lexis", "function", "discourse"], additionalProperties: false },
+                competencies: { type: "array", items: { type: "string" } },
+              },
+              required: ["skills", "systems", "competencies"],
+              additionalProperties: false,
+            },
+          },
+        },
+      });
+
+      // Call B: curriculum content + procedures (medium)
+      const callB = invokeLLM({
+        messages: [
+          { role: "system", content: sysBase },
+          { role: "user", content: `For the lesson described, generate ONLY the following JSON fields:\n- specificCompetences: array of specific competence statements\n- saberesBasicos: array of basic knowledge items (sabers bàsics)\n- learningOutcomes: array of 2–4 measurable learning outcomes\n- evaluationCriteria: array of 2–4 evaluation criteria\n- previousKnowledge: string describing prerequisite knowledge\n- materials: string listing required materials and resources\n- spaces: string describing the classroom/space arrangement\n- procedures: array of at least 4 lesson stages, each with timing (string), stage (string), activities (string), grouping (string)${skipNote ? `\n\n${skipNote}` : ""}` },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "lp_content",
+            strict: true,
+            schema: {
+              type: "object",
+              properties: {
                 specificCompetences: { type: "array", items: { type: "string" } },
                 saberesBasicos: { type: "array", items: { type: "string" } },
                 learningOutcomes: { type: "array", items: { type: "string" } },
@@ -990,73 +1015,59 @@ The differentiation field MUST contain tailored content for all three learner ti
                   type: "array",
                   items: {
                     type: "object",
-                    properties: {
-                      timing: { type: "string" },
-                      stage: { type: "string" },
-                      activities: { type: "string" },
-                      grouping: { type: "string" },
-                    },
+                    properties: { timing: { type: "string" }, stage: { type: "string" }, activities: { type: "string" }, grouping: { type: "string" } },
                     required: ["timing", "stage", "activities", "grouping"],
                     additionalProperties: false,
                   },
                 },
-                competencies: { type: "array", items: { type: "string" } },
-                differentiation: {
-                  type: "object",
-                  properties: {
-                    advanced: {
-                      type: "object",
-                      properties: {
-                        objectives: { type: "string", description: "Specific learning objectives for advanced learners" },
-                        activities: { type: "string", description: "Extension activities and challenges for advanced learners" },
-                        assessment: { type: "string", description: "Assessment tasks and success criteria for advanced learners" },
-                      },
-                      required: ["objectives", "activities", "assessment"],
-                      additionalProperties: false,
-                    },
-                    standard: {
-                      type: "object",
-                      properties: {
-                        objectives: { type: "string", description: "Core learning objectives for standard/average learners" },
-                        activities: { type: "string", description: "Main lesson activities for standard/average learners" },
-                        assessment: { type: "string", description: "Assessment tasks and success criteria for standard/average learners" },
-                      },
-                      required: ["objectives", "activities", "assessment"],
-                      additionalProperties: false,
-                    },
-                    slower: {
-                      type: "object",
-                      properties: {
-                        objectives: { type: "string", description: "Simplified learning objectives for Assisted learners" },
-                        activities: { type: "string", description: "Scaffolded activities with additional support for Assisted learners" },
-                        assessment: { type: "string", description: "Modified assessment tasks with extra scaffolding for Assisted learners" },
-                      },
-                      required: ["objectives", "activities", "assessment"],
-                      additionalProperties: false,
-                    },
-                  },
-                  required: ["advanced", "standard", "slower"],
-                  additionalProperties: false,
-                },
               },
-              required: ["skills", "systems", "specificCompetences", "saberesBasicos", "learningOutcomes", "evaluationCriteria", "previousKnowledge", "materials", "spaces", "procedures", "competencies", "differentiation"],
+              required: ["specificCompetences", "saberesBasicos", "learningOutcomes", "evaluationCriteria", "previousKnowledge", "materials", "spaces", "procedures"],
               additionalProperties: false,
             },
           },
         },
       });
 
-      const raw = resp.choices?.[0]?.message?.content;
-      const content = typeof raw === "string" ? raw : JSON.stringify(raw ?? "{}");
-      // Strip markdown fences if present (fallback for models that ignore response_format)
-      const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, content];
-      const jsonStr = jsonMatch[1]?.trim() ?? content;
-      let generated: any;
-      try {
-        generated = JSON.parse(jsonStr);
-      } catch {
-        generated = {};
-      }
+      // Call C: differentiation tiers (heavy — runs in parallel with B)
+      const callC = invokeLLM({
+        messages: [
+          { role: "system", content: sysBase },
+          { role: "user", content: `For the lesson described, generate ONLY the differentiation field as JSON.\nThe differentiation object MUST have three tiers — advanced, standard, slower — each with:\n- objectives: specific learning objectives for that tier\n- activities: tailored activities for that tier\n- assessment: assessment tasks and success criteria for that tier` },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "lp_differentiation",
+            strict: true,
+            schema: {
+              type: "object",
+              properties: {
+                differentiation: {
+                  type: "object",
+                  properties: {
+                    advanced: { type: "object", properties: { objectives: { type: "string" }, activities: { type: "string" }, assessment: { type: "string" } }, required: ["objectives", "activities", "assessment"], additionalProperties: false },
+                    standard: { type: "object", properties: { objectives: { type: "string" }, activities: { type: "string" }, assessment: { type: "string" } }, required: ["objectives", "activities", "assessment"], additionalProperties: false },
+                    slower: { type: "object", properties: { objectives: { type: "string" }, activities: { type: "string" }, assessment: { type: "string" } }, required: ["objectives", "activities", "assessment"], additionalProperties: false },
+                  },
+                  required: ["advanced", "standard", "slower"],
+                  additionalProperties: false,
+                },
+              },
+              required: ["differentiation"],
+              additionalProperties: false,
+            },
+          },
+        },
+      });
+
+      // Fire all three calls in parallel
+      const [respA, respB, respC] = await Promise.all([callA, callB, callC]);
+      const genA = parseJSON(respA, {});
+      const genB = parseJSON(respB, {});
+      const genC = parseJSON(respC, {});
+
+      const generated: any = { ...genA, ...genB, ...genC };
+
       // Ensure procedures is always a non-empty array
       if (!Array.isArray(generated.procedures) || generated.procedures.length === 0) {
         generated.procedures = DEFAULT_PROCEDURES;
