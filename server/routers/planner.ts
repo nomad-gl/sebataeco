@@ -2662,9 +2662,204 @@ The differentiation field MUST contain tailored content for all three learner ti
       };
     }),
 
-  // ─── Fetch director-set lesson time for a calendar ──────────────────────────
-  getCalendarLessonTime: protectedProcedure
-    .input(z.object({ calendarId: z.number() }))
+  // ─── Bulk AI-generate lesson plans for a calendar scope ──────────────────────────────────────────────
+  /**
+   * Generate one AI lesson plan for every lesson/ai_generated calendar event in the
+   * chosen scope (full year, semester 1, or semester 2) that does NOT already have a
+   * linked lesson plan. Returns the number of plans created.
+   */
+  generateBulkLessonPlans: protectedProcedure
+    .input(z.object({
+      calendarId: z.number(),
+      /** 'year' | 'semester1' | 'semester2' */
+      scope: z.enum(["year", "semester1", "semester2"]),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      // Verify ownership and load calendar meta
+      const [cal] = await db
+        .select({
+          id: schoolCalendars.id,
+          subject: schoolCalendars.subject,
+          yearLevel: schoolCalendars.yearLevel,
+          academicYear: schoolCalendars.academicYear,
+          defaultStartTime: schoolCalendars.defaultStartTime,
+          defaultEndTime: schoolCalendars.defaultEndTime,
+          term1Start: schoolCalendars.term1Start,
+          term1End: schoolCalendars.term1End,
+          term2Start: schoolCalendars.term2Start,
+          term2End: schoolCalendars.term2End,
+          term3Start: schoolCalendars.term3Start,
+          term3End: schoolCalendars.term3End,
+          startDate: schoolCalendars.startDate,
+          endDate: schoolCalendars.endDate,
+          tenantId: schoolCalendars.tenantId,
+        })
+        .from(schoolCalendars)
+        .where(and(eq(schoolCalendars.id, input.calendarId), eq(schoolCalendars.userId, ctx.user.id)))
+        .limit(1);
+      if (!cal) throw new TRPCError({ code: "NOT_FOUND", message: "Calendar not found" });
+
+      // Determine date range for the chosen scope
+      let rangeStart: Date | null = null;
+      let rangeEnd: Date | null = null;
+      if (input.scope === "semester1") {
+        rangeStart = cal.term1Start ?? cal.startDate ?? null;
+        rangeEnd = cal.term1End ?? null;
+      } else if (input.scope === "semester2") {
+        rangeStart = cal.term2Start ?? null;
+        rangeEnd = cal.term2End ?? cal.endDate ?? null;
+      } else {
+        rangeStart = cal.startDate ?? cal.term1Start ?? null;
+        rangeEnd = cal.endDate ?? cal.term3End ?? cal.term2End ?? null;
+      }
+
+      // Fetch all lesson/ai_generated events in the scope
+      const allEventsQuery = db
+        .select({
+          id: schoolCalendarEvents.id,
+          eventDate: schoolCalendarEvents.eventDate,
+          title: schoolCalendarEvents.title,
+          description: schoolCalendarEvents.description,
+        })
+        .from(schoolCalendarEvents)
+        .where(and(
+          eq(schoolCalendarEvents.calendarId, input.calendarId),
+          or(
+            eq(schoolCalendarEvents.eventType, "lesson"),
+            eq(schoolCalendarEvents.eventType, "ai_generated"),
+          ),
+          ...(rangeStart ? [gte(schoolCalendarEvents.eventDate, rangeStart)] : []),
+          ...(rangeEnd ? [lte(schoolCalendarEvents.eventDate, rangeEnd)] : []),
+        ))
+        .orderBy(asc(schoolCalendarEvents.eventDate));
+
+      const allEvents = await allEventsQuery;
+      if (allEvents.length === 0) return { created: 0, total: 0 };
+
+      // Find which events already have a linked lesson plan
+      const allEventIds = allEvents.map(e => e.id);
+      const linkedRows = await db
+        .selectDistinct({ calendarEventId: lessonPlans.calendarEventId })
+        .from(lessonPlans)
+        .where(and(
+          eq(lessonPlans.userId, ctx.user.id),
+          inArray(lessonPlans.calendarEventId, allEventIds),
+        ));
+      const linkedSet = new Set(linkedRows.map(r => r.calendarEventId).filter(Boolean));
+      const events = allEvents.filter(e => !linkedSet.has(e.id));
+      if (events.length === 0) return { created: 0, total: 0 };
+
+      const subject = cal.subject ?? "General";
+      const yearGroup = cal.yearLevel ?? "Primary";
+      const academicYear = cal.academicYear ?? `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`;
+      const sessionTime = cal.defaultStartTime && cal.defaultEndTime
+        ? `${cal.defaultStartTime}–${cal.defaultEndTime}` : "";
+      let duration = 60;
+      if (cal.defaultStartTime && cal.defaultEndTime) {
+        const [sh, sm] = cal.defaultStartTime.split(":").map(Number);
+        const [eh, em] = cal.defaultEndTime.split(":").map(Number);
+        const d = (eh * 60 + em) - (sh * 60 + sm);
+        if (d > 0) duration = d;
+      }
+
+      const DEFAULT_PROCEDURES = [
+        { timing: "10 min", stage: "Warm-up", activities: "Engage students with a brief review or hook activity", grouping: "Whole class" },
+        { timing: "20 min", stage: "Presentation", activities: "Introduce and explain the main concept with examples", grouping: "Whole class" },
+        { timing: "15 min", stage: "Practice", activities: "Guided practice with teacher support", grouping: "Pairs" },
+        { timing: "10 min", stage: "Production", activities: "Students apply the concept independently or in groups", grouping: "Groups" },
+        { timing: "5 min", stage: "Closure", activities: "Review key points and assign homework if needed", grouping: "Whole class" },
+      ];
+
+      let created = 0;
+      for (let i = 0; i < events.length; i++) {
+        const ev = events[i];
+        const lessonDate = ev.eventDate ? new Date(ev.eventDate).toISOString().slice(0, 10) : null;
+        const lessonNumber = String(i + 1);
+        const title = ev.title || `${subject} Lesson ${lessonNumber}`;
+
+        try {
+          const resp = await invokeLLM({
+            messages: [
+              { role: "system", content: "You are a LOMLOE curriculum expert specialising in Spanish and Catalan education. Generate complete, detailed lesson plans with specific activities for each stage. Every field must be filled with real, curriculum-aligned content." },
+              { role: "user", content: `Generate a complete LOMLOE lesson plan for:\n- Title: "${title}"\n- Subject: ${subject}\n- Year Group: ${yearGroup}\n- Duration: ${duration} min\n- Lesson Number: ${lessonNumber}\n- Academic Year: ${academicYear}\n\nGenerate a detailed lesson plan with specific activities for each procedure stage.` },
+            ],
+            response_format: {
+              type: "json_schema",
+              json_schema: {
+                name: "lesson_plan",
+                strict: true,
+                schema: {
+                  type: "object",
+                  properties: {
+                    skills: { type: "object", properties: { listening: { type: "boolean" }, speaking: { type: "boolean" }, reading: { type: "boolean" }, writing: { type: "boolean" } }, required: ["listening", "speaking", "reading", "writing"], additionalProperties: false },
+                    systems: { type: "object", properties: { grammar: { type: "boolean" }, phonology: { type: "boolean" }, lexis: { type: "boolean" }, function: { type: "boolean" }, discourse: { type: "boolean" } }, required: ["grammar", "phonology", "lexis", "function", "discourse"], additionalProperties: false },
+                    specificCompetences: { type: "array", items: { type: "string" } },
+                    saberesBasicos: { type: "array", items: { type: "string" } },
+                    learningOutcomes: { type: "array", items: { type: "string" } },
+                    evaluationCriteria: { type: "array", items: { type: "string" } },
+                    previousKnowledge: { type: "string" },
+                    materials: { type: "string" },
+                    spaces: { type: "string" },
+                    procedures: { type: "array", items: { type: "object", properties: { timing: { type: "string" }, stage: { type: "string" }, activities: { type: "string" }, grouping: { type: "string" } }, required: ["timing", "stage", "activities", "grouping"], additionalProperties: false } },
+                    differentiation: { type: "object", properties: { advanced: { type: "object", properties: { objectives: { type: "string" }, activities: { type: "string" }, assessment: { type: "string" } }, required: ["objectives", "activities", "assessment"], additionalProperties: false }, standard: { type: "object", properties: { objectives: { type: "string" }, activities: { type: "string" }, assessment: { type: "string" } }, required: ["objectives", "activities", "assessment"], additionalProperties: false }, slower: { type: "object", properties: { objectives: { type: "string" }, activities: { type: "string" }, assessment: { type: "string" } }, required: ["objectives", "activities", "assessment"], additionalProperties: false } }, required: ["advanced", "standard", "slower"], additionalProperties: false },
+                    competencies: { type: "array", items: { type: "string" } },
+                  },
+                  required: ["skills", "systems", "specificCompetences", "saberesBasicos", "learningOutcomes", "evaluationCriteria", "previousKnowledge", "materials", "spaces", "procedures", "differentiation", "competencies"],
+                  additionalProperties: false,
+                },
+              },
+            },
+          });
+
+          const rawContent = resp.choices?.[0]?.message?.content;
+          const raw = typeof rawContent === "string" ? rawContent : null;
+          if (!raw) continue;
+          const ai = JSON.parse(raw);
+
+          // Insert the plan
+          const [inserted] = await db.insert(lessonPlans).values({
+            userId: ctx.user.id,
+            tenantId: ctx.user.tenantId ?? null,
+            title,
+            subject,
+            yearGroup,
+            academicYear,
+            duration,
+            sessionTime: sessionTime || null,
+            lessonNumber,
+            lessonDate: lessonDate ?? undefined,
+            calendarEventId: ev.id,
+            aiGenerated: true,
+            skills: JSON.stringify(ai.skills ?? {}),
+            systems: JSON.stringify(ai.systems ?? {}),
+            specificCompetences: JSON.stringify(ai.specificCompetences ?? []),
+            saberesBasicos: JSON.stringify(ai.saberesBasicos ?? []),
+            learningOutcomes: JSON.stringify(ai.learningOutcomes ?? []),
+            evaluationCriteria: JSON.stringify(ai.evaluationCriteria ?? []),
+            previousKnowledge: ai.previousKnowledge ?? "",
+            materials: ai.materials ?? "",
+            spaces: ai.spaces ?? "Classroom",
+            procedures: JSON.stringify(ai.procedures?.length ? ai.procedures : DEFAULT_PROCEDURES),
+            differentiation: JSON.stringify(ai.differentiation ?? null),
+            competencies: JSON.stringify(ai.competencies ?? []),
+          });
+
+          // The lesson plan is linked to the event via calendarEventId on the plan row.
+          // No separate update to schoolCalendarEvents is needed.
+          created++;
+        } catch {
+          // Skip individual failures and continue with the rest
+        }
+      }
+
+      return { created, total: events.length };
+    }),
+
+  // ─── Fetch director-set lesson time for a calendar ───────────────────────────────────────────────
+  getCalendarLessonTime: protectedProcedure    .input(z.object({ calendarId: z.number() }))
     .query(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) return null;

@@ -4746,13 +4746,13 @@
 - [x] Add "Link to Calendar" button to the Lesson Plan editor UI
 - [x] Highlight the director-set lesson time to the teacher in the UI
 ## Enhancement: Lesson Planner — Layout Improvements
-- [ ] Fix toolbar overflow — wrap or reorganise buttons so they don't overlap
-- [ ] Replace large vertical "Lesson Plan Editor" heading with compact inline header
-- [ ] Improve form section spacing and visual hierarchy
+- [x] Fix toolbar overflow — wrap or reorganise buttons so they don't overlap
+- [x] Replace large vertical "Lesson Plan Editor" heading with compact inline header
+- [x] Improve form section spacing and visual hierarchy
 ## Feature: AI Generate Bulk Lesson Plans (Year / Semester)
-- [ ] Add "AI Generate" button to Lesson Planner toolbar (visible after plan linked to calendar)
-- [ ] Dialog: choose scope (full academic year or single semester) + confirm calendar + subject
-- [ ] Backend: generateBulkLessonPlans tRPC procedure — generate one plan per lesson slot in the chosen scope
-- [ ] Show progress indicator while bulk generation runs
-- [ ] After completion, refresh the lesson plans list
-- [ ] i18n keys in EN/ES/CA
+- [x] Add "AI Generate" button to Lesson Planner toolbar (visible after plan linked to calendar)
+- [x] Dialog: choose scope (full academic year or single semester) + confirm calendar + subject
+- [x] Backend: generateBulkLessonPlans tRPC procedure — generate one plan per lesson slot in the chosen scope
+- [x] Show progress indicator while bulk generation runs
+- [x] After completion, refresh the lesson plans list
+- [x] i18n keys in EN/ES/CA

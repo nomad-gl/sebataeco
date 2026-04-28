@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -498,6 +498,12 @@ export default function LessonPlanner() {
   const [linkCalendarTime, setLinkCalendarTime] = useState<{ start: string; end: string } | null>(null);
   const [showClashDialog, setShowClashDialog] = useState(false);
   const [clashDetails, setClashDetails] = useState<{ clashWith: string[]; start: string; end: string } | null>(null);
+  // Bulk AI generate dialog state
+  const [showBulkAiDialog, setShowBulkAiDialog] = useState(false);
+  const [bulkAiScope, setBulkAiScope] = useState<"year" | "semester1" | "semester2">("year");
+  const [bulkAiCalendarId, setBulkAiCalendarId] = useState<string>("");
+  const [bulkAiRunning, setBulkAiRunning] = useState(false);
+  const [bulkAiProgress, setBulkAiProgress] = useState<{ current: number; total: number } | null>(null);
   const utils = trpc.useUtils();
 
   // Show a toast when arriving from the calendar
@@ -1090,6 +1096,8 @@ export default function LessonPlanner() {
     onError: (e) => { setIsExportingAll(false); toast.error(e.message); },
   });
 
+  const generateBulkMutation = trpc.planner.generateBulkLessonPlans.useMutation();
+
   const toggleComp = (c: string) => setAiComps(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]);
 
   const updateListItem = (key: "saberesBasicos" | "learningOutcomes" | "evaluationCriteria" | "specificCompetences", idx: number, val: string) => {
@@ -1156,103 +1164,131 @@ export default function LessonPlanner() {
       <NavBar />
       {/* Main editor */}
       <div className="flex-1 overflow-y-auto">
-        <div className="p-4 sm:p-6 space-y-5 max-w-3xl mx-auto">
+        <div className="p-4 sm:p-6 space-y-4 max-w-4xl mx-auto">
 
-            {/* Toolbar */}
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-              <div className="flex items-center gap-2 flex-wrap">
-                {/* Back button */}
-                <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground" onClick={() => navigate("/create")}>
-                  <ArrowLeft className="w-4 h-4" />
-                  {t("lp_back_to_menu")}
-                </Button>
-                {/* Plans sheet trigger (all screen sizes) */}
-                <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-                  <SheetTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-1.5">
-                      <List className="w-4 h-4" />
-                      {t("lp_lesson_plans")}
-                      {plans.length > 0 && (
-                        <Badge variant="secondary" className="text-xs ml-0.5">{plans.length}</Badge>
-                      )}
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="left" className="w-72 p-0 flex flex-col">
-                    <SheetHeader className="sr-only">
-                      <SheetTitle>{t("lp_lesson_plans")}</SheetTitle>
-                    </SheetHeader>
-                    <div className="flex-1 overflow-hidden">
-                      {plansList}
-                    </div>
-                  </SheetContent>
-                </Sheet>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <BookOpen className="w-5 h-5 text-primary" />
-                  <h1 className="text-lg sm:text-xl font-bold">{t("lp_title")}</h1>
-                  {form.infantilEix && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-pink-100 text-pink-700 border border-pink-200 dark:bg-pink-900/40 dark:text-pink-300 dark:border-pink-700">
-                      🧒 {form.infantilEix}{form.infantilCycle ? ` · ${form.infantilCycle}` : ""}
-                    </span>
-                  )}
-                </div>
-                {isDirty && <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">{t("lp_unsaved")}</Badge>}
+            {/* ── Row 1: Page header ─────────────────────────────────────────── */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground shrink-0" onClick={() => navigate("/create")}>
+                <ArrowLeft className="w-4 h-4" />
+                <span className="hidden sm:inline">{t("lp_back_to_menu")}</span>
+              </Button>
+              <div className="flex items-center gap-2 min-w-0">
+                <BookOpen className="w-5 h-5 text-primary shrink-0" />
+                <h1 className="text-base sm:text-lg font-bold truncate">{t("lp_title")}</h1>
+                {form.infantilEix && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-pink-100 text-pink-700 border border-pink-200 dark:bg-pink-900/40 dark:text-pink-300 dark:border-pink-700 shrink-0">
+                    🧒 {form.infantilEix}{form.infantilCycle ? ` · ${form.infantilCycle}` : ""}
+                  </span>
+                )}
               </div>
-              <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-0.5 sm:pb-0 sm:flex-wrap shrink-0">
-                {selectedId && (
-                  <Button variant="outline" size="sm" onClick={() => deleteMutation.mutate({ id: selectedId })} className="text-red-600 hover:text-red-700 shrink-0">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                )}
-                {selectedId && (
-                  <Button variant="outline" size="sm" onClick={handleRenumberPlans} disabled={renumberPlansMutation.isPending} className="gap-1 text-violet-700 border-violet-300 hover:bg-violet-50" title={t("lp_renumber_plans")}>
-                    <Hash className="w-4 h-4" />
-                    <span className="hidden sm:inline">{t("lp_renumber_plans")}</span>
-                  </Button>
-                )}
-                {selectedId && (
-                  <Button variant="outline" size="sm" onClick={handleFillAllEmpty} disabled={!!regeneratingSection} className="gap-1 text-teal-600 border-teal-300 hover:bg-teal-50" title={t("lp_fill_all_empty")}>
-                    {fillAllProgress ? (
-                      <><Loader2 className="w-4 h-4 animate-spin" /><span className="hidden sm:inline text-xs">{t("lp_filling_sections").replace("{{current}}", String(fillAllProgress.current)).replace("{{total}}", String(fillAllProgress.total))}</span></>
-                    ) : (
-                      <><SebaSymbol className="w-4 h-4" /><span className="hidden sm:inline">{t("lp_fill_all_empty")}</span></>
+              {isDirty && <Badge variant="outline" className="text-xs text-amber-600 border-amber-300 shrink-0">{t("lp_unsaved")}</Badge>}
+              {/* Plans sheet trigger */}
+              <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5 ml-auto shrink-0">
+                    <List className="w-4 h-4" />
+                    {t("lp_lesson_plans")}
+                    {plans.length > 0 && (
+                      <Badge variant="secondary" className="text-xs ml-0.5">{plans.length}</Badge>
                     )}
                   </Button>
-                )}
-                <Button variant="outline" size="sm" onClick={() => setShowLoadTemplateDialog(true)} className="gap-1" title={t("lp_load_template")}>
-                  <FolderOpen className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t("lp_load_template")}</span>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-72 p-0 flex flex-col">
+                  <SheetHeader className="sr-only">
+                    <SheetTitle>{t("lp_lesson_plans")}</SheetTitle>
+                  </SheetHeader>
+                  <div className="flex-1 overflow-hidden">
+                    {plansList}
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+
+            {/* ── Row 2: Action toolbar ──────────────────────────────────────── */}
+            <div className="flex items-center gap-1.5 flex-wrap border border-border rounded-lg bg-muted/30 px-3 py-2">
+              {/* Destructive */}
+              {selectedId && (
+                <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate({ id: selectedId })} className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 h-8 px-2" title={t("lp_delete_plan")}>
+                  <Trash2 className="w-4 h-4" />
                 </Button>
-                {selectedId && (
-                  <Button variant="outline" size="sm" onClick={() => { setTemplateNameInput(form.title || ""); setShowSaveTemplateDialog(true); }} className="gap-1" title={t("lp_save_as_template")}>
-                    <LayoutTemplate className="w-4 h-4" />
-                    <span className="hidden sm:inline">{t("lp_save_as_template")}</span>
-                  </Button>
-                )}
-                <Button variant="outline" size="sm" onClick={() => setShowPrintDialog(true)} className="gap-1">
-                  <Printer className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t("lp_print_pdf")}</span>
+              )}
+              {selectedId && <Separator orientation="vertical" className="h-5" />}
+
+              {/* Renumber */}
+              {selectedId && (
+                <Button variant="ghost" size="sm" onClick={handleRenumberPlans} disabled={renumberPlansMutation.isPending} className="gap-1 text-violet-700 hover:bg-violet-50 dark:hover:bg-violet-950/30 h-8 px-2" title={t("lp_renumber_plans")}>
+                  <Hash className="w-4 h-4" />
+                  <span className="hidden md:inline text-xs">{t("lp_renumber_plans")}</span>
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => { setExportAllCalendarId(""); setShowExportAllDialog(true); }} className="gap-1" title={t("lp_export_all_plans")}>
-                  <FileDown className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t("lp_export_all_plans")}</span>
+              )}
+
+              {/* Fill empty */}
+              {selectedId && (
+                <Button variant="ghost" size="sm" onClick={handleFillAllEmpty} disabled={!!regeneratingSection} className="gap-1 text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-950/30 h-8 px-2" title={t("lp_fill_all_empty")}>
+                  {fillAllProgress ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /><span className="hidden md:inline text-xs">{t("lp_filling_sections").replace("{{current}}", String(fillAllProgress.current)).replace("{{total}}", String(fillAllProgress.total))}</span></>
+                  ) : (
+                    <><SebaSymbol className="w-4 h-4" /><span className="hidden md:inline text-xs">{t("lp_fill_all_empty")}</span></>
+                  )}
                 </Button>
-                {selectedId && (
-                  <Button variant="outline" size="sm" onClick={() => {
+              )}
+
+              <Separator orientation="vertical" className="h-5" />
+
+              {/* Templates */}
+              <Button variant="ghost" size="sm" onClick={() => setShowLoadTemplateDialog(true)} className="gap-1 h-8 px-2" title={t("lp_load_template")}>
+                <FolderOpen className="w-4 h-4" />
+                <span className="hidden md:inline text-xs">{t("lp_load_template")}</span>
+              </Button>
+              {selectedId && (
+                <Button variant="ghost" size="sm" onClick={() => { setTemplateNameInput(form.title || ""); setShowSaveTemplateDialog(true); }} className="gap-1 h-8 px-2" title={t("lp_save_as_template")}>
+                  <LayoutTemplate className="w-4 h-4" />
+                  <span className="hidden md:inline text-xs">{t("lp_save_as_template")}</span>
+                </Button>
+              )}
+
+              <Separator orientation="vertical" className="h-5" />
+
+              {/* Print / Export */}
+              <Button variant="ghost" size="sm" onClick={() => setShowPrintDialog(true)} className="gap-1 h-8 px-2" title={t("lp_print_pdf")}>
+                <Printer className="w-4 h-4" />
+                <span className="hidden md:inline text-xs">{t("lp_print_pdf")}</span>
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => { setExportAllCalendarId(""); setShowExportAllDialog(true); }} className="gap-1 h-8 px-2" title={t("lp_export_all_plans")}>
+                <FileDown className="w-4 h-4" />
+                <span className="hidden md:inline text-xs">{t("lp_export_all_plans")}</span>
+              </Button>
+
+              {/* Link to Calendar */}
+              {selectedId && (
+                <>
+                  <Separator orientation="vertical" className="h-5" />
+                  <Button variant="ghost" size="sm" onClick={() => {
                     setLinkCalendarId("");
                     setLinkLessonDate("");
                     setLinkCalendarTime(null);
                     setShowLinkCalDialog(true);
-                  }} className="gap-1 border-teal-300 text-teal-700 hover:bg-teal-50 dark:border-teal-700 dark:text-teal-400" title={t("lp_link_to_calendar")}>
+                  }} className="gap-1 text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-950/30 h-8 px-2" title={t("lp_link_to_calendar")}>
                     <CalendarDays className="w-4 h-4" />
-                    <span className="hidden sm:inline">{t("lp_link_to_calendar")}</span>
+                    <span className="hidden md:inline text-xs">{t("lp_link_to_calendar")}</span>
                   </Button>
-                )}
-                <Button size="sm" onClick={handleSave} disabled={saveMutation.isPending} className="gap-1">
-                  <Save className="w-4 h-4" />
-                  <span className="hidden sm:inline">{saveMutation.isPending ? t("lp_saving") : t("lp_save")}</span>
-                  <span className="sm:hidden">{saveMutation.isPending ? "…" : t("lp_save")}</span>
+                </>
+              )}
+
+              {/* AI Generate bulk — shown when a plan is selected */}
+              {selectedId && (
+                <Button variant="ghost" size="sm" onClick={() => setShowBulkAiDialog(true)} className="gap-1 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30 h-8 px-2" title={t("lp_ai_generate_bulk")}>
+                  <Sparkles className="w-4 h-4" />
+                  <span className="hidden md:inline text-xs">{t("lp_ai_generate_bulk")}</span>
                 </Button>
-              </div>
+              )}
+
+              {/* Save — pushed to the right */}
+              <Button size="sm" onClick={handleSave} disabled={saveMutation.isPending} className="gap-1 ml-auto h-8">
+                <Save className="w-4 h-4" />
+                <span className="hidden sm:inline">{saveMutation.isPending ? t("lp_saving") : t("lp_save")}</span>
+                <span className="sm:hidden">{saveMutation.isPending ? "…" : t("lp_save")}</span>
+              </Button>
             </div>
 
             {/* Section 1: Header info */}
@@ -2428,6 +2464,105 @@ export default function LessonPlanner() {
           </div>
           <DialogFooter>
             <Button onClick={() => setShowClashDialog(false)}>{t("lp_clash_ok")}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Bulk AI Generate Dialog ──────────────────────────────────────────────── */}
+      <Dialog open={showBulkAiDialog} onOpenChange={v => { if (!bulkAiRunning) setShowBulkAiDialog(v); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-purple-600" />
+              {t("lp_bulk_ai_title")}
+            </DialogTitle>
+            <DialogDescription>{t("lp_bulk_ai_desc")}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {/* Calendar selector */}
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">{t("lp_bulk_ai_calendar")}</Label>
+              <Select value={bulkAiCalendarId} onValueChange={setBulkAiCalendarId} disabled={bulkAiRunning}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={t("lp_bulk_ai_select_calendar")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {(calendars as any[]).map((cal: any) => (
+                    <SelectItem key={cal.id} value={String(cal.id)}>{cal.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Scope selector */}
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">{t("lp_bulk_ai_scope")}</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {(["year", "semester1", "semester2"] as const).map(scope => (
+                  <button
+                    key={scope}
+                    type="button"
+                    disabled={bulkAiRunning}
+                    onClick={() => setBulkAiScope(scope)}
+                    className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                      bulkAiScope === scope
+                        ? "border-purple-500 bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-600"
+                        : "border-border bg-background text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {t(scope === "year" ? "lp_bulk_ai_scope_year" : scope === "semester1" ? "lp_bulk_ai_scope_s1" : "lp_bulk_ai_scope_s2")}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Progress */}
+            {bulkAiRunning && (
+              <div className="flex items-center gap-2 rounded-lg bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 px-3 py-2">
+                <Loader2 className="w-4 h-4 animate-spin text-purple-600 shrink-0" />
+                <p className="text-sm text-purple-700 dark:text-purple-300">
+                  {bulkAiProgress
+                    ? t("lp_bulk_ai_progress").replace("{{current}}", String(bulkAiProgress.current)).replace("{{total}}", String(bulkAiProgress.total))
+                    : t("lp_bulk_ai_starting")}
+                </p>
+              </div>
+            )}
+            {/* Info note */}
+            {!bulkAiRunning && (
+              <p className="text-xs text-muted-foreground">{t("lp_bulk_ai_note")}</p>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowBulkAiDialog(false)} disabled={bulkAiRunning}>
+              {t("lp_cancel")}
+            </Button>
+            <Button
+              disabled={!bulkAiCalendarId || bulkAiRunning}
+              onClick={async () => {
+                if (!bulkAiCalendarId) return;
+                setBulkAiRunning(true);
+                setBulkAiProgress(null);
+                try {
+                  const result = await generateBulkMutation.mutateAsync({
+                    calendarId: Number(bulkAiCalendarId),
+                    scope: bulkAiScope,
+                  });
+                  setShowBulkAiDialog(false);
+                  setBulkAiRunning(false);
+                  utils.planner.listLessonPlans.invalidate();
+                  if (result.created === 0) {
+                    toast.info(t("lp_bulk_ai_none"));
+                  } else {
+                    toast.success(t("lp_bulk_ai_done").replace("{{count}}", String(result.created)));
+                  }
+                } catch (e: any) {
+                  setBulkAiRunning(false);
+                  toast.error(e?.message ?? t("lp_bulk_ai_error"));
+                }
+              }}
+              className="gap-1.5 bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              <Sparkles className="w-4 h-4" />
+              {bulkAiRunning ? t("lp_bulk_ai_generating") : t("lp_bulk_ai_start")}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
