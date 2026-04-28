@@ -2693,6 +2693,8 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
       batchSize: z.number().int().min(1).max(10).optional().default(8),
       /** Pre-computed topic outline JSON from Phase 1 (passed back from client on subsequent batches) */
       topicOutlineJson: z.string().optional(),
+      /** UUID grouping all plans from the same bulk generation run */
+      batchId: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -3091,6 +3093,8 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
             lessonDate: lessonDate ?? undefined,
             calendarEventId: ev.id,
             aiGenerated: true,
+            pendingApproval: true,
+            batchId: input.batchId ?? null,
             skills: JSON.stringify(ai.skills ?? {}),
             systems: JSON.stringify(ai.systems ?? {}),
             specificCompetences: JSON.stringify(ai.specificCompetences ?? []),
@@ -3137,6 +3141,47 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
         .where(and(eq(schoolCalendars.id, input.calendarId), eq(schoolCalendars.userId, ctx.user.id)))
         .limit(1);
       return cal ?? null;
+    }),
+
+  /** Approve all pending-approval plans in a batch — clears the pendingApproval flag */
+  approveBulkPlans: protectedProcedure
+    .input(z.object({ batchId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      const result = await db
+        .update(lessonPlans)
+        .set({ pendingApproval: false })
+        .where(
+          and(
+            eq(lessonPlans.batchId, input.batchId),
+            eq(lessonPlans.userId, ctx.user.id),
+            eq(lessonPlans.pendingApproval, true),
+          )
+        );
+      return { approved: (result as any)[0]?.affectedRows ?? 0 };
+    }),
+
+  /** Discard all pending-approval plans in a batch — deletes them */
+  discardBulkPlans: protectedProcedure
+    .input(z.object({ batchId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      const plans = await db
+        .select({ id: lessonPlans.id, calendarEventId: lessonPlans.calendarEventId })
+        .from(lessonPlans)
+        .where(
+          and(
+            eq(lessonPlans.batchId, input.batchId),
+            eq(lessonPlans.userId, ctx.user.id),
+            eq(lessonPlans.pendingApproval, true),
+          )
+        );
+      if (plans.length === 0) return { discarded: 0 };
+      const planIds = plans.map(p => p.id);
+      await db.delete(lessonPlans).where(inArray(lessonPlans.id, planIds));
+      return { discarded: plans.length };
     }),
 
 });

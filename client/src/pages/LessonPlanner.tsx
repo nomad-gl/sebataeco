@@ -1290,6 +1290,7 @@ export default function LessonPlanner() {
   const [aiPlanningScope, setAiPlanningScope] = useState<"single" | "semester1" | "semester2" | "semester3" | "year">("single");
   const [aiDialogCalendarId, setAiDialogCalendarId] = useState<string>("");
   const [aiScopeGenerating, setAiScopeGenerating] = useState(false);
+  const [bulkConfirm, setBulkConfirm] = useState<{ batchId: string; count: number } | null>(null);
   const [exportAllCalendarId, setExportAllCalendarId] = useState<string>("");
   const [isExportingAll, setIsExportingAll] = useState(false);
 
@@ -1304,6 +1305,26 @@ export default function LessonPlanner() {
   });
 
   const generateBulkMutation = trpc.planner.generateBulkLessonPlans.useMutation();
+
+  const approveBulkMutation = trpc.planner.approveBulkPlans.useMutation({
+    onSuccess: (data) => {
+      utils.planner.listLessonPlans.invalidate();
+      setBulkConfirm(null);
+      toast.success(t("lp_bulk_approved").replace("{{count}}", String(data.approved)));
+      setAiGeneratedBanner(true);
+      setTimeout(() => setAiGeneratedBanner(false), 15000);
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const discardBulkMutation = trpc.planner.discardBulkPlans.useMutation({
+    onSuccess: (data) => {
+      utils.planner.listLessonPlans.invalidate();
+      setBulkConfirm(null);
+      toast.info(t("lp_bulk_discarded").replace("{{count}}", String(data.discarded)));
+    },
+    onError: (e) => toast.error(e.message),
+  });
 
   const toggleComp = (c: string) => setAiComps(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]);
 
@@ -2301,6 +2322,8 @@ export default function LessonPlanner() {
                   let totalCreated = 0;
                   let topicOutlineJson: string | null | undefined = undefined;
                   let totalSlots = 0;
+                  // Generate a UUID for this batch so we can approve/discard it as a group
+                  const runBatchId = crypto.randomUUID();
 
                   while (true) {
                     const result = await utils.client.planner.generateBulkLessonPlans.mutate({
@@ -2310,6 +2333,7 @@ export default function LessonPlanner() {
                       batchOffset: offset,
                       batchSize: BATCH_SIZE,
                       topicOutlineJson: topicOutlineJson ?? undefined,
+                      batchId: runBatchId,
                     });
 
                     totalCreated += result.created;
@@ -2328,11 +2352,10 @@ export default function LessonPlanner() {
                   if (totalCreated === 0) {
                     toast.info(t("lp_bulk_ai_none"));
                   } else {
-                    toast.success(t("lp_bulk_ai_done").replace("{{count}}", String(totalCreated)));
+                    // Show confirmation dialog instead of a toast
+                    setBulkConfirm({ batchId: runBatchId, count: totalCreated });
                   }
                   setLastGeneratedCalendarId(Number(aiDialogCalendarId));
-                  setAiGeneratedBanner(true);
-                  setTimeout(() => setAiGeneratedBanner(false), 15000);
                 } catch (e: any) {
                   const isAbort = e?.name === "AbortError" || (typeof e?.message === "string" && e.message.toLowerCase().includes("abort"));
                   if (!isAbort) {
@@ -2347,6 +2370,39 @@ export default function LessonPlanner() {
             }} disabled={aiMutation.isPending || aiScopeGenerating || (aiPlanningScope !== "single" && !aiDialogCalendarId)} className="gap-1">
               <SebaSymbol className="w-4 h-4" />
               {aiMutation.isPending || aiScopeGenerating ? t("lp_generating") : t("lp_generate")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk AI Confirmation Dialog */}
+      <Dialog open={!!bulkConfirm} onOpenChange={(open) => { if (!open && !approveBulkMutation.isPending && !discardBulkMutation.isPending) setBulkConfirm(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <SebaSymbol className="w-5 h-5" />
+              {t("lp_bulk_confirm_title")}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4 text-center space-y-2">
+            <p className="text-4xl font-bold text-primary">{bulkConfirm?.count}</p>
+            <p className="text-sm text-muted-foreground">{t("lp_bulk_confirm_msg").replace("{{count}}", String(bulkConfirm?.count ?? 0))}</p>
+          </div>
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto text-destructive border-destructive/40 hover:bg-destructive/10"
+              disabled={approveBulkMutation.isPending || discardBulkMutation.isPending}
+              onClick={() => bulkConfirm && discardBulkMutation.mutate({ batchId: bulkConfirm.batchId })}
+            >
+              {discardBulkMutation.isPending ? t("lp_bulk_discarding") : t("lp_bulk_discard")}
+            </Button>
+            <Button
+              className="w-full sm:w-auto"
+              disabled={approveBulkMutation.isPending || discardBulkMutation.isPending}
+              onClick={() => bulkConfirm && approveBulkMutation.mutate({ batchId: bulkConfirm.batchId })}
+            >
+              {approveBulkMutation.isPending ? t("lp_bulk_approving") : t("lp_bulk_approve")}
             </Button>
           </DialogFooter>
         </DialogContent>

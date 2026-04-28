@@ -734,6 +734,10 @@ export const lessonPlans = mysqlTable("lesson_plans", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   /** Tenant isolation key */
   tenantId: int("tenantId"),
+  /** Bulk AI-generated plans awaiting user approval before being finalised. @migration 0062 */
+  pendingApproval: boolean("pendingApproval").default(false).notNull(),
+  /** Groups plans created in the same bulk generation run. @migration 0062 */
+  batchId: varchar("batchId", { length: 36 }),
 });
 
 export type LessonPlan = typeof lessonPlans.$inferSelect;

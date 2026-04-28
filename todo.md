@@ -4892,3 +4892,11 @@
 ## Bug: Whole Year bulk AI generation does not create 36 lesson plans
 - [x] Investigated: root cause was calendars with no startDate/endDate set — rangeStart/rangeEnd were null so auto-create was skipped
 - [x] Fixed: added fallback 36-week synthetic date range from academic year start; added Mon-Fri default for lessonDays; capped auto-create at 36 per scope
+
+## Feature: Bulk AI generation confirmation step
+- [ ] Add pendingApproval boolean column to lesson_plans table (default false, bulk-generated plans set to true)
+- [ ] After bulk generation completes, show confirmation dialog with count + plan titles list
+- [ ] Approve button: set pendingApproval=false on all pending plans for this batch
+- [ ] Discard button: delete all pending plans for this batch
+- [ ] Add approveBulkPlans and discardBulkPlans tRPC procedures
+- [ ] Show "Pending approval" badge on plan cards that are awaiting confirmation
