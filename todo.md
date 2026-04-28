@@ -4764,13 +4764,15 @@
 - [x] Term overview event chips: show subject name below title + fall back to calendar default times
 - [x] TypeScript 0 errors verified
 ## Enhancement: School Calendar — Remove Nav Column, Add Back Button
-- [ ] Remove left navigation sidebar (aside element) from School Calendar page
-- [ ] Replace DashboardLayout wrapper with plain min-h-screen layout
-- [ ] Add unified top toolbar: Back button, calendar selector dropdown, mic/speaker controls, agenda toggle
-- [ ] TypeScript 0 errors verified
+- [x] Remove left navigation sidebar (aside element) from School Calendar page
+- [x] Replace DashboardLayout wrapper with plain min-h-screen layout
+- [x] Add unified top toolbar: Back button, calendar selector dropdown, mic/speaker controls, agenda toggle
+- [x] TypeScript 0 errors verified
 ## Enhancement: School Calendar — Lesson Plan Preview Start/Finish Times
-- [ ] Show lesson start/finish times in lesson plan preview cards on monthly, weekly, and term views
-- [ ] Fall back to calendar defaultStartTime/defaultEndTime when event has no per-event time
+- [x] Show lesson start/finish times in lesson plan preview cards on monthly, weekly, and term views (already implemented)
+- [x] Fall back to calendar defaultStartTime/defaultEndTime when event has no per-event time (already implemented)
+- [x] Show session time in PlanSheet header with fallback to calendar default
+- [x] Show session time in event detail popup with fallback to calendar default
 
 ## Fix: AI Generate Bulk Plans — Missing Semester 3
 - [ ] Add "Semester 3" (Term 3) option to the bulk AI generate dialog scope selector
@@ -4786,11 +4788,11 @@
 - [ ] Only run after calendar is fully set up (show warning if calendar has no events)
 
 ## Fix: AI Generate Bulk Plans -- Missing Semester 3
-- [ ] Add "Semester 3" (Term 3) option to the bulk AI generate dialog scope selector
+- [x] Add "Semester 3" (Term 3) option to the bulk AI generate dialog scope selector (completed Apr 28)
 
 ## Feature: View Plan from Calendar Popup
-- [ ] When "View Plan" is selected from a calendar event popup, navigate to the lesson planner page showing that specific plan
-- [ ] Pass planId as a URL param or state to LessonPlanner so it opens the correct plan
+- [x] When "View Plan" is selected from a calendar event popup, navigate to the lesson planner page showing that specific plan (completed Apr 28)
+- [x] Pass planId as a URL param or state to LessonPlanner so it opens the correct plan (completed Apr 28)
 
 ## Enhancement: Bulk AI Plan Generation -- Preserve Existing Plans
 - [ ] Skip slots that already have a linked lesson plan (do not overwrite)

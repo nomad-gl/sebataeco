@@ -19,7 +19,7 @@ import { ChevronLeft, ChevronRight, Plus, Trash2, CalendarDays,
   ListChecks, RefreshCw, FileDown, Hash, Mic, MicOff, Volume2, VolumeX, ChevronDown, Loader2, Copy,
   BookTemplate, LayoutTemplate, Clock, ArrowLeft,
 } from "lucide-react";
-import DashboardLayout from "@/components/DashboardLayout";
+// DashboardLayout removed — SchoolCalendar uses standalone layout
 import { SebaSymbol } from "@/components/SebaSymbol";
 import { useLocation } from "wouter";
 import { useI18n } from "@/contexts/I18nContext";
@@ -1493,15 +1493,10 @@ export default function SchoolCalendar() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="flex h-[calc(100vh-64px)] overflow-hidden relative">
-        {/* ── Mobile overlay backdrop ─────────────────────────────────────── */}
-        {showMobileSidebar && (
-          <div className="fixed inset-0 z-30 bg-black/40 md:hidden" onClick={() => setShowMobileSidebar(false)} />
-        )}
-
-        {/* ── Calendar Picker Sidebar ─────────────────────────────────────── */}
-        <aside className={`hidden`} aria-hidden="true">
+    <div className="min-h-screen bg-background">
+      <div className="flex h-screen overflow-hidden relative">
+        {/* ── Calendar Picker Sidebar removed — now in top toolbar ─────── */}
+        {false && <aside aria-hidden="true">
           <div className="p-3 border-b flex items-center justify-between gap-2 min-h-[48px]">
             <span className="font-semibold text-sm flex items-center gap-1.5 truncate">
               <FolderOpen className="w-4 h-4 text-primary shrink-0" /> {t("cal_title").split(" ")[0]}
@@ -1636,25 +1631,28 @@ export default function SchoolCalendar() {
               </div>
             ))}
           </div>
-        </aside>
+        </aside>}
 
         {/* ── Main Content ────────────────────────────────────────────────── */}
         <div className="flex-1 overflow-y-auto flex flex-col">
-          {/* Mobile top bar */}
+          {/* Mobile top bar — Back + Calendar selector + Agenda toggle */}
           <div className="md:hidden flex items-center gap-2 px-3 py-2 border-b bg-background shrink-0">
-            <button
-              onClick={() => setShowMobileSidebar(true)}
-              className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground"
-              title={t("cal_mobile_calendars")}
-            >
-              <FolderOpen className="w-4 h-4" />
-            </button>
-            <span className="flex-1 text-sm font-semibold truncate">
-              {selectedCalendar ? selectedCalendar.name : t("cal_title")}
-            </span>
+            <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground hover:text-foreground shrink-0 h-7 px-2" onClick={() => navigate("/")}>
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <Select value={selectedCalendarId ? String(selectedCalendarId) : ""} onValueChange={(v) => setSelectedCalendarId(v ? Number(v) : null)}>
+              <SelectTrigger className="flex-1 h-7 text-xs">
+                <SelectValue placeholder={t("cal_select_calendar")} />
+              </SelectTrigger>
+              <SelectContent>
+                {(calendars as SchoolCalendar[]).map((cal) => (
+                  <SelectItem key={cal.id} value={String(cal.id)}>{cal.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <button
               onClick={() => setAgendaView(v => !v)}
-              className={`p-1.5 rounded-lg transition-colors ${
+              className={`p-1.5 rounded-lg transition-colors shrink-0 ${
                 agendaView ? "bg-primary text-primary-foreground" : "hover:bg-accent text-muted-foreground"
               }`}
               title={agendaView ? t("cal_month_view_title") : t("cal_agenda_view_title")}
@@ -3524,6 +3522,11 @@ export default function SchoolCalendar() {
                         <span>{new Date(planSheetData.lessonDate + "T12:00:00").toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" })}</span>
                       </>
                     )}
+                    {(() => {
+                      const st = planForm.sessionTime || ((selectedCalendar as SchoolCalendar)?.defaultStartTime && (selectedCalendar as SchoolCalendar)?.defaultEndTime ? `${(selectedCalendar as SchoolCalendar).defaultStartTime}–${(selectedCalendar as SchoolCalendar).defaultEndTime}` : null);
+                      if (!st) return null;
+                      return <><span className="text-muted-foreground/40">·</span><span className="font-mono text-[10px] bg-teal-50 text-teal-700 border border-teal-200 rounded px-1 py-0.5">{st}</span></>;
+                    })()}
                   </div>
                 )}
               </div>
@@ -4162,11 +4165,14 @@ export default function SchoolCalendar() {
                 <p className="font-semibold text-sm leading-snug">{detailEvent.title}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {new Date(detailEvent.eventDate).toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-                  {detailEvent.startTime && detailEvent.endTime && (
-                    <> &middot; {detailEvent.startTime}–{detailEvent.endTime}
-                      {(() => { const dur = calcDuration(detailEvent.startTime, detailEvent.endTime); return dur ? ` (${dur} min)` : ""; })()}
-                    </>
-                  )}
+                  {(() => {
+                    const isLessonEv = detailEvent.eventType === "lesson" || detailEvent.eventType === "ai_generated";
+                    const st = detailEvent.startTime ?? (isLessonEv ? (selectedCalendar as SchoolCalendar)?.defaultStartTime : null);
+                    const et = detailEvent.endTime ?? (isLessonEv ? (selectedCalendar as SchoolCalendar)?.defaultEndTime : null);
+                    if (!st) return null;
+                    const dur = calcDuration(st, et ?? null);
+                    return <> &middot; {st}{et ? `–${et}` : ""}{dur ? ` (${dur} min)` : ""}</>;
+                  })()}
                 </p>
               </div>
               <button className="text-muted-foreground hover:text-foreground" onClick={closeDetail}>
@@ -4433,6 +4439,6 @@ export default function SchoolCalendar() {
       </SheetContent>
     </Sheet>
 
-    </DashboardLayout>
+    </div>
   );
 }
