@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { Plus, Trash2, Printer, BookOpen, Save, SaveAll, List, X, Copy, LayoutTemplate, FolderOpen, FileDown, ArrowUpDown, ArrowUp01, CalendarDays, Loader2, RefreshCw, Hash, ArrowLeft, Sparkles, Pencil } from "lucide-react";
+import { Plus, Trash2, Printer, BookOpen, Save, SaveAll, List, X, Copy, LayoutTemplate, FolderOpen, FileDown, ArrowUpDown, ArrowUp01, CalendarDays, Loader2, RefreshCw, Hash, ArrowLeft, Sparkles, Pencil, Search, SlidersHorizontal, GraduationCap, Clock } from "lucide-react";
 import { SebaSymbol } from "@/components/SebaSymbol";
 import { useLocation } from "wouter";
 import NavBar from "@/components/NavBar";
@@ -283,6 +283,8 @@ function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplic
     try { return localStorage.getItem("seba_planner_sort_by_lesson") === "1"; } catch { return false; }
   });
   const [calendarFilter, setCalendarFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+
   const toggleSelect = (id: number) => {
     const next = new Set(selectedPlanIds);
     if (next.has(id)) next.delete(id); else next.add(id);
@@ -293,68 +295,214 @@ function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplic
     if (allSelected) setSelectedPlanIds(new Set());
     else setSelectedPlanIds(new Set(plans.map(p => p.id)));
   };
-  const filteredPlans = calendarFilter === "all"
+
+  const calendarFiltered = calendarFilter === "all"
     ? plans
     : calendarFilter === "unlinked"
       ? plans.filter((p: any) => !p.calendarId)
       : plans.filter((p: any) => String(p.calendarId) === calendarFilter);
+
+  const searchFiltered = searchQuery.trim()
+    ? calendarFiltered.filter((p: any) => {
+        const q = searchQuery.toLowerCase();
+        return (
+          (p.title || "").toLowerCase().includes(q) ||
+          (p.subject || "").toLowerCase().includes(q) ||
+          (p.yearGroup || "").toLowerCase().includes(q) ||
+          (p.unit || "").toLowerCase().includes(q)
+        );
+      })
+    : calendarFiltered;
+
   const sortedPlans = sortByLesson
-    ? [...filteredPlans].sort((a, b) => {
+    ? [...searchFiltered].sort((a, b) => {
         const na = a.lessonNumber ? Number(a.lessonNumber) : Infinity;
         const nb = b.lessonNumber ? Number(b.lessonNumber) : Infinity;
         return na - nb;
       })
-    : filteredPlans;
-  return (
-    <div className="flex flex-col h-full">
-      <div className="p-3 border-b flex items-center justify-between shrink-0 gap-1">
-        <span className="font-semibold text-sm">{t("lp_lesson_plans")}</span>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setSortByLesson(v => { const next = !v; try { localStorage.setItem("seba_planner_sort_by_lesson", next ? "1" : "0"); } catch {} return next; })}
-            title={sortByLesson ? t("lp_sorted_by_lesson") : t("lp_sort_by_lesson")}
-            className={`p-1 rounded hover:bg-accent transition-colors ${sortByLesson ? "text-teal-600 bg-teal-50" : "text-muted-foreground"}`}
-          >
-            {sortByLesson ? <ArrowUp01 className="w-3.5 h-3.5" /> : <ArrowUpDown className="w-3.5 h-3.5" />}
-          </button>
-          {batchSelectMode ? (
-            <>
-              <Button size="sm" variant="ghost" className="text-xs px-2" onClick={() => { setBatchSelectMode(false); setSelectedPlanIds(new Set()); }}
-              ><X className="w-3 h-3" /></Button>
-              {selectedPlanIds.size > 0 && (
-                <>
-                  <Button size="sm" variant="outline" className="text-xs px-2 gap-1 bg-orange-50 border-orange-300 text-orange-700 hover:bg-orange-100" onClick={onBatchCopy} title={t("lp_bulk_copy")}>
-                    <Copy className="w-3 h-3" />{selectedPlanIds.size}
-                  </Button>
-                  <Button size="sm" variant="outline" className="text-xs px-2 gap-1 bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100" onClick={onBatchExportPdf} disabled={batchExportPdfLoading} title={t("lp_bulk_export_pdf")}>
-                    {batchExportPdfLoading ? <span className="w-3 h-3 border border-blue-500 border-t-transparent rounded-full animate-spin" /> : <FileDown className="w-3 h-3" />}{selectedPlanIds.size}
-                  </Button>
-                  <Button size="sm" variant="destructive" className="text-xs px-2 gap-1" onClick={onBatchDelete}>
-                    <Trash2 className="w-3 h-3" />{selectedPlanIds.size}
-                  </Button>
-                </>
-              )}
-            </>
-          ) : (
-            <>
-              <Button size="sm" variant="ghost" title={t("lp_select_multiple")} onClick={() => setBatchSelectMode(true)}><Checkbox className="w-3.5 h-3.5 pointer-events-none" /></Button>
-              <Button size="sm" variant="ghost" onClick={onNew}><Plus className="w-4 h-4" /></Button>
-            </>
+    : searchFiltered;
+
+  // Group plans by subject for organised display
+  const groupedBySubject = sortByLesson
+    ? null // when sorted by lesson number, show flat list
+    : sortedPlans.reduce((acc: Record<string, any[]>, p: any) => {
+        const key = p.subject || "—";
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(p);
+        return acc;
+      }, {});
+
+  const renderPlanCard = (p: any) => (
+    <div key={p.id} className="group relative">
+      {batchSelectMode && (
+        <Checkbox
+          checked={selectedPlanIds.has(p.id)}
+          onCheckedChange={() => toggleSelect(p.id)}
+          className="absolute left-2.5 top-1/2 -translate-y-1/2 z-10"
+        />
+      )}
+      <button
+        onClick={() => batchSelectMode ? toggleSelect(p.id) : onLoad(p)}
+        className={[
+          "w-full text-left rounded-xl border transition-all duration-150",
+          "hover:border-primary/40 hover:shadow-sm hover:bg-accent/60",
+          batchSelectMode ? "pl-9 pr-3 py-2.5" : "px-3 py-2.5",
+          selectedId === p.id && !batchSelectMode
+            ? "bg-primary/8 border-primary/30 shadow-sm ring-1 ring-primary/20"
+            : "bg-card border-border",
+          batchSelectMode && selectedPlanIds.has(p.id) ? "bg-accent/50 border-primary/30" : "",
+        ].join(" ")}
+      >
+        {/* Title row */}
+        <div className="flex items-start gap-2 min-w-0">
+          {p.lessonNumber && (
+            <span className="shrink-0 mt-0.5 inline-flex items-center justify-center rounded-md bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300 text-[10px] font-bold px-1.5 py-0.5 leading-none min-w-[22px]">
+              L{p.lessonNumber}
+            </span>
+          )}
+          <span className={`flex-1 text-sm font-medium leading-snug ${selectedId === p.id && !batchSelectMode ? "text-primary" : "text-foreground"} line-clamp-2`}>
+            {p.title || t("lp_untitled")}
+          </span>
+        </div>
+        {/* Meta row */}
+        <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+          {p.yearGroup && (
+            <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground bg-muted/70 rounded px-1.5 py-0.5">
+              <GraduationCap className="w-2.5 h-2.5" />{p.yearGroup}
+            </span>
+          )}
+          {p.sessionTime && (
+            <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground bg-muted/70 rounded px-1.5 py-0.5">
+              <Clock className="w-2.5 h-2.5" />{p.sessionTime}
+            </span>
+          )}
+          {p.duration && p.duration !== 60 && (
+            <span className="inline-flex items-center text-[10px] font-mono text-muted-foreground bg-muted/70 rounded px-1.5 py-0.5">
+              {p.duration}m
+            </span>
+          )}
+          {p.calendarEventId && p.calendarId && (
+            <span className="inline-flex items-center gap-0.5 text-[10px] text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/30 rounded px-1.5 py-0.5">
+              <CalendarDays className="w-2.5 h-2.5" />
+            </span>
           )}
         </div>
-      </div>
-      {batchSelectMode && plans.length > 0 && (
-        <div className="px-3 py-1.5 border-b flex items-center gap-2 text-xs text-muted-foreground">
-          <Checkbox checked={allSelected} onCheckedChange={toggleAll} id="select-all-plans" />
-          <label htmlFor="select-all-plans" className="cursor-pointer">{t("lp_select_all")}</label>
+      </button>
+      {/* Hover action buttons */}
+      {!batchSelectMode && (
+        <div className="absolute right-2 top-2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-background/90 backdrop-blur-sm rounded-md shadow-sm border border-border/50 p-0.5">
+          {p.calendarEventId && p.calendarId && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onJumpToCalendar(p.calendarEventId, p.calendarId); }}
+              title={t("lp_jump_to_event")}
+              className="p-1 rounded hover:bg-teal-50 hover:text-teal-700 dark:hover:bg-teal-900/30"
+            >
+              <CalendarDays className="w-3 h-3 text-teal-600" />
+            </button>
+          )}
+          <button
+            onClick={(e) => { e.stopPropagation(); onDuplicate(p); }}
+            title={t("planner_duplicate")}
+            className="p-1 rounded hover:bg-muted"
+          >
+            <Copy className="w-3 h-3 text-muted-foreground" />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(p.id); }}
+            title={t("lp_delete_plan")}
+            className="p-1 rounded hover:bg-destructive/10"
+          >
+            <Trash2 className="w-3 h-3 text-destructive" />
+          </button>
         </div>
       )}
-      {calendars.length > 0 && (
-        <div className="px-2 py-1.5 border-b shrink-0">
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col h-full bg-background">
+      {/* ── Header ─────────────────────────────────────────────────────── */}
+      <div className="px-3 pt-3 pb-2 border-b shrink-0 space-y-2">
+        <div className="flex items-center justify-between gap-1">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <BookOpen className="w-4 h-4 text-primary shrink-0" />
+            <span className="font-semibold text-sm truncate">{t("lp_lesson_plans")}</span>
+            {plans.length > 0 && (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">{plans.length}</Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-0.5 shrink-0">
+            {/* Sort toggle */}
+            <button
+              onClick={() => setSortByLesson(v => { const next = !v; try { localStorage.setItem("seba_planner_sort_by_lesson", next ? "1" : "0"); } catch {} return next; })}
+              title={sortByLesson ? t("lp_sorted_by_lesson") : t("lp_sort_by_lesson")}
+              className={`p-1.5 rounded-md hover:bg-accent transition-colors ${sortByLesson ? "text-teal-600 bg-teal-50 dark:bg-teal-900/30" : "text-muted-foreground"}`}
+            >
+              {sortByLesson ? <ArrowUp01 className="w-3.5 h-3.5" /> : <ArrowUpDown className="w-3.5 h-3.5" />}
+            </button>
+            {batchSelectMode ? (
+              <>
+                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setBatchSelectMode(false); setSelectedPlanIds(new Set()); }}>
+                  <X className="w-3.5 h-3.5" />
+                </Button>
+                {selectedPlanIds.size > 0 && (
+                  <>
+                    <Button size="sm" variant="outline" className="h-7 px-2 text-[10px] gap-1 bg-orange-50 border-orange-300 text-orange-700 hover:bg-orange-100 dark:bg-orange-900/20 dark:border-orange-700 dark:text-orange-300" onClick={onBatchCopy} title={t("lp_bulk_copy")}>
+                      <Copy className="w-3 h-3" />{selectedPlanIds.size}
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-7 px-2 text-[10px] gap-1 bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:border-blue-700 dark:text-blue-300" onClick={onBatchExportPdf} disabled={batchExportPdfLoading} title={t("lp_bulk_export_pdf")}>
+                      {batchExportPdfLoading ? <span className="w-3 h-3 border border-blue-500 border-t-transparent rounded-full animate-spin" /> : <FileDown className="w-3 h-3" />}{selectedPlanIds.size}
+                    </Button>
+                    <Button size="sm" variant="destructive" className="h-7 px-2 text-[10px] gap-1" onClick={onBatchDelete}>
+                      <Trash2 className="w-3 h-3" />{selectedPlanIds.size}
+                    </Button>
+                  </>
+                )}
+              </>
+            ) : (
+              <>
+                <button
+                  title={t("lp_select_multiple")}
+                  onClick={() => setBatchSelectMode(true)}
+                  className="p-1.5 rounded-md hover:bg-accent text-muted-foreground transition-colors"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                </button>
+                <Button size="sm" variant="default" className="h-7 px-2 gap-1 text-xs" onClick={onNew}>
+                  <Plus className="w-3.5 h-3.5" />
+                  {t("lp_new_plan")}
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Search bar */}
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder={t("lp_plans_search_placeholder")}
+            className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-input bg-muted/40 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring focus:bg-background transition-colors"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+
+        {/* Calendar filter */}
+        {calendars.length > 0 && (
           <select
             value={calendarFilter}
             onChange={e => setCalendarFilter(e.target.value)}
-            className="w-full text-xs rounded border border-input bg-background px-2 py-1 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            className="w-full text-xs rounded-lg border border-input bg-muted/40 px-2.5 py-1.5 text-foreground focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
             title={t("lp_filter_by_calendar")}
           >
             <option value="all">{t("lp_all_calendars")}</option>
@@ -363,79 +511,65 @@ function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplic
             ))}
             <option value="unlinked">{t("lp_unlinked_plans")}</option>
           </select>
-        </div>
-      )}
-      <div className="flex-1 overflow-y-auto p-2 space-y-1">
-        {sortedPlans.length === 0 && <p className="text-xs text-muted-foreground p-2">{t("lp_no_plans")}</p>}
-        {sortedPlans.map((p: any) => (
-          <div key={p.id} className="group relative">
-            {batchSelectMode && (
-              <Checkbox
-                checked={selectedPlanIds.has(p.id)}
-                onCheckedChange={() => toggleSelect(p.id)}
-                className="absolute left-2 top-1/2 -translate-y-1/2 z-10"
-              />
-            )}
-            <button
-              onClick={() => batchSelectMode ? toggleSelect(p.id) : onLoad(p)}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-accent transition-colors ${batchSelectMode ? "pl-8" : ""} ${!batchSelectMode ? "pr-16" : "pr-8"} ${selectedId === p.id && !batchSelectMode ? "bg-accent font-medium" : ""} ${batchSelectMode && selectedPlanIds.has(p.id) ? "bg-accent/50" : ""}`}
-            >
-              <div className="flex items-center gap-1.5 min-w-0">
-                {p.lessonNumber && (
-                  <span className="shrink-0 inline-flex items-center justify-center rounded-full bg-teal-100 text-teal-700 text-[10px] font-bold px-1.5 py-0.5 leading-none">
-                    L{p.lessonNumber}
-                  </span>
-                )}
-                <span className="truncate flex-1">{p.title || t("lp_untitled")}</span>
-                {p.duration && p.duration !== 60 && (
-                  <span className="shrink-0 text-[10px] font-mono text-muted-foreground bg-muted px-1 py-0.5 rounded">{p.duration}m</span>
-                )}
-              </div>
-              <div className="text-xs text-muted-foreground truncate">{p.subject} · {p.yearGroup}{p.sessionTime ? ` · ${p.sessionTime}` : ""}</div>
-            </button>
-            {!batchSelectMode && (
-              <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                {p.calendarEventId && p.calendarId && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onJumpToCalendar(p.calendarEventId, p.calendarId); }}
-                    title={t("lp_jump_to_event")}
-                    className="p-1 rounded hover:bg-teal-50 hover:text-teal-700"
-                  >
-                    <CalendarDays className="w-3.5 h-3.5 text-teal-600" />
-                  </button>
-                )}
-                <button
-                  onClick={(e) => { e.stopPropagation(); onDuplicate(p); }}
-                  title={t("planner_duplicate")}
-                  className="p-1 rounded hover:bg-muted"
-                >
-                  <Copy className="w-3.5 h-3.5 text-muted-foreground" />
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); onDelete(p.id); }}
-                  title={t("lp_delete_plan")}
-                  className="p-1 rounded hover:bg-destructive/10"
-                >
-                  <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                </button>
-              </div>
-            )}
+        )}
+
+        {/* Batch select-all bar */}
+        {batchSelectMode && plans.length > 0 && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Checkbox checked={allSelected} onCheckedChange={toggleAll} id="select-all-plans" />
+            <label htmlFor="select-all-plans" className="cursor-pointer">{t("lp_select_all")}</label>
+            <span className="ml-auto text-[10px]">{selectedPlanIds.size} / {plans.length}</span>
           </div>
-        ))}
+        )}
       </div>
-      <div className="p-2 border-t shrink-0 space-y-1.5">
+
+      {/* ── Plan list ──────────────────────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto px-2 py-2">
+        {sortedPlans.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-10 text-center gap-2">
+            <BookOpen className="w-8 h-8 text-muted-foreground/40" />
+            <p className="text-xs text-muted-foreground">{searchQuery ? "No plans match your search." : t("lp_no_plans")}</p>
+          </div>
+        )}
+
+        {sortByLesson || searchQuery ? (
+          // Flat list when sorted by lesson number or searching
+          <div className="space-y-1.5">
+            {sortedPlans.map(renderPlanCard)}
+          </div>
+        ) : (
+          // Grouped by subject
+          <div className="space-y-3">
+            {Object.entries(groupedBySubject || {}).map(([subject, subjectPlans]) => (
+              <div key={subject}>
+                <div className="flex items-center gap-1.5 px-1 mb-1">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider truncate">{subject}</span>
+                  <span className="text-[10px] text-muted-foreground/60 shrink-0">({(subjectPlans as any[]).length})</span>
+                  <div className="flex-1 h-px bg-border/60" />
+                </div>
+                <div className="space-y-1.5">
+                  {(subjectPlans as any[]).map(renderPlanCard)}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Footer actions ─────────────────────────────────────────────── */}
+      <div className="p-2.5 border-t shrink-0 space-y-1.5 bg-muted/20">
         <Button
           size="sm"
           variant="outline"
-          className="w-full gap-1 text-teal-700 border-teal-300 hover:bg-teal-50"
+          className="w-full gap-1.5 text-teal-700 border-teal-300 hover:bg-teal-50 dark:text-teal-400 dark:border-teal-700 dark:hover:bg-teal-900/30 text-xs"
           onClick={onBatchFillAll}
           disabled={batchFillAllLoading || plans.length === 0}
           title={t("lp_batch_fill_all")}
         >
           {batchFillAllLoading ? (
             <>
-              <Loader2 className="w-3 h-3 animate-spin" />
-              <span className="text-xs truncate max-w-[160px]">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <span className="truncate">
                 {batchFillAllProgress
                   ? t("lp_batch_fill_progress")
                       .replace("{{current}}", String(batchFillAllProgress.current))
@@ -444,11 +578,11 @@ function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplic
               </span>
             </>
           ) : (
-            <><SebaSymbol className="w-3 h-3" /> {t("lp_batch_fill_all")}</>
+            <><SebaSymbol className="w-3.5 h-3.5" /> {t("lp_batch_fill_all")}</>
           )}
         </Button>
-        <Button size="sm" className="w-full gap-1" onClick={onAi}>
-          <SebaSymbol className="w-3 h-3" /> {t("lp_generate_ai")}
+        <Button size="sm" className="w-full gap-1.5 text-xs" onClick={onAi}>
+          <SebaSymbol className="w-3.5 h-3.5" /> {t("lp_generate_ai")}
         </Button>
       </div>
     </div>
@@ -1147,6 +1281,7 @@ export default function LessonPlanner() {
   const [aiCurriculumYear, setAiCurriculumYear] = useState("");
   const [showExportAllDialog, setShowExportAllDialog] = useState(false);
   const [aiGeneratedBanner, setAiGeneratedBanner] = useState(false);
+  const [lastGeneratedCalendarId, setLastGeneratedCalendarId] = useState<number | null>(null);
   const [aiPlanningScope, setAiPlanningScope] = useState<"single" | "semester1" | "semester2" | "semester3" | "year">("single");
   const [aiDialogCalendarId, setAiDialogCalendarId] = useState<string>("");
   const [aiScopeGenerating, setAiScopeGenerating] = useState(false);
@@ -1260,7 +1395,7 @@ export default function LessonPlanner() {
                     )}
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-72 p-0 flex flex-col">
+                <SheetContent side="left" className="w-80 p-0 flex flex-col">
                   <SheetHeader className="sr-only">
                     <SheetTitle>{t("lp_lesson_plans")}</SheetTitle>
                   </SheetHeader>
@@ -1380,7 +1515,21 @@ export default function LessonPlanner() {
               <div className="flex items-center gap-2 rounded-lg border border-green-300 bg-green-50 dark:bg-green-950/30 dark:border-green-700 px-4 py-2.5 text-sm text-green-800 dark:text-green-300 animate-in fade-in slide-in-from-top-2 duration-300">
                 <Pencil className="w-4 h-4 shrink-0" />
                 <span className="font-medium">AI generated</span>
-                <span className="text-green-700 dark:text-green-400">— all fields are editable. Click any field to make changes.</span>
+                <span className="text-green-700 dark:text-green-400 flex-1">— all fields are editable. Click any field to make changes.</span>
+                {lastGeneratedCalendarId && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="shrink-0 h-7 px-2.5 gap-1 text-xs border-green-400 text-green-800 hover:bg-green-100 dark:border-green-600 dark:text-green-300 dark:hover:bg-green-900/40"
+                    onClick={() => navigate(`/calendar?calendarId=${lastGeneratedCalendarId}`)}
+                  >
+                    <CalendarDays className="w-3.5 h-3.5" />
+                    View Calendar
+                  </Button>
+                )}
+                <button onClick={() => setAiGeneratedBanner(false)} className="shrink-0 text-green-600 hover:text-green-800 dark:text-green-400">
+                  <X className="w-3.5 h-3.5" />
+                </button>
               </div>
             )}
 
@@ -2095,10 +2244,19 @@ export default function LessonPlanner() {
                   } else {
                     toast.success(t("lp_bulk_ai_done").replace("{{count}}", String(result.created)));
                   }
+                  setLastGeneratedCalendarId(Number(aiDialogCalendarId));
                   setAiGeneratedBanner(true);
-                  setTimeout(() => setAiGeneratedBanner(false), 6000);
+                  setTimeout(() => setAiGeneratedBanner(false), 15000);
                 } catch (e: any) {
-                  toast.error(e?.message ?? t("lp_bulk_ai_error"));
+                  // Suppress abort errors — they appear as "signal is aborted without reason"
+                  // when the request is still running (e.g. component re-render). The generation
+                  // continues on the server; we show a friendly status message instead.
+                  const isAbort = e?.name === "AbortError" || (typeof e?.message === "string" && e.message.toLowerCase().includes("abort"));
+                  if (!isAbort) {
+                    toast.error(e?.message ?? t("lp_bulk_ai_error"));
+                  } else {
+                    toast.info(t("lp_bulk_ai_creating"));
+                  }
                 } finally {
                   setAiScopeGenerating(false);
                 }
@@ -2677,6 +2835,9 @@ export default function LessonPlanner() {
                   setShowBulkAiDialog(false);
                   setBulkAiRunning(false);
                   utils.planner.listLessonPlans.invalidate();
+                  setLastGeneratedCalendarId(Number(bulkAiCalendarId));
+                  setAiGeneratedBanner(true);
+                  setTimeout(() => setAiGeneratedBanner(false), 15000);
                   if (result.created === 0) {
                     toast.info(t("lp_bulk_ai_none"));
                   } else {
@@ -2684,7 +2845,12 @@ export default function LessonPlanner() {
                   }
                 } catch (e: any) {
                   setBulkAiRunning(false);
-                  toast.error(e?.message ?? t("lp_bulk_ai_error"));
+                  const isAbort = e?.name === "AbortError" || (typeof e?.message === "string" && e.message.toLowerCase().includes("abort"));
+                  if (!isAbort) {
+                    toast.error(e?.message ?? t("lp_bulk_ai_error"));
+                  } else {
+                    toast.info(t("lp_bulk_ai_creating"));
+                  }
                 }
               }}
               className="gap-1.5 bg-purple-600 hover:bg-purple-700 text-white"
