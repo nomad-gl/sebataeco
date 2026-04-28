@@ -4756,3 +4756,10 @@
 - [x] Show progress indicator while bulk generation runs
 - [x] After completion, refresh the lesson plans list
 - [x] i18n keys in EN/ES/CA
+
+## Enhancement: School Calendar — Show Subject & Session Time on Events
+- [x] Calendar info header: show subject as a highlighted pill and defaultStartTime–defaultEndTime as a teal time pill
+- [x] Weekly view event chips: show subject name below title + fall back to calendar defaultStartTime/defaultEndTime for lesson events without per-event time
+- [x] Monthly grid event chips: show subject name below title + fall back to calendar default times
+- [x] Term overview event chips: show subject name below title + fall back to calendar default times
+- [x] TypeScript 0 errors verified

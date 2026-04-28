@@ -1764,7 +1764,17 @@ export default function SchoolCalendar() {
                           <span className="flex items-center gap-1"><User className="w-3.5 h-3.5" /> {selectedCalendar.tutorName}</span>
                         )}
                         {selectedCalendar.subject && (
-                          <span className="flex items-center gap-1"><BookOpen className="w-3.5 h-3.5" /> {selectedCalendar.subject}</span>
+                          <span className="flex items-center gap-1 font-medium text-foreground bg-primary/10 border border-primary/20 rounded-full px-2 py-0.5 text-xs">
+                            <BookOpen className="w-3 h-3 text-primary" />
+                            {selectedCalendar.subject}
+                          </span>
+                        )}
+                        {((selectedCalendar as SchoolCalendar).defaultStartTime || (selectedCalendar as SchoolCalendar).defaultEndTime) && (
+                          <span className="flex items-center gap-1 font-medium text-foreground bg-teal-500/10 border border-teal-500/20 rounded-full px-2 py-0.5 text-xs">
+                            <Clock className="w-3 h-3 text-teal-600" />
+                            {(selectedCalendar as SchoolCalendar).defaultStartTime ?? ""}
+                            {(selectedCalendar as SchoolCalendar).defaultEndTime ? `–${(selectedCalendar as SchoolCalendar).defaultEndTime}` : ""}
+                          </span>
                         )}
                         {selectedCalendar.yearLevel && (
                           <span className="flex items-center gap-1"><GraduationCap className="w-3.5 h-3.5" /> {selectedCalendar.yearLevel}</span>
@@ -2001,10 +2011,13 @@ export default function SchoolCalendar() {
                                 {dayEvents.map(ev => {
                                   const hasPlan = !!(eventPlanMap as Record<number, number>)[ev.id];
                                   const isLesson = ev.eventType === "lesson" || ev.eventType === "ai_generated";
+                                  const evSubject = ev.subject ?? (isLesson ? selectedCalendar?.subject : null);
+                                  const evStart = ev.startTime ?? (isLesson ? (selectedCalendar as SchoolCalendar)?.defaultStartTime : null);
+                                  const evEnd = ev.endTime ?? (isLesson ? (selectedCalendar as SchoolCalendar)?.defaultEndTime : null);
                                   return (
                                     <div
                                       key={ev.id}
-                                      className={`text-xs px-2 py-1 rounded-lg border cursor-pointer flex items-center gap-1.5 hover:opacity-80 transition-opacity ${
+                                      className={`text-xs px-2 py-1.5 rounded-lg border cursor-pointer hover:opacity-80 transition-opacity ${
                                         isLesson
                                           ? hasPlan
                                             ? "bg-green-100 text-green-800 border-green-300"
@@ -2014,16 +2027,24 @@ export default function SchoolCalendar() {
                                       onClick={(e) => openDetail(ev, e)}
                                       title={ev.title}
                                     >
-                                      <span className="flex-1 font-medium truncate">{ev.title}</span>
-                                      {ev.startTime && (
-                                        <span className="shrink-0 text-[10px] font-mono opacity-70">
-                                          {ev.startTime}{ev.endTime ? `–${ev.endTime}` : ""}
-                                        </span>
-                                      )}
-                                      {isLesson && (
-                                        <ClipboardList className={`w-3 h-3 shrink-0 ${
-                                          hasPlan ? "text-green-600" : "text-teal-400 opacity-60"
-                                        }`} />
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="flex-1 font-medium truncate">{ev.title}</span>
+                                        {evStart && (
+                                          <span className="shrink-0 text-[10px] font-mono opacity-80 bg-black/5 rounded px-1">
+                                            {evStart}{evEnd ? `–${evEnd}` : ""}
+                                          </span>
+                                        )}
+                                        {isLesson && (
+                                          <ClipboardList className={`w-3 h-3 shrink-0 ${
+                                            hasPlan ? "text-green-600" : "text-teal-400 opacity-60"
+                                          }`} />
+                                        )}
+                                      </div>
+                                      {isLesson && evSubject && (
+                                        <div className="flex items-center gap-1 mt-0.5">
+                                          <BookOpen className="w-2.5 h-2.5 opacity-60 shrink-0" />
+                                          <span className="text-[10px] opacity-70 truncate">{evSubject}</span>
+                                        </div>
                                       )}
                                     </div>
                                   );
@@ -2175,10 +2196,13 @@ export default function SchoolCalendar() {
                                   {dayEvents.slice(0, 3).map(ev => {
                                     const hasPlan = !!(eventPlanMap as Record<number, number>)[ev.id];
                                     const isLesson = ev.eventType === "lesson" || ev.eventType === "ai_generated";
+                                    const evSubjectM = ev.subject ?? (isLesson ? selectedCalendar?.subject : null);
+                                    const evStartM = ev.startTime ?? (isLesson ? (selectedCalendar as SchoolCalendar)?.defaultStartTime : null);
+                                    const evEndM = ev.endTime ?? (isLesson ? (selectedCalendar as SchoolCalendar)?.defaultEndTime : null);
                                     return (
                                       <div
                                         key={ev.id}
-                                        className={`text-[10px] px-1 py-0.5 rounded border cursor-pointer flex items-center gap-0.5 transition-opacity hover:opacity-80 ${
+                                        className={`text-[10px] px-1 py-0.5 rounded border cursor-pointer transition-opacity hover:opacity-80 ${
                                           isLesson
                                             ? hasPlan
                                               ? "bg-green-100 text-green-800 border-green-300 font-medium"
@@ -2188,16 +2212,24 @@ export default function SchoolCalendar() {
                                         onClick={e => openDetail(ev, e)}
                                         title={ev.title}
                                       >
-                                        <span className="truncate flex-1">{ev.title}</span>
-                                        {ev.startTime && (
-                                          <span className="shrink-0 text-[9px] font-mono opacity-70">
-                                            {ev.startTime}{ev.endTime ? `–${ev.endTime}` : ""}
-                                          </span>
-                                        )}
-                                        {isLesson && (
-                                          <ClipboardList className={`w-2.5 h-2.5 shrink-0 ${
-                                            hasPlan ? "text-green-600" : "text-teal-400 opacity-60"
-                                          }`} />
+                                        <div className="flex items-center gap-0.5">
+                                          <span className="truncate flex-1">{ev.title}</span>
+                                          {evStartM && (
+                                            <span className="shrink-0 text-[9px] font-mono opacity-70">
+                                              {evStartM}{evEndM ? `–${evEndM}` : ""}
+                                            </span>
+                                          )}
+                                          {isLesson && (
+                                            <ClipboardList className={`w-2.5 h-2.5 shrink-0 ${
+                                              hasPlan ? "text-green-600" : "text-teal-400 opacity-60"
+                                            }`} />
+                                          )}
+                                        </div>
+                                        {isLesson && evSubjectM && (
+                                          <div className="flex items-center gap-0.5 opacity-60 leading-tight">
+                                            <BookOpen className="w-2 h-2 shrink-0" />
+                                            <span className="truncate text-[9px]">{evSubjectM}</span>
+                                          </div>
                                         )}
                                       </div>
                                     );
@@ -2241,10 +2273,13 @@ export default function SchoolCalendar() {
                               {wEvents.map(ev => {
                                   const hasPlan = !!(eventPlanMap as Record<number, number>)[ev.id];
                                   const isLesson = ev.eventType === "lesson" || ev.eventType === "ai_generated";
+                                  const evSubjectT = ev.subject ?? (isLesson ? selectedCalendar?.subject : null);
+                                  const evStartT = ev.startTime ?? (isLesson ? (selectedCalendar as SchoolCalendar)?.defaultStartTime : null);
+                                  const evEndT = ev.endTime ?? (isLesson ? (selectedCalendar as SchoolCalendar)?.defaultEndTime : null);
                                   return (
                                     <div
                                       key={ev.id}
-                                      className={`text-xs px-2 py-0.5 rounded border cursor-pointer flex items-center gap-1 hover:opacity-80 transition-opacity ${
+                                      className={`text-xs px-2 py-1 rounded border cursor-pointer hover:opacity-80 transition-opacity ${
                                         isLesson
                                           ? hasPlan
                                             ? "bg-green-100 text-green-800 border-green-300 font-medium"
@@ -2254,16 +2289,24 @@ export default function SchoolCalendar() {
                                       onClick={(e) => openDetail(ev, e)}
                                       title={ev.title}
                                     >
-                                      <span className="flex-1 truncate">{ev.title}</span>
-                                      {ev.startTime && (
-                                        <span className="shrink-0 text-[10px] font-mono opacity-70">
-                                          {ev.startTime}{ev.endTime ? `–${ev.endTime}` : ""}
-                                        </span>
-                                      )}
-                                      {isLesson && (
-                                        <ClipboardList className={`w-3 h-3 shrink-0 ${
-                                          hasPlan ? "text-green-600" : "text-teal-400 opacity-60"
-                                        }`} />
+                                      <div className="flex items-center gap-1">
+                                        <span className="flex-1 truncate">{ev.title}</span>
+                                        {evStartT && (
+                                          <span className="shrink-0 text-[10px] font-mono opacity-70 bg-black/5 rounded px-1">
+                                            {evStartT}{evEndT ? `–${evEndT}` : ""}
+                                          </span>
+                                        )}
+                                        {isLesson && (
+                                          <ClipboardList className={`w-3 h-3 shrink-0 ${
+                                            hasPlan ? "text-green-600" : "text-teal-400 opacity-60"
+                                          }`} />
+                                        )}
+                                      </div>
+                                      {isLesson && evSubjectT && (
+                                        <div className="flex items-center gap-0.5 opacity-60 mt-0.5">
+                                          <BookOpen className="w-2.5 h-2.5 shrink-0" />
+                                          <span className="text-[10px] truncate">{evSubjectT}</span>
+                                        </div>
                                       )}
                                     </div>
                                   );
