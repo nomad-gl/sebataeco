@@ -491,6 +491,13 @@ export default function LessonPlanner() {
   const [showIndividualDeleteConfirm, setShowIndividualDeleteConfirm] = useState<number | null>(null);
   const [batchFillAllRunning, setBatchFillAllRunning] = useState(false);
   const [batchFillAllProgress, setBatchFillAllProgress] = useState<{ current: number; total: number; planTitle?: string } | null>(null);
+  // Link to Calendar dialog state
+  const [showLinkCalDialog, setShowLinkCalDialog] = useState(false);
+  const [linkCalendarId, setLinkCalendarId] = useState<string>("");
+  const [linkLessonDate, setLinkLessonDate] = useState<string>("");
+  const [linkCalendarTime, setLinkCalendarTime] = useState<{ start: string; end: string } | null>(null);
+  const [showClashDialog, setShowClashDialog] = useState(false);
+  const [clashDetails, setClashDetails] = useState<{ clashWith: string[]; start: string; end: string } | null>(null);
   const utils = trpc.useUtils();
 
   // Show a toast when arriving from the calendar
@@ -1229,6 +1236,17 @@ export default function LessonPlanner() {
                   <FileDown className="w-4 h-4" />
                   <span className="hidden sm:inline">{t("lp_export_all_plans")}</span>
                 </Button>
+                {selectedId && (
+                  <Button variant="outline" size="sm" onClick={() => {
+                    setLinkCalendarId("");
+                    setLinkLessonDate("");
+                    setLinkCalendarTime(null);
+                    setShowLinkCalDialog(true);
+                  }} className="gap-1 border-teal-300 text-teal-700 hover:bg-teal-50 dark:border-teal-700 dark:text-teal-400" title={t("lp_link_to_calendar")}>
+                    <CalendarDays className="w-4 h-4" />
+                    <span className="hidden sm:inline">{t("lp_link_to_calendar")}</span>
+                  </Button>
+                )}
                 <Button size="sm" onClick={handleSave} disabled={saveMutation.isPending} className="gap-1">
                   <Save className="w-4 h-4" />
                   <span className="hidden sm:inline">{saveMutation.isPending ? t("lp_saving") : t("lp_save")}</span>
@@ -2295,6 +2313,125 @@ export default function LessonPlanner() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ─── Link to Calendar Dialog ─────────────────────────────────────────────── */}
+      <Dialog open={showLinkCalDialog} onOpenChange={setShowLinkCalDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarDays className="w-5 h-5 text-teal-500" /> {t("lp_link_to_calendar")}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>{t("lp_select_calendar")}</Label>
+              <Select value={linkCalendarId} onValueChange={async (val) => {
+                setLinkCalendarId(val);
+                try {
+                  const result = await utils.client.planner.getCalendarLessonTime.query({ calendarId: Number(val) });
+                  if (result?.defaultStartTime && result?.defaultEndTime) {
+                    setLinkCalendarTime({ start: result.defaultStartTime, end: result.defaultEndTime });
+                  } else {
+                    setLinkCalendarTime(null);
+                  }
+                } catch { setLinkCalendarTime(null); }
+              }}>
+                <SelectTrigger><SelectValue placeholder={t("lp_select_calendar")} /></SelectTrigger>
+                <SelectContent>
+                  {(calendars as any[]).map((c: any) => (
+                    <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {linkCalendarTime && (
+              <div className="flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 px-3 py-2 text-sm">
+                <CalendarDays className="w-4 h-4 text-amber-600 shrink-0" />
+                <div>
+                  <p className="font-medium text-amber-800 dark:text-amber-300">{t("lp_director_lesson_time")}</p>
+                  <p className="text-amber-700 dark:text-amber-400">{linkCalendarTime.start} – {linkCalendarTime.end}</p>
+                </div>
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label>{t("lp_lesson_date")}</Label>
+              <input
+                type="date"
+                value={linkLessonDate}
+                onChange={e => setLinkLessonDate(e.target.value)}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowLinkCalDialog(false)}>{t("cal_cancel")}</Button>
+            <Button
+              disabled={!linkCalendarId || !linkLessonDate}
+              className="gap-1 bg-teal-600 hover:bg-teal-700 text-white"
+              onClick={async () => {
+                if (!selectedId || !linkCalendarId || !linkLessonDate) return;
+                try {
+                  const result = await utils.client.planner.linkPlanToCalendar.mutate({
+                    planId: selectedId,
+                    calendarId: Number(linkCalendarId),
+                    lessonDate: linkLessonDate,
+                  });
+                  if (result.clash) {
+                    setClashDetails({ clashWith: result.clashWith, start: result.directorStartTime, end: result.directorEndTime });
+                    setShowLinkCalDialog(false);
+                    setShowClashDialog(true);
+                  } else {
+                    setShowLinkCalDialog(false);
+                    setForm(prev => ({
+                      ...prev,
+                      lessonDate: linkLessonDate,
+                      sessionTime: result.directorStartTime + "-" + result.directorEndTime,
+                    }));
+                    utils.planner.listLessonPlans.invalidate();
+                    toast.success(t("lp_linked_to_calendar_toast"));
+                  }
+                } catch (e: any) {
+                  toast.error(e.message ?? t("lp_link_error"));
+                }
+              }}
+            >
+              <CalendarDays className="w-4 h-4" />
+              {t("lp_link_confirm")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Clash Notification Dialog ───────────────────────────────────────────── */}
+      <Dialog open={showClashDialog} onOpenChange={setShowClashDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <span className="text-xl">⚠️</span> {t("lp_clash_title")}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">{t("lp_clash_desc")}</p>
+            {clashDetails && (
+              <>
+                <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-800 px-3 py-2 text-sm">
+                  <p className="font-medium text-red-700 dark:text-red-400 mb-1">{t("lp_clash_time")}: {clashDetails.start} – {clashDetails.end}</p>
+                  <ul className="list-disc list-inside text-red-600 dark:text-red-400 space-y-0.5">
+                    {clashDetails.clashWith.map((title, i) => (
+                      <li key={i}>{title}</li>
+                    ))}
+                  </ul>
+                </div>
+                <p className="text-sm font-medium text-foreground">{t("lp_clash_contact")}</p>
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowClashDialog(false)}>{t("lp_clash_ok")}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

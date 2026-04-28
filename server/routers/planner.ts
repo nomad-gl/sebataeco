@@ -2546,4 +2546,140 @@ The differentiation field MUST contain tailored content for all three learner ti
       return { ok: true };
     }),
 
+  // ─── Link a lesson plan to a calendar date ──────────────────────────────────
+  /**
+   * Insert the lesson plan as a calendar event on the given date.
+   * Uses the calendar's defaultStartTime/defaultEndTime (set by the director).
+   * Performs clash detection: if any other non-holiday event on the same calendar
+   * overlaps the time window, returns { clash: true, clashWith } and does NOT insert.
+   */
+  linkPlanToCalendar: protectedProcedure
+    .input(z.object({
+      planId: z.number(),
+      calendarId: z.number(),
+      lessonDate: z.string(), // YYYY-MM-DD
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      // 1. Fetch the calendar to get director-set lesson times
+      const [cal] = await db
+        .select()
+        .from(schoolCalendars)
+        .where(and(eq(schoolCalendars.id, input.calendarId), eq(schoolCalendars.userId, ctx.user.id)))
+        .limit(1);
+      if (!cal) throw new TRPCError({ code: "NOT_FOUND", message: "Calendar not found" });
+
+      const startTime = cal.defaultStartTime ?? "09:00";
+      const endTime   = cal.defaultEndTime   ?? "10:00";
+
+      // 2. Fetch the lesson plan to get its title/subject/yearGroup
+      const [plan] = await db
+        .select()
+        .from(lessonPlans)
+        .where(and(eq(lessonPlans.id, input.planId), eq(lessonPlans.userId, ctx.user.id)))
+        .limit(1);
+      if (!plan) throw new TRPCError({ code: "NOT_FOUND", message: "Lesson plan not found" });
+
+      // 3. Clash detection — find any non-holiday events on the same calendar and date
+      //    that overlap the time window [startTime, endTime)
+      const toMin = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+      const newStart = toMin(startTime);
+      const newEnd   = toMin(endTime);
+
+      const lessonDateObj = new Date(input.lessonDate + "T00:00:00Z");
+      const nextDay = new Date(lessonDateObj.getTime() + 86400000);
+
+      const existingEvents = await db
+        .select({
+          id: schoolCalendarEvents.id,
+          title: schoolCalendarEvents.title,
+          eventType: schoolCalendarEvents.eventType,
+          startTime: schoolCalendarEvents.startTime,
+          endTime: schoolCalendarEvents.endTime,
+        })
+        .from(schoolCalendarEvents)
+        .where(
+          and(
+            eq(schoolCalendarEvents.calendarId, input.calendarId),
+            gte(schoolCalendarEvents.eventDate, lessonDateObj),
+            sql`${schoolCalendarEvents.eventDate} < ${nextDay}`,
+            sql`${schoolCalendarEvents.eventType} != 'holiday'`,
+          )
+        );
+
+      const clashingEvents = existingEvents.filter(ev => {
+        if (!ev.startTime || !ev.endTime) return false;
+        const evStart = toMin(ev.startTime);
+        const evEnd   = toMin(ev.endTime);
+        // Overlap: new starts before existing ends AND existing starts before new ends
+        return newStart < evEnd && evStart < newEnd;
+      });
+
+      if (clashingEvents.length > 0) {
+        return {
+          clash: true as const,
+          clashWith: clashingEvents.map(e => e.title),
+          directorStartTime: startTime,
+          directorEndTime: endTime,
+        };
+      }
+
+      // 4. No clash — insert the calendar event
+      const insertResult = await db.insert(schoolCalendarEvents).values({
+        userId: ctx.user.id,
+        calendarId: input.calendarId,
+        academicYear: cal.academicYear,
+        eventDate: lessonDateObj,
+        eventType: "lesson",
+        title: plan.title,
+        description: plan.previousKnowledge ?? null,
+        subject: plan.subject ?? cal.subject ?? null,
+        yearGroup: plan.yearGroup ?? cal.yearLevel ?? null,
+        startTime,
+        endTime,
+        aiGenerated: false,
+        tenantId: ctx.user.tenantId ?? null,
+      });
+      const newEventId = (insertResult as any)[0].insertId as number;
+
+      // 5. Update the lesson plan with the linked event ID, date, and session time
+      await db
+        .update(lessonPlans)
+        .set({
+          calendarEventId: newEventId,
+          lessonDate: input.lessonDate,
+          sessionTime: `${startTime}-${endTime}`,
+        })
+        .where(eq(lessonPlans.id, input.planId));
+
+      return {
+        clash: false as const,
+        eventId: newEventId,
+        directorStartTime: startTime,
+        directorEndTime: endTime,
+      };
+    }),
+
+  // ─── Fetch director-set lesson time for a calendar ──────────────────────────
+  getCalendarLessonTime: protectedProcedure
+    .input(z.object({ calendarId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) return null;
+      const [cal] = await db
+        .select({
+          defaultStartTime: schoolCalendars.defaultStartTime,
+          defaultEndTime: schoolCalendars.defaultEndTime,
+          name: schoolCalendars.name,
+          subject: schoolCalendars.subject,
+          yearLevel: schoolCalendars.yearLevel,
+        })
+        .from(schoolCalendars)
+        .where(and(eq(schoolCalendars.id, input.calendarId), eq(schoolCalendars.userId, ctx.user.id)))
+        .limit(1);
+      return cal ?? null;
+    }),
+
 });

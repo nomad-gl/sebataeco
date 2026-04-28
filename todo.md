@@ -4737,3 +4737,22 @@
 - [x] Create detail page for "Total Events" stat card
 - [x] Create detail page for "AI Generated" stat card
 - [x] Create detail page for "Holidays" stat card
+
+### Feature: Lesson Plan — Link to Calendar
+- [x] Add server-side linkToCalendar procedure with clash detection
+- [x] Sync lesson time from director settings (defaultStartTime/defaultEndTime on the linked calendar)
+- [x] Block clashing plans — clash cannot be accepted on the calendar
+- [x] Notify teacher with a message to contact director or HoS if a clash is found
+- [x] Add "Link to Calendar" button to the Lesson Plan editor UI
+- [x] Highlight the director-set lesson time to the teacher in the UI
+## Enhancement: Lesson Planner — Layout Improvements
+- [ ] Fix toolbar overflow — wrap or reorganise buttons so they don't overlap
+- [ ] Replace large vertical "Lesson Plan Editor" heading with compact inline header
+- [ ] Improve form section spacing and visual hierarchy
+## Feature: AI Generate Bulk Lesson Plans (Year / Semester)
+- [ ] Add "AI Generate" button to Lesson Planner toolbar (visible after plan linked to calendar)
+- [ ] Dialog: choose scope (full academic year or single semester) + confirm calendar + subject
+- [ ] Backend: generateBulkLessonPlans tRPC procedure — generate one plan per lesson slot in the chosen scope
+- [ ] Show progress indicator while bulk generation runs
+- [ ] After completion, refresh the lesson plans list
+- [ ] i18n keys in EN/ES/CA
