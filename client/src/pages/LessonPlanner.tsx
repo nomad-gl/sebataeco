@@ -1514,8 +1514,8 @@ export default function LessonPlanner() {
             {aiGeneratedBanner && (
               <div className="flex items-center gap-2 rounded-lg border border-green-300 bg-green-50 dark:bg-green-950/30 dark:border-green-700 px-4 py-2.5 text-sm text-green-800 dark:text-green-300 animate-in fade-in slide-in-from-top-2 duration-300">
                 <Pencil className="w-4 h-4 shrink-0" />
-                <span className="font-medium">AI generated</span>
-                <span className="text-green-700 dark:text-green-400 flex-1">— all fields are editable. Click any field to make changes.</span>
+                <span className="font-medium">{t("lp_ai_generated_label")}</span>
+                <span className="text-green-700 dark:text-green-400 flex-1">{t("lp_ai_generated_desc")}</span>
                 {lastGeneratedCalendarId && (
                   <Button
                     size="sm"
@@ -1524,7 +1524,7 @@ export default function LessonPlanner() {
                     onClick={() => navigate(`/calendar?calendarId=${lastGeneratedCalendarId}`)}
                   >
                     <CalendarDays className="w-3.5 h-3.5" />
-                    View Calendar
+                    {t("lp_view_calendar")}
                   </Button>
                 )}
                 <button onClick={() => setAiGeneratedBanner(false)} className="shrink-0 text-green-600 hover:text-green-800 dark:text-green-400">
@@ -2233,24 +2233,44 @@ export default function LessonPlanner() {
                 setShowAiDialog(false);
                 try {
                   const bulkScope = aiPlanningScope as "semester1" | "semester2" | "semester3" | "year";
-                  const result = await utils.client.planner.generateBulkLessonPlans.mutate({
-                    calendarId: Number(aiDialogCalendarId),
-                    scope: bulkScope,
-                    methodology: undefined,
-                  });
-                  utils.planner.listLessonPlans.invalidate();
-                  if (result.created === 0) {
+                  const BATCH_SIZE = 8;
+                  let offset = 0;
+                  let totalCreated = 0;
+                  let topicOutlineJson: string | null | undefined = undefined;
+                  let totalSlots = 0;
+
+                  while (true) {
+                    const result = await utils.client.planner.generateBulkLessonPlans.mutate({
+                      calendarId: Number(aiDialogCalendarId),
+                      scope: bulkScope,
+                      methodology: undefined,
+                      batchOffset: offset,
+                      batchSize: BATCH_SIZE,
+                      topicOutlineJson: topicOutlineJson ?? undefined,
+                    });
+
+                    totalCreated += result.created;
+                    totalSlots = result.total;
+                    offset = result.nextOffset ?? offset + BATCH_SIZE;
+
+                    if (topicOutlineJson === undefined && result.topicOutlineJson) {
+                      topicOutlineJson = result.topicOutlineJson;
+                    }
+
+                    utils.planner.listLessonPlans.invalidate();
+
+                    if ((result.totalRemaining ?? 0) <= 0) break;
+                  }
+
+                  if (totalCreated === 0) {
                     toast.info(t("lp_bulk_ai_none"));
                   } else {
-                    toast.success(t("lp_bulk_ai_done").replace("{{count}}", String(result.created)));
+                    toast.success(t("lp_bulk_ai_done").replace("{{count}}", String(totalCreated)));
                   }
                   setLastGeneratedCalendarId(Number(aiDialogCalendarId));
                   setAiGeneratedBanner(true);
                   setTimeout(() => setAiGeneratedBanner(false), 15000);
                 } catch (e: any) {
-                  // Suppress abort errors — they appear as "signal is aborted without reason"
-                  // when the request is still running (e.g. component re-render). The generation
-                  // continues on the server; we show a friendly status message instead.
                   const isAbort = e?.name === "AbortError" || (typeof e?.message === "string" && e.message.toLowerCase().includes("abort"));
                   if (!isAbort) {
                     toast.error(e?.message ?? t("lp_bulk_ai_error"));
@@ -2827,24 +2847,56 @@ export default function LessonPlanner() {
                 setBulkAiRunning(true);
                 setBulkAiProgress(null);
                 try {
-                  const result = await generateBulkMutation.mutateAsync({
-                    calendarId: Number(bulkAiCalendarId),
-                    scope: bulkAiScope,
-                    methodology: bulkAiMethodology || undefined,
-                  });
+                  // Client-side batching: call the procedure repeatedly until all plans are created
+                  const BATCH_SIZE = 8;
+                  let offset = 0;
+                  let totalCreated = 0;
+                  let topicOutlineJson: string | null | undefined = undefined;
+                  let totalSlots = 0;
+
+                  while (true) {
+                    const result = await utils.client.planner.generateBulkLessonPlans.mutate({
+                      calendarId: Number(bulkAiCalendarId),
+                      scope: bulkAiScope,
+                      methodology: bulkAiMethodology || undefined,
+                      batchOffset: offset,
+                      batchSize: BATCH_SIZE,
+                      topicOutlineJson: topicOutlineJson ?? undefined,
+                    });
+
+                    totalCreated += result.created;
+                    totalSlots = result.total;
+                    offset = result.nextOffset ?? offset + BATCH_SIZE;
+
+                    // Save the outline JSON from the first batch for subsequent batches
+                    if (topicOutlineJson === undefined && result.topicOutlineJson) {
+                      topicOutlineJson = result.topicOutlineJson;
+                    }
+
+                    // Update progress indicator
+                    setBulkAiProgress({ current: offset, total: totalSlots });
+
+                    // Refresh the plan list after each batch so the user sees plans appearing
+                    utils.planner.listLessonPlans.invalidate();
+
+                    if ((result.totalRemaining ?? 0) <= 0) break;
+                  }
+
                   setShowBulkAiDialog(false);
                   setBulkAiRunning(false);
+                  setBulkAiProgress(null);
                   utils.planner.listLessonPlans.invalidate();
                   setLastGeneratedCalendarId(Number(bulkAiCalendarId));
                   setAiGeneratedBanner(true);
                   setTimeout(() => setAiGeneratedBanner(false), 15000);
-                  if (result.created === 0) {
+                  if (totalCreated === 0) {
                     toast.info(t("lp_bulk_ai_none"));
                   } else {
-                    toast.success(t("lp_bulk_ai_done").replace("{{count}}", String(result.created)));
+                    toast.success(t("lp_bulk_ai_done").replace("{{count}}", String(totalCreated)));
                   }
                 } catch (e: any) {
                   setBulkAiRunning(false);
+                  setBulkAiProgress(null);
                   const isAbort = e?.name === "AbortError" || (typeof e?.message === "string" && e.message.toLowerCase().includes("abort"));
                   if (!isAbort) {
                     toast.error(e?.message ?? t("lp_bulk_ai_error"));

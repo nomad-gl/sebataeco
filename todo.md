@@ -4806,3 +4806,15 @@
 - [x] Backend generateBulkLessonPlans: auto-create missing lesson events for all lesson days in scope (from calendar's lessonDays config) before generating plans
 - [x] Backend generateBulkLessonPlans: improved LLM prompt with curriculum sequencing context (lesson N of total, scope label, lesson date)
 - [x] i18n: updated lp_bulk_ai_note and lp_bulk_ai_desc to explain auto-creation and plan preservation
+
+## Session – Apr 28 i18n Scan & Anomaly Fixes
+- [x] i18n scan: fix indentation anomaly for dir_settings in ES block (extra leading space)
+- [x] i18n scan: fix indentation anomaly for forum_time_yesterday in EN and ES blocks
+- [x] i18n scan: fix indentation anomaly for settings_logout_all_error in EN and ES blocks
+- [x] i18n scan: fix indentation anomaly for forum_enter_to_send in CA block
+- [x] i18n scan: remove orphaned duplicate key dir_report_staff_desc_report from ES and CA blocks
+- [x] i18n scan: add lp_ai_generated_label, lp_ai_generated_desc, lp_view_calendar keys to all 3 language blocks
+- [x] i18n scan: add admin_governance_subtitle, admin_governance_desc, admin_staff_subtitle, admin_staff_desc keys to all 3 language blocks
+- [x] Admin stub pages: replace hardcoded English strings with t() calls in AdminGovernance.tsx and AdminStaff.tsx
+- [x] Admin stub pages: replace hardcoded English strings with t() calls in AdminFinance.tsx, AdminEnrolment.tsx, AdminFacilities.tsx, AdminDocuments.tsx
+- [x] Key parity verified: EN = ES = CA = 3,493 keys (perfect parity)

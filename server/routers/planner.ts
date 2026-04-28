@@ -2676,6 +2676,12 @@ The differentiation field MUST contain tailored content for all three learner ti
       scope: z.enum(["year", "semester1", "semester2", "semester3"]),
       /** Optional teaching methodology/framework key, e.g. 'pbl', 'flipped', 'clil' */
       methodology: z.string().optional(),
+      /** Batch offset: index of first unlinked event to process (default 0) */
+      batchOffset: z.number().int().min(0).optional().default(0),
+      /** Batch size: max plans to generate per call (default 8, max 10) */
+      batchSize: z.number().int().min(1).max(10).optional().default(8),
+      /** Pre-computed topic outline JSON from Phase 1 (passed back from client on subsequent batches) */
+      topicOutlineJson: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -2815,8 +2821,14 @@ The differentiation field MUST contain tailored content for all three learner ti
           inArray(lessonPlans.calendarEventId, allEventIds),
         ));
       const linkedSet = new Set(linkedRows.map(r => r.calendarEventId).filter(Boolean));
-      const events = allEvents.filter(e => !linkedSet.has(e.id));
-      if (events.length === 0) return { created: 0, total: 0 };
+      const allUnlinkedEvents = allEvents.filter(e => !linkedSet.has(e.id));
+      if (allUnlinkedEvents.length === 0) return { created: 0, total: 0, totalRemaining: 0, nextOffset: 0, topicOutlineJson: null };
+
+      // Batch: only process batchSize events starting at batchOffset
+      const batchOffset = input.batchOffset ?? 0;
+      const batchSize = input.batchSize ?? 8;
+      const events = allUnlinkedEvents.slice(batchOffset, batchOffset + batchSize);
+      if (events.length === 0) return { created: 0, total: allUnlinkedEvents.length, totalRemaining: 0, nextOffset: batchOffset, topicOutlineJson: null };
 
       const subject = cal.subject ?? "General";
       const yearGroup = cal.yearLevel ?? "Primary";
@@ -2857,76 +2869,85 @@ The differentiation field MUST contain tailored content for all three learner ti
         { timing: "5 min", stage: "Closure", activities: "Review key points and assign homework if needed", grouping: "Whole class" },
       ];
 
-      // ── Phase 1: Generate a topic outline for the entire sequence ──────────────
-      // We ask the LLM to produce a structured curriculum map: one topic per lesson,
-      // with a unique title, the primary LOMLOE competency focus, and the type of
-      // activity that best suits that lesson (so grouping can be derived per lesson).
+      // ── Phase 1: Generate or restore a topic outline for the entire sequence ────
+      // First batch (batchOffset === 0): call LLM to produce outline for ALL unlinked events.
+      // Subsequent batches: client passes back topicOutlineJson so we skip the LLM call.
       let topicOutline: Array<{
         lessonNumber: number;
         title: string;
         topic: string;
-        competencyFocus: string;   // e.g. "CCL", "STEM", "CPSAA"
-        activityType: string;      // e.g. "project", "debate", "lab", "game", "direct"
-        resources: string;         // comma-separated list of concrete resources
+        competencyFocus: string;
+        activityType: string;
+        resources: string;
       }> = [];
+      let outlineJsonToReturn: string | null = null;
 
-      try {
+      if (input.topicOutlineJson) {
+        // Restore outline from client (subsequent batches)
+        try {
+          topicOutline = JSON.parse(input.topicOutlineJson);
+          outlineJsonToReturn = input.topicOutlineJson;
+        } catch { /* fall back to generic titles */ }
+      } else {
+        // First batch: generate outline for ALL unlinked events
         const scopeLabel = input.scope === "year" ? "full academic year"
           : input.scope === "semester1" ? "Semester 1 (first term)"
           : input.scope === "semester2" ? "Semester 2 (second term)"
           : "Semester 3 (third term)";
-
-        const outlineResp = await invokeLLM({
-          messages: [
-            {
-              role: "system",
-              content: `You are a LOMLOE curriculum designer for Spanish and Catalan schools. Your task is to produce a structured, progressive curriculum map for a sequence of lessons. Each lesson must have a UNIQUE title and topic that builds on the previous one, covering the full range of LOMLOE competencies (CCL, CP, STEM, CD, CPSAA, CC, CE, CCEC) across the sequence. Topics must follow the official LOMLOE curriculum guidelines for the subject and year group. Vary the activity types (e.g. project work, debate, experiment, game, direct instruction, collaborative task, creative writing, research, presentation, assessment) so no two consecutive lessons use the same approach. Resources must be specific and concrete (e.g. "textbook pp. 34–38, flashcard set, digital quiz on Kahoot, A3 poster paper, science lab equipment").${methodologyLabel ? `\n\nAll lessons must be designed using the ${methodologyLabel} methodology.` : ""}`,
-            },
-            {
-              role: "user",
-              content: `Generate a curriculum map for ${events.length} lessons of ${subject} for ${yearGroup} students during the ${scopeLabel} of academic year ${academicYear}.\n\nReturn a JSON array with exactly ${events.length} objects, one per lesson, in chronological order. Each object must have:\n- lessonNumber (integer, 1-based)\n- title (unique, specific lesson title — NOT just "Lesson 1" or "${subject} Lesson")\n- topic (2–3 sentence description of what is taught and why it follows from the previous lesson)\n- competencyFocus (the PRIMARY LOMLOE competency: CCL | CP | STEM | CD | CPSAA | CC | CE | CCEC)\n- activityType (one of: direct_instruction | collaborative_task | project | debate | experiment | game | creative | research | presentation | assessment | flipped | inquiry)\n- resources (specific, concrete list of materials and digital tools for this lesson)\n\nEnsure the topics progress logically from foundational to more complex, cover the breadth of the ${subject} curriculum for ${yearGroup}, and that no two consecutive lessons share the same activityType.`,
-            },
-          ],
-          response_format: {
-            type: "json_schema",
-            json_schema: {
-              name: "curriculum_outline",
-              strict: true,
-              schema: {
-                type: "object",
-                properties: {
-                  lessons: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        lessonNumber: { type: "integer" },
-                        title: { type: "string" },
-                        topic: { type: "string" },
-                        competencyFocus: { type: "string" },
-                        activityType: { type: "string" },
-                        resources: { type: "string" },
+        try {
+          const outlineResp = await invokeLLM({
+            messages: [
+              {
+                role: "system",
+                content: `You are a LOMLOE curriculum designer for Spanish and Catalan schools. Your task is to produce a structured, progressive curriculum map for a sequence of lessons. Each lesson must have a UNIQUE title and topic that builds on the previous one, covering the full range of LOMLOE competencies (CCL, CP, STEM, CD, CPSAA, CC, CE, CCEC) across the sequence. Topics must follow the official LOMLOE curriculum guidelines for the subject and year group. Vary the activity types (e.g. project work, debate, experiment, game, direct instruction, collaborative task, creative writing, research, presentation, assessment) so no two consecutive lessons use the same approach. Resources must be specific and concrete (e.g. "textbook pp. 34\u201338, flashcard set, digital quiz on Kahoot, A3 poster paper, science lab equipment").${methodologyLabel ? `\n\nAll lessons must be designed using the ${methodologyLabel} methodology.` : ""}`,
+              },
+              {
+                role: "user",
+                content: `Generate a curriculum map for ${allUnlinkedEvents.length} lessons of ${subject} for ${yearGroup} students during the ${scopeLabel} of academic year ${academicYear}.\n\nReturn a JSON array with exactly ${allUnlinkedEvents.length} objects, one per lesson, in chronological order. Each object must have:\n- lessonNumber (integer, 1-based)\n- title (unique, specific lesson title)\n- topic (2\u20133 sentence description of what is taught and why it follows from the previous lesson)\n- competencyFocus (the PRIMARY LOMLOE competency: CCL | CP | STEM | CD | CPSAA | CC | CE | CCEC)\n- activityType (one of: direct_instruction | collaborative_task | project | debate | experiment | game | creative | research | presentation | assessment | flipped | inquiry)\n- resources (specific, concrete list of materials and digital tools for this lesson)\n\nEnsure the topics progress logically from foundational to more complex, cover the breadth of the ${subject} curriculum for ${yearGroup}, and that no two consecutive lessons share the same activityType.`,
+              },
+            ],
+            response_format: {
+              type: "json_schema",
+              json_schema: {
+                name: "curriculum_outline",
+                strict: true,
+                schema: {
+                  type: "object",
+                  properties: {
+                    lessons: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          lessonNumber: { type: "integer" },
+                          title: { type: "string" },
+                          topic: { type: "string" },
+                          competencyFocus: { type: "string" },
+                          activityType: { type: "string" },
+                          resources: { type: "string" },
+                        },
+                        required: ["lessonNumber", "title", "topic", "competencyFocus", "activityType", "resources"],
+                        additionalProperties: false,
                       },
-                      required: ["lessonNumber", "title", "topic", "competencyFocus", "activityType", "resources"],
-                      additionalProperties: false,
                     },
                   },
+                  required: ["lessons"],
+                  additionalProperties: false,
                 },
-                required: ["lessons"],
-                additionalProperties: false,
               },
             },
-          },
-        });
-        const outlineRaw = outlineResp.choices?.[0]?.message?.content;
-        const outlineRawStr = typeof outlineRaw === "string" ? outlineRaw : null;
-        if (outlineRawStr) {
-          const parsed = JSON.parse(outlineRawStr);
-          topicOutline = parsed.lessons ?? [];
+          });
+          const outlineRaw = outlineResp.choices?.[0]?.message?.content;
+          const outlineRawStr = typeof outlineRaw === "string" ? outlineRaw : null;
+          if (outlineRawStr) {
+            const parsed = JSON.parse(outlineRawStr);
+            topicOutline = parsed.lessons ?? [];
+            outlineJsonToReturn = JSON.stringify(topicOutline);
+          }
+        } catch {
+          // If outline generation fails, fall back to generic titles per lesson
         }
-      } catch {
-        // If outline generation fails, fall back to generic titles
-      }
+      } // end else (first batch)
 
       // Grouping strategy derived from activityType
       const GROUPING_BY_ACTIVITY: Record<string, string> = {
@@ -2944,13 +2965,15 @@ The differentiation field MUST contain tailored content for all three learner ti
         inquiry: "Groups of 3–4",
       };
 
-      // ── Phase 2: Generate each individual lesson plan ─────────────────────────
+        // ── Phase 2: Generate each individual lesson plan ─────────────────────
       let created = 0;
       for (let i = 0; i < events.length; i++) {
         const ev = events[i];
         const lessonDate = ev.eventDate ? new Date(ev.eventDate).toISOString().slice(0, 10) : null;
-        const lessonNumber = String(i + 1);
-        const outline = topicOutline[i];
+        // Use global lesson number so it's correct across batches
+        const globalIndex = batchOffset + i;
+        const lessonNumber = String(globalIndex + 1);
+        const outline = topicOutline[globalIndex];
         const title = outline?.title || ev.title || `${subject} Lesson ${lessonNumber}`;
         const topic = outline?.topic || "";
         const competencyFocus = outline?.competencyFocus || "CCL";
@@ -3040,7 +3063,15 @@ The differentiation field MUST contain tailored content for all three learner ti
           // Skip individual failures and continue with the rest
         }
       }
-      return { created, total: events.length };
+      const totalRemaining = Math.max(0, allUnlinkedEvents.length - batchOffset - events.length);
+      return {
+        created,
+        total: allUnlinkedEvents.length,
+        batchProcessed: events.length,
+        totalRemaining,
+        nextOffset: batchOffset + events.length,
+        topicOutlineJson: outlineJsonToReturn,
+      };
     }),
 
   // ─── Fetch director-set lesson time for a calendar ───────────────────────────────────────────────

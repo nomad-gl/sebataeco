@@ -18,21 +18,19 @@ export default function AdminGovernance() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground">{t("admin_governing_bodies")}</h1>
-            <p className="text-muted-foreground text-sm mt-0.5">Òrgans de Govern — Consell Escolar, Claustre minutes and agendas</p>
+            <p className="text-muted-foreground text-sm mt-0.5">{t("admin_governance_subtitle")}</p>
           </div>
           <Badge variant="secondary" className="ml-auto">{t("admin_coming_soon")}</Badge>
         </div>
         <Card className="border-dashed border-2 border-border">
           <CardHeader>
             <CardTitle className="text-base text-muted-foreground font-medium">
-              This section is under development
+              {t("admin_under_development")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              The Governing Bodies module will manage meeting agendas, minutes, and resolutions for the
-              Consell Escolar (school governing council) and the Claustre (full teaching staff assembly),
-              in compliance with Decret 102/2010 governance requirements.
+              {t("admin_governance_desc")}
             </p>
           </CardContent>
         </Card>

@@ -18,21 +18,19 @@ export default function AdminDocuments() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground">{t("admin_school_documents")}</h1>
-            <p className="text-muted-foreground text-sm mt-0.5">Documents del Centre — NOFC, PEC, PGA, end-of-year reports</p>
+            <p className="text-muted-foreground text-sm mt-0.5">{t("admin_documents_subtitle")}</p>
           </div>
           <Badge variant="secondary" className="ml-auto">{t("admin_coming_soon")}</Badge>
         </div>
         <Card className="border-dashed border-2 border-border">
           <CardHeader>
             <CardTitle className="text-base text-muted-foreground font-medium">
-              This section is under development
+              {t("admin_under_development")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              The School Documents module will centralise the management of official centre documents:
-              NOFC (Normes d'Organització i Funcionament del Centre), PEC (Projecte Educatiu de Centre),
-              PGA (Programació General Anual), and end-of-year memory reports.
+              {t("admin_documents_desc")}
             </p>
           </CardContent>
         </Card>

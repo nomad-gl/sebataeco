@@ -17,21 +17,20 @@ export default function AdminFinance() {
             <Banknote className="w-7 h-7 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Budget &amp; Finance</h1>
-            <p className="text-muted-foreground text-sm mt-0.5">Gestió Econòmica — School budget, expenditure, ESFER@ reports</p>
+            <h1 className="text-2xl font-bold text-foreground">{t("admin_finance")}</h1>
+            <p className="text-muted-foreground text-sm mt-0.5">{t("admin_finance_subtitle")}</p>
           </div>
           <Badge variant="secondary" className="ml-auto">{t("admin_coming_soon")}</Badge>
         </div>
         <Card className="border-dashed border-2 border-border">
           <CardHeader>
             <CardTitle className="text-base text-muted-foreground font-medium">
-              This section is under development
+              {t("admin_under_development")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              The Budget &amp; Finance module will support school budget management, expenditure authorisation,
-              supplier orders, and financial reporting to the Departament d'Educació via the ESFER@ platform.
+              {t("admin_finance_desc")}
             </p>
           </CardContent>
         </Card>

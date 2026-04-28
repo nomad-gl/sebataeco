@@ -17,22 +17,20 @@ export default function AdminFacilities() {
             <Wrench className="w-7 h-7 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Facilities &amp; Inventory</h1>
-            <p className="text-muted-foreground text-sm mt-0.5">Instal·lacions i Inventari — Maintenance, materials, room bookings</p>
+            <h1 className="text-2xl font-bold text-foreground">{t("admin_facilities")}</h1>
+            <p className="text-muted-foreground text-sm mt-0.5">{t("admin_facilities_subtitle")}</p>
           </div>
           <Badge variant="secondary" className="ml-auto">{t("admin_coming_soon")}</Badge>
         </div>
         <Card className="border-dashed border-2 border-border">
           <CardHeader>
             <CardTitle className="text-base text-muted-foreground font-medium">
-              This section is under development
+              {t("admin_under_development")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              The Facilities &amp; Inventory module will manage the school's physical resources: materials
-              inventory, maintenance requests, room and equipment bookings, and asset tracking — helping
-              the secretariat maintain an up-to-date record of all centre assets.
+              {t("admin_facilities_desc")}
             </p>
           </CardContent>
         </Card>

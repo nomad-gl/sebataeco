@@ -17,22 +17,20 @@ export default function AdminEnrolment() {
             <ClipboardList className="w-7 h-7 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Enrolment &amp; Records</h1>
-            <p className="text-muted-foreground text-sm mt-0.5">Matriculació i Expedients — Pre-enrolment, academic records, certificates</p>
+            <h1 className="text-2xl font-bold text-foreground">{t("admin_enrolment")}</h1>
+            <p className="text-muted-foreground text-sm mt-0.5">{t("admin_enrolment_subtitle")}</p>
           </div>
           <Badge variant="secondary" className="ml-auto">{t("admin_coming_soon")}</Badge>
         </div>
         <Card className="border-dashed border-2 border-border">
           <CardHeader>
             <CardTitle className="text-base text-muted-foreground font-medium">
-              This section is under development
+              {t("admin_under_development")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              The Enrolment &amp; Records module will manage pre-enrolment processes, student academic records
-              (<em>llibres d'escolaritat</em>), certificates, and official academic documentation in line
-              with Departament d'Educació requirements.
+              {t("admin_enrolment_desc")}
             </p>
           </CardContent>
         </Card>

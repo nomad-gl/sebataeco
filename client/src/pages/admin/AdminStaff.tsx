@@ -18,21 +18,19 @@ export default function AdminStaff() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground">{t("admin_staff_management")}</h1>
-            <p className="text-muted-foreground text-sm mt-0.5">Gestió de Personal — Staff records, absences, leave, timetable admin</p>
+            <p className="text-muted-foreground text-sm mt-0.5">{t("admin_staff_subtitle")}</p>
           </div>
           <Badge variant="secondary" className="ml-auto">{t("admin_coming_soon")}</Badge>
         </div>
         <Card className="border-dashed border-2 border-border">
           <CardHeader>
             <CardTitle className="text-base text-muted-foreground font-medium">
-              This section is under development
+              {t("admin_under_development")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              The Staff Management module will handle staff records, absence tracking, leave requests,
-              and timetable coordination with the Cap d'Estudis, in line with Departament d'Educació
-              personnel administration requirements.
+              {t("admin_staff_desc")}
             </p>
           </CardContent>
         </Card>
