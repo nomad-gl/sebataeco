@@ -43,6 +43,11 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+  // Increase server timeout to 25 minutes to allow bulk AI lesson plan generation
+  // (which makes up to 37 sequential LLM calls) to complete without being cut off.
+  server.timeout = 25 * 60 * 1000; // 25 minutes
+  server.keepAliveTimeout = 25 * 60 * 1000;
+  server.headersTimeout = 26 * 60 * 1000; // must be > keepAliveTimeout
   // Global body limit: 1mb is sufficient for all tRPC JSON payloads.
   // The aina.uploadFile route receives base64-encoded files up to 16MB, so it
   // gets its own higher limit applied before the global tRPC middleware.

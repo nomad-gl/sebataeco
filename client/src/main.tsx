@@ -27,6 +27,10 @@ const SILENT_MUTATION_PATHS = new Set([
   "lomloe.chat",
   "lomloe.translateMessages",
   "voice.tts",
+  // Bulk generation errors are handled in-component with specific messages
+  "planner.generateBulkLessonPlans",
+  "planner.generateLessonPlan",
+  "planner.aiRegenerateSection",
 ]);
 
 // Paths that should NOT be reported to the server error log to avoid loops
@@ -152,7 +156,10 @@ const trpcClient = trpc.createClient({
         // which can take 30-60 seconds for complex responses.
         const url = typeof input === "string" ? input : input instanceof URL ? input.href : (input as Request).url;
         const isLlmCall = url.includes("lomloe.chat") || url.includes("progress.generateStudent") || url.includes("lomloe.translateMessages");
-        const timeout = isLlmCall ? 90_000 : 30_000;
+        // Bulk lesson plan generation can make 1 outline call + up to 36 per-lesson LLM calls,
+        // which can take 5-15 minutes. Give it a generous 20-minute window.
+        const isBulkGenCall = url.includes("planner.generateBulkLessonPlans") || url.includes("planner.aiInfillCalendar") || url.includes("planner.generateLessonPlan") || url.includes("planner.aiRegenerateSection");
+        const timeout = isBulkGenCall ? 20 * 60_000 : isLlmCall ? 90_000 : 30_000;
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), timeout);
         // Combine our timeout signal with tRPC's own abort signal (e.g. component unmount)
