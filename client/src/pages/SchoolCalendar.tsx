@@ -1106,6 +1106,28 @@ export default function SchoolCalendar() {
     setJumpWeek("");
   };
 
+  /** Open the Edit Calendar dialog for the currently selected calendar */
+  const openEditCalDialog = () => {
+    if (!selectedCalendarId) return;
+    const cal = (calendars as SchoolCalendar[]).find(c => c.id === selectedCalendarId);
+    if (!cal) return;
+    const c = cal as any;
+    const toDate = (v: any) => v ? new Date(v).toISOString().split("T")[0] : "";
+    setCalForm({
+      name: cal.name, schoolName: cal.schoolName ?? "", tutorName: cal.tutorName ?? "",
+      subject: cal.subject ?? "English", yearLevel: cal.yearLevel ?? YEAR_GROUPS[3],
+      academicYear: cal.academicYear, calendarType: (cal as SchoolCalendar).calendarType ?? "full_year",
+      startDate: toDate((cal as SchoolCalendar).startDate), endDate: toDate((cal as SchoolCalendar).endDate),
+      topicDescription: (cal as SchoolCalendar).topicDescription ?? "",
+      lessonDays: (cal as SchoolCalendar).lessonDays ?? "",
+      region: c.region ?? "catalonia", defaultStartTime: c.defaultStartTime ?? "", defaultEndTime: c.defaultEndTime ?? "",
+      term1Start: toDate(c.term1Start), term1End: toDate(c.term1End),
+      term2Start: toDate(c.term2Start), term2End: toDate(c.term2End),
+      term3Start: toDate(c.term3Start), term3End: toDate(c.term3End),
+    });
+    setShowEditCalDialog(true);
+  };
+
   const openAdd = (date: Date, type?: string) => {
     if (!selectedCalendarId) { toast.error(t("cal_select_first")); return; }
     setSelectedDate(date.toISOString().split("T")[0]);
@@ -1651,6 +1673,16 @@ export default function SchoolCalendar() {
                 ))}
               </SelectContent>
             </Select>
+            {selectedCalendarId && (
+              <button
+                onClick={openEditCalDialog}
+                className="p-1.5 rounded-lg transition-colors shrink-0 hover:bg-accent text-muted-foreground"
+                aria-label={t("cal_edit_calendar")}
+                title={t("cal_edit_calendar")}
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+            )}
             <button
               onClick={() => setAgendaView(v => !v)}
               className={`p-1.5 rounded-lg transition-colors shrink-0 ${
@@ -1684,6 +1716,12 @@ export default function SchoolCalendar() {
               <Plus className="w-3 h-3" />
               {t("cal_new")}
             </Button>
+            {selectedCalendarId && (
+              <Button variant="outline" size="sm" className="h-7 text-xs gap-1 shrink-0" onClick={openEditCalDialog} aria-label={t("cal_edit_calendar")}>
+                <Pencil className="w-3 h-3" />
+                {t("cal_edit_calendar")}
+              </Button>
+            )}
             <div className="w-px h-5 bg-border mx-1 shrink-0" />
             {/* Microphone control */}
             <div className="flex items-center gap-1.5">

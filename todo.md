@@ -4827,3 +4827,11 @@
 - [x] Frontend: added showDeleteCalConfirm state and AlertDialog — button now opens confirmation instead of deleting immediately
 - [x] i18n: cal_delete_calendar and cal_delete_calendar_confirm keys already existed in EN/ES/CA
 - [x] TypeScript 0 errors verified
+
+## Bug: Edit Calendar Button Not Visible
+- [x] Found: Edit Calendar (pencil) button was inside the removed aside sidebar — not visible
+- [x] Added openEditCalDialog() helper at component level
+- [x] Added Edit Calendar button to desktop toolbar (next to New button) — visible when a calendar is selected
+- [x] Added Edit Calendar pencil icon button to mobile toolbar — visible when a calendar is selected
+- [x] Delete Calendar confirmation dialog is accessible from inside the Edit Calendar dialog
+- [x] TypeScript 0 errors verified
