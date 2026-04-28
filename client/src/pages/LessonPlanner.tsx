@@ -2611,6 +2611,9 @@ export default function LessonPlanner() {
                     }`}
                   >
                     {t(scope === "year" ? "lp_bulk_ai_scope_year" : scope === "semester1" ? "lp_bulk_ai_scope_s1" : scope === "semester2" ? "lp_bulk_ai_scope_s2" : "lp_bulk_ai_scope_s3")}
+                    <div className="text-[10px] font-normal opacity-70 mt-0.5">
+                      {scope === "year" ? t("lp_scope_year_desc") : t("lp_scope_semester_desc")}
+                    </div>
                   </button>
                 ))}
               </div>
