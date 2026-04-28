@@ -1088,7 +1088,8 @@ export default function LessonPlanner() {
   const [aiCurriculumYear, setAiCurriculumYear] = useState("");
   const [showExportAllDialog, setShowExportAllDialog] = useState(false);
   const [aiGeneratedBanner, setAiGeneratedBanner] = useState(false);
-  const [aiPlanningScope, setAiPlanningScope] = useState<"single" | "semester" | "year">("single");
+  const [aiPlanningScope, setAiPlanningScope] = useState<"single" | "semester1" | "semester2" | "semester3" | "year">("single");
+  const [aiDialogCalendarId, setAiDialogCalendarId] = useState<string>("");
   const [aiScopeGenerating, setAiScopeGenerating] = useState(false);
   const [exportAllCalendarId, setExportAllCalendarId] = useState<string>("");
   const [isExportingAll, setIsExportingAll] = useState(false);
@@ -1911,8 +1912,8 @@ export default function LessonPlanner() {
             {/* Planning Scope */}
             <div className="rounded-lg border border-teal-200 bg-teal-50/40 dark:bg-teal-950/20 dark:border-teal-800 p-3 space-y-2">
               <p className="text-xs font-semibold text-teal-800 dark:text-teal-300 uppercase tracking-wide">{t("lp_scope_label")}</p>
-              <div className="grid grid-cols-3 gap-2">
-                {(["single", "semester", "year"] as const).map(scope => (
+              <div className="grid grid-cols-5 gap-1.5">
+                {(["single", "semester1", "semester2", "semester3", "year"] as const).map(scope => (
                   <button key={scope} type="button"
                     onClick={() => setAiPlanningScope(scope)}
                     className={`rounded-lg border p-2 text-xs font-medium text-center transition-colors ${
@@ -1920,17 +1921,38 @@ export default function LessonPlanner() {
                         ? "bg-teal-600 text-white border-teal-600"
                         : "bg-background border-border hover:bg-accent"
                     }`}>
-                    {scope === "single" ? t("lp_scope_single") : scope === "semester" ? t("lp_scope_semester") : t("lp_scope_year")}
+                    {scope === "single" ? t("lp_scope_single") : scope === "semester1" ? t("lp_scope_semester1") : scope === "semester2" ? t("lp_scope_semester2") : scope === "semester3" ? t("lp_scope_semester3") : t("lp_scope_year")}
                     <div className="text-[10px] font-normal opacity-70 mt-0.5">
-                      {scope === "single" ? t("lp_scope_single_desc") : scope === "semester" ? t("lp_scope_semester_desc") : t("lp_scope_year_desc")}
+                      {scope === "single" ? t("lp_scope_single_desc") : scope === "year" ? t("lp_scope_year_desc") : t("lp_scope_semester_desc")}
                     </div>
                   </button>
                 ))}
               </div>
               {aiPlanningScope !== "single" && (
                 <p className="text-xs text-teal-700 dark:text-teal-400">
-                  {aiPlanningScope === "semester" ? t("lp_scope_semester_info") : t("lp_scope_year_info")}
+                  {aiPlanningScope === "year" ? t("lp_scope_year_info") : t("lp_scope_semester_info")}
                 </p>
+              )}
+              {/* Calendar selector for bulk generation */}
+              {aiPlanningScope !== "single" && (
+                <div>
+                  <Label className="text-xs">{t("lp_calendar")}</Label>
+                  <Select value={aiDialogCalendarId} onValueChange={setAiDialogCalendarId}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder={t("lp_select_calendar")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(calendars as any[]).map((cal: any) => (
+                        <SelectItem key={cal.id} value={String(cal.id)}>
+                          {cal.name} {cal.yearLevel ? `· ${cal.yearLevel}` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {(calendars as any[]).length === 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">{t("lp_no_calendars")}</p>
+                  )}
+                </div>
               )}
             </div>
 
@@ -1983,38 +2005,35 @@ export default function LessonPlanner() {
                   academicYear: aiCurriculumYear || undefined,
                 });
               } else {
-                // Semester (~12) or Whole Year (~24) — generate multiple plans sequentially
-                const totalPlans = aiPlanningScope === "semester" ? 12 : 24;
+                // Semester 1/2/3 or Whole Year — use the two-phase bulk generation procedure
+                if (!aiDialogCalendarId) {
+                  toast.error(t("lp_select_calendar"));
+                  return;
+                }
                 setAiScopeGenerating(true);
                 setShowAiDialog(false);
-                let generatedCount = 0;
-                for (let i = 1; i <= totalPlans; i++) {
-                  const lessonTitle = `${aiTitle} — ${aiSubject} ${i < 10 ? "0" + i : i}`;
-                  toast.info(t("lp_scope_generating").replace("{{current}}", String(i)).replace("{{total}}", String(totalPlans)));
-                  try {
-                    await utils.client.planner.aiGenerateLessonPlan.mutate({
-                      title: lessonTitle,
-                      subject: aiSubject,
-                      yearGroup: aiYearGroup,
-                      duration: aiDuration,
-                      competencies: aiComps,
-                      unit: aiUnit || undefined,
-                      infantilEix: aiInfantilEix || undefined,
-                      infantilCycle: aiInfantilCycle || undefined,
-                      academicYear: aiCurriculumYear || undefined,
-                    });
-                    generatedCount++;
-                    utils.planner.listLessonPlans.invalidate();
-                  } catch (e: any) {
-                    toast.error(`Plan ${i} failed: ${e.message}`);
+                try {
+                  const bulkScope = aiPlanningScope as "semester1" | "semester2" | "semester3" | "year";
+                  const result = await utils.client.planner.generateBulkLessonPlans.mutate({
+                    calendarId: Number(aiDialogCalendarId),
+                    scope: bulkScope,
+                    methodology: undefined,
+                  });
+                  utils.planner.listLessonPlans.invalidate();
+                  if (result.created === 0) {
+                    toast.info(t("lp_bulk_ai_none"));
+                  } else {
+                    toast.success(t("lp_bulk_ai_done").replace("{{count}}", String(result.created)));
                   }
+                  setAiGeneratedBanner(true);
+                  setTimeout(() => setAiGeneratedBanner(false), 6000);
+                } catch (e: any) {
+                  toast.error(e?.message ?? t("lp_bulk_ai_error"));
+                } finally {
+                  setAiScopeGenerating(false);
                 }
-                setAiScopeGenerating(false);
-                toast.success(t("lp_scope_done").replace("{{total}}", String(generatedCount)));
-                setAiGeneratedBanner(true);
-                setTimeout(() => setAiGeneratedBanner(false), 6000);
               }
-            }} disabled={aiMutation.isPending || aiScopeGenerating} className="gap-1">
+            }} disabled={aiMutation.isPending || aiScopeGenerating || (aiPlanningScope !== "single" && !aiDialogCalendarId)} className="gap-1">
               <SebaSymbol className="w-4 h-4" />
               {aiMutation.isPending || aiScopeGenerating ? t("lp_generating") : t("lp_generate")}
             </Button>
