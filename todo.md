@@ -4477,7 +4477,6 @@
 - [x] Add tRPC procedure to save and read cutcgMemberNumber
 - [x] Add CUTCG member number input field to profile settings UI
 - [x] Display member number alongside CUTCG badge in NavBar and staff directory
-- [ ] [BLOCKED - awaiting SMTP credentials] Director creates teacher: send credentials email from Director's own school email address (not default system sender)
 
 ## Cover Request Cancellation
 - [x] Add cancelCoverRequest backend procedure (Director only, requires reason)
