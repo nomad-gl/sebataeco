@@ -730,7 +730,7 @@ export default function SchoolCalendar() {
           description: data.lessonNumber ? `${t("lp_lesson_number_label")} ${data.lessonNumber}` : undefined,
           action: {
             label: t("cal_open_in_planner"),
-            onClick: () => navigate(`/lesson-planner?planId=${data.id}`),
+            onClick: () => window.open(`${window.location.origin}/lesson-planner?planId=${data.id}`, "_blank", "noopener,noreferrer"),
           },
           duration: 8000,
         });
@@ -3567,7 +3567,7 @@ export default function SchoolCalendar() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => { if (planSheetPlanId) navigate(`/lesson-planner?planId=${planSheetPlanId}`); }}
+                      onClick={() => { if (planSheetPlanId) window.open(`${window.location.origin}/lesson-planner?planId=${planSheetPlanId}`, "_blank", "noopener,noreferrer"); }}
                       title={t("cal_open_in_planner")}
                       className="gap-1 text-indigo-700 border-indigo-300 hover:bg-indigo-50"
                     >
@@ -4235,7 +4235,7 @@ export default function SchoolCalendar() {
                   onClick={() => {
                     const planId = (eventPlanMap as Record<number, number>)[detailEvent.id];
                     closeDetail();
-                    navigate(`/lesson-planner?planId=${planId}`);
+                    window.open(`${window.location.origin}/lesson-planner?planId=${planId}`, "_blank", "noopener,noreferrer");
                   }}
                 >
                   <ExternalLink className="w-3.5 h-3.5" />

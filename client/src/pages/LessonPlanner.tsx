@@ -388,9 +388,9 @@ function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplic
           )}
         </div>
       </button>
-      {/* Hover action buttons */}
+      {/* Action buttons — always visible */}
       {!batchSelectMode && (
-        <div className="absolute right-2 top-2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-background/90 backdrop-blur-sm rounded-md shadow-sm border border-border/50 p-0.5">
+        <div className="absolute right-2 top-2 flex items-center gap-0.5 bg-background/90 backdrop-blur-sm rounded-md shadow-sm border border-border/50 p-0.5">
           {p.calendarEventId && p.calendarId && (
             <button
               onClick={(e) => { e.stopPropagation(); onJumpToCalendar(p.calendarEventId, p.calendarId); }}
