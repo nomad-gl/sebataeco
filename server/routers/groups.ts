@@ -10,6 +10,7 @@ import {
   groupMessages,
   groupChallengeLog,
   studentProgress,
+  schoolCalendars,
 } from "../../drizzle/schema";
 
 export const groupsRouter = router({
@@ -560,5 +561,43 @@ export const groupsRouter = router({
         competencies: JSON.stringify(input.competencies),
       });
       return { id: (result as any)[0].insertId as number };
+    }),
+
+  /** Link a school calendar to this class group */
+  linkCalendar: protectedProcedure
+    .input(z.object({ groupId: z.number(), calendarId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      const [group] = await db.select().from(classGroups).where(and(eq(classGroups.id, input.groupId), eq(classGroups.userId, ctx.user.id)));
+      if (!group) throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
+      const [cal] = await db.select().from(schoolCalendars).where(and(eq(schoolCalendars.id, input.calendarId), eq(schoolCalendars.userId, ctx.user.id)));
+      if (!cal) throw new TRPCError({ code: "NOT_FOUND", message: "Calendar not found" });
+      await db.update(schoolCalendars).set({ linkedGroupId: input.groupId }).where(eq(schoolCalendars.id, input.calendarId));
+      return { ok: true };
+    }),
+
+  /** Unlink a school calendar from this class group */
+  unlinkCalendar: protectedProcedure
+    .input(z.object({ groupId: z.number(), calendarId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      const [group] = await db.select().from(classGroups).where(and(eq(classGroups.id, input.groupId), eq(classGroups.userId, ctx.user.id)));
+      if (!group) throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
+      await db.update(schoolCalendars).set({ linkedGroupId: null }).where(and(eq(schoolCalendars.id, input.calendarId), eq(schoolCalendars.userId, ctx.user.id)));
+      return { ok: true };
+    }),
+
+  /** Get calendars linked to a specific group */
+  listLinkedCalendars: protectedProcedure
+    .input(z.object({ groupId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) return [];
+      return db
+        .select({ id: schoolCalendars.id, name: schoolCalendars.name, subject: schoolCalendars.subject, yearLevel: schoolCalendars.yearLevel, academicYear: schoolCalendars.academicYear })
+        .from(schoolCalendars)
+        .where(and(eq(schoolCalendars.linkedGroupId, input.groupId), eq(schoolCalendars.userId, ctx.user.id)));
     }),
 });

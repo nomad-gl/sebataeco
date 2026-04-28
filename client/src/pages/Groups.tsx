@@ -14,7 +14,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Users, Plus, Trash2, Mail, BookOpen, Calendar, ChevronRight,
   UserPlus, Send, Loader2, AlertCircle, GraduationCap, ClipboardList, TrendingUp,
-  Pencil, Check, X, Upload, Search, BarChart2, RotateCcw, AlertTriangle
+  Pencil, Check, X, Upload, Search, BarChart2, RotateCcw, AlertTriangle,
+  CalendarDays, Link2, Link2Off
 } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "@/contexts/I18nContext";
@@ -770,6 +771,8 @@ export default function Groups() {
   const utils = trpc.useUtils();
   const [showCreate, setShowCreate] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
+  const [showLinkCalendar, setShowLinkCalendar] = useState(false);
+  const [linkCalendarId, setLinkCalendarId] = useState<string>("");
 
   const { data: groups = [], isLoading } = trpc.groups.list.useQuery(undefined, {
     enabled: !!user,
@@ -786,6 +789,25 @@ export default function Groups() {
   });
 
   const selectedGroup = groups.find((g) => g.id === selectedGroupId) ?? null;
+
+  const { data: allCalendars = [] } = trpc.planner.listCalendars.useQuery(undefined, { enabled: !!user });
+  const { data: linkedCalendars = [], refetch: refetchLinked } = trpc.groups.listLinkedCalendars.useQuery(
+    { groupId: selectedGroupId! },
+    { enabled: !!selectedGroupId }
+  );
+  const linkCalendarMutation = trpc.groups.linkCalendar.useMutation({
+    onSuccess: () => {
+      toast.success(t("groups_link_calendar_saved"));
+      refetchLinked();
+      setShowLinkCalendar(false);
+      setLinkCalendarId("");
+    },
+    onError: () => toast.error(t("groups_link_calendar_saved")),
+  });
+  const unlinkCalendarMutation = trpc.groups.unlinkCalendar.useMutation({
+    onSuccess: () => { toast.success(t("groups_unlink_calendar_saved")); refetchLinked(); },
+    onError: () => toast.error(t("groups_link_calendar_saved")),
+  });
 
   if (!user) {
     return (
@@ -923,6 +945,14 @@ export default function Groups() {
                           </Button>
                         </Link>
                         <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => { setLinkCalendarId(""); setShowLinkCalendar(true); }}
+                          className="border-blue-500/40 text-blue-300 hover:text-blue-200 hover:bg-blue-600/20 bg-transparent"
+                        >
+                          <CalendarDays className="w-4 h-4 mr-1.5" /> {t("groups_link_calendar")}
+                        </Button>
+                        <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => {
@@ -983,6 +1013,85 @@ export default function Groups() {
         onClose={() => setShowCreate(false)}
         onCreated={() => utils.groups.list.invalidate()}
       />
+
+      {/* Link to Calendar Dialog */}
+      {selectedGroup && (
+        <Dialog open={showLinkCalendar} onOpenChange={(o) => { if (!o) setShowLinkCalendar(false); }}>
+          <DialogContent className="bg-gray-900 border-white/10 text-white max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CalendarDays className="w-5 h-5 text-blue-400" />
+                {t("groups_link_calendar_title")}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <p className="text-white/60 text-sm">{t("groups_link_calendar_desc")}</p>
+
+              {/* Currently linked calendars */}
+              {linkedCalendars.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-white/50 uppercase tracking-wide">{t("groups_linked_calendar")}</p>
+                  {linkedCalendars.map((cal) => (
+                    <div key={cal.id} className="flex items-center justify-between gap-2 bg-white/5 border border-white/10 rounded-lg px-3 py-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-white truncate">{cal.name}</p>
+                        <p className="text-xs text-white/50">{[cal.subject, cal.yearLevel, cal.academicYear].filter(Boolean).join(" · ")}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => unlinkCalendarMutation.mutate({ groupId: selectedGroup.id, calendarId: cal.id })}
+                        disabled={unlinkCalendarMutation.isPending}
+                        className="text-red-400 hover:text-red-300 hover:bg-red-400/10 shrink-0"
+                      >
+                        <Link2Off className="w-3.5 h-3.5 mr-1" /> {t("groups_unlink_calendar")}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Add new link */}
+              <div className="space-y-2">
+                <Label className="text-white/70 text-sm">{t("groups_link_calendar_select")}</Label>
+                {allCalendars.length === 0 ? (
+                  <p className="text-white/40 text-sm">{t("groups_link_calendar_none")}</p>
+                ) : (
+                  <select
+                    value={linkCalendarId}
+                    onChange={(e) => setLinkCalendarId(e.target.value)}
+                    className="w-full bg-white/5 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500/60"
+                  >
+                    <option value="" className="bg-gray-900">{t("groups_link_calendar_select")}</option>
+                    {allCalendars
+                      .filter((c) => !linkedCalendars.some((lc) => lc.id === c.id))
+                      .map((c) => (
+                        <option key={c.id} value={String(c.id)} className="bg-gray-900">
+                          {c.name}{(c as any).subject ? ` · ${(c as any).subject}` : ""}{(c as any).yearLevel ? ` · ${(c as any).yearLevel}` : ""}
+                        </option>
+                      ))}
+                  </select>
+                )}
+              </div>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button variant="ghost" onClick={() => setShowLinkCalendar(false)} className="text-white/60 hover:text-white">
+                {t("cancel") || "Cancel"}
+              </Button>
+              <Button
+                onClick={() => {
+                  if (linkCalendarId) linkCalendarMutation.mutate({ groupId: selectedGroup.id, calendarId: Number(linkCalendarId) });
+                }}
+                disabled={!linkCalendarId || linkCalendarMutation.isPending}
+                className="bg-blue-600 hover:bg-blue-500 text-white"
+              >
+                {linkCalendarMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Link2 className="w-4 h-4 mr-1.5" />}
+                {t("groups_link_calendar")}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
