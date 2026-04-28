@@ -386,6 +386,11 @@ function PlansList({ plans, calendars, selectedId, onLoad, onNew, onAi, onDuplic
               <CalendarDays className="w-2.5 h-2.5" />
             </span>
           )}
+          {!p.calendarEventId && (
+            <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 rounded px-1.5 py-0.5">
+              {t("lp_draft_badge")}
+            </span>
+          )}
         </div>
       </button>
       {/* Action buttons — always visible */}
@@ -1517,6 +1522,17 @@ export default function LessonPlanner() {
             </div>
 
             {/* Section 1: Header info */}
+            {/* Draft — no calendar banner */}
+            {selectedId && !(plans as any[]).find((p: any) => p.id === selectedId)?.calendarEventId && (
+              <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 px-4 py-2.5 text-sm text-amber-800 dark:text-amber-300">
+                <CalendarDays className="w-4 h-4 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-semibold">{t("lp_draft_badge")}</span>
+                  {" — "}
+                  {t("lp_draft_no_calendar_msg")}
+                </div>
+              </div>
+            )}
             {/* AI Generated Banner */}
             {aiGeneratedBanner && (
               <div className="flex items-center gap-2 rounded-lg border border-green-300 bg-green-50 dark:bg-green-950/30 dark:border-green-700 px-4 py-2.5 text-sm text-green-800 dark:text-green-300 animate-in fade-in slide-in-from-top-2 duration-300">
@@ -1546,7 +1562,7 @@ export default function LessonPlanner() {
                   <CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">{t("lp_section_info")}</CardTitle>
                   <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
                     <SebaSymbol className="w-3 h-3" />
-                    {t("lp_ai_hint_required")}
+                    {t("lp_ai_hint_required_save")}
                   </span>
                 </div>
               </CardHeader>

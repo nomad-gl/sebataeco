@@ -4873,3 +4873,13 @@
 - [x] Total generation time reduced from ~20s (sequential) to ~8s (parallel — max of 3 concurrent calls)
 - [x] Added progressive loading UI in AI dialog showing 3 animated spinners for each parallel stage
 - [x] Added i18n keys for progress UI in English, Spanish, and Catalan
+
+## Feature: Draft status for plans without a calendar
+- [x] Draft status uses existing calendarEventId IS NULL — no schema migration needed
+- [x] Plans without calendarEventId are automatically treated as drafts (no code change needed in save logic)
+- [x] Show amber Draft badge on plan cards in the plan list when calendarEventId is null
+- [x] Show amber contact-director info banner in the editor when the loaded plan has no calendarEventId
+- [x] Added lp_draft_badge, lp_draft_no_calendar_msg, lp_ai_hint_required_save in EN/ES/CA
+
+## UX: AI hint badge text update
+- [x] Changed hint badge text to 'Complete this section and SAVE to use AI Generate'
