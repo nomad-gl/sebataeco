@@ -17,7 +17,7 @@ import { ChevronLeft, ChevronRight, Plus, Trash2, CalendarDays,
   ExternalLink, LayoutList, Pencil, School, BookOpen, User, GraduationCap,
   FolderOpen, X, Check, Download, Link, Unlink, Users, Save, ClipboardList,
   ListChecks, RefreshCw, FileDown, Hash, Mic, MicOff, Volume2, VolumeX, ChevronDown, Loader2, Copy,
-  BookTemplate, LayoutTemplate, Clock,
+  BookTemplate, LayoutTemplate, Clock, ArrowLeft,
 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { SebaSymbol } from "@/components/SebaSymbol";
@@ -1501,11 +1501,7 @@ export default function SchoolCalendar() {
         )}
 
         {/* ── Calendar Picker Sidebar ─────────────────────────────────────── */}
-        <aside className={`${
-          showMobileSidebar
-            ? "fixed inset-y-0 left-0 z-40 w-72 shadow-2xl"
-            : "hidden md:flex"
-        } w-60 border-r flex-col shrink-0 bg-background md:bg-muted/20 flex`}>
+        <aside className={`hidden`} aria-hidden="true">
           <div className="p-3 border-b flex items-center justify-between gap-2 min-h-[48px]">
             <span className="font-semibold text-sm flex items-center gap-1.5 truncate">
               <FolderOpen className="w-4 h-4 text-primary shrink-0" /> {t("cal_title").split(" ")[0]}
@@ -1667,7 +1663,29 @@ export default function SchoolCalendar() {
             </button>
           </div>
           {/* ── Desktop Mic / Speaker toolbar (hidden on mobile) ───────────────── */}
-          <div className="hidden md:flex items-center gap-2 px-4 py-1.5 border-b bg-muted/30 shrink-0 relative">
+          <div className="hidden md:flex items-center gap-2 px-4 py-1.5 border-b bg-muted/30 shrink-0 relative flex-wrap">
+            {/* Back button */}
+            <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground shrink-0" onClick={() => navigate("/")}>
+              <ArrowLeft className="w-4 h-4" />
+              <span className="text-sm">{t("cal_back_home")}</span>
+            </Button>
+            <div className="w-px h-5 bg-border mx-1 shrink-0" />
+            {/* Calendar selector */}
+            <Select value={selectedCalendarId ? String(selectedCalendarId) : ""} onValueChange={(v) => setSelectedCalendarId(v ? Number(v) : null)}>
+              <SelectTrigger className="w-48 h-7 text-xs">
+                <SelectValue placeholder={t("cal_select_calendar")} />
+              </SelectTrigger>
+              <SelectContent>
+                {(calendars as SchoolCalendar[]).map((cal) => (
+                  <SelectItem key={cal.id} value={String(cal.id)}>{cal.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="sm" className="h-7 text-xs gap-1 shrink-0" onClick={() => { setCalForm(emptyCalForm()); setShowCreateCalDialog(true); }}>
+              <Plus className="w-3 h-3" />
+              {t("cal_new")}
+            </Button>
+            <div className="w-px h-5 bg-border mx-1 shrink-0" />
             {/* Microphone control */}
             <div className="flex items-center gap-1.5">
               <button
@@ -2253,7 +2271,7 @@ export default function SchoolCalendar() {
               {showTermView && (
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">{t("cal_term_overview_title")} — {selectedCalendar.academicYear}</CardTitle>
+                    <CardTitle className="text-sm">{t("cal_term_overview_title")} {"—"} {selectedCalendar.academicYear}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     {termWeeks.length === 0 ? (
@@ -3166,7 +3184,7 @@ export default function SchoolCalendar() {
                 disabled={deleteSeriesMutation.isPending}
                 onClick={() => { if (editingEvent?.seriesId) deleteSeriesMutation.mutate({ seriesId: editingEvent.seriesId! }); }}
               >
-                {deleteSeriesMutation.isPending ? "…" : t("cal_delete_all_in_series")}
+                {deleteSeriesMutation.isPending ? "..." : t("cal_delete_all_in_series")}
               </AlertDialogAction>
             )}
             <AlertDialogAction
@@ -3174,7 +3192,7 @@ export default function SchoolCalendar() {
               disabled={deleteMutation.isPending}
               onClick={() => { if (editingEvent) { setShowDeleteEventDialog(false); setShowEditDialog(false); handleDeleteWithUndo(editingEvent.id, editingEvent.title); } }}
             >
-              {deleteMutation.isPending ? "…" : (editingEvent?.seriesId ? t("cal_delete_event_only") : t("cal_delete_event_only"))}
+              {deleteMutation.isPending ? "..." : (editingEvent?.seriesId ? t("cal_delete_event_only") : t("cal_delete_event_only"))}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -3262,7 +3280,7 @@ export default function SchoolCalendar() {
             </div>
             {/* Educació Infantil mode */}
             <div className="rounded-md border border-pink-200 bg-pink-50 p-3 space-y-3">
-              <p className="text-xs font-semibold text-pink-800">Educació Infantil (Decret 21/2023) — optional</p>
+              <p className="text-xs font-semibold text-pink-800">Educació Infantil (Decret 21/2023) - optional</p>
               <p className="text-xs text-pink-700">Select an Eix to switch to play-based Infantil activity generation instead of LOMLOE lesson generation.</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -3271,10 +3289,10 @@ export default function SchoolCalendar() {
                     <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="None (LOMLOE mode)" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">None (LOMLOE mode)</SelectItem>
-                      <SelectItem value="EIX1">EIX1 — Descoberta d'un mateix</SelectItem>
-                      <SelectItem value="EIX2">EIX2 — Descoberta de l'entorn</SelectItem>
-                      <SelectItem value="EIX3">EIX3 — Comunicació i llenguatges</SelectItem>
-                      <SelectItem value="EIX4">EIX4 — Benestar i salut</SelectItem>
+                      <SelectItem value="EIX1">EIX1 - Descoberta d'un mateix</SelectItem>
+                      <SelectItem value="EIX2">EIX2 - Descoberta de l'entorn</SelectItem>
+                      <SelectItem value="EIX3">EIX3 - Comunicació i llenguatges</SelectItem>
+                      <SelectItem value="EIX4">EIX4 - Benestar i salut</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -3284,8 +3302,8 @@ export default function SchoolCalendar() {
                     <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select cycle" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Not specified</SelectItem>
-                      <SelectItem value="0-3">Primer cicle (0–3 anys)</SelectItem>
-                      <SelectItem value="3-6">Segon cicle (3–6 anys)</SelectItem>
+                      <SelectItem value="0-3">Primer cicle (0-3 anys)</SelectItem>
+                      <SelectItem value="3-6">Segon cicle (3-6 anys)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -3318,7 +3336,7 @@ export default function SchoolCalendar() {
                 <p className="text-muted-foreground">
                   {(selectedCalendar as SchoolCalendar).startDate
                     ? `${new Date((selectedCalendar as SchoolCalendar).startDate as string).toLocaleDateString()} – ${new Date((selectedCalendar as SchoolCalendar).endDate as string).toLocaleDateString()}`
-                    : "No dates set — please edit the calendar to add start and end dates first."}
+                    : "No dates set - please edit the calendar to add start and end dates first."}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">Lessons will be generated for every school day in this range at the selected frequency.</p>
               </div>
@@ -3350,7 +3368,7 @@ export default function SchoolCalendar() {
               </SelectTrigger>
               <SelectContent>
                 {(classGroupsList as any[]).map(g => (
-                  <SelectItem key={g.id} value={String(g.id)}>{g.className} – {g.level}</SelectItem>
+                  <SelectItem key={g.id} value={String(g.id)}>{g.className} - {g.level}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -4003,7 +4021,7 @@ export default function SchoolCalendar() {
                       return (
                         <SelectItem key={ev.id} value={String(ev.id)}>
                           <span className="font-medium">{dateStr}{timeStr}</span>
-                          {ev.title ? <span className="text-muted-foreground ml-1.5 truncate max-w-[180px]">— {ev.title}</span> : null}
+                          {ev.title ? <span className="text-muted-foreground ml-1.5 truncate max-w-[180px]">{"\u2014"} {ev.title}</span> : null}
                           {ev.hasLinkedPlan && (
                             <span className="ml-1.5 text-xs text-amber-600 font-medium" title={t("lp_copy_event_conflict_hint")}>⚠️ {t("lp_copy_event_conflict")}</span>
                           )}
@@ -4202,8 +4220,25 @@ export default function SchoolCalendar() {
                     ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     : <ClipboardList className="w-3.5 h-3.5" />}
                   {createLinkedPlanMutation.isPending && planSheetEventId === detailEvent.id
-                    ? "Creating…"
+                    ? "Creating..."
                     : (eventPlanMap as Record<number, number>)[detailEvent.id] ? t("cal_view_plan") : t("cal_add_plan")}
+                </Button>
+              )}
+              {/* Open in Planner button — only shown when a plan already exists */}
+              {(detailEvent.eventType === "lesson" || detailEvent.eventType === "ai_generated") &&
+               (eventPlanMap as Record<number, number>)[detailEvent.id] && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 text-indigo-700 border-indigo-300 hover:bg-indigo-50 shrink-0"
+                  title={t("cal_open_in_planner")}
+                  onClick={() => {
+                    const planId = (eventPlanMap as Record<number, number>)[detailEvent.id];
+                    closeDetail();
+                    navigate(`/lesson-planner?planId=${planId}`);
+                  }}
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
                 </Button>
               )}
               <Button
@@ -4269,7 +4304,7 @@ export default function SchoolCalendar() {
                     {duplicateDates.map(d => (
                       <span key={d} className="inline-flex items-center gap-1 text-[10px] bg-muted rounded px-1.5 py-0.5">
                         {d}
-                        <button onClick={() => setDuplicateDates(ds => ds.filter(x => x !== d))} className="text-muted-foreground hover:text-destructive">×</button>
+                        <button onClick={() => setDuplicateDates(ds => ds.filter(x => x !== d))} className="text-muted-foreground hover:text-destructive">&#215;</button>
                       </span>
                     ))}
                   </div>
@@ -4281,7 +4316,7 @@ export default function SchoolCalendar() {
                   onClick={() => bulkDuplicateMutation.mutate({ id: detailEvent.id, dates: duplicateDates })}
                 >
                   {bulkDuplicateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Copy className="w-3.5 h-3.5" />}
-                  {bulkDuplicateMutation.isPending ? "Copying…" : `Copy to ${duplicateDates.length} date${duplicateDates.length === 1 ? "" : "s"}`}
+                  {bulkDuplicateMutation.isPending ? "Copying..." : `Copy to ${duplicateDates.length} date${duplicateDates.length === 1 ? "" : "s"}`}
                 </Button>
               </div>
             )}

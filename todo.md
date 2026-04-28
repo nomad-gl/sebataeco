@@ -4763,3 +4763,46 @@
 - [x] Monthly grid event chips: show subject name below title + fall back to calendar default times
 - [x] Term overview event chips: show subject name below title + fall back to calendar default times
 - [x] TypeScript 0 errors verified
+## Enhancement: School Calendar — Remove Nav Column, Add Back Button
+- [ ] Remove left navigation sidebar (aside element) from School Calendar page
+- [ ] Replace DashboardLayout wrapper with plain min-h-screen layout
+- [ ] Add unified top toolbar: Back button, calendar selector dropdown, mic/speaker controls, agenda toggle
+- [ ] TypeScript 0 errors verified
+## Enhancement: School Calendar — Lesson Plan Preview Start/Finish Times
+- [ ] Show lesson start/finish times in lesson plan preview cards on monthly, weekly, and term views
+- [ ] Fall back to calendar defaultStartTime/defaultEndTime when event has no per-event time
+
+## Fix: AI Generate Bulk Plans — Missing Semester 3
+- [ ] Add "Semester 3" (Term 3) option to the bulk AI generate dialog scope selector
+
+## Feature: View Plan from Calendar Popup
+- [ ] When "View Plan" is selected from a calendar event popup, navigate to the lesson planner page showing that specific plan
+- [ ] Pass planId as a URL param or state to LessonPlanner so it opens the correct plan
+
+## Enhancement: Bulk AI Plan Generation — Preserve Existing Plans
+- [ ] Skip slots that already have a linked lesson plan (do not overwrite)
+- [ ] Only generate plans for empty/unlinked calendar slots
+- [ ] Allow per-slot editing of date/time/topic before or after generation
+- [ ] Only run after calendar is fully set up (show warning if calendar has no events)
+
+## Fix: AI Generate Bulk Plans -- Missing Semester 3
+- [ ] Add "Semester 3" (Term 3) option to the bulk AI generate dialog scope selector
+
+## Feature: View Plan from Calendar Popup
+- [ ] When "View Plan" is selected from a calendar event popup, navigate to the lesson planner page showing that specific plan
+- [ ] Pass planId as a URL param or state to LessonPlanner so it opens the correct plan
+
+## Enhancement: Bulk AI Plan Generation -- Preserve Existing Plans
+- [ ] Skip slots that already have a linked lesson plan (do not overwrite)
+- [ ] Only generate plans for empty/unlinked calendar slots
+- [ ] Allow per-slot editing of date/time/topic before or after generation
+- [ ] Only run after calendar is fully set up (show warning if calendar has no events)
+
+## Session – Apr 28 Fixes
+- [x] AI Generate Lesson Plans dialog: add Semester 3 option (frontend state, scope selector, i18n EN/ES/CA)
+- [x] Backend generateBulkLessonPlans: support semester3 scope with term3Start/term3End date range
+- [x] Calendar event detail popup: add "Open in Planner" button that navigates to /lesson-planner?planId=N when a plan exists
+- [x] AI Generate Lesson Plans dialog: auto-fill calendar field from currently selected plan's linked calendar
+- [x] Backend generateBulkLessonPlans: auto-create missing lesson events for all lesson days in scope (from calendar's lessonDays config) before generating plans
+- [x] Backend generateBulkLessonPlans: improved LLM prompt with curriculum sequencing context (lesson N of total, scope label, lesson date)
+- [x] i18n: updated lp_bulk_ai_note and lp_bulk_ai_desc to explain auto-creation and plan preservation

@@ -500,7 +500,7 @@ export default function LessonPlanner() {
   const [clashDetails, setClashDetails] = useState<{ clashWith: string[]; start: string; end: string } | null>(null);
   // Bulk AI generate dialog state
   const [showBulkAiDialog, setShowBulkAiDialog] = useState(false);
-  const [bulkAiScope, setBulkAiScope] = useState<"year" | "semester1" | "semester2">("year");
+  const [bulkAiScope, setBulkAiScope] = useState<"year" | "semester1" | "semester2" | "semester3">("year");
   const [bulkAiCalendarId, setBulkAiCalendarId] = useState<string>("");
   const [bulkAiRunning, setBulkAiRunning] = useState(false);
   const [bulkAiProgress, setBulkAiProgress] = useState<{ current: number; total: number } | null>(null);
@@ -1277,7 +1277,12 @@ export default function LessonPlanner() {
 
               {/* AI Generate bulk — shown when a plan is selected */}
               {selectedId && (
-                <Button variant="ghost" size="sm" onClick={() => setShowBulkAiDialog(true)} className="gap-1 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30 h-8 px-2" title={t("lp_ai_generate_bulk")}>
+                <Button variant="ghost" size="sm" onClick={() => {
+                  // Auto-fill the calendar from the currently selected plan
+                  const currentPlan = (plans as any[]).find((p: any) => p.id === selectedId);
+                  if (currentPlan?.calendarId) setBulkAiCalendarId(String(currentPlan.calendarId));
+                  setShowBulkAiDialog(true);
+                }} className="gap-1 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30 h-8 px-2" title={t("lp_ai_generate_bulk")}>
                   <Sparkles className="w-4 h-4" />
                   <span className="hidden md:inline text-xs">{t("lp_ai_generate_bulk")}</span>
                 </Button>
@@ -2496,8 +2501,8 @@ export default function LessonPlanner() {
             {/* Scope selector */}
             <div className="space-y-1.5">
               <Label className="text-sm font-medium">{t("lp_bulk_ai_scope")}</Label>
-              <div className="grid grid-cols-3 gap-2">
-                {(["year", "semester1", "semester2"] as const).map(scope => (
+              <div className="grid grid-cols-2 gap-2">
+                {(["year", "semester1", "semester2", "semester3"] as const).map(scope => (
                   <button
                     key={scope}
                     type="button"
@@ -2509,7 +2514,7 @@ export default function LessonPlanner() {
                         : "border-border bg-background text-muted-foreground hover:bg-muted"
                     }`}
                   >
-                    {t(scope === "year" ? "lp_bulk_ai_scope_year" : scope === "semester1" ? "lp_bulk_ai_scope_s1" : "lp_bulk_ai_scope_s2")}
+                    {t(scope === "year" ? "lp_bulk_ai_scope_year" : scope === "semester1" ? "lp_bulk_ai_scope_s1" : scope === "semester2" ? "lp_bulk_ai_scope_s2" : "lp_bulk_ai_scope_s3")}
                   </button>
                 ))}
               </div>

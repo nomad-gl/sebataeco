@@ -2671,8 +2671,8 @@ The differentiation field MUST contain tailored content for all three learner ti
   generateBulkLessonPlans: protectedProcedure
     .input(z.object({
       calendarId: z.number(),
-      /** 'year' | 'semester1' | 'semester2' */
-      scope: z.enum(["year", "semester1", "semester2"]),
+      /** 'year' | 'semester1' | 'semester2' | 'semester3' */
+      scope: z.enum(["year", "semester1", "semester2", "semester3"]),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -2687,6 +2687,7 @@ The differentiation field MUST contain tailored content for all three learner ti
           academicYear: schoolCalendars.academicYear,
           defaultStartTime: schoolCalendars.defaultStartTime,
           defaultEndTime: schoolCalendars.defaultEndTime,
+          lessonDays: schoolCalendars.lessonDays,
           term1Start: schoolCalendars.term1Start,
           term1End: schoolCalendars.term1End,
           term2Start: schoolCalendars.term2Start,
@@ -2710,10 +2711,73 @@ The differentiation field MUST contain tailored content for all three learner ti
         rangeEnd = cal.term1End ?? null;
       } else if (input.scope === "semester2") {
         rangeStart = cal.term2Start ?? null;
-        rangeEnd = cal.term2End ?? cal.endDate ?? null;
+        rangeEnd = cal.term2End ?? null;
+      } else if (input.scope === "semester3") {
+        rangeStart = cal.term3Start ?? null;
+        rangeEnd = cal.term3End ?? cal.endDate ?? null;
       } else {
         rangeStart = cal.startDate ?? cal.term1Start ?? null;
         rangeEnd = cal.endDate ?? cal.term3End ?? cal.term2End ?? null;
+      }
+
+       // ── Auto-create missing lesson events for all lesson days in scope ──────────
+      // Parse the calendar's lessonDays (e.g. "[1,3,5]" where 1=Mon…7=Sun)
+      let allowedWeekdays: number[] = [];
+      try {
+        if (cal.lessonDays) allowedWeekdays = JSON.parse(cal.lessonDays as string);
+      } catch { /* ignore */ }
+
+      if (allowedWeekdays.length > 0 && rangeStart && rangeEnd) {
+        // Fetch all existing events in scope (any type) to avoid clashes
+        const existingInScope = await db
+          .select({ eventDate: schoolCalendarEvents.eventDate, eventType: schoolCalendarEvents.eventType })
+          .from(schoolCalendarEvents)
+          .where(and(
+            eq(schoolCalendarEvents.calendarId, input.calendarId),
+            gte(schoolCalendarEvents.eventDate, rangeStart),
+            lte(schoolCalendarEvents.eventDate, rangeEnd),
+          ));
+        const holidayDates = new Set(
+          existingInScope
+            .filter(e => e.eventType === "holiday")
+            .map(e => new Date(e.eventDate).toISOString().slice(0, 10))
+        );
+        const existingLessonDates = new Set(
+          existingInScope
+            .filter(e => e.eventType === "lesson" || e.eventType === "ai_generated")
+            .map(e => new Date(e.eventDate).toISOString().slice(0, 10))
+        );
+        // Walk through every day in the scope and create missing lesson events
+        const subject = cal.subject ?? "General";
+        const academicYear = cal.academicYear ?? `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`;
+        const toInsert: { userId: number; calendarId: number; academicYear: string; eventDate: Date; eventType: "lesson"; title: string; tenantId: number | null }[] = [];
+        const cur = new Date(rangeStart);
+        cur.setHours(0, 0, 0, 0);
+        const end = new Date(rangeEnd);
+        end.setHours(23, 59, 59, 999);
+        let lessonSeq = existingLessonDates.size + 1;
+        while (cur <= end) {
+          const dow = cur.getDay(); // 0=Sun,1=Mon…6=Sat
+          const iso = cur.toISOString().slice(0, 10);
+          if (allowedWeekdays.includes(dow) && !holidayDates.has(iso) && !existingLessonDates.has(iso)) {
+            toInsert.push({
+              userId: ctx.user.id,
+              calendarId: input.calendarId,
+              academicYear,
+              eventDate: new Date(cur),
+              eventType: "lesson",
+              title: `${subject} Lesson ${lessonSeq++}`,
+              tenantId: cal.tenantId ?? null,
+            });
+          }
+          cur.setDate(cur.getDate() + 1);
+        }
+        if (toInsert.length > 0) {
+          // Insert in batches of 50 to avoid query size limits
+          for (let b = 0; b < toInsert.length; b += 50) {
+            await db.insert(schoolCalendarEvents).values(toInsert.slice(b, b + 50) as any);
+          }
+        }
       }
 
       // Fetch all lesson/ai_generated events in the scope
@@ -2735,7 +2799,6 @@ The differentiation field MUST contain tailored content for all three learner ti
           ...(rangeEnd ? [lte(schoolCalendarEvents.eventDate, rangeEnd)] : []),
         ))
         .orderBy(asc(schoolCalendarEvents.eventDate));
-
       const allEvents = await allEventsQuery;
       if (allEvents.length === 0) return { created: 0, total: 0 };
 
@@ -2783,8 +2846,8 @@ The differentiation field MUST contain tailored content for all three learner ti
         try {
           const resp = await invokeLLM({
             messages: [
-              { role: "system", content: "You are a LOMLOE curriculum expert specialising in Spanish and Catalan education. Generate complete, detailed lesson plans with specific activities for each stage. Every field must be filled with real, curriculum-aligned content." },
-              { role: "user", content: `Generate a complete LOMLOE lesson plan for:\n- Title: "${title}"\n- Subject: ${subject}\n- Year Group: ${yearGroup}\n- Duration: ${duration} min\n- Lesson Number: ${lessonNumber}\n- Academic Year: ${academicYear}\n\nGenerate a detailed lesson plan with specific activities for each procedure stage.` },
+              { role: "system", content: "You are a LOMLOE curriculum expert specialising in Spanish and Catalan education. Generate complete, detailed lesson plans with specific activities for each stage. Every field must be filled with real, curriculum-aligned content. Ensure each lesson builds progressively on previous ones and covers the required LOMLOE competencies (CCL, CP, STEM, CD, CPSAA, CC, CE, CCEC) across the academic year." },
+              { role: "user", content: `Generate a complete LOMLOE lesson plan for:\n- Title: "${title}"\n- Subject: ${subject}\n- Year Group: ${yearGroup}\n- Duration: ${duration} min\n- Lesson Number: ${lessonNumber} of ${events.length} (${input.scope === 'year' ? 'full academic year' : input.scope === 'semester1' ? 'Semester 1' : input.scope === 'semester2' ? 'Semester 2' : 'Semester 3'})\n- Academic Year: ${academicYear}\n- Lesson Date: ${lessonDate ?? 'not specified'}\n\nThis is lesson ${lessonNumber} in a sequence of ${events.length} lessons for the ${input.scope === 'year' ? 'full academic year' : input.scope === 'semester1' ? 'first semester' : input.scope === 'semester2' ? 'second semester' : 'third semester'}. Generate a detailed, curriculum-aligned lesson plan that fits logically in this sequence with specific activities for each procedure stage.` },
             ],
             response_format: {
               type: "json_schema",
