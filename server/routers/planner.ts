@@ -2740,12 +2740,42 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
         rangeEnd = cal.endDate ?? cal.term3End ?? cal.term2End ?? null;
       }
 
+      // ── Fallback: synthesise a date range when the calendar has no dates configured ──────────
+      // This ensures bulk generation always works even on calendars without explicit date ranges.
+      if (!rangeStart || !rangeEnd) {
+        // Derive the academic year start from cal.academicYear (e.g. "2025-2026" → Sep 1 2025)
+        // or fall back to the nearest past September 1st.
+        let yearStart: Date;
+        if (cal.academicYear) {
+          const startYear = parseInt(cal.academicYear.split("-")[0], 10);
+          yearStart = new Date(`${startYear}-09-01T00:00:00.000Z`);
+        } else {
+          const now = new Date();
+          const y = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
+          yearStart = new Date(`${y}-09-01T00:00:00.000Z`);
+        }
+        // Scope-specific week counts and offsets
+        const scopeWeeks = input.scope === "year" ? 36
+          : input.scope === "semester1" ? 14
+          : input.scope === "semester2" ? 12
+          : 10; // semester3
+        const scopeOffsetWeeks = input.scope === "semester2" ? 14
+          : input.scope === "semester3" ? 26
+          : 0;
+        const scopeStart = new Date(yearStart.getTime() + scopeOffsetWeeks * 7 * 24 * 60 * 60 * 1000);
+        const scopeEnd = new Date(scopeStart.getTime() + scopeWeeks * 7 * 24 * 60 * 60 * 1000);
+        if (!rangeStart) rangeStart = scopeStart;
+        if (!rangeEnd) rangeEnd = scopeEnd;
+      }
+
        // ── Auto-create missing lesson events for all lesson days in scope ──────────
       // Parse the calendar's lessonDays (e.g. "[1,3,5]" where 1=Mon…7=Sun)
+      // Fallback to Mon–Fri (1,2,3,4,5) if no lesson days are configured
       let allowedWeekdays: number[] = [];
       try {
         if (cal.lessonDays) allowedWeekdays = JSON.parse(cal.lessonDays as string);
       } catch { /* ignore */ }
+      if (allowedWeekdays.length === 0) allowedWeekdays = [1, 2, 3, 4, 5]; // Mon–Fri default
 
       if (allowedWeekdays.length > 0 && rangeStart && rangeEnd) {
         // Fetch all existing events in scope (any type) to avoid clashes
@@ -2768,6 +2798,11 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
             .map(e => new Date(e.eventDate).toISOString().slice(0, 10))
         );
         // Walk through every day in the scope and create missing lesson events
+        // Cap at 36 lessons for the whole-year scope (or proportional for shorter scopes)
+        const maxLessons = input.scope === "year" ? 36
+          : input.scope === "semester1" ? 14
+          : input.scope === "semester2" ? 12
+          : 10; // semester3
         const subject = cal.subject ?? "General";
         const academicYear = cal.academicYear ?? `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`;
         const toInsert: { userId: number; calendarId: number; academicYear: string; eventDate: Date; eventType: "lesson"; title: string; tenantId: number | null }[] = [];
@@ -2776,7 +2811,7 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
         const end = new Date(rangeEnd);
         end.setHours(23, 59, 59, 999);
         let lessonSeq = existingLessonDates.size + 1;
-        while (cur <= end) {
+        while (cur <= end && (existingLessonDates.size + toInsert.length) < maxLessons) {
           const dow = cur.getDay(); // 0=Sun,1=Mon…6=Sat
           const iso = cur.toISOString().slice(0, 10);
           if (allowedWeekdays.includes(dow) && !holidayDates.has(iso) && !existingLessonDates.has(iso)) {

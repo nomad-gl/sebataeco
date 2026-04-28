@@ -4865,8 +4865,8 @@
 - [x] Add visual hint near the Lesson Information section indicating it is the only required section for AI Generate
 
 ## Performance: AI Generate speed improvements in Lesson Plan Editor
-- [ ] Split single monolithic AI generate call into parallel section-group calls (objectives+competencies, activities, assessment, resources)
-- [ ] Add streaming/progressive UI so each section populates as soon as its parallel call completes
+- [x] Split single monolithic AI generate call into parallel section-group calls (superseded by 3-parallel-call implementation below)
+- [x] Progressive UI added (3 animated spinners in dialog — superseded by persistent banner implementation)
 
 ## Performance: AI Generate speed improvement (Lesson Plan Editor)
 - [x] Split single sequential LLM call into 3 parallel Promise.all calls (Call A: skills/systems/competencies, Call B: curriculum content/procedures, Call C: differentiation tiers)
@@ -4888,3 +4888,7 @@
 - [x] Close dialog immediately on Generate click, show persistent purple generating banner while LLM runs in background
 - [x] Toolbar button shows animated spinner while aiMutation.isPending
 - [x] Removed selectedId guard — AI Generate Plans button always visible in toolbar
+
+## Bug: Whole Year bulk AI generation does not create 36 lesson plans
+- [x] Investigated: root cause was calendars with no startDate/endDate set — rangeStart/rangeEnd were null so auto-create was skipped
+- [x] Fixed: added fallback 36-week synthetic date range from academic year start; added Mon-Fri default for lessonDays; capped auto-create at 36 per scope
