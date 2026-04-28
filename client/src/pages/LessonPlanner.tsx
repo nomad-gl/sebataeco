@@ -1540,8 +1540,16 @@ export default function LessonPlanner() {
               </div>
             )}
 
-            <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">{t("lp_section_info")}</CardTitle></CardHeader>
+            <Card className="ring-1 ring-primary/20">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">{t("lp_section_info")}</CardTitle>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                    <SebaSymbol className="w-3 h-3" />
+                    {t("lp_ai_hint_required")}
+                  </span>
+                </div>
+              </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <div className="flex items-center gap-1.5 mb-1">

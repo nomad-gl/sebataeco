@@ -4860,3 +4860,6 @@
 ## Feature: Unify AI Generation Buttons in LessonPlanner
 - [x] "AI Generate Plans" toolbar button now opens the same single-plan AI dialog as "Generate with AI"
 - [x] Pre-fills dialog fields from the currently selected plan's form state
+
+## UX: AI Generate hint in Lesson Plan Editor
+- [x] Add visual hint near the Lesson Information section indicating it is the only required section for AI Generate
