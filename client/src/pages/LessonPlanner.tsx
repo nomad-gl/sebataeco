@@ -502,6 +502,7 @@ export default function LessonPlanner() {
   const [showBulkAiDialog, setShowBulkAiDialog] = useState(false);
   const [bulkAiScope, setBulkAiScope] = useState<"year" | "semester1" | "semester2" | "semester3">("year");
   const [bulkAiCalendarId, setBulkAiCalendarId] = useState<string>("");
+  const [bulkAiMethodology, setBulkAiMethodology] = useState<string>("");
   const [bulkAiRunning, setBulkAiRunning] = useState(false);
   const [bulkAiProgress, setBulkAiProgress] = useState<{ current: number; total: number } | null>(null);
   const utils = trpc.useUtils();
@@ -2519,6 +2520,30 @@ export default function LessonPlanner() {
                 ))}
               </div>
             </div>
+            {/* Teaching Methodology selector */}
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">{t("lp_bulk_ai_methodology")}</Label>
+              <Select value={bulkAiMethodology} onValueChange={setBulkAiMethodology} disabled={bulkAiRunning}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={t("lp_bulk_ai_methodology_placeholder")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{t("lp_bulk_ai_methodology_none")}</SelectItem>
+                  <SelectItem value="pbl">{t("lp_bulk_ai_methodology_pbl")}</SelectItem>
+                  <SelectItem value="ibl">{t("lp_bulk_ai_methodology_ibl")}</SelectItem>
+                  <SelectItem value="cbl">{t("lp_bulk_ai_methodology_cbl")}</SelectItem>
+                  <SelectItem value="flipped">{t("lp_bulk_ai_methodology_flipped")}</SelectItem>
+                  <SelectItem value="cooperative">{t("lp_bulk_ai_methodology_cooperative")}</SelectItem>
+                  <SelectItem value="clil">{t("lp_bulk_ai_methodology_clil")}</SelectItem>
+                  <SelectItem value="steam">{t("lp_bulk_ai_methodology_steam")}</SelectItem>
+                  <SelectItem value="montessori">{t("lp_bulk_ai_methodology_montessori")}</SelectItem>
+                  <SelectItem value="socratic">{t("lp_bulk_ai_methodology_socratic")}</SelectItem>
+                  <SelectItem value="gamification">{t("lp_bulk_ai_methodology_gamification")}</SelectItem>
+                  <SelectItem value="ubi">{t("lp_bulk_ai_methodology_ubi")}</SelectItem>
+                  <SelectItem value="direct">{t("lp_bulk_ai_methodology_direct")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             {/* Progress */}
             {bulkAiRunning && (
               <div className="flex items-center gap-2 rounded-lg bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 px-3 py-2">
@@ -2549,6 +2574,7 @@ export default function LessonPlanner() {
                   const result = await generateBulkMutation.mutateAsync({
                     calendarId: Number(bulkAiCalendarId),
                     scope: bulkAiScope,
+                    methodology: bulkAiMethodology || undefined,
                   });
                   setShowBulkAiDialog(false);
                   setBulkAiRunning(false);

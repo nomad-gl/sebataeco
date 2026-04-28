@@ -909,6 +909,7 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
 
+
       const DEFAULT_PROCEDURES = [
         { timing: "10 min", stage: "Warm-up", activities: "Engage students with a brief review or hook activity", grouping: "Whole class" },
         { timing: "20 min", stage: "Presentation", activities: "Introduce and explain the main concept with examples", grouping: "Whole class" },
@@ -2673,6 +2674,8 @@ The differentiation field MUST contain tailored content for all three learner ti
       calendarId: z.number(),
       /** 'year' | 'semester1' | 'semester2' | 'semester3' */
       scope: z.enum(["year", "semester1", "semester2", "semester3"]),
+      /** Optional teaching methodology/framework key, e.g. 'pbl', 'flipped', 'clil' */
+      methodology: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -2828,6 +2831,24 @@ The differentiation field MUST contain tailored content for all three learner ti
         if (d > 0) duration = d;
       }
 
+      // Map methodology key to a descriptive label for the LLM
+      const BULK_METHODOLOGY_LABELS: Record<string, string> = {
+        pbl: "Project-Based Learning (PBL) — students work on extended real-world projects, driving inquiry and collaboration",
+        ibl: "Inquiry-Based Learning (IBL) — students pose questions and investigate to construct knowledge",
+        cbl: "Challenge-Based Learning (CBL) — students tackle authentic challenges with real-world impact",
+        flipped: "Flipped Classroom — students engage with content at home (videos/readings) and use class time for practice and discussion",
+        cooperative: "Cooperative Learning — structured small-group tasks with positive interdependence and individual accountability",
+        clil: "CLIL (Content and Language Integrated Learning) — subject content taught through a second language, integrating language and content objectives",
+        steam: "STEAM Integration — cross-disciplinary connections to Science, Technology, Engineering, Arts, and Mathematics",
+        montessori: "Montessori Approach — self-directed, hands-on learning with mixed-age grouping and prepared environment",
+        socratic: "Socratic Method — teacher-led questioning to stimulate critical thinking and illuminate ideas",
+        gamification: "Gamification — game mechanics (points, badges, leaderboards, challenges) applied to motivate learning",
+        ubi: "Universal Design for Learning (UDL) — multiple means of representation, action/expression, and engagement for all learners",
+        direct: "Direct Instruction — explicit, structured teacher-led instruction with clear objectives, modelling, guided practice, and independent practice",
+      };
+      const methodologyLabel = input.methodology && input.methodology !== "none"
+        ? BULK_METHODOLOGY_LABELS[input.methodology] ?? input.methodology
+        : null;
       const DEFAULT_PROCEDURES = [
         { timing: "10 min", stage: "Warm-up", activities: "Engage students with a brief review or hook activity", grouping: "Whole class" },
         { timing: "20 min", stage: "Presentation", activities: "Introduce and explain the main concept with examples", grouping: "Whole class" },
@@ -2846,8 +2867,8 @@ The differentiation field MUST contain tailored content for all three learner ti
         try {
           const resp = await invokeLLM({
             messages: [
-              { role: "system", content: "You are a LOMLOE curriculum expert specialising in Spanish and Catalan education. Generate complete, detailed lesson plans with specific activities for each stage. Every field must be filled with real, curriculum-aligned content. Ensure each lesson builds progressively on previous ones and covers the required LOMLOE competencies (CCL, CP, STEM, CD, CPSAA, CC, CE, CCEC) across the academic year." },
-              { role: "user", content: `Generate a complete LOMLOE lesson plan for:\n- Title: "${title}"\n- Subject: ${subject}\n- Year Group: ${yearGroup}\n- Duration: ${duration} min\n- Lesson Number: ${lessonNumber} of ${events.length} (${input.scope === 'year' ? 'full academic year' : input.scope === 'semester1' ? 'Semester 1' : input.scope === 'semester2' ? 'Semester 2' : 'Semester 3'})\n- Academic Year: ${academicYear}\n- Lesson Date: ${lessonDate ?? 'not specified'}\n\nThis is lesson ${lessonNumber} in a sequence of ${events.length} lessons for the ${input.scope === 'year' ? 'full academic year' : input.scope === 'semester1' ? 'first semester' : input.scope === 'semester2' ? 'second semester' : 'third semester'}. Generate a detailed, curriculum-aligned lesson plan that fits logically in this sequence with specific activities for each procedure stage.` },
+              { role: "system", content: `You are a LOMLOE curriculum expert specialising in Spanish and Catalan education. Generate complete, detailed lesson plans with specific activities for each stage. Every field must be filled with real, curriculum-aligned content. Ensure each lesson builds progressively on previous ones and covers the required LOMLOE competencies (CCL, CP, STEM, CD, CPSAA, CC, CE, CCEC) across the academic year.${methodologyLabel ? `\n\nThe teacher has chosen the following teaching methodology for this lesson sequence: **${methodologyLabel}**. All lesson activities, procedures, grouping strategies, and learning tasks MUST be designed to reflect and implement this methodology throughout every stage of the lesson.` : ""}` },
+              { role: "user", content: `Generate a complete LOMLOE lesson plan for:\n- Title: "${title}"\n- Subject: ${subject}\n- Year Group: ${yearGroup}\n- Duration: ${duration} min\n- Lesson Number: ${lessonNumber} of ${events.length} (${input.scope === 'year' ? 'full academic year' : input.scope === 'semester1' ? 'Semester 1' : input.scope === 'semester2' ? 'Semester 2' : 'Semester 3'})\n- Academic Year: ${academicYear}\n- Lesson Date: ${lessonDate ?? 'not specified'}${methodologyLabel ? `\n- Teaching Methodology: ${methodologyLabel}` : ''}\n\nThis is lesson ${lessonNumber} in a sequence of ${events.length} lessons for the ${input.scope === 'year' ? 'full academic year' : input.scope === 'semester1' ? 'first semester' : input.scope === 'semester2' ? 'second semester' : 'third semester'}. Generate a detailed, curriculum-aligned lesson plan that fits logically in this sequence with specific activities for each procedure stage.${methodologyLabel ? ' Every activity, grouping strategy, and procedure stage MUST clearly reflect the chosen teaching methodology.' : ''}` },
             ],
             response_format: {
               type: "json_schema",
