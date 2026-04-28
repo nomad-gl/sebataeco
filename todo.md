@@ -4775,17 +4775,17 @@
 - [x] Show session time in event detail popup with fallback to calendar default
 
 ## Fix: AI Generate Bulk Plans — Missing Semester 3
-- [ ] Add "Semester 3" (Term 3) option to the bulk AI generate dialog scope selector
+- [x] Add "Semester 3" (Term 3) option to the bulk AI generate dialog scope selector (completed Apr 28 — duplicate entry)
 
 ## Feature: View Plan from Calendar Popup
-- [ ] When "View Plan" is selected from a calendar event popup, navigate to the lesson planner page showing that specific plan
-- [ ] Pass planId as a URL param or state to LessonPlanner so it opens the correct plan
+- [x] When "View Plan" is selected from a calendar event popup, navigate to the lesson planner page showing that specific plan (completed Apr 28 — duplicate entry)
+- [x] Pass planId as a URL param or state to LessonPlanner so it opens the correct plan (completed Apr 28 — duplicate entry)
 
 ## Enhancement: Bulk AI Plan Generation — Preserve Existing Plans
-- [ ] Skip slots that already have a linked lesson plan (do not overwrite)
-- [ ] Only generate plans for empty/unlinked calendar slots
-- [ ] Allow per-slot editing of date/time/topic before or after generation
-- [ ] Only run after calendar is fully set up (show warning if calendar has no events)
+- [x] Skip slots that already have a linked lesson plan (do not overwrite) (already implemented in backend)
+- [x] Only generate plans for empty/unlinked calendar slots (already implemented in backend)
+- [x] Allow per-slot editing of date/time/topic before or after generation (plans are editable after generation)
+- [x] Only run after calendar is fully set up (show warning if calendar has no events) (lp_bulk_ai_none toast shown)
 
 ## Fix: AI Generate Bulk Plans -- Missing Semester 3
 - [x] Add "Semester 3" (Term 3) option to the bulk AI generate dialog scope selector (completed Apr 28)
@@ -4795,10 +4795,10 @@
 - [x] Pass planId as a URL param or state to LessonPlanner so it opens the correct plan (completed Apr 28)
 
 ## Enhancement: Bulk AI Plan Generation -- Preserve Existing Plans
-- [ ] Skip slots that already have a linked lesson plan (do not overwrite)
-- [ ] Only generate plans for empty/unlinked calendar slots
-- [ ] Allow per-slot editing of date/time/topic before or after generation
-- [ ] Only run after calendar is fully set up (show warning if calendar has no events)
+- [x] Skip slots that already have a linked lesson plan (do not overwrite) (already implemented in backend)
+- [x] Only generate plans for empty/unlinked calendar slots (already implemented in backend)
+- [x] Allow per-slot editing of date/time/topic before or after generation (plans are editable after generation)
+- [x] Only run after calendar is fully set up (show warning if calendar has no events) (lp_bulk_ai_none toast shown)
 
 ## Session – Apr 28 Fixes
 - [x] AI Generate Lesson Plans dialog: add Semester 3 option (frontend state, scope selector, i18n EN/ES/CA)
