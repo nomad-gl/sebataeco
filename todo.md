@@ -4835,3 +4835,16 @@
 - [x] Added Edit Calendar pencil icon button to mobile toolbar — visible when a calendar is selected
 - [x] Delete Calendar confirmation dialog is accessible from inside the Edit Calendar dialog
 - [x] TypeScript 0 errors verified
+
+## Feature: Hidden Super-Admin Role for paulharrymitchell@gmail.com and mitchellromi@gmail.com
+- [x] Implemented using existing role='admin' (no new enum value needed — avoids schema migration)
+- [x] Added SUPER_ADMIN_EMAILS constant to server/db.ts with both emails
+- [x] Modified upsertUser() in server/db.ts to auto-promote these emails to role='admin' on every login (self-healing)
+- [x] Promoted both users directly in the database via SQL (immediate effect, no login required)
+- [x] Modified getUsersForAdmin in director.ts: filters out role='admin' users when caller is not super-admin
+- [x] Modified listUsers in director.ts: filters out role='admin' users when caller is not super-admin
+- [x] Audited analytics.ts: user queries are aggregate counts behind role='admin' guard — no exposure risk
+- [x] Audited assignmentRequests.ts: user queries are lookup-by-ID only — no list exposure risk
+- [x] Audited cover.ts: user queries filter by tenantId + role='teacher' — super-admins (tenantId=null, role='admin') cannot appear
+- [x] ctx.isSuperAdmin=true and ctx.tenantId=null set in trpc.ts adminProcedure middleware for role='admin' users
+- [x] TypeScript 0 errors verified

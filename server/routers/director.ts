@@ -474,7 +474,12 @@ export const directorRouter = router({
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
     const tid = ctx.tenantId;
-    return db.select({ id: users.id, name: users.name, email: users.email, role: users.role, createdAt: users.createdAt, lastSignedIn: users.lastSignedIn }).from(users).where(tid != null ? eq(users.tenantId, tid) : undefined).orderBy(desc(users.createdAt));
+    // Non-super-admins (directors, HoS) must never see platform-level admins (role='admin')
+    // Super-admins (isSuperAdmin=true, tid=null) see all users
+    const whereClause = tid != null
+      ? and(eq(users.tenantId, tid), sql`${users.role} != 'admin'`)
+      : undefined;
+    return db.select({ id: users.id, name: users.name, email: users.email, role: users.role, createdAt: users.createdAt, lastSignedIn: users.lastSignedIn }).from(users).where(whereClause).orderBy(desc(users.createdAt));
   }),
 
   /** Update a user's role - sends owner notification when promoting to admin */
@@ -868,7 +873,8 @@ export const directorRouter = router({
         createdAt: users.createdAt,
       })
       .from(users)
-      .where(tid != null ? eq(users.tenantId, tid) : undefined)
+      // Non-super-admins (directors, HoS) must never see platform-level admins (role='admin')
+      .where(tid != null ? and(eq(users.tenantId, tid), sql`${users.role} != 'admin'`) : undefined)
       .orderBy(desc(users.lastSignedIn));
     return allUsers;
   }),

