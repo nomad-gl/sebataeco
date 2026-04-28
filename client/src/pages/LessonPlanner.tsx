@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { Plus, Trash2, Printer, BookOpen, Save, List, X, Copy, LayoutTemplate, FolderOpen, FileDown, ArrowUpDown, ArrowUp01, CalendarDays, Loader2, RefreshCw, Hash, ArrowLeft, Sparkles, Pencil } from "lucide-react";
+import { Plus, Trash2, Printer, BookOpen, Save, SaveAll, List, X, Copy, LayoutTemplate, FolderOpen, FileDown, ArrowUpDown, ArrowUp01, CalendarDays, Loader2, RefreshCw, Hash, ArrowLeft, Sparkles, Pencil } from "lucide-react";
 import { SebaSymbol } from "@/components/SebaSymbol";
 import { useLocation } from "wouter";
 import NavBar from "@/components/NavBar";
@@ -1033,9 +1033,68 @@ export default function LessonPlanner() {
     setSheetOpen(false);
   };
 
-  const handleSave = () => {
+   const handleSave = () => {
     if (!form.title.trim()) { toast.error(t("lp_title_required")); return; }
     saveMutation.mutate({ id: selectedId ?? undefined, ...formToSave(form) });
+  };
+
+  // ── Bulk Save ────────────────────────────────────────────────────────────────
+  const [bulkSaveRunning, setBulkSaveRunning] = useState(false);
+  const handleBulkSave = async () => {
+    if (bulkSaveRunning) return;
+    const allPlans = plans as any[];
+    if (allPlans.length === 0) { toast.info(t("lp_bulk_save_none")); return; }
+    setBulkSaveRunning(true);
+    let savedCount = 0;
+    for (const plan of allPlans) {
+      if (!plan.title?.trim()) continue;
+      try {
+        await utils.client.planner.saveLessonPlan.mutate({
+          id: plan.id,
+          title: plan.title,
+          unit: plan.unit ?? undefined,
+          lessonNumber: plan.lessonNumber ?? undefined,
+          academicYear: plan.academicYear ?? undefined,
+          duration: plan.duration ?? undefined,
+          yearGroup: plan.yearGroup ?? undefined,
+          subject: plan.subject ?? undefined,
+          skills: plan.skills ?? undefined,
+          systems: plan.systems ?? undefined,
+          specificCompetences: plan.specificCompetences ?? undefined,
+          saberesBasicos: plan.saberesBasicos ?? undefined,
+          learningOutcomes: plan.learningOutcomes ?? undefined,
+          evaluationCriteria: plan.evaluationCriteria ?? undefined,
+          previousKnowledge: plan.previousKnowledge ?? undefined,
+          materials: plan.materials ?? undefined,
+          spaces: plan.spaces ?? undefined,
+          procedures: plan.procedures ?? undefined,
+          competencies: plan.competencies ?? undefined,
+          differentiation: plan.differentiation ?? undefined,
+          sessionTime: plan.sessionTime ?? undefined,
+          infantilEix: plan.infantilEix ?? undefined,
+          infantilCycle: plan.infantilCycle ?? undefined,
+        });
+        savedCount++;
+      } catch (e: any) {
+        toast.error(`${plan.title ?? t("lp_untitled")}: ${e.message}`);
+      }
+    }
+    // Also save the currently open (possibly dirty) plan
+    if (selectedId && form.title.trim()) {
+      try {
+        await utils.client.planner.saveLessonPlan.mutate({ id: selectedId, ...formToSave(form) });
+        setIsDirty(false);
+      } catch (e: any) {
+        toast.error(`${form.title}: ${e.message}`);
+      }
+    }
+    await utils.planner.listLessonPlans.invalidate();
+    setBulkSaveRunning(false);
+    if (savedCount === 0 && !isDirty) {
+      toast.info(t("lp_bulk_save_none"));
+    } else {
+      toast.success(t("lp_bulk_saved_toast").replace("{{count}}", String(savedCount)));
+    }
   };
 
   const handlePrint = () => {
@@ -1296,8 +1355,19 @@ export default function LessonPlanner() {
                 </Button>
               )}
 
-              {/* Save — pushed to the right */}
-              <Button size="sm" onClick={handleSave} disabled={saveMutation.isPending} className="gap-1 ml-auto h-8">
+              {/* Bulk Save + Save — pushed to the right */}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleBulkSave}
+                disabled={bulkSaveRunning || saveMutation.isPending}
+                className="gap-1 ml-auto h-8"
+                title={t("lp_bulk_save_tooltip")}
+              >
+                {bulkSaveRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <SaveAll className="w-4 h-4" />}
+                <span className="hidden sm:inline">{bulkSaveRunning ? t("lp_bulk_saving") : t("lp_bulk_save")}</span>
+              </Button>
+              <Button size="sm" onClick={handleSave} disabled={saveMutation.isPending || bulkSaveRunning} className="gap-1 h-8">
                 <Save className="w-4 h-4" />
                 <span className="hidden sm:inline">{saveMutation.isPending ? t("lp_saving") : t("lp_save")}</span>
                 <span className="sm:hidden">{saveMutation.isPending ? "…" : t("lp_save")}</span>
