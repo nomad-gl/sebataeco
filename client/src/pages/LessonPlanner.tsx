@@ -1483,7 +1483,12 @@ export default function LessonPlanner() {
               )}
 
               {/* AI Generate Plans — opens the same single-plan AI dialog as Generate with AI */}
-              {selectedId && (
+              {aiMutation.isPending ? (
+                <Button variant="ghost" size="sm" disabled className="gap-1 text-purple-600 h-8 px-2">
+                  <span className="inline-block w-3.5 h-3.5 rounded-full border-2 border-purple-600 border-t-transparent animate-spin" />
+                  <span className="hidden md:inline text-xs">{t("lp_generating")}</span>
+                </Button>
+              ) : (
                 <Button variant="ghost" size="sm" onClick={() => {
                   // Pre-fill dialog from current form
                   if (form.title) {
@@ -1522,6 +1527,14 @@ export default function LessonPlanner() {
             </div>
 
             {/* Section 1: Header info */}
+            {/* AI Generating — persistent background banner */}
+            {aiMutation.isPending && (
+              <div className="flex items-center gap-2 rounded-lg border border-purple-300 bg-purple-50 dark:bg-purple-950/30 dark:border-purple-700 px-4 py-2.5 text-sm text-purple-800 dark:text-purple-300 animate-in fade-in slide-in-from-top-2 duration-300">
+                <span className="inline-block w-4 h-4 rounded-full border-2 border-purple-600 border-t-transparent animate-spin shrink-0" />
+                <span className="font-medium">{t("lp_generating")}</span>
+                <span className="text-purple-700 dark:text-purple-400 flex-1 text-xs">{t("lp_ai_parallel_generating")}</span>
+              </div>
+            )}
             {/* Draft — no calendar banner */}
             {selectedId && !(plans as any[]).find((p: any) => p.id === selectedId)?.calendarEventId && (
               <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 px-4 py-2.5 text-sm text-amber-800 dark:text-amber-300">
@@ -2242,6 +2255,8 @@ export default function LessonPlanner() {
               if (!aiTitle.trim()) { toast.error(t("lp_title_required")); return; }
               if (aiDate && !aiCalendarId && (calendars as any[]).length > 0) { toast.error(t("lp_select_calendar")); return; }
 
+              // Close dialog immediately so the user isn't blocked waiting
+              setShowAiDialog(false);
               if (aiPlanningScope === "single") {
                 // Single lesson — existing behaviour
                 const existingSnapshot = selectedId && form.title ? {

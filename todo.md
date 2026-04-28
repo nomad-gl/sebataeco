@@ -4883,3 +4883,8 @@
 
 ## UX: AI hint badge text update
 - [x] Changed hint badge text to 'Complete this section and SAVE to use AI Generate'
+
+## UX: AI Generate Plans speed/responsiveness improvements
+- [x] Close dialog immediately on Generate click, show persistent purple generating banner while LLM runs in background
+- [x] Toolbar button shows animated spinner while aiMutation.isPending
+- [x] Removed selectedId guard — AI Generate Plans button always visible in toolbar
