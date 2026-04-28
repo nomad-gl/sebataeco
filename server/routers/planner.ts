@@ -2857,18 +2857,121 @@ The differentiation field MUST contain tailored content for all three learner ti
         { timing: "5 min", stage: "Closure", activities: "Review key points and assign homework if needed", grouping: "Whole class" },
       ];
 
+      // ── Phase 1: Generate a topic outline for the entire sequence ──────────────
+      // We ask the LLM to produce a structured curriculum map: one topic per lesson,
+      // with a unique title, the primary LOMLOE competency focus, and the type of
+      // activity that best suits that lesson (so grouping can be derived per lesson).
+      let topicOutline: Array<{
+        lessonNumber: number;
+        title: string;
+        topic: string;
+        competencyFocus: string;   // e.g. "CCL", "STEM", "CPSAA"
+        activityType: string;      // e.g. "project", "debate", "lab", "game", "direct"
+        resources: string;         // comma-separated list of concrete resources
+      }> = [];
+
+      try {
+        const scopeLabel = input.scope === "year" ? "full academic year"
+          : input.scope === "semester1" ? "Semester 1 (first term)"
+          : input.scope === "semester2" ? "Semester 2 (second term)"
+          : "Semester 3 (third term)";
+
+        const outlineResp = await invokeLLM({
+          messages: [
+            {
+              role: "system",
+              content: `You are a LOMLOE curriculum designer for Spanish and Catalan schools. Your task is to produce a structured, progressive curriculum map for a sequence of lessons. Each lesson must have a UNIQUE title and topic that builds on the previous one, covering the full range of LOMLOE competencies (CCL, CP, STEM, CD, CPSAA, CC, CE, CCEC) across the sequence. Topics must follow the official LOMLOE curriculum guidelines for the subject and year group. Vary the activity types (e.g. project work, debate, experiment, game, direct instruction, collaborative task, creative writing, research, presentation, assessment) so no two consecutive lessons use the same approach. Resources must be specific and concrete (e.g. "textbook pp. 34–38, flashcard set, digital quiz on Kahoot, A3 poster paper, science lab equipment").${methodologyLabel ? `\n\nAll lessons must be designed using the ${methodologyLabel} methodology.` : ""}`,
+            },
+            {
+              role: "user",
+              content: `Generate a curriculum map for ${events.length} lessons of ${subject} for ${yearGroup} students during the ${scopeLabel} of academic year ${academicYear}.\n\nReturn a JSON array with exactly ${events.length} objects, one per lesson, in chronological order. Each object must have:\n- lessonNumber (integer, 1-based)\n- title (unique, specific lesson title — NOT just "Lesson 1" or "${subject} Lesson")\n- topic (2–3 sentence description of what is taught and why it follows from the previous lesson)\n- competencyFocus (the PRIMARY LOMLOE competency: CCL | CP | STEM | CD | CPSAA | CC | CE | CCEC)\n- activityType (one of: direct_instruction | collaborative_task | project | debate | experiment | game | creative | research | presentation | assessment | flipped | inquiry)\n- resources (specific, concrete list of materials and digital tools for this lesson)\n\nEnsure the topics progress logically from foundational to more complex, cover the breadth of the ${subject} curriculum for ${yearGroup}, and that no two consecutive lessons share the same activityType.`,
+            },
+          ],
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "curriculum_outline",
+              strict: true,
+              schema: {
+                type: "object",
+                properties: {
+                  lessons: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        lessonNumber: { type: "integer" },
+                        title: { type: "string" },
+                        topic: { type: "string" },
+                        competencyFocus: { type: "string" },
+                        activityType: { type: "string" },
+                        resources: { type: "string" },
+                      },
+                      required: ["lessonNumber", "title", "topic", "competencyFocus", "activityType", "resources"],
+                      additionalProperties: false,
+                    },
+                  },
+                },
+                required: ["lessons"],
+                additionalProperties: false,
+              },
+            },
+          },
+        });
+        const outlineRaw = outlineResp.choices?.[0]?.message?.content;
+        const outlineRawStr = typeof outlineRaw === "string" ? outlineRaw : null;
+        if (outlineRawStr) {
+          const parsed = JSON.parse(outlineRawStr);
+          topicOutline = parsed.lessons ?? [];
+        }
+      } catch {
+        // If outline generation fails, fall back to generic titles
+      }
+
+      // Grouping strategy derived from activityType
+      const GROUPING_BY_ACTIVITY: Record<string, string> = {
+        direct_instruction: "Whole class",
+        collaborative_task: "Groups of 3–4",
+        project: "Groups of 3–4",
+        debate: "Two teams / whole class",
+        experiment: "Pairs or groups of 3",
+        game: "Teams / whole class",
+        creative: "Individual or pairs",
+        research: "Individual or pairs",
+        presentation: "Individual or small groups",
+        assessment: "Individual",
+        flipped: "Individual (home) → pairs (class)",
+        inquiry: "Groups of 3–4",
+      };
+
+      // ── Phase 2: Generate each individual lesson plan ─────────────────────────
       let created = 0;
       for (let i = 0; i < events.length; i++) {
         const ev = events[i];
         const lessonDate = ev.eventDate ? new Date(ev.eventDate).toISOString().slice(0, 10) : null;
         const lessonNumber = String(i + 1);
-        const title = ev.title || `${subject} Lesson ${lessonNumber}`;
-
+        const outline = topicOutline[i];
+        const title = outline?.title || ev.title || `${subject} Lesson ${lessonNumber}`;
+        const topic = outline?.topic || "";
+        const competencyFocus = outline?.competencyFocus || "CCL";
+        const activityType = outline?.activityType || "direct_instruction";
+        const suggestedResources = outline?.resources || "";
+        const suggestedGrouping = GROUPING_BY_ACTIVITY[activityType] ?? "Whole class";
+        const scopeLabel = input.scope === "year" ? "full academic year"
+          : input.scope === "semester1" ? "first semester"
+          : input.scope === "semester2" ? "second semester"
+          : "third semester";
         try {
           const resp = await invokeLLM({
             messages: [
-              { role: "system", content: `You are a LOMLOE curriculum expert specialising in Spanish and Catalan education. Generate complete, detailed lesson plans with specific activities for each stage. Every field must be filled with real, curriculum-aligned content. Ensure each lesson builds progressively on previous ones and covers the required LOMLOE competencies (CCL, CP, STEM, CD, CPSAA, CC, CE, CCEC) across the academic year.${methodologyLabel ? `\n\nThe teacher has chosen the following teaching methodology for this lesson sequence: **${methodologyLabel}**. All lesson activities, procedures, grouping strategies, and learning tasks MUST be designed to reflect and implement this methodology throughout every stage of the lesson.` : ""}` },
-              { role: "user", content: `Generate a complete LOMLOE lesson plan for:\n- Title: "${title}"\n- Subject: ${subject}\n- Year Group: ${yearGroup}\n- Duration: ${duration} min\n- Lesson Number: ${lessonNumber} of ${events.length} (${input.scope === 'year' ? 'full academic year' : input.scope === 'semester1' ? 'Semester 1' : input.scope === 'semester2' ? 'Semester 2' : 'Semester 3'})\n- Academic Year: ${academicYear}\n- Lesson Date: ${lessonDate ?? 'not specified'}${methodologyLabel ? `\n- Teaching Methodology: ${methodologyLabel}` : ''}\n\nThis is lesson ${lessonNumber} in a sequence of ${events.length} lessons for the ${input.scope === 'year' ? 'full academic year' : input.scope === 'semester1' ? 'first semester' : input.scope === 'semester2' ? 'second semester' : 'third semester'}. Generate a detailed, curriculum-aligned lesson plan that fits logically in this sequence with specific activities for each procedure stage.${methodologyLabel ? ' Every activity, grouping strategy, and procedure stage MUST clearly reflect the chosen teaching methodology.' : ''}` },
+              {
+                role: "system",
+                content: `You are a LOMLOE curriculum expert specialising in Spanish and Catalan education. Generate a complete, detailed lesson plan. Every field must be filled with real, curriculum-aligned content specific to the lesson topic. Differentiation MUST describe concrete, different activities for three learner levels (advanced, standard, slower) — not just generic descriptions. Resources must be specific and concrete. Grouping must match the activity type.${methodologyLabel ? `\n\nThe teacher has chosen the following teaching methodology: **${methodologyLabel}**. All activities, procedures, and tasks MUST implement this methodology.` : ""}`,
+              },
+              {
+                role: "user",
+                content: `Generate a complete LOMLOE lesson plan for:\n- Lesson Number: ${lessonNumber} of ${events.length} (${scopeLabel})\n- Title: "${title}"\n- Topic: ${topic || title}\n- Subject: ${subject}\n- Year Group: ${yearGroup}\n- Duration: ${duration} min\n- Academic Year: ${academicYear}\n- Lesson Date: ${lessonDate ?? "not specified"}\n- Primary Competency Focus: ${competencyFocus}\n- Activity Type: ${activityType} (use this to determine grouping and task design)\n- Suggested Grouping: ${suggestedGrouping}\n- Suggested Resources: ${suggestedResources || "textbook, whiteboard, worksheets"}\n${methodologyLabel ? `- Teaching Methodology: ${methodologyLabel}\n` : ""}\nIMPORTANT REQUIREMENTS:\n1. The lesson title and content must be UNIQUE to this specific topic — do not use generic placeholders.\n2. Procedures must have 4–6 stages with SPECIFIC activities for THIS topic (not generic descriptions). Each stage must specify a concrete grouping that matches the activity.\n3. Differentiation must describe DIFFERENT, CONCRETE activities for advanced, standard, and slower learners — not just "more/less support".\n4. Materials must list SPECIFIC resources (books with page numbers, digital tools by name, physical materials).\n5. Learning outcomes and evaluation criteria must be specific to this lesson's topic and competency focus.\n6. saberesBasicos must reference the actual LOMLOE curriculum content blocks for ${subject} at ${yearGroup} level.\n7. This is lesson ${lessonNumber} in a sequence — ensure it builds logically on previous lessons and prepares for the next.`,
+              },
             ],
             response_format: {
               type: "json_schema",
@@ -2897,14 +3000,16 @@ The differentiation field MUST contain tailored content for all three learner ti
               },
             },
           });
-
           const rawContent = resp.choices?.[0]?.message?.content;
           const raw = typeof rawContent === "string" ? rawContent : null;
           if (!raw) continue;
           const ai = JSON.parse(raw);
-
+          // Update the calendar event title to match the generated lesson title
+          await db.update(schoolCalendarEvents)
+            .set({ title })
+            .where(eq(schoolCalendarEvents.id, ev.id));
           // Insert the plan
-          const [inserted] = await db.insert(lessonPlans).values({
+          await db.insert(lessonPlans).values({
             userId: ctx.user.id,
             tenantId: ctx.user.tenantId ?? null,
             title,
@@ -2930,15 +3035,11 @@ The differentiation field MUST contain tailored content for all three learner ti
             differentiation: JSON.stringify(ai.differentiation ?? null),
             competencies: JSON.stringify(ai.competencies ?? []),
           });
-
-          // The lesson plan is linked to the event via calendarEventId on the plan row.
-          // No separate update to schoolCalendarEvents is needed.
           created++;
         } catch {
           // Skip individual failures and continue with the rest
         }
       }
-
       return { created, total: events.length };
     }),
 

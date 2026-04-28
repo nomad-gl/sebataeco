@@ -1022,7 +1022,13 @@ export default function LessonPlanner() {
 
   const newPlan = () => {
     setSelectedId(null);
-    setForm(emptyForm());
+    // Auto-fill lesson number as max existing + 1
+    const maxLesson = (plans as any[]).reduce((max: number, p: any) => {
+      const n = p.lessonNumber ? Number(p.lessonNumber) : 0;
+      return isNaN(n) ? max : Math.max(max, n);
+    }, 0);
+    const nextLesson = maxLesson + 1;
+    setForm({ ...emptyForm(), lessonNumber: String(nextLesson) });
     setIsDirty(false);
     setSheetOpen(false);
   };
