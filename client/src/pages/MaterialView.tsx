@@ -1268,7 +1268,7 @@ function ExportToolbar({
             <Printer className="w-4 h-4" /> {t("material_print")}
           </DialogTitle>
           <DialogDescription>
-            {t("sa_meta_subtitle")}
+            {t("sa_meta_dialog_desc")}
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-3 py-2">
@@ -1286,14 +1286,14 @@ function ExportToolbar({
                 </div>
               ) : (
                 <div className="w-14 h-14 rounded border-2 border-dashed border-muted-foreground/30 flex items-center justify-center text-muted-foreground text-xs text-center leading-tight">
-                  {t("sa_meta_no_badge")}
+                  {t("sa_meta_school_badge")}
                 </div>
               )}
               <div className="flex flex-col gap-1">
                 <label className="cursor-pointer">
                   <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded border border-border bg-muted hover:bg-muted/80 transition-colors">
                     {badgeUploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileDown className="w-3 h-3" />}
-                    {t("sa_meta_upload_badge")}
+                    {t("sa_meta_school_badge_upload")}
                   </span>
                   <input type="file" accept="image/*" className="hidden" onChange={handleBadgeUpload} />
                 </label>
@@ -1302,7 +1302,7 @@ function ExportToolbar({
                     onClick={() => setSchoolBadgeUrl(branding.logoUrl!)}
                     className="text-xs text-primary underline underline-offset-2 text-left"
                   >
-                    {t("sa_meta_use_school_logo")}
+                    {t("sa_meta_school_badge_use_existing")}
                   </button>
                 )}
               </div>
@@ -1333,7 +1333,7 @@ function ExportToolbar({
 
           {/* Class details */}
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="pm-class">{t("sa_meta_class_details")}</Label>
+            <Label htmlFor="pm-class">{t("sa_meta_class_group")}</Label>
             <Input
               id="pm-class"
               value={classDetails}
