@@ -4927,3 +4927,7 @@
 ## Feature: Password-not-set reminder
 - [x] Daily server-side check: send in-app notification to users with mustChangePassword=true
 - [x] In-app PasswordReminderBanner: persistent red banner with security messaging and link to /change-password
+
+## Feature: Post-approval roles confirmation
+- [x] DirectorApprovals: invalidate listAllUsersForAdmin on approval + add View in Roles button
+- [x] RoleManagement: read ?newUser= param, highlight row, show confirmation card with details and tool access

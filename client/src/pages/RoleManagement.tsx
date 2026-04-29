@@ -53,9 +53,10 @@ import {
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import BackButton from "@/components/BackButton";
 import { toast } from "sonner";
+import { CheckCircle2, Wrench } from "lucide-react";
 import { CATALONIA_SCHOOLS, CATALONIA_MUNICIPALITIES, SCHOOLS_BY_MUNICIPALITY } from "@/data/cataloniaSchools";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -143,6 +144,27 @@ export default function RoleManagement() {
     },
     onError: (err) => toast.error(err.message),
   });
+
+  // ── Post-approval confirmation ──────────────────────────────────────────────
+  const [newUserId, setNewUserId] = useState<number | null>(null);
+  const newUserRowRef = useRef<HTMLTableRowElement | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("newUser");
+    if (id) {
+      setNewUserId(Number(id));
+      // Clean the URL so a refresh doesn't retrigger the highlight
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
+
+  // Auto-scroll to the highlighted row once users have loaded
+  useEffect(() => {
+    if (newUserId && newUserRowRef.current) {
+      newUserRowRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [newUserId, users]);
 
   const [search, setSearch] = useState("");
   const [filterRole, setFilterRole] = useState<string>("all");
@@ -341,6 +363,56 @@ export default function RoleManagement() {
         </div>
       </div>
 
+      {/* Post-approval confirmation banner */}
+      {newUserId && (() => {
+        const nu = users.find((u) => u.id === newUserId);
+        if (!nu) return null;
+        const teacherTools = [
+          "Lesson Planner", "My Materials", "Class Challenge",
+          "Groups & Progress", "Attendance", "Class Register",
+          "Forum & Connect", "Individual Plans",
+        ];
+        return (
+          <div className="rounded-lg border border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-950/30 p-4 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0" />
+                <span className="font-semibold text-green-800 dark:text-green-300">
+                  Teacher account approved and active
+                </span>
+              </div>
+              <button
+                onClick={() => setNewUserId(null)}
+                className="text-muted-foreground hover:text-foreground"
+                aria-label="Dismiss"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm">
+              <div><span className="text-muted-foreground">Name: </span><span className="font-medium">{nu.displayName ?? nu.name ?? "—"}</span></div>
+              <div><span className="text-muted-foreground">Email: </span><span className="font-medium">{nu.email ?? "—"}</span></div>
+              <div><span className="text-muted-foreground">Role: </span><RoleBadge role={nu.role} t={t} /></div>
+              <div><span className="text-muted-foreground">Position: </span><span className="font-medium capitalize">{nu.position ?? "—"}</span></div>
+              {nu.schoolName && <div className="sm:col-span-2"><span className="text-muted-foreground">School: </span><span className="font-medium">{nu.schoolName}</span></div>}
+            </div>
+            <div className="pt-1">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">
+                <Wrench className="w-3.5 h-3.5" />
+                <span className="font-medium">Tools now accessible:</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {teacherTools.map((tool) => (
+                  <span key={tool} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                    {tool}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {ALL_ROLES.map((role) => {
@@ -493,7 +565,15 @@ export default function RoleManagement() {
                 </thead>
                 <tbody>
                   {filtered.map((user) => (
-                    <tr key={user.id} className={`group border-b last:border-0 hover:bg-muted/20 transition-colors ${user.deactivatedAt ? "opacity-50" : ""} ${selectedIds.has(user.id) ? "bg-violet-50 dark:bg-violet-950/20" : ""}`}>
+                    <tr
+                      key={user.id}
+                      ref={user.id === newUserId ? newUserRowRef : undefined}
+                      className={`group border-b last:border-0 hover:bg-muted/20 transition-colors
+                        ${user.deactivatedAt ? "opacity-50" : ""}
+                        ${selectedIds.has(user.id) ? "bg-violet-50 dark:bg-violet-950/20" : ""}
+                        ${user.id === newUserId ? "ring-2 ring-inset ring-green-400 dark:ring-green-600 bg-green-50 dark:bg-green-950/20" : ""}
+                      `}
+                    >
                       {filterRole === "unassigned" && (
                         <td className="px-4 py-3">
                           <input

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckCircle2, XCircle, ClipboardList, UserPlus, Eye, EyeOff, Copy, Pencil, BookOpen, Mail } from "lucide-react";
+import { CheckCircle2, XCircle, ClipboardList, UserPlus, Eye, EyeOff, Copy, Pencil, BookOpen, Mail, Users } from "lucide-react";
 import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useI18n } from "@/contexts/I18nContext";
@@ -132,6 +132,8 @@ export default function DirectorApprovals() {
         setJustApprovedTeacher({ userId: data.newUserId, name: approvedSub?.teacherName ?? data.teacherEmail });
       }
       utils.director.listPendingTeacherSubmissions.invalidate();
+      // Refresh the roles page data so it reflects the new user immediately
+      utils.director.listAllUsersForAdmin.invalidate();
     },
     onError: (err: { message: string }) => toast.error(err.message),
   });
@@ -141,7 +143,9 @@ export default function DirectorApprovals() {
       toast.success(t("dir_ts_updated_toast"));
       setEditDialogOpen(false);
       setEditingSubmission(null);
-      utils.director.listPendingTeacherSubmissions.invalidate();
+       utils.director.listPendingTeacherSubmissions.invalidate();
+      // Refresh the roles page so it immediately reflects the new user
+      utils.director.listAllUsersForAdmin.invalidate();
     },
     onError: (err: { message: string }) => toast.error(err.message),
   });
@@ -356,6 +360,24 @@ export default function DirectorApprovals() {
                   >
                     <BookOpen className="w-3.5 h-3.5" />
                     {t("dir_ts_set_subjects_schedule")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5"
+                    onClick={() => navigate(`/seba/roles?newUser=${justApprovedTeacher.userId}`)}
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    View in Roles
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5"
+                    onClick={() => navigate(`/seba/roles?newUser=${justApprovedTeacher.userId}`)}
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    View in Roles
                   </Button>
                   <button
                     onClick={() => { setJustApprovedTeacher(null); setWelcomeEmailSent(false); }}
