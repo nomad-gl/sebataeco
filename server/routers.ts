@@ -1,4 +1,5 @@
-import { COOKIE_NAME } from "@shared/const";
+import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import { SignJWT, jwtVerify } from "jose";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
@@ -76,6 +77,74 @@ export const appRouter = router({
         const { users } = await import("../drizzle/schema");
         const { eq } = await import("drizzle-orm");
         await dbConn.update(users).set({ cutcgMemberNumber: input.memberNumber }).where(eq(users.id, ctx.user.id));
+        return { success: true };
+      }),
+
+    /**
+     * Generate a short-lived (60 s) cross-origin SSO token.
+     * The destination domain calls redeemCrossOriginToken to exchange it
+     * for a full session cookie, enabling seamless cross-domain login.
+     */
+    generateCrossOriginToken: protectedProcedure
+      .mutation(async ({ ctx }) => {
+        const { ENV } = await import("./_core/env");
+        const secret = new TextEncoder().encode(ENV.cookieSecret);
+        const token = await new SignJWT({
+          sub: String(ctx.user.id),
+          openId: ctx.user.openId,
+          type: "cross_origin_sso",
+        })
+          .setProtectedHeader({ alg: "HS256" })
+          .setIssuedAt()
+          .setExpirationTime("60s")
+          .sign(secret);
+        return { token };
+      }),
+
+    /**
+     * Redeem a cross-origin SSO token issued by generateCrossOriginToken.
+     * Verifies the JWT, looks up the user, and issues a full session cookie
+     * on the current domain — completing the cross-domain login.
+     */
+    redeemCrossOriginToken: publicProcedure
+      .input(z.object({ token: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        const { TRPCError } = await import("@trpc/server");
+        const { ENV } = await import("./_core/env");
+        const secret = new TextEncoder().encode(ENV.cookieSecret);
+        let payload: { sub?: string; openId?: string; type?: string };
+        try {
+          const result = await jwtVerify(input.token, secret);
+          payload = result.payload as typeof payload;
+        } catch {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid or expired SSO token." });
+        }
+        if (payload.type !== "cross_origin_sso" || !payload.openId) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid SSO token type." });
+        }
+        const dbConn = await getDb();
+        if (!dbConn) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+        const { users } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const [user] = await dbConn
+          .select({ id: users.id, openId: users.openId, role: users.role, name: users.name })
+          .from(users)
+          .where(eq(users.openId, payload.openId))
+          .limit(1);
+        if (!user) throw new TRPCError({ code: "UNAUTHORIZED", message: "User not found." });
+        // Issue a full 1-year session cookie on this domain
+        const sessionToken = await new SignJWT({
+          sub: String(user.id),
+          openId: user.openId,
+          role: user.role,
+          name: user.name,
+        })
+          .setProtectedHeader({ alg: "HS256" })
+          .setIssuedAt()
+          .setExpirationTime("365d")
+          .sign(secret);
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
         return { success: true };
       }),
 

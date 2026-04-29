@@ -4937,3 +4937,10 @@
 - [x] Create AdminUserManagement page (super-admin view, all users across all schools grouped by school)
 - [x] Add /seba/user-management route in App.tsx
 - [x] Add User Management link to Territorial Services section of Administration dropdown in NavBar
+
+## Cross-domain SSO (sebataeco.com ↔ aina.forum)
+- [x] Add auth.generateCrossOriginToken procedure (protected, 60s JWT)
+- [x] Add auth.redeemCrossOriginToken procedure (public, sets session cookie)
+- [x] Add useCrossOriginAuth hook to redeem sso_token on page load
+- [x] Wire hook into App.tsx so it runs on every page
+- [x] Add cross-domain link helper in NavBar for aina.forum links

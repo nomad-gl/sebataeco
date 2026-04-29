@@ -103,6 +103,13 @@ import { toast } from "sonner";
 import { useI18n } from "./contexts/I18nContext";
 import { trpc } from "@/lib/trpc";
 import { GlobalCallListener } from "./components/GlobalCallListener";
+import { useCrossOriginAuth } from "./hooks/useCrossOriginAuth";
+
+/** Silently redeems a cross-origin SSO token if present in the URL. */
+function CrossOriginAuthHandler() {
+  useCrossOriginAuth();
+  return null;
+}
 
 /**
  * Global guard: if the authenticated user has mustChangePassword=true,
@@ -288,6 +295,7 @@ function App() {
           <GlobalCallListener />
           <OfflineBanner />
           <PasswordReminderBanner />
+          <CrossOriginAuthHandler />
           <MustChangePasswordGuard />
           <Router />
         </TooltipProvider>
