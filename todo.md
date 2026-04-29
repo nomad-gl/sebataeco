@@ -4964,3 +4964,4 @@
 - [x] Fix "Failed to load chat session" error when clicking past session in AINA history sidebar
 - [x] Fix AINA history sidebar delete button — always visible and functional (not hidden behind opacity-0 hover)
 - [x] Allow user to resize AINA history sidebar width by dragging the right edge
+- [x] Add 'Primary (Yr 1-2)' year group option to Practice Mode (and all related selectors/knowledge bank)

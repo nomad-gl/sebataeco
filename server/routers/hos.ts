@@ -400,7 +400,7 @@ export const hosRouter = router({
       z.object({
         id: z.number().optional(),
         className: z.string().min(1).max(128),
-        yearGroup: z.enum(["infantil", "junior", "primary", "secondary"]).default("secondary"),
+        yearGroup: z.enum(["infantil", "lower_primary", "junior", "primary", "secondary"]).default("secondary"),
         academicYear: z.string().default("2025-26"),
         formTutorId: z.number().nullable().optional(),
         studentCount: z.number().min(0).max(999).default(0),
@@ -549,7 +549,7 @@ export const hosRouter = router({
         .from(lessonPlans);
 
       const LOMLOE_CODES = ["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"];
-      const YEAR_GROUPS = ["junior", "primary", "secondary"];
+      const YEAR_GROUPS = ["lower_primary", "junior", "primary", "secondary"];
 
       const totalByYearGroup: Record<string, number> = {};
       const coverageMap: Record<string, Record<string, number>> = {};

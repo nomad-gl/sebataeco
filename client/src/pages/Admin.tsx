@@ -12,7 +12,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { getLoginUrl } from "@/const";
 import { useI18n } from "@/contexts/I18nContext";
 
-const YEAR_GROUPS = ["infantil", "junior", "primary", "secondary"] as const;
+const YEAR_GROUPS = ["infantil", "lower_primary", "junior", "primary", "secondary"] as const;
 const ADMIN_PIN = "2024";
 
 export default function Admin() {
@@ -115,6 +115,7 @@ export default function Admin() {
 
   const YEAR_GROUP_LABELS: Record<string, string> = {
     infantil: `Educació Infantil (0–6)`,
+    lower_primary: `${t("admin_lower_primary")} (1–2)`,
     junior: `${t("admin_junior")} (3–4)`,
     primary: `${t("admin_primary")} (5–6)`,
     secondary: `${t("admin_secondary")} (7–10)`,
@@ -578,7 +579,7 @@ export default function Admin() {
                           <td className="py-2 pr-3">
                             <span className={cn("badge-" + row.competency)}>{row.competency}</span>
                           </td>
-                           <td className="py-2 pr-3 text-muted-foreground text-xs">{{ junior: t("admin_junior"), primary: t("admin_primary"), secondary: t("admin_secondary") }[row.yearGroup] ?? row.yearGroup}</td>
+                           <td className="py-2 pr-3 text-muted-foreground text-xs">{{ lower_primary: t("admin_lower_primary"), junior: t("admin_junior"), primary: t("admin_primary"), secondary: t("admin_secondary") }[row.yearGroup] ?? row.yearGroup}</td>
                           <td className="py-2 pr-3 text-right text-foreground font-medium">{row.total}</td>
                           <td className="py-2">
                             <div className="flex items-center gap-2">

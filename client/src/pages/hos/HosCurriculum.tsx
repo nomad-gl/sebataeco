@@ -9,7 +9,7 @@ import { BookCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const LOMLOE_CODES = ["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"];
-const YEAR_GROUPS = ["infantil", "junior", "primary", "secondary"] as const;
+const YEAR_GROUPS = ["infantil", "lower_primary", "junior", "primary", "secondary"] as const;
 
 const COMPETENCY_COLORS: Record<string, string> = {
   CCL: "bg-blue-500",
@@ -49,7 +49,7 @@ function CoverageBar({ pct, colorClass }: { pct: number; colorClass: string }) {
 
 export default function HosCurriculum() {
   const { t } = useI18n();
-  const [activeYearGroup, setActiveYearGroup] = useState<"infantil" | "junior" | "primary" | "secondary">("secondary");
+  const [activeYearGroup, setActiveYearGroup] = useState<"infantil" | "lower_primary" | "junior" | "primary" | "secondary">("secondary");
 
   const { data: rows = [], isLoading } = trpc.hos.getCurriculumCompliance.useQuery();
 
@@ -57,6 +57,7 @@ export default function HosCurriculum() {
 
   const yearGroupLabel: Record<string, string> = {
     infantil: "Educació Infantil (0–6)",
+    lower_primary: "Primary (Yr 1–2)",
     junior: "Junior (Yr 3–4)",
     primary: "Primary (Yr 5–6)",
     secondary: "Secondary (Yr 7–10)",

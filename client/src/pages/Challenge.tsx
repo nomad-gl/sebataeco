@@ -27,7 +27,7 @@ import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
-type YearGroup = "junior" | "primary" | "secondary";
+type YearGroup = "lower_primary" | "junior" | "primary" | "secondary";
 
 const COMP_COLORS: Record<CompetencyCode, string> = {
   CCL: "bg-blue-100 text-blue-800", CP: "bg-purple-100 text-purple-800",

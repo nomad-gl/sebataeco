@@ -1359,7 +1359,7 @@ export default function MaterialView() {
             <div className="flex flex-wrap items-center gap-2 mb-1">
               <Badge variant="secondary">{TYPE_LABELS[type] ?? type}</Badge>
               {material.competency && <Badge variant="outline">{material.competency}</Badge>}
-              {material.yearGroup && <Badge variant="outline">{{ junior: t("admin_junior"), primary: t("admin_primary"), secondary: t("admin_secondary") }[material.yearGroup] ?? material.yearGroup}</Badge>}
+              {material.yearGroup && <Badge variant="outline">{{ lower_primary: t("admin_lower_primary"), junior: t("admin_junior"), primary: t("admin_primary"), secondary: t("admin_secondary") }[material.yearGroup] ?? material.yearGroup}</Badge>}
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">{material.title}</h1>
             {material.topic && (
@@ -1404,7 +1404,7 @@ export default function MaterialView() {
           <div className="hidden print:block mb-4">
             <h1 className="text-2xl font-bold">{material.title}</h1>
             {material.competency && <p className="text-sm">Competency: {material.competency}</p>}
-            {material.yearGroup && <p className="text-sm">Year Group: {{ junior: t("admin_junior"), primary: t("admin_primary"), secondary: t("admin_secondary") }[material.yearGroup] ?? material.yearGroup}</p>}
+            {material.yearGroup && <p className="text-sm">Year Group: {{ lower_primary: t("admin_lower_primary"), junior: t("admin_junior"), primary: t("admin_primary"), secondary: t("admin_secondary") }[material.yearGroup] ?? material.yearGroup}</p>}
             {showAnswers && <p className="text-sm font-bold text-green-700">— Answer Key —</p>}
           </div>
           {renderContent()}

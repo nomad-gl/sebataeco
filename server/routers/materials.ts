@@ -17,13 +17,14 @@ import {
 import { COMPETENCY_META, getQuestions, type CompetencyCode, type YearGroup } from "../knowledge/lomloeKnowledgeBank";
 
 const CompetencyCodeSchema = z.enum(["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"]);
-const YearGroupSchema = z.enum(["infantil", "junior", "primary", "secondary"]);
+const YearGroupSchema = z.enum(["infantil", "lower_primary", "junior", "primary", "secondary"]);
 const MaterialTypeSchema = z.enum(["quiz", "slides", "crossword", "missing_words", "wordsearch", "flashcards", "paraula"]);
 
 // --- Helpers ---
 
 function ygLabel(yg?: string) {
   if (yg === "infantil") return "Educació Infantil (0–6 anys, Decret 21/2023)";
+  if (yg === "lower_primary") return "Primary (Years 1–2, ages 5–7)";
   if (yg === "junior") return "Primary (Years 3–4, ages 8–10)";
   if (yg === "primary") return "Upper Primary (Years 5–6, ages 10–12)";
   if (yg === "secondary") return "Secondary (Years 7–10, ages 12–16)";

@@ -19,7 +19,7 @@ import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
-type YearGroup = "infantil" | "junior" | "primary" | "secondary";
+type YearGroup = "infantil" | "lower_primary" | "junior" | "primary" | "secondary";
 
 const SUGGESTED_KEYS: TranslationKey[] = [
   "chat_suggested_1",
@@ -596,7 +596,7 @@ export default function Chat() {
             {(competency || yearGroup) && (
               <p className="text-xs text-white/60 mt-2">
                 {t("chat_context_filtered")}{" "}
-                {[competency, yearGroup ? `${{ infantil: "Educació Infantil", junior: t("admin_junior"), primary: t("admin_primary"), secondary: t("admin_secondary") }[yearGroup] ?? yearGroup} ${t("chat_year_group")}` : null]
+                {[competency, yearGroup ? `${{ infantil: "Educació Infantil", lower_primary: t("admin_lower_primary"), junior: t("admin_junior"), primary: t("admin_primary"), secondary: t("admin_secondary") }[yearGroup] ?? yearGroup} ${t("chat_year_group")}` : null]
                   .filter(Boolean)
                   .join(" · ")}
               </p>

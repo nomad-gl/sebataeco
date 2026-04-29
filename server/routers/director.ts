@@ -635,7 +635,7 @@ export const directorRouter = router({
         subjectCoverage: complianceData.subjectCoverage,
         classGroups: classGroupsData.map((g) => ({
           className: g.className,
-          yearGroup: (g.yearGroup ?? "secondary") as "infantil" | "junior" | "primary" | "secondary",
+          yearGroup: (g.yearGroup ?? "secondary") as "infantil" | "lower_primary" | "junior" | "primary" | "secondary",
           academicYear: g.academicYear ?? "2025-26",
           studentCount: g.studentCount ?? 0,
         })),
@@ -2345,7 +2345,7 @@ export const directorRouter = router({
       // Build group filter
       const groupConditions = [];
       if (tid != null) groupConditions.push(eq(classGroups.tenantId, tid));
-      if (input.yearGroup) groupConditions.push(eq(classGroups.yearGroup, input.yearGroup as "infantil" | "junior" | "primary" | "secondary"));
+      if (input.yearGroup) groupConditions.push(eq(classGroups.yearGroup, input.yearGroup as "infantil" | "lower_primary" | "junior" | "primary" | "secondary"));
       if (input.academicYear) groupConditions.push(eq(classGroups.academicYear, input.academicYear));
 
       // Get all matching groups

@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
-type YearGroup = "infantil" | "junior" | "primary" | "secondary";
+type YearGroup = "infantil" | "lower_primary" | "junior" | "primary" | "secondary";
 
 interface Props {
   selectedCompetency?: CompetencyCode;
@@ -25,6 +25,7 @@ export default function CompetencySelector({
 
   const YEAR_GROUPS: { value: YearGroup; label: string }[] = [
     { value: "infantil", label: "Infantil (0–6)" },
+    { value: "lower_primary", label: t("comp_lower_primary") },
     { value: "junior", label: t("comp_junior") },
     { value: "primary", label: t("comp_primary") },
     { value: "secondary", label: t("comp_secondary") },

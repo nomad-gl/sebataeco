@@ -16,7 +16,7 @@ import { SebaSymbol } from "@/components/SebaSymbol";
 import { toast } from "sonner";
 
 const COMPETENCY_CODES = ["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"];
-const YEAR_GROUPS = ["infantil", "junior", "primary", "secondary"];
+const YEAR_GROUPS = ["infantil", "lower_primary", "junior", "primary", "secondary"];
 
 // ── Grade Overrides Tab ───────────────────────────────────────────────────────
 

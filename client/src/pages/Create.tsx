@@ -24,7 +24,7 @@ import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
-type YearGroup = "infantil" | "junior" | "primary" | "secondary";
+type YearGroup = "infantil" | "lower_primary" | "junior" | "primary" | "secondary";
 type MaterialType = "quiz" | "slides" | "crossword" | "missing_words" | "wordsearch" | "flashcards" | "paraula";
 
 const ACTIVITY_TYPES: {

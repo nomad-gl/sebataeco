@@ -25,6 +25,7 @@ import { useState, useRef, useEffect } from "react";
 
 const COMPETENCIES = ["CCL","CP","STEM","CD","CPSAA","CC","CE","CCEC"];
 const YEAR_GROUP_VALUES = [
+  { value: "lower_primary", labelKey: "comp_lower_primary" as const },
   { value: "junior", labelKey: "comp_junior" as const },
   { value: "primary", labelKey: "comp_primary" as const },
   { value: "secondary", labelKey: "comp_secondary" as const },
@@ -418,7 +419,7 @@ export default function Presentation() {
       type: "slides",
       topic: heading ? `${heading}: ${topic}` : topic,
       competency: (competency && competency !== "any" ? competency : undefined) as "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC" | undefined,
-      yearGroup: yearGroup as "junior" | "primary" | "secondary",
+      yearGroup: yearGroup as "lower_primary" | "junior" | "primary" | "secondary",
       slideCount,
       includeTalkingPoints,
     });
@@ -498,7 +499,7 @@ export default function Presentation() {
       type,
       topic: `Based on the following presentation:\n\n${slideSummary}`,
       competency: (generated.competency || undefined) as "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC" | undefined,
-      yearGroup: generated.yearGroup as "junior" | "primary" | "secondary",
+      yearGroup: generated.yearGroup as "lower_primary" | "junior" | "primary" | "secondary",
     });
   };
 

@@ -18,7 +18,7 @@ const HERO_BG =
   "/manus-storage/hero-bg_a767782c.jpg";
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
-type YearGroup = "infantil" | "junior" | "primary" | "secondary";
+type YearGroup = "infantil" | "lower_primary" | "junior" | "primary" | "secondary";
 
 export default function Practice() {
   const { t, lang } = useI18n();
@@ -209,7 +209,7 @@ export default function Practice() {
                       {question.competency}
                     </span>
                     <span className="text-xs text-white/60">
-                      {{ infantil: "Educació Infantil", junior: t("admin_junior"), primary: t("admin_primary"), secondary: t("admin_secondary") }[question.yearGroup ?? ""] ?? question.yearGroup ?? ""}
+                      {{ infantil: "Educació Infantil", lower_primary: t("admin_lower_primary"), junior: t("admin_junior"), primary: t("admin_primary"), secondary: t("admin_secondary") }[question.yearGroup ?? ""] ?? question.yearGroup ?? ""}
                     </span>
                   </div>
 

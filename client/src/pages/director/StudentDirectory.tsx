@@ -21,6 +21,7 @@ const PAGE_SIZE = 50;
 const YEAR_GROUP_OPTIONS = [
   { value: "all", labelKey: "std_dir_filter_all_years" },
   { value: "infantil", labelKey: "std_dir_year_infantil" },
+  { value: "lower_primary", labelKey: "std_dir_year_lower_primary" },
   { value: "junior", labelKey: "std_dir_year_junior" },
   { value: "primary", labelKey: "std_dir_year_primary" },
   { value: "secondary", labelKey: "std_dir_year_secondary" },

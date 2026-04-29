@@ -22,7 +22,7 @@ import { exportToCsv, exportToXml } from "@/lib/exportUtils";
 import ExportDropdown, { PdfIcon, CsvIcon, XmlIcon } from "@/components/ExportDropdown";
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
-type YearGroup = "junior" | "primary" | "secondary";
+type YearGroup = "lower_primary" | "junior" | "primary" | "secondary";
 
 const COMP_COLORS: Record<CompetencyCode, string> = {
   CCL: "bg-blue-500/30 text-blue-200 border-blue-400/40",
@@ -65,6 +65,7 @@ export default function SampleQuestions() {
   const [worksheetSubtitle, setWorksheetSubtitle] = useState("");
 
   const YG_LABELS: Record<YearGroup, string> = {
+    lower_primary: `${t("admin_lower_primary")} (Yr 1–2)`,
     junior: `${t("admin_junior")} (Yr 3–4)`,
     primary: `${t("admin_primary")} (Yr 5–6)`,
     secondary: `${t("admin_secondary")} (Yr 7–10)`,
@@ -220,6 +221,7 @@ export default function SampleQuestions() {
               className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-white backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-white/30"
             >
               <option value="" className="bg-slate-800">{t("questions_all")}</option>
+              <option value="lower_primary" className="bg-slate-800">{YG_LABELS.lower_primary}</option>
               <option value="junior" className="bg-slate-800">{YG_LABELS.junior}</option>
               <option value="primary" className="bg-slate-800">{YG_LABELS.primary}</option>
               <option value="secondary" className="bg-slate-800">{YG_LABELS.secondary}</option>

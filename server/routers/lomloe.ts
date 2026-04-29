@@ -26,7 +26,7 @@ import { generatedQuestions, questionTranslations, savedSituacions, ainaChatSess
 import { eq, and, inArray, desc, count } from "drizzle-orm";
 
 const CompetencyCodeSchema = z.enum(["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"]);
-const YearGroupSchema = z.enum(["infantil", "junior", "primary", "secondary"]);
+const YearGroupSchema = z.enum(["infantil", "lower_primary", "junior", "primary", "secondary"]);
 const EixCodeSchema = z.enum(["EIX1", "EIX2", "EIX3", "EIX4"]);
 const InfantilCycleSchema = z.enum(["0-3", "3-6"]);
 
@@ -435,7 +435,7 @@ export const lomloeRouter = router({
     const stats = getCoverageStats();
     let total = LOMLOE_QUESTIONS.length;
     const competencies = Object.keys(COMPETENCY_META).length;
-    const yearGroups = ["junior", "primary", "secondary"];
+    const yearGroups = ["lower_primary", "junior", "primary", "secondary"];
 
     // Merge DB approved counts into breakdown
     const dbCounts: Record<string, Record<string, number>> = {};
@@ -460,6 +460,7 @@ export const lomloeRouter = router({
       emoji: COMPETENCY_META[code as CompetencyCode]?.emoji ?? "",
       total: Object.values(yearData).reduce((a, b) => a + b, 0) + Object.values(dbCounts[code] ?? {}).reduce((a, b) => a + b, 0),
       infantil: (yearData["infantil"] ?? 0) + (dbCounts[code]?.["infantil"] ?? 0),
+      lower_primary: (yearData["lower_primary"] ?? 0) + (dbCounts[code]?.["lower_primary"] ?? 0),
       junior: (yearData["junior"] ?? 0) + (dbCounts[code]?.["junior"] ?? 0),
       primary: (yearData["primary"] ?? 0) + (dbCounts[code]?.["primary"] ?? 0),
       secondary: (yearData["secondary"] ?? 0) + (dbCounts[code]?.["secondary"] ?? 0),
@@ -535,7 +536,7 @@ export const lomloeRouter = router({
         : "All 8 LOMLOE competencies";
 
       const yearGroupContext = input.yearGroup
-        ? `Year group: ${input.yearGroup === "junior" ? "Primary (Years 3–4)" : input.yearGroup === "primary" ? "Upper Primary (Years 5–6)" : "Secondary (Years 7–10)"}`
+        ? `Year group: ${input.yearGroup === "lower_primary" ? "Primary (Years 1–2)" : input.yearGroup === "junior" ? "Primary (Years 3–4)" : input.yearGroup === "primary" ? "Upper Primary (Years 5–6)" : "Secondary (Years 7–10)"}`
         : "All year groups";
 
       const dialectNote = input.uiLang === "ca" && input.caDialect && input.caDialect !== "central" && input.caDialect !== "standard"

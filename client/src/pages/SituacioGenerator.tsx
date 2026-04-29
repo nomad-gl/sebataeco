@@ -112,13 +112,13 @@ export default function SituacioGenerator() {
   const searchParams = new URLSearchParams(window.location.search);
   const initTopic = searchParams.get("topic") ?? "";
   const initSubject = searchParams.get("subject") ?? "";
-  const initYearGroup = (searchParams.get("yearGroup") ?? "secondary") as "junior" | "primary" | "secondary";
+  const initYearGroup = (searchParams.get("yearGroup") ?? "secondary") as "lower_primary" | "junior" | "primary" | "secondary";
   const initComps = searchParams.get("competencies")
     ? (searchParams.get("competencies")!.split(",").filter(Boolean) as CompetencyCode[])
     : [];
 
   const [topic, setTopic] = useState(initTopic);
-  const [yearGroup, setYearGroup] = useState<"junior" | "primary" | "secondary">(initYearGroup);
+  const [yearGroup, setYearGroup] = useState<"lower_primary" | "junior" | "primary" | "secondary">(initYearGroup);
   const [subject, setSubject] = useState(initSubject);
   const [selectedComps, setSelectedComps] = useState<CompetencyCode[]>(initComps);
   const [result, setResult] = useState<SituacioResult | null>(null);
@@ -349,6 +349,7 @@ ${result.criteria.map(c => `<li>${c}</li>`).join("\n")}
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="lower_primary">Primary (Yr 1–2)</SelectItem>
                     <SelectItem value="junior">Junior (Yr 3–4)</SelectItem>
                     <SelectItem value="primary">Primary (Yr 5–6)</SelectItem>
                     <SelectItem value="secondary">Secondary (Yr 7–10)</SelectItem>

@@ -97,7 +97,7 @@ export default function StudentProgress() {
   const [newDue, setNewDue] = useState("");
   const [newType, setNewType] = useState<"worksheet"|"essay"|"quiz"|"project"|"presentation"|"research"|"creative"|"debate"|"experiment"|"other">("worksheet");
   const [newDifficulty, setNewDifficulty] = useState<"easy"|"medium"|"hard">("medium");
-  const [newYearGroup, setNewYearGroup] = useState<"junior"|"primary"|"secondary">("primary");
+  const [newYearGroup, setNewYearGroup] = useState<"lower_primary"|"junior"|"primary"|"secondary">("primary");
   // AI generation state
   const [generatedContent, setGeneratedContent] = useState<string | null>(null);
   const [generatedAssignmentId, setGeneratedAssignmentId] = useState<number | null>(null);
@@ -574,11 +574,12 @@ export default function StudentProgress() {
                   </div>
                   <div className="space-y-1">
                     <Label className="text-white/70 text-xs">{t("sp_assignment_year_group")}</Label>
-                    <Select value={newYearGroup} onValueChange={(v) => setNewYearGroup(v as "junior"|"primary"|"secondary")}>
+                    <Select value={newYearGroup} onValueChange={(v) => setNewYearGroup(v as "lower_primary"|"junior"|"primary"|"secondary")}>
                       <SelectTrigger className="bg-white/10 border-white/20 text-white">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="lower_primary">{t("sp_year_lower_primary")}</SelectItem>
                         <SelectItem value="junior">{t("sp_year_junior")}</SelectItem>
                         <SelectItem value="primary">{t("sp_year_primary")}</SelectItem>
                         <SelectItem value="secondary">{t("sp_year_secondary")}</SelectItem>

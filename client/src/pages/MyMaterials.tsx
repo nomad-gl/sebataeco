@@ -505,7 +505,7 @@ export default function MyMaterials() {
                             <Badge variant="secondary" className="text-xs capitalize bg-white/15 text-white/80 border-white/20">
                               {m.type.replace("_", " ")}
                             </Badge>
-                            {m.yearGroup && <Badge variant="outline" className="text-xs text-white/70 border-white/25">{{ junior: t("admin_junior"), primary: t("admin_primary"), secondary: t("admin_secondary") }[m.yearGroup] ?? m.yearGroup}</Badge>}
+                            {m.yearGroup && <Badge variant="outline" className="text-xs text-white/70 border-white/25">{{ lower_primary: t("admin_lower_primary"), junior: t("admin_junior"), primary: t("admin_primary"), secondary: t("admin_secondary") }[m.yearGroup] ?? m.yearGroup}</Badge>}
                             <span className="text-xs text-white/50">
                               {new Date(m.createdAt).toLocaleDateString()}
                             </span>
