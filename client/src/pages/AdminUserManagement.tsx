@@ -19,15 +19,15 @@ import {
   Loader2,
   Search,
   Users,
-  User,
-  ShieldCheck,
-  Building2,
   UserX,
   UserCheck,
   KeyRound,
   ChevronDown,
   ChevronRight,
   Globe,
+  Building2,
+  UserPlus,
+  X,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
@@ -63,27 +63,151 @@ function formatDate(date: Date | null): string {
 }
 
 function roleBadge(role: string) {
-  const map: Record<string, { label: string; className: string }> = {
-    admin:                { label: "Admin",              className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300" },
-    director:             { label: "Director",           className: "bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-300" },
-    teacher:              { label: "Teacher",            className: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300" },
-    head_of_study:        { label: "Head of Study",      className: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300" },
-    territorial_director: { label: "Territorial Dir.",   className: "bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-300" },
-    user:                 { label: "User",               className: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300" },
+  const map: Record<string, string> = {
+    admin: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
+    director: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
+    teacher: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+    head_of_study: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300",
+    territorial_director: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
+    user: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
   };
-  const m = map[role] ?? map.user;
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${m.className}`}>
-      {m.label}
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${map[role] ?? map.user}`}>
+      {role.replace(/_/g, " ")}
     </span>
   );
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// ── Add User Dialog ───────────────────────────────────────────────────────────
+interface AddUserDialogProps {
+  tenantId: number | null;
+  schoolLabel: string;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+function AddUserDialog({ tenantId, schoolLabel, onClose, onSuccess }: AddUserDialogProps) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState<"teacher" | "head_of_study" | "director" | "user">("teacher");
+
+  const createMutation = trpc.director.createLocalUserWithTempPassword.useMutation({
+    onSuccess: (data) => {
+      toast.success(`User created. Temp password: ${data.tempPassword}`);
+      navigator.clipboard.writeText(data.tempPassword).catch(() => {});
+      onSuccess();
+      onClose();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !email.trim()) return;
+    createMutation.mutate({
+      name: name.trim(),
+      email: email.trim(),
+      role,
+      tenantId: tenantId ?? undefined,
+    });
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      onClick={(e) => { if (e.target === e.currentTarget && !createMutation.isPending) onClose(); }}
+    >
+      <div className="bg-background rounded-xl shadow-2xl w-full max-w-md p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-violet-100 dark:bg-violet-900">
+              <UserPlus className="w-5 h-5 text-violet-600 dark:text-violet-300" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold">Add User</h2>
+              <p className="text-xs text-muted-foreground truncate max-w-[220px]">{schoolLabel}</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            disabled={createMutation.isPending}
+            className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Full name</label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Maria García"
+              required
+              disabled={createMutation.isPending}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Email address</label>
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="e.g. m.garcia@escola.cat"
+              required
+              disabled={createMutation.isPending}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Role</label>
+            <Select value={role} onValueChange={(v) => setRole(v as typeof role)} disabled={createMutation.isPending}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="teacher">Teacher</SelectItem>
+                <SelectItem value="head_of_study">Head of Study</SelectItem>
+                <SelectItem value="director">Director</SelectItem>
+                <SelectItem value="user">User</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-3 text-xs text-amber-800 dark:text-amber-300">
+            A temporary password will be generated and copied to your clipboard. The user will be prompted to set a new password on first sign-in.
+          </div>
+
+          <div className="flex gap-2 justify-end pt-1">
+            <Button type="button" variant="outline" onClick={onClose} disabled={createMutation.isPending}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={!name.trim() || !email.trim() || createMutation.isPending}
+              className="gap-1.5"
+            >
+              {createMutation.isPending ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Creating…</>
+              ) : (
+                <><UserPlus className="w-4 h-4" /> Add User</>
+              )}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
 export default function AdminUserManagement() {
   const [search, setSearch] = useState("");
   const [filterRole, setFilterRole] = useState("all");
   const [collapsedSchools, setCollapsedSchools] = useState<Set<string>>(new Set());
+  const [addUserTarget, setAddUserTarget] = useState<{ tenantId: number | null; label: string } | null>(null);
 
   const { data: users = [], isLoading, refetch } = trpc.director.listAllLocalUsersForAdmin.useQuery();
 
@@ -97,12 +221,10 @@ export default function AdminUserManagement() {
     },
     onError: (err) => toast.error(err.message),
   });
-
   const deactivateMutation = trpc.director.deactivateUser.useMutation({
     onSuccess: () => { toast.success("User deactivated."); refetch(); },
     onError: (err) => toast.error(err.message),
   });
-
   const reactivateMutation = trpc.director.reactivateUser.useMutation({
     onSuccess: () => { toast.success("User reactivated."); refetch(); },
     onError: (err) => toast.error(err.message),
@@ -125,11 +247,11 @@ export default function AdminUserManagement() {
 
   // Group by school
   const grouped = useMemo(() => {
-    const map = new Map<string, { label: string; users: AdminLocalUser[] }>();
+    const map = new Map<string, { label: string; tenantId: number | null; users: AdminLocalUser[] }>();
     for (const u of filtered) {
       const key = u.tenantId != null ? String(u.tenantId) : "unassigned";
       const label = u.schoolName ?? u.tenantName ?? (u.tenantId != null ? `School #${u.tenantId}` : "Unassigned");
-      if (!map.has(key)) map.set(key, { label, users: [] });
+      if (!map.has(key)) map.set(key, { label, tenantId: u.tenantId, users: [] });
       map.get(key)!.users.push(u);
     }
     return Array.from(map.entries()).sort((a, b) => a[1].label.localeCompare(b[1].label));
@@ -176,58 +298,55 @@ export default function AdminUserManagement() {
         </Card>
         <Card>
           <CardContent className="p-3 flex flex-col items-center gap-1 text-center">
-            <UserCheck className="w-5 h-5 text-green-500" />
-            <span className="text-xl font-bold">{totalActive}</span>
+            <UserCheck className="w-5 h-5 text-green-600" />
+            <span className="text-xl font-bold text-green-700 dark:text-green-400">{totalActive}</span>
             <span className="text-xs text-muted-foreground">Active</span>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-3 flex flex-col items-center gap-1 text-center">
-            <UserX className="w-5 h-5 text-amber-500" />
-            <span className="text-xl font-bold">{totalDeactivated}</span>
+            <UserX className="w-5 h-5 text-red-500" />
+            <span className="text-xl font-bold text-red-600 dark:text-red-400">{totalDeactivated}</span>
             <span className="text-xs text-muted-foreground">Deactivated</span>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-3 flex flex-col items-center gap-1 text-center">
             <Building2 className="w-5 h-5 text-purple-500" />
-            <span className="text-xl font-bold">{grouped.length}</span>
+            <span className="text-xl font-bold text-purple-700 dark:text-purple-400">{grouped.length}</span>
             <span className="text-xs text-muted-foreground">Schools</span>
           </CardContent>
         </Card>
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardContent className="p-4 flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              className="pl-9"
-              placeholder="Search by name, email, or school…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <Select value={filterRole} onValueChange={setFilterRole}>
-            <SelectTrigger className="w-full sm:w-44">
-              <SelectValue placeholder="All roles" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All roles</SelectItem>
-              <SelectItem value="teacher">Teacher</SelectItem>
-              <SelectItem value="director">Director</SelectItem>
-              <SelectItem value="head_of_study">Head of Study</SelectItem>
-              <SelectItem value="user">User</SelectItem>
-              <SelectItem value="admin">Admin</SelectItem>
-            </SelectContent>
-          </Select>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name, email, or school…"
+            className="pl-9"
+          />
+        </div>
+        <Select value={filterRole} onValueChange={setFilterRole}>
+          <SelectTrigger className="w-full sm:w-44">
+            <SelectValue placeholder="All roles" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All roles</SelectItem>
+            <SelectItem value="teacher">Teacher</SelectItem>
+            <SelectItem value="director">Director</SelectItem>
+            <SelectItem value="head_of_study">Head of Study</SelectItem>
+            <SelectItem value="user">User</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-      {/* Grouped tables */}
+      {/* School cards */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
+        <div className="flex items-center justify-center py-16 gap-2 text-muted-foreground">
           <Loader2 className="w-5 h-5 animate-spin" />
           <span>Loading users…</span>
         </div>
@@ -243,23 +362,39 @@ export default function AdminUserManagement() {
             const activeCount = group.users.filter((u) => !u.deactivatedAt).length;
             return (
               <Card key={key}>
-                <CardHeader
-                  className="pb-2 cursor-pointer select-none"
-                  onClick={() => toggleCollapse(key)}
-                >
+                <CardHeader className="pb-2">
                   <CardTitle className="text-base flex items-center gap-2">
-                    {isCollapsed
-                      ? <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                      : <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                    }
-                    {key === "unassigned"
-                      ? <Globe className="w-4 h-4 text-muted-foreground" />
-                      : <Building2 className="w-4 h-4 text-purple-500" />
-                    }
-                    <span>{group.label}</span>
-                    <Badge variant="secondary" className="ml-auto text-xs">
-                      {activeCount} active / {group.users.length} total
-                    </Badge>
+                    {/* Collapse toggle — only the chevron + icon + name are clickable */}
+                    <button
+                      className="flex items-center gap-2 flex-1 min-w-0 text-left"
+                      onClick={() => toggleCollapse(key)}
+                    >
+                      {isCollapsed
+                        ? <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                        : <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+                      }
+                      {key === "unassigned"
+                        ? <Globe className="w-4 h-4 text-muted-foreground shrink-0" />
+                        : <Building2 className="w-4 h-4 text-purple-500 shrink-0" />
+                      }
+                      <span className="truncate">{group.label}</span>
+                      <Badge variant="secondary" className="ml-2 text-xs shrink-0">
+                        {activeCount} active / {group.users.length} total
+                      </Badge>
+                    </button>
+                    {/* Add User button — stops propagation so it doesn't toggle collapse */}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2.5 gap-1.5 text-xs shrink-0 border-violet-300 text-violet-700 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-300 dark:hover:bg-violet-900/30"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAddUserTarget({ tenantId: group.tenantId, label: group.label });
+                      }}
+                    >
+                      <UserPlus className="w-3.5 h-3.5" />
+                      Add User
+                    </Button>
                   </CardTitle>
                 </CardHeader>
                 {!isCollapsed && (
@@ -277,22 +412,13 @@ export default function AdminUserManagement() {
                             <th className="text-right px-4 py-3 font-medium text-muted-foreground">Actions</th>
                           </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y">
                           {group.users.map((user) => {
                             const isDeactivated = !!user.deactivatedAt;
                             return (
-                              <tr
-                                key={user.id}
-                                className={`border-b last:border-0 transition-colors ${isDeactivated ? "opacity-60 bg-muted/10" : "hover:bg-muted/20"}`}
-                              >
+                              <tr key={user.id} className={`hover:bg-muted/30 transition-colors ${isDeactivated ? "opacity-60" : ""}`}>
                                 <td className="px-4 py-3">
                                   <div className="flex items-center gap-2">
-                                    <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                                      {user.role === "admin"
-                                        ? <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-                                        : <User className="h-3.5 w-3.5 text-muted-foreground" />
-                                      }
-                                    </div>
                                     <span className="font-medium">{user.displayName ?? "—"}</span>
                                     {user.isPermanent === false && (
                                       <Badge className="text-[10px] px-1.5 py-0 bg-amber-500/20 text-amber-400 border border-amber-500/40 shrink-0">Temp</Badge>
@@ -369,6 +495,16 @@ export default function AdminUserManagement() {
             );
           })}
         </div>
+      )}
+
+      {/* Add User Dialog */}
+      {addUserTarget && (
+        <AddUserDialog
+          tenantId={addUserTarget.tenantId}
+          schoolLabel={addUserTarget.label}
+          onClose={() => setAddUserTarget(null)}
+          onSuccess={() => refetch()}
+        />
       )}
 
       {/* Powered by SEBA */}
