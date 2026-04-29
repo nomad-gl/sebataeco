@@ -17,7 +17,7 @@ import { generatedQuestions } from "../drizzle/schema";
 import { LOMLOE_QUESTIONS, COMPETENCY_META, type CompetencyCode, type YearGroup } from "./knowledge/lomloeKnowledgeBank";
 
 const COMPETENCY_CODES: CompetencyCode[] = ["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"];
-const YEAR_GROUPS: YearGroup[] = ["junior", "primary", "secondary"];
+const YEAR_GROUPS: YearGroup[] = ["lower_primary", "junior", "primary", "secondary"];
 
 interface GeneratedQuestion {
   question: string;
@@ -35,23 +35,94 @@ async function generateBatch(
   count: number
 ): Promise<GeneratedQuestion[]> {
   const meta = COMPETENCY_META[competency];
-  const yearDesc =
-    yearGroup === "junior"
-      ? "ages 6-9 (Primary Years 1-3)"
-      : yearGroup === "primary"
-      ? "ages 9-12 (Primary Years 4-6)"
-      : "ages 12-16 (Secondary ESO)";
 
-  const prompt = `You are an expert in Spain's LOMLOE education curriculum. Generate exactly ${count} multiple-choice questions about the "${meta.name}" competency (${meta.description}) for students aged ${yearDesc}.
+  // ── Language calibration by year group ─────────────────────────────────────
+  // Each profile defines the exact language register, vocabulary level,
+  // sentence complexity, and question style appropriate for that age group.
+  const LANGUAGE_PROFILES: Record<string, {
+    ageRange: string;
+    stage: string;
+    vocabulary: string;
+    sentenceStyle: string;
+    questionStyle: string;
+    explanationStyle: string;
+    avoidList: string;
+    exampleStyle: string;
+  }> = {
+    infantil: {
+      ageRange: "ages 3–6",
+      stage: "Educació Infantil (Pre-school)",
+      vocabulary: "Use only the simplest everyday words a 3–6 year old knows. No abstract nouns. No subject-specific terminology.",
+      sentenceStyle: "Very short sentences (max 8 words). Simple present tense only. Use 'you', 'your', 'we'. No subordinate clauses.",
+      questionStyle: "Questions about concrete, visible, everyday actions: sharing, listening, helping, playing, drawing, counting. Use 'What do you do when...?' or 'Which one is...?'",
+      explanationStyle: "One very short sentence (max 10 words). Use 'because' to explain. No abstract reasoning.",
+      avoidList: "No academic terms, no multi-step reasoning, no hypothetical scenarios, no negative constructions like 'which is NOT'.",
+      exampleStyle: "Real classroom or playground situations: 'at school', 'with your friends', 'in the classroom'."
+    },
+    lower_primary: {
+      ageRange: "ages 6–8",
+      stage: "Primary Years 1–2 (Cicle Inicial)",
+      vocabulary: "Simple, familiar words. Introduce one subject-specific word per question at most, always explained in context. Avoid jargon.",
+      sentenceStyle: "Short sentences (max 12 words). Simple present and simple past. Use 'you', 'your teacher', 'your classmates'. One idea per sentence.",
+      questionStyle: "Concrete, observable actions and situations. 'What should you do when...?', 'Which is the best way to...?', 'What does ... mean?'. Avoid hypotheticals.",
+      explanationStyle: "2–3 short sentences. Explain the 'why' in plain language. Use relatable comparisons ('just like when you...').",
+      avoidList: "No academic vocabulary, no multi-step logic, no negative constructions ('which is NOT'), no abstract concepts without concrete examples.",
+      exampleStyle: "Everyday school situations: reading a book, working in a group, asking for help, counting objects."
+    },
+    junior: {
+      ageRange: "ages 8–10",
+      stage: "Primary Years 3–4 (Cicle Mitjà)",
+      vocabulary: "Everyday language plus basic curriculum vocabulary (e.g., 'teamwork', 'opinion', 'information', 'problem'). Define any new term within the question.",
+      sentenceStyle: "Medium sentences (max 18 words). Mix of present, past, and conditional ('What would you do if...'). Compound sentences with 'and', 'but', 'because'.",
+      questionStyle: "Scenario-based: 'Your class is working on a project and...'. 'Which is the best way to...?'. Some 'why' questions. Avoid purely abstract questions.",
+      explanationStyle: "3–4 sentences. Explain the reasoning step by step. Use school-relevant examples.",
+      avoidList: "No advanced academic vocabulary, no complex subordinate clauses, no questions requiring prior knowledge of specific legislation or theory.",
+      exampleStyle: "School projects, group activities, reading tasks, simple real-world problems."
+    },
+    primary: {
+      ageRange: "ages 10–12",
+      stage: "Primary Years 5–6 (Cicle Superior)",
+      vocabulary: "Curriculum-standard vocabulary (e.g., 'evaluate', 'analyse', 'strategy', 'evidence', 'perspective'). Subject-specific terms used correctly.",
+      sentenceStyle: "Medium-to-long sentences (max 25 words). Mix of tenses including conditional and passive. Subordinate clauses acceptable.",
+      questionStyle: "Analytical and evaluative: 'Which strategy would be most effective...?', 'What is the main purpose of...?', 'How does ... help...?'. Some 'best answer' questions.",
+      explanationStyle: "3–5 sentences. Explain the concept and why the other options are less correct. Reference the LOMLOE competency where relevant.",
+      avoidList: "Avoid highly specialised academic jargon. Avoid questions requiring university-level knowledge.",
+      exampleStyle: "Real-world and school-based scenarios, cross-curricular connections, current events at age-appropriate level."
+    },
+    secondary: {
+      ageRange: "ages 12–16",
+      stage: "ESO (Secondary Obligatory Education)",
+      vocabulary: "Full academic vocabulary appropriate to secondary level (e.g., 'rhetorical device', 'bias', 'synthesis', 'critique', 'methodology', 'ethical implications'). LOMLOE terminology used precisely.",
+      sentenceStyle: "Complex sentences with multiple clauses. Full range of tenses. Formal register. Precise, unambiguous language.",
+      questionStyle: "Higher-order thinking: analysis, evaluation, synthesis. 'Which approach best demonstrates...?', 'What is the most significant limitation of...?', 'How does ... relate to...?'. Scenario-based with nuanced distractors.",
+      explanationStyle: "4–6 sentences. Detailed explanation of the correct answer and why each distractor is incorrect. Reference LOMLOE articles or competency descriptors where appropriate.",
+      avoidList: "Avoid oversimplification. Questions must genuinely challenge secondary students.",
+      exampleStyle: "Real-world problems, ethical dilemmas, cross-disciplinary connections, current societal issues."
+    },
+  };
+
+  const profile = LANGUAGE_PROFILES[yearGroup] ?? LANGUAGE_PROFILES["primary"];
+
+  const prompt = `You are an expert in Spain's LOMLOE education curriculum and an experienced teacher of ${profile.stage}.
+
+Generate exactly ${count} multiple-choice questions about the "${meta.name}" competency (${meta.description}) for ${profile.stage} — ${profile.ageRange}.
 
 IMPORTANT: All questions, options, and explanations MUST be written in English. Do not use Spanish, Catalan, or any other language.
 
-Requirements:
+## Language calibration for ${profile.stage} (${profile.ageRange})
+- **Vocabulary:** ${profile.vocabulary}
+- **Sentence style:** ${profile.sentenceStyle}
+- **Question style:** ${profile.questionStyle}
+- **Explanation style:** ${profile.explanationStyle}
+- **Avoid:** ${profile.avoidList}
+- **Example contexts:** ${profile.exampleStyle}
+
+## Question requirements
 - Each question must have exactly 4 options (A, B, C, D)
 - Distribute the correct answer position: use different positions (0, 1, 2, 3) across questions — do NOT always put the correct answer at position 1
-- Questions should be clear, age-appropriate, and curriculum-aligned
-- Include a brief explanation of why the correct answer is right
+- Questions must be genuinely age-appropriate — a ${profile.stage} teacher or student should immediately recognise the language as right for their level
 - Questions should test understanding, not just recall
+- Include a brief explanation of why the correct answer is right (following the explanation style above)
 
 Return a JSON array of exactly ${count} objects with this structure:
 {
@@ -60,7 +131,6 @@ Return a JSON array of exactly ${count} objects with this structure:
   "correctIndex": 0,
   "explanation": "Brief explanation of the correct answer"
 }`;
-
   const response = await invokeLLM({
     messages: [
       { role: "system", content: "You are an expert curriculum designer. You ALWAYS write in English. Return only valid JSON arrays, no markdown." },
