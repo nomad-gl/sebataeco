@@ -4977,3 +4977,26 @@
 - [ ] Enforce LOMLOE/Decret 175/2022 Catalan language and punctuation norms in AINA responses (Catalan as default, approved sources only)
 - [ ] Investigate HuggingFace LOMLOE RAG space 'no backend found' error and help user download dataset
 - [x] Ensure Practice Mode questions use age-appropriate language for each year group level
+- [ ] Add DB schema tables: custom_question_sets and custom_questions
+- [ ] Add tRPC procedures: createSet, updateSet, deleteSet, addQuestion, updateQuestion, deleteQuestion, listSets, getSet
+- [ ] Build Custom Question Sets page (list + create/edit set + add/edit questions)
+- [ ] Integrate custom sets into Practice Mode (select custom set as source)
+- [ ] Validate custom questions against 8 LOMLOE competencies on save
+
+## Custom Question Sets (Full Feature)
+- [x] Fix questionGenerator.ts esbuild syntax error (line 233)
+- [x] DB schema: custom_question_sets and custom_questions tables (migration applied)
+- [x] tRPC router: createSet, updateSet, deleteSet, listSets, getSet, addQuestion, updateQuestion, deleteQuestion, getCustomQuestion, generateQuestions
+- [x] CustomSets.tsx management page (list sets, create/edit/delete set, add/edit/delete questions, AI generation)
+- [x] i18n keys for Custom Sets (EN, ES, CA)
+- [x] Route /practice/custom-sets registered in App.tsx
+- [x] Practice.tsx: tabs for Standard / My Question Sets
+- [x] Practice.tsx: custom set selector list
+- [x] Practice.tsx: custom session question flow (reveal, next, done screen)
+- [x] NavBar: "My Question Sets" link in teacher dropdown
+- [x] Verify CustomSets page renders correctly end-to-end (no import errors)
+- [x] Run vitest and confirm passing (7809/7809)
+
+## Aina IEC Language Guidelines
+- [x] Update Aina system prompt to always reference IEC (Institut d'Estudis Catalans) guidelines for the most accurate and current Catalan language usage
+- [x] Ensure Aina cites IEC sources (Diccionari de la llengua catalana, Gramàtica de la llengua catalana, Optimot) when answering Catalan language questions

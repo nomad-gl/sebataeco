@@ -8,7 +8,7 @@ import {
   CalendarDays, FileText, Settings as SettingsIcon, ShieldAlert, Lock, HelpCircle,
   BarChart3, UserCheck, BookCheck, GraduationCap, Mic,
   ClipboardList, ClipboardCheck, Banknote, UserCog, FolderOpen, Building2, Wrench, Music, Wifi, LogOut, LogIn, AlertTriangle,
-  UserPlus, Copy, CheckCircle2, MapPin,
+  UserPlus, Copy, CheckCircle2, MapPin, Layers,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -327,6 +327,7 @@ export default function NavBar() {
     { href: "/challenge",     label: t("nav_challenge"),     icon: Zap },
     { href: "/groups",        label: t("nav_groups"),        icon: Users },
     { href: "/questions",     label: t("nav_questions"),     icon: BookOpen },
+    { href: "/practice/custom-sets", label: t("nav_custom_sets"), icon: Layers },
     { href: "/progress",      label: t("nav_group_progress"), icon: TrendingUp },
     { href: "/attendance",   label: t("nav_attendance"),   icon: UserCheck },
     { href: "/teacher/attendance",  label: t("nav_teacher_attendance"),  icon: ClipboardCheck },

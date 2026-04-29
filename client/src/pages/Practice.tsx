@@ -1,8 +1,10 @@
 import { useState, useCallback } from "react";
-import { CheckCircle2, XCircle, ChevronRight, Trophy, RotateCcw, Lightbulb, ArrowLeft } from "lucide-react";
+import { CheckCircle2, XCircle, ChevronRight, Trophy, RotateCcw, Lightbulb, BookOpen, Layers } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Link } from "wouter";
 import { Progress } from "@/components/ui/progress";
 import NavBar from "@/components/NavBar";
 import BackButton from "@/components/BackButton";
@@ -38,6 +40,23 @@ export default function Practice() {
   const [sessionDone, setSessionDone] = useState(false);
   const SESSION_SIZE = 10;
 
+  // Custom sets mode
+  const [practiceMode, setPracticeMode] = useState<"standard" | "custom">("standard");
+  const [selectedSetId, setSelectedSetId] = useState<number | null>(null);
+  const [customAnsweredIds, setCustomAnsweredIds] = useState<number[]>([]);
+  const [customSessionDone, setCustomSessionDone] = useState(false);
+  const [customSelectedOption, setCustomSelectedOption] = useState<number | null>(null);
+  const [customRevealed, setCustomRevealed] = useState(false);
+  const [customScore, setCustomScore] = useState(0);
+  const [customTotal, setCustomTotal] = useState(0);
+
+  const { data: mySets } = trpc.customSets.listSets.useQuery(undefined, { staleTime: 30_000 });
+  const { data: customQuestion, refetch: fetchCustomNext, isFetching: customFetching } =
+    trpc.customSets.getCustomQuestion.useQuery(
+      { setId: selectedSetId ?? 0, excludeIds: customAnsweredIds },
+      { enabled: practiceMode === "custom" && sessionStarted && !!selectedSetId && !customSessionDone, staleTime: 0 }
+    );
+
   const saveSession = trpc.materials.saveSession.useMutation();
   const saveAnswer = trpc.lomloe.saveAnswer.useMutation();
 
@@ -54,6 +73,49 @@ export default function Practice() {
     setTotal(0);
     setSessionDone(false);
     setSessionStarted(true);
+  };
+
+  const handleCustomStart = () => {
+    setCustomAnsweredIds([]);
+    setCustomSelectedOption(null);
+    setCustomRevealed(false);
+    setCustomScore(0);
+    setCustomTotal(0);
+    setCustomSessionDone(false);
+    setSessionStarted(true);
+  };
+
+  const handleCustomReveal = () => {
+    if (customSelectedOption === null || !customQuestion) return;
+    setCustomRevealed(true);
+    if (customSelectedOption === customQuestion.correctIndex) setCustomScore((s) => s + 1);
+    setCustomTotal((t) => t + 1);
+  };
+
+  const handleCustomNext = async () => {
+    if (!customQuestion) return;
+    const newAnswered = [...customAnsweredIds, customQuestion.id];
+    setCustomAnsweredIds(newAnswered);
+    setCustomSelectedOption(null);
+    setCustomRevealed(false);
+    // Check if pool exhausted
+    const setSize = mySets?.find((s) => s.id === selectedSetId)?.questionCount ?? 0;
+    if (newAnswered.length >= setSize || newAnswered.length >= SESSION_SIZE) {
+      setCustomSessionDone(true);
+      saveSession.mutate({ competency: undefined, yearGroup: undefined, score: customScore + (customSelectedOption === customQuestion.correctIndex ? 1 : 0), total: newAnswered.length });
+      return;
+    }
+    await fetchCustomNext();
+  };
+
+  const handleCustomRestart = () => {
+    setSessionStarted(false);
+    setCustomSessionDone(false);
+    setCustomAnsweredIds([]);
+    setCustomSelectedOption(null);
+    setCustomRevealed(false);
+    setCustomScore(0);
+    setCustomTotal(0);
   };
 
   const handleSelect = (idx: number) => {
@@ -118,28 +180,129 @@ export default function Practice() {
 
         {/* Setup screen */}
         {!sessionStarted && (
-          <Card className="bg-white/10 backdrop-blur-md border-white/20">
-            <CardContent className="p-4 sm:p-6 flex flex-col gap-4 sm:gap-6">
-              <CompetencySelector
-                selectedCompetency={competency}
-                selectedYearGroup={yearGroup}
-                onCompetencyChange={setCompetency}
-                onYearGroupChange={setYearGroup}
-              />
-              <div className="border-t border-border pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <p className="text-sm text-white/70">
-                  {SESSION_SIZE} {t("practice_questions_per")}
+          <Tabs value={practiceMode} onValueChange={(v) => setPracticeMode(v as "standard" | "custom")}>
+            <TabsList className="w-full bg-white/10 border border-white/20">
+              <TabsTrigger value="standard" className="flex-1 gap-2 data-[state=active]:bg-white/20 data-[state=active]:text-white text-white/70">
+                <BookOpen className="w-4 h-4" /> {t("practice_title")}
+              </TabsTrigger>
+              <TabsTrigger value="custom" className="flex-1 gap-2 data-[state=active]:bg-white/20 data-[state=active]:text-white text-white/70">
+                <Layers className="w-4 h-4" /> {t("practice_custom_sets")}
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Standard LOMLOE bank */}
+            <TabsContent value="standard">
+              <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                <CardContent className="p-4 sm:p-6 flex flex-col gap-4 sm:gap-6">
+                  <CompetencySelector
+                    selectedCompetency={competency}
+                    selectedYearGroup={yearGroup}
+                    onCompetencyChange={setCompetency}
+                    onYearGroupChange={setYearGroup}
+                  />
+                  <div className="border-t border-border pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <p className="text-sm text-white/70">
+                      {SESSION_SIZE} {t("practice_questions_per")}
+                    </p>
+                    <Button onClick={handleStart} size="lg" className="gap-2 w-full sm:w-auto">
+                      {t("practice_start")} <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Custom question sets */}
+            <TabsContent value="custom">
+              <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                <CardContent className="p-4 sm:p-6 flex flex-col gap-4">
+                  <p className="text-sm text-white/70">{t("practice_custom_sets_hint")}</p>
+                  {!mySets || mySets.length === 0 ? (
+                    <div className="flex flex-col items-center gap-3 py-6 text-center">
+                      <Layers className="w-10 h-10 text-white/30" />
+                      <p className="text-white/60 text-sm">{t("custom_sets_empty")}</p>
+                      <Link href="/practice/custom-sets">
+                        <Button variant="outline" size="sm" className="gap-2 bg-white/10 border-white/30 text-white hover:bg-white/20">
+                          <Layers className="w-4 h-4" /> {t("custom_sets_new")}
+                        </Button>
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      {mySets.map((set) => (
+                        <button
+                          key={set.id}
+                          onClick={() => setSelectedSetId(set.id)}
+                          className={`w-full text-left px-4 py-3 rounded-xl border text-sm transition-all ${
+                            selectedSetId === set.id
+                              ? "border-blue-400 bg-blue-500/20 text-white"
+                              : "border-white/20 bg-white/10 hover:border-white/40 hover:bg-white/20 text-white"
+                          }`}
+                        >
+                          <div className="font-medium">{set.name}</div>
+                          <div className="text-xs text-white/60 mt-0.5">
+                            {set.questionCount} {t("custom_sets_questions")}
+                            {set.competency ? ` · ${set.competency}` : ""}
+                          </div>
+                        </button>
+                      ))}
+                      <Link href="/practice/custom-sets">
+                        <Button variant="ghost" size="sm" className="gap-2 text-white/60 hover:text-white w-full mt-1">
+                          <Layers className="w-4 h-4" /> {t("custom_sets_new")}
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
+                  {selectedSetId && mySets && mySets.length > 0 && (
+                    <div className="border-t border-white/10 pt-4">
+                      <Button
+                        onClick={handleCustomStart}
+                        size="lg"
+                        className="gap-2 w-full"
+                        disabled={!selectedSetId || (mySets.find((s) => s.id === selectedSetId)?.questionCount ?? 0) === 0}
+                      >
+                        {t("practice_start")} <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        )}
+
+        {/* Custom session done */}
+        {practiceMode === "custom" && customSessionDone && (
+          <Card className="text-center bg-white/10 backdrop-blur-md border-white/20">
+            <CardContent className="p-6 sm:p-8 flex flex-col items-center gap-4 sm:gap-5">
+              <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
+                <Trophy className="w-10 h-10 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">{t("practice_done_title")}</h2>
+                <p className="text-white/75">
+                  {t("practice_scored")}{" "}
+                  <span className="font-bold text-white">{customScore} / {customTotal}</span>{" "}
+                  ({customTotal > 0 ? Math.round((customScore / customTotal) * 100) : 0}%)
                 </p>
-                <Button onClick={handleStart} size="lg" className="gap-2 w-full sm:w-auto">
-                  {t("practice_start")} <ChevronRight className="w-4 h-4" />
+              </div>
+              <div className="w-full max-w-xs">
+                <Progress value={customTotal > 0 ? (customScore / customTotal) * 100 : 0} className="h-3" />
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                <Button onClick={handleCustomRestart} variant="outline" className="gap-2 w-full sm:w-auto">
+                  <RotateCcw className="w-4 h-4" /> {t("practice_new_session")}
+                </Button>
+                <Button onClick={handleCustomStart} className="gap-2 w-full sm:w-auto">
+                  {t("practice_retry")} <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Session done */}
-        {sessionDone && (
+        {/* Standard session done */}
+        {practiceMode === "standard" && sessionDone && (
           <Card className="text-center bg-white/10 backdrop-blur-md border-white/20">
             <CardContent className="p-6 sm:p-8 flex flex-col items-center gap-4 sm:gap-5">
               <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
@@ -177,8 +340,94 @@ export default function Practice() {
           </Card>
         )}
 
-        {/* Active question */}
-        {sessionStarted && !sessionDone && (
+        {/* Custom active question */}
+        {practiceMode === "custom" && sessionStarted && !customSessionDone && (
+          <>
+            <div className="flex items-center gap-3">
+              <Progress value={customTotal > 0 ? (customTotal / Math.max(mySets?.find(s => s.id === selectedSetId)?.questionCount ?? SESSION_SIZE, 1)) * 100 : 0} className="flex-1 h-2" />
+              <span className="text-sm text-white/70 whitespace-nowrap">{customTotal} / {mySets?.find(s => s.id === selectedSetId)?.questionCount ?? "?"}</span>
+              <span className="text-sm font-semibold text-blue-300 whitespace-nowrap">{customScore} ✓</span>
+            </div>
+
+            {customFetching || !customQuestion ? (
+              <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                <CardContent className="p-8 flex items-center justify-center">
+                  <div className="text-center text-white/75">
+                    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                    {t("practice_loading_q")}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                <CardContent className="p-4 sm:p-6 flex flex-col gap-4 sm:gap-5">
+                  {customQuestion.competency && (
+                    <div className="flex items-center gap-2">
+                      <span className={cn("badge-" + customQuestion.competency)}>{customQuestion.competency}</span>
+                      {customQuestion.yearGroup && (
+                        <span className="text-xs text-white/60">
+                          {{ infantil: "Educació Infantil", lower_primary: t("admin_lower_primary"), junior: t("admin_junior"), primary: t("admin_primary"), secondary: t("admin_secondary") }[customQuestion.yearGroup] ?? customQuestion.yearGroup}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  <p className="text-base sm:text-lg font-semibold text-white leading-snug">{customQuestion.question}</p>
+                  <div className="flex flex-col gap-2">
+                    {customQuestion.options.map((opt, idx) => {
+                      const isSel = customSelectedOption === idx;
+                      const isCorrectOpt = idx === customQuestion.correctIndex;
+                      let cls = "w-full text-left px-4 py-3 rounded-xl border text-sm font-medium transition-all ";
+                      if (!customRevealed) {
+                        cls += isSel ? "border-blue-400 bg-blue-500/20 text-white" : "border-white/20 bg-white/10 hover:border-white/40 hover:bg-white/20 text-white";
+                      } else if (isCorrectOpt) {
+                        cls += "border-green-400 bg-green-500/20 text-green-200";
+                      } else if (isSel && !isCorrectOpt) {
+                        cls += "border-red-400 bg-red-500/20 text-red-200";
+                      } else {
+                        cls += "border-white/10 bg-white/5 text-white/40 opacity-60";
+                      }
+                      return (
+                        <button key={idx} onClick={() => !customRevealed && setCustomSelectedOption(idx)} disabled={customRevealed} className={cls}>
+                          <span className="flex items-center gap-2">
+                            {customRevealed && isCorrectOpt && <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />}
+                            {customRevealed && isSel && !isCorrectOpt && <XCircle className="w-4 h-4 text-red-500 flex-shrink-0" />}
+                            {opt}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {customRevealed && (
+                    <div className={cn("rounded-xl p-4 flex gap-3 items-start", customSelectedOption === customQuestion.correctIndex ? "bg-green-500/20 border border-green-400/40" : "bg-amber-500/20 border border-amber-400/40")}>
+                      <Lightbulb className={cn("w-5 h-5 flex-shrink-0 mt-0.5", customSelectedOption === customQuestion.correctIndex ? "text-green-600" : "text-amber-600")} />
+                      <div className="flex flex-col gap-1.5">
+                        <p className={cn("font-semibold text-sm", customSelectedOption === customQuestion.correctIndex ? "text-green-200" : "text-amber-200")}>
+                          {customSelectedOption === customQuestion.correctIndex ? t("practice_correct_well") : t("practice_not_quite")}
+                        </p>
+                        {customSelectedOption !== customQuestion.correctIndex && (
+                          <p className="text-sm text-amber-300 font-medium">{customQuestion.options[customQuestion.correctIndex]}</p>
+                        )}
+                        {customQuestion.explanation && (
+                          <p className={cn("text-sm mt-1 leading-relaxed", customSelectedOption === customQuestion.correctIndex ? "text-green-300" : "text-amber-300")}>💡 {customQuestion.explanation}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
+                    {!customRevealed ? (
+                      <Button onClick={handleCustomReveal} disabled={customSelectedOption === null} className="gap-2">{t("practice_check_answer")}</Button>
+                    ) : (
+                      <Button onClick={handleCustomNext} className="gap-2">{t("practice_next")} <ChevronRight className="w-4 h-4" /></Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </>
+        )}
+
+        {/* Standard active question */}
+        {practiceMode === "standard" && sessionStarted && !sessionDone && (
           <>
             {/* Progress */}
             <div className="flex items-center gap-3">

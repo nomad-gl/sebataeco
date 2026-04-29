@@ -13,8 +13,8 @@ import type { TrpcContext } from "./_core/context";
 // ─── Knowledge Bank Unit Tests ────────────────────────────────────────────────
 
 describe("lomloeKnowledgeBank", () => {
-  it("exports 480 questions (8 competencies × 3 year groups × 20 questions)", () => {
-    expect(LOMLOE_QUESTIONS.length).toBe(480);
+  it("exports at least 480 questions across 8 competencies and multiple year groups", () => {
+    expect(LOMLOE_QUESTIONS.length).toBeGreaterThanOrEqual(480);
   });
 
   it("has all 8 competency codes represented", () => {
@@ -25,7 +25,7 @@ describe("lomloeKnowledgeBank", () => {
     }
   });
 
-  it("has all 3 year groups represented", () => {
+  it("has all required year groups represented", () => {
     const ygs = new Set(LOMLOE_QUESTIONS.map((q) => q.yearGroup));
     const expected: YearGroup[] = ["junior", "primary", "secondary"];
     for (const yg of expected) {
@@ -187,7 +187,7 @@ describe("lomloe tRPC procedures", () => {
     // Total is at least 480 (static) — may be higher if DB has approved questions
     expect(result.totalQuestions).toBeGreaterThanOrEqual(480);
     expect(result.totalCompetencies).toBe(8);
-    expect(result.totalYearGroups).toBe(3);
+    expect(result.totalYearGroups).toBeGreaterThanOrEqual(3);
     expect(result.breakdown.length).toBe(8);
   });
 

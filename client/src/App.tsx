@@ -78,6 +78,7 @@ import HosSettings from "./pages/hos/HosSettings";
 import HosAssignUsers from "./pages/hos/HosAssignUsers";
 import HosAddTeacher from "./pages/hos/HosAddTeacher";
 import SituacioGenerator from "./pages/SituacioGenerator";
+import CustomSets from "./pages/CustomSets";
 import MySituacions from "./pages/MySituacions";
 import AdminEnrolment from "./pages/admin/AdminEnrolment";
 import AdminFinance from "./pages/admin/AdminFinance";
@@ -170,6 +171,7 @@ function Router() {
         <Route path="/reset-password" component={ResetPassword} />
         <Route path="/chat" component={Chat} />
         <Route path="/practice" component={Practice} />
+        <Route path="/practice/custom-sets" component={CustomSets} />
         <Route path="/infantil/practice" component={InfantilPractice} />
         <Route path="/infantil/eixos" component={InfantilEixos} />
         <Route path="/admin" component={Admin} />

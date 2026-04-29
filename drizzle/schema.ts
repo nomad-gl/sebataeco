@@ -2252,3 +2252,48 @@ export const ainaChatMessages = mysqlTable("aina_chat_messages", {
 });
 export type AinaChatMessage = typeof ainaChatMessages.$inferSelect;
 export type InsertAinaChatMessage = typeof ainaChatMessages.$inferInsert;
+
+/**
+ * custom_question_sets — teacher-created named sets of practice questions.
+ * @migration 0062
+ */
+export const customQuestionSets = mysqlTable("custom_question_sets", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  /** Optional LOMLOE competency tag */
+  competency: varchar("competency", { length: 16 }),
+  /** Optional year group tag */
+  yearGroup: varchar("yearGroup", { length: 32 }),
+  /** Number of questions (cached) */
+  questionCount: int("questionCount").notNull().default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+export type CustomQuestionSet = typeof customQuestionSets.$inferSelect;
+export type InsertCustomQuestionSet = typeof customQuestionSets.$inferInsert;
+
+/**
+ * custom_questions — individual questions belonging to a custom set.
+ * @migration 0062
+ */
+export const customQuestions = mysqlTable("custom_questions", {
+  id: int("id").autoincrement().primaryKey(),
+  setId: int("setId").notNull(),
+  userId: int("userId").notNull(),
+  question: text("question").notNull(),
+  /** JSON array of 4 option strings */
+  options: text("options").notNull(),
+  correctIndex: int("correctIndex").notNull(),
+  explanation: text("explanation").notNull(),
+  /** LOMLOE competency this question maps to (AI-validated) */
+  competency: varchar("competency", { length: 16 }),
+  /** Year group this question is suited for */
+  yearGroup: varchar("yearGroup", { length: 32 }),
+  sortOrder: int("sortOrder").notNull().default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+export type CustomQuestion = typeof customQuestions.$inferSelect;
+export type InsertCustomQuestion = typeof customQuestions.$inferInsert;
