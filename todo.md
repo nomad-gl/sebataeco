@@ -4912,3 +4912,9 @@
 ## Sprint: Performance + UI fixes (Apr 29)
 - [x] Speed up bulk lesson plan AI generation (parallelise all plan LLM calls)
 - [x] Add back/return button to /seba/tenants page consistent with existing style
+
+## Feature: Per-director user visibility scoping
+- [x] Audit all director user-listing and profile procedures
+- [x] Add invitedByUserId (or similar) tracking to users table
+- [x] Enforce: directors can only list/view users they personally invited or added
+- [x] Ensure directors cannot see each other's profiles or each other's invitees

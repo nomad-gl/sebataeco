@@ -151,10 +151,16 @@ export const directorRouter = router({
     if (!db) throw new Error("DB unavailable");
     const tid = ctx.tenantId;
 
+    // Super-admins see all teachers; directors only see their own invitees
+    const staffWhereClause = ctx.isSuperAdmin
+      ? inArray(users.role, ["user", "teacher"])
+      : tid != null
+        ? and(inArray(users.role, ["user", "teacher"]), eq(users.tenantId, tid), eq(users.invitedByUserId, ctx.user.id))
+        : and(inArray(users.role, ["user", "teacher"]), eq(users.invitedByUserId, ctx.user.id));
     const allTeachers = await db
       .select({ id: users.id, name: users.name, email: users.email, createdAt: users.createdAt, lastSignedIn: users.lastSignedIn })
       .from(users)
-      .where(tid != null ? and(inArray(users.role, ["user", "teacher"]), eq(users.tenantId, tid)) : inArray(users.role, ["user", "teacher"]))
+      .where(staffWhereClause)
       .orderBy(desc(users.lastSignedIn));
 
     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -474,11 +480,12 @@ export const directorRouter = router({
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
     const tid = ctx.tenantId;
-    // Non-super-admins (directors, HoS) must never see platform-level admins (role='admin')
-    // Super-admins (isSuperAdmin=true, tid=null) see all users
-    const whereClause = tid != null
-      ? and(eq(users.tenantId, tid), sql`${users.role} != 'admin'`)
-      : undefined;
+    // Super-admins see all users; directors only see users they personally invited/created
+    const whereClause = ctx.isSuperAdmin
+      ? sql`${users.role} != 'admin'`
+      : tid != null
+        ? and(eq(users.tenantId, tid), sql`${users.role} != 'admin'`, eq(users.invitedByUserId, ctx.user.id))
+        : and(sql`${users.role} != 'admin'`, eq(users.invitedByUserId, ctx.user.id));
     return db.select({ id: users.id, name: users.name, email: users.email, role: users.role, createdAt: users.createdAt, lastSignedIn: users.lastSignedIn }).from(users).where(whereClause).orderBy(desc(users.createdAt));
   }),
 
@@ -862,6 +869,12 @@ export const directorRouter = router({
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
     const tid = ctx.tenantId;
+    // Super-admins see all users; directors only see users they personally invited/created
+    const listWhereClause = ctx.isSuperAdmin
+      ? sql`${users.role} != 'admin'`
+      : tid != null
+        ? and(eq(users.tenantId, tid), sql`${users.role} != 'admin'`, eq(users.invitedByUserId, ctx.user.id))
+        : and(sql`${users.role} != 'admin'`, eq(users.invitedByUserId, ctx.user.id));
     const allUsers = await db
       .select({
         id: users.id,
@@ -873,8 +886,7 @@ export const directorRouter = router({
         createdAt: users.createdAt,
       })
       .from(users)
-      // Non-super-admins (directors, HoS) must never see platform-level admins (role='admin')
-      .where(tid != null ? and(eq(users.tenantId, tid), sql`${users.role} != 'admin'`) : undefined)
+      .where(listWhereClause)
       .orderBy(desc(users.lastSignedIn));
     return allUsers;
   }),
@@ -888,9 +900,20 @@ export const directorRouter = router({
       userId: z.number(),
       position: z.enum(["unassigned", "teacher", "head_of_study", "director"]),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
+      // Directors can only set position for users they personally invited
+      if (!ctx.isSuperAdmin) {
+        const [target] = await db
+          .select({ invitedByUserId: users.invitedByUserId })
+          .from(users)
+          .where(eq(users.id, input.userId))
+          .limit(1);
+        if (!target || target.invitedByUserId !== ctx.user.id) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "You can only manage users you have invited." });
+        }
+      }
       await db.update(users)
         .set({ position: input.position })
         .where(eq(users.id, input.userId));
@@ -937,6 +960,12 @@ export const directorRouter = router({
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
     const tid = ctx.tenantId;
+    // Super-admins see all local users; directors only see users they personally invited/created
+    const localWhereClause = ctx.isSuperAdmin
+      ? isNotNull(users.passwordHash)
+      : tid != null
+        ? and(isNotNull(users.passwordHash), eq(users.tenantId, tid), eq(users.invitedByUserId, ctx.user.id))
+        : and(isNotNull(users.passwordHash), eq(users.invitedByUserId, ctx.user.id));
     const rows = await db
       .select({
         id: users.id,
@@ -950,7 +979,7 @@ export const directorRouter = router({
         isPermanent: users.isPermanent,
       })
       .from(users)
-      .where(tid != null ? and(isNotNull(users.passwordHash), eq(users.tenantId, tid)) : isNotNull(users.passwordHash))
+      .where(localWhereClause)
       .orderBy(desc(users.lastSignedIn));
     return rows;
   }),
@@ -1102,16 +1131,21 @@ export const directorRouter = router({
     }),
 
   listTeacherInvites: adminProcedure
-    .query(async () => {
+    .query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       const { teacherInvites } = await import("../../drizzle/schema");
       // Lazy cleanup: fire-and-forget, never blocks the response
       purgeExpiredInvites().catch(() => {});
       const now = new Date();
+      // Super-admins see all invites; directors only see their own
+      const inviteWhereClause = ctx.isSuperAdmin
+        ? undefined
+        : eq(teacherInvites.createdByUserId, ctx.user.id);
       const rows = await db
         .select()
         .from(teacherInvites)
+        .where(inviteWhereClause)
         .orderBy(desc(teacherInvites.createdAt));
       return rows.map((r) => ({
         id: r.id,
@@ -1130,22 +1164,21 @@ export const directorRouter = router({
    * Used by the NavBar to show a badge on the Director menu item.
    */
   getPendingInviteCount: adminProcedure
-    .query(async () => {
+    .query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return { count: 0 };
       const { teacherInvites } = await import("../../drizzle/schema");
       // Lazy cleanup: fire-and-forget
       purgeExpiredInvites().catch(() => {});
       const now = new Date();
+      // Directors only count their own pending invites
+      const pendingWhereClause = ctx.isSuperAdmin
+        ? and(isNull(teacherInvites.usedAt), gt(teacherInvites.expiresAt, now))
+        : and(isNull(teacherInvites.usedAt), gt(teacherInvites.expiresAt, now), eq(teacherInvites.createdByUserId, ctx.user.id));
       const rows = await db
         .select({ id: teacherInvites.id })
         .from(teacherInvites)
-        .where(
-          and(
-            isNull(teacherInvites.usedAt),
-            gt(teacherInvites.expiresAt, now)
-          )
-        );
+        .where(pendingWhereClause);
       return { count: rows.length };
     }),
 
@@ -1189,9 +1222,21 @@ export const directorRouter = router({
       position: z.string().max(128).optional().nullable(),
       schoolName: z.string().max(256).optional().nullable(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
+
+      // Directors can only update users they personally invited
+      if (!ctx.isSuperAdmin) {
+        const [target] = await db
+          .select({ invitedByUserId: users.invitedByUserId })
+          .from(users)
+          .where(eq(users.id, input.userId))
+          .limit(1);
+        if (!target || target.invitedByUserId !== ctx.user.id) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "You can only edit users you have invited." });
+        }
+      }
 
       const updates: Record<string, unknown> = {};
       if (input.name !== undefined) updates.name = input.name;
@@ -1266,6 +1311,8 @@ export const directorRouter = router({
         tenantId: input.tenantId ?? null,
         schoolName: resolvedSchoolName,
         mustChangePassword: true,
+        // Track which director created this user for per-director visibility scoping
+        invitedByUserId: ctx.user.id,
         createdAt: new Date(),
         updatedAt: new Date(),
         lastSignedIn: new Date(),
@@ -2217,9 +2264,20 @@ export const directorRouter = router({
       userId: z.number(),
       aiOnly: z.boolean().optional(),
     }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return [];
+      // Directors can only view plans of users they personally invited
+      if (!ctx.isSuperAdmin) {
+        const [target] = await db
+          .select({ invitedByUserId: users.invitedByUserId })
+          .from(users)
+          .where(eq(users.id, input.userId))
+          .limit(1);
+        if (!target || target.invitedByUserId !== ctx.user.id) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "You can only view plans of users you have invited." });
+        }
+      }
       const conditions = [eq(lessonPlans.userId, input.userId)];
       if (input.aiOnly) conditions.push(eq(lessonPlans.aiGenerated, true));
       const plans = await db

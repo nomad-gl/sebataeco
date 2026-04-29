@@ -94,6 +94,15 @@ export const users = mysqlTable("users", {
    * @migration 0053
    */
   cutcgMemberNumber: varchar("cutcgMemberNumber", { length: 32 }),
+  /**
+   * The director (or admin) who created / invited this user.
+   * NULL for users who registered independently (Manus OAuth) or were created
+   * by a super-admin without a specific director context.
+   * Used to enforce per-director visibility: a director can only see and manage
+   * users they personally added.
+   * @migration 0060
+   */
+  invitedByUserId: int("invitedByUserId"),
 });
 
 export type User = typeof users.$inferSelect;

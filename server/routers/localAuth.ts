@@ -208,6 +208,8 @@ export const localAuthRouter = router({
         // Inherit the tenant from the invite so the new teacher is automatically
         // placed in the same school group as the Director who sent the invite.
         tenantId: invite.tenantId ?? null,
+        // Track which director invited this user for per-director visibility scoping
+        invitedByUserId: invite.createdByUserId ?? null,
       });
 
       // Mark invite as used
