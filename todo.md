@@ -4974,3 +4974,5 @@
 - [ ] Add web search capability to AINA for Spanish government curriculum sources (Decree 175/2022)
 - [ ] Expand AINA live search to more official educational sources
 - [ ] Display source citations in AINA chat UI after each answer
+- [ ] Enforce LOMLOE/Decret 175/2022 Catalan language and punctuation norms in AINA responses (Catalan as default, approved sources only)
+- [ ] Investigate HuggingFace LOMLOE RAG space 'no backend found' error and help user download dataset

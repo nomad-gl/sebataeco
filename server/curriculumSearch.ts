@@ -267,6 +267,23 @@ const SOURCES = {
       "Llengua Catalana i Literatura (ESO) — XTEC"
     ),
 
+  // ── IEC — Institut d'Estudis Catalans (language norms) ───────────────────
+  iec_geiec: () =>
+    fetchKnownUrl(
+      "https://geiec.iec.cat",
+      "Gramàtica Essencial de la Llengua Catalana (GEIEC) — IEC"
+    ),
+  iec_ortografia: () =>
+    fetchKnownUrl(
+      "https://www.iec.cat/llengua/ortografia.asp",
+      "Ortografia Catalana — IEC"
+    ),
+  iec_dlc: () =>
+    fetchKnownUrl(
+      "https://dlc.iec.cat",
+      "Diccionari de la Llengua Catalana — IEC"
+    ),
+
   // ── Matemàtiques ──────────────────────────────────────────────────────────
   mates_primaria: () =>
     fetchKnownUrl(
@@ -383,8 +400,12 @@ const ROUTES: Route[] = [
     sources: ["fp_xtec", "fp_educagob"],
   },
   {
-    keys: /llengua catalana|catalan.*language|literatura catalana|ortografia|morfologia|sintaxi|signes de puntuaci|abreviaci/i,
-    sources: ["llengua_primaria", "llengua_eso"],
+    keys: /llengua catalana|catalan.*language|literatura catalana|ortografia|morfologia|sintaxi|signes de puntuaci|abreviaci|gram[aà]tica|puntuaci[oó]|ortografia|accentuaci[oó]|dièresi|apòstrof|guionet|cometes|guillemets|iec|institut.*estudis/i,
+    sources: ["llengua_primaria", "llengua_eso", "iec_geiec", "iec_ortografia"],
+  },
+  {
+    keys: /diccionari.*catal[aà]|dlc|significat.*paraula|paraula.*significat/i,
+    sources: ["iec_dlc", "iec_geiec"],
   },
   {
     keys: /matem[aà]tiques|matem[aà]ticas|geometria|àlgebra|estadística/i,
