@@ -14,6 +14,7 @@ import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
 import { generateImage } from "../_core/imageGeneration";
 import { storagePut } from "../storage";
 import { saveMaterial } from "../db";
+import { assertFileSafe } from "../security/fileScanner";
 
 // ─── Router ───────────────────────────────────────────────────────────────────
 
@@ -75,6 +76,8 @@ export const ainaRouter = router({
         });
       }
 
+      // Security scan before storing
+      await assertFileSafe({ buffer, mimeType: input.mimeType, fileName: input.fileName, context: "aina-upload" });
       // Sanitise the file name and derive extension
       const safeName = input.fileName.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 100);
       const ext = safeName.split(".").pop() ?? "bin";
@@ -140,6 +143,8 @@ export const ainaRouter = router({
 
       try {
         const buffer = Buffer.from(input.fileBase64, "base64");
+        // Security scan before processing
+        await assertFileSafe({ buffer, mimeType: input.mimeType, fileName: input.fileName, context: "aina-document" });
 
         // PDF extraction
         if (input.mimeType === "application/pdf" || input.fileName.toLowerCase().endsWith(".pdf")) {

@@ -4,6 +4,7 @@ import { getDb } from "../db";
 import { audioResponses, type AudioResponse } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { storagePut } from "../storage";
+import { assertFileSafe } from "../security/fileScanner";
 import { randomBytes } from "crypto";
 
 function randomSuffix() {
@@ -55,6 +56,7 @@ export const audioResponsesRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database unavailable");
       const buffer = Buffer.from(input.base64Data, "base64");
+      await assertFileSafe({ buffer, mimeType: input.mimeType, fileName: input.fileName, context: "audio-response" });
       const ext = input.fileName.split(".").pop() ?? "mp3";
       const fileKey = `audio-responses/${randomSuffix()}-${Date.now()}.${ext}`;
       const { url } = await storagePut(fileKey, buffer, input.mimeType);

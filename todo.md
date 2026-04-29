@@ -5020,3 +5020,23 @@
 - [x] Add rule to exercise/activity generation section (activitats d'aprenentatge added to CRITICAL block)
 - [x] Add self-check instruction: Aina must verify infinitive form before outputting any curriculum element (Core guideline 9 + grammar reminder)
 - [x] Add infinitive correction to document analysis mode (step 5 in doc analysis instructions)
+
+## File Upload Security Scanning
+- [ ] Audit all upload endpoints (document upload, image upload, audio upload)
+- [ ] Build server/security/fileScanner.ts module with phishing URL detection, malicious script patterns, data exfiltration patterns, credential harvesting patterns
+- [ ] Wire scanner into document upload endpoint (lomloe router)
+- [ ] Wire scanner into image upload endpoint
+- [ ] Wire scanner into audio/voice upload endpoint
+- [ ] Reject flagged files with descriptive error messages (no silent failures)
+- [ ] Log all blocked upload attempts to DB for admin review
+- [ ] Write vitest tests for the scanner module
+
+## LOMLOE Four-Level Competency Grading Scale (AE/AN/AS/NA)
+- [x] Research official definitions from Decret 175/2022 Article 29 (portaljuridic.gencat.cat) and XTEC school implementations
+- [x] Embed full AE/AN/AS/NA scale table into Aina system prompt (Curriculum Elements section) with Català descriptors
+- [x] Add official state-level equivalences (AE=Excel·lent, AN=Notable, AS=Bé, NA=Insuficient)
+- [x] Add rubric generation instructions (observable descriptors per level per criterion)
+- [x] Add Core Guideline 10: mandatory grading scale self-check before every evaluation response
+- [x] Ensure Aina always uses the four-level scale when marking or grading is requested (MANDATORY directive)
+- [x] Fix MACRO_MIME_TYPES lowercase bug in fileScanner.ts (7855/7855 tests passing)
+

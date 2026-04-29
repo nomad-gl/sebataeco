@@ -14,6 +14,7 @@ import {
 } from "../../drizzle/schema";
 import { eq, desc, and, or, gt, sql } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
+import { assertFileSafe } from "../security/fileScanner";
 
 // --- helpers -----------------------------------------------------------------
 
@@ -394,6 +395,7 @@ export const forumRouter = router({
       // Upload audio to S3
       const { storagePut } = await import("../storage");
       const audioBuffer = Buffer.from(input.audioBase64, "base64");
+      await assertFileSafe({ buffer: audioBuffer, mimeType: input.mimeType, fileName: `voice.${input.mimeType.includes("webm") ? "webm" : "mp4"}`, uploadedBy: ctx.user.id, context: "forum-voice-channel" });
       const ext = input.mimeType.includes("webm") ? "webm" : input.mimeType.includes("mp4") ? "mp4" : "webm";
       const fileKey = `forum-voice/${ctx.user.id}-${Date.now()}.${ext}`;
       const { url: audioUrl } = await storagePut(fileKey, audioBuffer, input.mimeType);
@@ -434,6 +436,7 @@ export const forumRouter = router({
 
       const { storagePut } = await import("../storage");
       const audioBuffer = Buffer.from(input.audioBase64, "base64");
+      await assertFileSafe({ buffer: audioBuffer, mimeType: input.mimeType, fileName: `voice-dm.${input.mimeType.includes("webm") ? "webm" : "mp4"}`, uploadedBy: ctx.user.id, context: "forum-voice-dm" });
       const ext = input.mimeType.includes("webm") ? "webm" : input.mimeType.includes("mp4") ? "mp4" : "webm";
       const fileKey = `forum-voice-dm/${ctx.user.id}-${Date.now()}.${ext}`;
       const { url: audioUrl } = await storagePut(fileKey, audioBuffer, input.mimeType);
@@ -614,6 +617,7 @@ export const forumRouter = router({
       if (!db) throw new Error("Database unavailable");
       const { storagePut } = await import("../storage");
       const fileBuffer = Buffer.from(input.fileBase64, "base64");
+      await assertFileSafe({ buffer: fileBuffer, mimeType: input.mimeType, fileName: input.fileName, uploadedBy: ctx.user.id, context: "forum-channel-file" });
       const ext = input.fileName.split(".").pop() ?? "bin";
       const fileKey = `channel-files/${input.channelId}/${ctx.user.id}-${Date.now()}.${ext}`;
       const { url: fileUrl } = await storagePut(fileKey, fileBuffer, input.mimeType);

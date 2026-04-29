@@ -6,6 +6,7 @@
  */
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
+import { assertFileSafe } from "../security/fileScanner";
 import { getDb } from "../db";
 import { users } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
@@ -34,6 +35,7 @@ export const callBackgroundRouter = router({
       const { storagePut } = await import("../storage");
 
       const fileBuffer = Buffer.from(input.fileBase64, "base64");
+      await assertFileSafe({ buffer: fileBuffer, mimeType: input.mimeType, fileName: `background.${input.mimeType.split("/")[1] || "jpg"}`, context: "call-background" });
       if (fileBuffer.length > MAX_SIZE_BYTES) {
         throw new Error("Image too large (max 5 MB)");
       }

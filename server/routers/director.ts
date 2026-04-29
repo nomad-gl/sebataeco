@@ -26,6 +26,7 @@ import { notifyOwner } from "../_core/notification";
 import { createNotification } from "./notifications";
 import { generateDirectorReportPdf } from "../directorReportPdf";
 import { storagePut } from "../storage";
+import { assertFileSafe } from "../security/fileScanner";
 import bcrypt from "bcryptjs";
 import { sendTempPasswordEmail } from "../email";
 import { runI18nScanAndNotify, i18nScanStatus, autoFixMissingKeys, i18nAutoFixStatus, runI18nScan } from "../i18nScan";
@@ -1097,6 +1098,7 @@ export const directorRouter = router({
       if (!db) throw new Error("DB unavailable");
       const base64 = input.dataUrl.includes(",") ? input.dataUrl.split(",")[1] : input.dataUrl;
       const buffer = Buffer.from(base64, "base64");
+      await assertFileSafe({ buffer, mimeType: input.mimeType, fileName: `school-logo.${input.mimeType.split("/")[1] || "png"}`, context: "school-logo" });
       const ext = input.mimeType.split("/")[1] ?? "png";
       const key = `school-logos/logo-${Date.now()}.${ext}`;
       const { url } = await storagePut(key, buffer, input.mimeType);
@@ -1192,6 +1194,7 @@ export const directorRouter = router({
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       const buffer = Buffer.from(input.base64, "base64");
+      await assertFileSafe({ buffer, mimeType: input.mimeType, fileName: `login-bg.${input.mimeType.split("/")[1] || "jpg"}`, context: "login-background" });
       const ext = input.mimeType.split("/")[1] ?? "jpg";
       const key = `login-bg/background-${Date.now()}.${ext}`;
       const { url } = await storagePut(key, buffer, input.mimeType);
