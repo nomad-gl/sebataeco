@@ -26,6 +26,7 @@ const SUGGESTED_KEYS: TranslationKey[] = [
   "chat_suggested_2",
 ];
 
+
 export default function Chat() {
   const { t, lang, dialect } = useI18n();
   const { user } = useAuth();
@@ -505,10 +506,17 @@ export default function Chat() {
     );
   };
 
-  const suggestedQuestions = SUGGESTED_KEYS.map((k) => t(k));
+  // Personalised suggested questions — only fetched when user is logged in and chat is empty
+  const { data: suggestedData } = trpc.lomloe.getSuggestedQuestions.useQuery(
+    { lang },
+    { enabled: !!user && messages.length === 0, staleTime: 5 * 60 * 1000 }
+  );
+  const suggestedQuestions = (user && messages.length === 0 && suggestedData?.questions)
+    ? suggestedData.questions
+    : SUGGESTED_KEYS.map((k) => t(k));
 
   return (
-    <div className="chat-bg flex flex-col min-h-screen">
+    <div className="chat-bg flex flex-col h-screen overflow-hidden">
       <NavBar />
       <div className="flex flex-1 overflow-hidden">
         {/* ── History sidebar ───────────────────────────────────────────── */}

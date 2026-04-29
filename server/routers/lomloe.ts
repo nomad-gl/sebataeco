@@ -531,6 +531,24 @@ export const lomloeRouter = router({
         )
         .join("\n\n");
 
+      // Auto-enrich with live curriculum search when the teacher asks about specific legislation
+      const lastUserMessage = [...input.messages].reverse().find((m) => m.role === "user");
+      const needsLiveSearch = lastUserMessage && (
+        /decret\s*175|decreto\s*175|175\/2022|lomloe|ley org.nica.*2020|llei org.nica.*2020|boe|dogc|portaljuridic|educagob|annex|annex \d|cap.tol \d|article \d|art.cle \d|art\. \d|vector.*curr.cul|curr.cul.*vector|situaci..*aprenentatge|situaci.n.*aprendizaje|criteris.*avaluaci|criterios.*evaluaci|compet.ncies.*espec.fiques|competencias.*espec.ficas|sabers b.sics|saberes b.sicos|perfil.*sortida|perfil.*salida|assoliment|avaluaci.*competencial/i.test(lastUserMessage.content)
+      );
+      let liveSearchContext = "";
+      if (needsLiveSearch) {
+        try {
+          const { searchCurriculumSources } = await import("../curriculumSearch");
+          const { summary } = await searchCurriculumSources(lastUserMessage.content);
+          if (summary && summary !== "No results found from official sources for this query.") {
+            liveSearchContext = `\n\n## Live curriculum data (fetched from official sources)\n${summary}`;
+          }
+        } catch {
+          // Non-blocking — proceed without live data if search fails
+        }
+      }
+
       const competencyContext = input.competency
         ? `Focus competency: ${COMPETENCY_META[input.competency as CompetencyCode]?.name} (${input.competency})`
         : "All 8 LOMLOE competencies";
@@ -593,7 +611,78 @@ export const lomloeRouter = router({
   • Gèneres literaris: narrativa, poesia, teatre, assaig
   • Figures retòriques: metàfora, símil, personificació, hipèrbole, al·literació, anàfora, antítesi, ironia
   • Autors i obres clau de la literatura catalana (medieval, renaixença, modernisme, noucentisme, avantguardes, postguerra, contemporània)
-  • Lectura i comentari de textos literaris
+   • Lectura i comentari de textos literaris
+
+## Decree 175/2022 — Catalan Curriculum Blueprint (CRITICAL KNOWLEDGE)
+Decret 175/2022, de 27 de setembre, d'ordenació dels ensenyaments de l'educació bàsica is the **legal blueprint** for all Basic Education in Catalonia. It is Catalonia's specific implementation manual for LOMLOE (Ley Orgànica 3/2020). It governs Primary (Primària), ESO (Educació Secundària Obligatòria), and Basic Vocational Training (Cicles Formatius de Grau Bàsic).
+
+**Official sources (authoritative — cite these when relevant):**
+- Full decree text: https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=938401
+- XTEC curriculum portal: https://xtec.gencat.cat/ca/curriculum/
+- DOGC (official Catalan gazette): https://dogc.gencat.cat
+- Spanish national curriculum: https://educagob.educacionfpydeportes.gob.es
+- BOE (Spanish official gazette): https://www.boe.es
+
+**Structure of Decret 175/2022:**
+- 4 Chapters, 35 Articles
+- Annex 1: Competències clau (8 key competencies + operational indicators for end of Basic Education)
+- Annex 2: Primary school subject areas (àrees d'educació primària)
+- Annex 3: ESO subject areas (matèries d'ESO) — modified by Decret 480/2024
+- Annex 4: Transversal competencies (competències transversals)
+- Annex 5: Situació d'Aprenentatge framework (project/task-based learning)
+- Annex 6: Basic Vocational Training cycles
+- Annex 7: Timetable distribution (modified by Decret 480/2024)
+
+**The 6 Mandatory Vectors (Vectors del Currículum):**
+Every school and every SEBA Challenge must embed all 6 vectors:
+1. **Competències d'aprenentatge** — Moving from "knowing" to "doing"; competency-based learning
+2. **Competència digital** — Digital literacy integrated across all subjects; essential for AI/SÀPI integration
+3. **Inclusió** — Universal Design for Learning (DUA); every student participates regardless of level
+4. **Igualtat de gènere** — Equal opportunities; breaking stereotypes in all materials and activities
+5. **Sostenibilitat** — Alignment with SDGs (Sustainable Development Goals / ODS)
+6. **Benestar emocional** — Student mental health and social-emotional development
+
+**Key Structural Changes for Primary (Educació Primària):**
+| Feature | Decree 175/2022 Requirement |
+|---|---|
+| Organisation | 3 cycles: Cicle Inicial (1r/2n), Cicle Mitjà (3r/4t), Cicle Superior (5è/6è) |
+| Methodology | Mandatory Situacions d'Aprenentatge (practical, real-world tasks) |
+| Language | Full mastery of both Catalan AND Spanish guaranteed by end of Primary |
+| Reading | Minimum 30 minutes/day dedicated to silent or shared reading |
+| Evaluation | Competency-based grades: Assoliment Excel·lent (AE), Assoliment Notable (AN), Assoliment Satisfactori (AS), No Assoliment (NA) |
+
+**CRITICAL — Verb Infinitive Rule (Legal Requirement):**
+Under LOMLOE and Decret 175/2022, ALL of the following curriculum elements MUST be written with the main verb in **infinitive form** (infinitiu):
+- Competències específiques (specific competencies)
+- Criteris d'avaluació (evaluation criteria)
+- Objectius didàctics (learning objectives)
+- Indicadors competencials (competency indicators)
+
+This is not a stylistic choice — it is a **legal requirement** of the LOMLOE framework. The infinitive form describes what the student must *do* or *demonstrate*. Example: "Identificar i comprendre textos escrits de diferent tipologia" (NOT "Identifica i comprèn textos escrits..."). When teachers ask about writing competencies, objectives, or evaluation criteria, ALWAYS remind them of this rule and correct any non-infinitive formulations.
+
+**Curriculum Elements Hierarchy (from broad to specific):**
+1. Competències clau (8 key competencies — national level)
+2. Competències específiques (subject-specific competencies — infinitive form)
+3. Criteris d'avaluació (evaluation criteria — infinitive form, derived from competències específiques)
+4. Sabers bàsics (basic knowledge/content — organised in blocks)
+5. Situacions d'Aprenentatge (learning situations — the methodology)
+
+**Competency-Based Evaluation Scale:**
+- AE (Assoliment Excel·lent): Exceeds expectations; demonstrates deep, transferable understanding
+- AN (Assoliment Notable): Meets expectations with notable quality
+- AS (Assoliment Satisfactori): Meets minimum expectations
+- NA (No Assoliment): Does not yet meet minimum expectations
+
+**Situació d'Aprenentatge (SA) — Key Requirements:**
+- Must be contextualised in a real-world scenario
+- Must integrate multiple competències clau
+- Must include a final product or performance task
+- Must have explicit evaluation criteria (in infinitive form)
+- Must address at least one of the 6 vectors
+- Recommended: 3–6 sessions per SA
+
+**Web Search Capability for Curriculum Queries:**
+When a teacher asks about specific articles, annexes, or requirements of Decret 175/2022, LOMLOE, or related Spanish/Catalan education legislation that you cannot answer from memory, you MUST proactively tell the teacher that you can search the official sources and provide the relevant URLs from the list above. Direct them to: portaljuridic.gencat.cat for the full decree text, xtec.gencat.cat for curriculum guides, educagob.educacionfpydeportes.gob.es for national competency descriptors, and boe.es for national legislation.
 
 ## Image generation capability
 You CAN generate images. This is a fully integrated feature. When a teacher asks you to create, draw, generate, produce, or design an image (e.g. "generate an image of a classroom", "create a poster about photosynthesis", "draw a diagram of the water cycle", "make an illustration of..."), you MUST:
@@ -609,7 +698,7 @@ Example responses (vary them naturally — do not always use the same one):
 ${competencyContext} | ${yearGroupContext}
 
 ## Relevant curriculum knowledge
-${contextText}
+${contextText}${liveSearchContext}
 ${adaptiveContext}
 
 ## Response format guidelines
@@ -1558,5 +1647,81 @@ Return ONLY a valid JSON object (no markdown, no code fences) with exactly these
         .set({ title: input.title })
         .where(and(eq(ainaChatSessions.id, input.sessionId), eq(ainaChatSessions.userId, ctx.user.id)));
       return { ok: true };
+    }),
+
+  /**
+   * Generate 2 personalised suggested questions based on the user's recent chat history.
+   * Falls back to generic defaults if the user has no history or LLM fails.
+   */
+  getSuggestedQuestions: protectedProcedure
+    .input(z.object({ lang: z.string().default("en") }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      const defaults: Record<string, [string, string]> = {
+        en: ["What is a rhetorical question and why is it used?", "Explain the difference between speed and velocity."],
+        es: ["\u00bfQu\u00e9 es una pregunta ret\u00f3rica y por qu\u00e9 se usa?", "Explica la diferencia entre velocidad y rapidez."],
+        ca: ["Qu\u00e8 \u00e9s una pregunta ret\u00f2rica i per qu\u00e8 s'utilitza?", "Explica la difer\u00e8ncia entre velocitat i rapidesa."],
+      };
+      const fallback = defaults[input.lang] ?? defaults.en;
+      if (!db) return { questions: fallback };
+      try {
+        // Fetch the user's last 30 user messages across all sessions
+        const recentMsgs = await db
+          .select({ content: ainaChatMessages.content })
+          .from(ainaChatMessages)
+          .where(and(eq(ainaChatMessages.userId, ctx.user.id), eq(ainaChatMessages.role, "user")))
+          .orderBy(desc(ainaChatMessages.createdAt))
+          .limit(30);
+        if (recentMsgs.length < 3) return { questions: fallback };
+        const history = recentMsgs.map((m) => `- ${m.content}`).join("\n");
+        const langName = input.lang === "ca" ? "Catalan" : input.lang === "es" ? "Spanish" : "English";
+        const response = await invokeLLM({
+          messages: [
+            {
+              role: "system",
+              content: `You are a helpful assistant for teachers using the AINA platform (LOMLOE curriculum assistant). Based on a teacher's recent questions, generate exactly 2 short, specific follow-up questions they are likely to want to ask next. The questions must be in ${langName}. Return ONLY a JSON object with this exact shape: {"q1": "...", "q2": "..."} \u2014 no markdown, no explanation.`,
+            },
+            {
+              role: "user",
+              content: `Here are the teacher's recent questions:\n${history}\n\nGenerate 2 personalised follow-up questions they would likely ask next.`,
+            },
+          ],
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "suggested_questions",
+              strict: true,
+              schema: {
+                type: "object",
+                properties: {
+                  q1: { type: "string", description: "First suggested question" },
+                  q2: { type: "string", description: "Second suggested question" },
+                },
+                required: ["q1", "q2"],
+                additionalProperties: false,
+              },
+            },
+          },
+        });
+        const raw = response?.choices?.[0]?.message?.content;
+        if (!raw) return { questions: fallback };
+        const parsed = JSON.parse(typeof raw === "string" ? raw : JSON.stringify(raw)) as { q1: string; q2: string };
+        if (!parsed.q1 || !parsed.q2) return { questions: fallback };
+        return { questions: [parsed.q1, parsed.q2] as [string, string] };
+      } catch {
+        return { questions: fallback };
+      }
+    }),
+
+  /**
+   * Live curriculum web search — fetches content from official Spanish/Catalan
+   * government education sites to answer specific legislation queries.
+   */
+  searchCurriculum: protectedProcedure
+    .input(z.object({ query: z.string().min(3).max(200) }))
+    .query(async ({ input }) => {
+      const { searchCurriculumSources } = await import("../curriculumSearch");
+      const { results, summary } = await searchCurriculumSources(input.query);
+      return { results, summary };
     }),
 });
