@@ -456,6 +456,7 @@ export default function Chat() {
       timestamp: Date.now(),
       followUpQuestions: result.followUpQuestions ?? [],
       id: msgId,
+      sources: result.sources && result.sources.length > 0 ? result.sources : undefined,
     };
     setMessages((prev) => [...prev, assistantMsg]);
     // Persist to DB for logged-in users (fire-and-forget)

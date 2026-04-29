@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import {
   Loader2, Send, User, Mic, MicOff, Radio,
   ThumbsUp, ThumbsDown, Volume2, VolumeX, Play, Square,
-  Paperclip, ImageIcon, X as XIcon, RefreshCw,
+  Paperclip, ImageIcon, X as XIcon, RefreshCw, ExternalLink, BookOpen,
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Streamdown } from "streamdown";
@@ -35,6 +35,8 @@ export type Message = {
   attachmentUrl?: string;
   attachmentName?: string;
   attachmentMime?: string;
+  /** Live curriculum sources fetched from official government sites for this response */
+  sources?: Array<{ title: string; url: string; domain: string }>;
 };
 
 function formatTime(ts?: number): string {
@@ -1279,7 +1281,35 @@ export function AIChatBox({
           {resolvedRetryLabel}
         </button>
                       )}
-                      {message.role === "assistant" &&
+                        {message.role === "assistant" &&
+                        !isLoading &&
+                        message.sources &&
+                        message.sources.length > 0 && (
+                          <div className="mt-3 rounded-lg border border-blue-400/20 bg-blue-500/5 px-3 py-2">
+                            <div className="flex items-center gap-1.5 mb-2">
+                              <BookOpen className="size-3 text-blue-300/70" />
+                              <span className="text-[10px] font-medium text-blue-300/70 uppercase tracking-wide select-none">Official Sources</span>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              {message.sources.map((src, si) => (
+                                <a
+                                  key={si}
+                                  href={src.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-start gap-1.5 group rounded px-1 py-0.5 hover:bg-blue-400/10 transition-colors"
+                                >
+                                  <ExternalLink className="size-3 mt-0.5 shrink-0 text-blue-400/60 group-hover:text-blue-300" />
+                                  <div className="min-w-0">
+                                    <span className="text-xs text-blue-200/80 group-hover:text-blue-100 leading-tight line-clamp-1">{src.title}</span>
+                                    <span className="block text-[10px] text-blue-400/50 group-hover:text-blue-300/60">{src.domain}</span>
+                                  </div>
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {message.role === "assistant" &&
                         isLastMessage &&
                         !isLoading &&
                         message.followUpQuestions &&

@@ -537,12 +537,14 @@ export const lomloeRouter = router({
         /decret\s*175|decreto\s*175|175\/2022|lomloe|ley org.nica.*2020|llei org.nica.*2020|boe|dogc|portaljuridic|educagob|annex|annex \d|cap.tol \d|article \d|art.cle \d|art\. \d|vector.*curr.cul|curr.cul.*vector|situaci..*aprenentatge|situaci.n.*aprendizaje|criteris.*avaluaci|criterios.*evaluaci|compet.ncies.*espec.fiques|competencias.*espec.ficas|sabers b.sics|saberes b.sicos|perfil.*sortida|perfil.*salida|assoliment|avaluaci.*competencial/i.test(lastUserMessage.content)
       );
       let liveSearchContext = "";
+      let liveSources: Array<{ title: string; url: string; domain: string }> = [];
       if (needsLiveSearch) {
         try {
           const { searchCurriculumSources } = await import("../curriculumSearch");
-          const { summary } = await searchCurriculumSources(lastUserMessage.content);
+          const { summary, results } = await searchCurriculumSources(lastUserMessage.content);
           if (summary && summary !== "No results found from official sources for this query.") {
             liveSearchContext = `\n\n## Live curriculum data (fetched from official sources)\n${summary}`;
+            liveSources = results.map((r) => ({ title: r.title, url: r.url, domain: r.domain }));
           }
         } catch {
           // Non-blocking — proceed without live data if search fails
@@ -850,7 +852,7 @@ Structure your responses clearly. Use these patterns depending on the question t
         }
       }
 
-      return { content, followUpQuestions };
+      return { content, followUpQuestions, sources: liveSources };
     }),
 
   /** Get the Aina learning profile for the current user */
