@@ -3013,10 +3013,11 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
         inquiry: "Groups of 3–4",
       };
 
-        // ── Phase 2: Generate each individual lesson plan ─────────────────────
+        // ── Phase 2: Generate all lesson plans in this batch CONCURRENTLY ────────
+      // Build one promise per event and run them all in parallel with Promise.all.
+      // This reduces wall-clock time from O(n × ~8s) to O(~8s) per batch.
       let created = 0;
-      for (let i = 0; i < events.length; i++) {
-        const ev = events[i];
+      const planPromises = events.map(async (ev, i) => {
         const lessonDate = ev.eventDate ? new Date(ev.eventDate).toISOString().slice(0, 10) : null;
         // Use global lesson number so it's correct across batches
         const globalIndex = batchOffset + i;
@@ -3073,8 +3074,8 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
           });
           const rawContent = resp.choices?.[0]?.message?.content;
           const raw = typeof rawContent === "string" ? rawContent : null;
-          if (!raw) continue;
-          const ai = JSON.parse(raw);
+          if (!raw) return false;
+          const ai = JSON.parse(raw as string);
           // Update the calendar event title to match the generated lesson title
           await db.update(schoolCalendarEvents)
             .set({ title })
@@ -3108,11 +3109,15 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
             differentiation: JSON.stringify(ai.differentiation ?? null),
             competencies: JSON.stringify(ai.competencies ?? []),
           });
-          created++;
+          return true; // success
         } catch {
           // Skip individual failures and continue with the rest
+          return false;
         }
-      }
+      });
+      // Await all concurrent plan generations
+      const results = await Promise.all(planPromises);
+      created = results.filter(Boolean).length;
       const totalRemaining = Math.max(0, allUnlinkedEvents.length - batchOffset - events.length);
       return {
         created,

@@ -4894,9 +4894,21 @@
 - [x] Fixed: added fallback 36-week synthetic date range from academic year start; added Mon-Fri default for lessonDays; capped auto-create at 36 per scope
 
 ## Feature: Bulk AI generation confirmation step
-- [ ] Add pendingApproval boolean column to lesson_plans table (default false, bulk-generated plans set to true)
-- [ ] After bulk generation completes, show confirmation dialog with count + plan titles list
-- [ ] Approve button: set pendingApproval=false on all pending plans for this batch
-- [ ] Discard button: delete all pending plans for this batch
-- [ ] Add approveBulkPlans and discardBulkPlans tRPC procedures
-- [ ] Show "Pending approval" badge on plan cards that are awaiting confirmation
+- [x] Add pendingApproval boolean column to lesson_plans table (default false, bulk-generated plans set to true)
+- [x] After bulk generation completes, show confirmation dialog with count + plan titles list
+- [x] Approve button: set pendingApproval=false on all pending plans for this batch
+- [x] Discard button: delete all pending plans for this batch
+- [x] Add approveBulkPlans and discardBulkPlans tRPC procedures
+- [x] Show "Pending approval" badge on plan cards that are awaiting confirmation
+
+## Feature: BSC data from Hugging Face
+- [ ] Identify the BSC dataset on the user's Hugging Face account
+- [ ] Add HF_API_KEY secret for Hugging Face authentication
+- [ ] Extract BSC competency/curriculum data from the HF dataset
+- [ ] Transform BSC data into the knowledge bank format (competencies × year groups)
+- [ ] Update server procedures (lomloe.chat, materials.create, aiGenerateLessonPlan) to use BSC data
+- [ ] Update the nightly scheduled refresh to pull from Hugging Face BSC dataset
+
+## Sprint: Performance + UI fixes (Apr 29)
+- [x] Speed up bulk lesson plan AI generation (parallelise all plan LLM calls)
+- [x] Add back/return button to /seba/tenants page consistent with existing style

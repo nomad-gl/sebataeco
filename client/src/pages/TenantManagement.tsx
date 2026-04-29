@@ -13,6 +13,7 @@ import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
+import BackButton from "@/components/BackButton";
 import {
   Card,
   CardContent,
@@ -462,14 +463,17 @@ export default function TenantManagement() {
     <div className="container py-8 max-w-6xl">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Building2 className="h-7 w-7" />
-            School Management
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            SEBA super-admin view — manage all school tenants, user assignments, and territorial oversight.
-          </p>
+        <div className="flex items-start gap-4">
+          <BackButton className="mt-1.5" />
+          <div>
+            <h1 className="text-3xl font-bold flex items-center gap-2">
+              <Building2 className="h-7 w-7" />
+              School Management
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              SEBA super-admin view — manage all school tenants, user assignments, and territorial oversight.
+            </p>
+          </div>
         </div>
       </div>
 
