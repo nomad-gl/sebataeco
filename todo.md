@@ -5042,17 +5042,19 @@
 
 
 ## Aina Message History Delete Icon Fix
-- [ ] Fix delete icon on Aina message history to always be visible at all screen widths (not just on hover)
-- [ ] Ensure delete icon is accessible on mobile/touch screens
+- [x] Fix delete icon on Aina message history to always be visible at all screen widths (not just on hover)
+- [x] Ensure delete icon is accessible on mobile/touch screens (min-w-[28px] flex-shrink-0, text-white/60 always visible)
 
 ## TA Forum Suggested Follow-ups 2 and 3
-- [ ] Follow-up 2: Auto-translation — messages sent in any language are displayed in the receiver's device language
-- [ ] Follow-up 3: Emoji reactions always visible on all screen sizes (not just desktop hover)
+- [x] Follow-up 2: Auto-translation — messages sent in any language are displayed in the receiver's device language
+- [x] Follow-up 3: Emoji reactions always visible on all screen sizes (removed md:opacity-0 from emoji button)
 
 ## Situació d'Aprenentatge Generator — PDF/Save Metadata Form
-- [ ] Add metadata dialog before PDF download: school name, school badge/logo upload, teacher name, class details (year group, subject, group), date
-- [ ] Pre-fill metadata from user profile and school settings where available
-- [ ] Include metadata header in generated PDF (logo, school name, teacher, class, date)
-- [ ] Same metadata dialog for Save to Library flow
-- [ ] i18n keys for all new metadata fields (EN, ES, CA)
-- [ ] Run vitest and confirm passing
+- [x] Add metadata dialog before PDF download: school name, school badge/logo upload, teacher name, class details (year group, subject, group), date
+- [x] Pre-fill metadata from user profile and school settings where available
+- [x] Include metadata header in generated PDF (logo, school name, teacher, class, date)
+- [x] Same metadata dialog for Save to Library flow
+- [x] i18n keys for all new metadata fields (EN, ES, CA)
+- [x] Run vitest and confirm passing (7891/7891)
+- [x] PDF: Key Activities section prints on its own page (page-break-before CSS)
+- [x] PDF: Assessment Criteria section prints on its own page (page-break-before CSS)

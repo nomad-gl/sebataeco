@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Copy, Check, BookOpen, Target, ClipboardList, Zap, BookMarked, Save, Download, Pencil, X } from "lucide-react";
+import { Loader2, Copy, Check, BookOpen, Target, ClipboardList, Zap, BookMarked, Save, Download, Pencil, X, Upload, School, User, Users, Calendar } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { SebaSymbol } from "@/components/SebaSymbol";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -125,6 +126,39 @@ export default function SituacioGenerator() {
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  // Metadata dialog state
+  type MetaAction = "pdf" | "save";
+  const [metaOpen, setMetaOpen] = useState(false);
+  const [metaAction, setMetaAction] = useState<MetaAction>("pdf");
+  const [metaSchoolName, setMetaSchoolName] = useState("");
+  const [metaTeacherName, setMetaTeacherName] = useState("");
+  const [metaClassGroup, setMetaClassGroup] = useState("");
+  const [metaDate, setMetaDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [metaBadgeUrl, setMetaBadgeUrl] = useState<string | null>(null);
+  const [metaUseBranding, setMetaUseBranding] = useState(true);
+  const badgeInputRef = useRef<HTMLInputElement>(null);
+
+  // Pre-fill metadata from branding when dialog opens
+  function openMetaDialog(action: MetaAction) {
+    if (!result) return;
+    setMetaAction(action);
+    setMetaSchoolName((prev) => prev || branding?.schoolName || "");
+    setMetaBadgeUrl(branding?.logoUrl ?? null);
+    setMetaUseBranding(true);
+    setMetaOpen(true);
+  }
+
+  function handleBadgeUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setMetaBadgeUrl(ev.target?.result as string);
+      setMetaUseBranding(false);
+    };
+    reader.readAsDataURL(file);
+  }
+
   // Clear URL params after reading so a manual refresh doesn't re-apply them
   useEffect(() => {
     if (window.location.search) {
@@ -192,25 +226,13 @@ export default function SituacioGenerator() {
     });
   }
 
-  function handleSave() {
-    if (!result) return;
-    saveMutation.mutate({
-      title: result.title,
-      topic,
-      subject,
-      yearGroup,
-      competencies: selectedComps,
-      resultJson: JSON.stringify(result),
-    });
-  }
-
-  function handleDownloadPdf() {
-    if (!result) return;
-    const logoHtml = branding?.logoUrl
-      ? `<img src="${branding.logoUrl}" alt="School Logo" style="height:60px;object-fit:contain;margin-bottom:8px;" />`
+  function buildPdfHtml(meta: { schoolName: string; teacherName: string; classGroup: string; date: string; badgeUrl: string | null }) {
+    if (!result) return "";
+    const logoHtml = meta.badgeUrl
+      ? `<img src="${meta.badgeUrl}" alt="School Logo" style="height:60px;object-fit:contain;margin-bottom:8px;" />`
       : "";
-    const schoolName = branding?.schoolName ?? "";
-    const html = `<!DOCTYPE html>
+    const metaLine = [meta.teacherName, meta.classGroup, meta.date].filter(Boolean).join(" · ");
+    return `<!DOCTYPE html>
 <html lang="${lang}">
 <head>
 <meta charset="UTF-8">
@@ -228,6 +250,7 @@ export default function SituacioGenerator() {
   .activity { margin-bottom: 12px; }
   .activity-phase { font-weight: 700; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.05em; color: #6d28d9; }
   .powered { text-align: right; font-size: 0.7rem; color: #9ca3af; margin-top: 20px; }
+  .page-break { page-break-before: always; break-before: page; margin-top: 0; padding-top: 1.5rem; }
   @media print { body { margin: 20px; } }
 </style>
 </head>
@@ -236,7 +259,8 @@ export default function SituacioGenerator() {
   ${logoHtml}
   <div class="header-text">
     <h1>${result.title}</h1>
-    ${schoolName ? `<p>${schoolName}</p>` : ""}
+    ${meta.schoolName ? `<p style="font-weight:600;color:#374151;">${meta.schoolName}</p>` : ""}
+    ${metaLine ? `<p>${metaLine}</p>` : ""}
   </div>
 </div>
 <h2>${t("situacio_context_label")}</h2>
@@ -247,9 +271,9 @@ export default function SituacioGenerator() {
 <ul>
 ${result.competencies.map(c => `<li><span class="badge">${c.code}</span> ${c.description}</li>`).join("\n")}
 </ul>
-<h2>${t("situacio_activities_label")}</h2>
+<h2 class="page-break">${t("situacio_activities_label")}</h2>
 ${result.activities.map(a => `<div class="activity"><p class="activity-phase">${a.phase}</p><p>${a.description}</p></div>`).join("\n")}
-<h2>${t("situacio_criteria_label")}</h2>
+<h2 class="page-break">${t("situacio_criteria_label")}</h2>
 <ol>
 ${result.criteria.map(c => `<li>${c}</li>`).join("\n")}
 </ol>
@@ -257,15 +281,42 @@ ${result.criteria.map(c => `<li>${c}</li>`).join("\n")}
 <p class="powered">Powered by SEBA</p>
 </body>
 </html>`;
+  }
 
-    const blob = new Blob([html], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const win = window.open(url, "_blank");
-    if (win) {
-      win.onload = () => {
-        win.print();
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
-      };
+  function handleDownloadPdf() {
+    openMetaDialog("pdf");
+  }
+
+  function confirmMeta() {
+    if (!result) return;
+    const meta = {
+      schoolName: metaSchoolName,
+      teacherName: metaTeacherName,
+      classGroup: metaClassGroup,
+      date: metaDate,
+      badgeUrl: metaUseBranding ? (branding?.logoUrl ?? null) : metaBadgeUrl,
+    };
+    setMetaOpen(false);
+    if (metaAction === "pdf") {
+      const html = buildPdfHtml(meta);
+      const blob = new Blob([html], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const win = window.open(url, "_blank");
+      if (win) {
+        win.onload = () => {
+          win.print();
+          setTimeout(() => URL.revokeObjectURL(url), 5000);
+        };
+      }
+    } else {
+      saveMutation.mutate({
+        title: result.title,
+        topic,
+        subject,
+        yearGroup,
+        competencies: selectedComps,
+        resultJson: JSON.stringify({ ...result, _meta: meta }),
+      });
     }
   }
 
@@ -452,7 +503,7 @@ ${result.criteria.map(c => `<li>${c}</li>`).join("\n")}
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={handleSave}
+                      onClick={() => openMetaDialog("save")}
                       disabled={saveMutation.isPending || saved}
                       className="bg-white/10 border-white/20 text-white hover:bg-white/20 gap-1.5"
                     >
@@ -595,6 +646,141 @@ ${result.criteria.map(c => `<li>${c}</li>`).join("\n")}
           </div>
         </div>
       </div>
+
+      {/* Metadata dialog */}
+      <Dialog open={metaOpen} onOpenChange={setMetaOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <School className="w-5 h-5 text-primary" />
+              {t("sa_meta_dialog_title")}
+            </DialogTitle>
+            <DialogDescription>{t("sa_meta_dialog_desc")}</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* School badge */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium flex items-center gap-1.5">
+                <School className="w-3.5 h-3.5" />
+                {t("sa_meta_school_badge")}
+              </Label>
+              <div className="flex items-center gap-3">
+                {(metaUseBranding ? branding?.logoUrl : metaBadgeUrl) ? (
+                  <img
+                    src={(metaUseBranding ? branding?.logoUrl : metaBadgeUrl) ?? undefined}
+                    alt="badge"
+                    className="h-12 w-12 object-contain rounded border"
+                  />
+                ) : (
+                  <div className="h-12 w-12 rounded border border-dashed flex items-center justify-center text-muted-foreground">
+                    <School className="w-5 h-5" />
+                  </div>
+                )}
+                <div className="flex flex-col gap-1.5">
+                  {branding?.logoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setMetaUseBranding(true)}
+                      className={cn(
+                        "text-xs px-2 py-1 rounded border transition-colors",
+                        metaUseBranding
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "border-border hover:bg-muted"
+                      )}
+                    >
+                      {t("sa_meta_school_badge_use_existing")}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => badgeInputRef.current?.click()}
+                    className="text-xs px-2 py-1 rounded border border-border hover:bg-muted transition-colors flex items-center gap-1"
+                  >
+                    <Upload className="w-3 h-3" />
+                    {t("sa_meta_school_badge_upload")}
+                  </button>
+                  <input
+                    ref={badgeInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleBadgeUpload}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* School name */}
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium flex items-center gap-1.5">
+                <School className="w-3.5 h-3.5" />
+                {t("sa_meta_school_name")}
+              </Label>
+              <Input
+                value={metaSchoolName}
+                onChange={(e) => setMetaSchoolName(e.target.value)}
+                placeholder={t("sa_meta_school_name_placeholder")}
+              />
+            </div>
+
+            {/* Teacher name */}
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5" />
+                {t("sa_meta_teacher_name")}
+              </Label>
+              <Input
+                value={metaTeacherName}
+                onChange={(e) => setMetaTeacherName(e.target.value)}
+                placeholder={t("sa_meta_teacher_name_placeholder")}
+              />
+            </div>
+
+            {/* Class / Group */}
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5" />
+                {t("sa_meta_class_group")}
+              </Label>
+              <Input
+                value={metaClassGroup}
+                onChange={(e) => setMetaClassGroup(e.target.value)}
+                placeholder={t("sa_meta_class_group_placeholder")}
+              />
+            </div>
+
+            {/* Date */}
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5" />
+                {t("sa_meta_date")}
+              </Label>
+              <Input
+                type="date"
+                value={metaDate}
+                onChange={(e) => setMetaDate(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setMetaOpen(false)}>
+              {t("sa_meta_cancel")}
+            </Button>
+            <Button onClick={confirmMeta} disabled={saveMutation.isPending}>
+              {saveMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : metaAction === "pdf" ? (
+                <Download className="w-4 h-4 mr-2" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
+              {metaAction === "pdf" ? t("sa_meta_confirm_pdf") : t("sa_meta_confirm_save")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
