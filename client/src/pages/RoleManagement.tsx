@@ -54,6 +54,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState, useMemo, useEffect } from "react";
+import BackButton from "@/components/BackButton";
 import { toast } from "sonner";
 import { CATALONIA_SCHOOLS, CATALONIA_MUNICIPALITIES, SCHOOLS_BY_MUNICIPALITY } from "@/data/cataloniaSchools";
 
@@ -327,13 +328,16 @@ export default function RoleManagement() {
   return (
     <div className="container py-8 space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="p-2 rounded-lg bg-violet-100 dark:bg-violet-900">
-          <UserCog className="w-6 h-6 text-violet-600 dark:text-violet-300" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold">{t("role_mgmt_title")}</h1>
-          <p className="text-sm text-muted-foreground">{t("role_mgmt_subtitle")}</p>
+      <div className="flex items-start gap-4">
+        <BackButton className="mt-1.5" />
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-violet-100 dark:bg-violet-900">
+            <UserCog className="w-6 h-6 text-violet-600 dark:text-violet-300" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">{t("role_mgmt_title")}</h1>
+            <p className="text-sm text-muted-foreground">{t("role_mgmt_subtitle")}</p>
+          </div>
         </div>
       </div>
 
