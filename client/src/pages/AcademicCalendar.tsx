@@ -60,10 +60,21 @@ function CalendarList({ onSelect }: { onSelect: (id: number) => void }) {
     lunchBreakStart: "12:30",
     lunchBreakEnd: "13:30",
   });
+  // Semester dates: array indexed by semester number (1-based)
+  const [semDates, setSemDates] = useState<Array<{ startDate: string; endDate: string }>>(
+    [{ startDate: "", endDate: "" }, { startDate: "", endDate: "" }]
+  );
   const [deleteId, setDeleteId] = useState<number | null>(null);
-
+  const setSemesterDatesMut = trpc.academicCalendar.setSemesterDates.useMutation();
   const createMut = trpc.academicCalendar.createCalendar.useMutation({
-    onSuccess: () => {
+    onSuccess: async (data) => {
+      // Save semester dates after calendar is created
+      const validSems = semDates
+        .map((s, i) => ({ semesterNumber: i + 1, startDate: s.startDate, endDate: s.endDate }))
+        .filter(s => s.startDate && s.endDate);
+      if (validSems.length > 0) {
+        await setSemesterDatesMut.mutateAsync({ calendarId: data.id, semesters: validSems });
+      }
       utils.academicCalendar.listCalendars.invalidate();
       setShowCreate(false);
       toast.success(t("acal2_created"));
@@ -172,7 +183,18 @@ function CalendarList({ onSelect }: { onSelect: (id: number) => void }) {
             </div>
             <div>
               <Label>{t("acal2_semester_count")}</Label>
-              <Select value={form.semesterCount} onValueChange={(v) => setForm(f => ({ ...f, semesterCount: v }))}>
+              <Select
+                value={form.semesterCount}
+                onValueChange={(v) => {
+                  setForm(f => ({ ...f, semesterCount: v }));
+                  const n = parseInt(v);
+                  setSemDates(prev => {
+                    const arr = [...prev];
+                    while (arr.length < n) arr.push({ startDate: "", endDate: "" });
+                    return arr.slice(0, n);
+                  });
+                }}
+              >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="1">1 {t("acal2_semester")}</SelectItem>
@@ -181,6 +203,38 @@ function CalendarList({ onSelect }: { onSelect: (id: number) => void }) {
                 </SelectContent>
               </Select>
             </div>
+            {/* Semester date inputs */}
+            {Array.from({ length: parseInt(form.semesterCount) }, (_, i) => (
+              <div key={i} className="border border-input rounded-md p-3 space-y-2">
+                <p className="text-sm font-medium">{t("acal2_semester")} {i + 1} — {t("acal2_sem_dates")}</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">{t("acal2_sem_start")}</Label>
+                    <Input
+                      type="date"
+                      value={semDates[i]?.startDate ?? ""}
+                      onChange={e => setSemDates(prev => {
+                        const arr = [...prev];
+                        arr[i] = { ...arr[i], startDate: e.target.value };
+                        return arr;
+                      })}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">{t("acal2_sem_end")}</Label>
+                    <Input
+                      type="date"
+                      value={semDates[i]?.endDate ?? ""}
+                      onChange={e => setSemDates(prev => {
+                        const arr = [...prev];
+                        arr[i] = { ...arr[i], endDate: e.target.value };
+                        return arr;
+                      })}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>{t("acal2_school_start")}</Label>
@@ -294,6 +348,15 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
   // Subjects query
   const { data: subjects = [] } = trpc.academicCalendar.listSubjects.useQuery({ calendarId });
 
+  // Semester dates
+  const { data: semesterDates = [], refetch: refetchSemDates } = trpc.academicCalendar.getSemesterDates.useQuery({ calendarId });
+  const [editingSemDates, setEditingSemDates] = useState(false);
+  const [semDateForm, setSemDateForm] = useState<Array<{ startDate: string; endDate: string }>>([]);
+  const setSemDatesMut = trpc.academicCalendar.setSemesterDates.useMutation({
+    onSuccess: () => { refetchSemDates(); setEditingSemDates(false); toast.success(t("acal2_sem_dates_saved")); },
+    onError: (e) => toast.error(e.message),
+  });
+
   // Teacher mutations
   const addTeacherMut = trpc.academicCalendar.addTeacher.useMutation({
     onSuccess: () => { invalidate(); setShowAddTeacher(false); setTeacherForm({ name: "", email: "", weeklyHours: "20" }); toast.success(t("acal2_teacher_added")); },
@@ -393,6 +456,90 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
             {calendar.lunchBreakStart && ` · ${t("acal2_lunch")}: ${calendar.lunchBreakStart}–${calendar.lunchBreakEnd}`}
           </p>
         </div>
+      </div>
+
+      {/* Semester Dates Panel */}
+      <div className="bg-white/10 border border-white/20 rounded-lg p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-white font-medium flex items-center gap-2">
+            <CalendarDays className="w-4 h-4 text-blue-300" />
+            {t("acal2_sem_dates_heading")}
+          </h3>
+          {!editingSemDates ? (
+            <Button
+              size="sm" variant="ghost"
+              className="text-blue-200 hover:text-white hover:bg-white/10"
+              onClick={() => {
+                const n = calendar.semesterCount ?? 2;
+                const arr = Array.from({ length: n }, (_, i) => {
+                  const existing = semesterDates.find(s => s.semesterNumber === i + 1);
+                  return { startDate: existing?.startDate ?? "", endDate: existing?.endDate ?? "" };
+                });
+                setSemDateForm(arr);
+                setEditingSemDates(true);
+              }}
+            >
+              {t("acal2_edit")}
+            </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button size="sm" variant="ghost" className="text-blue-200 hover:text-white hover:bg-white/10" onClick={() => setEditingSemDates(false)}>{t("acal2_cancel")}</Button>
+              <Button
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={setSemDatesMut.isPending}
+                onClick={() => {
+                  const semesters = semDateForm
+                    .map((s, i) => ({ semesterNumber: i + 1, startDate: s.startDate, endDate: s.endDate }))
+                    .filter(s => s.startDate && s.endDate);
+                  setSemDatesMut.mutate({ calendarId, semesters });
+                }}
+              >
+                {t("acal2_save")}
+              </Button>
+            </div>
+          )}
+        </div>
+        {editingSemDates ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {semDateForm.map((s, i) => (
+              <div key={i} className="border border-white/20 rounded-md p-3 space-y-2">
+                <p className="text-blue-200 text-sm font-medium">{t("acal2_semester")} {i + 1}</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs text-blue-300">{t("acal2_sem_start")}</Label>
+                    <Input
+                      type="date"
+                      className="bg-white/10 border-white/20 text-white"
+                      value={s.startDate}
+                      onChange={e => setSemDateForm(prev => { const arr = [...prev]; arr[i] = { ...arr[i], startDate: e.target.value }; return arr; })}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-blue-300">{t("acal2_sem_end")}</Label>
+                    <Input
+                      type="date"
+                      className="bg-white/10 border-white/20 text-white"
+                      value={s.endDate}
+                      onChange={e => setSemDateForm(prev => { const arr = [...prev]; arr[i] = { ...arr[i], endDate: e.target.value }; return arr; })}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : semesterDates.length === 0 ? (
+          <p className="text-blue-300 text-sm">{t("acal2_sem_dates_empty")}</p>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {semesterDates.map(s => (
+              <div key={s.id} className="flex items-center gap-3">
+                <span className="bg-blue-600/40 text-blue-100 text-xs font-bold px-2 py-0.5 rounded">{t("acal2_semester")} {s.semesterNumber}</span>
+                <span className="text-white text-sm">{s.startDate} → {s.endDate}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Clash Alert Banner */}

@@ -12,6 +12,7 @@ import {
   acSessions,
   acBreaks,
   acSubjects,
+  acSemesterDates,
 } from "../../drizzle/schema";
 import { eq, and } from "drizzle-orm";
 
@@ -403,5 +404,48 @@ export const academicCalendarRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       await db.delete(acSubjects).where(eq(acSubjects.id, input.id));
       return { success: true };
+    }),
+
+  // ── Semester Dates ───────────────────────────────────────────────────────────────────────────
+
+  /** Upsert semester dates for a calendar (one row per semester). */
+  setSemesterDates: protectedProcedure
+    .input(z.object({
+      calendarId: z.number().int(),
+      semesters: z.array(z.object({
+        semesterNumber: z.number().int().min(1),
+        startDate: z.string().min(1),
+        endDate: z.string().min(1),
+      })),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      assertDirector(ctx.user.role);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      await db.delete(acSemesterDates).where(eq(acSemesterDates.calendarId, input.calendarId));
+      if (input.semesters.length > 0) {
+        await db.insert(acSemesterDates).values(
+          input.semesters.map(s => ({
+            calendarId: input.calendarId,
+            semesterNumber: s.semesterNumber,
+            startDate: s.startDate,
+            endDate: s.endDate,
+          }))
+        );
+      }
+      return { success: true };
+    }),
+
+  /** Get semester dates for a calendar. */
+  getSemesterDates: protectedProcedure
+    .input(z.object({ calendarId: z.number().int() }))
+    .query(async ({ ctx, input }) => {
+      assertDirector(ctx.user.role);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const rows = await db.select().from(acSemesterDates)
+        .where(eq(acSemesterDates.calendarId, input.calendarId))
+        .orderBy(acSemesterDates.semesterNumber);
+      return rows;
     }),
 });

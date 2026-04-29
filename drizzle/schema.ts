@@ -2389,3 +2389,20 @@ export const acSubjects = mysqlTable("ac_subjects", {
 });
 export type AcSubject = typeof acSubjects.$inferSelect;
 export type InsertAcSubject = typeof acSubjects.$inferInsert;
+
+/**
+ * ac_semester_dates — start/end dates for each semester within an academic calendar.
+ * One row per (calendarId, semesterNumber). Upserted on save.
+ * @migration 0065
+ */
+export const acSemesterDates = mysqlTable("ac_semester_dates", {
+  id: int("id").autoincrement().primaryKey(),
+  calendarId: int("calendarId").notNull(),
+  semesterNumber: int("semesterNumber").notNull(),
+  startDate: date("startDate").notNull(),
+  endDate: date("endDate").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+export type AcSemesterDate = typeof acSemesterDates.$inferSelect;
+export type InsertAcSemesterDate = typeof acSemesterDates.$inferInsert;

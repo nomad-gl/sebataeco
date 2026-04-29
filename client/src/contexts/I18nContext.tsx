@@ -3926,6 +3926,14 @@ export const translations = {
     acal2_delete_subject_title: "Delete Subject",
     acal2_delete_subject_desc: "This subject will be permanently removed.",
 
+    acal2_sem_dates: "Semester Dates",
+    acal2_sem_start: "Start Date",
+    acal2_sem_end: "End Date",
+    acal2_sem_dates_heading: "Semester Dates",
+    acal2_sem_dates_empty: "No semester dates set. Click Edit to add dates.",
+    acal2_sem_dates_saved: "Semester dates saved.",
+    acal2_edit: "Edit",
+
   },
   es: {
     // NavBar
@@ -7820,6 +7828,14 @@ export const translations = {
     acal2_delete_subject_title: "Eliminar Asignatura",
     acal2_delete_subject_desc: "Esta asignatura se eliminará permanentemente.",
 
+    acal2_sem_dates: "Fechas del Semestre",
+    acal2_sem_start: "Fecha de Inicio",
+    acal2_sem_end: "Fecha de Fin",
+    acal2_sem_dates_heading: "Fechas del Semestre",
+    acal2_sem_dates_empty: "No hay fechas de semestre. Haz clic en Editar para añadir fechas.",
+    acal2_sem_dates_saved: "Fechas del semestre guardadas.",
+    acal2_edit: "Editar",
+
   },
   ca: {
     // NavBar
@@ -11713,6 +11729,14 @@ export const translations = {
     acal2_subject_deleted: "Assignatura eliminada.",
     acal2_delete_subject_title: "Eliminar Assignatura",
     acal2_delete_subject_desc: "Aquesta assignatura s'eliminarà permanentment.",
+
+    acal2_sem_dates: "Dates del Semestre",
+    acal2_sem_start: "Data d'Inici",
+    acal2_sem_end: "Data de Fi",
+    acal2_sem_dates_heading: "Dates del Semestre",
+    acal2_sem_dates_empty: "No hi ha dates de semestre. Feu clic a Editar per afegir dates.",
+    acal2_sem_dates_saved: "Dates del semestre desades.",
+    acal2_edit: "Editar",
 
   },
 } as const;
