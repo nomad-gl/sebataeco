@@ -1207,4 +1207,19 @@ export const tenantsRouter = router({
       await db.update(tenants).set({ ownerUserId: null, updatedAt: new Date() }).where(eq(tenants.id, input.tenantId));
       return { success: true };
     }),
+
+  /**
+   * Returns whether at least one territorial_director exists, plus their name/email for display.
+   * Used by the NavBar to replace the 'Register TD' button with a 'Connected' indicator.
+   */
+  hasTerritorialDirector: adminProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) return { connected: false, directors: [] as { id: number; name: string | null; email: string | null }[] };
+    const tds = await db
+      .select({ id: users.id, name: users.name, email: users.email })
+      .from(users)
+      .where(eq(users.role, "territorial_director"))
+      .limit(10);
+    return { connected: tds.length > 0, directors: tds };
+  }),
 });

@@ -131,6 +131,12 @@ export default function NavBar() {
     onError: (err) => toast.error(err.message),
   });
   const { data: tdTerritories = [] } = trpc.tenants.listTerritories.useQuery(undefined, { enabled: tdDialogOpen && !!user && user.role === "admin" });
+  const { data: tdStatus } = trpc.tenants.hasTerritorialDirector.useQuery(undefined, {
+    enabled: !!user && user.role === "admin",
+    staleTime: 60_000,
+  });
+  const tdConnected = tdStatus?.connected ?? false;
+  const tdConnectedDirectors = tdStatus?.directors ?? [];
   const [tdTerritoryId, setTdTerritoryId] = useState<number | null>(null);
 
   // Position-based visibility helpers
@@ -647,14 +653,29 @@ export default function NavBar() {
                     <GraduationCap className="w-4 h-4 text-green-600" />
                     {t("nav_admin_invite_teacher")}
                   </button>
-                  <button
-                    role="menuitem"
-                    onClick={() => { setTdDialogOpen(true); setAdminOpen(false); setTdResult(null); setTdName(""); setTdEmail(""); setTdReason(""); setTdTerritoryId(null); }}
-                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary transition-colors text-left"
-                  >
-                    <UserPlus className="w-4 h-4 text-blue-600" />
-                    {platformUnlocked ? t("nav_admin_register_td") : <span className="opacity-60">{t("nav_admin_register_td")}</span>}
-                  </button>
+                  {tdConnected ? (
+                    <div
+                      role="menuitem"
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-left cursor-default select-none"
+                    >
+                      <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      <span className="text-green-700 font-semibold">Connected</span>
+                      {tdConnectedDirectors[0] && (
+                        <span className="ml-auto text-xs text-muted-foreground truncate max-w-[120px]" title={tdConnectedDirectors[0].name ?? ""}>
+                          {tdConnectedDirectors[0].name}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      role="menuitem"
+                      onClick={() => { setTdDialogOpen(true); setAdminOpen(false); setTdResult(null); setTdName(""); setTdEmail(""); setTdReason(""); setTdTerritoryId(null); }}
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary transition-colors text-left"
+                    >
+                      <UserPlus className="w-4 h-4 text-blue-600" />
+                      {platformUnlocked ? t("nav_admin_register_td") : <span className="opacity-60">{t("nav_admin_register_td")}</span>}
+                    </button>
+                  )}
                   <Link
                     href="/seba/tenants"
                     role="menuitem"
