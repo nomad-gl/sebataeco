@@ -5065,3 +5065,11 @@
 - [x] When expanded: show full panel with session titles and delete buttons
 - [x] Smooth CSS transition on width change (transition-all duration-200)
 - [x] Persist collapsed state in localStorage (aina_history_collapsed key)
+
+## Question Library — Print Worksheet Metadata Dialog
+- [ ] Add metadata dialog to Print Worksheet (with answers) button in SampleQuestions.tsx
+- [ ] Add metadata dialog to Print Worksheet (without answers) button in SampleQuestions.tsx
+- [ ] Pre-fill school name from branding settings, date from today
+- [ ] Include metadata header in printed worksheet (badge, school name, teacher, class, date)
+- [ ] i18n keys reuse sa_meta_* keys already defined
+- [ ] Run vitest and confirm passing
