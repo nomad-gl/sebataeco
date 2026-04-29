@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
-import { Search, Trash2, MessageSquare, Clock, Plus, GripVertical } from "lucide-react";
+import { Search, Trash2, MessageSquare, Clock, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -20,7 +20,9 @@ import { toast } from "sonner";
 const MIN_WIDTH = 200;
 const MAX_WIDTH = 480;
 const DEFAULT_WIDTH = 256; // w-64
+const COLLAPSED_WIDTH = 48;
 const STORAGE_KEY = "aina_history_width";
+const COLLAPSED_KEY = "aina_history_collapsed";
 
 interface AinaChatHistoryProps {
   activeSessionId: number | null;
@@ -47,6 +49,22 @@ export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat, o
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
+  // ── Collapsed state ───────────────────────────────────────────────────────
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(COLLAPSED_KEY) === "true";
+    } catch { return false; }
+  });
+
+  const toggleCollapsed = useCallback(() => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      try { localStorage.setItem(COLLAPSED_KEY, String(next)); } catch { /* ignore */ }
+      onWidthChange?.(next ? COLLAPSED_WIDTH : width);
+      return next;
+    });
+  }, [onWidthChange]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Resizable width ──────────────────────────────────────────────────────
   const [width, setWidth] = useState<number>(() => {
     try {
@@ -64,13 +82,14 @@ export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat, o
   const startWidth = useRef(0);
 
   const onMouseDown = useCallback((e: React.MouseEvent) => {
+    if (collapsed) return;
     e.preventDefault();
     isDragging.current = true;
     startX.current = e.clientX;
     startWidth.current = width;
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
-  }, [width]);
+  }, [width, collapsed]);
 
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
@@ -85,7 +104,6 @@ export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat, o
       isDragging.current = false;
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
-      // Persist to localStorage
       setWidth((w) => {
         try { localStorage.setItem(STORAGE_KEY, String(w)); } catch { /* ignore */ }
         return w;
@@ -177,22 +195,80 @@ export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat, o
     );
   };
 
+  // ── Collapsed (icon-only) view ────────────────────────────────────────────
+  if (collapsed) {
+    return (
+      <div
+        className="relative flex flex-col items-center h-full bg-white/5 backdrop-blur-sm border-r border-white/10 flex-shrink-0 transition-all duration-200"
+        style={{ width: COLLAPSED_WIDTH }}
+      >
+        {/* New Chat icon */}
+        <button
+          onClick={onNewChat}
+          title="New Chat"
+          className="mt-3 flex items-center justify-center size-8 rounded-lg bg-white/15 hover:bg-white/25 text-white border border-white/20 transition-colors"
+        >
+          <Plus className="size-4" />
+        </button>
+
+        {/* Session icons — scrollable */}
+        <ScrollArea className="flex-1 w-full py-2">
+          <div className="flex flex-col items-center gap-1 px-1">
+            {sessions.slice(0, 40).map((s) => (
+              <button
+                key={s.id}
+                onClick={() => onSelectSession(s.id)}
+                title={s.title}
+                className={cn(
+                  "flex items-center justify-center size-8 rounded-lg transition-colors",
+                  activeSessionId === s.id
+                    ? "bg-white/25 text-white"
+                    : "hover:bg-white/15 text-white/60 hover:text-white"
+                )}
+              >
+                <MessageSquare className="size-3.5" />
+              </button>
+            ))}
+          </div>
+        </ScrollArea>
+
+        {/* Expand toggle at bottom */}
+        <button
+          onClick={toggleCollapsed}
+          title="Expand sidebar"
+          className="mb-3 flex items-center justify-center size-8 rounded-lg hover:bg-white/15 text-white/50 hover:text-white transition-colors"
+        >
+          <ChevronRight className="size-4" />
+        </button>
+      </div>
+    );
+  }
+
+  // ── Expanded view ─────────────────────────────────────────────────────────
   return (
     <div
-      className="relative flex flex-col h-full bg-white/5 backdrop-blur-sm border-r border-white/10 flex-shrink-0"
+      className="relative flex flex-col h-full bg-white/5 backdrop-blur-sm border-r border-white/10 flex-shrink-0 transition-all duration-200"
       style={{ width }}
     >
       {/* Header */}
-      <div className="p-3 border-b border-white/10">
+      <div className="p-3 border-b border-white/10 flex items-center gap-2">
         <Button
           size="sm"
           onClick={onNewChat}
-          className="w-full bg-white/15 hover:bg-white/25 text-white border border-white/20 gap-1.5 text-xs"
+          className="flex-1 bg-white/15 hover:bg-white/25 text-white border border-white/20 gap-1.5 text-xs"
           variant="outline"
         >
           <Plus className="size-3.5" />
           New Chat
         </Button>
+        {/* Collapse toggle */}
+        <button
+          onClick={toggleCollapsed}
+          title="Collapse sidebar"
+          className="flex-shrink-0 flex items-center justify-center size-7 rounded-lg hover:bg-white/15 text-white/50 hover:text-white transition-colors"
+        >
+          <ChevronLeft className="size-4" />
+        </button>
       </div>
 
       {/* Search */}

@@ -5058,3 +5058,10 @@
 - [x] Run vitest and confirm passing (7891/7891)
 - [x] PDF: Key Activities section prints on its own page (page-break-before CSS)
 - [x] PDF: Assessment Criteria section prints on its own page (page-break-before CSS)
+
+## Aina Chat History Sidebar Collapse
+- [x] Add collapse/expand toggle button to AinaChatHistory sidebar (ChevronLeft/ChevronRight)
+- [x] When collapsed: show 48px icon-only strip (new chat icon, session icons, expand arrow)
+- [x] When expanded: show full panel with session titles and delete buttons
+- [x] Smooth CSS transition on width change (transition-all duration-200)
+- [x] Persist collapsed state in localStorage (aina_history_collapsed key)
