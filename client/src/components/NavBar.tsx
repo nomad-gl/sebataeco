@@ -285,6 +285,7 @@ export default function NavBar() {
     { href: "/head-of-study/settings",            label: t("hos_settings"),            icon: SettingsIcon },
     { href: "/head-of-study/assign-users",        label: t("hos_assign_users"),        icon: UserPlus },
     { href: "/head-of-study/add-teacher",          label: t("dir_add_teacher"),          icon: UserPlus },
+    { href: "/academic-calendar",                 label: t("nav_academic_calendar"),   icon: CalendarDays },
     { href: "/school-calendar",                   label: t("nav_school_calendar"),     icon: CalendarDays },
     { href: "/connect",                           label: t("nav_connect"),             icon: Wifi },
   ];
@@ -309,6 +310,7 @@ export default function NavBar() {
     { href: "/director/cover-requests",     label: t("cover_requests_title"),            icon: AlertTriangle },
     { href: "/head-of-study/add-teacher", label: t("dir_add_teacher"),   icon: UserPlus },
     { href: "/attendance",           label: t("nav_attendance"),       icon: ClipboardList },
+    { href: "/academic-calendar",   label: t("nav_academic_calendar"), icon: CalendarDays },
     { href: "/school-calendar",      label: t("nav_school_calendar"),  icon: CalendarDays },
     { href: "/connect",             label: t("nav_connect"),          icon: Wifi },
     { href: "/audit",               label: t("nav_audit"),            icon: BarChart3 },

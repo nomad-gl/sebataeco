@@ -2297,3 +2297,72 @@ export const customQuestions = mysqlTable("custom_questions", {
 });
 export type CustomQuestion = typeof customQuestions.$inferSelect;
 export type InsertCustomQuestion = typeof customQuestions.$inferInsert;
+
+/**
+ * academic_calendars — top-level academic year calendar created by a director.
+ * @migration 0063
+ */
+export const academicCalendars = mysqlTable("academic_calendars", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  academicYear: varchar("academicYear", { length: 16 }).notNull(),
+  semesterCount: int("semesterCount").notNull().default(2),
+  schoolStartTime: varchar("schoolStartTime", { length: 8 }).notNull().default("08:30"),
+  schoolEndTime: varchar("schoolEndTime", { length: 8 }).notNull().default("15:00"),
+  morningBreakStart: varchar("morningBreakStart", { length: 8 }),
+  morningBreakEnd: varchar("morningBreakEnd", { length: 8 }),
+  lunchBreakStart: varchar("lunchBreakStart", { length: 8 }),
+  lunchBreakEnd: varchar("lunchBreakEnd", { length: 8 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+export type AcademicCalendar = typeof academicCalendars.$inferSelect;
+export type InsertAcademicCalendar = typeof academicCalendars.$inferInsert;
+
+/**
+ * ac_teachers — teachers registered in an academic calendar.
+ * @migration 0063
+ */
+export const acTeachers = mysqlTable("ac_teachers", {
+  id: int("id").autoincrement().primaryKey(),
+  calendarId: int("calendarId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  email: varchar("email", { length: 320 }).notNull(),
+  weeklyHours: int("weeklyHours").notNull().default(20),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type AcTeacher = typeof acTeachers.$inferSelect;
+export type InsertAcTeacher = typeof acTeachers.$inferInsert;
+
+/**
+ * ac_sessions — individual teaching sessions per teacher per day.
+ * @migration 0063
+ */
+export const acSessions = mysqlTable("ac_sessions", {
+  id: int("id").autoincrement().primaryKey(),
+  calendarId: int("calendarId").notNull(),
+  teacherId: int("teacherId").notNull(),
+  subject: varchar("subject", { length: 255 }).notNull(),
+  dayOfWeek: int("dayOfWeek").notNull(),
+  startTime: varchar("startTime", { length: 8 }).notNull(),
+  endTime: varchar("endTime", { length: 8 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type AcSession = typeof acSessions.$inferSelect;
+export type InsertAcSession = typeof acSessions.$inferInsert;
+
+/**
+ * ac_breaks — semester holiday / break periods.
+ * @migration 0063
+ */
+export const acBreaks = mysqlTable("ac_breaks", {
+  id: int("id").autoincrement().primaryKey(),
+  calendarId: int("calendarId").notNull(),
+  semester: int("semester").notNull(),
+  label: varchar("label", { length: 255 }).notNull(),
+  startDate: date("startDate").notNull(),
+  endDate: date("endDate").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type AcBreak = typeof acBreaks.$inferSelect;
+export type InsertAcBreak = typeof acBreaks.$inferInsert;

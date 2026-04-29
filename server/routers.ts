@@ -48,6 +48,7 @@ import { coverRouter } from "./routers/cover";
 import { infantilRouter } from "./routers/infantil";
 import { directorAlertsRouter } from "./routers/directorAlerts";
 import { customSetsRouter } from "./routers/customSets";
+import { academicCalendarRouter } from "./routers/academicCalendar";
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -239,6 +240,7 @@ export const appRouter = router({
   infantil: infantilRouter,
   directorAlerts: directorAlertsRouter,
   customSets: customSetsRouter,
+  academicCalendar: academicCalendarRouter,
 });
 
 export type AppRouter = typeof appRouter;

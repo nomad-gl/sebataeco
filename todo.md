@@ -5073,3 +5073,24 @@
 - [ ] Include metadata header in printed worksheet (badge, school name, teacher, class, date)
 - [ ] i18n keys reuse sa_meta_* keys already defined
 - [ ] Run vitest and confirm passing
+
+## Feature: Academic Calendar (Director)
+- [x] NavBar: add "Create Academic Calendar" button above "Create Subject Calendar" in director & HoS dropdowns
+- [x] DB schema: academic_calendars (id, schoolId, academicYear, semesterCount, createdAt)
+- [x] DB schema: ac_teachers (id, calendarId, name, email, weeklyHours)
+- [x] DB schema: ac_sessions (id, teacherId, calendarId, subject, dayOfWeek, startTime, endTime)
+- [x] DB schema: ac_breaks (id, calendarId, semester, label, startDate, endDate)
+- [x] Run DB migration for all new tables
+- [x] tRPC router: academicCalendar — createCalendar, getCalendar, listCalendars, deleteCalendar
+- [x] tRPC router: addTeacher, updateTeacher, deleteTeacher
+- [x] tRPC router: addSession, updateSession, deleteSession
+- [x] tRPC router: addBreak, updateBreak, deleteBreak
+- [x] AcademicCalendar.tsx page: academic year selector (Sept–June), semester count selector
+- [x] Teacher management table: add/edit/delete teachers, email, weekly teaching hours
+- [x] Session scheduler: per-teacher, day of week, subject, start/end time
+- [x] Live total teaching hours counter per teacher (auto-calculated from sessions)
+- [x] Clash detection: alert when two teachers have overlapping sessions on same day/time
+- [x] Semester breaks panel: per semester, label, start date, end date, break length display
+- [x] Route /academic-calendar registered in App.tsx
+- [x] i18n keys for all new strings (EN/ES/CA)
+- [x] TypeScript 0 errors, tests passing
