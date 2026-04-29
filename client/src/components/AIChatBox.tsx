@@ -1705,7 +1705,7 @@ export function AIChatBox({
             ref={fileInputRef}
             type="file"
             className="hidden"
-            accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"
+            accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.odt,.ods,.odp,.md,.rtf,.pages,.numbers,.key"
             onChange={handleFileSelect}
           />
 

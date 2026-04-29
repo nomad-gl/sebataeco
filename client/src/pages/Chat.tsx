@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { useI18n } from "@/contexts/I18nContext";
 import { useAina } from "@/contexts/AinaContext";
 import type { TranslationKey, Lang } from "@/contexts/I18nContext";
-import { Loader2, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Loader2, PanelLeftClose, PanelLeftOpen, Download } from "lucide-react";
 import { AinaProfilePanel } from "@/components/AinaProfilePanel";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -63,6 +63,38 @@ export default function Chat() {
   const rateMutation = trpc.lomloe.rateMessage.useMutation();
   const saveChatMutation = trpc.lomloe.saveChatSession.useMutation();
   const utils = trpc.useUtils();
+  const generateDocMutation = trpc.aina.generateImprovedDocument.useMutation();
+
+  // Extract improved document content from an assistant message
+  const extractImprovedDoc = (msgContent: string): string | null => {
+    const start = msgContent.indexOf("[IMPROVED DOCUMENT START]");
+    const end = msgContent.indexOf("[IMPROVED DOCUMENT END]");
+    if (start === -1 || end === -1) return null;
+    return msgContent.slice(start + "[IMPROVED DOCUMENT START]".length, end).trim();
+  };
+
+  const handleDownloadImproved = async (msgContent: string) => {
+    const improved = extractImprovedDoc(msgContent);
+    if (!improved) return;
+    try {
+      const result = await generateDocMutation.mutateAsync({
+        content: improved,
+        originalFileName: pendingDocContext?.fileName,
+        title: pendingDocContext?.fileName ? `Improved_${pendingDocContext.fileName.replace(/\.[^.]+$/, "")}` : undefined,
+      });
+      const bytes = Uint8Array.from(atob(result.base64), (c) => c.charCodeAt(0));
+      const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = result.fileName;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Improved document downloaded!");
+    } catch {
+      toast.error("Failed to generate document. Please try again.");
+    }
+  };
 
   // ── Restore last session on first mount ──────────────────────────────────
   useEffect(() => {
@@ -603,6 +635,27 @@ export default function Chat() {
             retryLabel={t("chat_retry")}
             height="calc(100dvh - 220px)"
           />
+          {/* Download improved document button */}
+          {(() => {
+            const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
+            if (!lastAssistant || !extractImprovedDoc(lastAssistant.content)) return null;
+            return (
+              <div className="absolute bottom-20 right-4 z-20">
+                <Button
+                  onClick={() => handleDownloadImproved(lastAssistant.content)}
+                  disabled={generateDocMutation.isPending}
+                  className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg rounded-full px-4 py-2 text-sm font-medium"
+                >
+                  {generateDocMutation.isPending ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Download className="size-4" />
+                  )}
+                  {generateDocMutation.isPending ? "Generating..." : "Download improved document"}
+                </Button>
+              </div>
+            );
+          })()}
         </div>
       </div>
         </div>{/* end main chat area */}

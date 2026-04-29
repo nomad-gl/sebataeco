@@ -631,8 +631,21 @@ Structure your responses clearly. Use these patterns depending on the question t
       const recentMessages = input.messages.slice(-8);
 
       // Build the document context injection (prepended to the last user message)
+      // Detect if this is a document analysis/improvement request
+      const isDocAnalysis = !!(input.documentContext && input.documentContext.trim().length > 100);
       const docContextPrefix = input.documentContext
-        ? `[Uploaded document context — use this to answer the user's question]:\n${input.documentContext}\n\n[User's question]: `
+        ? isDocAnalysis
+          ? `[DOCUMENT ANALYSIS MODE]\n` +
+            `The teacher has uploaded a document for LOMLOE-aligned analysis and improvement.\n` +
+            `Document content:\n---\n${input.documentContext}\n---\n\n` +
+            `Instructions:\n` +
+            `1. Analyse the document against Spain's LOMLOE curriculum competencies.\n` +
+            `2. Identify strengths and specific areas for improvement.\n` +
+            `3. Produce a complete improved version of the document, clearly marked with [IMPROVED DOCUMENT START] and [IMPROVED DOCUMENT END] tags.\n` +
+            `4. The improved version must be LOMLOE-aligned, pedagogically sound, and ready to use.\n` +
+            `5. After the improved version, briefly explain the key changes made.\n\n` +
+            `Teacher's request: `
+          : `[Uploaded document context — use this to answer the teacher's question]:\n${input.documentContext}\n\n[Teacher's question]: `
         : "";
 
       // Build LLM messages, injecting image vision block and/or document context into the last user message

@@ -167,6 +167,94 @@ export const ainaRouter = router({
           return { text, truncated: raw.length > MAX_CHARS, error: null };
         }
 
+        // Word documents (.docx, .doc) — use mammoth
+        const isDocx =
+          input.mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+          input.mimeType === "application/msword" ||
+          !!input.fileName.toLowerCase().match(/\.(docx|doc)$/);
+        if (isDocx) {
+          try {
+            const mammoth = await import("mammoth");
+            const result = await mammoth.extractRawText({ buffer });
+            const raw = result.value ?? "";
+            const text = raw.slice(0, MAX_CHARS);
+            return { text, truncated: raw.length > MAX_CHARS, error: null };
+          } catch (docxErr) {
+            console.error("[aina.extractDocumentText] DOCX parse error:", docxErr);
+            return { text: "", truncated: false, error: "Word document extraction failed" };
+          }
+        }
+        // Excel spreadsheets (.xlsx, .xls) — use xlsx
+        const isXlsx =
+          input.mimeType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+          input.mimeType === "application/vnd.ms-excel" ||
+          !!input.fileName.toLowerCase().match(/\.(xlsx|xls)$/);
+        if (isXlsx) {
+          try {
+            const XLSX = await import("xlsx");
+            const workbook = XLSX.read(buffer, { type: "buffer" });
+            const lines: string[] = [];
+            for (const sheetName of workbook.SheetNames) {
+              const sheet = workbook.Sheets[sheetName];
+              const csv = XLSX.utils.sheet_to_csv(sheet);
+              lines.push(`[Sheet: ${sheetName}]`, csv);
+            }
+            const raw = lines.join("\n");
+            const text = raw.slice(0, MAX_CHARS);
+            return { text, truncated: raw.length > MAX_CHARS, error: null };
+          } catch (xlsxErr) {
+            console.error("[aina.extractDocumentText] XLSX parse error:", xlsxErr);
+            return { text: "", truncated: false, error: "Spreadsheet extraction failed" };
+          }
+        }
+        // PowerPoint (.pptx) — extract slide text via JSZip
+        const isPptx =
+          input.mimeType === "application/vnd.openxmlformats-officedocument.presentationml.presentation" ||
+          input.mimeType === "application/vnd.ms-powerpoint" ||
+          !!input.fileName.toLowerCase().match(/\.(pptx|ppt)$/);
+        if (isPptx) {
+          try {
+            const JSZipMod = await import("jszip");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const JSZip = ((JSZipMod as unknown) as { default?: { loadAsync: (b: Buffer) => Promise<{ files: Record<string, { async: (t: string) => Promise<string> }> }> }, loadAsync: (b: Buffer) => Promise<{ files: Record<string, { async: (t: string) => Promise<string> }> }> });
+            const zipLoader = JSZip.default ?? JSZip;
+            const zip = await zipLoader.loadAsync(buffer);
+            const slideFiles = Object.keys(zip.files).filter((f) => /ppt\/slides\/slide[0-9]+\.xml$/.test(f)).sort();
+            const slideTexts: string[] = [];
+            for (const sf of slideFiles) {
+              const xml = await zip.files[sf].async("text");
+              const textNodes = xml.match(/<a:t[^>]*>([^<]*)<\/a:t>/g) ?? [];
+              const slideText = textNodes.map((t) => t.replace(/<[^>]+>/g, "")).join(" ");
+              if (slideText.trim()) slideTexts.push(slideText.trim());
+            }
+            const raw = slideTexts.join("\n\n");
+            const text = raw.slice(0, MAX_CHARS);
+            return { text, truncated: raw.length > MAX_CHARS, error: null };
+          } catch (pptxErr) {
+            console.error("[aina.extractDocumentText] PPTX parse error:", pptxErr);
+            return { text: "", truncated: false, error: "Presentation extraction failed" };
+          }
+        }
+        // OpenDocument (.odt, .ods, .odp) — extract content.xml text
+        const isOdf =
+          input.mimeType.includes("opendocument") ||
+          !!input.fileName.toLowerCase().match(/\.(odt|ods|odp|odf)$/);
+        if (isOdf) {
+          try {
+            const JSZipMod = await import("jszip");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const JSZip2 = ((JSZipMod as unknown) as { default?: { loadAsync: (b: Buffer) => Promise<{ files: Record<string, { async: (t: string) => Promise<string> }> }> }, loadAsync: (b: Buffer) => Promise<{ files: Record<string, { async: (t: string) => Promise<string> }> }> });
+            const zipLoader2 = JSZip2.default ?? JSZip2;
+            const zip = await zipLoader2.loadAsync(buffer);
+            const contentXml = await zip.files["content.xml"]?.async("text") ?? "";
+            const raw = contentXml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+            const text = raw.slice(0, MAX_CHARS);
+            return { text, truncated: raw.length > MAX_CHARS, error: null };
+          } catch (odfErr) {
+            console.error("[aina.extractDocumentText] ODF parse error:", odfErr);
+            return { text: "", truncated: false, error: "OpenDocument extraction failed" };
+          }
+        }
         // Unsupported format — return empty (no error, just no context)
         return { text: "", truncated: false, error: null };
       } catch (err) {
@@ -175,4 +263,72 @@ export const ainaRouter = router({
         return { text: "", truncated: false, error: "Extraction failed" };
       }
     }),
+  /**
+   * Generate a downloadable .docx file from the improved document text
+   * extracted from AINA's response (between [IMPROVED DOCUMENT START] and [IMPROVED DOCUMENT END] tags).
+   * Returns a base64-encoded .docx file.
+   */
+  generateImprovedDocument: protectedProcedure
+    .input(
+      z.object({
+        /** The full improved document text (plain text or markdown) */
+        content: z.string().max(50000),
+        /** Original file name — used to derive the output name */
+        originalFileName: z.string().max(200).optional(),
+        /** Title for the document */
+        title: z.string().max(200).optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const { Document, Paragraph, TextRun, HeadingLevel, Packer } = await import("docx");
+      const title = input.title ?? (input.originalFileName ? `Improved_${input.originalFileName.replace(/\.[^.]+$/, "")}` : "AINA_Improved_Document");
+      // Parse the content into paragraphs
+      const lines = input.content.split("\n");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const children: InstanceType<typeof Paragraph>[] = [];
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          children.push(new Paragraph({ text: "" }));
+          continue;
+        }
+        // Detect markdown headings
+        if (trimmed.startsWith("### ")) {
+          children.push(new Paragraph({ text: trimmed.slice(4), heading: HeadingLevel.HEADING_3 }));
+        } else if (trimmed.startsWith("## ")) {
+          children.push(new Paragraph({ text: trimmed.slice(3), heading: HeadingLevel.HEADING_2 }));
+        } else if (trimmed.startsWith("# ")) {
+          children.push(new Paragraph({ text: trimmed.slice(2), heading: HeadingLevel.HEADING_1 }));
+        } else if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+          children.push(new Paragraph({ text: trimmed.slice(2), bullet: { level: 0 } }));
+        } else {
+          // Detect **bold** inline
+          const parts = trimmed.split(/\*\*([^*]+)\*\*/g);
+          if (parts.length > 1) {
+            const runs: InstanceType<typeof TextRun>[] = parts.map((p, i) =>
+              i % 2 === 1 ? new TextRun({ text: p, bold: true }) : new TextRun({ text: p })
+            );
+            children.push(new Paragraph({ children: runs }));
+          } else {
+            children.push(new Paragraph({ text: trimmed }));
+          }
+        }
+      }
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: [
+            new Paragraph({ text: title, heading: HeadingLevel.TITLE }),
+            new Paragraph({ text: "Generated by AINA | LOMLOE-aligned improvement", children: [new TextRun({ text: "Generated by AINA | LOMLOE-aligned improvement", italics: true, color: "888888" })] }),
+            new Paragraph({ text: "" }),
+            ...children,
+          ],
+        }],
+      });
+      const buffer = await Packer.toBuffer(doc);
+      const base64 = buffer.toString("base64");
+      const outputName = `${title.replace(/[^a-zA-Z0-9_-]/g, "_")}.docx`;
+      return { base64, fileName: outputName };
+    }),
+
 });

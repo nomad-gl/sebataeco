@@ -4946,18 +4946,18 @@
 - [x] Add cross-domain link helper in NavBar for aina.forum links
 
 ## Sprint: Suggested Follow-ups (Apr 29)
-- [ ] Add cross-domain SSO nav links in NavBar (aina.forum links use useCrossOriginLink)
+- [x] Add cross-domain SSO nav links in NavBar (aina.forum links use useCrossOriginLink)
 - [x] Add super-admin backfill tool for invitedByUserId in AdminUserManagement
-- [ ] Surface inactive-user count alert in DirectorOverview dashboard
-- [ ] Surface no-password-set count alert in DirectorOverview dashboard
+- [x] Surface inactive-user count alert in DirectorOverview dashboard
+- [x] Surface no-password-set count alert in DirectorOverview dashboard
 
 ## AINA Chat History
-- [ ] Add ainaChatSessions and ainaChatMessages tables to schema.ts
-- [ ] Apply DB migration for AINA chat history tables
-- [ ] Add server procedures: saveSession, listSessions, getSession, deleteSession, updateSessionTitle
+- [x] Add ainaChatSessions and ainaChatMessages tables to schema.ts
+- [x] Apply DB migration for AINA chat history tables
+- [x] Add server procedures: saveSession, listSessions, getSession, deleteSession, updateSessionTitle
 - [x] Build AinaChatHistory sidebar component with search, scroll, delete
-- [ ] Integrate history sidebar into Chat.tsx (left panel)
-- [ ] Auto-save messages to DB on every send/receive
-- [ ] Restore active session on re-open (last active session)
-- [ ] Keep AINA alive in background when navigating away (global state context)
+- [x] Integrate history sidebar into Chat.tsx (left panel)
+- [x] Auto-save messages to DB on every send/receive
+- [x] Restore active session on re-open (last active session)
+- [x] Keep AINA alive in background when navigating away (global state context)
 - [x] Add back button to /director/users page
