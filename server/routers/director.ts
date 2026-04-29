@@ -162,6 +162,76 @@ async function checkAndAlertInactiveUsers(): Promise<void> {
 checkAndAlertInactiveUsers().catch(() => {});
 setInterval(() => checkAndAlertInactiveUsers().catch(() => {}), TWENTY_FOUR_HOURS_MS).unref();
 
+// ─── Password-not-set reminder ────────────────────────────────────────────────
+/**
+ * Sends a security reminder notification to every local user whose
+ * mustChangePassword flag is still true (i.e. they have never changed their
+ * temporary password). Deduped: at most one reminder per user per day.
+ */
+async function remindUsersToSetPassword(): Promise<void> {
+  try {
+    const db = await getDb();
+    if (!db) return;
+
+    // Find all local users still on their temp password
+    const pending = await db
+      .select({ id: users.id, name: users.name, email: users.email })
+      .from(users)
+      .where(
+        and(
+          eq(users.mustChangePassword, true),
+          isNotNull(users.passwordHash),
+          isNull(users.deactivatedAt),
+        )
+      );
+
+    if (pending.length === 0) return;
+
+    const todayPrefix = new Date().toISOString().slice(0, 10);
+    const { notifications } = await import("../../drizzle/schema");
+
+    for (const u of pending) {
+      // Dedup: skip if already sent a password reminder today
+      const [existing] = await db
+        .select({ id: notifications.id })
+        .from(notifications)
+        .where(
+          and(
+            eq(notifications.userId, String(u.id)),
+            eq(notifications.type, "password_reminder"),
+            sql`DATE(${notifications.createdAt}) = ${todayPrefix}`,
+          )
+        )
+        .limit(1);
+
+      if (existing) continue;
+
+      await createNotification({
+        userId: String(u.id),
+        type: "password_reminder",
+        title: "⚠️ Security risk: you have not set a personal password",
+        body: [
+          "Your account is currently protected only by a temporary password issued by your director.",
+          "",
+          "Until you set your own password:",
+          "• Anyone who knows your temporary password can access your account.",
+          "• Your lesson plans, student data, and personal information are at risk.",
+          "• You may be in breach of your school's data-protection policy.",
+          "",
+          "Please change your password now — it takes less than a minute.",
+        ].join("\n"),
+        link: "/change-password",
+      });
+    }
+  } catch (err) {
+    console.warn("[PasswordReminder] Check failed:", err);
+  }
+}
+
+// Run once at startup, then daily
+remindUsersToSetPassword().catch(() => {});
+setInterval(() => remindUsersToSetPassword().catch(() => {}), TWENTY_FOUR_HOURS_MS).unref();
+
 export const directorRouter = router({
   /** School-wide overview stats */
   getStats: adminProcedure.query(async ({ ctx }) => {

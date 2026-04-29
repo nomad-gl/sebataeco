@@ -10,6 +10,7 @@ import LocalLogin from "./pages/LocalLogin";
 import RegisterWithInvite from "./pages/RegisterWithInvite";
 import ResetPassword from "./pages/ResetPassword";
 import OfflineBanner from "./components/OfflineBanner";
+import PasswordReminderBanner from "./components/PasswordReminderBanner";
 import Chat from "./pages/Chat";
 import Practice from "./pages/Practice";
 import InfantilPractice from "./pages/InfantilPractice";
@@ -284,6 +285,7 @@ function App() {
           <BackToTop />
           <GlobalCallListener />
           <OfflineBanner />
+          <PasswordReminderBanner />
           <MustChangePasswordGuard />
           <Router />
         </TooltipProvider>

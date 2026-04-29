@@ -4923,3 +4923,7 @@
 - [x] Add checkInactiveUsers tRPC procedure that finds users inactive 90+ days and groups them by director
 - [x] Add daily server-side cron trigger (startup scheduler) to run the check automatically
 - [x] Alert each director via in-app notification listing their inactive users
+
+## Feature: Password-not-set reminder
+- [x] Daily server-side check: send in-app notification to users with mustChangePassword=true
+- [x] In-app PasswordReminderBanner: persistent red banner with security messaging and link to /change-password
