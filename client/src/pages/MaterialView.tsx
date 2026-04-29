@@ -1183,7 +1183,7 @@ function ExportToolbar({
   const [printDialogOpen, setPrintDialogOpen] = useState(false);
 
   // Metadata fields — pre-fill from school branding where available
-  const brandingQ = trpc.director.getBranding.useQuery();
+  const brandingQ = trpc.director.getSchoolBranding.useQuery(undefined, { staleTime: 60_000 });
   const branding = brandingQ.data;
   const [schoolName, setSchoolName] = useState("");
   const [schoolBadgeUrl, setSchoolBadgeUrl] = useState("");
