@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
-const MIN_WIDTH = 160;
+const MIN_WIDTH = 200;
 const MAX_WIDTH = 480;
 const DEFAULT_WIDTH = 256; // w-64
 const STORAGE_KEY = "aina_history_width";
@@ -163,13 +163,13 @@ export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat, o
                 <span className="text-[10px] text-white/40">{s.messageCount} msg{s.messageCount !== 1 ? "s" : ""}</span>
               </div>
             </div>
-            {/* Delete button — always visible, brighter on hover */}
+            {/* Delete button — always visible at all widths */}
             <button
-              className="flex-shrink-0 flex items-center justify-center size-5 rounded text-white/40 hover:text-red-400 hover:bg-red-400/15 transition-colors"
+              className="flex-shrink-0 flex items-center justify-center size-6 rounded text-white/70 hover:text-red-400 hover:bg-red-400/15 active:bg-red-400/25 transition-colors touch-manipulation"
               title="Delete chat"
               onClick={(e) => { e.stopPropagation(); setDeleteId(s.id); }}
             >
-              <Trash2 className="size-3" />
+              <Trash2 className="size-3.5" />
             </button>
           </div>
         ))}

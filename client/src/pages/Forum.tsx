@@ -79,6 +79,31 @@ function useFormatTime() {
   };
 }
 
+// ─── TranslationIndicator component ─────────────────────────────────────────
+
+function TranslationIndicator({ originalBody }: { msgId: number; originalBody: string }) {
+  const { t } = useI18n();
+  const [showOriginal, setShowOriginal] = useState(false);
+  return (
+    <div className="mt-0.5 mx-1">
+      <div className="flex items-center gap-1">
+        <span className="text-[9px] text-white/40 italic">🌐 {t("forum_translated")}</span>
+        <button
+          className="text-[9px] text-white/40 underline hover:text-white/70 transition-colors"
+          onClick={() => setShowOriginal(v => !v)}
+        >
+          {showOriginal ? t("forum_hide_original") : t("forum_show_original")}
+        </button>
+      </div>
+      {showOriginal && (
+        <p className="text-[10px] text-white/50 italic mt-0.5 border-l border-white/20 pl-1.5">
+          {originalBody}
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ─── main component ───────────────────────────────────────────────────────────
 
 export default function Forum() {
@@ -957,6 +982,10 @@ export default function Forum() {
                         msg.body
                       )}
                     </div>
+                    {/* Translation indicator — shown when message was auto-translated */}
+                    {msg.originalBody && msg.originalBody !== msg.body && (
+                      <TranslationIndicator msgId={msg.id} originalBody={msg.originalBody!} />
+                    )}
 
                     {/* Reaction bar */}
                     {msgReactions.length > 0 && (
@@ -978,10 +1007,9 @@ export default function Forum() {
                       </div>
                     )}
 
-                    {/* Action buttons — always visible on mobile, hover on desktop */}
+                    {/* Action buttons — emoji always visible; other actions visible on mobile + desktop hover */}
                     <div className={cn(
-                      "flex items-center gap-1 mt-0.5 mx-1 transition-opacity",
-                      "opacity-100 md:opacity-0 md:group-hover:opacity-100",
+                      "flex items-center gap-1 mt-0.5 mx-1",
                       isMine ? "flex-row-reverse" : "flex-row"
                     )}>
                       {/* Quick emoji picker */}

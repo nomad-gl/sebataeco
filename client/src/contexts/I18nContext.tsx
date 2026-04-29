@@ -1468,6 +1468,9 @@ export const translations = {
     forum_emoji_social: "Social",
     forum_follow_up_label: "Suggested replies",
     forum_follow_up_short: "Reply ideas",
+    forum_translated: "Translated",
+    forum_show_original: "Show original",
+    forum_hide_original: "Hide original",
     forum_catalan_space: "Espai de Col·laboració",
     // NavBar notifications
     nav_notifications: "Notifications",
@@ -5271,6 +5274,9 @@ export const translations = {
     forum_emoji_social: "Social",
     forum_follow_up_label: "Respuestas sugeridas",
     forum_follow_up_short: "Ideas de respuesta",
+    forum_translated: "Traducido",
+    forum_show_original: "Ver original",
+    forum_hide_original: "Ocultar original",
     forum_catalan_space: "Espai de Col·laboració",
     // NavBar notifications
     nav_notifications: "Notificaciones",
@@ -9050,6 +9056,9 @@ export const translations = {
     forum_emoji_social: "Social",
     forum_follow_up_label: "Respostes suggerides",
     forum_follow_up_short: "Idees de resposta",
+    forum_translated: "Traduït",
+    forum_show_original: "Veure original",
+    forum_hide_original: "Amagar original",
     forum_catalan_space: "Espai de Col·laboració",
     // NavBar notifications
     nav_notifications: "Notificacions",

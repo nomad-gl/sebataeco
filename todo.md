@@ -5040,3 +5040,19 @@
 - [x] Ensure Aina always uses the four-level scale when marking or grading is requested (MANDATORY directive)
 - [x] Fix MACRO_MIME_TYPES lowercase bug in fileScanner.ts (7855/7855 tests passing)
 
+
+## Aina Message History Delete Icon Fix
+- [ ] Fix delete icon on Aina message history to always be visible at all screen widths (not just on hover)
+- [ ] Ensure delete icon is accessible on mobile/touch screens
+
+## TA Forum Suggested Follow-ups 2 and 3
+- [ ] Follow-up 2: Auto-translation — messages sent in any language are displayed in the receiver's device language
+- [ ] Follow-up 3: Emoji reactions always visible on all screen sizes (not just desktop hover)
+
+## Situació d'Aprenentatge Generator — PDF/Save Metadata Form
+- [ ] Add metadata dialog before PDF download: school name, school badge/logo upload, teacher name, class details (year group, subject, group), date
+- [ ] Pre-fill metadata from user profile and school settings where available
+- [ ] Include metadata header in generated PDF (logo, school name, teacher, class, date)
+- [ ] Same metadata dialog for Save to Library flow
+- [ ] i18n keys for all new metadata fields (EN, ES, CA)
+- [ ] Run vitest and confirm passing
