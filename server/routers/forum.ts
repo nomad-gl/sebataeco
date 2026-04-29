@@ -753,4 +753,58 @@ export const forumRouter = router({
         .groupBy(forumThreadReplies.parentMessageId);
       return rows.map(r => ({ messageId: r.parentMessageId, count: Number(r.count) }));
     }),
+
+  // ─── Suggested Follow-ups ─────────────────────────────────────────────────
+
+  /** Generate 3 contextual follow-up prompt suggestions for a message */
+  getFollowUps: protectedProcedure
+    .input(z.object({
+      messageId: z.number().int(),
+      body: z.string().max(2000),
+      channelName: z.string().max(100).optional(),
+      lang: z.string().max(10).optional(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const langName = input.lang === "es" ? "Spanish" : input.lang === "ca" ? "Catalan" : "English";
+      try {
+        const res = await invokeLLM({
+          messages: [
+            {
+              role: "system",
+              content: `You are a helpful assistant for a teachers' professional forum${input.channelName ? ` in the #${input.channelName} channel` : ""}. Given a forum message, generate exactly 3 short, natural follow-up questions or replies that another teacher might want to send. Each suggestion should be concise (max 12 words), conversational, and relevant to the message content. Return a JSON array of 3 strings in ${langName}. Example: ["How did the students respond?", "Which year group was this?", "Would you share your resources?"]`,
+            },
+            { role: "user", content: `Forum message: "${input.body}"` },
+          ],
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "follow_ups",
+              strict: true,
+              schema: {
+                type: "object",
+                properties: {
+                  suggestions: {
+                    type: "array",
+                    items: { type: "string" },
+                  },
+                },
+                required: ["suggestions"],
+                additionalProperties: false,
+              },
+            },
+          },
+        });
+        const content = res?.choices?.[0]?.message?.content;
+        if (typeof content === "string") {
+          const parsed = JSON.parse(content);
+          const suggestions: string[] = Array.isArray(parsed.suggestions)
+            ? parsed.suggestions.slice(0, 3)
+            : [];
+          return { messageId: input.messageId, suggestions };
+        }
+      } catch {
+        // fall back to empty
+      }
+      return { messageId: input.messageId, suggestions: [] as string[] };
+    }),
 });

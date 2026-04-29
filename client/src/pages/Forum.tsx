@@ -380,7 +380,22 @@ export default function Forum() {
     return m;
   }, [replyCountQ.data]);
 
-  const QUICK_EMOJIS = ["👍", "❤️", "😂", "🎉", "🙏", "🔥", "👏", "😮"];
+  // Professional + social emoji palette
+  const QUICK_EMOJIS = [
+    // Professional / academic
+    "👍", "👏", "🙏", "💡", "📚", "✅", "🎯", "💪",
+    // Social / expressive
+    "❤️", "😂", "🎉", "🔥", "😮", "😊", "🤔", "👀",
+  ];
+
+  // Follow-up state: which message is expanded for follow-ups
+  const [followUpMsgId, setFollowUpMsgId] = useState<number | null>(null);
+  const [followUpInput, setFollowUpInput] = useState<{ id: number; body: string; channelName?: string } | null>(null);
+
+  const followUpsQ = trpc.forum.getFollowUps.useQuery(
+    { messageId: followUpInput?.id ?? 0, body: followUpInput?.body ?? "", channelName: followUpInput?.channelName, lang },
+    { enabled: followUpInput !== null, staleTime: 60_000 }
+  );
 
   // ─── derived data ──────────────────────────────────────────────────────────
 
@@ -963,9 +978,10 @@ export default function Forum() {
                       </div>
                     )}
 
-                    {/* Action buttons (hover) */}
+                    {/* Action buttons — always visible on mobile, hover on desktop */}
                     <div className={cn(
-                      "flex items-center gap-1 mt-0.5 mx-1 opacity-0 group-hover:opacity-100 transition-opacity",
+                      "flex items-center gap-1 mt-0.5 mx-1 transition-opacity",
+                      "opacity-100 md:opacity-0 md:group-hover:opacity-100",
                       isMine ? "flex-row-reverse" : "flex-row"
                     )}>
                       {/* Quick emoji picker */}
@@ -973,24 +989,47 @@ export default function Forum() {
                         <button
                           onClick={() => setShowReactionPicker(showReactionPicker === msg.id ? null : msg.id)}
                           className="flex items-center justify-center w-6 h-6 rounded-full bg-white/10 hover:bg-white/25 text-white/60 hover:text-white transition-colors"
+                          title={t("forum_add_reaction")}
                         >
                           <SmilePlus className="w-3.5 h-3.5" />
                         </button>
                         {showReactionPicker === msg.id && (
                           <div className={cn(
-                            "absolute bottom-7 z-50 flex gap-1 p-1.5 bg-gray-900/95 backdrop-blur-md border border-white/20 rounded-xl shadow-xl",
+                            "absolute bottom-8 z-50 p-2 bg-gray-900/95 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl",
                             isMine ? "right-0" : "left-0"
-                          )}>
-                            {QUICK_EMOJIS.map(e => (
-                              <button
-                                key={e}
-                                onClick={() => {
-                                  toggleReactionMut.mutate({ messageId: msg.id, emoji: e });
-                                  setShowReactionPicker(null);
-                                }}
-                                className="text-lg hover:scale-125 transition-transform p-0.5"
-                              >{e}</button>
-                            ))}
+                          )}
+                          style={{ minWidth: "220px" }}
+                          >
+                            {/* Professional row */}
+                            <p className="text-[9px] text-white/40 uppercase tracking-widest mb-1 px-0.5">{t("forum_emoji_professional")}</p>
+                            <div className="flex gap-1 mb-2">
+                              {QUICK_EMOJIS.slice(0, 8).map(e => (
+                                <button
+                                  key={e}
+                                  onClick={() => {
+                                    toggleReactionMut.mutate({ messageId: msg.id, emoji: e });
+                                    setShowReactionPicker(null);
+                                  }}
+                                  className="text-lg hover:scale-125 transition-transform p-0.5 rounded-lg hover:bg-white/10"
+                                  title={e}
+                                >{e}</button>
+                              ))}
+                            </div>
+                            {/* Social row */}
+                            <p className="text-[9px] text-white/40 uppercase tracking-widest mb-1 px-0.5">{t("forum_emoji_social")}</p>
+                            <div className="flex gap-1">
+                              {QUICK_EMOJIS.slice(8).map(e => (
+                                <button
+                                  key={e}
+                                  onClick={() => {
+                                    toggleReactionMut.mutate({ messageId: msg.id, emoji: e });
+                                    setShowReactionPicker(null);
+                                  }}
+                                  className="text-lg hover:scale-125 transition-transform p-0.5 rounded-lg hover:bg-white/10"
+                                  title={e}
+                                >{e}</button>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -998,10 +1037,35 @@ export default function Forum() {
                       <button
                         onClick={() => setThreadMsgId(threadMsgId === msg.id ? null : msg.id)}
                         className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-white/10 hover:bg-white/25 text-white/60 hover:text-white text-[10px] font-medium transition-colors"
+                        title={t("forum_reply_placeholder")}
                       >
                         <Reply className="w-3 h-3" />
                         {replyCount > 0 && <span>{replyCount}</span>}
                       </button>
+                      {/* Suggested follow-ups toggle */}
+                      {!isMine && (
+                        <button
+                          onClick={() => {
+                            if (followUpMsgId === msg.id) {
+                              setFollowUpMsgId(null);
+                              setFollowUpInput(null);
+                            } else {
+                              setFollowUpMsgId(msg.id);
+                              setFollowUpInput({ id: msg.id, body: msg.body, channelName: activeChannel?.name });
+                            }
+                          }}
+                          className={cn(
+                            "flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium transition-colors",
+                            followUpMsgId === msg.id
+                              ? "bg-violet-500/30 text-violet-200 border border-violet-400/40"
+                              : "bg-white/10 hover:bg-white/25 text-white/60 hover:text-white"
+                          )}
+                          title={t("forum_follow_up_label")}
+                        >
+                          <MessageSquare className="w-3 h-3" />
+                          <span>{t("forum_follow_up_short")}</span>
+                        </button>
+                      )}
                       {/* Pin (staff only) */}
                       {['teacher','head_of_study','director'].includes((user as {position?: string})?.position ?? '') && (
                         <button
@@ -1014,6 +1078,37 @@ export default function Forum() {
                       )}
                     </div>
 
+                    {/* Suggested follow-up chips */}
+                    {followUpMsgId === msg.id && (
+                      <div className="mt-1.5 mx-1">
+                        {followUpsQ.isLoading && (
+                          <div className="flex gap-1.5">
+                            {[1,2,3].map(i => (
+                              <div key={i} className="h-6 w-24 rounded-full bg-white/10 animate-pulse" />
+                            ))}
+                          </div>
+                        )}
+                        {!followUpsQ.isLoading && (followUpsQ.data?.suggestions ?? []).length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            <span className="text-[9px] text-violet-300/70 uppercase tracking-widest self-center mr-1">{t("forum_follow_up_label")}</span>
+                            {(followUpsQ.data?.suggestions ?? []).map((s, si) => (
+                              <button
+                                key={si}
+                                onClick={() => {
+                                  setInput(s);
+                                  setFollowUpMsgId(null);
+                                  setFollowUpInput(null);
+                                  inputRef.current?.focus();
+                                }}
+                                className="px-2.5 py-1 rounded-full bg-violet-500/20 border border-violet-400/30 text-white/80 text-[11px] hover:bg-violet-500/35 hover:text-white transition-colors"
+                              >
+                                {s}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <span className="text-[10px] text-white/40 mt-0.5 mx-1">{formatTime(msg.createdAt)}</span>
                   </div>
                 </div>

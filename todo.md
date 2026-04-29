@@ -5000,3 +5000,14 @@
 ## Aina IEC Language Guidelines
 - [x] Update Aina system prompt to always reference IEC (Institut d'Estudis Catalans) guidelines for the most accurate and current Catalan language usage
 - [x] Ensure Aina cites IEC sources (Diccionari de la llengua catalana, Gramàtica de la llengua catalana, Optimot) when answering Catalan language questions
+
+## TA Forum — Emoji Reactions & Suggested Follow-ups
+- [x] DB: forum_reactions table (postId, userId, emoji) with unique constraint
+- [x] tRPC: toggleReaction procedure (add/remove reaction)
+- [x] tRPC: getReactions procedure (counts per emoji per post)
+- [x] tRPC: getFollowUps procedure (AI-generated contextual follow-up suggestions)
+- [x] Forum UI: emoji reaction bar on each post (always visible on mobile, hover on desktop)
+- [x] Forum UI: expanded emoji picker with Professional + Social categories (16 emojis)
+- [x] Forum UI: suggested follow-up chips below each message (AI-generated, clickable to pre-fill input)
+- [x] i18n keys for reactions and follow-ups (EN, ES, CA)
+- [x] Run vitest and confirm passing (7819/7819)
