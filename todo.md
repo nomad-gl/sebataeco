@@ -4950,3 +4950,14 @@
 - [x] Add super-admin backfill tool for invitedByUserId in AdminUserManagement
 - [ ] Surface inactive-user count alert in DirectorOverview dashboard
 - [ ] Surface no-password-set count alert in DirectorOverview dashboard
+
+## AINA Chat History
+- [ ] Add ainaChatSessions and ainaChatMessages tables to schema.ts
+- [ ] Apply DB migration for AINA chat history tables
+- [ ] Add server procedures: saveSession, listSessions, getSession, deleteSession, updateSessionTitle
+- [x] Build AinaChatHistory sidebar component with search, scroll, delete
+- [ ] Integrate history sidebar into Chat.tsx (left panel)
+- [ ] Auto-save messages to DB on every send/receive
+- [ ] Restore active session on re-open (last active session)
+- [ ] Keep AINA alive in background when navigating away (global state context)
+- [x] Add back button to /director/users page

@@ -2210,3 +2210,45 @@ export const progressWorksheets = mysqlTable("progress_worksheets", {
 });
 export type ProgressWorksheet = typeof progressWorksheets.$inferSelect;
 export type InsertProgressWorksheet = typeof progressWorksheets.$inferInsert;
+
+/**
+ * aina_chat_sessions -- one row per AINA conversation session per user.
+ * Messages are stored in aina_chat_messages.
+ * @migration 0061
+ */
+export const ainaChatSessions = mysqlTable("aina_chat_sessions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  /** Auto-generated title (first user message, truncated) */
+  title: varchar("title", { length: 255 }).notNull().default("New chat"),
+  /** Competency filter active during this session */
+  competency: varchar("competency", { length: 16 }),
+  /** Year group filter active during this session */
+  yearGroup: varchar("yearGroup", { length: 32 }),
+  /** Total message count (cached for display) */
+  messageCount: int("messageCount").notNull().default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+export type AinaChatSession = typeof ainaChatSessions.$inferSelect;
+export type InsertAinaChatSession = typeof ainaChatSessions.$inferInsert;
+
+/**
+ * aina_chat_messages -- individual messages within an AINA session.
+ * @migration 0061
+ */
+export const ainaChatMessages = mysqlTable("aina_chat_messages", {
+  id: int("id").autoincrement().primaryKey(),
+  sessionId: int("sessionId").notNull(),
+  userId: int("userId").notNull(),
+  role: varchar("role", { length: 16 }).notNull(),
+  content: text("content").notNull(),
+  /** Optional image URL attached to this message */
+  imageUrl: varchar("imageUrl", { length: 1024 }),
+  /** Optional file attachment URL */
+  attachmentUrl: varchar("attachmentUrl", { length: 1024 }),
+  attachmentName: varchar("attachmentName", { length: 255 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type AinaChatMessage = typeof ainaChatMessages.$inferSelect;
+export type InsertAinaChatMessage = typeof ainaChatMessages.$inferInsert;

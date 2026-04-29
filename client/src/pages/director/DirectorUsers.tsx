@@ -4,6 +4,7 @@
  *           invite teacher, invite history table with Resend + Delete buttons.
  *           Deactivate button is amber/orange; destructive delete is red.
  */
+import BackButton from "@/components/BackButton";
 import { Badge } from "@/components/ui/badge";
 import { InviteCountdown } from "@/components/InviteCountdown";
 import { Button } from "@/components/ui/button";
@@ -274,6 +275,10 @@ export default function DirectorUsers() {
 
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
+      {/* Back button */}
+      <div className="mb-1">
+        <BackButton />
+      </div>
       {/* Header */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3">

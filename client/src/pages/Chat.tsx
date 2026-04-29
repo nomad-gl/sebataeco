@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,10 +6,12 @@ import NavBar from "@/components/NavBar";
 import BackButton from "@/components/BackButton";
 import CompetencySelector from "@/components/CompetencySelector";
 import { AIChatBox, type Message } from "@/components/AIChatBox";
+import { AinaChatHistory } from "@/components/AinaChatHistory";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/contexts/I18nContext";
+import { useAina } from "@/contexts/AinaContext";
 import type { TranslationKey, Lang } from "@/contexts/I18nContext";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { AinaProfilePanel } from "@/components/AinaProfilePanel";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -29,22 +31,137 @@ export default function Chat() {
   const { user } = useAuth();
   useDocumentTitle("Parla amb Aina · IA per a Docents");
 
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [competency, setCompetency] = useState<CompetencyCode | undefined>();
-  const [yearGroup, setYearGroup] = useState<YearGroup | undefined>();
+  // ── Background state via AinaContext (survives navigation) ─────────────
+  const {
+    state: ainaState,
+    setMessages,
+    setActiveSessionId,
+    setCompetency: setCtxCompetency,
+    setYearGroup: setCtxYearGroup,
+    resetSession,
+  } = useAina();
+
+  const messages = ainaState.messages;
+  const activeSessionId = ainaState.activeSessionId;
+  const competency = ainaState.competency as CompetencyCode | undefined;
+  const yearGroup = ainaState.yearGroup as YearGroup | undefined;
+
+  // ── Local UI state ───────────────────────────────────────────────────────
   const [showFilters, setShowFilters] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
-  /** Text extracted from the last uploaded document — injected into the next LLM call then cleared */
+  const [historyOpen, setHistoryOpen] = useState(true);
+  const [isRestoringSession, setIsRestoringSession] = useState(false);
   const [pendingDocContext, setPendingDocContext] = useState<{ text: string; fileName: string } | null>(null);
-  /** URLs of uploaded images — accumulated (up to 4) and injected as vision blocks in the next LLM call then cleared */
   const [pendingImageUrls, setPendingImageUrls] = useState<string[]>([]);
 
   // Track previous lang to detect real changes
   const prevLangRef = useRef<Lang>(lang);
+  const restoredRef = useRef(false);
 
   const chatMutation = trpc.lomloe.chat.useMutation();
   const translateMutation = trpc.lomloe.translateMessages.useMutation();
   const rateMutation = trpc.lomloe.rateMessage.useMutation();
+  const saveChatMutation = trpc.lomloe.saveChatSession.useMutation();
+  const utils = trpc.useUtils();
+
+  // ── Restore last session on first mount ──────────────────────────────────
+  useEffect(() => {
+    if (!user || restoredRef.current) return;
+    restoredRef.current = true;
+    if (activeSessionId !== null && messages.length > 0) return;
+    const lastSessionId = localStorage.getItem("aina_last_session");
+    if (!lastSessionId) return;
+    const sid = parseInt(lastSessionId, 10);
+    if (isNaN(sid)) return;
+    setIsRestoringSession(true);
+    fetch(`/api/trpc/lomloe.getChatSession?input=${encodeURIComponent(JSON.stringify({ "0": { json: { sessionId: sid } } }))}`, {
+      credentials: "include",
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        const result = data?.[0]?.result?.data?.json;
+        if (!result) return;
+        const { session, messages: dbMessages } = result;
+        setActiveSessionId(session.id);
+        setCtxCompetency(session.competency ?? undefined);
+        setCtxYearGroup(session.yearGroup ?? undefined);
+        setMessages(
+          dbMessages.map((m: { role: string; content: string; imageUrl?: string; attachmentUrl?: string; attachmentName?: string }) => ({
+            role: m.role as "user" | "assistant",
+            content: m.content,
+            imageUrl: m.imageUrl ?? undefined,
+            attachmentUrl: m.attachmentUrl ?? undefined,
+            attachmentName: m.attachmentName ?? undefined,
+            timestamp: Date.now(),
+          }))
+        );
+      })
+      .catch(() => localStorage.removeItem("aina_last_session"))
+      .finally(() => setIsRestoringSession(false));
+  }, [user]);
+
+  // ── Load a session from history ───────────────────────────────────────────
+  const handleSelectSession = useCallback(async (sessionId: number) => {
+    if (sessionId === activeSessionId) return;
+    setIsRestoringSession(true);
+    try {
+      const result = await fetch(
+        `/api/trpc/lomloe.getChatSession?input=${encodeURIComponent(JSON.stringify({ "0": { json: { sessionId } } }))}`,
+        { credentials: "include" }
+      ).then((r) => r.json());
+      const data = result?.[0]?.result?.data?.json;
+      if (!data) throw new Error("No data");
+      const { session, messages: dbMessages } = data;
+      setActiveSessionId(session.id);
+      setCtxCompetency(session.competency ?? undefined);
+      setCtxYearGroup(session.yearGroup ?? undefined);
+      setMessages(
+        dbMessages.map((m: { role: string; content: string; imageUrl?: string; attachmentUrl?: string; attachmentName?: string }) => ({
+          role: m.role as "user" | "assistant",
+          content: m.content,
+          imageUrl: m.imageUrl ?? undefined,
+          attachmentUrl: m.attachmentUrl ?? undefined,
+          attachmentName: m.attachmentName ?? undefined,
+          timestamp: Date.now(),
+        }))
+      );
+    } catch {
+      toast.error("Failed to load chat session");
+    } finally {
+      setIsRestoringSession(false);
+    }
+  }, [activeSessionId]);
+
+  // ── Start a new chat ──────────────────────────────────────────────────────
+  const handleNewChat = useCallback(() => {
+    resetSession();
+    setShowFilters(false);
+  }, [resetSession]);
+
+  // ── Persist messages to DB after each assistant reply ────────────────────
+  const persistMessages = useCallback(
+    (userMsg: Message, assistantMsg: Message) => {
+      if (!user) return;
+      saveChatMutation.mutate(
+        {
+          sessionId: activeSessionId ?? undefined,
+          competency: competency ?? undefined,
+          yearGroup: yearGroup ?? undefined,
+          messages: [
+            { role: "user" as const, content: userMsg.content, imageUrl: userMsg.imageUrl, attachmentUrl: userMsg.attachmentUrl, attachmentName: userMsg.attachmentName },
+            { role: "assistant" as const, content: assistantMsg.content },
+          ],
+        },
+        {
+          onSuccess: (result) => {
+            if (!activeSessionId) setActiveSessionId(result.sessionId);
+            utils.lomloe.listChatSessions.invalidate();
+          },
+        }
+      );
+    },
+    [user, activeSessionId, competency, yearGroup, saveChatMutation, utils]
+  );
 
   // When language changes, translate all existing messages in the session
   useEffect(() => {
@@ -308,16 +425,16 @@ export default function Chat() {
     const msgId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
     // Use functional update to append the assistant reply to whatever state is
     // current at this point (image messages may have been inserted while we waited).
-    setMessages((prev) => [
-      ...prev,
-      {
-        role: "assistant",
-        content: aiContent,
-        timestamp: Date.now(),
-        followUpQuestions: result.followUpQuestions ?? [],
-        id: msgId,
-      },
-    ]);
+    const assistantMsg = {
+      role: "assistant" as const,
+      content: aiContent,
+      timestamp: Date.now(),
+      followUpQuestions: result.followUpQuestions ?? [],
+      id: msgId,
+    };
+    setMessages((prev) => [...prev, assistantMsg]);
+    // Persist to DB for logged-in users (fire-and-forget)
+    if (user) persistMessages(userMsg, assistantMsg);
   };
 
   /**
@@ -367,14 +484,42 @@ export default function Chat() {
   const suggestedQuestions = SUGGESTED_KEYS.map((k) => t(k));
 
   return (
-    <div className="chat-bg flex flex-col">
+    <div className="chat-bg flex flex-col min-h-screen">
       <NavBar />
-
+      <div className="flex flex-1 overflow-hidden">
+        {/* ── History sidebar ───────────────────────────────────────────── */}
+        {user && (
+          <>
+            {historyOpen && (
+              <AinaChatHistory
+                activeSessionId={activeSessionId}
+                onSelectSession={handleSelectSession}
+                onNewChat={handleNewChat}
+              />
+            )}
+            <button
+              onClick={() => setHistoryOpen((v) => !v)}
+              className="hidden sm:flex flex-col items-center justify-center w-5 bg-white/5 hover:bg-white/10 border-r border-white/10 transition-colors text-white/40 hover:text-white/70"
+              title={historyOpen ? "Hide history" : "Show history"}
+            >
+              {historyOpen ? <PanelLeftClose className="size-3.5" /> : <PanelLeftOpen className="size-3.5" />}
+            </button>
+          </>
+        )}
+        {/* ── Main chat area ─────────────────────────────────────────────── */}
+        <div className="flex-1 overflow-y-auto">
       <div className="container py-4 sm:py-6 flex flex-col gap-3 sm:gap-4 max-w-4xl mx-auto w-full flex-1">
         {/* Header */}
         <div className="flex flex-col gap-1">
           <BackButton variant="ghost" label={t("btn_back")} />
         </div>
+        {/* Session restore loading */}
+        {isRestoringSession && (
+          <div className="flex items-center gap-2 text-white/60 text-sm py-1">
+            <Loader2 className="size-4 animate-spin" />
+            <span>Restoring your last conversation…</span>
+          </div>
+        )}
         <div className="flex items-start sm:items-center justify-between gap-2">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-white">{t("chat_title")}</h1>
@@ -402,7 +547,7 @@ export default function Chat() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setMessages([])}
+                onClick={handleNewChat}
                 className="bg-white/15 text-white border-white/40 hover:bg-white/25 hover:text-white"
               >
                 {t("chat_clear")}
@@ -420,8 +565,8 @@ export default function Chat() {
             <CompetencySelector
               selectedCompetency={competency}
               selectedYearGroup={yearGroup}
-              onCompetencyChange={setCompetency}
-              onYearGroupChange={setYearGroup}
+              onCompetencyChange={setCtxCompetency}
+              onYearGroupChange={setCtxYearGroup}
               compact
             />
             {(competency || yearGroup) && (
@@ -460,6 +605,8 @@ export default function Chat() {
           />
         </div>
       </div>
+        </div>{/* end main chat area */}
+      </div>{/* end flex row */}
     </div>
   );
 }

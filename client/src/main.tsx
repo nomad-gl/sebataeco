@@ -8,6 +8,7 @@ import superjson from "superjson";
 import App from "./App";
 import { getLoginUrl } from "./const";
 import { I18nProvider } from "./contexts/I18nContext";
+import { AinaProvider } from "./contexts/AinaContext";
 import "./index.css";
 
 const queryClient = new QueryClient();
@@ -224,7 +225,9 @@ createRoot(document.getElementById("root")!).render(
   <trpc.Provider client={trpcClient} queryClient={queryClient}>
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
-        <App />
+        <AinaProvider>
+          <App />
+        </AinaProvider>
       </I18nProvider>
     </QueryClientProvider>
   </trpc.Provider>

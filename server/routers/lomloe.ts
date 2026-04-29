@@ -22,8 +22,8 @@ import { invokeLLM, type Message, type TextContent, type ImageContent } from "..
 import { ainaTranslateBatch } from "../ainaTranslation";
 import { getAinaProfile, upsertAinaProfile, rateMessage, getUserRatings, saveQuestionAnswer, getQuestionAnalytics, getPendingQuestions, reviewQuestion } from "../db";
 import { getDb } from "../db";
-import { generatedQuestions, questionTranslations, savedSituacions } from "../../drizzle/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { generatedQuestions, questionTranslations, savedSituacions, ainaChatSessions, ainaChatMessages } from "../../drizzle/schema";
+import { eq, and, inArray, desc, count } from "drizzle-orm";
 
 const CompetencyCodeSchema = z.enum(["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"]);
 const YearGroupSchema = z.enum(["infantil", "junior", "primary", "secondary"]);
@@ -1409,4 +1409,121 @@ Return ONLY a valid JSON object (no markdown, no code fences) with exactly these
       breakdown,
     };
   }),
+
+  // ─── AINA Chat History ────────────────────────────────────────────────────────
+
+  /** Create a new chat session and save the first batch of messages */
+  saveChatSession: protectedProcedure
+    .input(z.object({
+      sessionId: z.number().optional(), // if provided, append to existing session
+      title: z.string().max(255).optional(),
+      competency: z.string().optional(),
+      yearGroup: z.string().optional(),
+      messages: z.array(z.object({
+        role: z.enum(["user", "assistant"]),
+        content: z.string(),
+        imageUrl: z.string().optional(),
+        attachmentUrl: z.string().optional(),
+        attachmentName: z.string().optional(),
+      })),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const uid = ctx.user.id;
+      let sid = input.sessionId;
+
+      if (!sid) {
+        // Create new session — derive title from first user message
+        const firstUserMsg = input.messages.find((m) => m.role === "user");
+        const title = input.title ?? (firstUserMsg?.content?.slice(0, 80) ?? "New chat");
+        const [result] = await db.insert(ainaChatSessions).values({
+          userId: uid,
+          title,
+          competency: input.competency ?? null,
+          yearGroup: input.yearGroup ?? null,
+          messageCount: input.messages.length,
+        });
+        sid = (result as { insertId: number }).insertId;
+      } else {
+        // Update existing session's updatedAt and messageCount
+        const [existing] = await db.select({ messageCount: ainaChatSessions.messageCount })
+          .from(ainaChatSessions).where(and(eq(ainaChatSessions.id, sid), eq(ainaChatSessions.userId, uid)));
+        if (!existing) throw new Error("Session not found");
+        await db.update(ainaChatSessions)
+          .set({ messageCount: (existing.messageCount ?? 0) + input.messages.length, updatedAt: new Date() })
+          .where(eq(ainaChatSessions.id, sid));
+      }
+
+      // Insert messages
+      if (input.messages.length > 0) {
+        await db.insert(ainaChatMessages).values(
+          input.messages.map((m) => ({
+            sessionId: sid as number,
+            userId: uid,
+            role: m.role,
+            content: m.content,
+            imageUrl: m.imageUrl ?? null,
+            attachmentUrl: m.attachmentUrl ?? null,
+            attachmentName: m.attachmentName ?? null,
+          }))
+        );
+      }
+      return { sessionId: sid };
+    }),
+
+  /** List all chat sessions for the current user (summary only, no messages) */
+  listChatSessions: protectedProcedure.query(async ({ ctx }) => {
+    const db = await getDb();
+    if (!db) return [];
+    const sessions = await db.select()
+      .from(ainaChatSessions)
+      .where(eq(ainaChatSessions.userId, ctx.user.id))
+      .orderBy(desc(ainaChatSessions.updatedAt))
+      .limit(200);
+    return sessions;
+  }),
+
+  /** Get all messages for a specific session */
+  getChatSession: protectedProcedure
+    .input(z.object({ sessionId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const [session] = await db.select().from(ainaChatSessions)
+        .where(and(eq(ainaChatSessions.id, input.sessionId), eq(ainaChatSessions.userId, ctx.user.id)));
+      if (!session) throw new Error("Session not found");
+      const messages = await db.select().from(ainaChatMessages)
+        .where(eq(ainaChatMessages.sessionId, input.sessionId))
+        .orderBy(ainaChatMessages.createdAt);
+      return { session, messages };
+    }),
+
+  /** Delete a single chat session and all its messages */
+  deleteChatSession: protectedProcedure
+    .input(z.object({ sessionId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      // Verify ownership
+      const [session] = await db.select({ id: ainaChatSessions.id })
+        .from(ainaChatSessions)
+        .where(and(eq(ainaChatSessions.id, input.sessionId), eq(ainaChatSessions.userId, ctx.user.id)));
+      if (!session) throw new Error("Session not found");
+      await db.delete(ainaChatMessages).where(eq(ainaChatMessages.sessionId, input.sessionId));
+      await db.delete(ainaChatSessions).where(eq(ainaChatSessions.id, input.sessionId));
+      return { ok: true };
+    }),
+
+  /** Update the title of a chat session */
+  updateChatSessionTitle: protectedProcedure
+    .input(z.object({ sessionId: z.number(), title: z.string().max(255) }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      await db.update(ainaChatSessions)
+        .set({ title: input.title })
+        .where(and(eq(ainaChatSessions.id, input.sessionId), eq(ainaChatSessions.userId, ctx.user.id)));
+      return { ok: true };
+    }),
 });
