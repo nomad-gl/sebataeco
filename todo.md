@@ -5011,3 +5011,12 @@
 - [x] Forum UI: suggested follow-up chips below each message (AI-generated, clickable to pre-fill input)
 - [x] i18n keys for reactions and follow-ups (EN, ES, CA)
 - [x] Run vitest and confirm passing (7819/7819)
+
+## LOMLOE Infinitive Verb Rule (Legal Requirement)
+- [x] Add mandatory infinitive verb rule to Aina system prompt core guidelines (Core guideline 9)
+- [x] Add rule to competència específica generation section (CRITICAL block expanded with examples)
+- [x] Add rule to criteri d'avaluació generation section (included in CRITICAL block)
+- [x] Add rule to objectiu didàctic / programació generation section (included in CRITICAL block)
+- [x] Add rule to exercise/activity generation section (activitats d'aprenentatge added to CRITICAL block)
+- [x] Add self-check instruction: Aina must verify infinitive form before outputting any curriculum element (Core guideline 9 + grammar reminder)
+- [x] Add infinitive correction to document analysis mode (step 5 in doc analysis instructions)
