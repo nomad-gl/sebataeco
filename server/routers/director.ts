@@ -75,6 +75,93 @@ const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 purgeExpiredInvites().catch(() => {});
 setInterval(() => purgeExpiredInvites().catch(() => {}), TWENTY_FOUR_HOURS_MS).unref();
 
+// ─── 90-day inactivity alert ──────────────────────────────────────────────────
+const INACTIVITY_DAYS = 90;
+
+/**
+ * Finds all users/teachers who have not signed in for INACTIVITY_DAYS days and
+ * sends one in-app notification per director listing their inactive invitees.
+ * Only fires once per director per day (deduped by checking for a recent alert).
+ */
+async function checkAndAlertInactiveUsers(): Promise<void> {
+  try {
+    const db = await getDb();
+    if (!db) return;
+
+    const cutoff = new Date(Date.now() - INACTIVITY_DAYS * 24 * 60 * 60 * 1000);
+
+    // Find all non-admin users inactive for 90+ days who have a director assigned
+    const inactiveUsers = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        lastSignedIn: users.lastSignedIn,
+        invitedByUserId: users.invitedByUserId,
+      })
+      .from(users)
+      .where(
+        and(
+          sql`${users.role} != 'admin'`,
+          sql`${users.role} != 'director'`,
+          isNotNull(users.invitedByUserId),
+          isNull(users.deactivatedAt),
+          sql`${users.lastSignedIn} < ${cutoff}`,
+        )
+      );
+
+    if (inactiveUsers.length === 0) return;
+
+    // Group by director
+    const byDirector = new Map<number, typeof inactiveUsers>();
+    for (const u of inactiveUsers) {
+      if (u.invitedByUserId == null) continue;
+      const list = byDirector.get(u.invitedByUserId) ?? [];
+      list.push(u);
+      byDirector.set(u.invitedByUserId, list);
+    }
+
+    // Send one notification per director (deduped: skip if already sent today)
+    const todayPrefix = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+    for (const [directorId, members] of Array.from(byDirector.entries())) {
+      // Check if we already sent an inactivity alert today for this director
+      const { notifications } = await import("../../drizzle/schema");
+      const [existing] = await db
+        .select({ id: notifications.id })
+        .from(notifications)
+        .where(
+          and(
+            eq(notifications.userId, String(directorId)),
+            eq(notifications.type, "inactivity_alert"),
+            sql`DATE(${notifications.createdAt}) = ${todayPrefix}`,
+          )
+        )
+        .limit(1);
+
+      if (existing) continue; // already alerted today
+
+      const lines = members.map((u: { id: number; name: string | null; email: string | null; lastSignedIn: Date }) => {
+        const days = Math.floor((Date.now() - new Date(u.lastSignedIn).getTime()) / (24 * 60 * 60 * 1000));
+        return `• ${u.name ?? u.email ?? `User #${u.id}`} — last seen ${days} days ago`;
+      });
+
+      await createNotification({
+        userId: String(directorId),
+        type: "inactivity_alert",
+        title: `${members.length} user${members.length > 1 ? "s have" : " has"} not signed in for ${INACTIVITY_DAYS}+ days`,
+        body: lines.join("\n"),
+        link: "/director/staff",
+      });
+    }
+  } catch (err) {
+    console.warn("[InactivityAlert] Check failed:", err);
+  }
+}
+
+// Run once at startup, then daily
+checkAndAlertInactiveUsers().catch(() => {});
+setInterval(() => checkAndAlertInactiveUsers().catch(() => {}), TWENTY_FOUR_HOURS_MS).unref();
+
 export const directorRouter = router({
   /** School-wide overview stats */
   getStats: adminProcedure.query(async ({ ctx }) => {

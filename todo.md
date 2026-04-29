@@ -4918,3 +4918,8 @@
 - [x] Add invitedByUserId (or similar) tracking to users table
 - [x] Enforce: directors can only list/view users they personally invited or added
 - [x] Ensure directors cannot see each other's profiles or each other's invitees
+
+## Feature: 90-day inactivity alert to director
+- [x] Add checkInactiveUsers tRPC procedure that finds users inactive 90+ days and groups them by director
+- [x] Add daily server-side cron trigger (startup scheduler) to run the check automatically
+- [x] Alert each director via in-app notification listing their inactive users
