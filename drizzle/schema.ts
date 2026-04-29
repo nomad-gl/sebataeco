@@ -2366,3 +2366,26 @@ export const acBreaks = mysqlTable("ac_breaks", {
 });
 export type AcBreak = typeof acBreaks.$inferSelect;
 export type InsertAcBreak = typeof acBreaks.$inferInsert;
+
+/**
+ * ac_subjects — subjects per semester with scheduling and room details.
+ * days is stored as a JSON array of integers (1=Mon … 5=Fri).
+ * @migration 0064
+ */
+export const acSubjects = mysqlTable("ac_subjects", {
+  id: int("id").autoincrement().primaryKey(),
+  calendarId: int("calendarId").notNull(),
+  semester: int("semester").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  unit: varchar("unit", { length: 255 }),
+  classroom: varchar("classroom", { length: 100 }),
+  maxStudents: int("maxStudents"),
+  totalAcademicHours: int("totalAcademicHours").notNull().default(60),
+  days: text("days").notNull().default("[]"),
+  startTime: varchar("startTime", { length: 8 }).notNull().default("09:00"),
+  endTime: varchar("endTime", { length: 8 }).notNull().default("10:00"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+export type AcSubject = typeof acSubjects.$inferSelect;
+export type InsertAcSubject = typeof acSubjects.$inferInsert;

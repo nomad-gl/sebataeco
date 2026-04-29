@@ -11,6 +11,7 @@ import {
   acTeachers,
   acSessions,
   acBreaks,
+  acSubjects,
 } from "../../drizzle/schema";
 import { eq, and } from "drizzle-orm";
 
@@ -321,6 +322,86 @@ export const academicCalendarRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       await db.delete(acBreaks).where(eq(acBreaks.id, input.id));
+      return { success: true };
+    }),
+
+  // ── Subjects ───────────────────────────────────────────────────────────────
+
+  listSubjects: protectedProcedure
+    .input(z.object({ calendarId: z.number().int() }))
+    .query(async ({ ctx, input }) => {
+      assertDirector(ctx.user.role);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const rows = await db.select().from(acSubjects)
+        .where(eq(acSubjects.calendarId, input.calendarId))
+        .orderBy(acSubjects.semester, acSubjects.name);
+      return rows.map(r => ({
+        ...r,
+        days: (() => { try { return JSON.parse(r.days); } catch { return []; } })() as number[],
+      }));
+    }),
+
+  addSubject: protectedProcedure
+    .input(z.object({
+      calendarId: z.number().int(),
+      semester: z.number().int().min(1).max(10),
+      name: z.string().min(1).max(255),
+      unit: z.string().max(255).optional(),
+      classroom: z.string().max(100).optional(),
+      maxStudents: z.number().int().min(1).optional(),
+      totalAcademicHours: z.number().int().min(1).default(60),
+      days: z.array(z.number().int().min(1).max(5)).default([]),
+      startTime: z.string().regex(/^\d{2}:\d{2}$/).default("09:00"),
+      endTime: z.string().regex(/^\d{2}:\d{2}$/).default("10:00"),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      assertDirector(ctx.user.role);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      if (timeToMinutes(input.endTime) <= timeToMinutes(input.startTime)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "End time must be after start time." });
+      }
+      const { days, ...rest } = input;
+      const [result] = await db.insert(acSubjects).values({
+        ...rest,
+        days: JSON.stringify(days),
+      });
+      return { id: (result as any).insertId as number };
+    }),
+
+  updateSubject: protectedProcedure
+    .input(z.object({
+      id: z.number().int(),
+      semester: z.number().int().min(1).max(10).optional(),
+      name: z.string().min(1).max(255).optional(),
+      unit: z.string().max(255).optional(),
+      classroom: z.string().max(100).optional(),
+      maxStudents: z.number().int().min(1).nullable().optional(),
+      totalAcademicHours: z.number().int().min(1).optional(),
+      days: z.array(z.number().int().min(1).max(5)).optional(),
+      startTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+      endTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      assertDirector(ctx.user.role);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const { id, days, ...rest } = input;
+      type SubjectUpdate = Record<string, unknown>;
+      const fields: SubjectUpdate = { ...rest };
+      if (days !== undefined) fields.days = JSON.stringify(days);
+      await db.update(acSubjects).set(fields).where(eq(acSubjects.id, id));
+      return { success: true };
+    }),
+
+  deleteSubject: protectedProcedure
+    .input(z.object({ id: z.number().int() }))
+    .mutation(async ({ ctx, input }) => {
+      assertDirector(ctx.user.role);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      await db.delete(acSubjects).where(eq(acSubjects.id, input.id));
       return { success: true };
     }),
 });

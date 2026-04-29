@@ -13,7 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { CalendarDays, Plus, Trash2, Edit2, AlertTriangle, Users, Clock, BookOpen, Coffee, ChevronRight, GraduationCap } from "lucide-react";
+import { CalendarDays, Plus, Trash2, Edit2, AlertTriangle, Users, Clock, BookOpen, Coffee, ChevronRight, GraduationCap, Library, Building2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
@@ -279,7 +280,19 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
   const [breakForm, setBreakForm] = useState({ semester: "1", label: "", startDate: "", endDate: "" });
   const [deleteBreakId, setDeleteBreakId] = useState<number | null>(null);
 
-  const invalidate = () => utils.academicCalendar.getCalendar.invalidate({ id: calendarId });
+  // Subject form state
+  const [showAddSubject, setShowAddSubject] = useState(false);
+  const [editSubject, setEditSubject] = useState<null | { id: number; semester: number; name: string; unit: string; classroom: string; maxStudents: string; totalAcademicHours: string; days: number[]; startTime: string; endTime: string }>(null);
+  const [subjectForm, setSubjectForm] = useState({ semester: "1", name: "", unit: "", classroom: "", maxStudents: "", totalAcademicHours: "60", days: [] as number[], startTime: "09:00", endTime: "10:00" });
+  const [deleteSubjectId, setDeleteSubjectId] = useState<number | null>(null);
+
+  const invalidate = () => {
+    utils.academicCalendar.getCalendar.invalidate({ id: calendarId });
+    utils.academicCalendar.listSubjects.invalidate({ calendarId });
+  };
+
+  // Subjects query
+  const { data: subjects = [] } = trpc.academicCalendar.listSubjects.useQuery({ calendarId });
 
   // Teacher mutations
   const addTeacherMut = trpc.academicCalendar.addTeacher.useMutation({
@@ -316,6 +329,34 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
   });
 
   const clashCount = data?.clashes?.length ?? 0;
+
+  // Subject mutations
+  const addSubjectMut = trpc.academicCalendar.addSubject.useMutation({
+    onSuccess: () => { invalidate(); setShowAddSubject(false); setSubjectForm({ semester: "1", name: "", unit: "", classroom: "", maxStudents: "", totalAcademicHours: "60", days: [], startTime: "09:00", endTime: "10:00" }); toast.success(t("acal2_subject_added")); },
+    onError: (e) => toast.error(e.message),
+  });
+  const updateSubjectMut = trpc.academicCalendar.updateSubject.useMutation({
+    onSuccess: () => { invalidate(); setEditSubject(null); toast.success(t("acal2_subject_updated")); },
+    onError: (e) => toast.error(e.message),
+  });
+  const deleteSubjectMut = trpc.academicCalendar.deleteSubject.useMutation({
+    onSuccess: () => { invalidate(); setDeleteSubjectId(null); toast.success(t("acal2_subject_deleted")); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  // Total academic hours across all subjects
+  const totalAcademicHours = useMemo(() => subjects.reduce((sum, s) => sum + s.totalAcademicHours, 0), [subjects]);
+
+  // Subjects grouped by semester
+  const subjectsBySemester = useMemo(() => {
+    const map: Record<number, typeof subjects> = {};
+    for (let s = 1; s <= (data?.calendar.semesterCount ?? 2); s++) map[s] = [];
+    for (const sub of subjects) {
+      if (!map[sub.semester]) map[sub.semester] = [];
+      map[sub.semester].push(sub);
+    }
+    return map;
+  }, [subjects, data?.calendar.semesterCount]);
 
   // Group breaks by semester
   const breaksBySemester = useMemo(() => {
@@ -381,6 +422,9 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
           </TabsTrigger>
           <TabsTrigger value="breaks" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-blue-200">
             <Coffee className="w-4 h-4 mr-1.5" /> {t("acal2_tab_breaks")}
+          </TabsTrigger>
+          <TabsTrigger value="subjects" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-blue-200">
+            <Library className="w-4 h-4 mr-1.5" /> {t("acal2_tab_subjects")} ({subjects.length})
           </TabsTrigger>
         </TabsList>
 
@@ -588,7 +632,97 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
             </div>
           ))}
         </TabsContent>
-      </Tabs>
+
+        {/* ── Subjects Tab ── */}
+        <TabsContent value="subjects" className="space-y-4 mt-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-white font-semibold text-lg">{t("acal2_subjects_heading")}</h2>
+              <p className="text-blue-200 text-sm">
+                {t("acal2_total_academic_hours")}: <span className="text-white font-bold">{totalAcademicHours}h</span>
+                {calendar.semesterCount > 1 && (
+                  <span className="ml-2 text-blue-300">
+                    ({t("acal2_per_semester")}: ~{Math.round(totalAcademicHours / calendar.semesterCount)}h)
+                  </span>
+                )}
+              </p>
+            </div>
+            <Button size="sm" onClick={() => setShowAddSubject(true)} className="bg-blue-600 hover:bg-blue-700 text-white gap-1">
+              <Plus className="w-4 h-4" /> {t("acal2_add_subject")}
+            </Button>
+          </div>
+          {Array.from({ length: calendar.semesterCount }, (_, i) => i + 1).map(sem => {
+            const semSubjects = subjectsBySemester[sem] ?? [];
+            const semHours = semSubjects.reduce((sum, s) => sum + s.totalAcademicHours, 0);
+            return (
+              <div key={sem}>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-blue-200 font-medium">{t("acal2_semester")} {sem}</h3>
+                  <span className="text-blue-300 text-sm">{semHours}h {t("acal2_total")}</span>
+                </div>
+                {semSubjects.length === 0 ? (
+                  <p className="text-blue-400/60 text-sm italic mb-4">{t("acal2_no_subjects")}</p>
+                ) : (
+                  <div className="space-y-2 mb-4">
+                    {semSubjects.map(sub => {
+                      const hoursPerSem = calendar.semesterCount > 0 ? Math.round(sub.totalAcademicHours / calendar.semesterCount) : sub.totalAcademicHours;
+                      return (
+                        <Card key={sub.id} className="bg-white/10 border-white/20">
+                          <CardContent className="py-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-white font-semibold">{sub.name}</span>
+                                  {sub.unit && <Badge variant="secondary" className="bg-purple-600/30 text-purple-100 border-0 text-xs">{sub.unit}</Badge>}
+                                </div>
+                                <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-blue-200">
+                                  {sub.classroom && (
+                                    <span className="flex items-center gap-1"><Building2 className="w-3.5 h-3.5" /> {sub.classroom}</span>
+                                  )}
+                                  {sub.maxStudents && (
+                                    <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {t("acal2_max_students")}: {sub.maxStudents}</span>
+                                  )}
+                                  <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {sub.startTime}–{sub.endTime}</span>
+                                  <span className="flex items-center gap-1"><GraduationCap className="w-3.5 h-3.5" /> {sub.totalAcademicHours}h {t("acal2_total")} · ~{hoursPerSem}h/{t("acal2_semester")}</span>
+                                </div>
+                                {sub.days.length > 0 && (
+                                  <div className="mt-1 flex flex-wrap gap-1">
+                                    {sub.days.map(d => (
+                                      <Badge key={d} variant="secondary" className="bg-blue-600/30 text-blue-100 border-0 text-xs">
+                                        {days[d - 1]}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex gap-1 shrink-0">
+                                <Button
+                                  variant="ghost" size="sm"
+                                  className="text-blue-300 hover:text-white hover:bg-white/10 h-7 w-7 p-0"
+                                  onClick={() => setEditSubject({ id: sub.id, semester: sub.semester, name: sub.name, unit: sub.unit ?? "", classroom: sub.classroom ?? "", maxStudents: sub.maxStudents ? String(sub.maxStudents) : "", totalAcademicHours: String(sub.totalAcademicHours), days: sub.days, startTime: sub.startTime, endTime: sub.endTime })}
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost" size="sm"
+                                  className="text-red-300 hover:text-red-200 hover:bg-red-500/20 h-7 w-7 p-0"
+                                  onClick={() => setDeleteSubjectId(sub.id)}
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </TabsContent>
+       </Tabs>
 
       {/* ── Add / Edit Teacher Dialog ── */}
       <Dialog open={showAddTeacher || editTeacher !== null} onOpenChange={(o) => { if (!o) { setShowAddTeacher(false); setEditTeacher(null); } }}>
@@ -776,6 +910,182 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
           <AlertDialogFooter>
             <AlertDialogCancel>{t("acal2_cancel")}</AlertDialogCancel>
             <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={() => deleteBreakId !== null && deleteBreakMut.mutate({ id: deleteBreakId })}>
+              {t("acal2_delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ── Add / Edit Subject Dialog ── */}
+      <Dialog
+        open={showAddSubject || editSubject !== null}
+        onOpenChange={(o) => { if (!o) { setShowAddSubject(false); setEditSubject(null); } }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editSubject ? t("acal2_edit_subject") : t("acal2_add_subject_title")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>{t("acal2_subject_semester")}</Label>
+                <Select
+                  value={editSubject ? String(editSubject.semester) : subjectForm.semester}
+                  onValueChange={(v) => editSubject ? setEditSubject(s => s && ({ ...s, semester: parseInt(v) })) : setSubjectForm(f => ({ ...f, semester: v }))}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: calendar.semesterCount }, (_, i) => i + 1).map(s => (
+                      <SelectItem key={s} value={String(s)}>{t("acal2_semester")} {s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>{t("acal2_total_academic_hours")}</Label>
+                <Input
+                  type="number" min="1"
+                  value={editSubject ? editSubject.totalAcademicHours : subjectForm.totalAcademicHours}
+                  onChange={e => editSubject ? setEditSubject(s => s && ({ ...s, totalAcademicHours: e.target.value })) : setSubjectForm(f => ({ ...f, totalAcademicHours: e.target.value }))}
+                  placeholder="60"
+                />
+                {calendar.semesterCount > 1 && (() => {
+                  const hrs = parseInt(editSubject ? editSubject.totalAcademicHours : subjectForm.totalAcademicHours) || 0;
+                  return hrs > 0 ? (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      ~{Math.round(hrs / calendar.semesterCount)}h {t("acal2_per_semester")} × {calendar.semesterCount} {t("acal2_semesters")}
+                    </p>
+                  ) : null;
+                })()}
+              </div>
+            </div>
+            <div>
+              <Label>{t("acal2_subject_name")}</Label>
+              <Input
+                value={editSubject ? editSubject.name : subjectForm.name}
+                onChange={e => editSubject ? setEditSubject(s => s && ({ ...s, name: e.target.value })) : setSubjectForm(f => ({ ...f, name: e.target.value }))}
+                placeholder="e.g. Mathematics"
+              />
+            </div>
+            <div>
+              <Label>{t("acal2_subject_unit")} <span className="text-muted-foreground text-xs">({t("acal2_optional")})</span></Label>
+              <Input
+                value={editSubject ? editSubject.unit : subjectForm.unit}
+                onChange={e => editSubject ? setEditSubject(s => s && ({ ...s, unit: e.target.value })) : setSubjectForm(f => ({ ...f, unit: e.target.value }))}
+                placeholder="e.g. Unit 3 – Algebra"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>{t("acal2_classroom")} <span className="text-muted-foreground text-xs">({t("acal2_optional")})</span></Label>
+                <Input
+                  value={editSubject ? editSubject.classroom : subjectForm.classroom}
+                  onChange={e => editSubject ? setEditSubject(s => s && ({ ...s, classroom: e.target.value })) : setSubjectForm(f => ({ ...f, classroom: e.target.value }))}
+                  placeholder="e.g. Room 12"
+                />
+              </div>
+              <div>
+                <Label>{t("acal2_max_students")} <span className="text-muted-foreground text-xs">({t("acal2_optional")})</span></Label>
+                <Input
+                  type="number" min="1"
+                  value={editSubject ? editSubject.maxStudents : subjectForm.maxStudents}
+                  onChange={e => editSubject ? setEditSubject(s => s && ({ ...s, maxStudents: e.target.value })) : setSubjectForm(f => ({ ...f, maxStudents: e.target.value }))}
+                  placeholder="30"
+                />
+              </div>
+            </div>
+            <div>
+              <Label>{t("acal2_subject_days")}</Label>
+              <div className="flex gap-3 flex-wrap mt-1">
+                {days.map((dayName, idx) => {
+                  const dayNum = idx + 1;
+                  const selectedDays = editSubject ? editSubject.days : subjectForm.days;
+                  const checked = selectedDays.includes(dayNum);
+                  return (
+                    <label key={dayNum} className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) => {
+                          const toggle = (prev: number[]) => v ? [...prev, dayNum].sort() : prev.filter(d => d !== dayNum);
+                          if (editSubject) setEditSubject(s => s && ({ ...s, days: toggle(s.days) }));
+                          else setSubjectForm(f => ({ ...f, days: toggle(f.days) }));
+                        }}
+                      />
+                      <span className="text-sm">{dayName}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>{t("acal2_start_time")}</Label>
+                <Input
+                  type="time"
+                  value={editSubject ? editSubject.startTime : subjectForm.startTime}
+                  onChange={e => editSubject ? setEditSubject(s => s && ({ ...s, startTime: e.target.value })) : setSubjectForm(f => ({ ...f, startTime: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label>{t("acal2_end_time")}</Label>
+                <Input
+                  type="time"
+                  value={editSubject ? editSubject.endTime : subjectForm.endTime}
+                  onChange={e => editSubject ? setEditSubject(s => s && ({ ...s, endTime: e.target.value })) : setSubjectForm(f => ({ ...f, endTime: e.target.value }))}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowAddSubject(false); setEditSubject(null); }}>{t("acal2_cancel")}</Button>
+            <Button
+              disabled={addSubjectMut.isPending || updateSubjectMut.isPending}
+              onClick={() => {
+                if (editSubject) {
+                  updateSubjectMut.mutate({
+                    id: editSubject.id,
+                    semester: editSubject.semester,
+                    name: editSubject.name,
+                    unit: editSubject.unit || undefined,
+                    classroom: editSubject.classroom || undefined,
+                    maxStudents: editSubject.maxStudents ? parseInt(editSubject.maxStudents) : undefined,
+                    totalAcademicHours: parseInt(editSubject.totalAcademicHours) || 60,
+                    days: editSubject.days,
+                    startTime: editSubject.startTime,
+                    endTime: editSubject.endTime,
+                  });
+                } else {
+                  addSubjectMut.mutate({
+                    calendarId,
+                    semester: parseInt(subjectForm.semester),
+                    name: subjectForm.name,
+                    unit: subjectForm.unit || undefined,
+                    classroom: subjectForm.classroom || undefined,
+                    maxStudents: subjectForm.maxStudents ? parseInt(subjectForm.maxStudents) : undefined,
+                    totalAcademicHours: parseInt(subjectForm.totalAcademicHours) || 60,
+                    days: subjectForm.days,
+                    startTime: subjectForm.startTime,
+                    endTime: subjectForm.endTime,
+                  });
+                }
+              }}
+            >
+              {editSubject ? t("acal2_save") : t("acal2_add_btn")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete Subject Confirm ── */}
+      <AlertDialog open={deleteSubjectId !== null} onOpenChange={() => setDeleteSubjectId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("acal2_delete_subject_title")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("acal2_delete_subject_desc")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("acal2_cancel")}</AlertDialogCancel>
+            <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={() => deleteSubjectId !== null && deleteSubjectMut.mutate({ id: deleteSubjectId })}>
               {t("acal2_delete")}
             </AlertDialogAction>
           </AlertDialogFooter>

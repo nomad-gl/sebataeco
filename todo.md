@@ -5094,3 +5094,15 @@
 - [x] Route /academic-calendar registered in App.tsx
 - [x] i18n keys for all new strings (EN/ES/CA)
 - [x] TypeScript 0 errors, tests passing
+
+## Feature: Academic Calendar — Subject Management
+- [ ] DB schema: ac_subjects (id, calendarId, semester, name, unit, classroom, maxStudents, totalAcademicHours, days JSON, startTime, endTime)
+- [ ] Run DB migration for ac_subjects table
+- [ ] tRPC: addSubject, updateSubject, deleteSubject, listSubjects procedures
+- [ ] Hour-spreading logic: distribute totalAcademicHours evenly across semesterCount
+- [ ] Subjects tab in AcademicCalendar.tsx: per-semester accordion/sections
+- [ ] Add/Edit subject dialog: name, unit, classroom, maxStudents, totalAcademicHours, days checkboxes, startTime, endTime
+- [ ] Live total academic hours counter per calendar (sum of all subjects)
+- [ ] Hours-per-semester display: totalHours / semesterCount shown on each subject card
+- [ ] i18n keys for subject management (EN/ES/CA)
+- [ ] TypeScript 0 errors after subject feature
