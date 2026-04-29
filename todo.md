@@ -4962,3 +4962,5 @@
 - [x] Keep AINA alive in background when navigating away (global state context)
 - [x] Add back button to /director/users page
 - [x] Fix "Failed to load chat session" error when clicking past session in AINA history sidebar
+- [x] Fix AINA history sidebar delete button — always visible and functional (not hidden behind opacity-0 hover)
+- [x] Allow user to resize AINA history sidebar width by dragging the right edge

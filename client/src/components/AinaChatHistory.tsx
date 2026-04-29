@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Search, Trash2, MessageSquare, Clock, ChevronRight, Plus } from "lucide-react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { Search, Trash2, MessageSquare, Clock, Plus, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -17,10 +17,17 @@ import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
+const MIN_WIDTH = 160;
+const MAX_WIDTH = 480;
+const DEFAULT_WIDTH = 256; // w-64
+const STORAGE_KEY = "aina_history_width";
+
 interface AinaChatHistoryProps {
   activeSessionId: number | null;
   onSelectSession: (sessionId: number) => void;
   onNewChat: () => void;
+  /** Called whenever the sidebar width changes so Chat.tsx can react if needed */
+  onWidthChange?: (width: number) => void;
 }
 
 function timeAgo(date: Date | string): string {
@@ -36,10 +43,63 @@ function timeAgo(date: Date | string): string {
   return d.toLocaleDateString();
 }
 
-export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat }: AinaChatHistoryProps) {
+export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat, onWidthChange }: AinaChatHistoryProps) {
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
+  // ── Resizable width ──────────────────────────────────────────────────────
+  const [width, setWidth] = useState<number>(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const n = parseInt(stored, 10);
+        if (!isNaN(n) && n >= MIN_WIDTH && n <= MAX_WIDTH) return n;
+      }
+    } catch { /* ignore */ }
+    return DEFAULT_WIDTH;
+  });
+
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const startWidth = useRef(0);
+
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+    startX.current = e.clientX;
+    startWidth.current = width;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  }, [width]);
+
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current) return;
+      const delta = e.clientX - startX.current;
+      const next = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth.current + delta));
+      setWidth(next);
+      onWidthChange?.(next);
+    };
+    const onMouseUp = () => {
+      if (!isDragging.current) return;
+      isDragging.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      // Persist to localStorage
+      setWidth((w) => {
+        try { localStorage.setItem(STORAGE_KEY, String(w)); } catch { /* ignore */ }
+        return w;
+      });
+    };
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+  }, [onWidthChange]);
+
+  // ── Data ─────────────────────────────────────────────────────────────────
   const { data: sessions = [], refetch } = trpc.lomloe.listChatSessions.useQuery(undefined, {
     staleTime: 10_000,
   });
@@ -103,14 +163,14 @@ export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat }:
                 <span className="text-[10px] text-white/40">{s.messageCount} msg{s.messageCount !== 1 ? "s" : ""}</span>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-5 opacity-0 group-hover:opacity-100 flex-shrink-0 text-white/50 hover:text-red-400 hover:bg-red-400/10"
+            {/* Delete button — always visible, brighter on hover */}
+            <button
+              className="flex-shrink-0 flex items-center justify-center size-5 rounded text-white/40 hover:text-red-400 hover:bg-red-400/15 transition-colors"
+              title="Delete chat"
               onClick={(e) => { e.stopPropagation(); setDeleteId(s.id); }}
             >
               <Trash2 className="size-3" />
-            </Button>
+            </button>
           </div>
         ))}
       </div>
@@ -118,7 +178,10 @@ export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat }:
   };
 
   return (
-    <div className="flex flex-col h-full bg-white/5 backdrop-blur-sm border-r border-white/10 w-64 flex-shrink-0">
+    <div
+      className="relative flex flex-col h-full bg-white/5 backdrop-blur-sm border-r border-white/10 flex-shrink-0"
+      style={{ width }}
+    >
       {/* Header */}
       <div className="p-3 border-b border-white/10">
         <Button
@@ -176,6 +239,15 @@ export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat }:
           </p>
         </div>
       )}
+
+      {/* Resize handle — right edge */}
+      <div
+        onMouseDown={onMouseDown}
+        className="absolute top-0 right-0 w-2 h-full flex items-center justify-center cursor-col-resize z-10 group/resize"
+        title="Drag to resize"
+      >
+        <div className="w-0.5 h-12 rounded-full bg-white/10 group-hover/resize:bg-white/40 transition-colors" />
+      </div>
 
       {/* Delete confirmation */}
       <AlertDialog open={deleteId !== null} onOpenChange={(o) => !o && setDeleteId(null)}>
