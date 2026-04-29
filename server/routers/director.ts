@@ -744,6 +744,37 @@ export const directorRouter = router({
     return rows;
   }),
 
+  /**
+   * Super-admin only: list ALL local (email+password) users across all tenants,
+   * including tenant name for grouping. Used by the Admin User Management page.
+   */
+  listAllLocalUsersForAdmin: adminProcedure.query(async ({ ctx }) => {
+    if (!ctx.isSuperAdmin) throw new TRPCError({ code: "FORBIDDEN", message: "Super-admin only" });
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+    const rows = await db
+      .select({
+        id: users.id,
+        displayName: users.displayName,
+        email: users.email,
+        role: users.role,
+        position: users.position,
+        tenantId: users.tenantId,
+        tenantName: tenants.name,
+        schoolName: users.schoolName,
+        lastSignedIn: users.lastSignedIn,
+        createdAt: users.createdAt,
+        deactivatedAt: users.deactivatedAt,
+        isPermanent: users.isPermanent,
+        invitedByUserId: users.invitedByUserId,
+      })
+      .from(users)
+      .leftJoin(tenants, eq(users.tenantId, tenants.id))
+      .where(isNotNull(users.passwordHash))
+      .orderBy(desc(users.lastSignedIn));
+    return rows;
+  }),
+
   /** LOMLOE curriculum compliance — competency gap analysis across all lesson plans */
   getCurriculumCompliance: adminProcedure.query(async ({ ctx }) => {
     const db = await getDb();
@@ -1117,11 +1148,22 @@ export const directorRouter = router({
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
     const tid = ctx.tenantId;
-    // Super-admins see all local users; directors only see users they personally invited/created
+    // Super-admins see all local users.
+    // Directors see:
+    //   (a) users they personally invited/created (invitedByUserId = me), AND
+    //   (b) users added by the super-admin that are attached to their school
+    //       (same tenantId, invitedByUserId IS NULL — i.e. added centrally).
     const localWhereClause = ctx.isSuperAdmin
       ? isNotNull(users.passwordHash)
       : tid != null
-        ? and(isNotNull(users.passwordHash), eq(users.tenantId, tid), eq(users.invitedByUserId, ctx.user.id))
+        ? and(
+            isNotNull(users.passwordHash),
+            eq(users.tenantId, tid),
+            or(
+              eq(users.invitedByUserId, ctx.user.id),
+              isNull(users.invitedByUserId),
+            )
+          )
         : and(isNotNull(users.passwordHash), eq(users.invitedByUserId, ctx.user.id));
     const rows = await db
       .select({

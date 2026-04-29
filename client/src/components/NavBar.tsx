@@ -674,6 +674,16 @@ export default function NavBar() {
                     {t("nav_admin_role_mgmt")}
                     {!platformUnlocked && <Lock className="w-3 h-3 ml-auto text-muted-foreground" />}
                   </Link>
+                  <Link
+                    href="/seba/user-management"
+                    role="menuitem"
+                    onClick={() => { if (platformUnlocked) setAdminOpen(false); else handlePlatformClick("/seba/user-management", { preventDefault: () => {} } as React.MouseEvent); }}
+                    className={cn("flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary transition-colors", !platformUnlocked && "opacity-60")}
+                  >
+                    <Users className="w-4 h-4 text-indigo-600" />
+                    User Management
+                    {!platformUnlocked && <Lock className="w-3 h-3 ml-auto text-muted-foreground" />}
+                  </Link>
                 </div>
               )}
             </div>

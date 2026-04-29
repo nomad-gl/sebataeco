@@ -4931,3 +4931,9 @@
 ## Feature: Post-approval roles confirmation
 - [x] DirectorApprovals: invalidate listAllUsersForAdmin on approval + add View in Roles button
 - [x] RoleManagement: read ?newUser= param, highlight row, show confirmation card with details and tool access
+
+## Feature: Admin User Management (Territorial Services)
+- [x] Fix listLocalUsers scoping: directors also see super-admin additions attached to their school (same tenantId)
+- [x] Create AdminUserManagement page (super-admin view, all users across all schools grouped by school)
+- [x] Add /seba/user-management route in App.tsx
+- [x] Add User Management link to Territorial Services section of Administration dropdown in NavBar
