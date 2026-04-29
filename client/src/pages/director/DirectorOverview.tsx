@@ -66,6 +66,11 @@ export default function DirectorOverview() {
     enabled: !!user && (user.role === "admin" || user.role === "director"),
   });
 
+  // Security alerts query
+  const { data: securityAlerts } = trpc.director.getSecurityAlerts.useQuery(undefined, {
+    enabled: !!user && (user.role === "admin" || user.role === "director"),
+  });
+
   // Auto-prefill fields once director info is loaded
   useEffect(() => {
     if (directorInfo && !prefilled) {
@@ -241,6 +246,88 @@ export default function DirectorOverview() {
           </div>
         )}
 
+        {/* Security alerts */}
+        {securityAlerts && (securityAlerts.noPasswordCount > 0 || securityAlerts.inactiveCount > 0) && (
+          <div className="space-y-3">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-500" />
+              Security Alerts
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {securityAlerts.noPasswordCount > 0 && (
+                <a href="/director/users" className="block group">
+                  <div className="rounded-lg border border-red-300 bg-red-50 dark:bg-red-950/30 dark:border-red-800 p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-start gap-3">
+                      <div className="p-1.5 rounded-md bg-red-100 dark:bg-red-900 shrink-0">
+                        <ShieldCheck className="w-4 h-4 text-red-600 dark:text-red-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-red-800 dark:text-red-300">
+                          {securityAlerts.noPasswordCount} user{securityAlerts.noPasswordCount !== 1 ? "s" : ""} without a password
+                        </p>
+                        <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">
+                          These accounts are still using a temporary password — a security risk.
+                        </p>
+                        {securityAlerts.noPasswordSample.length > 0 && (
+                          <ul className="mt-2 space-y-0.5">
+                            {securityAlerts.noPasswordSample.map((u) => (
+                              <li key={u.id} className="text-xs text-red-700 dark:text-red-300 truncate">
+                                · {u.name ?? u.email ?? `User #${u.id}`}
+                              </li>
+                            ))}
+                            {securityAlerts.noPasswordCount > 5 && (
+                              <li className="text-xs text-red-500 dark:text-red-400">
+                                + {securityAlerts.noPasswordCount - 5} more
+                              </li>
+                            )}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </a>
+              )}
+              {securityAlerts.inactiveCount > 0 && (
+                <a href="/director/staff" className="block group">
+                  <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-start gap-3">
+                      <div className="p-1.5 rounded-md bg-amber-100 dark:bg-amber-900 shrink-0">
+                        <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+                          {securityAlerts.inactiveCount} user{securityAlerts.inactiveCount !== 1 ? "s" : ""} inactive for 90+ days
+                        </p>
+                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                          These accounts have not signed in for over 90 days.
+                        </p>
+                        {securityAlerts.inactiveSample.length > 0 && (
+                          <ul className="mt-2 space-y-0.5">
+                            {securityAlerts.inactiveSample.map((u) => (
+                              <li key={u.id} className="text-xs text-amber-700 dark:text-amber-300 truncate">
+                                · {u.name ?? u.email ?? `User #${u.id}`}
+                                {u.lastSignedIn && (
+                                  <span className="text-amber-500 ml-1">
+                                    ({Math.floor((Date.now() - new Date(u.lastSignedIn).getTime()) / (24 * 60 * 60 * 1000))}d ago)
+                                  </span>
+                                )}
+                              </li>
+                            ))}
+                            {securityAlerts.inactiveCount > 5 && (
+                              <li className="text-xs text-amber-500 dark:text-amber-400">
+                                + {securityAlerts.inactiveCount - 5} more
+                              </li>
+                            )}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </a>
+              )}
+            </div>
+          </div>
+        )}
         {/* Stats grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           {statCards.map(({ icon: Icon, label, value, color, href }) => (

@@ -4944,3 +4944,9 @@
 - [x] Add useCrossOriginAuth hook to redeem sso_token on page load
 - [x] Wire hook into App.tsx so it runs on every page
 - [x] Add cross-domain link helper in NavBar for aina.forum links
+
+## Sprint: Suggested Follow-ups (Apr 29)
+- [ ] Add cross-domain SSO nav links in NavBar (aina.forum links use useCrossOriginLink)
+- [x] Add super-admin backfill tool for invitedByUserId in AdminUserManagement
+- [ ] Surface inactive-user count alert in DirectorOverview dashboard
+- [ ] Surface no-password-set count alert in DirectorOverview dashboard

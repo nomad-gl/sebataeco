@@ -302,6 +302,44 @@ export const directorRouter = router({
     };
   }),
 
+  /** Security alerts: users with no password set + users inactive 90+ days */
+  getSecurityAlerts: adminProcedure.query(async ({ ctx }) => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+    const tid = ctx.tenantId;
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    const baseWhere = tid != null
+      ? and(eq(users.tenantId, tid), inArray(users.role, ["user", "teacher"]), isNull(users.deactivatedAt))
+      : and(inArray(users.role, ["user", "teacher"]), isNull(users.deactivatedAt));
+    // Users who still have mustChangePassword = true (never set a personal password)
+    const [noPasswordRow] = await db
+      .select({ count: count() })
+      .from(users)
+      .where(and(baseWhere, eq(users.mustChangePassword, true)));
+    // Users inactive for 90+ days (or never signed in)
+    const [inactiveRow] = await db
+      .select({ count: count() })
+      .from(users)
+      .where(and(baseWhere, or(isNull(users.lastSignedIn), lt(users.lastSignedIn, ninetyDaysAgo))));
+    // Fetch names for inline display (up to 5 each)
+    const noPasswordUsers = await db
+      .select({ id: users.id, name: users.name, email: users.email })
+      .from(users)
+      .where(and(baseWhere, eq(users.mustChangePassword, true)))
+      .limit(5);
+    const inactiveUsers = await db
+      .select({ id: users.id, name: users.name, email: users.email, lastSignedIn: users.lastSignedIn })
+      .from(users)
+      .where(and(baseWhere, or(isNull(users.lastSignedIn), lt(users.lastSignedIn, ninetyDaysAgo))))
+      .limit(5);
+    return {
+      noPasswordCount: noPasswordRow?.count ?? 0,
+      inactiveCount: inactiveRow?.count ?? 0,
+      noPasswordSample: noPasswordUsers,
+      inactiveSample: inactiveUsers,
+    };
+  }),
+
   /** Per-teacher activity breakdown */
   getStaffActivity: adminProcedure.query(async ({ ctx }) => {
     const db = await getDb();
@@ -774,6 +812,37 @@ export const directorRouter = router({
       .orderBy(desc(users.lastSignedIn));
     return rows;
   }),
+
+  /**
+   * Backfill invitedByUserId for existing users that have NULL.
+   * Assigns each unassigned user to a director in the same tenant.
+   * Super-admin only.
+   */
+  backfillInvitedBy: adminProcedure
+    .input(
+      z.object({
+        assignments: z.array(
+          z.object({
+            userId: z.number(),
+            directorId: z.number(),
+          })
+        ),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.isSuperAdmin) throw new TRPCError({ code: "FORBIDDEN", message: "Super-admin only" });
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      let updated = 0;
+      for (const { userId, directorId } of input.assignments) {
+        await db
+          .update(users)
+          .set({ invitedByUserId: directorId })
+          .where(eq(users.id, userId));
+        updated++;
+      }
+      return { updated };
+    }),
 
   /** LOMLOE curriculum compliance — competency gap analysis across all lesson plans */
   getCurriculumCompliance: adminProcedure.query(async ({ ctx }) => {

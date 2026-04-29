@@ -28,6 +28,8 @@ import {
   Building2,
   UserPlus,
   X,
+  AlertTriangle,
+  Link2,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
@@ -208,8 +210,23 @@ export default function AdminUserManagement() {
   const [filterRole, setFilterRole] = useState("all");
   const [collapsedSchools, setCollapsedSchools] = useState<Set<string>>(new Set());
   const [addUserTarget, setAddUserTarget] = useState<{ tenantId: number | null; label: string } | null>(null);
+  const [backfillOpen, setBackfillOpen] = useState(false);
+  const [backfillSelections, setBackfillSelections] = useState<Record<number, number>>({});
 
   const { data: users = [], isLoading, refetch } = trpc.director.listAllLocalUsersForAdmin.useQuery();
+  // Fetch director/admin users for backfill dropdown
+  const { data: allAdminUsers = [] } = trpc.director.listAllUsersForAdmin.useQuery();
+  const directors = (allAdminUsers as Array<{ id: number; name: string | null; email: string | null; role: string }>).filter((u) => u.role === "director" || u.role === "admin");
+  const unassignedUsers = users.filter((u) => u.invitedByUserId == null && !u.deactivatedAt);
+  const backfillMutation = trpc.director.backfillInvitedBy.useMutation({
+    onSuccess: (data) => {
+      toast.success(`${data.updated} user${data.updated !== 1 ? "s" : ""} assigned to directors.`);
+      refetch();
+      setBackfillOpen(false);
+      setBackfillSelections({});
+    },
+    onError: (err) => toast.error(err.message),
+  });
 
   const resetMutation = trpc.director.adminRequestReset.useMutation({
     onSuccess: (data) => {
@@ -319,6 +336,84 @@ export default function AdminUserManagement() {
         </Card>
       </div>
 
+      {/* Backfill alert — shown when there are active users with no director assigned */}
+      {unassignedUsers.length > 0 && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+                {unassignedUsers.length} user{unassignedUsers.length !== 1 ? "s" : ""} not assigned to a director
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                These users were created before director scoping was introduced. Assign them to a director so they appear in the correct director's User Management view.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-amber-400 text-amber-800 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/40 shrink-0"
+            onClick={() => setBackfillOpen(true)}
+          >
+            <Link2 className="w-3.5 h-3.5 mr-1.5" />
+            Assign Directors
+          </Button>
+        </div>
+      )}
+      {/* Backfill modal */}
+      {backfillOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setBackfillOpen(false)}>
+          <div className="bg-background rounded-xl shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="font-semibold text-base">Assign Directors to Unassigned Users</h2>
+              <button onClick={() => setBackfillOpen(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="overflow-y-auto flex-1 p-4 space-y-3">
+              {unassignedUsers.map((u) => (
+                <div key={u.id} className="flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{u.displayName ?? u.email ?? `User #${u.id}`}</p>
+                    <p className="text-xs text-muted-foreground truncate">{u.email} · {u.tenantName ?? u.schoolName ?? "No school"}</p>
+                  </div>
+                  <Select
+                    value={backfillSelections[u.id] != null ? String(backfillSelections[u.id]) : ""}
+                    onValueChange={(val) => setBackfillSelections((prev) => ({ ...prev, [u.id]: Number(val) }))}
+                  >
+                    <SelectTrigger className="w-44 h-8 text-xs">
+                      <SelectValue placeholder="Select director…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {directors.map((d) => (
+                        <SelectItem key={d.id} value={String(d.id)}>
+                          {d.name ?? d.email ?? `Director #${d.id}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ))}
+            </div>
+            <div className="p-4 border-t flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setBackfillOpen(false)}>Cancel</Button>
+              <Button
+                size="sm"
+                disabled={backfillMutation.isPending || Object.keys(backfillSelections).length === 0}
+                onClick={() => {
+                  const assignments = Object.entries(backfillSelections).map(([userId, directorId]) => ({
+                    userId: Number(userId),
+                    directorId: Number(directorId),
+                  }));
+                  backfillMutation.mutate({ assignments });
+                }}
+              >
+                {backfillMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Link2 className="w-3.5 h-3.5 mr-1.5" />}
+                Save {Object.keys(backfillSelections).length > 0 ? `(${Object.keys(backfillSelections).length})` : ""}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">

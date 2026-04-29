@@ -19,6 +19,7 @@ import { usePwaInstall } from "@/hooks/usePwaInstall";
 import { Share, Plus } from "lucide-react";
 import { SebaSymbol } from "@/components/SebaSymbol";
 import { toast } from "sonner";
+import { useCrossOriginLink } from "@/hooks/useCrossOriginLink";
 
 const LANG_OPTIONS: { code: Lang; label: string; flag: string }[] = [
   { code: "ca", label: "CA", flag: "🏴" },
@@ -106,6 +107,12 @@ export default function NavBar() {
   const bellRef     = useRef<HTMLDivElement>(null);
 
   const { user, logout } = useAuth();
+  const { navigateCrossOrigin, isPending: crossOriginPending } = useCrossOriginLink();
+  // Detect which domain we are on so we can offer a link to the other
+  const hostname = typeof window !== "undefined" ? window.location.hostname : "";
+  const isAinaDomain = hostname.includes("aina.forum");
+  const crossOriginTarget = isAinaDomain ? "https://sebataeco.com" : "https://aina.forum";
+  const crossOriginLabel = isAinaDomain ? "sebataeco.com" : "aina.forum";
 
   // Invite Teacher dialog state
   const [teacherInviteOpen, setTeacherInviteOpen] = useState(false);
@@ -1097,6 +1104,25 @@ export default function NavBar() {
                 >
                   {(user.name ?? user.email ?? "?").slice(0, 2).toUpperCase()}
                 </div>
+                {/* Cross-domain switch button — navigate to the other SEBA domain with SSO */}
+                <button
+                  onClick={() => navigateCrossOrigin(crossOriginTarget)}
+                  disabled={crossOriginPending}
+                  className={cn(
+                    "flex items-center justify-center w-9 h-9 rounded-lg transition-all text-xs font-bold",
+                    isClassroomPage
+                      ? "text-white/80 hover:text-white hover:bg-white/15"
+                      : "text-muted-foreground hover:text-primary hover:bg-primary/10"
+                  )}
+                  title={`Switch to ${crossOriginLabel}`}
+                  aria-label={`Switch to ${crossOriginLabel}`}
+                >
+                  {crossOriginPending ? (
+                    <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Globe className="w-4 h-4" />
+                  )}
+                </button>
                 {/* Sign Out button */}
                 <button
                   onClick={logout}
@@ -1524,6 +1550,24 @@ export default function NavBar() {
                     )}
                   </div>
                 </div>
+                {/* Cross-domain switch button — mobile */}
+                <button
+                  onClick={() => { setMobileOpen(false); navigateCrossOrigin(crossOriginTarget); }}
+                  disabled={crossOriginPending}
+                  className={cn(
+                    "flex items-center gap-3 w-full px-3 py-3 rounded-xl text-sm font-medium transition-all",
+                    isClassroomPage
+                      ? "text-white/80 hover:text-white hover:bg-white/15"
+                      : "text-muted-foreground hover:text-primary hover:bg-primary/10"
+                  )}
+                >
+                  {crossOriginPending ? (
+                    <span className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                  ) : (
+                    <Globe className="w-5 h-5 flex-shrink-0" />
+                  )}
+                  Switch to {crossOriginLabel}
+                </button>
                 {/* Sign Out button */}
                 <button
                   onClick={() => { setMobileOpen(false); logout(); }}
