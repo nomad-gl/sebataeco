@@ -1181,9 +1181,41 @@ function ExportToolbar({
   const { t } = useI18n();
   const [exporting, setExporting] = useState<string | null>(null);
   const [printDialogOpen, setPrintDialogOpen] = useState(false);
+
+  // Metadata fields — pre-fill from school branding where available
+  const brandingQ = trpc.director.getBranding.useQuery();
+  const branding = brandingQ.data;
   const [schoolName, setSchoolName] = useState("");
-  const [studentName, setStudentName] = useState("");
-  const [yearClass, setYearClass] = useState("");
+  const [schoolBadgeUrl, setSchoolBadgeUrl] = useState("");
+  const [teacherName, setTeacherName] = useState("");
+  const [classDetails, setClassDetails] = useState("");
+  const [printDate, setPrintDate] = useState(() => new Date().toLocaleDateString());
+  const [badgeUploading, setBadgeUploading] = useState(false);
+
+  // Pre-fill from branding when dialog opens
+  function openPrintDialog() {
+    if (branding) {
+      if (!schoolName && branding.schoolName) setSchoolName(branding.schoolName);
+      if (!schoolBadgeUrl && branding.logoUrl) setSchoolBadgeUrl(branding.logoUrl);
+    }
+    setPrintDialogOpen(true);
+  }
+
+  async function handleBadgeUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBadgeUploading(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setSchoolBadgeUrl(ev.target?.result as string);
+        setBadgeUploading(false);
+      };
+      reader.readAsDataURL(file);
+    } catch {
+      setBadgeUploading(false);
+    }
+  }
 
   const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40);
   const hasTwoVersions = TWO_VERSION_TYPES.includes(type);
@@ -1197,8 +1229,10 @@ function ExportToolbar({
   function handlePrint() {
     const meta: PrintMeta = {
       schoolName: schoolName.trim() || undefined,
-      studentName: studentName.trim() || undefined,
-      yearClass: yearClass.trim() || undefined,
+      schoolBadgeUrl: schoolBadgeUrl.trim() || undefined,
+      teacherName: teacherName.trim() || undefined,
+      yearClass: classDetails.trim() || undefined,
+      date: printDate.trim() || undefined,
     };
     setPrintDialogOpen(false);
     // Small delay so the dialog closes before the print window opens
@@ -1206,7 +1240,7 @@ function ExportToolbar({
   }
 
   const exportOptions = [
-    { key: "print", icon: <PrintIcon />, label: t("material_print"), onClick: () => setPrintDialogOpen(true) },
+    { key: "print", icon: <PrintIcon />, label: t("material_print"), onClick: () => openPrintDialog() },
     { key: "pdf", icon: <PdfIcon />, label: "PDF", onClick: () => run(() => exportPDF(contentId, slug), "pdf") },
     { key: "word", icon: <WordIcon />, label: "Word", onClick: () => run(() => exportWord(type, content as never, slug, showAnswers), "word") },
     ...(hasTwoVersions ? [{ key: "word-blank", icon: <WordIcon />, label: "Word (no answers)", onClick: () => run(() => exportWord(type, content as never, `${slug}-no-answers`, false), "word-blank") }] : []),
@@ -1226,50 +1260,103 @@ function ExportToolbar({
       <ExportDropdown options={exportOptions} />
     </div>
 
-    {/* Print metadata dialog */}
+    {/* Print / export metadata dialog */}
     <Dialog open={printDialogOpen} onOpenChange={setPrintDialogOpen}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Printer className="w-4 h-4" /> Print Options
+            <Printer className="w-4 h-4" /> {t("material_print")}
           </DialogTitle>
           <DialogDescription>
-            Enter the details to include on the printed sheet. All fields are optional.
+            {t("sa_meta_subtitle")}
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-3 py-2">
+          {/* School badge */}
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="print-school">{t("material_print_school")}</Label>
+            <Label>{t("sa_meta_school_badge")}</Label>
+            <div className="flex items-center gap-3">
+              {schoolBadgeUrl ? (
+                <div className="relative">
+                  <img src={schoolBadgeUrl} alt="badge" className="w-14 h-14 object-contain rounded border border-border" />
+                  <button
+                    onClick={() => setSchoolBadgeUrl("")}
+                    className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full w-4 h-4 flex items-center justify-center text-xs"
+                  >×</button>
+                </div>
+              ) : (
+                <div className="w-14 h-14 rounded border-2 border-dashed border-muted-foreground/30 flex items-center justify-center text-muted-foreground text-xs text-center leading-tight">
+                  {t("sa_meta_no_badge")}
+                </div>
+              )}
+              <div className="flex flex-col gap-1">
+                <label className="cursor-pointer">
+                  <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded border border-border bg-muted hover:bg-muted/80 transition-colors">
+                    {badgeUploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileDown className="w-3 h-3" />}
+                    {t("sa_meta_upload_badge")}
+                  </span>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleBadgeUpload} />
+                </label>
+                {branding?.logoUrl && !schoolBadgeUrl && (
+                  <button
+                    onClick={() => setSchoolBadgeUrl(branding.logoUrl!)}
+                    className="text-xs text-primary underline underline-offset-2 text-left"
+                  >
+                    {t("sa_meta_use_school_logo")}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* School name */}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="pm-school">{t("sa_meta_school_name")}</Label>
             <Input
-              id="print-school"
+              id="pm-school"
               value={schoolName}
               onChange={e => setSchoolName(e.target.value)}
-              placeholder="e.g. Colegio San Sebastián"
+              placeholder="e.g. Escola Sant Sebastià"
             />
           </div>
+
+          {/* Teacher name */}
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="print-student">{t("material_print_student")}</Label>
+            <Label htmlFor="pm-teacher">{t("sa_meta_teacher_name")}</Label>
             <Input
-              id="print-student"
-              value={studentName}
-              onChange={e => setStudentName(e.target.value)}
-              placeholder="e.g. Ana García"
+              id="pm-teacher"
+              value={teacherName}
+              onChange={e => setTeacherName(e.target.value)}
+              placeholder="e.g. Marta López"
             />
           </div>
+
+          {/* Class details */}
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="print-year">{t("material_print_year")}</Label>
+            <Label htmlFor="pm-class">{t("sa_meta_class_details")}</Label>
             <Input
-              id="print-year"
-              value={yearClass}
-              onChange={e => setYearClass(e.target.value)}
-              placeholder="e.g. 4ºA / Year 4"
+              id="pm-class"
+              value={classDetails}
+              onChange={e => setClassDetails(e.target.value)}
+              placeholder="e.g. 5è A · Ciències Naturals"
+            />
+          </div>
+
+          {/* Date */}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="pm-date">{t("sa_meta_date")}</Label>
+            <Input
+              id="pm-date"
+              value={printDate}
+              onChange={e => setPrintDate(e.target.value)}
+              placeholder={new Date().toLocaleDateString()}
             />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setPrintDialogOpen(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => setPrintDialogOpen(false)}>{t("cancel")}</Button>
           <Button onClick={handlePrint}>
-            <Printer className="w-4 h-4 mr-1.5" /> Print
+            <Printer className="w-4 h-4 mr-1.5" /> {t("material_print")}
           </Button>
         </DialogFooter>
       </DialogContent>

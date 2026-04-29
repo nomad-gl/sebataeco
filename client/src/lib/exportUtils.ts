@@ -411,8 +411,11 @@ export async function exportWord(
 
 export interface PrintMeta {
   schoolName?: string;
-  studentName?: string;
-  yearClass?: string;
+  schoolBadgeUrl?: string;  // URL to school logo/badge
+  teacherName?: string;    // Teacher's name
+  studentName?: string;    // Student's name (for student worksheets)
+  yearClass?: string;      // Year group / class / subject
+  date?: string;           // Date of the activity
 }
 
 /**
@@ -435,20 +438,33 @@ export function printWithMeta(
 
   // ── Build the header block HTML ──────────────────────────────────────────────
   function headerHtml(headingText: string, showStudent: boolean): string {
+    const badgeHtml = meta.schoolBadgeUrl
+      ? `<img src="${meta.schoolBadgeUrl}" class="school-badge" alt="School badge" />`
+      : '';
+    const schoolLine = meta.schoolName
+      ? `<div class="school-name">${meta.schoolName}</div>`
+      : '';
     return `
       <div class="print-header">
-        <h1 class="print-title">${headingText}</h1>
+        <div class="print-header-top">
+          ${badgeHtml ? `<div class="badge-col">${badgeHtml}${schoolLine}</div>` : (schoolLine ? `<div class="badge-col">${schoolLine}</div>` : '')}
+          <div class="title-col">
+            <h1 class="print-title">${headingText}</h1>
+          </div>
+        </div>
         <table class="print-meta-table">
           <tr>
-            <td class="meta-label">School:</td>
-            <td class="meta-value">${meta.schoolName || '&nbsp;'}</td>
-            <td class="meta-label">Year / Class:</td>
+            <td class="meta-label">Teacher:</td>
+            <td class="meta-value">${meta.teacherName || '&nbsp;'}</td>
+            <td class="meta-label">Class / Group:</td>
             <td class="meta-value">${meta.yearClass || '&nbsp;'}</td>
           </tr>
-          ${showStudent ? `<tr>
-            <td class="meta-label">Student Name:</td>
-            <td class="meta-value" colspan="3">${meta.studentName || '&nbsp;'}</td>
-          </tr>` : ''}
+          <tr>
+            <td class="meta-label">Date:</td>
+            <td class="meta-value">${meta.date || '&nbsp;'}</td>
+            ${showStudent ? `<td class="meta-label">Student:</td>
+            <td class="meta-value">${meta.studentName || '&nbsp;'}</td>` : '<td colspan="2"></td>'}
+          </tr>
         </table>
         <hr class="print-rule" />
       </div>
@@ -525,7 +541,12 @@ export function printWithMeta(
 
         /* ── Print header ── */
         .print-header { margin-bottom: 16px; }
-        .print-title { font-size: 22px; font-weight: 700; margin-bottom: 10px; }
+        .print-header-top { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+        .badge-col { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; }
+        .school-badge { width: 56px; height: 56px; object-fit: contain; }
+        .school-name { font-size: 11px; font-weight: 700; color: #374151; text-align: center; max-width: 80px; word-break: break-word; }
+        .title-col { flex: 1; }
+        .print-title { font-size: 22px; font-weight: 700; margin-bottom: 0; }
         .print-meta-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
         .print-meta-table td { padding: 3px 6px; font-size: 12px; }
         .meta-label { font-weight: 600; width: 110px; color: #374151; }
