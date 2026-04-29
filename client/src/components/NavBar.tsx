@@ -240,6 +240,7 @@ export default function NavBar() {
     { href: "/admin/documents",   label: t("nav_admin_documents"),   icon: FolderOpen },
     { href: "/admin/governance",  label: t("nav_admin_governance"),  icon: Building2 },
     { href: "/admin/facilities",  label: t("nav_admin_facilities"),  icon: Wrench },
+    { href: "/forum",             label: t("nav_forum"),             icon: MessagesSquare },
   ];
   // Platform management tools (bottom section — PIN-gated)
   const platformItems = [

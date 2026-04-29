@@ -280,51 +280,212 @@ export const ainaRouter = router({
       })
     )
     .mutation(async ({ input }) => {
-      const { Document, Paragraph, TextRun, HeadingLevel, Packer } = await import("docx");
-      const title = input.title ?? (input.originalFileName ? `Improved_${input.originalFileName.replace(/\.[^.]+$/, "")}` : "AINA_Improved_Document");
-      // Parse the content into paragraphs
+      const {
+        Document, Paragraph, TextRun, HeadingLevel, Packer,
+        AlignmentType, BorderStyle, convertInchesToTwip, convertMillimetersToTwip,
+        LevelFormat, NumberFormat,
+      } = await import("docx");
+
+      // ── Constants ──────────────────────────────────────────────────────────
+      const FONT       = "Arial";
+      const BODY_SIZE  = 22;   // half-points → 11pt
+      const H1_SIZE    = 28;   // 14pt
+      const H2_SIZE    = 26;   // 13pt
+      const H3_SIZE    = 24;   // 12pt
+      const TITLE_SIZE = 36;   // 18pt
+      const DARK_BLUE  = "1F3864";
+      const MID_BLUE   = "2E5FA3";
+      const LIGHT_GREY = "F2F2F2";
+      const LINE_SPACE = 276;  // ~1.15 line spacing in twips (240 = single)
+      const PARA_AFTER = 120;  // 6pt spacing after each paragraph
+
+      // ── Helper: parse inline markdown (bold, italic, bold-italic) ──────────
+      function parseInlineRuns(text: string, baseSize = BODY_SIZE, baseFont = FONT): InstanceType<typeof TextRun>[] {
+        // Split on **bold**, *italic*, ***bold-italic***
+        const tokens = text.split(/(\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|\*[^*]+\*)/g);
+        return tokens.filter(t => t.length > 0).map(tok => {
+          if (tok.startsWith("***") && tok.endsWith("***")) {
+            return new TextRun({ text: tok.slice(3, -3), bold: true, italics: true, font: baseFont, size: baseSize });
+          } else if (tok.startsWith("**") && tok.endsWith("**")) {
+            return new TextRun({ text: tok.slice(2, -2), bold: true, font: baseFont, size: baseSize });
+          } else if (tok.startsWith("*") && tok.endsWith("*")) {
+            return new TextRun({ text: tok.slice(1, -1), italics: true, font: baseFont, size: baseSize });
+          }
+          return new TextRun({ text: tok, font: baseFont, size: baseSize });
+        });
+      }
+
+      const title = input.title ?? (input.originalFileName
+        ? `Improved_${input.originalFileName.replace(/\.[^.]+$/, "")}`
+        : "AINA_Improved_Document");
+
+      // ── Parse lines into Paragraph objects ────────────────────────────────
       const lines = input.content.split("\n");
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const children: InstanceType<typeof Paragraph>[] = [];
+      let inNumberedList = false;
+      let listCounter = 1;
+
       for (const line of lines) {
         const trimmed = line.trim();
+
         if (!trimmed) {
-          children.push(new Paragraph({ text: "" }));
+          inNumberedList = false;
+          listCounter = 1;
+          children.push(new Paragraph({
+            children: [new TextRun({ text: "", font: FONT, size: BODY_SIZE })],
+            spacing: { after: 60 },
+          }));
           continue;
         }
-        // Detect markdown headings
+
+        // Headings
         if (trimmed.startsWith("### ")) {
-          children.push(new Paragraph({ text: trimmed.slice(4), heading: HeadingLevel.HEADING_3 }));
-        } else if (trimmed.startsWith("## ")) {
-          children.push(new Paragraph({ text: trimmed.slice(3), heading: HeadingLevel.HEADING_2 }));
-        } else if (trimmed.startsWith("# ")) {
-          children.push(new Paragraph({ text: trimmed.slice(2), heading: HeadingLevel.HEADING_1 }));
-        } else if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
-          children.push(new Paragraph({ text: trimmed.slice(2), bullet: { level: 0 } }));
-        } else {
-          // Detect **bold** inline
-          const parts = trimmed.split(/\*\*([^*]+)\*\*/g);
-          if (parts.length > 1) {
-            const runs: InstanceType<typeof TextRun>[] = parts.map((p, i) =>
-              i % 2 === 1 ? new TextRun({ text: p, bold: true }) : new TextRun({ text: p })
-            );
-            children.push(new Paragraph({ children: runs }));
-          } else {
-            children.push(new Paragraph({ text: trimmed }));
-          }
+          inNumberedList = false;
+          children.push(new Paragraph({
+            children: [new TextRun({ text: trimmed.slice(4), font: FONT, size: H3_SIZE, bold: true, color: MID_BLUE })],
+            spacing: { before: 200, after: 80, line: LINE_SPACE },
+          }));
+          continue;
         }
+        if (trimmed.startsWith("## ")) {
+          inNumberedList = false;
+          children.push(new Paragraph({
+            children: [new TextRun({ text: trimmed.slice(3), font: FONT, size: H2_SIZE, bold: true, color: MID_BLUE })],
+            spacing: { before: 240, after: 100, line: LINE_SPACE },
+            border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: "CCCCCC", space: 4 } },
+          }));
+          continue;
+        }
+        if (trimmed.startsWith("# ")) {
+          inNumberedList = false;
+          children.push(new Paragraph({
+            children: [new TextRun({ text: trimmed.slice(2), font: FONT, size: H1_SIZE, bold: true, color: DARK_BLUE })],
+            spacing: { before: 320, after: 120, line: LINE_SPACE },
+            border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: "2E5FA3", space: 4 } },
+          }));
+          continue;
+        }
+
+        // Horizontal rule
+        if (/^(-{3,}|\*{3,}|_{3,})$/.test(trimmed)) {
+          children.push(new Paragraph({
+            children: [],
+            border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: "CCCCCC", space: 2 } },
+            spacing: { before: 120, after: 120 },
+          }));
+          continue;
+        }
+
+        // Numbered list  "1. item" or "1) item"
+        const numMatch = trimmed.match(/^(\d+)[.)\s]\s+(.*)/);
+        if (numMatch) {
+          inNumberedList = true;
+          children.push(new Paragraph({
+            children: parseInlineRuns(numMatch[2]),
+            numbering: { reference: "numbered-list", level: 0 },
+            spacing: { after: 60, line: LINE_SPACE },
+          }));
+          continue;
+        }
+
+        // Bullet list
+        if (trimmed.startsWith("- ") || trimmed.startsWith("* ") || trimmed.startsWith("• ")) {
+          inNumberedList = false;
+          const bulletText = trimmed.startsWith("• ") ? trimmed.slice(2) : trimmed.slice(2);
+          children.push(new Paragraph({
+            children: parseInlineRuns(bulletText),
+            bullet: { level: 0 },
+            spacing: { after: 60, line: LINE_SPACE },
+          }));
+          continue;
+        }
+
+        // Indented bullet (sub-item)
+        if (trimmed.startsWith("  - ") || trimmed.startsWith("  * ")) {
+          children.push(new Paragraph({
+            children: parseInlineRuns(trimmed.slice(4)),
+            bullet: { level: 1 },
+            spacing: { after: 40, line: LINE_SPACE },
+          }));
+          continue;
+        }
+
+        // Blockquote / note
+        if (trimmed.startsWith("> ")) {
+          inNumberedList = false;
+          children.push(new Paragraph({
+            children: parseInlineRuns(trimmed.slice(2)),
+            indent: { left: convertInchesToTwip(0.4) },
+            spacing: { before: 80, after: 80, line: LINE_SPACE },
+            shading: { type: "clear", fill: LIGHT_GREY },
+            border: { left: { style: BorderStyle.SINGLE, size: 12, color: MID_BLUE, space: 8 } },
+          }));
+          continue;
+        }
+
+        // Normal paragraph
+        inNumberedList = false;
+        children.push(new Paragraph({
+          children: parseInlineRuns(trimmed),
+          spacing: { after: PARA_AFTER, line: LINE_SPACE },
+          alignment: AlignmentType.JUSTIFIED,
+        }));
       }
+
+      // ── Assemble document ─────────────────────────────────────────────────
       const doc = new Document({
+        numbering: {
+          config: [{
+            reference: "numbered-list",
+            levels: [{
+              level: 0,
+              format: LevelFormat.DECIMAL,
+              text: "%1.",
+              alignment: AlignmentType.LEFT,
+              style: {
+                paragraph: { indent: { left: convertInchesToTwip(0.25), hanging: convertInchesToTwip(0.25) } },
+                run: { font: FONT, size: BODY_SIZE },
+              },
+            }],
+          }],
+        },
+        styles: {
+          default: {
+            document: {
+              run: { font: FONT, size: BODY_SIZE },
+              paragraph: { spacing: { after: PARA_AFTER, line: LINE_SPACE } },
+            },
+          },
+        },
         sections: [{
-          properties: {},
+          properties: {
+            page: {
+              margin: {
+                top:    convertMillimetersToTwip(25),
+                bottom: convertMillimetersToTwip(25),
+                left:   convertMillimetersToTwip(25),
+                right:  convertMillimetersToTwip(25),
+              },
+            },
+          },
           children: [
-            new Paragraph({ text: title, heading: HeadingLevel.TITLE }),
-            new Paragraph({ text: "Generated by AINA | LOMLOE-aligned improvement", children: [new TextRun({ text: "Generated by AINA | LOMLOE-aligned improvement", italics: true, color: "888888" })] }),
-            new Paragraph({ text: "" }),
+            // Document title
+            new Paragraph({
+              children: [new TextRun({ text: title, font: FONT, size: TITLE_SIZE, bold: true, color: DARK_BLUE })],
+              spacing: { before: 0, after: 200 },
+              border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: DARK_BLUE, space: 6 } },
+            }),
+            // Subtitle / generated-by line
+            new Paragraph({
+              children: [new TextRun({ text: "Generated by AINA · LOMLOE-aligned improvement", font: FONT, size: 18, italics: true, color: "888888" })],
+              spacing: { after: 320 },
+            }),
             ...children,
           ],
         }],
       });
+
       const buffer = await Packer.toBuffer(doc);
       const base64 = buffer.toString("base64");
       const outputName = `${title.replace(/[^a-zA-Z0-9_-]/g, "_")}.docx`;

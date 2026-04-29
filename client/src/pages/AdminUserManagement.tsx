@@ -30,6 +30,7 @@ import {
   X,
   AlertTriangle,
   Link2,
+  Trash2,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
@@ -245,6 +246,19 @@ export default function AdminUserManagement() {
   const reactivateMutation = trpc.director.reactivateUser.useMutation({
     onSuccess: () => { toast.success("User reactivated."); refetch(); },
     onError: (err) => toast.error(err.message),
+  });
+  const [deleteConfirmUserId, setDeleteConfirmUserId] = useState<number | null>(null);
+  const [deleteConfirmName, setDeleteConfirmName] = useState<string>("");
+  const deleteMutation = trpc.tenants.deleteUser.useMutation({
+    onSuccess: () => {
+      toast.success("User permanently deleted.");
+      setDeleteConfirmUserId(null);
+      refetch();
+    },
+    onError: (err) => {
+      toast.error(err.message);
+      setDeleteConfirmUserId(null);
+    },
   });
 
   // Filter users
@@ -576,6 +590,16 @@ export default function AdminUserManagement() {
                                         Deactivate
                                       </Button>
                                     )}
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-7 px-2 gap-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                                      disabled={deleteMutation.isPending}
+                                      onClick={() => { setDeleteConfirmUserId(user.id); setDeleteConfirmName(user.displayName ?? user.email ?? `User #${user.id}`); }}
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                      Delete
+                                    </Button>
                                   </div>
                                 </td>
                               </tr>
@@ -602,6 +626,46 @@ export default function AdminUserManagement() {
         />
       )}
 
+      {/* Delete User Confirmation Dialog */}
+      {deleteConfirmUserId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <Trash2 className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white">Permanently delete user?</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  This will permanently delete <span className="font-medium text-gray-800 dark:text-gray-200">{deleteConfirmName}</span> and all their associated data. This action cannot be undone.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setDeleteConfirmUserId(null)}
+                disabled={deleteMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                className="bg-red-600 hover:bg-red-700 text-white"
+                disabled={deleteMutation.isPending}
+                onClick={() => deleteMutation.mutate({ userId: deleteConfirmUserId })}
+              >
+                {deleteMutation.isPending ? (
+                  <><Loader2 className="w-3 h-3 animate-spin mr-1" /> Deleting…</>
+                ) : (
+                  <><Trash2 className="w-3 h-3 mr-1" /> Delete permanently</>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Powered by SEBA */}
       <p className="text-center text-xs text-muted-foreground pt-4">Powered by SEBA</p>
     </div>

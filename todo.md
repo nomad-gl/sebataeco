@@ -4965,3 +4965,7 @@
 - [x] Fix AINA history sidebar delete button — always visible and functional (not hidden behind opacity-0 hover)
 - [x] Allow user to resize AINA history sidebar width by dragging the right edge
 - [x] Add 'Primary (Yr 1-2)' year group option to Practice Mode (and all related selectors/knowledge bank)
+- [ ] Add TA Forum button to Administration menu
+- [ ] Improve AINA document reproduction (Arial 11pt, professional quality)
+- [ ] Fix missing Catalan translations for Signes de puntuació and Abreviacions
+- [ ] Allow super-admin to delete users
