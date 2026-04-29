@@ -106,19 +106,15 @@ export default function Chat() {
     const sid = parseInt(lastSessionId, 10);
     if (isNaN(sid)) return;
     setIsRestoringSession(true);
-    fetch(`/api/trpc/lomloe.getChatSession?input=${encodeURIComponent(JSON.stringify({ "0": { json: { sessionId: sid } } }))}`, {
-      credentials: "include",
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        const result = data?.[0]?.result?.data?.json;
+    utils.lomloe.getChatSession.fetch({ sessionId: sid })
+      .then((result) => {
         if (!result) return;
         const { session, messages: dbMessages } = result;
         setActiveSessionId(session.id);
         setCtxCompetency(session.competency ?? undefined);
         setCtxYearGroup(session.yearGroup ?? undefined);
         setMessages(
-          dbMessages.map((m: { role: string; content: string; imageUrl?: string; attachmentUrl?: string; attachmentName?: string }) => ({
+          dbMessages.map((m: { role: string; content: string; imageUrl?: string | null; attachmentUrl?: string | null; attachmentName?: string | null }) => ({
             role: m.role as "user" | "assistant",
             content: m.content,
             imageUrl: m.imageUrl ?? undefined,
@@ -137,18 +133,14 @@ export default function Chat() {
     if (sessionId === activeSessionId) return;
     setIsRestoringSession(true);
     try {
-      const result = await fetch(
-        `/api/trpc/lomloe.getChatSession?input=${encodeURIComponent(JSON.stringify({ "0": { json: { sessionId } } }))}`,
-        { credentials: "include" }
-      ).then((r) => r.json());
-      const data = result?.[0]?.result?.data?.json;
-      if (!data) throw new Error("No data");
-      const { session, messages: dbMessages } = data;
+      const result = await utils.lomloe.getChatSession.fetch({ sessionId });
+      if (!result) throw new Error("Session not found");
+      const { session, messages: dbMessages } = result;
       setActiveSessionId(session.id);
       setCtxCompetency(session.competency ?? undefined);
       setCtxYearGroup(session.yearGroup ?? undefined);
       setMessages(
-        dbMessages.map((m: { role: string; content: string; imageUrl?: string; attachmentUrl?: string; attachmentName?: string }) => ({
+        dbMessages.map((m: { role: string; content: string; imageUrl?: string | null; attachmentUrl?: string | null; attachmentName?: string | null }) => ({
           role: m.role as "user" | "assistant",
           content: m.content,
           imageUrl: m.imageUrl ?? undefined,
@@ -162,7 +154,7 @@ export default function Chat() {
     } finally {
       setIsRestoringSession(false);
     }
-  }, [activeSessionId]);
+  }, [activeSessionId, utils]);
 
   // ── Start a new chat ──────────────────────────────────────────────────────
   const handleNewChat = useCallback(() => {

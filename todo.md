@@ -4961,3 +4961,4 @@
 - [x] Restore active session on re-open (last active session)
 - [x] Keep AINA alive in background when navigating away (global state context)
 - [x] Add back button to /director/users page
+- [x] Fix "Failed to load chat session" error when clicking past session in AINA history sidebar
