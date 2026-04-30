@@ -15,6 +15,7 @@ import {
   acSemesterDates,
 } from "../../drizzle/schema";
 import { eq, and } from "drizzle-orm";
+import { generateAcademicCalendarPdf } from "../academicCalendarPdf";
 
 /** Utility: assert user is director or admin */
 function assertDirector(role: string) {
@@ -355,6 +356,7 @@ export const academicCalendarRouter = router({
       days: z.array(z.number().int().min(1).max(5)).default([]),
       startTime: z.string().regex(/^\d{2}:\d{2}$/).default("09:00"),
       endTime: z.string().regex(/^\d{2}:\d{2}$/).default("10:00"),
+      color: z.string().max(20).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       assertDirector(ctx.user.role);
@@ -383,6 +385,7 @@ export const academicCalendarRouter = router({
       days: z.array(z.number().int().min(1).max(5)).optional(),
       startTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
       endTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+      color: z.string().max(20).nullable().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       assertDirector(ctx.user.role);
@@ -436,6 +439,74 @@ export const academicCalendarRouter = router({
       return { success: true };
     }),
 
+  /** Duplicate a calendar to a new academic year, copying all teachers, subjects, sessions, breaks, and semester dates. */
+  duplicateCalendar: protectedProcedure
+    .input(z.object({
+      sourceId: z.number().int(),
+      newAcademicYear: z.string().min(1).max(16),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      assertDirector(ctx.user.role);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      // Verify ownership
+      const [source] = await db.select().from(academicCalendars)
+        .where(and(eq(academicCalendars.id, input.sourceId), eq(academicCalendars.userId, ctx.user.id)));
+      if (!source) throw new TRPCError({ code: "NOT_FOUND" });
+
+      // Create new calendar
+      const [newCal] = await db.insert(academicCalendars).values({
+        userId: ctx.user.id,
+        academicYear: input.newAcademicYear,
+        semesterCount: source.semesterCount,
+        schoolStartTime: source.schoolStartTime,
+        schoolEndTime: source.schoolEndTime,
+        morningBreakStart: source.morningBreakStart,
+        morningBreakEnd: source.morningBreakEnd,
+        lunchBreakStart: source.lunchBreakStart,
+        lunchBreakEnd: source.lunchBreakEnd,
+      });
+      const newCalId = (newCal as any).insertId as number;
+
+      // Copy teachers (keep a map of old id → new id)
+      const teachers = await db.select().from(acTeachers).where(eq(acTeachers.calendarId, input.sourceId));
+      const teacherMap: Record<number, number> = {};
+      for (const t of teachers) {
+        const [r] = await db.insert(acTeachers).values({ calendarId: newCalId, name: t.name, email: t.email, weeklyHours: t.weeklyHours });
+        teacherMap[t.id] = (r as any).insertId as number;
+      }
+
+      // Copy sessions
+      const sessions = await db.select().from(acSessions).where(eq(acSessions.calendarId, input.sourceId));
+      for (const s of sessions) {
+        const newTeacherId = teacherMap[s.teacherId];
+        if (newTeacherId) {
+          await db.insert(acSessions).values({ calendarId: newCalId, teacherId: newTeacherId, subject: s.subject, dayOfWeek: s.dayOfWeek, startTime: s.startTime, endTime: s.endTime });
+        }
+      }
+
+      // Copy subjects
+      const subjects = await db.select().from(acSubjects).where(eq(acSubjects.calendarId, input.sourceId));
+      for (const sub of subjects) {
+        await db.insert(acSubjects).values({ calendarId: newCalId, semester: sub.semester, name: sub.name, unit: sub.unit, classroom: sub.classroom, maxStudents: sub.maxStudents, totalAcademicHours: sub.totalAcademicHours, days: sub.days, startTime: sub.startTime, endTime: sub.endTime, color: sub.color });
+      }
+
+      // Copy breaks
+      const breaks = await db.select().from(acBreaks).where(eq(acBreaks.calendarId, input.sourceId));
+      for (const b of breaks) {
+        await db.insert(acBreaks).values({ calendarId: newCalId, semester: b.semester, label: b.label, startDate: b.startDate, endDate: b.endDate });
+      }
+
+      // Copy semester dates (keep same dates as template — director can adjust)
+      const semDates = await db.select().from(acSemesterDates).where(eq(acSemesterDates.calendarId, input.sourceId));
+      for (const sd of semDates) {
+        await db.insert(acSemesterDates).values({ calendarId: newCalId, semesterNumber: sd.semesterNumber, startDate: sd.startDate, endDate: sd.endDate });
+      }
+
+      return { id: newCalId };
+    }),
+
   /** Get semester dates for a calendar. */
   getSemesterDates: protectedProcedure
     .input(z.object({ calendarId: z.number().int() }))
@@ -447,5 +518,116 @@ export const academicCalendarRouter = router({
         .where(eq(acSemesterDates.calendarId, input.calendarId))
         .orderBy(acSemesterDates.semesterNumber);
       return rows;
+    }),
+
+  /** Suggest a free time slot for a clashing session. */
+  suggestFix: protectedProcedure
+    .input(z.object({ sessionId: z.number().int(), calendarId: z.number().int() }))
+    .mutation(async ({ ctx, input }) => {
+      assertDirector(ctx.user.role);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const [session] = await db.select().from(acSessions).where(eq(acSessions.id, input.sessionId));
+      if (!session) throw new TRPCError({ code: "NOT_FOUND" });
+      const allSessions = await db.select().from(acSessions).where(eq(acSessions.calendarId, input.calendarId));
+      const duration = timeToMinutes(session.endTime) - timeToMinutes(session.startTime);
+      const days = [1, 2, 3, 4, 5];
+      const slots = ["08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00"];
+      for (const day of days) {
+        for (const slot of slots) {
+          const slotStart = timeToMinutes(slot);
+          const slotEnd = slotStart + duration;
+          if (slotEnd > 17 * 60) continue;
+          const endStr = `${String(Math.floor(slotEnd / 60)).padStart(2,'0')}:${String(slotEnd % 60).padStart(2,'0')}`;
+          const clash = allSessions.some(s => {
+            if (s.id === input.sessionId) return false;
+            if (s.teacherId !== session.teacherId) return false;
+            if (s.dayOfWeek !== day) return false;
+            const sStart = timeToMinutes(s.startTime);
+            const sEnd = timeToMinutes(s.endTime);
+            return slotStart < sEnd && slotEnd > sStart;
+          });
+          if (!clash) {
+            await db.update(acSessions).set({ dayOfWeek: day, startTime: slot, endTime: endStr }).where(eq(acSessions.id, input.sessionId));
+            return { dayOfWeek: day, startTime: slot, endTime: endStr };
+          }
+        }
+      }
+      throw new TRPCError({ code: "CONFLICT", message: "No free slot found for this teacher." });
+    }),
+
+  /** Publish or unpublish a calendar so teachers can view it. */
+  publishCalendar: protectedProcedure
+    .input(z.object({ id: z.number().int(), published: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      assertDirector(ctx.user.role);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      await db.update(academicCalendars).set({ isPublished: input.published ? 1 : 0 })
+        .where(and(eq(academicCalendars.id, input.id), eq(academicCalendars.userId, ctx.user.id)));
+      return { success: true };
+    }),
+
+  /** List all published calendars (any logged-in user). */
+  listPublishedCalendars: protectedProcedure
+    .query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const cals = await db.select().from(academicCalendars)
+        .where(eq(academicCalendars.isPublished, 1));
+      return cals;
+    }),
+
+  getPublishedCalendar: protectedProcedure
+    .input(z.object({ id: z.number().int() }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const [cal] = await db.select().from(academicCalendars)
+        .where(and(eq(academicCalendars.id, input.id), eq(academicCalendars.isPublished, 1)));
+      if (!cal) throw new TRPCError({ code: "NOT_FOUND" });
+      const teachers = await db.select().from(acTeachers).where(eq(acTeachers.calendarId, input.id));
+      const sessions = await db.select().from(acSessions).where(eq(acSessions.calendarId, input.id));
+      return { calendar: cal, teachers, sessions };
+    }),
+
+  /** Export the academic calendar as a PDF (base64 encoded). */
+  exportCalendarPdf: protectedProcedure
+    .input(z.object({
+      id: z.number().int(),
+      schoolName: z.string().optional(),
+      lang: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const [cal] = await db.select().from(academicCalendars)
+        .where(and(eq(academicCalendars.id, input.id), eq(academicCalendars.userId, ctx.user.id)));
+      if (!cal) throw new TRPCError({ code: "NOT_FOUND" });
+      const teachers = await db.select().from(acTeachers).where(eq(acTeachers.calendarId, input.id));
+      const sessions = await db.select().from(acSessions).where(eq(acSessions.calendarId, input.id));
+      const breaks = await db.select().from(acBreaks).where(eq(acBreaks.calendarId, input.id));
+      const subjects = await db.select().from(acSubjects).where(eq(acSubjects.calendarId, input.id));
+      const semDates = await db.select().from(acSemesterDates).where(eq(acSemesterDates.calendarId, input.id));
+      const pdfBuffer = await generateAcademicCalendarPdf({
+        calendar: {
+          academicYear: cal.academicYear,
+          semesterCount: cal.semesterCount,
+          schoolStartTime: cal.schoolStartTime,
+          schoolEndTime: cal.schoolEndTime,
+          morningBreakStart: cal.morningBreakStart,
+          morningBreakEnd: cal.morningBreakEnd,
+          lunchBreakStart: cal.lunchBreakStart,
+          lunchBreakEnd: cal.lunchBreakEnd,
+        },
+        semesterDates: semDates.map(sd => ({ semesterNumber: sd.semesterNumber, startDate: String(sd.startDate), endDate: String(sd.endDate) })),
+        teachers: teachers.map(t => ({ id: t.id, name: t.name, email: t.email, weeklyHours: t.weeklyHours })),
+        sessions: sessions.map(s => ({ id: s.id, teacherId: s.teacherId, subject: s.subject, dayOfWeek: s.dayOfWeek, startTime: s.startTime, endTime: s.endTime })),
+        breaks: breaks.map(b => ({ name: b.label, semesterNumber: b.semester, startDate: String(b.startDate), endDate: String(b.endDate) })),
+        subjects: subjects.map(s => ({ name: s.name, unit: s.unit, classroom: s.classroom, maxStudents: s.maxStudents, totalAcademicHours: s.totalAcademicHours, semesterNumber: s.semester, color: s.color })),
+        schoolName: input.schoolName,
+        lang: input.lang,
+      });
+      return { pdf: pdfBuffer.toString("base64"), filename: `academic-calendar-${cal.academicYear}.pdf` };
     }),
 });

@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { CalendarDays, Plus, Trash2, Edit2, AlertTriangle, Users, Clock, BookOpen, Coffee, ChevronRight, GraduationCap, Library, Building2 } from "lucide-react";
+import { CalendarDays, Plus, Trash2, Edit2, AlertTriangle, Users, Clock, BookOpen, Coffee, ChevronRight, GraduationCap, Library, Building2, Copy, Eye, EyeOff, Palette, Download } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 
@@ -65,7 +65,17 @@ function CalendarList({ onSelect }: { onSelect: (id: number) => void }) {
     [{ startDate: "", endDate: "" }, { startDate: "", endDate: "" }]
   );
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [duplicateSource, setDuplicateSource] = useState<{ id: number; year: string } | null>(null);
+  const [dupYear, setDupYear] = useState("");
   const setSemesterDatesMut = trpc.academicCalendar.setSemesterDates.useMutation();
+  const duplicateMut = trpc.academicCalendar.duplicateCalendar.useMutation({
+    onSuccess: () => {
+      utils.academicCalendar.listCalendars.invalidate();
+      setDuplicateSource(null);
+      toast.success(t("acal2_duplicated"));
+    },
+    onError: (e) => toast.error(e.message),
+  });
   const createMut = trpc.academicCalendar.createCalendar.useMutation({
     onSuccess: async (data) => {
       // Save semester dates after calendar is created
@@ -151,14 +161,24 @@ function CalendarList({ onSelect }: { onSelect: (id: number) => void }) {
                     {cal.semesterCount} {t("acal2_semesters")}
                   </Badge>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-red-300 hover:text-red-200 hover:bg-red-500/20 mt-1 h-7 px-2"
-                  onClick={(e) => { e.stopPropagation(); setDeleteId(cal.id); }}
-                >
-                  <Trash2 className="w-3.5 h-3.5 mr-1" /> {t("acal2_delete")}
-                </Button>
+                <div className="flex gap-2 mt-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-blue-300 hover:text-blue-200 hover:bg-blue-500/20 h-7 px-2"
+                    onClick={(e) => { e.stopPropagation(); setDuplicateSource({ id: cal.id, year: cal.academicYear }); const parts = cal.academicYear.split("-"); setDupYear(parts.length === 2 ? `${parseInt(parts[0])+1}-${parseInt(parts[1])+1}` : ""); }}
+                  >
+                    <Copy className="w-3.5 h-3.5 mr-1" /> {t("acal2_duplicate")}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-300 hover:text-red-200 hover:bg-red-500/20 h-7 px-2"
+                    onClick={(e) => { e.stopPropagation(); setDeleteId(cal.id); }}
+                  >
+                    <Trash2 className="w-3.5 h-3.5 mr-1" /> {t("acal2_delete")}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -287,6 +307,37 @@ function CalendarList({ onSelect }: { onSelect: (id: number) => void }) {
         </DialogContent>
       </Dialog>
 
+      {/* Duplicate Calendar Dialog */}
+      <Dialog open={duplicateSource !== null} onOpenChange={(o) => !o && setDuplicateSource(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t("acal2_duplicate_title")}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">{t("acal2_duplicate_desc")} <strong>{duplicateSource?.year}</strong></p>
+          <div className="space-y-2">
+            <Label>{t("acal2_year_label")}</Label>
+            <Select value={dupYear} onValueChange={setDupYear}>
+              <SelectTrigger><SelectValue placeholder={t("acal2_year_label")} /></SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 8 }, (_, i) => { const y = 2023 + i; return `${y}-${y+1}`; }).map(y => (
+                  <SelectItem key={y} value={y}>{y}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDuplicateSource(null)}>{t("acal2_cancel")}</Button>
+            <Button
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              disabled={!dupYear || duplicateMut.isPending}
+              onClick={() => duplicateSource && duplicateMut.mutate({ sourceId: duplicateSource.id, newAcademicYear: dupYear })}
+            >
+              {duplicateMut.isPending ? t("acal2_loading") : t("acal2_duplicate_confirm")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete Confirm */}
       <AlertDialog open={deleteId !== null} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
@@ -336,8 +387,8 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
 
   // Subject form state
   const [showAddSubject, setShowAddSubject] = useState(false);
-  const [editSubject, setEditSubject] = useState<null | { id: number; semester: number; name: string; unit: string; classroom: string; maxStudents: string; totalAcademicHours: string; days: number[]; startTime: string; endTime: string }>(null);
-  const [subjectForm, setSubjectForm] = useState({ semester: "1", name: "", unit: "", classroom: "", maxStudents: "", totalAcademicHours: "60", days: [] as number[], startTime: "09:00", endTime: "10:00" });
+  const [editSubject, setEditSubject] = useState<null | { id: number; semester: number; name: string; unit: string; classroom: string; maxStudents: string; totalAcademicHours: string; days: number[]; startTime: string; endTime: string; color: string }>(null);
+  const [subjectForm, setSubjectForm] = useState({ semester: "1", name: "", unit: "", classroom: "", maxStudents: "", totalAcademicHours: "60", days: [] as number[], startTime: "09:00", endTime: "10:00", color: "#3b82f6" });
   // Optimistic local teacher weekly hours (contracted) — updated immediately when director edits the field
   const [localTeacherHours, setLocalTeacherHours] = useState<Record<number, number>>({});
   const [deleteSubjectId, setDeleteSubjectId] = useState<number | null>(null);
@@ -397,7 +448,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
 
   // Subject mutations
   const addSubjectMut = trpc.academicCalendar.addSubject.useMutation({
-    onSuccess: () => { invalidate(); setShowAddSubject(false); setSubjectForm({ semester: "1", name: "", unit: "", classroom: "", maxStudents: "", totalAcademicHours: "60", days: [], startTime: "09:00", endTime: "10:00" }); toast.success(t("acal2_subject_added")); },
+    onSuccess: () => { invalidate(); setShowAddSubject(false); setSubjectForm({ semester: "1", name: "", unit: "", classroom: "", maxStudents: "", totalAcademicHours: "60", days: [], startTime: "09:00", endTime: "10:00", color: "#3b82f6" }); toast.success(t("acal2_subject_added")); },
     onError: (e) => toast.error(e.message),
   });
   const updateSubjectMut = trpc.academicCalendar.updateSubject.useMutation({
@@ -406,6 +457,25 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
   });
   const deleteSubjectMut = trpc.academicCalendar.deleteSubject.useMutation({
     onSuccess: () => { invalidate(); setDeleteSubjectId(null); toast.success(t("acal2_subject_deleted")); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const suggestFixMut = trpc.academicCalendar.suggestFix.useMutation({
+    onSuccess: () => { invalidate(); toast.success(t("acal2_clash_fixed")); },
+    onError: (e) => toast.error(e.message === "No free slot found for this teacher." ? t("acal2_no_free_slot") : e.message),
+  });
+  const publishMut = trpc.academicCalendar.publishCalendar.useMutation({
+    onSuccess: (_, vars) => { invalidate(); toast.success(vars.published ? t("acal2_published") : t("acal2_unpublished")); },
+    onError: (e) => toast.error(e.message),
+  });
+  const exportPdfMut = trpc.academicCalendar.exportCalendarPdf.useMutation({
+    onSuccess: (result) => {
+      const link = document.createElement("a");
+      link.href = `data:application/pdf;base64,${result.pdf}`;
+      link.download = result.filename;
+      link.click();
+      toast.success(t("acal2_pdf_exported"));
+    },
     onError: (e) => toast.error(e.message),
   });
 
@@ -447,16 +517,39 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
         <Button variant="ghost" onClick={onBack} className="text-blue-200 hover:text-white hover:bg-white/10">
           ← {t("acal2_back")}
         </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <CalendarDays className="w-6 h-6 text-blue-300" />
-            {calendar.academicYear}
-          </h1>
-          <p className="text-blue-200 text-sm">
-            {calendar.schoolStartTime} – {calendar.schoolEndTime} · {calendar.semesterCount} {t("acal2_semesters")}
-            {calendar.morningBreakStart && ` · ${t("acal2_morning_break")}: ${calendar.morningBreakStart}–${calendar.morningBreakEnd}`}
-            {calendar.lunchBreakStart && ` · ${t("acal2_lunch")}: ${calendar.lunchBreakStart}–${calendar.lunchBreakEnd}`}
-          </p>
+        <div className="flex-1">
+          <div className="flex items-center gap-3 flex-wrap">
+            <div>
+              <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+                <CalendarDays className="w-6 h-6 text-blue-300" />
+                {calendar.academicYear}
+              </h1>
+              <p className="text-blue-200 text-sm">
+                {calendar.schoolStartTime} – {calendar.schoolEndTime} · {calendar.semesterCount} {t("acal2_semesters")}
+                {calendar.morningBreakStart && ` · ${t("acal2_morning_break")}: ${calendar.morningBreakStart}–${calendar.morningBreakEnd}`}
+                {calendar.lunchBreakStart && ` · ${t("acal2_lunch")}: ${calendar.lunchBreakStart}–${calendar.lunchBreakEnd}`}
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className={`border-white/30 text-sm ${calendar.isPublished ? "bg-green-600/30 text-green-200 hover:bg-green-600/50" : "bg-white/10 text-blue-200 hover:bg-white/20"}`}
+              disabled={publishMut.isPending}
+              onClick={() => publishMut.mutate({ id: calendarId, published: !calendar.isPublished })}
+            >
+              {calendar.isPublished ? t("acal2_unpublish") : t("acal2_publish")}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-white/30 bg-white/10 text-blue-200 hover:bg-white/20 text-sm"
+              disabled={exportPdfMut.isPending}
+              onClick={() => exportPdfMut.mutate({ id: calendarId, lang: lang })}
+            >
+              <Download className="w-4 h-4 mr-1" />
+              {exportPdfMut.isPending ? t("acal2_exporting") : t("acal2_export_pdf")}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -552,8 +645,17 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
             <p className="text-red-200 font-semibold">{t("acal2_clash_title").replace("{n}", String(clashCount))}</p>
             <ul className="mt-2 space-y-1">
               {data.clashes.map((c, i) => (
-                <li key={i} className="text-red-100 text-sm">
-                  {days[c.day - 1]} {c.time} — {c.teacherA} &amp; {c.teacherB}
+                <li key={i} className="text-red-100 text-sm flex items-center gap-3 flex-wrap">
+                  <span>{days[c.day - 1]} {c.time} — {c.teacherA} &amp; {c.teacherB}</span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-6 text-xs border-red-400/50 text-red-200 hover:bg-red-500/20 bg-transparent"
+                    disabled={suggestFixMut.isPending}
+                    onClick={() => suggestFixMut.mutate({ sessionId: c.sessionA, calendarId })}
+                  >
+                    {t("acal2_clash_suggest")}
+                  </Button>
                 </li>
               ))}
             </ul>
@@ -823,6 +925,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
+                                  {sub.color && <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: sub.color }} />}
                                   <span className="text-white font-semibold">{sub.name}</span>
                                   {sub.unit && <Badge variant="secondary" className="bg-purple-600/30 text-purple-100 border-0 text-xs">{sub.unit}</Badge>}
                                 </div>
@@ -850,7 +953,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                                 <Button
                                   variant="ghost" size="sm"
                                   className="text-blue-300 hover:text-white hover:bg-white/10 h-7 w-7 p-0"
-                                  onClick={() => setEditSubject({ id: sub.id, semester: sub.semester, name: sub.name, unit: sub.unit ?? "", classroom: sub.classroom ?? "", maxStudents: sub.maxStudents ? String(sub.maxStudents) : "", totalAcademicHours: String(sub.totalAcademicHours), days: sub.days, startTime: sub.startTime, endTime: sub.endTime })}
+                                  onClick={() => setEditSubject({ id: sub.id, semester: sub.semester, name: sub.name, unit: sub.unit ?? "", classroom: sub.classroom ?? "", maxStudents: sub.maxStudents ? String(sub.maxStudents) : "", totalAcademicHours: String(sub.totalAcademicHours), days: sub.days, startTime: sub.startTime, endTime: sub.endTime, color: sub.color ?? "#3b82f6" })}
                                 >
                                   <Edit2 className="w-3.5 h-3.5" />
                                 </Button>
@@ -1112,6 +1215,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                             days: Array.isArray(sem1Subject.days) ? sem1Subject.days : (sem1Subject.days ? JSON.parse(sem1Subject.days as unknown as string) : []),
                             startTime: sem1Subject.startTime ?? "09:00",
                             endTime: sem1Subject.endTime ?? "10:00",
+                            color: sem1Subject.color ?? "#3b82f6",
                           });
                           return;
                         }
@@ -1223,6 +1327,24 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
               </div>
             </div>
           </div>
+          {/* Colour picker */}
+          <div>
+            <Label className="flex items-center gap-1.5"><Palette className="w-3.5 h-3.5" /> {t("acal2_subject_color")}</Label>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {["#3b82f6","#10b981","#f59e0b","#ef4444","#8b5cf6","#ec4899","#06b6d4","#84cc16","#f97316","#6366f1"].map(c => {
+                const current = editSubject ? editSubject.color : subjectForm.color;
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    className={`w-7 h-7 rounded-full border-2 transition-transform hover:scale-110 ${current === c ? "border-white scale-110" : "border-transparent"}`}
+                    style={{ backgroundColor: c }}
+                    onClick={() => editSubject ? setEditSubject(s => s && ({ ...s, color: c })) : setSubjectForm(f => ({ ...f, color: c }))}
+                  />
+                );
+              })}
+            </div>
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setShowAddSubject(false); setEditSubject(null); }}>{t("acal2_cancel")}</Button>
             <Button
@@ -1240,6 +1362,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                     days: editSubject.days,
                     startTime: editSubject.startTime,
                     endTime: editSubject.endTime,
+                    color: editSubject.color || undefined,
                   });
                 } else {
                   addSubjectMut.mutate({
@@ -1253,6 +1376,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                     days: subjectForm.days,
                     startTime: subjectForm.startTime,
                     endTime: subjectForm.endTime,
+                    color: subjectForm.color || undefined,
                   });
                 }
               }}

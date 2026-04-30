@@ -2313,6 +2313,7 @@ export const academicCalendars = mysqlTable("academic_calendars", {
   morningBreakEnd: varchar("morningBreakEnd", { length: 8 }),
   lunchBreakStart: varchar("lunchBreakStart", { length: 8 }),
   lunchBreakEnd: varchar("lunchBreakEnd", { length: 8 }),
+  isPublished: int("isPublished").notNull().default(0),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
@@ -2384,6 +2385,7 @@ export const acSubjects = mysqlTable("ac_subjects", {
   days: text("days").notNull().default("[]"),
   startTime: varchar("startTime", { length: 8 }).notNull().default("09:00"),
   endTime: varchar("endTime", { length: 8 }).notNull().default("10:00"),
+  color: varchar("color", { length: 20 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });

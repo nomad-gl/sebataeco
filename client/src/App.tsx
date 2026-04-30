@@ -33,6 +33,7 @@ import Forum from "./pages/Forum";
 import SebaConnect from "./pages/SebaConnect";
 import SchoolCalendar from "./pages/SchoolCalendar";
 import AcademicCalendar from "./pages/AcademicCalendar";
+import TeacherTimetable from "./pages/TeacherTimetable";
 import LessonPlanner from "./pages/LessonPlanner";
 import Help from "./pages/Help";
 import Settings from "./pages/Settings";
@@ -201,6 +202,7 @@ function Router() {
         <Route path="/forum" component={Forum} />
         <Route path="/connect" component={SebaConnect} />
         <Route path="/academic-calendar" component={AcademicCalendar} />
+        <Route path="/teacher-timetable" component={TeacherTimetable} />
         <Route path="/school-calendar" component={SchoolCalendar} />
         <Route path="/lesson-planner" component={LessonPlanner} />
         <Route path="/help" component={Help} />

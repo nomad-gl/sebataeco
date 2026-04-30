@@ -5106,3 +5106,21 @@
 - [ ] Hours-per-semester display: totalHours / semesterCount shown on each subject card
 - [ ] i18n keys for subject management (EN/ES/CA)
 - [ ] TypeScript 0 errors after subject feature
+
+## Academic Calendar Follow-ups
+
+- [x] Feature 3: Duplicate Calendar to Next Year — duplicateCalendar procedure (copy teachers, subjects, sessions, breaks, semester dates to new year)
+- [ ] Feature 3: Duplicate button in CalendarList with year picker dialog
+- [ ] Feature 5: Add color column to ac_subjects table (migration 0066)
+- [ ] Feature 5: updateSubject accepts color field; listSubjects returns color
+- [ ] Feature 5: Subject colour picker in add/edit subject dialog
+- [ ] Feature 5: Visual colour-blocked timetable grid in Subjects tab
+- [ ] Feature 2: Conflict Resolution — suggestFix procedure (find free slot for clashing session)
+- [ ] Feature 2: "Suggest Fix" button on each clash alert; apply suggestion with one click
+- [ ] Feature 4: Add isPublished column to academic_calendars (migration 0067)
+- [ ] Feature 4: publishCalendar / unpublishCalendar procedures
+- [ ] Feature 4: Publish toggle button in CalendarDetail header
+- [ ] Feature 4: Teacher timetable view page (/academic-calendar/:id/timetable) accessible to all logged-in users
+- [ ] Feature 1: academicCalendar.exportPdf procedure — generate PDF with timetable grid, teacher hours, semester dates, breaks
+- [ ] Feature 1: Export PDF button in CalendarDetail header
+- [ ] Add i18n keys for all new features (EN/ES/CA)
