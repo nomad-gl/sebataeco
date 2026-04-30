@@ -5244,3 +5244,8 @@
 - [x] Monthly calendar: breakDates computed before session mapping; break days skipped when adding sessions to cells
 - [x] Semester calendar: same fix applied; also includes semester=0 (all-semester) breaks
 - [x] Schedule tab: no change needed (recurring slot view, not date-specific)
+
+## Bug: Semester/Academic Year Calendar Views Empty
+
+- [ ] Diagnose why Semester 1/2/3 and Academic Year views show no sessions despite subjects existing
+- [ ] Fix the root cause and verify all views populate correctly

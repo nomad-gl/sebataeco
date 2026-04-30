@@ -28,6 +28,18 @@ function getDays(lang: string) {
   return DAYS;
 }
 
+/** Safely convert a Date object or ISO string to YYYY-MM-DD format */
+function toDateStr(d: Date | string | null | undefined): string {
+  if (!d) return "";
+  if (d instanceof Date) return d.toISOString().slice(0, 10);
+  // If it's already an ISO string like "2025-09-08T04:00:00.000Z", slice works fine
+  // If it's "2025-09-08", also fine
+  const s = String(d);
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  // Fallback: parse as Date
+  return new Date(s).toISOString().slice(0, 10);
+}
+
 function formatBreakLength(start: string | Date, end: string | Date): string {
   const s = new Date(start);
   const e = new Date(end);
@@ -645,7 +657,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                 const n = calendar.semesterCount ?? 2;
                 const arr = Array.from({ length: n }, (_, i) => {
                   const existing = semesterDates.find(s => s.semesterNumber === i + 1);
-                  return { startDate: existing?.startDate ? String(existing.startDate).slice(0, 10) : "", endDate: existing?.endDate ? String(existing.endDate).slice(0, 10) : "" };
+                  return { startDate: toDateStr(existing?.startDate), endDate: toDateStr(existing?.endDate) };
                 });
                 setSemDateForm(arr);
                 setEditingSemDates(true);
@@ -707,7 +719,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
             {semesterDates.map(s => (
               <div key={s.id} className="flex items-center gap-3">
                 <span className="bg-blue-600/40 text-blue-100 text-xs font-bold px-2 py-0.5 rounded">{t("acal2_semester")} {s.semesterNumber}</span>
-                <span className="text-white text-sm">{String(s.startDate).slice(0, 10)} → {String(s.endDate).slice(0, 10)}</span>
+                <span className="text-white text-sm">{toDateStr(s.startDate)} → {toDateStr(s.endDate)}</span>
               </div>
             ))}
           </div>
@@ -1001,8 +1013,8 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                             size="sm"
                             className="text-blue-300 hover:text-white hover:bg-blue-600/30 h-7 w-7 p-0"
                             onClick={() => {
-                              setEditBreak({ id: br.id, semester: br.semester, label: br.label, startDate: String(br.startDate).slice(0, 10), endDate: String(br.endDate).slice(0, 10) });
-                              setEditBreakForm({ semester: String(br.semester), label: br.label, startDate: String(br.startDate).slice(0, 10), endDate: String(br.endDate).slice(0, 10) });
+setEditBreak({ id: br.id, semester: br.semester, label: br.label, startDate: toDateStr(br.startDate), endDate: toDateStr(br.endDate) });
+                               setEditBreakForm({ semester: String(br.semester), label: br.label, startDate: toDateStr(br.startDate), endDate: toDateStr(br.endDate) });
                             }}
                           >
                             <Edit2 className="w-3.5 h-3.5" />
@@ -1294,8 +1306,8 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
             // Build break overlay first so we can skip break dates when mapping sessions
             const breakDates = new Set<string>();
             for (const br of (data?.breaks ?? [])) {
-              const bStart = new Date(String(br.startDate).slice(0, 10) + "T00:00:00");
-              const bEnd = new Date(String(br.endDate).slice(0, 10) + "T00:00:00");
+              const bStart = new Date(toDateStr(br.startDate) + "T00:00:00");
+              const bEnd = new Date(toDateStr(br.endDate) + "T00:00:00");
               for (let d = new Date(bStart); d <= bEnd; d.setDate(d.getDate() + 1)) {
                 breakDates.add(d.toISOString().slice(0, 10));
               }
@@ -1399,8 +1411,8 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                 <p className="text-blue-200">{t("acal2_cal_no_semdate")}</p>
               </div>
             );
-            const semStart = String(semDate.startDate).slice(0, 10);
-            const semEnd = String(semDate.endDate).slice(0, 10);
+            const semStart = toDateStr(semDate.startDate);
+            const semEnd = toDateStr(semDate.endDate);
             // Build weeks: each week starts on Monday
             const startD = new Date(semStart + "T00:00:00");
             const endD = new Date(semEnd + "T00:00:00");
@@ -1439,8 +1451,8 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
             // Build break dates first so we can skip them when mapping sessions
             const breakDates = new Set<string>();
             for (const br of (data?.breaks ?? []).filter(b => b.semester === semNum || b.semester === 0)) {
-              const bStart = new Date(String(br.startDate).slice(0, 10) + "T00:00:00");
-              const bEnd = new Date(String(br.endDate).slice(0, 10) + "T00:00:00");
+              const bStart = new Date(toDateStr(br.startDate) + "T00:00:00");
+              const bEnd = new Date(toDateStr(br.endDate) + "T00:00:00");
               for (let d = new Date(bStart); d <= bEnd; d.setDate(d.getDate() + 1)) {
                 breakDates.add(d.toISOString().slice(0, 10));
               }
@@ -1552,8 +1564,8 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
               </div>
             );
             // Determine full year range
-            const allStarts = semesterDates.map(sd => String(sd.startDate).slice(0, 10)).sort();
-            const allEnds = semesterDates.map(sd => String(sd.endDate).slice(0, 10)).sort();
+            const allStarts = semesterDates.map(sd => toDateStr(sd.startDate)).sort();
+            const allEnds = semesterDates.map(sd => toDateStr(sd.endDate)).sort();
             const yearStart = allStarts[0];
             const yearEnd = allEnds[allEnds.length - 1];
             // Build month list
@@ -1570,8 +1582,8 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
             // Build break set
             const breakDates = new Set<string>();
             for (const br of (data?.breaks ?? [])) {
-              const s = new Date(String(br.startDate).slice(0, 10) + "T00:00:00");
-              const e = new Date(String(br.endDate).slice(0, 10) + "T00:00:00");
+              const s = new Date(toDateStr(br.startDate) + "T00:00:00");
+              const e = new Date(toDateStr(br.endDate) + "T00:00:00");
               for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
                 breakDates.add(d.toISOString().slice(0, 10));
               }
@@ -1579,7 +1591,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
             // Build semester membership
             const semForDate = (dateStr: string): number | null => {
               for (const sd of semesterDates) {
-                if (dateStr >= String(sd.startDate).slice(0, 10) && dateStr <= String(sd.endDate).slice(0, 10)) return sd.semesterNumber;
+                if (dateStr >= toDateStr(sd.startDate) && dateStr <= toDateStr(sd.endDate)) return sd.semesterNumber;
               }
               return null;
             };
@@ -1804,7 +1816,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                   const jd = c.getDay(); const d = jd === 0 ? 7 : jd;
                   if (d === dayNum) {
                     const ds = c.toISOString().slice(0, 10);
-                    if (!bps.some(b => ds >= String(b.startDate).slice(0, 10) && ds <= String(b.endDate).slice(0, 10))) n++;
+                    if (!bps.some(b => ds >= toDateStr(b.startDate) && ds <= toDateStr(b.endDate))) n++;
                   }
                   c.setDate(c.getDate() + 1);
                 }
@@ -1813,20 +1825,20 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
 
               // Semester N scope
               const semDate = semesterDates.find(sd => sd.semesterNumber === subjectSemester);
-              const semStart = semDate ? String(semDate.startDate).slice(0, 10) : null;
-              const semEnd = semDate ? String(semDate.endDate).slice(0, 10) : null;
+              const semStart = semDate ? toDateStr(semDate.startDate) : null;
+              const semEnd = semDate ? toDateStr(semDate.endDate) : null;
               const semCount = semStart && semEnd ? countSessions(semStart, semEnd, [subjectSemester]) : 0;
 
               // 2 Semesters scope (first two semesters that have dates)
               const sortedSemDates = [...semesterDates].sort((a, b) => a.semesterNumber - b.semesterNumber);
               const twoSemDates = sortedSemDates.slice(0, 2);
-              const twoStart = twoSemDates[0] ? String(twoSemDates[0].startDate).slice(0, 10) : null;
-              const twoEnd = twoSemDates[1] ? String(twoSemDates[1].endDate).slice(0, 10) : (twoSemDates[0] ? String(twoSemDates[0].endDate).slice(0, 10) : null);
+              const twoStart = twoSemDates[0] ? toDateStr(twoSemDates[0].startDate) : null;
+              const twoEnd = twoSemDates[1] ? toDateStr(twoSemDates[1].endDate) : (twoSemDates[0] ? toDateStr(twoSemDates[0].endDate) : null);
               const twoCount = twoStart && twoEnd ? countSessions(twoStart, twoEnd, twoSemDates.map(s => s.semesterNumber)) : 0;
 
               // Academic Year scope (all semesters)
-              const yearStart = sortedSemDates[0] ? String(sortedSemDates[0].startDate).slice(0, 10) : null;
-              const yearEnd = sortedSemDates[sortedSemDates.length - 1] ? String(sortedSemDates[sortedSemDates.length - 1].endDate).slice(0, 10) : null;
+              const yearStart = sortedSemDates[0] ? toDateStr(sortedSemDates[0].startDate) : null;
+              const yearEnd = sortedSemDates[sortedSemDates.length - 1] ? toDateStr(sortedSemDates[sortedSemDates.length - 1].endDate) : null;
               const yearCount = yearStart && yearEnd ? countSessions(yearStart, yearEnd, sortedSemDates.map(s => s.semesterNumber)) : 0;
 
               const showTwo = calendar.semesterCount >= 2 && twoSemDates.length >= 2;
@@ -1884,15 +1896,15 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                   let semNums: number[] = [];
                   if (prefillScope === 'semester') {
                     const sd = semesterDates.find(s => s.semesterNumber === subjectSemester);
-                    if (sd) { rangeStart = String(sd.startDate).slice(0, 10); rangeEnd = String(sd.endDate).slice(0, 10); semNums = [subjectSemester]; }
+                    if (sd) { rangeStart = toDateStr(sd.startDate); rangeEnd = toDateStr(sd.endDate); semNums = [subjectSemester]; }
                   } else if (prefillScope === 'two') {
                     const two = sortedSD.slice(0, 2);
-                    rangeStart = two[0] ? String(two[0].startDate).slice(0, 10) : null;
-                    rangeEnd = two[1] ? String(two[1].endDate).slice(0, 10) : (two[0] ? String(two[0].endDate).slice(0, 10) : null);
+                    rangeStart = two[0] ? toDateStr(two[0].startDate) : null;
+                    rangeEnd = two[1] ? toDateStr(two[1].endDate) : (two[0] ? toDateStr(two[0].endDate) : null);
                     semNums = two.map(s => s.semesterNumber);
                   } else if (prefillScope === 'year') {
-                    rangeStart = sortedSD[0] ? String(sortedSD[0].startDate).slice(0, 10) : null;
-                    rangeEnd = sortedSD[sortedSD.length - 1] ? String(sortedSD[sortedSD.length - 1].endDate).slice(0, 10) : null;
+                    rangeStart = sortedSD[0] ? toDateStr(sortedSD[0].startDate) : null;
+                    rangeEnd = sortedSD[sortedSD.length - 1] ? toDateStr(sortedSD[sortedSD.length - 1].endDate) : null;
                     semNums = sortedSD.map(s => s.semesterNumber);
                   }
                   if (!rangeStart || !rangeEnd) return;
@@ -1907,7 +1919,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                     const dow = jsDow === 0 ? 7 : jsDow;
                     if (dow === dayNum) {
                       const dateStr = cur.toISOString().slice(0, 10);
-                      const inBreak = breakPeriods.some(b => dateStr >= String(b.startDate).slice(0, 10) && dateStr <= String(b.endDate).slice(0, 10));
+                      const inBreak = breakPeriods.some(b => dateStr >= toDateStr(b.startDate) && dateStr <= toDateStr(b.endDate));
                       if (!inBreak) {
                         rows.push({ calendarId, teacherId, subject: sessionForm.subject, dayOfWeek: dayNum, startTime: sessionForm.startTime, endTime: sessionForm.endTime, classGroup: sessionForm.classGroup || undefined, sessionDate: dateStr });
                       }
