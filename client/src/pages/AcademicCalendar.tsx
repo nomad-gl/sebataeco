@@ -13,9 +13,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { CalendarDays, Plus, Trash2, Edit2, AlertTriangle, Users, Clock, BookOpen, Coffee, ChevronRight, GraduationCap, Library, Building2, Copy, Eye, EyeOff, Palette, Download } from "lucide-react";
+import { CalendarDays, Plus, Trash2, Edit2, AlertTriangle, Users, Clock, BookOpen, Coffee, ChevronLeft, ChevronRight, GraduationCap, Library, Building2, Copy, Eye, EyeOff, Palette, Download } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 const DAYS_ES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
@@ -398,6 +399,14 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
   const [localTeacherHours, setLocalTeacherHours] = useState<Record<number, number>>({});
   const [deleteSubjectId, setDeleteSubjectId] = useState<number | null>(null);
 
+  // Calendar view state
+  type CalViewMode = "monthly" | `semester-${number}` | "year";
+  const [calView, setCalView] = useState<CalViewMode>("monthly");
+  const [calMonth, setCalMonth] = useState<Date>(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
+
   const invalidate = () => {
     utils.academicCalendar.getCalendar.invalidate({ id: calendarId });
     utils.academicCalendar.listSubjects.invalidate({ calendarId });
@@ -693,6 +702,9 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
           </TabsTrigger>
           <TabsTrigger value="subjects" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-blue-200">
             <Library className="w-4 h-4 mr-1.5" /> {t("acal2_tab_subjects")} ({subjects.length})
+          </TabsTrigger>
+          <TabsTrigger value="calendar" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-blue-200">
+            <CalendarDays className="w-4 h-4 mr-1.5" /> {t("acal2_tab_calendar")}
           </TabsTrigger>
         </TabsList>
 
@@ -1023,6 +1035,386 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
               </div>
             );
           })}
+        </TabsContent>
+
+        {/* ── Calendar Tab ── */}
+        <TabsContent value="calendar" className="mt-4">
+          {/* View switcher */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            <Button
+              size="sm"
+              variant={calView === "monthly" ? "default" : "outline"}
+              className={calView === "monthly" ? "bg-blue-600 hover:bg-blue-700 text-white" : "border-white/30 text-blue-200 hover:bg-white/10 bg-transparent"}
+              onClick={() => setCalView("monthly")}
+            >
+              {t("acal2_view_monthly")}
+            </Button>
+            {Array.from({ length: calendar.semesterCount }, (_, i) => i + 1).map(sem => (
+              <Button
+                key={sem}
+                size="sm"
+                variant={calView === `semester-${sem}` ? "default" : "outline"}
+                className={calView === `semester-${sem}` ? "bg-blue-600 hover:bg-blue-700 text-white" : "border-white/30 text-blue-200 hover:bg-white/10 bg-transparent"}
+                onClick={() => setCalView(`semester-${sem}` as CalViewMode)}
+              >
+                {t("acal2_view_semester")} {sem}
+              </Button>
+            ))}
+            <Button
+              size="sm"
+              variant={calView === "year" ? "default" : "outline"}
+              className={calView === "year" ? "bg-blue-600 hover:bg-blue-700 text-white" : "border-white/30 text-blue-200 hover:bg-white/10 bg-transparent"}
+              onClick={() => setCalView("year")}
+            >
+              {t("acal2_view_year")}
+            </Button>
+          </div>
+
+          {/* Monthly View */}
+          {calView === "monthly" && (() => {
+            const year = calMonth.getFullYear();
+            const month = calMonth.getMonth();
+            const firstDayJS = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const startOffset = (firstDayJS + 6) % 7; // Monday-first
+            const cells: (string | null)[] = Array(startOffset).fill(null);
+            for (let d = 1; d <= daysInMonth; d++) {
+              cells.push(`${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`);
+            }
+            while (cells.length % 7 !== 0) cells.push(null);
+            const today = new Date().toISOString().slice(0, 10);
+            const DAY_LABELS_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+            // Build session map by date
+            const sessionsByDate: Record<string, typeof sessions> = {};
+            for (const s of sessions) {
+              if ((s as any).sessionDate) {
+                const key = String((s as any).sessionDate).slice(0, 10);
+                if (!sessionsByDate[key]) sessionsByDate[key] = [];
+                sessionsByDate[key].push(s);
+              } else {
+                // Recurring: add to every matching weekday in this month
+                for (let d = 1; d <= daysInMonth; d++) {
+                  const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+                  const jsDow = new Date(dateStr + "T00:00:00").getDay();
+                  const dow = jsDow === 0 ? 7 : jsDow;
+                  if (dow === s.dayOfWeek) {
+                    if (!sessionsByDate[dateStr]) sessionsByDate[dateStr] = [];
+                    sessionsByDate[dateStr].push(s);
+                  }
+                }
+              }
+            }
+            // Build break overlay
+            const breakDates = new Set<string>();
+            for (const br of (data?.breaks ?? [])) {
+              const s = new Date(String(br.startDate).slice(0, 10) + "T00:00:00");
+              const e = new Date(String(br.endDate).slice(0, 10) + "T00:00:00");
+              for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+                breakDates.add(d.toISOString().slice(0, 10));
+              }
+            }
+            const monthLabel = calMonth.toLocaleDateString(lang === "ca" ? "ca-ES" : lang === "es" ? "es-ES" : "en-GB", { month: "long", year: "numeric" });
+            return (
+              <div className="bg-white/5 border border-white/20 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <Button variant="ghost" size="sm" className="text-blue-200 hover:text-white hover:bg-white/10" onClick={() => setCalMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))}>
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <h3 className="text-white font-semibold capitalize">{monthLabel}</h3>
+                  <Button variant="ghost" size="sm" className="text-blue-200 hover:text-white hover:bg-white/10" onClick={() => setCalMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1))}>
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-7 gap-1">
+                  {DAY_LABELS_SHORT.map(d => (
+                    <div key={d} className="text-center text-xs font-semibold text-blue-300/70 py-1">{d}</div>
+                  ))}
+                  {cells.map((dateStr, i) => {
+                    if (!dateStr) return <div key={`e-${i}`} />;
+                    const daySessions = sessionsByDate[dateStr] ?? [];
+                    const isToday = dateStr === today;
+                    const isBreak = breakDates.has(dateStr);
+                    return (
+                      <div
+                        key={dateStr}
+                        className={cn(
+                          "min-h-[60px] rounded-lg p-1 border text-left",
+                          isBreak ? "bg-orange-500/15 border-orange-400/30" : "bg-white/5 border-white/10",
+                          isToday && "ring-2 ring-blue-400/60"
+                        )}
+                      >
+                        <span className={cn("text-xs font-medium block mb-0.5", isToday ? "text-white font-bold" : "text-white/70")}>
+                          {parseInt(dateStr.slice(8))}
+                        </span>
+                        {isBreak && daySessions.length === 0 && (
+                          <span className="text-orange-300/70 text-[9px] leading-tight block">break</span>
+                        )}
+                        <div className="space-y-0.5">
+                          {daySessions.slice(0, 2).map(s => {
+                            const subColor = subjects.find(sub => sub.name === s.subject)?.color;
+                            return (
+                              <div
+                                key={s.id}
+                                className="text-[9px] leading-tight rounded px-1 py-0.5 truncate text-white"
+                                style={{ backgroundColor: subColor ? subColor + "99" : "rgba(59,130,246,0.5)" }}
+                                title={`${s.subject} ${s.startTime}–${s.endTime}`}
+                              >
+                                {s.subject}
+                              </div>
+                            );
+                          })}
+                          {daySessions.length > 2 && (
+                            <div className="text-blue-300/60 text-[9px]">+{daySessions.length - 2}</div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Semester View */}
+          {calView.startsWith("semester-") && (() => {
+            const semNum = parseInt(calView.replace("semester-", ""));
+            const semDate = semesterDates.find(sd => sd.semesterNumber === semNum);
+            if (!semDate) return (
+              <div className="bg-white/5 border border-white/20 rounded-xl p-8 text-center">
+                <CalendarDays className="w-8 h-8 text-blue-300 mx-auto mb-2" />
+                <p className="text-blue-200">{t("acal2_cal_no_semdate")}</p>
+              </div>
+            );
+            const semStart = String(semDate.startDate).slice(0, 10);
+            const semEnd = String(semDate.endDate).slice(0, 10);
+            // Build weeks: each week starts on Monday
+            const startD = new Date(semStart + "T00:00:00");
+            const endD = new Date(semEnd + "T00:00:00");
+            // Align to Monday
+            const dow0 = startD.getDay();
+            const offset = (dow0 + 6) % 7;
+            const weekStart = new Date(startD);
+            weekStart.setDate(weekStart.getDate() - offset);
+            const weeks: string[][] = [];
+            const cur = new Date(weekStart);
+            while (cur <= endD) {
+              const week: string[] = [];
+              for (let d = 0; d < 5; d++) { // Mon–Fri only
+                week.push(cur.toISOString().slice(0, 10));
+                cur.setDate(cur.getDate() + 1);
+              }
+              cur.setDate(cur.getDate() + 2); // skip Sat+Sun
+              weeks.push(week);
+            }
+            // Session map by date
+            const sessionsByDate: Record<string, typeof sessions> = {};
+            for (const s of sessions) {
+              if ((s as any).sessionDate) {
+                const key = String((s as any).sessionDate).slice(0, 10);
+                if (!sessionsByDate[key]) sessionsByDate[key] = [];
+                sessionsByDate[key].push(s);
+              } else {
+                for (const week of weeks) {
+                  for (const dateStr of week) {
+                    const jsDow = new Date(dateStr + "T00:00:00").getDay();
+                    const dow = jsDow === 0 ? 7 : jsDow;
+                    if (dow === s.dayOfWeek) {
+                      if (!sessionsByDate[dateStr]) sessionsByDate[dateStr] = [];
+                      sessionsByDate[dateStr].push(s);
+                    }
+                  }
+                }
+              }
+            }
+            const breakDates = new Set<string>();
+            for (const br of (data?.breaks ?? []).filter(b => b.semester === semNum)) {
+              const s = new Date(String(br.startDate).slice(0, 10) + "T00:00:00");
+              const e = new Date(String(br.endDate).slice(0, 10) + "T00:00:00");
+              for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+                breakDates.add(d.toISOString().slice(0, 10));
+              }
+            }
+            const today = new Date().toISOString().slice(0, 10);
+            const DAY_LABELS_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+            return (
+              <div className="bg-white/5 border border-white/20 rounded-xl p-4 overflow-x-auto">
+                <div className="mb-3">
+                  <h3 className="text-white font-semibold">{t("acal2_view_semester")} {semNum}</h3>
+                  <p className="text-blue-200 text-sm">{semStart} → {semEnd}</p>
+                </div>
+                <div className="min-w-[560px]">
+                  <div className="grid grid-cols-5 gap-1 mb-1">
+                    {DAY_LABELS_SHORT.map(d => (
+                      <div key={d} className="text-center text-xs font-semibold text-blue-300/70 py-1">{d}</div>
+                    ))}
+                  </div>
+                  {weeks.map((week, wi) => {
+                    const weekLabel = week[0].slice(5).replace("-", "/");
+                    return (
+                      <div key={wi} className="flex items-start gap-1 mb-1">
+                        <div className="w-10 shrink-0 text-right text-[10px] text-blue-400/60 pt-1.5 pr-1">{weekLabel}</div>
+                        <div className="flex-1 grid grid-cols-5 gap-1">
+                          {week.map(dateStr => {
+                            const inSem = dateStr >= semStart && dateStr <= semEnd;
+                            const isBreak = breakDates.has(dateStr);
+                            const daySessions = inSem ? (sessionsByDate[dateStr] ?? []) : [];
+                            const isToday = dateStr === today;
+                            return (
+                              <div
+                                key={dateStr}
+                                className={cn(
+                                  "min-h-[44px] rounded p-1 border text-left",
+                                  !inSem ? "bg-white/2 border-white/5 opacity-30" :
+                                  isBreak ? "bg-orange-500/15 border-orange-400/30" :
+                                  "bg-white/5 border-white/10",
+                                  isToday && "ring-2 ring-blue-400/60"
+                                )}
+                              >
+                                <span className={cn("text-[10px] font-medium block", isToday ? "text-white font-bold" : "text-white/60")}>
+                                  {parseInt(dateStr.slice(8))}
+                                </span>
+                                {isBreak && daySessions.length === 0 && (
+                                  <span className="text-orange-300/60 text-[8px] leading-tight block">break</span>
+                                )}
+                                <div className="space-y-0.5">
+                                  {daySessions.slice(0, 2).map(s => {
+                                    const subColor = subjects.find(sub => sub.name === s.subject)?.color;
+                                    return (
+                                      <div
+                                        key={s.id}
+                                        className="text-[8px] leading-tight rounded px-0.5 py-0.5 truncate text-white"
+                                        style={{ backgroundColor: subColor ? subColor + "99" : "rgba(59,130,246,0.5)" }}
+                                        title={`${s.subject} ${s.startTime}–${s.endTime}`}
+                                      >
+                                        {s.subject}
+                                      </div>
+                                    );
+                                  })}
+                                  {daySessions.length > 2 && (
+                                    <div className="text-blue-300/60 text-[8px]">+{daySessions.length - 2}</div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Academic Year View */}
+          {calView === "year" && (() => {
+            if (semesterDates.length === 0) return (
+              <div className="bg-white/5 border border-white/20 rounded-xl p-8 text-center">
+                <CalendarDays className="w-8 h-8 text-blue-300 mx-auto mb-2" />
+                <p className="text-blue-200">{t("acal2_cal_no_semdate")}</p>
+              </div>
+            );
+            // Determine full year range
+            const allStarts = semesterDates.map(sd => String(sd.startDate).slice(0, 10)).sort();
+            const allEnds = semesterDates.map(sd => String(sd.endDate).slice(0, 10)).sort();
+            const yearStart = allStarts[0];
+            const yearEnd = allEnds[allEnds.length - 1];
+            // Build month list
+            const startYear = parseInt(yearStart.slice(0, 4));
+            const startMon = parseInt(yearStart.slice(5, 7)) - 1;
+            const endYear = parseInt(yearEnd.slice(0, 4));
+            const endMon = parseInt(yearEnd.slice(5, 7)) - 1;
+            const months: { year: number; month: number }[] = [];
+            let y = startYear, m = startMon;
+            while (y < endYear || (y === endYear && m <= endMon)) {
+              months.push({ year: y, month: m });
+              m++; if (m > 11) { m = 0; y++; }
+            }
+            // Build break set
+            const breakDates = new Set<string>();
+            for (const br of (data?.breaks ?? [])) {
+              const s = new Date(String(br.startDate).slice(0, 10) + "T00:00:00");
+              const e = new Date(String(br.endDate).slice(0, 10) + "T00:00:00");
+              for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+                breakDates.add(d.toISOString().slice(0, 10));
+              }
+            }
+            // Build semester membership
+            const semForDate = (dateStr: string): number | null => {
+              for (const sd of semesterDates) {
+                if (dateStr >= String(sd.startDate).slice(0, 10) && dateStr <= String(sd.endDate).slice(0, 10)) return sd.semesterNumber;
+              }
+              return null;
+            };
+            const SEM_COLORS = ["#3b82f6", "#8b5cf6", "#10b981", "#f59e0b"];
+            const today = new Date().toISOString().slice(0, 10);
+            const DAY_LABELS_SHORT = ["M", "T", "W", "T", "F", "S", "S"];
+            const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            return (
+              <div className="bg-white/5 border border-white/20 rounded-xl p-4">
+                <h3 className="text-white font-semibold mb-1">{t("acal2_view_year")}</h3>
+                <p className="text-blue-200 text-sm mb-4">{yearStart} → {yearEnd}</p>
+                {/* Legend */}
+                <div className="flex flex-wrap gap-3 mb-4">
+                  {semesterDates.map((sd, i) => (
+                    <div key={sd.id} className="flex items-center gap-1.5">
+                      <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: SEM_COLORS[i] + "99" }} />
+                      <span className="text-blue-200 text-xs">{t("acal2_view_semester")} {sd.semesterNumber}</span>
+                    </div>
+                  ))}
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded-sm bg-orange-500/40" />
+                    <span className="text-blue-200 text-xs">Break</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {months.map(({ year: y, month: mo }) => {
+                    const firstDayJS = new Date(y, mo, 1).getDay();
+                    const daysInMonth = new Date(y, mo + 1, 0).getDate();
+                    const startOffset = (firstDayJS + 6) % 7;
+                    const cells: (string | null)[] = Array(startOffset).fill(null);
+                    for (let d = 1; d <= daysInMonth; d++) {
+                      cells.push(`${y}-${String(mo + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`);
+                    }
+                    while (cells.length % 7 !== 0) cells.push(null);
+                    return (
+                      <div key={`${y}-${mo}`} className="bg-white/5 rounded-lg p-2">
+                        <p className="text-blue-200 text-xs font-semibold mb-1">{MONTH_NAMES[mo]} {y}</p>
+                        <div className="grid grid-cols-7 gap-px">
+                          {DAY_LABELS_SHORT.map((d, i) => (
+                            <div key={i} className="text-center text-[8px] text-blue-400/50">{d}</div>
+                          ))}
+                          {cells.map((dateStr, ci) => {
+                            if (!dateStr) return <div key={`e-${ci}`} />;
+                            const sem = semForDate(dateStr);
+                            const isBreak = breakDates.has(dateStr);
+                            const isToday = dateStr === today;
+                            const semColor = sem !== null ? SEM_COLORS[sem - 1] : null;
+                            return (
+                              <div
+                                key={dateStr}
+                                title={dateStr}
+                                className={cn(
+                                  "aspect-square rounded-[2px] flex items-center justify-center text-[7px]",
+                                  isToday ? "ring-1 ring-white" : ""
+                                )}
+                                style={{
+                                  backgroundColor: isBreak ? "rgba(249,115,22,0.35)" : semColor ? semColor + "55" : "transparent",
+                                  color: sem !== null ? "#fff" : "rgba(255,255,255,0.3)",
+                                }}
+                              >
+                                {parseInt(dateStr.slice(8))}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
         </TabsContent>
        </Tabs>
 

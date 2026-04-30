@@ -5142,3 +5142,13 @@
 - [x] Add Session dialog: show "Pre-fill all weeks for semester" toggle when semester dates are set
 - [x] On submit with prefill enabled: generate one dated session row per weekly occurrence of subject.days within semester date range, skipping break periods
 - [x] Fix semester dates edit form: pre-populate all fields with current saved dates when editing
+
+## Academic Calendar — Calendar View Switcher
+
+- [x] Add view switcher bar: Monthly | Semester 1 | Semester 2 | Semester 3 (dynamic) | Academic Year
+- [x] Monthly view: standard month grid (Mon–Sun columns), sessions shown as colour-coded chips on their weekday, breaks shown as shaded ranges
+- [x] Semester view: multi-week grid spanning the full semester date range, weeks as rows, Mon–Fri columns, sessions and breaks visible
+- [x] Academic Year view: compact overview of all semesters side-by-side, one column per month, break bands highlighted
+- [x] View switcher only shows Semester N tabs for semesters that exist (based on calendar.semesterCount)
+- [x] Add i18n keys: acal2_view_monthly, acal2_view_semester, acal2_view_year (EN/ES/CA)
+- [x] View state persists while navigating within the detail page
