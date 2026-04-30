@@ -128,6 +128,9 @@ export default function RoleManagement() {
       void utils.tenants.listUnassignedUsers.invalidate();
       void utils.tenants.listTerritorialDirectors.invalidate();
       void utils.tenants.listRoleAudit.invalidate();
+      // Sync Director Users page so it reflects the updated role immediately
+      void utils.director.listLocalUsers.invalidate();
+      void utils.director.listAllUsersForAdmin.invalidate();
     },
     onError: (err) => toast.error(err.message),
   });

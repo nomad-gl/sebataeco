@@ -63,6 +63,9 @@ export default function SampleQuestions() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [worksheetTitle, setWorksheetTitle] = useState("");
   const [worksheetSubtitle, setWorksheetSubtitle] = useState("");
+  const [worksheetTeacher, setWorksheetTeacher] = useState(user?.name ?? "");
+  const [worksheetClass, setWorksheetClass] = useState("");
+  const [worksheetDate, setWorksheetDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   const YG_LABELS: Record<YearGroup, string> = {
     lower_primary: `${t("admin_lower_primary")} (Yr 1–2)`,
@@ -127,6 +130,9 @@ export default function SampleQuestions() {
       title: worksheetTitle || t("sample_worksheet_default_title"),
       subtitle: worksheetSubtitle || undefined,
       logoDataUrl,
+      teacherName: worksheetTeacher || undefined,
+      className: worksheetClass || undefined,
+      worksheetDate: worksheetDate || undefined,
     });
   };
 
@@ -409,6 +415,37 @@ export default function SampleQuestions() {
                 value={worksheetSubtitle}
                 onChange={(e) => setWorksheetSubtitle(e.target.value)}
                 placeholder={t("sample_worksheet_subtitle_placeholder")}
+              />
+            </div>
+            <Separator />
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{"Teacher / Class Info"}</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="ws-teacher">{t("sa_meta_teacher_name")}</Label>
+                <Input
+                  id="ws-teacher"
+                  value={worksheetTeacher}
+                  onChange={(e) => setWorksheetTeacher(e.target.value)}
+                  placeholder="e.g. Ms García"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="ws-class">{t("sa_meta_class_group")}</Label>
+                <Input
+                  id="ws-class"
+                  value={worksheetClass}
+                  onChange={(e) => setWorksheetClass(e.target.value)}
+                  placeholder="e.g. 5è A"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ws-date">{t("sa_meta_date")}</Label>
+              <Input
+                id="ws-date"
+                type="date"
+                value={worksheetDate}
+                onChange={(e) => setWorksheetDate(e.target.value)}
               />
             </div>
             <div className="rounded-lg bg-muted/50 border p-3 text-sm text-muted-foreground space-y-1">

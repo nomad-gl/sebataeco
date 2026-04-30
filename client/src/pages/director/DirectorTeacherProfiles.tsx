@@ -163,6 +163,13 @@ export default function DirectorTeacherProfiles() {
     onError: (e) => toast.error(e.message),
   });
 
+  // ── Cover Availability tab state ──────────────────────────────────────────
+  const [coverCalendarId, setCoverCalendarId] = useState<number | undefined>(undefined);
+  const { data: coverData, isLoading: coverLoading } = trpc.teacherProfile.getCoverAvailability.useQuery(
+    { calendarId: coverCalendarId },
+    { enabled: true }
+  );
+
   // ── Holiday & Prep tab state ──────────────────────────────────────────────
   const [holidayProfileId, setHolidayProfileId] = useState<number | null>(null);
   const [showProfileForm, setShowProfileForm] = useState(false);
@@ -930,7 +937,67 @@ export default function DirectorTeacherProfiles() {
               </Tabs>
             </div>
           )}
-        </div>
+         </div>
+      </div>
+
+      {/* ── Cover Availability panel (full-width, below grid) ─────────────── */}
+      <div className="mt-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Coffee className="h-5 w-5 text-amber-500" />
+                Cover Availability — Weekly Free Periods
+              </h2>
+              <p className="text-sm text-muted-foreground mt-0.5">Sessions labelled Free, Prep, or Planning across all teachers</p>
+            </div>
+          </div>
+          {coverLoading ? (
+            <div className="flex items-center gap-2 text-muted-foreground py-8"><Loader2 className="h-4 w-4 animate-spin" /> Loading cover data…</div>
+          ) : !coverData || coverData.teachers.length === 0 ? (
+            <Card><CardContent className="py-8 text-center text-muted-foreground">No teachers with free periods found. Add sessions labelled "Free", "Prep", or "Planning" in the Academic Calendar to see availability here.</CardContent></Card>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="bg-muted/50">
+                    <th className="text-left px-3 py-2 font-semibold border border-border min-w-[140px]">Teacher</th>
+                    {(coverData.days ?? ["Monday","Tuesday","Wednesday","Thursday","Friday"]).map(day => (
+                      <th key={day} className="text-center px-3 py-2 font-semibold border border-border min-w-[120px]">{day}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {coverData.teachers.map((teacher) => (
+                    <tr key={teacher.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-3 py-2 border border-border">
+                        <div className="font-medium">{teacher.name}</div>
+                        <div className="text-xs text-muted-foreground">{teacher.weeklyHours}h/wk teaching</div>
+                      </td>
+                      {[1,2,3,4,5].map(day => {
+                        const slots = teacher.freePeriods.filter(fp => fp.day === day);
+                        return (
+                          <td key={day} className="px-2 py-2 border border-border align-top">
+                            {slots.length === 0 ? (
+                              <span className="text-xs text-muted-foreground/40">—</span>
+                            ) : (
+                              <div className="space-y-1">
+                                {slots.map((slot, i) => (
+                                  <div key={i} className="bg-green-50 border border-green-200 rounded px-2 py-1 text-xs">
+                                    <div className="font-medium text-green-800">{slot.startTime}–{slot.endTime}</div>
+                                    <div className="text-green-600 capitalize">{slot.label}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
       </div>
 
       {/* Profile Settings Dialog */}

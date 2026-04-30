@@ -134,6 +134,7 @@ export default function DirectorUsers() {
   const [bulkDeactivateReason, setBulkDeactivateReason] = useState("");
   const [deleteReason, setDeleteReason] = useState("");
 
+  const utils = trpc.useUtils();
   const { data: users = [], isLoading, refetch } = trpc.director.listLocalUsers.useQuery();
   const { data: invites = [], isLoading: invitesLoading, refetch: refetchInvites } =
     trpc.director.listTeacherInvites.useQuery();
@@ -236,6 +237,9 @@ export default function DirectorUsers() {
     onSuccess: () => {
       toast.success(t("dir_users_role_updated_toast"));
       refetch();
+      // Sync Role Management page so it reflects the updated role immediately
+      void utils.director.listAllUsersForAdmin.invalidate();
+      void utils.tenants.list.invalidate();
     },
     onError: (err) => toast.error(err.message),
   });

@@ -199,7 +199,7 @@ export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat, o
   if (collapsed) {
     return (
       <div
-        className="relative flex flex-col items-center h-full bg-white/5 backdrop-blur-sm border-r border-white/10 flex-shrink-0 transition-all duration-200"
+        className="relative flex flex-col items-center h-full overflow-hidden bg-white/5 backdrop-blur-sm border-r border-white/10 flex-shrink-0 transition-all duration-200"
         style={{ width: COLLAPSED_WIDTH }}
       >
         {/* New Chat icon */}
@@ -247,7 +247,7 @@ export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat, o
   // ── Expanded view ─────────────────────────────────────────────────────────
   return (
     <div
-      className="relative flex flex-col h-full bg-white/5 backdrop-blur-sm border-r border-white/10 flex-shrink-0 transition-all duration-200"
+      className="relative flex flex-col h-full overflow-hidden bg-white/5 backdrop-blur-sm border-r border-white/10 flex-shrink-0 transition-all duration-200"
       style={{ width }}
     >
       {/* Header */}

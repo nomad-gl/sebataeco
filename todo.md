@@ -4965,11 +4965,11 @@
 - [x] Fix AINA history sidebar delete button — always visible and functional (not hidden behind opacity-0 hover)
 - [x] Allow user to resize AINA history sidebar width by dragging the right edge
 - [x] Add 'Primary (Yr 1-2)' year group option to Practice Mode (and all related selectors/knowledge bank)
-- [ ] Add TA Forum button to Administration menu
-- [ ] Improve AINA document reproduction (Arial 11pt, professional quality)
+- [x] Add TA Forum button to Administration menu
+- [x] Improve AINA document reproduction (Arial 11pt, professional quality)
 - [ ] Fix missing Catalan translations for Signes de puntuació and Abreviacions
 - [ ] Allow super-admin to delete users
-- [ ] Fix AINA history sidebar independent scroll (should not move with main page scroll)
+- [x] Fix AINA history sidebar independent scroll (should not move with main page scroll)
 - [ ] Personalise AINA suggested questions based on user chat history after re-login
 - [ ] Add web search capability to AINA for Spanish government curriculum sources (Decree 175/2022)
 - [ ] Expand AINA live search to more official educational sources
@@ -5067,12 +5067,12 @@
 - [x] Persist collapsed state in localStorage (aina_history_collapsed key)
 
 ## Question Library — Print Worksheet Metadata Dialog
-- [ ] Add metadata dialog to Print Worksheet (with answers) button in SampleQuestions.tsx
-- [ ] Add metadata dialog to Print Worksheet (without answers) button in SampleQuestions.tsx
-- [ ] Pre-fill school name from branding settings, date from today
-- [ ] Include metadata header in printed worksheet (badge, school name, teacher, class, date)
-- [ ] i18n keys reuse sa_meta_* keys already defined
-- [ ] Run vitest and confirm passing
+- [x] Add metadata dialog to Print Worksheet (with answers) button in SampleQuestions.tsx
+- [x] Add metadata dialog to Print Worksheet (without answers) button in SampleQuestions.tsx
+- [x] Pre-fill school name from branding settings, date from today
+- [x] Include metadata header in printed worksheet (badge, school name, teacher, class, date)
+- [x] i18n keys reuse sa_meta_* keys already defined
+- [x] Run vitest and confirm passing
 
 ## Feature: Academic Calendar (Director)
 - [x] NavBar: add "Create Academic Calendar" button above "Create Subject Calendar" in director & HoS dropdowns
@@ -5280,9 +5280,9 @@
 - [x] Update termCoverage calculation to exclude all non-teaching types
 
 ## Feature: Academic Calendar Background & Teacher Links (2026-04-30)
-- [ ] Apply hero background image to /academic-calendar page (fixed, static background)
-- [ ] Add teacher name as clickable link on academic calendar detail page
-- [ ] Link connects to /director/teacher-profiles?teacher=<id> for individual teacher view
+- [x] Apply hero background image to /academic-calendar page (fixed, static background)
+- [x] Add teacher name as clickable link on academic calendar detail page
+- [x] Link connects to /director/teacher-profiles?teacher=<id> for individual teacher view
 
 ## Feature: Teacher Profiles Page at /director/teacher-profiles (2026-04-30)
 - [ ] DB: teacher_profiles table (contractedHoursPerWeek, prepHoursPerWeek, annualHolidayEntitlement)
@@ -5315,3 +5315,11 @@
 - [x] Add holiday balance section (entitlement, taken, owed, balance) with progress bar and records list
 - [x] Add free period sessions list for cover planning (detects Free/Prep/Planning sessions)
 - [x] Add unit tests for new procedures in teacherProfileExtended.test.ts (all 33 test files passing)
+
+## Feature: Role Management → Director Users Sync
+- [x] Fix DirectorTeacherProfiles.tsx JSX nesting error (Cover Availability panel outside root div)
+- [x] Add missing i18n keys: sa_meta_teacher, sa_meta_class, sa_meta_date
+- [x] When role is updated on /seba/roles, Director Users page (/director/users) reflects the change immediately
+- [ ] Director Users page shows user role badges (teacher, director, head_of_study, admin, etc.)
+- [x] Director Users page auto-refreshes or invalidates when role changes are made
+- [x] Role Management page emits tRPC cache invalidation that Director Users page listens to

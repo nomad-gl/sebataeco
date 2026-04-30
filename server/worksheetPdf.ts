@@ -27,6 +27,9 @@ interface WorksheetOptions {
   includeAnswers: boolean;
   locale: "en" | "es" | "ca";
   logoDataUrl?: string; // base64 data URL (PNG/JPG/SVG) from client localStorage
+  teacherName?: string; // pre-filled on answer key header
+  className?: string;   // pre-filled on answer key header
+  worksheetDate?: string; // pre-filled on answer key header (YYYY-MM-DD or display string)
 }
 
 const LABELS = {
@@ -35,6 +38,7 @@ const LABELS = {
     date: "Date:",
     class: "Class:",
     score: "Score:",
+    teacher: "Teacher:",
     answerKey: "ANSWER KEY",
     explanation: "Explanation:",
     instructions: "Circle the correct answer for each question.",
@@ -45,6 +49,7 @@ const LABELS = {
     date: "Fecha:",
     class: "Clase:",
     score: "Nota:",
+    teacher: "Profesor/a:",
     answerKey: "CLAVE DE RESPUESTAS",
     explanation: "Explicación:",
     instructions: "Rodea con un círculo la respuesta correcta para cada pregunta.",
@@ -55,6 +60,7 @@ const LABELS = {
     date: "Data:",
     class: "Classe:",
     score: "Nota:",
+    teacher: "Professor/a:",
     answerKey: "CLAU DE RESPOSTES",
     explanation: "Explicació:",
     instructions: "Encercla la resposta correcta per a cada pregunta.",
@@ -123,7 +129,7 @@ function buildPdf(opts: WorksheetOptions): Promise<Buffer> {
     doc.moveDown(0.5);
     doc.fillColor("#000000");
 
-    // ── Student info row (only on student copy) ──────────────────────────────
+    // ── Student info row (student copy) / Teacher metadata row (answer key) ───
     if (!opts.includeAnswers) {
       const infoY = doc.y;
       const colW = pageWidth / 2;
@@ -139,7 +145,27 @@ function buildPdf(opts: WorksheetOptions): Promise<Buffer> {
       doc.moveTo(50 + colW + 35, doc.y + 12).lineTo(50 + pageWidth, doc.y + 12).stroke();
       doc.moveDown(1.5);
     } else {
-      doc.moveDown(0.5);
+      // Answer key: show pre-filled teacher metadata if provided
+      const hasMetadata = opts.teacherName || opts.className || opts.worksheetDate;
+      if (hasMetadata) {
+        doc.moveDown(0.3);
+        const infoY = doc.y;
+        const colW = pageWidth / 3;
+        doc.fontSize(10).font("Helvetica").fillColor("#333333");
+        if (opts.teacherName) {
+          doc.text(`${labels.teacher} `, 50, infoY, { continued: true }).font("Helvetica-Bold").text(opts.teacherName, { continued: false });
+        }
+        if (opts.className) {
+          doc.font("Helvetica").text(`${labels.class} `, 50 + colW, infoY, { continued: true }).font("Helvetica-Bold").text(opts.className, { continued: false });
+        }
+        if (opts.worksheetDate) {
+          doc.font("Helvetica").text(`${labels.date} `, 50 + colW * 2, infoY, { continued: true }).font("Helvetica-Bold").text(opts.worksheetDate, { continued: false });
+        }
+        doc.fillColor("#000000");
+        doc.moveDown(1.0);
+      } else {
+        doc.moveDown(0.5);
+      }
     }
 
     // ── Instructions ─────────────────────────────────────────────────────────

@@ -836,12 +836,21 @@ Structure your responses clearly. Use these patterns depending on the question t
             `The teacher has uploaded a document for LOMLOE-aligned analysis and improvement.\n` +
             `Document content:\n---\n${input.documentContext}\n---\n\n` +
             `Instructions:\n` +
-            `1. Analyse the document against Spain's LOMLOE curriculum competencies.\n` +
+            `1. Analyse the document against Spain's LOMLOE curriculum competencies (Decret 175/2022 for Catalonia).\n` +
             `2. Identify strengths and specific areas for improvement.\n` +
             `3. Produce a complete improved version of the document, clearly marked with [IMPROVED DOCUMENT START] and [IMPROVED DOCUMENT END] tags.\n` +
             `4. The improved version must be LOMLOE-aligned, pedagogically sound, and ready to use.\n` +
             `5. CRITICAL \u2014 Infinitive rule check: Scan every compet\u00e8ncia espec\u00edfica, criteri d'avaluaci\u00f3, objectiu did\u00e0ctic, and indicador competencial in the document. Any item whose main verb is NOT in the infinitive form (infinitiu) MUST be corrected in the improved version. Flag these corrections explicitly in your explanation.\n` +
-            `6. After the improved version, briefly explain the key changes made, including any infinitive-form corrections.\n\n` +
+            `6. FORMATTING RULES for the improved document (these rules apply ONLY inside the [IMPROVED DOCUMENT START]...[IMPROVED DOCUMENT END] block):\n` +
+            `   a) Use Markdown headings: # for main title, ## for major sections, ### for subsections.\n` +
+            `   b) Use **bold** for key terms, curriculum labels (Competència Específica, Criteri d'Avaluació, etc.), and important instructions.\n` +
+            `   c) Use numbered lists (1. 2. 3.) for ordered items (competències, criteris, objectius, indicadors).\n` +
+            `   d) Use bullet lists (- ) for unordered items (materials, resources, activities).\n` +
+            `   e) Include a professional document header with: document type, subject/area, year group, school year, and teacher name (if present in the original).\n` +
+            `   f) Maintain formal academic register throughout. Use Catalan or Spanish consistently matching the original document language.\n` +
+            `   g) Do NOT include any meta-commentary, explanations, or notes inside the improved document block — keep it clean and ready to print.\n` +
+            `   h) The document will be exported as a professional Arial 11pt Word (.docx) file, so structure it accordingly.\n` +
+            `7. After the improved version, briefly explain the key changes made, including any infinitive-form corrections.\n\n` +
             `Teacher's request: `
           : `[Uploaded document context — use this to answer the teacher's question]:\n${input.documentContext}\n\n[Teacher's question]: `
         : "";
@@ -1225,6 +1234,9 @@ Structure your responses clearly. Use these patterns depending on the question t
         title: z.string().max(120).default("LOMLOE Question Worksheet"),
         subtitle: z.string().max(200).nullish(),
         logoDataUrl: z.string().max(600_000).nullish(), // base64 data URL from client localStorage
+        teacherName: z.string().max(100).nullish(),
+        className: z.string().max(100).nullish(),
+        worksheetDate: z.string().max(40).nullish(),
       })
     )
     .mutation(async ({ input }) => {
@@ -1288,6 +1300,9 @@ Structure your responses clearly. Use these patterns depending on the question t
         questions,
         locale: input.locale,
         logoDataUrl: input.logoDataUrl ?? undefined,
+        teacherName: input.teacherName ?? undefined,
+        className: input.className ?? undefined,
+        worksheetDate: input.worksheetDate ?? undefined,
       });
 
       return result; // { withAnswers: base64, withoutAnswers: base64 }

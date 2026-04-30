@@ -885,4 +885,100 @@ export const teacherProfileRouter = router({
         linkedCalendars: relevantTeachers.map(t => t.calendarId),
       };
     }),
+
+  /**
+   * Get cover availability: all teachers' free/prep periods for a given academic calendar.
+   * Returns a weekly grid (Mon-Fri) of available slots per teacher.
+   */
+  getCoverAvailability: protectedProcedure
+    .input(z.object({ calendarId: z.number().optional() }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) return { teachers: [], days: [] };
+
+      // Get all teachers in the specified calendar (or all calendars if not specified)
+      let teacherRows;
+      if (input.calendarId) {
+        teacherRows = await db
+          .select()
+          .from(acTeachers)
+          .where(eq(acTeachers.calendarId, input.calendarId));
+      } else {
+        teacherRows = await db.select().from(acTeachers);
+      }
+
+      const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+
+      // For each teacher, get their sessions and compute free periods
+      const teacherData = await Promise.all(
+        teacherRows.map(async (teacher) => {
+          const sessions = await db
+            .select()
+            .from(acSessions)
+            .where(eq(acSessions.teacherId, teacher.id));
+
+          // Build occupied slots per day
+          const occupied: Record<number, Array<{ startTime: string; endTime: string; subject: string }>> = {};
+          for (let d = 1; d <= 5; d++) occupied[d] = [];
+          for (const s of sessions) {
+            if (s.dayOfWeek >= 1 && s.dayOfWeek <= 5) {
+              occupied[s.dayOfWeek].push({
+                startTime: s.startTime,
+                endTime: s.endTime,
+                subject: s.subject,
+              });
+            }
+          }
+
+          // Free periods = sessions explicitly labelled free/prep/planning
+          const freePeriods: Array<{ day: number; dayName: string; startTime: string; endTime: string; label: string }> = [];
+          for (const s of sessions) {
+            if (/free|prep|planning|break|recess|cover/i.test(s.subject)) {
+              freePeriods.push({
+                day: s.dayOfWeek,
+                dayName: DAY_NAMES[s.dayOfWeek - 1] ?? `Day ${s.dayOfWeek}`,
+                startTime: s.startTime,
+                endTime: s.endTime,
+                label: s.subject,
+              });
+            }
+          }
+
+          // Sort by day then start time
+          freePeriods.sort((a, b) => a.day - b.day || a.startTime.localeCompare(b.startTime));
+
+          // Weekly teaching hours
+          const weeklyHours = sessions
+            .filter(s => !/free|prep|planning|break|recess/i.test(s.subject))
+            .reduce((sum, s) => {
+              const [sh, sm] = s.startTime.split(":").map(Number);
+              const [eh, em] = s.endTime.split(":").map(Number);
+              return sum + Math.max(0, (eh * 60 + em - sh * 60 - sm) / 60);
+            }, 0);
+
+          return {
+            id: teacher.id,
+            name: teacher.name,
+            email: teacher.email ?? "",
+            weeklyHours: Math.round(weeklyHours * 10) / 10,
+            freePeriods,
+            sessionCount: sessions.filter(s => !/free|prep|planning|break|recess/i.test(s.subject)).length,
+          };
+        })
+      );
+
+      // Deduplicate teachers by name (keep the one with most free periods)
+      const seen = new Map<string, typeof teacherData[0]>();
+      for (const t of teacherData) {
+        const existing = seen.get(t.name);
+        if (!existing || t.freePeriods.length > existing.freePeriods.length) {
+          seen.set(t.name, t);
+        }
+      }
+
+      return {
+        teachers: Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name)),
+        days: DAY_NAMES,
+      };
+    }),
 });
