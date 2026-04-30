@@ -338,6 +338,8 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
   const [showAddSubject, setShowAddSubject] = useState(false);
   const [editSubject, setEditSubject] = useState<null | { id: number; semester: number; name: string; unit: string; classroom: string; maxStudents: string; totalAcademicHours: string; days: number[]; startTime: string; endTime: string }>(null);
   const [subjectForm, setSubjectForm] = useState({ semester: "1", name: "", unit: "", classroom: "", maxStudents: "", totalAcademicHours: "60", days: [] as number[], startTime: "09:00", endTime: "10:00" });
+  // Optimistic local teacher weekly hours (contracted) — updated immediately when director edits the field
+  const [localTeacherHours, setLocalTeacherHours] = useState<Record<number, number>>({});
   const [deleteSubjectId, setDeleteSubjectId] = useState<number | null>(null);
 
   const invalidate = () => {
@@ -363,7 +365,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
     onError: (e) => toast.error(e.message),
   });
   const updateTeacherMut = trpc.academicCalendar.updateTeacher.useMutation({
-    onSuccess: () => { invalidate(); setEditTeacher(null); toast.success(t("acal2_teacher_updated")); },
+    onSuccess: (_, vars) => { invalidate(); setEditTeacher(null); setLocalTeacherHours(prev => { const n = { ...prev }; delete n[vars.id]; return n; }); toast.success(t("acal2_teacher_updated")); },
     onError: (e) => toast.error(e.message),
   });
   const deleteTeacherMut = trpc.academicCalendar.deleteTeacher.useMutation({
@@ -596,7 +598,9 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
               {teachers.map(teacher => {
                 const hrs = teacherHours.find(h => h.teacherId === teacher.id);
                 const allocatedMins = hrs?.weeklyMinutes ?? 0;
-                const contractedMins = teacher.weeklyHours * 60;
+                // Use optimistic local value if director is actively editing this teacher's hours
+                const contractedHours = localTeacherHours[teacher.id] ?? teacher.weeklyHours;
+                const contractedMins = contractedHours * 60;
                 const pct = contractedMins > 0 ? Math.min(100, Math.round((allocatedMins / contractedMins) * 100)) : 0;
                 const overAllocated = allocatedMins > contractedMins;
                 const teacherSessions = sessions.filter(s => s.teacherId === teacher.id);
@@ -888,11 +892,22 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
             </div>
             <div>
               <Label>{t("acal2_contracted_hours")}</Label>
-              <Input type="number" min={1} max={60} value={teacherForm.weeklyHours} onChange={e => setTeacherForm(f => ({ ...f, weeklyHours: e.target.value }))} />
+              <Input
+                type="number" min={1} max={60}
+                value={teacherForm.weeklyHours}
+                onChange={e => {
+                  setTeacherForm(f => ({ ...f, weeklyHours: e.target.value }));
+                  // Optimistically update the progress bar for the teacher being edited
+                  if (editTeacher) {
+                    const v = parseInt(e.target.value);
+                    if (!isNaN(v) && v > 0) setLocalTeacherHours(prev => ({ ...prev, [editTeacher.id]: v }));
+                  }
+                }}
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowAddTeacher(false); setEditTeacher(null); }}>{t("acal2_cancel")}</Button>
+            <Button variant="outline" onClick={() => { setShowAddTeacher(false); if (editTeacher) setLocalTeacherHours(prev => { const n = { ...prev }; delete n[editTeacher.id]; return n; }); setEditTeacher(null); }}>{t("acal2_cancel")}</Button>
             <Button
               onClick={() => {
                 if (editTeacher) {
@@ -1078,7 +1093,32 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                 <Label>{t("acal2_subject_semester")}</Label>
                 <Select
                   value={editSubject ? String(editSubject.semester) : subjectForm.semester}
-                  onValueChange={(v) => editSubject ? setEditSubject(s => s && ({ ...s, semester: parseInt(v) })) : setSubjectForm(f => ({ ...f, semester: v }))}
+                  onValueChange={(v) => {
+                    if (editSubject) {
+                      setEditSubject(s => s && ({ ...s, semester: parseInt(v) }));
+                    } else {
+                      const semNum = parseInt(v);
+                      if (semNum > 1) {
+                        // Auto-populate from Semester 1 subjects (first one found)
+                        const sem1Subject = subjects.find(s => s.semester === 1);
+                        if (sem1Subject) {
+                          setSubjectForm({
+                            semester: v,
+                            name: sem1Subject.name,
+                            unit: sem1Subject.unit ?? "",
+                            classroom: sem1Subject.classroom ?? "",
+                            maxStudents: sem1Subject.maxStudents ? String(sem1Subject.maxStudents) : "",
+                            totalAcademicHours: String(sem1Subject.totalAcademicHours),
+                            days: sem1Subject.days ? JSON.parse(sem1Subject.days) : [],
+                            startTime: sem1Subject.startTime ?? "09:00",
+                            endTime: sem1Subject.endTime ?? "10:00",
+                          });
+                          return;
+                        }
+                      }
+                      setSubjectForm(f => ({ ...f, semester: v }));
+                    }
+                  }}
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
