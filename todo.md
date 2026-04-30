@@ -5110,17 +5110,24 @@
 ## Academic Calendar Follow-ups
 
 - [x] Feature 3: Duplicate Calendar to Next Year — duplicateCalendar procedure (copy teachers, subjects, sessions, breaks, semester dates to new year)
-- [ ] Feature 3: Duplicate button in CalendarList with year picker dialog
-- [ ] Feature 5: Add color column to ac_subjects table (migration 0066)
-- [ ] Feature 5: updateSubject accepts color field; listSubjects returns color
-- [ ] Feature 5: Subject colour picker in add/edit subject dialog
-- [ ] Feature 5: Visual colour-blocked timetable grid in Subjects tab
-- [ ] Feature 2: Conflict Resolution — suggestFix procedure (find free slot for clashing session)
-- [ ] Feature 2: "Suggest Fix" button on each clash alert; apply suggestion with one click
-- [ ] Feature 4: Add isPublished column to academic_calendars (migration 0067)
-- [ ] Feature 4: publishCalendar / unpublishCalendar procedures
-- [ ] Feature 4: Publish toggle button in CalendarDetail header
-- [ ] Feature 4: Teacher timetable view page (/academic-calendar/:id/timetable) accessible to all logged-in users
-- [ ] Feature 1: academicCalendar.exportPdf procedure — generate PDF with timetable grid, teacher hours, semester dates, breaks
-- [ ] Feature 1: Export PDF button in CalendarDetail header
-- [ ] Add i18n keys for all new features (EN/ES/CA)
+- [x] Feature 3: Duplicate button in CalendarList with year picker dialog
+- [x] Feature 5: Add color column to ac_subjects table (migration 0066)
+- [x] Feature 5: updateSubject accepts color field; listSubjects returns color
+- [x] Feature 5: Subject colour picker in add/edit subject dialog
+- [x] Feature 5: Visual colour-blocked timetable grid in Subjects tab
+- [x] Feature 2: Conflict Resolution — suggestFix procedure (find free slot for clashing session)
+- [x] Feature 2: "Suggest Fix" button on each clash alert; apply suggestion with one click
+- [x] Feature 4: Add isPublished column to academic_calendars (migration 0067)
+- [x] Feature 4: publishCalendar / unpublishCalendar procedures
+- [x] Feature 4: Publish toggle button in CalendarDetail header
+- [x] Feature 4: Teacher timetable view page (/teacher-timetable) accessible to all logged-in users
+- [x] Feature 1: academicCalendar.exportPdf procedure — generate PDF with timetable grid, teacher hours, semester dates, breaks
+- [x] Feature 1: Export PDF button in CalendarDetail header
+- [x] Add i18n keys for all new features (EN/ES/CA)
+
+## Academic Calendar Follow-ups (Batch 3)
+- [x] Feature 1: Auto-fill session times from subject on dropdown select
+- [x] Feature 2: Session edit dialog (subject, day, time, group)
+- [x] Feature 3: Teacher timetable visual grid (colour-blocked Mon-Fri x time rows)
+- [x] Feature 4: Student group/class assignment per session (classGroup field)
+- [x] Feature 5: Print schedule per teacher (PDF button on teacher card)

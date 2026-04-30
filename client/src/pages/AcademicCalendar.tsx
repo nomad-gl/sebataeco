@@ -377,8 +377,10 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
 
   // Session form state
   const [showAddSession, setShowAddSession] = useState<number | null>(null); // teacherId
-  const [sessionForm, setSessionForm] = useState({ subject: "", dayOfWeek: "1", startTime: "08:30", endTime: "09:30" });
+  const [sessionForm, setSessionForm] = useState({ subject: "", dayOfWeek: "1", startTime: "08:30", endTime: "09:30", classGroup: "" });
   const [deleteSessionId, setDeleteSessionId] = useState<number | null>(null);
+  const [editSession, setEditSession] = useState<null | { id: number; subject: string; dayOfWeek: number; startTime: string; endTime: string; classGroup: string }>(null);
+  const [editSessionForm, setEditSessionForm] = useState({ subject: "", dayOfWeek: "1", startTime: "08:30", endTime: "09:30", classGroup: "" });
 
   // Break form state
   const [showAddBreak, setShowAddBreak] = useState(false);
@@ -426,7 +428,11 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
 
   // Session mutations
   const addSessionMut = trpc.academicCalendar.addSession.useMutation({
-    onSuccess: () => { invalidate(); setShowAddSession(null); setSessionForm({ subject: "", dayOfWeek: "1", startTime: "08:30", endTime: "09:30" }); toast.success(t("acal2_session_added")); },
+    onSuccess: () => { invalidate(); setShowAddSession(null); setSessionForm({ subject: "", dayOfWeek: "1", startTime: "08:30", endTime: "09:30", classGroup: "" }); toast.success(t("acal2_session_added")); },
+    onError: (e) => toast.error(e.message),
+  });
+  const updateSessionMut = trpc.academicCalendar.updateSession.useMutation({
+    onSuccess: () => { invalidate(); setEditSession(null); toast.success(t("acal2_session_updated")); },
     onError: (e) => toast.error(e.message),
   });
   const deleteSessionMut = trpc.academicCalendar.deleteSession.useMutation({
@@ -770,6 +776,15 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                           >
                             <Plus className="w-3 h-3 mr-1" /> {t("acal2_add_session")}
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-purple-300 hover:text-white hover:bg-purple-600/30 h-8 px-2 text-xs"
+                            onClick={() => exportPdfMut.mutate({ id: calendarId, lang: "en", teacherId: teacher.id })}
+                            disabled={exportPdfMut.isPending}
+                          >
+                            <Download className="w-3 h-3 mr-1" /> {t("acal2_print_schedule")}
+                          </Button>
                         </div>
                       </div>
                     </CardContent>
@@ -816,15 +831,24 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                               ) : (
                                 <div className="space-y-1">
                                   {daySessions.map(s => (
-                                    <div key={s.id} className="bg-blue-600/30 rounded px-2 py-1 text-blue-100 text-xs group relative">
+                                    <div key={s.id} className="bg-blue-600/30 rounded px-2 py-1 text-blue-100 text-xs group relative" style={(() => { const sc = subjects.find(sub => sub.name === s.subject)?.color; return sc ? { borderLeft: `3px solid ${sc}` } : {}; })()}>
                                       <div className="font-medium">{s.subject}</div>
                                       <div className="text-blue-300">{s.startTime}–{s.endTime}</div>
-                                      <button
-                                        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 text-red-300 hover:text-red-200"
-                                        onClick={() => setDeleteSessionId(s.id)}
-                                      >
-                                        <Trash2 className="w-3 h-3" />
-                                      </button>
+                                      {(s as any).classGroup && <div className="text-blue-400/80 text-xs">{(s as any).classGroup}</div>}
+                                      <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 flex gap-0.5">
+                                        <button
+                                          className="text-blue-300 hover:text-white"
+                                          onClick={() => { setEditSession({ id: s.id, subject: s.subject, dayOfWeek: s.dayOfWeek, startTime: s.startTime, endTime: s.endTime, classGroup: (s as any).classGroup ?? "" }); setEditSessionForm({ subject: s.subject, dayOfWeek: String(s.dayOfWeek), startTime: s.startTime, endTime: s.endTime, classGroup: (s as any).classGroup ?? "" }); }}
+                                        >
+                                          <Edit2 className="w-3 h-3" />
+                                        </button>
+                                        <button
+                                          className="text-red-300 hover:text-red-200"
+                                          onClick={() => setDeleteSessionId(s.id)}
+                                        >
+                                          <Trash2 className="w-3 h-3" />
+                                        </button>
+                                      </div>
                                     </div>
                                   ))}
                                 </div>
@@ -1039,7 +1063,20 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
             <div>
               <Label>{t("acal2_subject")}</Label>
               {subjects.length > 0 ? (
-                <Select value={sessionForm.subject} onValueChange={v => setSessionForm(f => ({ ...f, subject: v }))}>
+                <Select value={sessionForm.subject} onValueChange={v => {
+                  setSessionForm(f => ({ ...f, subject: v }));
+                  // Auto-fill times from subject
+                  const sub = subjects.find(s => s.name === v);
+                  if (sub) {
+                    setSessionForm(f => ({
+                      ...f,
+                      subject: v,
+                      startTime: sub.startTime,
+                      endTime: sub.endTime,
+                      dayOfWeek: sub.days.length > 0 ? String(sub.days[0]) : f.dayOfWeek,
+                    }));
+                  }
+                }}>
                   <SelectTrigger>
                     <SelectValue placeholder={t("acal2_select_subject_placeholder")} />
                   </SelectTrigger>
@@ -1090,6 +1127,14 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                 <Input type="time" value={sessionForm.endTime} onChange={e => setSessionForm(f => ({ ...f, endTime: e.target.value }))} />
               </div>
             </div>
+            <div>
+              <Label>{t("acal2_class_group")}</Label>
+              <Input
+                placeholder={t("acal2_class_group_placeholder")}
+                value={sessionForm.classGroup}
+                onChange={e => setSessionForm(f => ({ ...f, classGroup: e.target.value }))}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddSession(null)}>{t("acal2_cancel")}</Button>
@@ -1101,10 +1146,100 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                 dayOfWeek: parseInt(sessionForm.dayOfWeek),
                 startTime: sessionForm.startTime,
                 endTime: sessionForm.endTime,
+                classGroup: sessionForm.classGroup || undefined,
               })}
               disabled={addSessionMut.isPending}
             >
               {t("acal2_add_btn")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Edit Session Dialog ── */}
+      <Dialog open={editSession !== null} onOpenChange={(o) => { if (!o) setEditSession(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("acal2_edit_session_title")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>{t("acal2_subject")}</Label>
+              {subjects.length > 0 ? (
+                <Select value={editSessionForm.subject} onValueChange={v => {
+                  const sub = subjects.find(s => s.name === v);
+                  setEditSessionForm(f => ({
+                    ...f,
+                    subject: v,
+                    ...(sub ? { startTime: sub.startTime, endTime: sub.endTime, dayOfWeek: sub.days.length > 0 ? String(sub.days[0]) : f.dayOfWeek } : {}),
+                  }));
+                }}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Array.from(new Set(subjects.map(s => s.semester))).sort().map(sem => (
+                      <>
+                        <div key={`sem-${sem}`} className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                          {t("acal2_semester")} {sem}
+                        </div>
+                        {subjects.filter(s => s.semester === sem).map(sub => (
+                          <SelectItem key={sub.id} value={sub.name}>
+                            <span className="flex items-center gap-2">
+                              {sub.color && <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: sub.color }} />}
+                              {sub.name}
+                              {sub.classroom && <span className="text-muted-foreground text-xs ml-1">· {sub.classroom}</span>}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input value={editSessionForm.subject} onChange={e => setEditSessionForm(f => ({ ...f, subject: e.target.value }))} />
+              )}
+            </div>
+            <div>
+              <Label>{t("acal2_day_of_week")}</Label>
+              <Select value={editSessionForm.dayOfWeek} onValueChange={v => setEditSessionForm(f => ({ ...f, dayOfWeek: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {days.map((d, i) => <SelectItem key={i + 1} value={String(i + 1)}>{d}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>{t("acal2_start_time")}</Label>
+                <Input type="time" value={editSessionForm.startTime} onChange={e => setEditSessionForm(f => ({ ...f, startTime: e.target.value }))} />
+              </div>
+              <div>
+                <Label>{t("acal2_end_time")}</Label>
+                <Input type="time" value={editSessionForm.endTime} onChange={e => setEditSessionForm(f => ({ ...f, endTime: e.target.value }))} />
+              </div>
+            </div>
+            <div>
+              <Label>{t("acal2_class_group")}</Label>
+              <Input
+                placeholder={t("acal2_class_group_placeholder")}
+                value={editSessionForm.classGroup}
+                onChange={e => setEditSessionForm(f => ({ ...f, classGroup: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditSession(null)}>{t("acal2_cancel")}</Button>
+            <Button
+              onClick={() => editSession && updateSessionMut.mutate({
+                id: editSession.id,
+                subject: editSessionForm.subject,
+                dayOfWeek: parseInt(editSessionForm.dayOfWeek),
+                startTime: editSessionForm.startTime,
+                endTime: editSessionForm.endTime,
+                classGroup: editSessionForm.classGroup || null,
+              })}
+              disabled={updateSessionMut.isPending}
+            >
+              {t("acal2_save")}
             </Button>
           </DialogFooter>
         </DialogContent>

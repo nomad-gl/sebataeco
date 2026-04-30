@@ -2347,6 +2347,7 @@ export const acSessions = mysqlTable("ac_sessions", {
   dayOfWeek: int("dayOfWeek").notNull(),
   startTime: varchar("startTime", { length: 8 }).notNull(),
   endTime: varchar("endTime", { length: 8 }).notNull(),
+  classGroup: varchar("class_group", { length: 100 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 export type AcSession = typeof acSessions.$inferSelect;

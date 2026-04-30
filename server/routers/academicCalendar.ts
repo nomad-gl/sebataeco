@@ -233,6 +233,7 @@ export const academicCalendarRouter = router({
       dayOfWeek: z.number().int().min(1).max(5),
       startTime: z.string().regex(/^\d{2}:\d{2}$/),
       endTime: z.string().regex(/^\d{2}:\d{2}$/),
+      classGroup: z.string().max(100).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       assertDirector(ctx.user.role);
@@ -252,6 +253,7 @@ export const academicCalendarRouter = router({
       dayOfWeek: z.number().int().min(1).max(5).optional(),
       startTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
       endTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+      classGroup: z.string().max(100).optional().nullable(),
     }))
     .mutation(async ({ ctx, input }) => {
       assertDirector(ctx.user.role);
@@ -597,6 +599,7 @@ export const academicCalendarRouter = router({
       id: z.number().int(),
       schoolName: z.string().optional(),
       lang: z.string().optional(),
+      teacherId: z.number().int().optional(), // if set, export only this teacher's schedule
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -604,8 +607,10 @@ export const academicCalendarRouter = router({
       const [cal] = await db.select().from(academicCalendars)
         .where(and(eq(academicCalendars.id, input.id), eq(academicCalendars.userId, ctx.user.id)));
       if (!cal) throw new TRPCError({ code: "NOT_FOUND" });
-      const teachers = await db.select().from(acTeachers).where(eq(acTeachers.calendarId, input.id));
-      const sessions = await db.select().from(acSessions).where(eq(acSessions.calendarId, input.id));
+      const allTeachers = await db.select().from(acTeachers).where(eq(acTeachers.calendarId, input.id));
+      const teachers = input.teacherId ? allTeachers.filter(t => t.id === input.teacherId) : allTeachers;
+      const allSessions = await db.select().from(acSessions).where(eq(acSessions.calendarId, input.id));
+      const sessions = input.teacherId ? allSessions.filter(s => s.teacherId === input.teacherId) : allSessions;
       const breaks = await db.select().from(acBreaks).where(eq(acBreaks.calendarId, input.id));
       const subjects = await db.select().from(acSubjects).where(eq(acSubjects.calendarId, input.id));
       const semDates = await db.select().from(acSemesterDates).where(eq(acSemesterDates.calendarId, input.id));
