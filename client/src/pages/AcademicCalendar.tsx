@@ -1038,7 +1038,38 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
           <div className="space-y-3">
             <div>
               <Label>{t("acal2_subject")}</Label>
-              <Input value={sessionForm.subject} onChange={e => setSessionForm(f => ({ ...f, subject: e.target.value }))} placeholder="e.g. Mathematics" />
+              {subjects.length > 0 ? (
+                <Select value={sessionForm.subject} onValueChange={v => setSessionForm(f => ({ ...f, subject: v }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("acal2_select_subject_placeholder")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {/* Group by semester */}
+                    {Array.from(new Set(subjects.map(s => s.semester))).sort().map(sem => (
+                      <>
+                        <div key={`sem-${sem}`} className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                          {t("acal2_semester")} {sem}
+                        </div>
+                        {subjects.filter(s => s.semester === sem).map(sub => (
+                          <SelectItem key={sub.id} value={sub.name}>
+                            <span className="flex items-center gap-2">
+                              {sub.color && (
+                                <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: sub.color }} />
+                              )}
+                              {sub.name}
+                              {sub.classroom && <span className="text-muted-foreground text-xs ml-1">· {sub.classroom}</span>}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="text-sm text-muted-foreground bg-muted/40 rounded p-2">
+                  {t("acal2_no_subjects_yet")} <span className="text-blue-400">{t("acal2_add_subjects_first")}</span>
+                </div>
+              )}
             </div>
             <div>
               <Label>{t("acal2_day_of_week")}</Label>
