@@ -5232,3 +5232,9 @@
 ## Academic Calendar — Monthly View Times
 
 - [x] Monthly calendar: show startTime–endTime on each session chip
+
+## Bug: Additional Teaching Days Not Showing on Calendars
+
+- [ ] Investigate why only the primary teaching day of a subject appears on calendar views
+- [ ] Fix: all days in subject.days array must generate session slots in calendar views
+- [ ] Fix: monthly, semester, and schedule tab must all show sessions for every teaching day

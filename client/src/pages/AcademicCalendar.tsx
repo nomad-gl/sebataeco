@@ -553,6 +553,40 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
 
   const { calendar, teachers, sessions, teacherHours } = data;
 
+  // Expand sessions to include virtual entries from subject.days for days that
+  // don't already have an explicit session row. This ensures all teaching days
+  // defined on a subject appear in the calendar views even if no manual session
+  // was added for that day.
+  const expandedSessions = (() => {
+    const result = [...sessions];
+    for (const sub of subjects) {
+      if (!sub.days || sub.days.length === 0) continue;
+      for (const day of sub.days) {
+        // Check if there's already an explicit session for this subject+day
+        const hasExplicit = sessions.some(s => s.subject === sub.name && s.dayOfWeek === day);
+        if (hasExplicit) continue;
+        // Determine times for this day
+        const dayTime = sub.dayTimes?.find((dt: { day: number; startTime: string; endTime: string }) => dt.day === day);
+        const startTime = dayTime?.startTime ?? sub.startTime;
+        const endTime = dayTime?.endTime ?? sub.endTime;
+        // Find a teacher assigned to this subject (first match)
+        const teacherSession = sessions.find(s => s.subject === sub.name);
+        result.push({
+          id: -(sub.id * 100 + day), // synthetic negative id
+          calendarId: sub.calendarId,
+          subject: sub.name,
+          dayOfWeek: day,
+          startTime,
+          endTime,
+          teacherId: teacherSession?.teacherId ?? null,
+          classGroup: null,
+          sessionDate: null,
+        } as typeof sessions[number]);
+      }
+    }
+    return result;
+  })();
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -751,7 +785,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                 const contractedMins = contractedHours * 60;
                 const pct = contractedMins > 0 ? Math.min(100, Math.round((allocatedMins / contractedMins) * 100)) : 0;
                 const overAllocated = allocatedMins > contractedMins;
-                const teacherSessions = sessions.filter(s => s.teacherId === teacher.id);
+                const teacherSessions = expandedSessions.filter(s => s.teacherId === teacher.id);
 
                 return (
                   <Card key={teacher.id} className="bg-white/10 border-white/20">
@@ -849,7 +883,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
         {/* ── Schedule Tab ── */}
         <TabsContent value="schedule" className="mt-4">
           <h2 className="text-white font-semibold text-lg mb-4">{t("acal2_schedule_heading")}</h2>
-          {sessions.length === 0 ? (
+          {expandedSessions.length === 0 ? (
             <Card className="bg-white/10 border-white/20 text-center py-10">
               <CardContent>
                 <BookOpen className="w-8 h-8 text-blue-300 mx-auto mb-2" />
@@ -871,7 +905,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                   {teachers
                     .filter(teacher => calFilterTeacher === "all" || String(teacher.id) === calFilterTeacher)
                     .map(teacher => {
-                    const tSessions = sessions.filter(s => {
+                    const tSessions = expandedSessions.filter(s => {
                       if (s.teacherId !== teacher.id) return false;
                       if (calFilterSubject !== "all" && s.subject !== calFilterSubject) return false;
                       if (calFilterLocation !== "all" && (s as any).classroom !== calFilterLocation) return false;
@@ -1179,9 +1213,9 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
 
           {/* Filter bar */}
           {(() => {
-            const uniqueSubjects = Array.from(new Set(sessions.map(s => s.subject))).sort();
+            const uniqueSubjects = Array.from(new Set(expandedSessions.map(s => s.subject))).sort();
             const uniqueTeachers = teachers.map(t => ({ id: String(t.id), name: t.name }));
-            const uniqueLocations = Array.from(new Set(sessions.map(s => (s as any).classroom).filter(Boolean))).sort() as string[];
+            const uniqueLocations = Array.from(new Set(expandedSessions.map(s => (s as any).classroom).filter(Boolean))).sort() as string[];
             const activeCount = [calFilterSubject, calFilterTeacher, calFilterLocation].filter(v => v !== "all").length;
             return (
               <div className="flex flex-wrap items-center gap-2 mb-4 p-3 bg-white/5 border border-white/10 rounded-lg">
@@ -1251,14 +1285,14 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
             const today = new Date().toISOString().slice(0, 10);
             const DAY_LABELS_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
             // Apply filters
-            const filteredSessions = sessions.filter(s => {
+            const filteredSessions = expandedSessions.filter(s => {
               if (calFilterSubject !== "all" && s.subject !== calFilterSubject) return false;
               if (calFilterTeacher !== "all" && String(s.teacherId) !== calFilterTeacher) return false;
               if (calFilterLocation !== "all" && (s as any).classroom !== calFilterLocation) return false;
               return true;
             });
             // Build session map by date (sorted by startTime per cell)
-            const sessionsByDate: Record<string, typeof sessions> = {};
+            const sessionsByDate: Record<string, typeof expandedSessions> = {};
             for (const s of filteredSessions) {
               if ((s as any).sessionDate) {
                 const key = String((s as any).sessionDate).slice(0, 10);
@@ -1388,7 +1422,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
             // A session belongs in this semester view if:
             // 1. Its subject has no semesters array (legacy) — include always
             // 2. Its subject's semesters array includes semNum (or is Academic Year = all semesters)
-            const filteredSessions = sessions.filter(s => {
+            const filteredSessions = expandedSessions.filter(s => {
               if (calFilterSubject !== "all" && s.subject !== calFilterSubject) return false;
               if (calFilterTeacher !== "all" && String(s.teacherId) !== calFilterTeacher) return false;
               if (calFilterLocation !== "all" && (s as any).classroom !== calFilterLocation) return false;
@@ -1401,7 +1435,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
               return true;
             });
             // Session map by date (sorted by startTime per cell)
-            const sessionsByDate: Record<string, typeof sessions> = {};
+            const sessionsByDate: Record<string, typeof expandedSessions> = {};
             for (const s of filteredSessions) {
               if ((s as any).sessionDate) {
                 const key = String((s as any).sessionDate).slice(0, 10);
