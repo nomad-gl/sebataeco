@@ -2310,8 +2310,9 @@ export const directorRouter = router({
         .where(eq(teacherInvites.id, input.inviteId))
         .limit(1);
       if (!invite) throw new Error("Invite not found");
-      // Tenant guard — director can only delete invites from their own school
-      if (invite.tenantId !== ctx.user.tenantId) throw new Error("Forbidden");
+      // Tenant guard — director can only delete invites from their own school.
+      // Super-admins (ctx.isSuperAdmin) are exempt and can delete any invite.
+      if (!ctx.isSuperAdmin && invite.tenantId !== ctx.user.tenantId) throw new Error("Forbidden");
       await db.delete(teacherInvites).where(eq(teacherInvites.id, input.inviteId));
       await db.insert(adminAuditLogs).values({
         userId: ctx.user.id,
