@@ -5178,3 +5178,12 @@
 - [x] Edit Subject dialog: add "Academic Year" option that selects all semesters at once
 - [x] Ensure editSubject state stores semesters as array; updateSubject procedure accepts array and stores as JSON
 - [x] Subject card: display "Academic Year" label when subject spans all semesters
+
+## Academic Calendar — Pre-fill Session Scope Options
+
+- [x] Add Teaching Session: replace single pre-fill toggle with scope selector buttons: "Semester N" | "2 Semesters" | "Academic Year"
+- [x] "Semester N": existing behaviour — fill only the subject's own semester date range
+- [x] "2 Semesters": fill across the first two semester date ranges (or the two that have dates configured)
+- [x] "Academic Year": fill across all configured semester date ranges, skipping breaks in all semesters
+- [x] Preview line updates dynamically to show total session count for the selected scope
+- [x] bulkAddSessions called with the full expanded date list regardless of scope

@@ -379,7 +379,8 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
   // Session form state
   const [showAddSession, setShowAddSession] = useState<number | null>(null); // teacherId
   const [sessionForm, setSessionForm] = useState({ subject: "", dayOfWeek: "1", startTime: "08:30", endTime: "09:30", classGroup: "" });
-  const [prefillSemester, setPrefillSemester] = useState(false);
+  // 'none' | 'semester' | 'two' | 'year'
+  const [prefillScope, setPrefillScope] = useState<'none' | 'semester' | 'two' | 'year'>('none');
   const [deleteSessionId, setDeleteSessionId] = useState<number | null>(null);
   const [editSession, setEditSession] = useState<null | { id: number; subject: string; dayOfWeek: number; startTime: string; endTime: string; classGroup: string }>(null);
   const [editSessionForm, setEditSessionForm] = useState({ subject: "", dayOfWeek: "1", startTime: "08:30", endTime: "09:30", classGroup: "" });
@@ -453,11 +454,11 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
 
   // Session mutations
   const addSessionMut = trpc.academicCalendar.addSession.useMutation({
-    onSuccess: () => { invalidate(); setShowAddSession(null); setPrefillSemester(false); setSessionForm({ subject: "", dayOfWeek: "1", startTime: "08:30", endTime: "09:30", classGroup: "" }); toast.success(t("acal2_session_added")); },
+    onSuccess: () => { invalidate(); setShowAddSession(null); setPrefillScope('none'); setSessionForm({ subject: "", dayOfWeek: "1", startTime: "08:30", endTime: "09:30", classGroup: "" }); toast.success(t("acal2_session_added")); },
     onError: (e) => toast.error(e.message),
   });
   const bulkAddSessionsMut = trpc.academicCalendar.bulkAddSessions.useMutation({
-    onSuccess: (result) => { invalidate(); setShowAddSession(null); setPrefillSemester(false); setSessionForm({ subject: "", dayOfWeek: "1", startTime: "08:30", endTime: "09:30", classGroup: "" }); toast.success(t("acal2_sessions_created").replace("{n}", String(result.count))); },
+    onSuccess: (result) => { invalidate(); setShowAddSession(null); setPrefillScope('none'); setSessionForm({ subject: "", dayOfWeek: "1", startTime: "08:30", endTime: "09:30", classGroup: "" }); toast.success(t("acal2_sessions_created").replace("{n}", String(result.count))); },
     onError: (e) => toast.error(e.message),
   });
   const updateSessionMut = trpc.academicCalendar.updateSession.useMutation({
@@ -1543,7 +1544,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
       </Dialog>
 
       {/* ── Add Session Dialog ── */}
-      <Dialog open={showAddSession !== null} onOpenChange={(o) => { if (!o) { setShowAddSession(null); setPrefillSemester(false); } }}>
+      <Dialog open={showAddSession !== null} onOpenChange={(o) => { if (!o) { setShowAddSession(null); setPrefillScope('none'); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
@@ -1625,70 +1626,121 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                 onChange={e => setSessionForm(f => ({ ...f, classGroup: e.target.value }))}
               />
             </div>
-            {/* Pre-fill semester toggle — only shown when semester dates are configured */}
+            {/* Pre-fill scope selector — only shown when semester dates are configured */}
             {semesterDates.length > 0 && (() => {
               const selectedSubject = subjects.find(s => s.name === sessionForm.subject);
-              const subjectSemester = selectedSubject?.semester;
-              const semDate = semesterDates.find(sd => sd.semesterNumber === subjectSemester);
-              if (!semDate) return null;
-              const semStart = String(semDate.startDate).slice(0, 10);
-              const semEnd = String(semDate.endDate).slice(0, 10);
-              // Count how many occurrences of the selected day fall in the semester (excluding breaks)
-              const dayNum = parseInt(sessionForm.dayOfWeek); // 1=Mon … 5=Fri
-              const breakPeriods = (data?.breaks ?? []).filter(b => b.semester === subjectSemester);
-              let count = 0;
-              const cur = new Date(semStart + "T00:00:00");
-              const end = new Date(semEnd + "T00:00:00");
-              while (cur <= end) {
-                // JS getDay(): 0=Sun, 1=Mon … 5=Fri
-                const jsDow = cur.getDay();
-                const dow = jsDow === 0 ? 7 : jsDow; // convert to 1=Mon … 7=Sun
-                if (dow === dayNum) {
-                  const dateStr = cur.toISOString().slice(0, 10);
-                  const inBreak = breakPeriods.some(b => dateStr >= String(b.startDate).slice(0, 10) && dateStr <= String(b.endDate).slice(0, 10));
-                  if (!inBreak) count++;
+              const subjectSemester = selectedSubject?.semester ?? 1;
+              const dayNum = parseInt(sessionForm.dayOfWeek);
+              const allBreaks = data?.breaks ?? [];
+
+              // Helper: count sessions for a given date range + break filter
+              const countSessions = (startStr: string, endStr: string, semNums: number[]) => {
+                const bps = allBreaks.filter(b => semNums.includes(b.semester));
+                let n = 0;
+                const c = new Date(startStr + "T00:00:00");
+                const e = new Date(endStr + "T00:00:00");
+                while (c <= e) {
+                  const jd = c.getDay(); const d = jd === 0 ? 7 : jd;
+                  if (d === dayNum) {
+                    const ds = c.toISOString().slice(0, 10);
+                    if (!bps.some(b => ds >= String(b.startDate).slice(0, 10) && ds <= String(b.endDate).slice(0, 10))) n++;
+                  }
+                  c.setDate(c.getDate() + 1);
                 }
-                cur.setDate(cur.getDate() + 1);
-              }
+                return n;
+              };
+
+              // Semester N scope
+              const semDate = semesterDates.find(sd => sd.semesterNumber === subjectSemester);
+              const semStart = semDate ? String(semDate.startDate).slice(0, 10) : null;
+              const semEnd = semDate ? String(semDate.endDate).slice(0, 10) : null;
+              const semCount = semStart && semEnd ? countSessions(semStart, semEnd, [subjectSemester]) : 0;
+
+              // 2 Semesters scope (first two semesters that have dates)
+              const sortedSemDates = [...semesterDates].sort((a, b) => a.semesterNumber - b.semesterNumber);
+              const twoSemDates = sortedSemDates.slice(0, 2);
+              const twoStart = twoSemDates[0] ? String(twoSemDates[0].startDate).slice(0, 10) : null;
+              const twoEnd = twoSemDates[1] ? String(twoSemDates[1].endDate).slice(0, 10) : (twoSemDates[0] ? String(twoSemDates[0].endDate).slice(0, 10) : null);
+              const twoCount = twoStart && twoEnd ? countSessions(twoStart, twoEnd, twoSemDates.map(s => s.semesterNumber)) : 0;
+
+              // Academic Year scope (all semesters)
+              const yearStart = sortedSemDates[0] ? String(sortedSemDates[0].startDate).slice(0, 10) : null;
+              const yearEnd = sortedSemDates[sortedSemDates.length - 1] ? String(sortedSemDates[sortedSemDates.length - 1].endDate).slice(0, 10) : null;
+              const yearCount = yearStart && yearEnd ? countSessions(yearStart, yearEnd, sortedSemDates.map(s => s.semesterNumber)) : 0;
+
+              const showTwo = calendar.semesterCount >= 2 && twoSemDates.length >= 2;
+              const showYear = calendar.semesterCount >= 2;
+
+              const scopeOptions: { key: 'none' | 'semester' | 'two' | 'year'; label: string; preview: string | null }[] = [
+                { key: 'none', label: 'Single session', preview: null },
+                ...(semDate ? [{ key: 'semester' as const, label: `Semester ${subjectSemester}`, preview: `${semStart} → ${semEnd} · ${semCount} sessions` }] : []),
+                ...(showTwo ? [{ key: 'two' as const, label: '2 Semesters', preview: `${twoStart} → ${twoEnd} · ${twoCount} sessions` }] : []),
+                ...(showYear ? [{ key: 'year' as const, label: 'Academic Year', preview: `${yearStart} → ${yearEnd} · ${yearCount} sessions` }] : []),
+              ];
+
               return (
-                <div className="flex items-start gap-3 bg-blue-600/10 border border-blue-500/30 rounded-md p-3">
-                  <Checkbox
-                    id="prefill-semester"
-                    checked={prefillSemester}
-                    onCheckedChange={v => setPrefillSemester(!!v)}
-                    className="mt-0.5"
-                  />
-                  <div>
-                    <label htmlFor="prefill-semester" className="text-sm font-medium cursor-pointer">
-                      {t("acal2_prefill_semester")}
-                    </label>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {semStart} → {semEnd} · {count} {days[dayNum - 1]} sessions
-                    </p>
+                <div className="bg-blue-600/10 border border-blue-500/30 rounded-md p-3 space-y-2">
+                  <p className="text-xs font-semibold text-blue-200 uppercase tracking-wide">Pre-fill recurring sessions</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {scopeOptions.map(opt => (
+                      <button
+                        key={opt.key}
+                        type="button"
+                        className={`px-3 py-1 rounded text-xs font-semibold border transition-colors ${
+                          prefillScope === opt.key
+                            ? 'bg-blue-600 text-white border-blue-500'
+                            : 'bg-white/10 text-blue-200 border-white/20 hover:bg-white/20'
+                        }`}
+                        onClick={() => setPrefillScope(opt.key)}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
                   </div>
+                  {prefillScope !== 'none' && (() => {
+                    const active = scopeOptions.find(o => o.key === prefillScope);
+                    return active?.preview ? (
+                      <p className="text-xs text-blue-300">{active.preview}</p>
+                    ) : null;
+                  })()}
                 </div>
               );
             })()}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowAddSession(null); setPrefillSemester(false); }}>{t("acal2_cancel")}</Button>
+            <Button variant="outline" onClick={() => { setShowAddSession(null); setPrefillScope('none'); }}>{t("acal2_cancel")}</Button>
             <Button
               onClick={() => {
                 if (showAddSession === null) return;
                 const teacherId = showAddSession;
-                if (prefillSemester) {
-                  // Generate one dated session per weekly occurrence across the semester
+                if (prefillScope !== 'none') {
+                  // Determine date range based on scope
                   const selectedSubject = subjects.find(s => s.name === sessionForm.subject);
-                  const subjectSemester = selectedSubject?.semester;
-                  const semDate = semesterDates.find(sd => sd.semesterNumber === subjectSemester);
-                  if (!semDate) return;
-                  const semStart = String(semDate.startDate).slice(0, 10);
-                  const semEnd = String(semDate.endDate).slice(0, 10);
+                  const subjectSemester = selectedSubject?.semester ?? 1;
+                  const sortedSD = [...semesterDates].sort((a, b) => a.semesterNumber - b.semesterNumber);
+                  let rangeStart: string | null = null;
+                  let rangeEnd: string | null = null;
+                  let semNums: number[] = [];
+                  if (prefillScope === 'semester') {
+                    const sd = semesterDates.find(s => s.semesterNumber === subjectSemester);
+                    if (sd) { rangeStart = String(sd.startDate).slice(0, 10); rangeEnd = String(sd.endDate).slice(0, 10); semNums = [subjectSemester]; }
+                  } else if (prefillScope === 'two') {
+                    const two = sortedSD.slice(0, 2);
+                    rangeStart = two[0] ? String(two[0].startDate).slice(0, 10) : null;
+                    rangeEnd = two[1] ? String(two[1].endDate).slice(0, 10) : (two[0] ? String(two[0].endDate).slice(0, 10) : null);
+                    semNums = two.map(s => s.semesterNumber);
+                  } else if (prefillScope === 'year') {
+                    rangeStart = sortedSD[0] ? String(sortedSD[0].startDate).slice(0, 10) : null;
+                    rangeEnd = sortedSD[sortedSD.length - 1] ? String(sortedSD[sortedSD.length - 1].endDate).slice(0, 10) : null;
+                    semNums = sortedSD.map(s => s.semesterNumber);
+                  }
+                  if (!rangeStart || !rangeEnd) return;
                   const dayNum = parseInt(sessionForm.dayOfWeek);
-                  const breakPeriods = (data?.breaks ?? []).filter(b => b.semester === subjectSemester);
+                  const allBreaks = data?.breaks ?? [];
+                  const breakPeriods = allBreaks.filter(b => semNums.includes(b.semester));
                   const rows: { calendarId: number; teacherId: number; subject: string; dayOfWeek: number; startTime: string; endTime: string; classGroup?: string; sessionDate: string }[] = [];
-                  const cur = new Date(semStart + "T00:00:00");
-                  const end = new Date(semEnd + "T00:00:00");
+                  const cur = new Date(rangeStart + "T00:00:00");
+                  const end = new Date(rangeEnd + "T00:00:00");
                   while (cur <= end) {
                     const jsDow = cur.getDay();
                     const dow = jsDow === 0 ? 7 : jsDow;
@@ -1696,16 +1748,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                       const dateStr = cur.toISOString().slice(0, 10);
                       const inBreak = breakPeriods.some(b => dateStr >= String(b.startDate).slice(0, 10) && dateStr <= String(b.endDate).slice(0, 10));
                       if (!inBreak) {
-                        rows.push({
-                          calendarId,
-                          teacherId,
-                          subject: sessionForm.subject,
-                          dayOfWeek: dayNum,
-                          startTime: sessionForm.startTime,
-                          endTime: sessionForm.endTime,
-                          classGroup: sessionForm.classGroup || undefined,
-                          sessionDate: dateStr,
-                        });
+                        rows.push({ calendarId, teacherId, subject: sessionForm.subject, dayOfWeek: dayNum, startTime: sessionForm.startTime, endTime: sessionForm.endTime, classGroup: sessionForm.classGroup || undefined, sessionDate: dateStr });
                       }
                     }
                     cur.setDate(cur.getDate() + 1);
@@ -1725,7 +1768,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
               }}
               disabled={addSessionMut.isPending || bulkAddSessionsMut.isPending}
             >
-              {(addSessionMut.isPending || bulkAddSessionsMut.isPending) ? t("acal2_loading") : (prefillSemester ? t("acal2_prefill_semester") : t("acal2_add_btn"))}
+              {(addSessionMut.isPending || bulkAddSessionsMut.isPending) ? t("acal2_loading") : (prefillScope !== 'none' ? t("acal2_prefill_semester") : t("acal2_add_btn"))}
             </Button>
           </DialogFooter>
         </DialogContent>
