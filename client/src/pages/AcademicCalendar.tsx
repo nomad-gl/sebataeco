@@ -393,8 +393,10 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
 
   // Subject form state
   const [showAddSubject, setShowAddSubject] = useState(false);
-  const [editSubject, setEditSubject] = useState<null | { id: number; semester: number; name: string; unit: string; classroom: string; maxStudents: string; totalAcademicHours: string; days: number[]; startTime: string; endTime: string; color: string }>(null);
+  const [editSubject, setEditSubject] = useState<null | { id: number; semester: number; name: string; unit: string; classroom: string; maxStudents: string; totalAcademicHours: string; days: number[]; startTime: string; endTime: string; color: string; dayTimes: Array<{ day: number; startTime: string; endTime: string }> | null }>(null);
   const [subjectForm, setSubjectForm] = useState({ semester: "1", name: "", unit: "", classroom: "", maxStudents: "", totalAcademicHours: "60", days: [] as number[], startTime: "09:00", endTime: "10:00", color: "#3b82f6" });
+  // Per-day time overrides for the add/edit subject form
+  const [subjectDayTimes, setSubjectDayTimes] = useState<Array<{ day: number; startTime: string; endTime: string }>>([]);
   // Optimistic local teacher weekly hours (contracted) — updated immediately when director edits the field
   const [localTeacherHours, setLocalTeacherHours] = useState<Record<number, number>>({});
   const [deleteSubjectId, setDeleteSubjectId] = useState<number | null>(null);
@@ -474,7 +476,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
 
   // Subject mutations
   const addSubjectMut = trpc.academicCalendar.addSubject.useMutation({
-    onSuccess: () => { invalidate(); setShowAddSubject(false); setSubjectForm({ semester: "1", name: "", unit: "", classroom: "", maxStudents: "", totalAcademicHours: "60", days: [], startTime: "09:00", endTime: "10:00", color: "#3b82f6" }); toast.success(t("acal2_subject_added")); },
+    onSuccess: () => { invalidate(); setShowAddSubject(false); setSubjectForm({ semester: "1", name: "", unit: "", classroom: "", maxStudents: "", totalAcademicHours: "60", days: [], startTime: "09:00", endTime: "10:00", color: "#3b82f6" }); setSubjectDayTimes([]); toast.success(t("acal2_subject_added")); },
     onError: (e) => toast.error(e.message),
   });
   const updateSubjectMut = trpc.academicCalendar.updateSubject.useMutation({
@@ -996,7 +998,16 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                                   {sub.maxStudents && (
                                     <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {t("acal2_max_students")}: {sub.maxStudents}</span>
                                   )}
-                                  <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {sub.startTime}–{sub.endTime}</span>
+                                  {sub.dayTimes && sub.dayTimes.length > 0 ? (
+                                    <span className="flex items-center gap-1 flex-wrap">
+                                      <Clock className="w-3.5 h-3.5 shrink-0" />
+                                      {sub.dayTimes.map(dt => (
+                                        <span key={dt.day} className="text-xs">{days[dt.day - 1]}: {dt.startTime}–{dt.endTime}</span>
+                                      ))}
+                                    </span>
+                                  ) : (
+                                    <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {sub.startTime}–{sub.endTime}</span>
+                                  )}
                                   <span className="flex items-center gap-1"><GraduationCap className="w-3.5 h-3.5" /> {sub.totalAcademicHours}h {t("acal2_total")} · ~{hoursPerSem}h/{t("acal2_semester")}</span>
                                 </div>
                                 {sub.days.length > 0 && (
@@ -1013,7 +1024,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                                 <Button
                                   variant="ghost" size="sm"
                                   className="text-blue-300 hover:text-white hover:bg-white/10 h-7 w-7 p-0"
-                                  onClick={() => setEditSubject({ id: sub.id, semester: sub.semester, name: sub.name, unit: sub.unit ?? "", classroom: sub.classroom ?? "", maxStudents: sub.maxStudents ? String(sub.maxStudents) : "", totalAcademicHours: String(sub.totalAcademicHours), days: sub.days, startTime: sub.startTime, endTime: sub.endTime, color: sub.color ?? "#3b82f6" })}
+                                  onClick={() => { setEditSubject({ id: sub.id, semester: sub.semester, name: sub.name, unit: sub.unit ?? "", classroom: sub.classroom ?? "", maxStudents: sub.maxStudents ? String(sub.maxStudents) : "", totalAcademicHours: String(sub.totalAcademicHours), days: sub.days, startTime: sub.startTime, endTime: sub.endTime, color: sub.color ?? "#3b82f6", dayTimes: sub.dayTimes ?? null }); setSubjectDayTimes(sub.dayTimes ?? []); }}
                                 >
                                   <Edit2 className="w-3.5 h-3.5" />
                                 </Button>
@@ -2030,24 +2041,76 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                 })}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>{t("acal2_start_time")}</Label>
-                <Input
-                  type="time"
-                  value={editSubject ? editSubject.startTime : subjectForm.startTime}
-                  onChange={e => editSubject ? setEditSubject(s => s && ({ ...s, startTime: e.target.value })) : setSubjectForm(f => ({ ...f, startTime: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label>{t("acal2_end_time")}</Label>
-                <Input
-                  type="time"
-                  value={editSubject ? editSubject.endTime : subjectForm.endTime}
-                  onChange={e => editSubject ? setEditSubject(s => s && ({ ...s, endTime: e.target.value })) : setSubjectForm(f => ({ ...f, endTime: e.target.value }))}
-                />
-              </div>
-            </div>
+            {/* Times: per-day when multiple days selected, otherwise global */}
+            {(() => {
+              const selectedDays = editSubject ? editSubject.days : subjectForm.days;
+              if (selectedDays.length >= 2) {
+                return (
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Times per day</Label>
+                    {selectedDays.slice().sort((a, b) => a - b).map(dayNum => {
+                      const existing = subjectDayTimes.find(dt => dt.day === dayNum);
+                      const globalStart = editSubject ? editSubject.startTime : subjectForm.startTime;
+                      const globalEnd = editSubject ? editSubject.endTime : subjectForm.endTime;
+                      const start = existing?.startTime ?? globalStart;
+                      const end = existing?.endTime ?? globalEnd;
+                      return (
+                        <div key={dayNum} className="grid grid-cols-3 gap-2 items-center">
+                          <span className="text-sm text-blue-200 font-medium">{days[dayNum - 1]}</span>
+                          <Input
+                            type="time"
+                            value={start}
+                            onChange={e => {
+                              const v = e.target.value;
+                              setSubjectDayTimes(prev => {
+                                const next = prev.filter(dt => dt.day !== dayNum);
+                                next.push({ day: dayNum, startTime: v, endTime: end });
+                                return next;
+                              });
+                            }}
+                          />
+                          <Input
+                            type="time"
+                            value={end}
+                            onChange={e => {
+                              const v = e.target.value;
+                              setSubjectDayTimes(prev => {
+                                const next = prev.filter(dt => dt.day !== dayNum);
+                                next.push({ day: dayNum, startTime: start, endTime: v });
+                                return next;
+                              });
+                            }}
+                          />
+                        </div>
+                      );
+                    })}
+                    <p className="text-xs text-blue-400/70">Default times (used when no override set):</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs">{t("acal2_start_time")}</Label>
+                        <Input type="time" value={editSubject ? editSubject.startTime : subjectForm.startTime} onChange={e => editSubject ? setEditSubject(s => s && ({ ...s, startTime: e.target.value })) : setSubjectForm(f => ({ ...f, startTime: e.target.value }))} />
+                      </div>
+                      <div>
+                        <Label className="text-xs">{t("acal2_end_time")}</Label>
+                        <Input type="time" value={editSubject ? editSubject.endTime : subjectForm.endTime} onChange={e => editSubject ? setEditSubject(s => s && ({ ...s, endTime: e.target.value })) : setSubjectForm(f => ({ ...f, endTime: e.target.value }))} />
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>{t("acal2_start_time")}</Label>
+                    <Input type="time" value={editSubject ? editSubject.startTime : subjectForm.startTime} onChange={e => editSubject ? setEditSubject(s => s && ({ ...s, startTime: e.target.value })) : setSubjectForm(f => ({ ...f, startTime: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>{t("acal2_end_time")}</Label>
+                    <Input type="time" value={editSubject ? editSubject.endTime : subjectForm.endTime} onChange={e => editSubject ? setEditSubject(s => s && ({ ...s, endTime: e.target.value })) : setSubjectForm(f => ({ ...f, endTime: e.target.value }))} />
+                  </div>
+                </div>
+              );
+            })()}
           </div>
           {/* Colour picker */}
           <div>
@@ -2073,6 +2136,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
               disabled={addSubjectMut.isPending || updateSubjectMut.isPending}
               onClick={() => {
                 if (editSubject) {
+                  const hasPerDay = editSubject.days.length >= 2 && subjectDayTimes.length > 0;
                   updateSubjectMut.mutate({
                     id: editSubject.id,
                     semester: editSubject.semester,
@@ -2085,8 +2149,10 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                     startTime: editSubject.startTime,
                     endTime: editSubject.endTime,
                     color: editSubject.color || undefined,
+                    dayTimes: hasPerDay ? subjectDayTimes : null,
                   });
                 } else {
+                  const hasPerDay = subjectForm.days.length >= 2 && subjectDayTimes.length > 0;
                   addSubjectMut.mutate({
                     calendarId,
                     semester: parseInt(subjectForm.semester),
@@ -2099,6 +2165,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                     startTime: subjectForm.startTime,
                     endTime: subjectForm.endTime,
                     color: subjectForm.color || undefined,
+                    dayTimes: hasPerDay ? subjectDayTimes : null,
                   });
                 }
               }}

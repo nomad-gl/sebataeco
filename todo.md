@@ -5152,3 +5152,12 @@
 - [x] View switcher only shows Semester N tabs for semesters that exist (based on calendar.semesterCount)
 - [x] Add i18n keys: acal2_view_monthly, acal2_view_semester, acal2_view_year (EN/ES/CA)
 - [x] View state persists while navigating within the detail page
+
+## Academic Calendar — Per-Day Times on Subjects
+
+- [x] Add dayTimes nullable JSON column to ac_subjects (migration 0070): array of {day: number, startTime: string, endTime: string}
+- [x] Update addSubject and updateSubject tRPC procedures to accept and store dayTimes
+- [x] Update listSubjects to return dayTimes field
+- [x] Subject add/edit form: when 2+ days selected, show individual start/end time inputs per day (fallback to global time if dayTimes not set)
+- [x] Subject card: when dayTimes is set, show per-day time rows instead of single time
+- [x] Add i18n keys: acal2_day_times_heading (EN/ES/CA)

@@ -375,6 +375,7 @@ export const academicCalendarRouter = router({
       return rows.map(r => ({
         ...r,
         days: (() => { try { return JSON.parse(r.days); } catch { return []; } })() as number[],
+        dayTimes: (() => { try { return r.dayTimes ? JSON.parse(r.dayTimes) : null; } catch { return null; } })() as Array<{ day: number; startTime: string; endTime: string }> | null,
       }));
     }),
 
@@ -391,6 +392,11 @@ export const academicCalendarRouter = router({
       startTime: z.string().regex(/^\d{2}:\d{2}$/).default("09:00"),
       endTime: z.string().regex(/^\d{2}:\d{2}$/).default("10:00"),
       color: z.string().max(20).optional(),
+      dayTimes: z.array(z.object({
+        day: z.number().int().min(1).max(5),
+        startTime: z.string().regex(/^\d{2}:\d{2}$/),
+        endTime: z.string().regex(/^\d{2}:\d{2}$/),
+      })).nullable().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       assertDirector(ctx.user.role);
@@ -399,10 +405,11 @@ export const academicCalendarRouter = router({
       if (timeToMinutes(input.endTime) <= timeToMinutes(input.startTime)) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "End time must be after start time." });
       }
-      const { days, ...rest } = input;
+      const { days, dayTimes, ...rest } = input;
       const [result] = await db.insert(acSubjects).values({
         ...rest,
         days: JSON.stringify(days),
+        dayTimes: dayTimes ? JSON.stringify(dayTimes) : null,
       });
       return { id: (result as any).insertId as number };
     }),
@@ -420,15 +427,21 @@ export const academicCalendarRouter = router({
       startTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
       endTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
       color: z.string().max(20).nullable().optional(),
+      dayTimes: z.array(z.object({
+        day: z.number().int().min(1).max(5),
+        startTime: z.string().regex(/^\d{2}:\d{2}$/),
+        endTime: z.string().regex(/^\d{2}:\d{2}$/),
+      })).nullable().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       assertDirector(ctx.user.role);
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      const { id, days, ...rest } = input;
+      const { id, days, dayTimes, ...rest } = input;
       type SubjectUpdate = Record<string, unknown>;
       const fields: SubjectUpdate = { ...rest };
       if (days !== undefined) fields.days = JSON.stringify(days);
+      if (dayTimes !== undefined) fields.dayTimes = dayTimes ? JSON.stringify(dayTimes) : null;
       await db.update(acSubjects).set(fields).where(eq(acSubjects.id, id));
       return { success: true };
     }),

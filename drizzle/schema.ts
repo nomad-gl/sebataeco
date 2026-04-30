@@ -2389,6 +2389,13 @@ export const acSubjects = mysqlTable("ac_subjects", {
   startTime: varchar("startTime", { length: 8 }).notNull().default("09:00"),
   endTime: varchar("endTime", { length: 8 }).notNull().default("10:00"),
   color: varchar("color", { length: 20 }),
+  /**
+   * JSON array of per-day time overrides.
+   * Shape: [{day: number, startTime: string, endTime: string}]
+   * NULL means all days share the global startTime/endTime.
+   * @migration 0070
+   */
+  dayTimes: text("dayTimes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
