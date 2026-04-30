@@ -58,12 +58,19 @@ const ACADEMIC_YEARS = [`${CURRENT_YEAR - 1}-${CURRENT_YEAR}`, `${CURRENT_YEAR}-
 
 const EVENT_COLORS: Record<string, string> = {
   holiday: "bg-red-100 text-red-800 border-red-200",
+  national_holiday: "bg-red-200 text-red-900 border-red-400",
+  bank_holiday: "bg-rose-100 text-rose-800 border-rose-300",
   special: "bg-purple-100 text-purple-800 border-purple-200",
   exam: "bg-orange-100 text-orange-800 border-orange-200",
   excursion: "bg-yellow-100 text-yellow-800 border-yellow-200",
   event: "bg-blue-100 text-blue-800 border-blue-200",
   lesson: "bg-green-100 text-green-800 border-green-200",
   ai_generated: "bg-teal-100 text-teal-800 border-teal-200",
+  teacher_training: "bg-indigo-100 text-indigo-800 border-indigo-200",
+  inset_day: "bg-violet-100 text-violet-800 border-violet-200",
+  parent_evening: "bg-sky-100 text-sky-800 border-sky-200",
+  open_day: "bg-cyan-100 text-cyan-800 border-cyan-200",
+  staff_meeting: "bg-slate-100 text-slate-800 border-slate-200",
 };
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -1342,7 +1349,8 @@ export default function SchoolCalendar() {
 
   const totalEvents = events.length;
   const aiEvents = events.filter(e => e.aiGenerated).length;
-  const holidays = events.filter(e => e.eventType === "holiday").length;
+  const NON_TEACHING_TYPES = ["holiday", "national_holiday", "bank_holiday", "teacher_training", "inset_day", "parent_evening", "open_day", "staff_meeting"];
+  const holidays = events.filter(e => NON_TEACHING_TYPES.includes(e.eventType)).length;
 
   // Per-term lesson coverage badges (for full_year calendars with term dates)
   const termCoverage = useMemo(() => {
@@ -1359,7 +1367,7 @@ export default function SchoolCalendar() {
       // Count available lesson days (Mon-Fri, excluding holidays)
       const holidayDates = new Set(
         events
-          .filter(e => e.eventType === "holiday")
+          .filter(e => NON_TEACHING_TYPES.includes(e.eventType))
           .map(e => new Date(e.eventDate).toDateString())
       );
       let available = 0;
@@ -1507,12 +1515,19 @@ export default function SchoolCalendar() {
 
   const eventLabels: Record<string, string> = {
     holiday: t("cal_event_holiday"),
+    national_holiday: t("cal_event_national_holiday"),
+    bank_holiday: t("cal_event_bank_holiday"),
     special: t("cal_event_special"),
     exam: t("cal_event_exam"),
     excursion: t("cal_event_excursion"),
     event: t("cal_event_event"),
     lesson: t("cal_event_lesson"),
     ai_generated: t("cal_event_ai_generated"),
+    teacher_training: t("cal_event_teacher_training"),
+    inset_day: t("cal_event_inset_day"),
+    parent_evening: t("cal_event_parent_evening"),
+    open_day: t("cal_event_open_day"),
+    staff_meeting: t("cal_event_staff_meeting"),
   };
 
   return (
@@ -2316,7 +2331,7 @@ export default function SchoolCalendar() {
                     ) : (
                       <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
                         {termWeeks.map(({ weekLabel, events: wEvents }) => {
-                          const isHolidayOnly = wEvents.length > 0 && wEvents.every(ev => ev.eventType === "holiday");
+                          const isHolidayOnly = wEvents.length > 0 && wEvents.every(ev => ["holiday", "national_holiday", "bank_holiday", "teacher_training", "inset_day", "parent_evening", "open_day", "staff_meeting"].includes(ev.eventType));
                           const hasNoLessons = !wEvents.some(ev => ev.eventType === "lesson" || ev.eventType === "ai_generated");
                           return (
                           <div key={weekLabel} className={`flex gap-3 items-start rounded-md px-2 py-1 ${isHolidayOnly ? "bg-amber-50 border border-amber-200/70" : hasNoLessons ? "opacity-60" : ""}`}>
@@ -2385,13 +2400,20 @@ export default function SchoolCalendar() {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {([
-                      { type: "holiday",     icon: "🏖️",  label: eventLabels.holiday },
-                      { type: "special",     icon: "⭐",  label: eventLabels.special },
-                      { type: "exam",        icon: "📝",  label: eventLabels.exam },
-                      { type: "excursion",   icon: "🚌",  label: eventLabels.excursion },
-                      { type: "event",       icon: "🎉",  label: eventLabels.event },
-                      { type: "lesson",      icon: "📖",  label: eventLabels.lesson },
-                      { type: "ai_generated",icon: "",  label: eventLabels.ai_generated },
+                      { type: "holiday",          icon: "🏖️",  label: eventLabels.holiday },
+                      { type: "national_holiday",  icon: "🇪🇸",  label: eventLabels.national_holiday },
+                      { type: "bank_holiday",      icon: "🏦",  label: eventLabels.bank_holiday },
+                      { type: "special",           icon: "⭐",  label: eventLabels.special },
+                      { type: "exam",              icon: "📝",  label: eventLabels.exam },
+                      { type: "excursion",         icon: "🚌",  label: eventLabels.excursion },
+                      { type: "event",             icon: "🎉",  label: eventLabels.event },
+                      { type: "lesson",            icon: "📖",  label: eventLabels.lesson },
+                      { type: "ai_generated",      icon: "",  label: eventLabels.ai_generated },
+                      { type: "teacher_training",  icon: "🎓",  label: eventLabels.teacher_training },
+                      { type: "inset_day",         icon: "📅",  label: eventLabels.inset_day },
+                      { type: "parent_evening",    icon: "👨‍👩‍👧",  label: eventLabels.parent_evening },
+                      { type: "open_day",          icon: "🚪",  label: eventLabels.open_day },
+                      { type: "staff_meeting",     icon: "👥",  label: eventLabels.staff_meeting },
                     ] as { type: string; icon: string; label: string }[]).map(({ type, icon, label }) => (
                       <button
                         key={type}

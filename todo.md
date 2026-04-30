@@ -5249,3 +5249,32 @@
 
 - [ ] Diagnose why Semester 1/2/3 and Academic Year views show no sessions despite subjects existing
 - [ ] Fix the root cause and verify all views populate correctly
+
+## Feature: Catalan Holidays + Non-Teaching Days in Calendar
+
+- [ ] Review spanishHolidays.ts and seedCatalanHolidays to understand current holiday data and types
+- [ ] Add eventType values: 'bank_holiday', 'national_holiday', 'teacher_training', 'inset_day', 'parent_evening', 'open_day', 'staff_meeting' to school_calendar_events schema
+- [ ] Run migration SQL for updated eventType enum/values
+- [ ] Update seedCatalanHolidays server procedure to tag holidays as 'bank_holiday' or 'national_holiday'
+- [ ] Update createCalendar auto-insert logic to use correct holiday type tags
+- [ ] Block AI infill from scheduling lessons on bank_holiday, national_holiday, teacher_training, inset_day dates
+- [ ] Add non-teaching day types to the event type buttons in SchoolCalendar UI (Teacher Training, INSET Day, Parent Evening, Open Day, Staff Meeting)
+- [ ] Color-code non-teaching day types distinctly on the calendar grid
+- [ ] Show non-teaching day chips in the day panel with appropriate icons
+- [ ] Add i18n keys for all new event types (EN/ES/CA)
+- [ ] Verify TypeScript 0 errors
+- [ ] Save checkpoint
+
+## Feature: Catalan Holidays & Non-Teaching Days (2026-04-30)
+- [x] Extend eventType enum in DB schema with national_holiday, bank_holiday, teacher_training, inset_day, parent_evening, open_day, staff_meeting
+- [x] Apply migration 0064 to add new enum values to school_calendar_events table
+- [x] Update createCalendar to tag national holidays (BOE) as national_holiday and regional Catalan holidays as bank_holiday
+- [x] Update seedCatalanHolidays to use national_holiday/bank_holiday types with isNational flag
+- [x] Update AI infill procedure to skip all non-teaching day types (not just "holiday")
+- [x] Update coverage calculation to skip all non-teaching day types
+- [x] Add color coding for all new event types in EVENT_COLORS
+- [x] Add i18n keys for new event types in EN, ES, CA
+- [x] Add Quick-Add buttons for all new event types in SchoolCalendar sidebar
+- [x] Update holidays count card to include all non-teaching types
+- [x] Update isHolidayOnly check in week view to include all non-teaching types
+- [x] Update termCoverage calculation to exclude all non-teaching types

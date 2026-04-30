@@ -12,7 +12,7 @@ import { storagePut } from "../storage";
 import { PDFDocument } from "pdf-lib";
 import { notifyOwner } from "../_core/notification";
 
-const eventTypeEnum = z.enum(["holiday", "special", "exam", "excursion", "event", "lesson", "ai_generated"]);
+const eventTypeEnum = z.enum(["holiday", "national_holiday", "bank_holiday", "special", "exam", "excursion", "event", "lesson", "ai_generated", "teacher_training", "inset_day", "parent_evening", "open_day", "staff_meeting"]);
 
 /**
  * Auto-compute the next sequential lesson number for a plan.
@@ -129,7 +129,8 @@ export const plannerRouter = router({
               calendarId,
               academicYear: input.academicYear,
               eventDate: new Date(h.date),
-              eventType: "holiday" as const,
+              // National holidays (BOE) → national_holiday; regional/autonomous → bank_holiday
+              eventType: (h.region === "national" ? "national_holiday" : "bank_holiday") as "national_holiday" | "bank_holiday",
               title: h.nameEN,
               description: `${h.nameES} / ${h.nameCA}`,
             }))
@@ -1639,22 +1640,22 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
       const endYear = rangeEnd.getFullYear();
       const toDateStr = (d: Date) => d.toISOString().split("T")[0];
 
-      type HolidayDef = { month: number; day: number; name: string };
+      type HolidayDef = { month: number; day: number; name: string; isNational?: boolean };
       const fixedHolidays: HolidayDef[] = [
-        { month: 1, day: 1,  name: "Any Nou" },
-        { month: 1, day: 6,  name: "Reis" },
-        { month: 4, day: 23, name: "Sant Jordi" },
-        { month: 5, day: 1,  name: "Festa del Treball" },
-        { month: 6, day: 24, name: "Sant Joan" },
-        { month: 8, day: 15, name: "L'Assumpció" },
-        { month: 9, day: 11, name: "Diada Nacional de Catalunya" },
-        { month: 10, day: 12, name: "Festa Nacional d'Espanya" },
-        { month: 11, day: 1,  name: "Tots Sants" },
-        { month: 11, day: 2,  name: "Castanyada" },
-        { month: 12, day: 6,  name: "Dia de la Constitució" },
-        { month: 12, day: 8,  name: "La Immaculada" },
-        { month: 12, day: 25, name: "Nadal" },
-        { month: 12, day: 26, name: "Sant Esteve" },
+        { month: 1, day: 1,  name: "Any Nou",                      isNational: true },
+        { month: 1, day: 6,  name: "Reis",                         isNational: true },
+        { month: 4, day: 23, name: "Sant Jordi" },                 // Catalan bank holiday
+        { month: 5, day: 1,  name: "Festa del Treball",            isNational: true },
+        { month: 6, day: 24, name: "Sant Joan" },                  // Catalan bank holiday
+        { month: 8, day: 15, name: "L'Assumpció",                  isNational: true },
+        { month: 9, day: 11, name: "Diada Nacional de Catalunya" }, // Catalan national day
+        { month: 10, day: 12, name: "Festa Nacional d'Espanya",    isNational: true },
+        { month: 11, day: 1,  name: "Tots Sants",                  isNational: true },
+        { month: 11, day: 2,  name: "Castanyada" },                // Catalan tradition (not official public holiday)
+        { month: 12, day: 6,  name: "Dia de la Constitució",       isNational: true },
+        { month: 12, day: 8,  name: "La Immaculada",               isNational: true },
+        { month: 12, day: 25, name: "Nadal",                       isNational: true },
+        { month: 12, day: 26, name: "Sant Esteve" },               // Catalan bank holiday
       ];
 
       // Easter-based moveable feasts (Butlletí Oficial de la Generalitat)
@@ -1670,26 +1671,26 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
         return new Date(year, month - 1, day);
       };
 
-      const holidayDates: { date: string; name: string }[] = [];
+      const holidayDates: { date: string; name: string; isNational: boolean }[] = [];
       for (let yr = startYear; yr <= endYear; yr++) {
         // Fixed holidays
         for (const h of fixedHolidays) {
           const d = new Date(yr, h.month - 1, h.day);
           const ds = toDateStr(d);
-          if (d >= rangeStart && d <= rangeEnd) holidayDates.push({ date: ds, name: h.name });
+          if (d >= rangeStart && d <= rangeEnd) holidayDates.push({ date: ds, name: h.name, isNational: !!h.isNational });
         }
         // Moveable feasts derived from Easter (Butlletí Oficial de la Generalitat de Catalunya)
         const easter = getEaster(yr);
         const addDays = (base: Date, n: number) => new Date(base.getTime() + n * 86400000);
-        const moveables = [
+        const moveables: { d: Date; name: string; isNational?: boolean }[] = [
           { d: addDays(easter, -48), name: "Dijous Gras" },          // Carnival Thursday (48 days before Easter)
           { d: addDays(easter, -47), name: "Divendres de Carnestoltes" }, // Carnival Friday
           { d: addDays(easter, -46), name: "Dissabte de Carnestoltes" },  // Carnival Saturday
           { d: addDays(easter, -45), name: "Dimarts de Carnestoltes" },   // Shrove Tuesday
-          { d: addDays(easter, -3),  name: "Dijous Sant" },           // Maundy Thursday
-          { d: addDays(easter, -2),  name: "Divendres Sant" },        // Good Friday
+          { d: addDays(easter, -3),  name: "Dijous Sant" },           // Maundy Thursday (national)
+          { d: addDays(easter, -2),  name: "Divendres Sant", isNational: true }, // Good Friday (national)
           { d: addDays(easter, 0),   name: "Diumenge de Pasqua" },    // Easter Sunday
-          { d: addDays(easter, 1),   name: "Dilluns de Pasqua" },     // Easter Monday
+          { d: addDays(easter, 1),   name: "Dilluns de Pasqua" },     // Easter Monday (Catalan bank holiday)
           { d: addDays(easter, 39),  name: "Ascensió del Senyor" },   // Ascension (39 days after)
           { d: addDays(easter, 49),  name: "Diumenge de Pentecosta" },// Whit Sunday
           { d: addDays(easter, 50),  name: "Dilluns de Pentecosta" }, // Whit Monday
@@ -1697,7 +1698,7 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
         ];
         for (const m of moveables) {
           const ds = toDateStr(m.d);
-          if (m.d >= rangeStart && m.d <= rangeEnd) holidayDates.push({ date: ds, name: m.name });
+          if (m.d >= rangeStart && m.d <= rangeEnd) holidayDates.push({ date: ds, name: m.name, isNational: !!m.isNational });
         }
       }
 
@@ -1727,8 +1728,9 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
           userId: ctx.user.id,
           eventDate: new Date(h.date),
           title: h.name,
-          eventType: "holiday" as const,
-          description: "Festiu oficial de Catalunya",
+          // National holidays (BOE) → national_holiday; Catalan-specific → bank_holiday
+          eventType: (h.isNational ? "national_holiday" : "bank_holiday") as "national_holiday" | "bank_holiday",
+          description: h.isNational ? "Festiu nacional" : "Festiu oficial de Catalunya",
           isAiGenerated: false,
           academicYear,
         }))
@@ -1797,9 +1799,10 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
             .filter(e => ["lesson", "ai_generated"].includes(e.eventType))
             .map(e => toDateStr(e.eventDate instanceof Date ? e.eventDate : new Date(e.eventDate as string)))
         );
+        const NON_TEACHING_TYPES_COVERAGE = ["holiday", "national_holiday", "bank_holiday", "teacher_training", "inset_day", "parent_evening", "open_day", "staff_meeting"];
         const holidayDateSet = new Set(
           calEvents
-            .filter(e => e.eventType === "holiday")
+            .filter(e => NON_TEACHING_TYPES_COVERAGE.includes(e.eventType))
             .map(e => toDateStr(e.eventDate instanceof Date ? e.eventDate : new Date(e.eventDate as string)))
         );
 
@@ -2789,9 +2792,11 @@ Return JSON: {"lessons":[{"title":"...","competency":"CCL","specificCompetences"
             gte(schoolCalendarEvents.eventDate, rangeStart),
             lte(schoolCalendarEvents.eventDate, rangeEnd),
           ));
+        // Block lesson scheduling on all non-teaching day types
+        const NON_TEACHING_TYPES = ["holiday", "national_holiday", "bank_holiday", "teacher_training", "inset_day", "parent_evening", "open_day", "staff_meeting"];
         const holidayDates = new Set(
           existingInScope
-            .filter(e => e.eventType === "holiday")
+            .filter(e => NON_TEACHING_TYPES.includes(e.eventType))
             .map(e => new Date(e.eventDate).toISOString().slice(0, 10))
         );
         const existingLessonDates = new Set(

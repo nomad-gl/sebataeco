@@ -656,8 +656,8 @@ export const schoolCalendarEvents = mysqlTable("school_calendar_events", {
   academicYear: varchar("academicYear", { length: 16 }).notNull(),
   /** Event date (stored as UTC midnight) */
   eventDate: timestamp("eventDate").notNull(),
-  /** 'holiday' | 'special' | 'exam' | 'excursion' | 'event' | 'lesson' */
-  eventType: mysqlEnum("eventType", ["holiday", "special", "exam", "excursion", "event", "lesson", "ai_generated"]).notNull(),
+  /** 'holiday' | 'national_holiday' | 'bank_holiday' | 'special' | 'exam' | 'excursion' | 'event' | 'lesson' | 'ai_generated' | 'teacher_training' | 'inset_day' | 'parent_evening' | 'open_day' | 'staff_meeting' */
+  eventType: mysqlEnum("eventType", ["holiday", "national_holiday", "bank_holiday", "special", "exam", "excursion", "event", "lesson", "ai_generated", "teacher_training", "inset_day", "parent_evening", "open_day", "staff_meeting"]).notNull(),
   title: varchar("title", { length: 255 }).notNull(),
   description: text("description"),
   /** LOMLOE competency code if this event is a lesson/activity */
