@@ -475,7 +475,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                 const n = calendar.semesterCount ?? 2;
                 const arr = Array.from({ length: n }, (_, i) => {
                   const existing = semesterDates.find(s => s.semesterNumber === i + 1);
-                  return { startDate: existing?.startDate ?? "", endDate: existing?.endDate ?? "" };
+                  return { startDate: existing?.startDate ? String(existing.startDate).slice(0, 10) : "", endDate: existing?.endDate ? String(existing.endDate).slice(0, 10) : "" };
                 });
                 setSemDateForm(arr);
                 setEditingSemDates(true);
