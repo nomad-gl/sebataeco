@@ -5238,3 +5238,9 @@
 - [ ] Investigate why only the primary teaching day of a subject appears on calendar views
 - [ ] Fix: all days in subject.days array must generate session slots in calendar views
 - [ ] Fix: monthly, semester, and schedule tab must all show sessions for every teaching day
+
+## Bug: Lessons Shown on Break Days
+
+- [x] Monthly calendar: breakDates computed before session mapping; break days skipped when adding sessions to cells
+- [x] Semester calendar: same fix applied; also includes semester=0 (all-semester) breaks
+- [x] Schedule tab: no change needed (recurring slot view, not date-specific)

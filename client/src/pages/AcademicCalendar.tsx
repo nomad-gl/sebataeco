@@ -1291,17 +1291,28 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
               if (calFilterLocation !== "all" && (s as any).classroom !== calFilterLocation) return false;
               return true;
             });
-            // Build session map by date (sorted by startTime per cell)
+            // Build break overlay first so we can skip break dates when mapping sessions
+            const breakDates = new Set<string>();
+            for (const br of (data?.breaks ?? [])) {
+              const bStart = new Date(String(br.startDate).slice(0, 10) + "T00:00:00");
+              const bEnd = new Date(String(br.endDate).slice(0, 10) + "T00:00:00");
+              for (let d = new Date(bStart); d <= bEnd; d.setDate(d.getDate() + 1)) {
+                breakDates.add(d.toISOString().slice(0, 10));
+              }
+            }
+            // Build session map by date (sorted by startTime per cell) — skip break dates
             const sessionsByDate: Record<string, typeof expandedSessions> = {};
             for (const s of filteredSessions) {
               if ((s as any).sessionDate) {
                 const key = String((s as any).sessionDate).slice(0, 10);
+                if (breakDates.has(key)) continue; // skip break days
                 if (!sessionsByDate[key]) sessionsByDate[key] = [];
                 sessionsByDate[key].push(s);
               } else {
-                // Recurring: add to every matching weekday in this month
+                // Recurring: add to every matching weekday in this month, skipping break days
                 for (let d = 1; d <= daysInMonth; d++) {
                   const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+                  if (breakDates.has(dateStr)) continue; // skip break days
                   const jsDow = new Date(dateStr + "T00:00:00").getDay();
                   const dow = jsDow === 0 ? 7 : jsDow;
                   if (dow === s.dayOfWeek) {
@@ -1314,15 +1325,6 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
             // Sort each day's sessions by startTime
             for (const key of Object.keys(sessionsByDate)) {
               sessionsByDate[key].sort((a, b) => a.startTime.localeCompare(b.startTime));
-            }
-            // Build break overlay
-            const breakDates = new Set<string>();
-            for (const br of (data?.breaks ?? [])) {
-              const s = new Date(String(br.startDate).slice(0, 10) + "T00:00:00");
-              const e = new Date(String(br.endDate).slice(0, 10) + "T00:00:00");
-              for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
-                breakDates.add(d.toISOString().slice(0, 10));
-              }
             }
             const monthLabel = calMonth.toLocaleDateString(lang === "ca" ? "ca-ES" : lang === "es" ? "es-ES" : "en-GB", { month: "long", year: "numeric" });
             return (
@@ -1434,16 +1436,27 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
               }
               return true;
             });
-            // Session map by date (sorted by startTime per cell)
+            // Build break dates first so we can skip them when mapping sessions
+            const breakDates = new Set<string>();
+            for (const br of (data?.breaks ?? []).filter(b => b.semester === semNum || b.semester === 0)) {
+              const bStart = new Date(String(br.startDate).slice(0, 10) + "T00:00:00");
+              const bEnd = new Date(String(br.endDate).slice(0, 10) + "T00:00:00");
+              for (let d = new Date(bStart); d <= bEnd; d.setDate(d.getDate() + 1)) {
+                breakDates.add(d.toISOString().slice(0, 10));
+              }
+            }
+            // Session map by date (sorted by startTime per cell) — skip break dates
             const sessionsByDate: Record<string, typeof expandedSessions> = {};
             for (const s of filteredSessions) {
               if ((s as any).sessionDate) {
                 const key = String((s as any).sessionDate).slice(0, 10);
+                if (breakDates.has(key)) continue; // skip break days
                 if (!sessionsByDate[key]) sessionsByDate[key] = [];
                 sessionsByDate[key].push(s);
               } else {
                 for (const week of weeks) {
                   for (const dateStr of week) {
+                    if (breakDates.has(dateStr)) continue; // skip break days
                     const jsDow = new Date(dateStr + "T00:00:00").getDay();
                     const dow = jsDow === 0 ? 7 : jsDow;
                     if (dow === s.dayOfWeek) {
@@ -1457,14 +1470,6 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
             // Sort each day's sessions by startTime
             for (const key of Object.keys(sessionsByDate)) {
               sessionsByDate[key].sort((a, b) => a.startTime.localeCompare(b.startTime));
-            }
-            const breakDates = new Set<string>();
-            for (const br of (data?.breaks ?? []).filter(b => b.semester === semNum)) {
-              const s = new Date(String(br.startDate).slice(0, 10) + "T00:00:00");
-              const e = new Date(String(br.endDate).slice(0, 10) + "T00:00:00");
-              for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
-                breakDates.add(d.toISOString().slice(0, 10));
-              }
             }
             const today = new Date().toISOString().slice(0, 10);
             const DAY_LABELS_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri"];
