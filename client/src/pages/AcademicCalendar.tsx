@@ -774,16 +774,25 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                               className={`h-2 ${overAllocated ? "[&>div]:bg-red-400" : "[&>div]:bg-green-400"}`}
                             />
                           </div>
-                          {/* Sessions summary */}
-                          {teacherSessions.length > 0 && (
-                            <div className="mt-2 flex flex-wrap gap-1">
-                              {teacherSessions.map(s => (
-                                <Badge key={s.id} variant="secondary" className="bg-blue-600/30 text-blue-100 border-0 text-xs">
-                                  {days[s.dayOfWeek - 1]} {s.startTime}–{s.endTime} {s.subject}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
+                          {/* Sessions summary — deduplicated by subject+day+time */}
+                          {teacherSessions.length > 0 && (() => {
+                            const seenBadge = new Set<string>();
+                            const uniqueSessions = teacherSessions.filter(s => {
+                              const k = `${s.subject}|${s.dayOfWeek}|${s.startTime}|${s.endTime}`;
+                              if (seenBadge.has(k)) return false;
+                              seenBadge.add(k);
+                              return true;
+                            });
+                            return (
+                              <div className="mt-2 flex flex-wrap gap-1">
+                                {uniqueSessions.map(s => (
+                                  <Badge key={s.id} variant="secondary" className="bg-blue-600/30 text-blue-100 border-0 text-xs">
+                                    {days[s.dayOfWeek - 1]} {s.startTime}–{s.endTime} {s.subject}
+                                  </Badge>
+                                ))}
+                              </div>
+                            );
+                          })()}
                         </div>
                         <div className="flex gap-1 shrink-0">
                           <Button
@@ -860,7 +869,15 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                       <tr key={teacher.id} className="border-b border-white/10">
                         <td className="text-white py-3 pr-4 font-medium align-top">{teacher.name}</td>
                         {[1, 2, 3, 4, 5].map(day => {
-                          const daySessions = tSessions.filter(s => s.dayOfWeek === day);
+                          // Deduplicate: for dated sessions, show only one representative row per unique subject+startTime+endTime on this day
+                          const allDaySessions = tSessions.filter(s => s.dayOfWeek === day);
+                          const seen = new Set<string>();
+                          const daySessions = allDaySessions.filter(s => {
+                            const key = `${s.subject}|${s.startTime}|${s.endTime}|${(s as any).classGroup ?? ''}`;
+                            if (seen.has(key)) return false;
+                            seen.add(key);
+                            return true;
+                          });
                           return (
                             <td key={day} className="py-3 px-2 align-top">
                               {daySessions.length === 0 ? (

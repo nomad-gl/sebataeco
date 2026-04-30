@@ -5187,3 +5187,12 @@
 - [x] "Academic Year": fill across all configured semester date ranges, skipping breaks in all semesters
 - [x] Preview line updates dynamically to show total session count for the selected scope
 - [x] bulkAddSessions called with the full expanded date list regardless of scope
+
+## Bug: Weekly Calendar — Sessions Not All Visible
+
+- [x] Investigate why some sessions don't appear in the weekly/semester calendar view
+- [x] Fix: dated sessions (sessionDate set) must render on their specific date in monthly/semester views
+- [x] Fix: undated recurring sessions (dayOfWeek only) must still render on every matching weekday
+- [x] Fix: Schedule tab timetable grid deduplicates dated sessions (one row per unique subject/time per day)
+- [x] Fix: Teacher card session badges deduplicated (no repeated badges for pre-filled sessions)
+- [x] Fix: Teacher weekly hours calculation deduplicates dated sessions server-side

@@ -155,10 +155,18 @@ export const academicCalendarRouter = router({
       const sessions = await db.select().from(acSessions).where(eq(acSessions.calendarId, input.id));
       const breaks = await db.select().from(acBreaks).where(eq(acBreaks.calendarId, input.id));
 
-      // Compute live weekly hours per teacher (sum of session durations in minutes → hours)
+      // Compute live weekly hours per teacher — deduplicate dated sessions so each
+      // unique subject+day+startTime+endTime slot is counted only once per week.
       const teacherHours = teachers.map(t => {
         const tSessions = sessions.filter(s => s.teacherId === t.id);
-        const weeklyMinutes = tSessions.reduce((sum, s) => {
+        const seen = new Set<string>();
+        const uniqueSlots = tSessions.filter(s => {
+          const key = `${s.subject}|${s.dayOfWeek}|${s.startTime}|${s.endTime}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        const weeklyMinutes = uniqueSlots.reduce((sum, s) => {
           return sum + (timeToMinutes(s.endTime) - timeToMinutes(s.startTime));
         }, 0);
         return { teacherId: t.id, weeklyMinutes, weeklyHours: +(weeklyMinutes / 60).toFixed(2) };
