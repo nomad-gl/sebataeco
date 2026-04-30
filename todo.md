@@ -5196,3 +5196,12 @@
 - [x] Fix: Schedule tab timetable grid deduplicates dated sessions (one row per unique subject/time per day)
 - [x] Fix: Teacher card session badges deduplicated (no repeated badges for pre-filled sessions)
 - [x] Fix: Teacher weekly hours calculation deduplicates dated sessions server-side
+
+## Academic Calendar — Sort Sessions by Start Time
+
+- [x] Schedule tab: sort sessions by startTime within each day column
+- [x] Teacher card badges: sort by dayOfWeek then startTime
+- [x] Calendar tab Monthly view: sort sessions by startTime within each day cell
+- [x] Calendar tab Semester view: sort sessions by startTime within each day cell
+- [x] Calendar tab Academic Year view: N/A (day-level colour dots only, no chips)
+- [x] TeacherTimetable page: sort sessions by startTime within each day column + deduplicated

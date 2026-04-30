@@ -73,12 +73,24 @@ function TimetableView({ calendarId, onBack }: { calendarId: number; onBack: () 
     ? sessions.filter(s => s.teacherId === selectedTeacherId)
     : [];
 
-  // Group sessions by day for the timetable grid
+  // Deduplicate: pre-fill creates one row per weekly occurrence; collapse to unique slots
+  const seenTT = new Set<string>();
+  const uniqueTeacherSessions = teacherSessions.filter(s => {
+    const k = `${s.subject}|${s.dayOfWeek}|${s.startTime}|${s.endTime}`;
+    if (seenTT.has(k)) return false;
+    seenTT.add(k);
+    return true;
+  });
+
+  // Group sessions by day for the timetable grid (sorted by startTime)
   const sessionsByDay: Record<number, typeof sessions> = {};
   for (let d = 1; d <= 5; d++) sessionsByDay[d] = [];
-  for (const s of teacherSessions) {
+  for (const s of uniqueTeacherSessions) {
     if (!sessionsByDay[s.dayOfWeek]) sessionsByDay[s.dayOfWeek] = [];
     sessionsByDay[s.dayOfWeek].push(s);
+  }
+  for (const d of Object.keys(sessionsByDay)) {
+    sessionsByDay[Number(d)].sort((a, b) => a.startTime.localeCompare(b.startTime));
   }
 
   return (

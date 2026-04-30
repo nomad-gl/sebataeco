@@ -777,12 +777,14 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                           {/* Sessions summary — deduplicated by subject+day+time */}
                           {teacherSessions.length > 0 && (() => {
                             const seenBadge = new Set<string>();
-                            const uniqueSessions = teacherSessions.filter(s => {
-                              const k = `${s.subject}|${s.dayOfWeek}|${s.startTime}|${s.endTime}`;
-                              if (seenBadge.has(k)) return false;
-                              seenBadge.add(k);
-                              return true;
-                            });
+                            const uniqueSessions = teacherSessions
+                              .filter(s => {
+                                const k = `${s.subject}|${s.dayOfWeek}|${s.startTime}|${s.endTime}`;
+                                if (seenBadge.has(k)) return false;
+                                seenBadge.add(k);
+                                return true;
+                              })
+                              .sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.startTime.localeCompare(b.startTime));
                             return (
                               <div className="mt-2 flex flex-wrap gap-1">
                                 {uniqueSessions.map(s => (
@@ -872,12 +874,14 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                           // Deduplicate: for dated sessions, show only one representative row per unique subject+startTime+endTime on this day
                           const allDaySessions = tSessions.filter(s => s.dayOfWeek === day);
                           const seen = new Set<string>();
-                          const daySessions = allDaySessions.filter(s => {
-                            const key = `${s.subject}|${s.startTime}|${s.endTime}|${(s as any).classGroup ?? ''}`;
-                            if (seen.has(key)) return false;
-                            seen.add(key);
-                            return true;
-                          });
+                          const daySessions = allDaySessions
+                            .filter(s => {
+                              const key = `${s.subject}|${s.startTime}|${s.endTime}|${(s as any).classGroup ?? ''}`;
+                              if (seen.has(key)) return false;
+                              seen.add(key);
+                              return true;
+                            })
+                            .sort((a, b) => a.startTime.localeCompare(b.startTime));
                           return (
                             <td key={day} className="py-3 px-2 align-top">
                               {daySessions.length === 0 ? (
@@ -1177,7 +1181,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
             while (cells.length % 7 !== 0) cells.push(null);
             const today = new Date().toISOString().slice(0, 10);
             const DAY_LABELS_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-            // Build session map by date
+            // Build session map by date (sorted by startTime per cell)
             const sessionsByDate: Record<string, typeof sessions> = {};
             for (const s of sessions) {
               if ((s as any).sessionDate) {
@@ -1196,6 +1200,10 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                   }
                 }
               }
+            }
+            // Sort each day's sessions by startTime
+            for (const key of Object.keys(sessionsByDate)) {
+              sessionsByDate[key].sort((a, b) => a.startTime.localeCompare(b.startTime));
             }
             // Build break overlay
             const breakDates = new Set<string>();
@@ -1299,7 +1307,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
               cur.setDate(cur.getDate() + 2); // skip Sat+Sun
               weeks.push(week);
             }
-            // Session map by date
+            // Session map by date (sorted by startTime per cell)
             const sessionsByDate: Record<string, typeof sessions> = {};
             for (const s of sessions) {
               if ((s as any).sessionDate) {
@@ -1318,6 +1326,10 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                   }
                 }
               }
+            }
+            // Sort each day's sessions by startTime
+            for (const key of Object.keys(sessionsByDate)) {
+              sessionsByDate[key].sort((a, b) => a.startTime.localeCompare(b.startTime));
             }
             const breakDates = new Set<string>();
             for (const br of (data?.breaks ?? []).filter(b => b.semester === semNum)) {
