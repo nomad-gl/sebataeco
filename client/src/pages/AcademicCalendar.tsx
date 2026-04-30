@@ -1315,7 +1315,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                       <div
                         key={dateStr}
                         className={cn(
-                          "min-h-[60px] rounded-lg p-1 border text-left",
+                          "min-h-[72px] rounded-lg p-1 border text-left",
                           isBreak ? "bg-orange-500/15 border-orange-400/30" : "bg-white/5 border-white/10",
                           isToday && "ring-2 ring-blue-400/60"
                         )}
@@ -1327,21 +1327,22 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                           <span className="text-orange-300/70 text-[9px] leading-tight block">break</span>
                         )}
                         <div className="space-y-0.5">
-                          {daySessions.slice(0, 2).map(s => {
+                          {daySessions.slice(0, 3).map(s => {
                             const subColor = subjects.find(sub => sub.name === s.subject)?.color;
                             return (
                               <div
                                 key={s.id}
-                                className="text-[9px] leading-tight rounded px-1 py-0.5 truncate text-white"
+                                className="text-[9px] leading-tight rounded px-1 py-0.5 text-white"
                                 style={{ backgroundColor: subColor ? subColor + "99" : "rgba(59,130,246,0.5)" }}
                                 title={`${s.subject} ${s.startTime}–${s.endTime}`}
                               >
-                                {s.subject}
+                                <span className="font-medium truncate block">{s.subject}</span>
+                                <span className="opacity-80">{s.startTime}–{s.endTime}</span>
                               </div>
                             );
                           })}
-                          {daySessions.length > 2 && (
-                            <div className="text-blue-300/60 text-[9px]">+{daySessions.length - 2}</div>
+                          {daySessions.length > 3 && (
+                            <div className="text-blue-300/60 text-[9px]">+{daySessions.length - 3}</div>
                           )}
                         </div>
                       </div>

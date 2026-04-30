@@ -5228,3 +5228,7 @@
 - [x] Root cause: getCalendar filtered by userId, so admin user could not see calendars created by another user
 - [x] Fix: getCalendar now allows admin users to view any calendar (not just their own)
 - [x] Fix: listCalendars now returns all calendars for admin users
+
+## Academic Calendar — Monthly View Times
+
+- [x] Monthly calendar: show startTime–endTime on each session chip
