@@ -5205,3 +5205,13 @@
 - [x] Calendar tab Semester view: sort sessions by startTime within each day cell
 - [x] Calendar tab Academic Year view: N/A (day-level colour dots only, no chips)
 - [x] TeacherTimetable page: sort sessions by startTime within each day column + deduplicated
+
+## Academic Calendar — Calendar Filter Bar
+
+- [x] Add calFilterSubject, calFilterTeacher, calFilterLocation state (all default "all")
+- [x] Add filter bar UI at the top of the Calendar tab: Subject dropdown, Teacher dropdown, Location dropdown, Clear button
+- [x] Derive unique subjects/teachers/locations from the sessions list for dropdown options
+- [x] Apply filters to filteredSessions used by Monthly and Semester views
+- [x] Apply the same filters to the Schedule tab timetable grid (teacher rows filtered + session chips filtered)
+- [x] Clear button shows active filter count and resets all filters
+- [x] Add i18n keys: acal2_filter_subject, acal2_filter_teacher, acal2_filter_location, acal2_filter_clear, acal2_filter_all (EN/ES/CA)

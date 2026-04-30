@@ -409,6 +409,9 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
+  const [calFilterSubject, setCalFilterSubject] = useState<string>("all");
+  const [calFilterTeacher, setCalFilterTeacher] = useState<string>("all");
+  const [calFilterLocation, setCalFilterLocation] = useState<string>("all");
 
   const invalidate = () => {
     utils.academicCalendar.getCalendar.invalidate({ id: calendarId });
@@ -865,8 +868,15 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                   </tr>
                 </thead>
                 <tbody>
-                  {teachers.map(teacher => {
-                    const tSessions = sessions.filter(s => s.teacherId === teacher.id);
+                  {teachers
+                    .filter(teacher => calFilterTeacher === "all" || String(teacher.id) === calFilterTeacher)
+                    .map(teacher => {
+                    const tSessions = sessions.filter(s => {
+                      if (s.teacherId !== teacher.id) return false;
+                      if (calFilterSubject !== "all" && s.subject !== calFilterSubject) return false;
+                      if (calFilterLocation !== "all" && (s as any).classroom !== calFilterLocation) return false;
+                      return true;
+                    });
                     return (
                       <tr key={teacher.id} className="border-b border-white/10">
                         <td className="text-white py-3 pr-4 font-medium align-top">{teacher.name}</td>
@@ -1167,6 +1177,65 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
             </Button>
           </div>
 
+          {/* Filter bar */}
+          {(() => {
+            const uniqueSubjects = Array.from(new Set(sessions.map(s => s.subject))).sort();
+            const uniqueTeachers = teachers.map(t => ({ id: String(t.id), name: t.name }));
+            const uniqueLocations = Array.from(new Set(sessions.map(s => (s as any).classroom).filter(Boolean))).sort() as string[];
+            const activeCount = [calFilterSubject, calFilterTeacher, calFilterLocation].filter(v => v !== "all").length;
+            return (
+              <div className="flex flex-wrap items-center gap-2 mb-4 p-3 bg-white/5 border border-white/10 rounded-lg">
+                {/* Subject filter */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-blue-300 text-xs shrink-0">{t("acal2_filter_subject")}</span>
+                  <select
+                    value={calFilterSubject}
+                    onChange={e => setCalFilterSubject(e.target.value)}
+                    className="bg-white/10 border border-white/20 text-blue-100 text-xs rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  >
+                    <option value="all">{t("acal2_filter_all")}</option>
+                    {uniqueSubjects.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                {/* Teacher filter */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-blue-300 text-xs shrink-0">{t("acal2_filter_teacher")}</span>
+                  <select
+                    value={calFilterTeacher}
+                    onChange={e => setCalFilterTeacher(e.target.value)}
+                    className="bg-white/10 border border-white/20 text-blue-100 text-xs rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  >
+                    <option value="all">{t("acal2_filter_all")}</option>
+                    {uniqueTeachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                </div>
+                {/* Location filter */}
+                {uniqueLocations.length > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-blue-300 text-xs shrink-0">{t("acal2_filter_location")}</span>
+                    <select
+                      value={calFilterLocation}
+                      onChange={e => setCalFilterLocation(e.target.value)}
+                      className="bg-white/10 border border-white/20 text-blue-100 text-xs rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                    >
+                      <option value="all">{t("acal2_filter_all")}</option>
+                      {uniqueLocations.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+                    </select>
+                  </div>
+                )}
+                {/* Clear button */}
+                {activeCount > 0 && (
+                  <button
+                    onClick={() => { setCalFilterSubject("all"); setCalFilterTeacher("all"); setCalFilterLocation("all"); }}
+                    className="ml-auto text-xs text-orange-300 hover:text-orange-100 underline"
+                  >
+                    {t("acal2_filter_clear")} ({activeCount})
+                  </button>
+                )}
+              </div>
+            );
+          })()}
+
           {/* Monthly View */}
           {calView === "monthly" && (() => {
             const year = calMonth.getFullYear();
@@ -1181,9 +1250,16 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
             while (cells.length % 7 !== 0) cells.push(null);
             const today = new Date().toISOString().slice(0, 10);
             const DAY_LABELS_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+            // Apply filters
+            const filteredSessions = sessions.filter(s => {
+              if (calFilterSubject !== "all" && s.subject !== calFilterSubject) return false;
+              if (calFilterTeacher !== "all" && String(s.teacherId) !== calFilterTeacher) return false;
+              if (calFilterLocation !== "all" && (s as any).classroom !== calFilterLocation) return false;
+              return true;
+            });
             // Build session map by date (sorted by startTime per cell)
             const sessionsByDate: Record<string, typeof sessions> = {};
-            for (const s of sessions) {
+            for (const s of filteredSessions) {
               if ((s as any).sessionDate) {
                 const key = String((s as any).sessionDate).slice(0, 10);
                 if (!sessionsByDate[key]) sessionsByDate[key] = [];
@@ -1307,9 +1383,16 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
               cur.setDate(cur.getDate() + 2); // skip Sat+Sun
               weeks.push(week);
             }
+            // Apply filters
+            const filteredSessions = sessions.filter(s => {
+              if (calFilterSubject !== "all" && s.subject !== calFilterSubject) return false;
+              if (calFilterTeacher !== "all" && String(s.teacherId) !== calFilterTeacher) return false;
+              if (calFilterLocation !== "all" && (s as any).classroom !== calFilterLocation) return false;
+              return true;
+            });
             // Session map by date (sorted by startTime per cell)
             const sessionsByDate: Record<string, typeof sessions> = {};
-            for (const s of sessions) {
+            for (const s of filteredSessions) {
               if ((s as any).sessionDate) {
                 const key = String((s as any).sessionDate).slice(0, 10);
                 if (!sessionsByDate[key]) sessionsByDate[key] = [];
