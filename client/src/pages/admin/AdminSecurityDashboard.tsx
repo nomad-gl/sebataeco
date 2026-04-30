@@ -10,7 +10,7 @@
  * Data refreshes every 30 seconds via tRPC polling.
  * Access: admin role only.
  */
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -50,8 +50,9 @@ import {
   Zap,
   Clock,
 } from "lucide-react";
-import { Chart, registerables } from "chart.js";
-Chart.register(...registerables);
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+} from "recharts";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -146,82 +147,28 @@ function KpiCard({
   );
 }
 
-// ── Timeline Chart ─────────────────────────────────────────────────────────────
-
+// ── Timeline Chart (Recharts) ──────────────────────────────────────────────────
 function TimelineChart({ data }: { data: Array<{ hour: string; total: number; info: number; warning: number; critical: number }> }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const chartRef = useRef<Chart | null>(null);
-
-  useEffect(() => {
-    if (!canvasRef.current || !data.length) return;
-    if (chartRef.current) chartRef.current.destroy();
-
-    chartRef.current = new Chart(canvasRef.current, {
-      type: "bar",
-      data: {
-        labels: data.map(d => d.hour),
-        datasets: [
-          {
-            label: "Info",
-            data: data.map(d => d.info),
-            backgroundColor: "rgba(59,130,246,0.6)",
-            borderColor: "rgba(59,130,246,0.9)",
-            borderWidth: 1,
-            stack: "events",
-          },
-          {
-            label: "Warning",
-            data: data.map(d => d.warning),
-            backgroundColor: "rgba(245,158,11,0.6)",
-            borderColor: "rgba(245,158,11,0.9)",
-            borderWidth: 1,
-            stack: "events",
-          },
-          {
-            label: "Critical",
-            data: data.map(d => d.critical),
-            backgroundColor: "rgba(239,68,68,0.6)",
-            borderColor: "rgba(239,68,68,0.9)",
-            borderWidth: 1,
-            stack: "events",
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: "top", labels: { boxWidth: 12, font: { size: 11 } } },
-          tooltip: { mode: "index", intersect: false },
-        },
-        scales: {
-          x: {
-            stacked: true,
-            ticks: { maxTicksLimit: 12, font: { size: 10 } },
-            grid: { display: false },
-          },
-          y: {
-            stacked: true,
-            beginAtZero: true,
-            ticks: { stepSize: 1, font: { size: 10 } },
-          },
-        },
-      },
-    });
-
-    return () => {
-      chartRef.current?.destroy();
-      chartRef.current = null;
-    };
-  }, [data]);
-
   return (
     <div style={{ height: 220 }}>
-      <canvas ref={canvasRef} />
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.07)" />
+          <XAxis dataKey="hour" tick={{ fontSize: 10 }} interval={2} />
+          <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+          <Tooltip
+            contentStyle={{ background: "#1e1e2e", border: "1px solid #333", borderRadius: 6, fontSize: 12 }}
+            labelStyle={{ color: "#ccc" }}
+          />
+          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Bar dataKey="info" name="Info" stackId="a" fill="rgba(59,130,246,0.75)" />
+          <Bar dataKey="warning" name="Warning" stackId="a" fill="rgba(245,158,11,0.75)" />
+          <Bar dataKey="critical" name="Critical" stackId="a" fill="rgba(239,68,68,0.75)" />
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   );
 }
-
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function AdminSecurityDashboard() {
