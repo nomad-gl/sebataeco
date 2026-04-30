@@ -463,10 +463,11 @@ export const localAuthRouter = router({
         });
       }
 
-      // Update last sign-in
+      // Update last sign-in and record the login IP for the security dashboard
+      const loginIp = extractIp(ctx.req as any);
       await db
         .update(users)
-        .set({ lastSignedIn: new Date() })
+        .set({ lastSignedIn: new Date(), lastLoginIp: loginIp })
         .where(eq(users.id, user.id));
 
       // Use the user's actual openId (may differ from local:email for OAuth accounts)

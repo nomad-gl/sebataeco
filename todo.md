@@ -5337,3 +5337,10 @@
 - [ ] Cover Requests (Director): add back/return button to navigate back to director dashboard
 - [ ] Cover Requests (Director): add dropdown list (filter by status/type) and search bar for all requests
 - [ ] Super-Admin User Management: copy Invite History card from Director User Management, add delete invite functionality
+
+## Active Sessions IP + Location Enhancement
+- [x] Add lastLoginIp column to users table (migration 0068)
+- [x] Update securityLogger login_success to persist IP to users.lastLoginIp
+- [x] Add geolocateIp helper using ip-api.com batch endpoint
+- [x] Update securityDashboard.getActiveSessions to include IP + location
+- [x] Update AdminSecurityDashboard active sessions table to show IP and location columns

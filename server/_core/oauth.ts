@@ -28,12 +28,20 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
 
+      // Capture the client IP for the security dashboard (anonymised to /24 prefix)
+      const rawIp = (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim()
+        ?? req.socket?.remoteAddress
+        ?? null;
+      const loginIp = rawIp
+        ? (rawIp.match(/^(\d{1,3}\.\d{1,3}\.\d{1,3})\.\d{1,3}$/) ? rawIp.replace(/\.\d+$/, ".0") : rawIp)
+        : null;
       await db.upsertUser({
         openId: userInfo.openId,
         name: userInfo.name || null,
         email: userInfo.email ?? null,
         loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
         lastSignedIn: new Date(),
+        lastLoginIp: loginIp,
       });
 
       // Fetch the current sessionVersion so it can be embedded in the JWT.

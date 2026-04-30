@@ -122,6 +122,13 @@ export const users = mysqlTable("users", {
    * @migration 0066
    */
   mfaBackupCodes: text("mfaBackupCodes"),
+  /**
+   * IP address of the most recent successful login.
+   * Used by the admin security dashboard to show location data.
+   * Supports both IPv4 (15 chars) and IPv6 (45 chars).
+   * @migration 0068
+   */
+  lastLoginIp: varchar("lastLoginIp", { length: 45 }),
 });
 
 export type User = typeof users.$inferSelect;

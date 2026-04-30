@@ -346,10 +346,11 @@ export default function AdminSecurityDashboard() {
                   <TableRow>
                     <TableHead>User</TableHead>
                     <TableHead>Role</TableHead>
+                    <TableHead>IP Address</TableHead>
+                    <TableHead>Location</TableHead>
                     <TableHead>Login Method</TableHead>
                     <TableHead>MFA</TableHead>
                     <TableHead>Last Active</TableHead>
-                    <TableHead>Session Age</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -378,13 +379,19 @@ export default function AdminSecurityDashboard() {
                           </span>
                         )}
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {new Date(session.lastSignedIn).toLocaleString()}
+                      <TableCell className="text-xs font-mono text-muted-foreground whitespace-nowrap">
+                        {(session as any).ipAddress ?? "—"}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1">
+                          {(session as any).countryFlag && (
+                            <span className="text-base leading-none" aria-hidden="true">{(session as any).countryFlag}</span>
+                          )}
+                          {(session as any).location ?? "—"}
+                        </span>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {session.sessionAge < 60
-                          ? `${session.sessionAge}m ago`
-                          : `${Math.floor(session.sessionAge / 60)}h ${session.sessionAge % 60}m ago`}
+                        {new Date(session.lastSignedIn).toLocaleString()}
                       </TableCell>
                     </TableRow>
                   ))}

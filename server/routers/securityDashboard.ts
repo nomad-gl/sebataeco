@@ -209,7 +209,7 @@ export const securityDashboardRouter = router({
 
   /**
    * Active sessions: users whose lastSignedIn is within the current session window.
-   * This is a proxy for "currently active" since we don't track individual tokens.
+   * Includes IP address and geolocation (country, city) via ip-api.com batch lookup.
    */
   getActiveSessions: adminProcedure.query(async () => {
     const db = await getDb();
@@ -227,6 +227,7 @@ export const securityDashboardRouter = router({
         lastSignedIn: users.lastSignedIn,
         loginMethod: users.loginMethod,
         mfaEnabled: users.mfaEnabled,
+        lastLoginIp: users.lastLoginIp,
       })
       .from(users)
       .where(
@@ -237,10 +238,65 @@ export const securityDashboardRouter = router({
       )
       .orderBy(desc(users.lastSignedIn));
 
-    return activeSessions.map(u => ({
-      ...u,
-      sessionAge: Math.round((Date.now() - new Date(u.lastSignedIn).getTime()) / 60_000), // minutes
-    }));
+    // Batch-geolocate unique IPs using ip-api.com (free, no API key required)
+    // Docs: https://ip-api.com/docs/api:batch — up to 100 IPs per request
+    const uniqueIps = [...new Set(
+      activeSessions.map(u => u.lastLoginIp).filter(Boolean)
+    )] as string[];
+
+    const geoMap: Record<string, { country: string; city: string; countryCode: string }> = {};
+
+    if (uniqueIps.length > 0) {
+      try {
+        const batchBody = uniqueIps.slice(0, 100).map(ip => ({
+          query: ip,
+          fields: "status,country,countryCode,city,query",
+        }));
+        const geoRes = await fetch(
+          "http://ip-api.com/batch?fields=status,country,countryCode,city,query",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(batchBody),
+            signal: AbortSignal.timeout(4000),
+          }
+        );
+        if (geoRes.ok) {
+          const geoData = await geoRes.json() as Array<{
+            status: string;
+            query: string;
+            country?: string;
+            countryCode?: string;
+            city?: string;
+          }>;
+          for (const entry of geoData) {
+            if (entry.status === "success" && entry.query) {
+              geoMap[entry.query] = {
+                country: entry.country ?? "Unknown",
+                countryCode: entry.countryCode ?? "",
+                city: entry.city ?? "Unknown",
+              };
+            }
+          }
+        }
+      } catch {
+        // Geolocation is best-effort — never block the response on lookup failure
+      }
+    }
+
+    return activeSessions.map(u => {
+      const geo = u.lastLoginIp ? geoMap[u.lastLoginIp] : undefined;
+      return {
+        ...u,
+        sessionAge: Math.round((Date.now() - new Date(u.lastSignedIn).getTime()) / 60_000),
+        ipAddress: u.lastLoginIp ?? null,
+        location: geo ? `${geo.city}, ${geo.country}` : (u.lastLoginIp ? "Resolving…" : "—"),
+        countryCode: geo?.countryCode ?? "",
+        countryFlag: geo?.countryCode
+          ? String.fromCodePoint(...[...geo.countryCode.toUpperCase()].map(c => 0x1F1E6 - 65 + c.charCodeAt(0)))
+          : "",
+      };
+    });
   }),
 
   /**
