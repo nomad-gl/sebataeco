@@ -5215,3 +5215,9 @@
 - [x] Apply the same filters to the Schedule tab timetable grid (teacher rows filtered + session chips filtered)
 - [x] Clear button shows active filter count and resets all filters
 - [x] Add i18n keys: acal2_filter_subject, acal2_filter_teacher, acal2_filter_location, acal2_filter_clear, acal2_filter_all (EN/ES/CA)
+
+## Academic Calendar — Edit Subject Scroll + Academic Year Calendar Fix
+
+- [x] Edit Subject dialog: add overflow-y-auto max-h to DialogContent so it scrolls on small screens
+- [x] Calendar Semester views: when a subject has semesters=[all] or Academic Year, include its sessions in ALL semester views, not just the one matching subject.semester
+- [x] Schedule tab: Academic Year subjects already appear for all teachers (no semester filter on Schedule tab)

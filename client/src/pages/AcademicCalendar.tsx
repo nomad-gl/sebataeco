@@ -1383,11 +1383,20 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
               cur.setDate(cur.getDate() + 2); // skip Sat+Sun
               weeks.push(week);
             }
-            // Apply filters
+            // Apply filters + semester scope
+            // A session belongs in this semester view if:
+            // 1. Its subject has no semesters array (legacy) — include always
+            // 2. Its subject's semesters array includes semNum (or is Academic Year = all semesters)
             const filteredSessions = sessions.filter(s => {
               if (calFilterSubject !== "all" && s.subject !== calFilterSubject) return false;
               if (calFilterTeacher !== "all" && String(s.teacherId) !== calFilterTeacher) return false;
               if (calFilterLocation !== "all" && (s as any).classroom !== calFilterLocation) return false;
+              // Semester scope check
+              const subj = subjects.find(sub => sub.name === s.subject);
+              if (subj) {
+                const sems: number[] = (subj as any).semesters ?? [subj.semester];
+                if (sems.length > 0 && !sems.includes(semNum)) return false;
+              }
               return true;
             });
             // Session map by date (sorted by startTime per cell)
@@ -2138,11 +2147,11 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
         open={showAddSubject || editSubject !== null}
         onOpenChange={(o) => { if (!o) { setShowAddSubject(false); setEditSubject(null); } }}
       >
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
+        <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
+          <DialogHeader className="shrink-0">
             <DialogTitle>{editSubject ? t("acal2_edit_subject") : t("acal2_add_subject_title")}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 py-2">
+          <div className="space-y-3 py-2 overflow-y-auto flex-1 pr-1">
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
                 <Label>{t("acal2_subject_semester")}</Label>
