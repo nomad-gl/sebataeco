@@ -49,10 +49,12 @@ import {
   Unlock,
   Zap,
   Clock,
+  MapPin,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from "recharts";
+import { SessionMap } from "@/components/SessionMap";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -318,6 +320,37 @@ export default function AdminSecurityDashboard() {
             <div className="flex items-center justify-center h-[220px] text-muted-foreground text-sm">
               Loading chart…
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Session Map */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-primary" />
+            Session Locations
+            {activeSessions && activeSessions.filter((s: any) => s.lat != null).length > 0 && (
+              <Badge variant="secondary" className="ml-2 text-xs">
+                {activeSessions.filter((s: any) => s.lat != null).length} mapped
+              </Badge>
+            )}
+          </CardTitle>
+          <CardDescription>Real-time geographic distribution of active sessions — click a pin for details</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0 overflow-hidden rounded-b-lg">
+          {!activeSessions ? (
+            <div className="h-72 flex items-center justify-center text-muted-foreground text-sm">Loading map…</div>
+          ) : activeSessions.filter((s: any) => s.lat != null).length === 0 ? (
+            <div className="h-72 flex flex-col items-center justify-center text-muted-foreground text-sm gap-2">
+              <MapPin className="h-8 w-8 opacity-30" />
+              <span>No location data available yet — locations appear after users log in</span>
+            </div>
+          ) : (
+            <SessionMap
+              sessions={activeSessions as any[]}
+              className="h-72 w-full"
+            />
           )}
         </CardContent>
       </Card>

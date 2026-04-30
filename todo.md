@@ -5344,3 +5344,11 @@
 - [x] Add geolocateIp helper using ip-api.com batch endpoint
 - [x] Update securityDashboard.getActiveSessions to include IP + location
 - [x] Update AdminSecurityDashboard active sessions table to show IP and location columns
+
+## Session Map on Security Dashboard
+- [x] Extend ip-api.com geolocation to also return lat/lng coordinates
+- [x] Update getActiveSessions response to include lat, lng fields
+- [x] Build SessionMap component using existing Google Maps integration
+- [x] Add clustered markers with info-window popups (user name, email, IP, location, session age)
+- [x] Insert SessionMap card above the Active Sessions table on AdminSecurityDashboard
+- [x] Auto-refresh map every 30 s alongside other dashboard data

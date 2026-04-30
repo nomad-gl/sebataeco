@@ -244,16 +244,15 @@ export const securityDashboardRouter = router({
       activeSessions.map(u => u.lastLoginIp).filter(Boolean)
     )] as string[];
 
-    const geoMap: Record<string, { country: string; city: string; countryCode: string }> = {};
-
+     const geoMap: Record<string, { country: string; city: string; countryCode: string; lat: number | null; lng: number | null }> = {};
     if (uniqueIps.length > 0) {
       try {
         const batchBody = uniqueIps.slice(0, 100).map(ip => ({
           query: ip,
-          fields: "status,country,countryCode,city,query",
+          fields: "status,country,countryCode,city,lat,lon,query",
         }));
         const geoRes = await fetch(
-          "http://ip-api.com/batch?fields=status,country,countryCode,city,query",
+          "http://ip-api.com/batch?fields=status,country,countryCode,city,lat,lon,query",
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -268,6 +267,8 @@ export const securityDashboardRouter = router({
             country?: string;
             countryCode?: string;
             city?: string;
+            lat?: number;
+            lon?: number;
           }>;
           for (const entry of geoData) {
             if (entry.status === "success" && entry.query) {
@@ -275,6 +276,8 @@ export const securityDashboardRouter = router({
                 country: entry.country ?? "Unknown",
                 countryCode: entry.countryCode ?? "",
                 city: entry.city ?? "Unknown",
+                lat: entry.lat ?? null,
+                lng: entry.lon ?? null,
               };
             }
           }
@@ -295,6 +298,8 @@ export const securityDashboardRouter = router({
         countryFlag: geo?.countryCode
           ? String.fromCodePoint(...[...geo.countryCode.toUpperCase()].map(c => 0x1F1E6 - 65 + c.charCodeAt(0)))
           : "",
+        lat: geo?.lat ?? null,
+        lng: geo?.lng ?? null,
       };
     });
   }),
