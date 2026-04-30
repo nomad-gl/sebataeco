@@ -428,8 +428,8 @@ export const academicCalendarRouter = router({
           input.semesters.map(s => ({
             calendarId: input.calendarId,
             semesterNumber: s.semesterNumber,
-            startDate: s.startDate,
-            endDate: s.endDate,
+            startDate: new Date(s.startDate),
+            endDate: new Date(s.endDate),
           }))
         );
       }

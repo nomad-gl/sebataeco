@@ -537,7 +537,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
             {semesterDates.map(s => (
               <div key={s.id} className="flex items-center gap-3">
                 <span className="bg-blue-600/40 text-blue-100 text-xs font-bold px-2 py-0.5 rounded">{t("acal2_semester")} {s.semesterNumber}</span>
-                <span className="text-white text-sm">{s.startDate} → {s.endDate}</span>
+                <span className="text-white text-sm">{String(s.startDate).slice(0, 10)} → {String(s.endDate).slice(0, 10)}</span>
               </div>
             ))}
           </div>
@@ -1109,7 +1109,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                             classroom: sem1Subject.classroom ?? "",
                             maxStudents: sem1Subject.maxStudents ? String(sem1Subject.maxStudents) : "",
                             totalAcademicHours: String(sem1Subject.totalAcademicHours),
-                            days: sem1Subject.days ? JSON.parse(sem1Subject.days) : [],
+                            days: Array.isArray(sem1Subject.days) ? sem1Subject.days : (sem1Subject.days ? JSON.parse(sem1Subject.days as unknown as string) : []),
                             startTime: sem1Subject.startTime ?? "09:00",
                             endTime: sem1Subject.endTime ?? "10:00",
                           });
