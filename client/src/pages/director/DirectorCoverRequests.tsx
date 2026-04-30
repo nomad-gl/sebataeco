@@ -7,12 +7,15 @@
  *  - Cover confirmation dialog
  *  - Payback opportunity panel (after cover is confirmed)
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +27,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   AlertTriangle,
+  ArrowLeft,
+  Search,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
@@ -302,6 +307,9 @@ function PaybackPanel({ coverAssignmentId }: { coverAssignmentId: number }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function DirectorCoverRequests() {
   const { t } = useI18n();
+  const [, navigate] = useLocation();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "covered" | "uncovered" | "cancelled">("all");
   const [confirmingRegisterId, setConfirmingRegisterId] = useState<number | null>(null);
   const [cancellingAssignmentId, setCancellingAssignmentId] = useState<number | null>(null);
   const [cancelReason, setCancelReason] = useState("");
@@ -346,23 +354,84 @@ export default function DirectorCoverRequests() {
     onError: (err) => toast.error(err.message),
   });
 
+  // Filtered and searched list
+  const filteredCovers = useMemo(() => {
+    if (!pendingCovers) return [];
+    return (pendingCovers as AbsenceRow[]).filter(row => {
+      // Status filter
+      if (statusFilter === "covered" && !row.hasCover) return false;
+      if (statusFilter === "uncovered" && row.hasCover) return false;
+      if (statusFilter === "cancelled" && row.coverAssignment?.status !== "cancelled") return false;
+      // Search filter
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        return (
+          row.className?.toLowerCase().includes(q) ||
+          row.assignedName?.toLowerCase().includes(q) ||
+          row.markerName?.toLowerCase().includes(q) ||
+          row.absenceReason?.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [pendingCovers, statusFilter, searchQuery]);
+
   return (
     <div className="container max-w-3xl py-8 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <AlertTriangle className="h-7 w-7 text-amber-400" />
-          <div>
-            <h1 className="text-2xl font-bold">{t("cover_requests_title")}</h1>
-            <p className="text-sm text-muted-foreground">
-              Absence log &amp; AI-assisted cover assignment
-            </p>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/director/overview")}
+              className="mr-1 -ml-2 text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Back
+            </Button>
+            <AlertTriangle className="h-7 w-7 text-amber-400" />
+            <div>
+              <h1 className="text-2xl font-bold">{t("cover_requests_title")}</h1>
+              <p className="text-sm text-muted-foreground">
+                Absence log &amp; AI-assisted cover assignment
+              </p>
+            </div>
           </div>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            <RefreshCw className="h-4 w-4 mr-1.5" />
+            Refresh
+          </Button>
         </div>
-        <Button variant="outline" size="sm" onClick={() => refetch()}>
-          <RefreshCw className="h-4 w-4 mr-1.5" />
-          Refresh
-        </Button>
+        {/* Search and filter toolbar */}
+        <div className="flex flex-wrap gap-2 items-center">
+          <div className="relative flex-1 min-w-[180px] max-w-xs">
+            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Search class, teacher, reason…"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="pl-8 h-8 text-sm"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={v => setStatusFilter(v as typeof statusFilter)}>
+            <SelectTrigger className="w-40 h-8 text-sm">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All requests</SelectItem>
+              <SelectItem value="uncovered">Uncovered</SelectItem>
+              <SelectItem value="covered">Covered</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+          {(searchQuery || statusFilter !== "all") && (
+            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setSearchQuery(""); setStatusFilter("all"); }}>
+              Clear filters
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Escalation banner */}
@@ -388,9 +457,16 @@ export default function DirectorCoverRequests() {
             <p>No absence events recorded.</p>
           </CardContent>
         </Card>
+      ) : filteredCovers.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            <Search className="h-10 w-10 mx-auto mb-3 opacity-30" />
+            <p>No requests match your filters.</p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-3">
-          {(pendingCovers as AbsenceRow[]).map((row) => (
+          {filteredCovers.map((row) => (
             <Card key={row.id} className="overflow-hidden">
               <CardContent className="p-4 space-y-3">
                 {/* Row header */}

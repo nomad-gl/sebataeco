@@ -19,6 +19,7 @@ import { getDb } from "../db";
 import { users, passwordResetTokens, teacherInvites } from "../../drizzle/schema";
 import { eq, and, gt, desc } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
+import { logSecurityEvent, extractIp } from "../securityLogger";
 
 const BCRYPT_ROUNDS = 12;
 
@@ -428,6 +429,15 @@ export const localAuthRouter = router({
       if (!valid) {
         // Count this as a failed attempt
         checkLoginRateLimit(normalised);
+        logSecurityEvent({
+          eventType: "login_fail",
+          userId: user?.id ?? null,
+          userEmail: normalised,
+          userRole: user?.role ?? null,
+          ipAddress: extractIp(ctx.req as any),
+          userAgent: (ctx.req as any).headers?.["user-agent"] ?? null,
+          metadata: { reason: "invalid_password" },
+        });
         throw new TRPCError({
           code: "UNAUTHORIZED",
           message: "Invalid email or password.",
@@ -436,6 +446,14 @@ export const localAuthRouter = router({
 
       // Successful login — clear the lockout counter
       resetLoginRateLimit(normalised);
+      logSecurityEvent({
+        eventType: "login_success",
+        userId: user.id,
+        userEmail: normalised,
+        userRole: user.role ?? null,
+        ipAddress: extractIp(ctx.req as any),
+        userAgent: (ctx.req as any).headers?.["user-agent"] ?? null,
+      });
 
       // Block deactivated accounts
       if (user.deactivatedAt) {
@@ -514,6 +532,14 @@ export const localAuthRouter = router({
         .set({ passwordHash })
         .where(eq(users.id, user.id));
 
+      logSecurityEvent({
+        eventType: "password_changed",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email ?? null,
+        userRole: ctx.user.role ?? null,
+        ipAddress: extractIp(ctx.req as any),
+        userAgent: (ctx.req as any).headers?.["user-agent"] ?? null,
+      });
       return { success: true };
     }),
 
@@ -536,6 +562,16 @@ export const localAuthRouter = router({
       // Clear the current session cookie too
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+
+      logSecurityEvent({
+        eventType: "session_invalidated",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email ?? null,
+        userRole: ctx.user.role ?? null,
+        ipAddress: extractIp(ctx.req as any),
+        userAgent: (ctx.req as any).headers?.["user-agent"] ?? null,
+        metadata: JSON.stringify({ reason: "logout_all_devices" }),
+      });
 
       return { success: true };
     }),

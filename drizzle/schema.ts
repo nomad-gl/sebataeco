@@ -930,6 +930,31 @@ export type AdminAuditLog = typeof adminAuditLogs.$inferSelect;
 export type InsertAdminAuditLog = typeof adminAuditLogs.$inferInsert;
 
 /**
+ * security_events — real-time security monitoring table.
+ * Captures login, logout, MFA, rate-limit, and session events for the admin dashboard.
+ * @migration 0067
+ */
+export const securityEvents = mysqlTable("security_events", {
+  id: int("id").autoincrement().primaryKey(),
+  /** login_success | login_fail | logout | mfa_enabled | mfa_disabled | mfa_verify_fail | rate_limit_hit | session_invalidated | password_changed | account_deactivated | account_reactivated */
+  eventType: varchar("eventType", { length: 64 }).notNull(),
+  /** NULL for pre-auth events (e.g. login_fail with unknown email) */
+  userId: int("userId"),
+  /** Captured at event time so it survives account deletion */
+  userEmail: varchar("userEmail", { length: 320 }),
+  userRole: varchar("userRole", { length: 64 }),
+  /** Anonymised to /24 prefix for IPv4 */
+  ipAddress: varchar("ipAddress", { length: 64 }),
+  userAgent: varchar("userAgent", { length: 512 }),
+  /** JSON: extra context (endpoint, reason, etc.) */
+  metadata: text("metadata"),
+  severity: mysqlEnum("severity", ["info", "warning", "critical"]).notNull().default("info"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+});
+export type SecurityEvent = typeof securityEvents.$inferSelect;
+export type InsertSecurityEvent = typeof securityEvents.$inferInsert;
+
+/**
  * DPA acceptances — records each user's acceptance of the Data Processing Agreement.
  * Required for GDPR Article 28 compliance (documented consent to data processing).
  */

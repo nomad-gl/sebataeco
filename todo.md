@@ -5323,3 +5323,17 @@
 - [ ] Director Users page shows user role badges (teacher, director, head_of_study, admin, etc.)
 - [x] Director Users page auto-refreshes or invalidates when role changes are made
 - [x] Role Management page emits tRPC cache invalidation that Director Users page listens to
+
+## Security Dashboard (Admin)
+- [ ] Create security_events table migration
+- [ ] Instrument login/logout/MFA/rate-limit events in existing routers
+- [ ] Add securityDashboard tRPC router (getStats, getRecentEvents, getActiveSessions, getEventTimeline)
+- [ ] Build AdminSecurityDashboard page with KPI cards, timeline chart, event table, active sessions list
+- [ ] Add route /admin/security-dashboard to App.tsx
+- [ ] Add NavBar link under Platform admin items
+- [ ] Write vitest tests for securityDashboard router
+
+## UI Fixes (post-security-dashboard)
+- [ ] Cover Requests (Director): add back/return button to navigate back to director dashboard
+- [ ] Cover Requests (Director): add dropdown list (filter by status/type) and search bar for all requests
+- [ ] Super-Admin User Management: copy Invite History card from Director User Management, add delete invite functionality

@@ -51,6 +51,7 @@ import { customSetsRouter } from "./routers/customSets";
 import { academicCalendarRouter } from "./routers/academicCalendar";
 import { mfaRouter } from "./routers/mfa";
 import { dpiaRouter } from "./routers/dpia";
+import { securityDashboardRouter } from "./routers/securityDashboard";
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -245,6 +246,7 @@ export const appRouter = router({
   academicCalendar: academicCalendarRouter,
   mfa: mfaRouter,
   dpia: dpiaRouter,
+  securityDashboard: securityDashboardRouter,
 });
 
 export type AppRouter = typeof appRouter;

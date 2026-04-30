@@ -31,9 +31,13 @@ import {
   AlertTriangle,
   Link2,
   Trash2,
+  MailPlus,
+  RefreshCw,
+  Clock,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
+import { InviteCountdown } from "@/components/InviteCountdown";
 import BackButton from "@/components/BackButton";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -53,6 +57,15 @@ type AdminLocalUser = {
   invitedByUserId: number | null;
 };
 
+type InviteRow = {
+  id: number;
+  token: string;
+  email: string | null;
+  createdAt: Date | string;
+  expiresAt: Date | string;
+  usedAt: Date | string | null;
+  status: "pending" | "used" | "expired";
+};
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatDate(date: Date | null): string {
   if (!date) return "—";
@@ -261,6 +274,27 @@ export default function AdminUserManagement() {
     },
   });
 
+  // Invite history state
+  const [confirmDeleteInvite, setConfirmDeleteInvite] = useState<InviteRow | null>(null);
+  const [confirmResend, setConfirmResend] = useState<InviteRow | null>(null);
+  const { data: invites = [], isLoading: invitesLoading, refetch: refetchInvites } =
+    trpc.director.listTeacherInvites.useQuery();
+  const deleteInviteMutation = trpc.director.deleteTeacherInvite.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Invite for ${data.deletedEmail ?? "user"} deleted.`);
+      setConfirmDeleteInvite(null);
+      refetchInvites();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+  const resendMutation = trpc.director.resendTeacherInvite.useMutation({
+    onSuccess: () => {
+      toast.success("Invite resent successfully.");
+      setConfirmResend(null);
+      refetchInvites();
+    },
+    onError: (err) => toast.error(err.message),
+  });
   // Filter users
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -661,6 +695,134 @@ export default function AdminUserManagement() {
                 ) : (
                   <><Trash2 className="w-3 h-3 mr-1" /> Delete permanently</>
                 )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Invite History Card */}
+      <Card className="mt-6">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <MailPlus className="h-4 w-4 text-muted-foreground" />
+            Invite History ({invites.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {invitesLoading ? (
+            <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
+              <Loader2 className="h-5 w-5 animate-spin" />
+            </div>
+          ) : invites.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
+              <MailPlus className="h-8 w-8 opacity-30" />
+              <p className="text-sm">No invites sent yet.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/40">
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Email</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Created</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Expires</th>
+                    <th className="text-right px-4 py-3 font-medium text-muted-foreground">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(invites as InviteRow[]).map((invite) => (
+                    <tr key={invite.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                      <td className="px-4 py-3 text-muted-foreground">{invite.email ?? "—"}</td>
+                      <td className="px-4 py-3">
+                        {invite.status === "used" && (
+                          <Badge variant="outline" className="text-xs text-green-600 border-green-600">Used</Badge>
+                        )}
+                        {invite.status === "pending" && (
+                          <InviteCountdown expiresAt={new Date(invite.expiresAt)} />
+                        )}
+                        {invite.status === "expired" && (
+                          <Badge variant="outline" className="text-xs text-destructive border-destructive">Expired</Badge>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatDate(invite.createdAt as Date)}</td>
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatDate(invite.expiresAt as Date)}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5"
+                            disabled={invite.status === "used"}
+                            onClick={() => setConfirmResend(invite)}
+                          >
+                            <RefreshCw className="h-3.5 w-3.5" />
+                            Resend
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => setConfirmDeleteInvite(invite)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Delete
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      {/* Resend Invite Confirmation */}
+      {confirmResend && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-background rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                <RefreshCw className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold">Resend invite?</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Resend the invite link to <span className="font-medium">{confirmResend.email ?? "—"}</span>?
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setConfirmResend(null)} disabled={resendMutation.isPending}>Cancel</Button>
+              <Button size="sm" disabled={resendMutation.isPending}
+                onClick={() => resendMutation.mutate({ inviteId: confirmResend.id, origin: window.location.origin })}>
+                {resendMutation.isPending ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />Sending…</> : "Resend"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Delete Invite Confirmation */}
+      {confirmDeleteInvite && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-background rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <Trash2 className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold">Delete invite?</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Permanently delete the invite for <span className="font-medium">{confirmDeleteInvite.email ?? "—"}</span>? This cannot be undone.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setConfirmDeleteInvite(null)} disabled={deleteInviteMutation.isPending}>Cancel</Button>
+              <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white" disabled={deleteInviteMutation.isPending}
+                onClick={() => deleteInviteMutation.mutate({ inviteId: confirmDeleteInvite.id })}>
+                {deleteInviteMutation.isPending ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />Deleting…</> : <><Trash2 className="w-3 h-3 mr-1" />Delete</>}
               </Button>
             </div>
           </div>

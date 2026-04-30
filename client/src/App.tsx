@@ -90,6 +90,7 @@ import AdminGovernance from "./pages/admin/AdminGovernance";
 import AdminFacilities from "./pages/admin/AdminFacilities";
 import AdminWakeWords from "./pages/admin/AdminWakeWords";
 import AdminDpia from "./pages/admin/AdminDpia";
+import AdminSecurityDashboard from "./pages/admin/AdminSecurityDashboard";
 import AdminAudioResponses from "./pages/admin/AdminAudioResponses";
 import AttendanceRegister from "./pages/AttendanceRegister";
 import IndividualPlans from "./pages/IndividualPlans";
@@ -188,6 +189,7 @@ function Router() {
         <Route path="/admin/facilities" component={AdminFacilities} />
         <Route path="/admin/wake-words" component={AdminWakeWords} />
         <Route path="/admin/dpia" component={AdminDpia} />
+        <Route path="/admin/security" component={AdminSecurityDashboard} />
         <Route path="/admin/audio-responses" component={AdminAudioResponses} />
         <Route path="/create" component={Create} />
         <Route path="/my-materials" component={MyMaterials} />

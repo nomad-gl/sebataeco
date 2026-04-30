@@ -252,6 +252,7 @@ export default function NavBar() {
     { href: "/admin/wake-words",  label: t("nav_wake_words"),        icon: Mic },
     { href: "/admin/audio-responses", label: t("nav_audio_responses"), icon: Music },
     { href: "/admin/dpia",          label: "DPIA",                     icon: Shield },
+    { href: "/admin/security",      label: "Security Dashboard",        icon: ShieldAlert },
   ];
   const allAdminItems = [...schoolAdminItems, ...platformItems];
   const isAdminActive = allAdminItems.some(

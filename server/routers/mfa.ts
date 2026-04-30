@@ -20,6 +20,7 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { users } from "../../drizzle/schema";
+import { logSecurityEvent, extractIp } from "../securityLogger";
 import { eq } from "drizzle-orm";
 import {
   generateTotpSecret,
@@ -114,6 +115,15 @@ export const mfaRouter = router({
       }
 
       if (!verifyTotp(user.mfaSecret, input.token)) {
+        logSecurityEvent({
+          eventType: "mfa_verify_fail",
+          userId: ctx.user.id,
+          userEmail: ctx.user.email ?? null,
+          userRole: ctx.user.role ?? null,
+          ipAddress: extractIp(ctx.req as any),
+          userAgent: (ctx.req as any).headers?.["user-agent"] ?? null,
+          metadata: { procedure: "verifyMfaSetup" },
+        });
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid TOTP code. Check your authenticator app." });
       }
 
@@ -126,6 +136,14 @@ export const mfaRouter = router({
         .set({ mfaEnabled: true, mfaBackupCodes: JSON.stringify(hashedCodes) })
         .where(eq(users.id, ctx.user.id));
 
+      logSecurityEvent({
+        eventType: "mfa_enabled",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email ?? null,
+        userRole: ctx.user.role ?? null,
+        ipAddress: extractIp(ctx.req as any),
+        userAgent: (ctx.req as any).headers?.["user-agent"] ?? null,
+      });
       return { success: true, backupCodes: plainCodes };
     }),
 
@@ -222,6 +240,14 @@ export const mfaRouter = router({
         .set({ mfaSecret: null, mfaEnabled: false, mfaBackupCodes: null })
         .where(eq(users.id, ctx.user.id));
 
+      logSecurityEvent({
+        eventType: "mfa_disabled",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email ?? null,
+        userRole: ctx.user.role ?? null,
+        ipAddress: extractIp(ctx.req as any),
+        userAgent: (ctx.req as any).headers?.["user-agent"] ?? null,
+      });
       return { success: true };
     }),
 
