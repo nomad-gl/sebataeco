@@ -15,9 +15,11 @@ import { toast } from "sonner";
 import {
   BookOpen, Clock, Plus, Trash2, Edit2, ChevronDown, ChevronUp,
   User, Calendar, TrendingUp, TrendingDown, Minus, AlertTriangle,
-  LayoutGrid, List, Mail, Copy,
+  LayoutGrid, List, Mail, Copy, Sun, Coffee, Loader2,
 } from "lucide-react";
 import { HourAdjustmentsLog } from "@/components/HourAdjustmentsLog";
+import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
 
 const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
 const SEMESTERS = ["1", "2", "full_year"] as const;
@@ -159,6 +161,56 @@ export default function DirectorTeacherProfiles() {
       utils.teacherProfile.getTeacherRoster.invalidate();
     },
     onError: (e) => toast.error(e.message),
+  });
+
+  // ── Holiday & Prep tab state ──────────────────────────────────────────────
+  const [holidayProfileId, setHolidayProfileId] = useState<number | null>(null);
+  const [showProfileForm, setShowProfileForm] = useState(false);
+  const [profileForm, setProfileForm] = useState({ contractedHoursPerWeek: 20, prepHoursPerWeek: 5, annualHolidayDays: 25, notes: "" });
+  const [showAddHoliday, setShowAddHoliday] = useState(false);
+  const [holidayForm, setHolidayForm] = useState({ date: "", type: "taken" as "taken" | "owed", hours: "7.5", notes: "" });
+  const [deleteHolidayId, setDeleteHolidayId] = useState<number | null>(null);
+
+  const { data: profiles = [] } = trpc.teacherProfile.listProfiles.useQuery();
+
+  // Find profile matching selected teacher name
+  const matchedProfile = profiles.find(p => {
+    const teacherName = selectedTeacher?.displayName || selectedTeacher?.name || "";
+    return p.name.toLowerCase() === teacherName.toLowerCase();
+  });
+  const activeProfileId = holidayProfileId ?? matchedProfile?.id ?? null;
+
+  const { data: profileStats, isLoading: statsLoading } = trpc.teacherProfile.getProfileStats.useQuery(
+    { teacherProfileId: activeProfileId! },
+    { enabled: activeProfileId !== null }
+  );
+
+  const upsertProfileMutation = trpc.teacherProfile.upsertProfile.useMutation({
+    onSuccess: (data) => {
+      utils.teacherProfile.listProfiles.invalidate();
+      setHolidayProfileId(data.id);
+      setShowProfileForm(false);
+      toast.success("Profile saved");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const addHolidayMutation = trpc.teacherProfile.addHolidayRecord.useMutation({
+    onSuccess: () => {
+      utils.teacherProfile.getProfileStats.invalidate({ teacherProfileId: activeProfileId! });
+      setShowAddHoliday(false);
+      setHolidayForm({ date: "", type: "taken", hours: "7.5", notes: "" });
+      toast.success("Holiday record added");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const deleteHolidayMutation = trpc.teacherProfile.deleteHolidayRecord.useMutation({
+    onSuccess: () => {
+      utils.teacherProfile.getProfileStats.invalidate({ teacherProfileId: activeProfileId! });
+      setDeleteHolidayId(null);
+      toast.success("Record deleted");
+    },
   });
 
   const copyScheduleMutation = trpc.teacherProfile.copySchedule.useMutation({
@@ -412,6 +464,7 @@ export default function DirectorTeacherProfiles() {
                   <TabsTrigger value="subjects"><BookOpen className="h-4 w-4 mr-1" />{t("tp_tab_subjects")}</TabsTrigger>
                   <TabsTrigger value="schedule"><Calendar className="h-4 w-4 mr-1" />{t("tp_tab_schedule")}</TabsTrigger>
                   <TabsTrigger value="hours"><Clock className="h-4 w-4 mr-1" />{t("tp_tab_hours")}</TabsTrigger>
+                  <TabsTrigger value="holiday"><Sun className="h-4 w-4 mr-1" />Holiday &amp; Prep</TabsTrigger>
                 </TabsList>
 
                 {/* Subjects Tab */}
@@ -705,11 +758,267 @@ export default function DirectorTeacherProfiles() {
                     </>
                   )}
                 </TabsContent>
+                {/* ── Holiday & Prep Tab ── */}
+                <TabsContent value="holiday" className="space-y-4 mt-4">
+                  {activeProfileId === null ? (
+                    <Card>
+                      <CardContent className="p-6 text-center space-y-3">
+                        <Sun className="h-10 w-10 mx-auto text-muted-foreground opacity-40" />
+                        <p className="text-sm text-muted-foreground">No holiday &amp; prep profile linked to <strong>{selectedTeacher?.displayName || selectedTeacher?.name}</strong>.</p>
+                        <p className="text-xs text-muted-foreground">Create a profile to track contracted hours, prep time, holiday entitlement, and free periods.</p>
+                        <Button size="sm" onClick={() => {
+                          const name = selectedTeacher?.displayName || selectedTeacher?.name || "";
+                          setProfileForm({ contractedHoursPerWeek: 20, prepHoursPerWeek: 5, annualHolidayDays: 25, notes: "" });
+                          setShowProfileForm(true);
+                        }}>
+                          <Plus className="h-4 w-4 mr-1" /> Create Profile
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ) : statsLoading ? (
+                    <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+                  ) : profileStats ? (
+                    <>
+                      {/* Edit profile button */}
+                      <div className="flex justify-end">
+                        <Button size="sm" variant="outline" onClick={() => {
+                          setProfileForm({
+                            contractedHoursPerWeek: profileStats.profile.contractedHoursPerWeek,
+                            prepHoursPerWeek: profileStats.profile.prepHoursPerWeek,
+                            annualHolidayDays: profileStats.profile.annualHolidayDays,
+                            notes: "",
+                          });
+                          setShowProfileForm(true);
+                        }}>
+                          <Edit2 className="h-3.5 w-3.5 mr-1" /> Edit Profile Settings
+                        </Button>
+                      </div>
+
+                      {/* Hours grid: Weekly / Monthly / Annual */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {(["weekly", "monthly", "annual"] as const).map(period => {
+                          const d = profileStats[period];
+                          return (
+                            <Card key={period}>
+                              <CardHeader className="pb-1 pt-3 px-4">
+                                <CardTitle className="text-xs text-muted-foreground capitalize">{period}</CardTitle>
+                              </CardHeader>
+                              <CardContent className="px-4 pb-3">
+                                <div className="grid grid-cols-3 gap-1.5 text-center">
+                                  <div>
+                                    <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{d.teachingHours}h</div>
+                                    <div className="text-[10px] text-muted-foreground">Teaching</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-lg font-bold text-purple-600 dark:text-purple-400">{d.contractedHours}h</div>
+                                    <div className="text-[10px] text-muted-foreground">Contracted</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-lg font-bold text-teal-600 dark:text-teal-400">{d.prepHours}h</div>
+                                    <div className="text-[10px] text-muted-foreground">Prep</div>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+
+                      {/* Semester breakdown */}
+                      {profileStats.semesterStats.length > 0 && (
+                        <Card>
+                          <CardHeader className="pb-1 pt-3 px-4">
+                            <CardTitle className="text-xs text-muted-foreground">Semester Breakdown</CardTitle>
+                          </CardHeader>
+                          <CardContent className="px-4 pb-3">
+                            <div className="grid grid-cols-3 gap-2">
+                              {profileStats.semesterStats.map(s => (
+                                <div key={s.semesterNumber} className="border rounded-lg p-2.5 text-center">
+                                  <div className="text-xs font-medium mb-1.5">Semester {s.semesterNumber} <span className="text-muted-foreground">({s.weeks}wk)</span></div>
+                                  <div className="grid grid-cols-3 gap-1 text-xs">
+                                    <div><div className="font-semibold text-blue-600 dark:text-blue-400">{s.teachingHours}h</div><div className="text-muted-foreground">Teaching</div></div>
+                                    <div><div className="font-semibold text-purple-600 dark:text-purple-400">{s.contractedHours}h</div><div className="text-muted-foreground">Contracted</div></div>
+                                    <div><div className="font-semibold text-teal-600 dark:text-teal-400">{s.prepHours}h</div><div className="text-muted-foreground">Prep</div></div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {/* Holiday balance */}
+                      <Card>
+                        <CardHeader className="pb-1 pt-3 px-4 flex flex-row items-center justify-between">
+                          <CardTitle className="text-xs text-muted-foreground">Holiday Balance</CardTitle>
+                          <Button size="sm" className="h-7 text-xs" onClick={() => setShowAddHoliday(true)}>
+                            <Plus className="h-3.5 w-3.5 mr-1" /> Add Record
+                          </Button>
+                        </CardHeader>
+                        <CardContent className="px-4 pb-3 space-y-3">
+                          <div className="grid grid-cols-3 gap-2 text-center">
+                            <div className="border rounded-lg p-2">
+                              <div className="text-lg font-bold">{profileStats.holiday.entitlementDays.toFixed(1)}</div>
+                              <div className="text-xs text-muted-foreground">Days Entitled</div>
+                            </div>
+                            <div className="border rounded-lg p-2 border-red-200 dark:border-red-800">
+                              <div className="text-lg font-bold text-red-600 dark:text-red-400">{(profileStats.holiday.takenHours / 7.5).toFixed(1)}</div>
+                              <div className="text-xs text-muted-foreground">Days Taken</div>
+                            </div>
+                            <div className={`border rounded-lg p-2 ${profileStats.holiday.balanceDays >= 0 ? "border-green-200 dark:border-green-800" : "border-orange-200 dark:border-orange-800"}`}>
+                              <div className={`text-lg font-bold ${profileStats.holiday.balanceDays >= 0 ? "text-green-600 dark:text-green-400" : "text-orange-600 dark:text-orange-400"}`}>{profileStats.holiday.balanceDays.toFixed(1)}</div>
+                              <div className="text-xs text-muted-foreground">Balance</div>
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-xs text-muted-foreground">
+                              <span>{profileStats.holiday.takenHours.toFixed(1)}h taken</span>
+                              <span>{profileStats.holiday.balanceHours.toFixed(1)}h remaining</span>
+                            </div>
+                            <Progress value={Math.min(100, (profileStats.holiday.takenHours / (profileStats.holiday.entitlementHours + profileStats.holiday.owedHours || 1)) * 100)} className="h-1.5" />
+                          </div>
+                          {profileStats.holiday.records.length > 0 && (
+                            <div className="space-y-1.5 mt-2">
+                              {profileStats.holiday.records.map(r => (
+                                <div key={r.id} className="flex items-center justify-between text-xs border rounded px-2.5 py-1.5">
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant={r.type === "taken" ? "destructive" : "secondary"} className="text-[10px] px-1.5 py-0">{r.type === "taken" ? "Taken" : "Owed"}</Badge>
+                                    <span>{new Date(r.date as unknown as string).toLocaleDateString()}</span>
+                                    <span className="text-muted-foreground">{parseFloat(String(r.hours)).toFixed(1)}h</span>
+                                    {r.notes && <span className="text-muted-foreground italic">{r.notes}</span>}
+                                  </div>
+                                  <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setDeleteHolidayId(r.id)}>
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      {/* Free periods */}
+                      <Card>
+                        <CardHeader className="pb-1 pt-3 px-4">
+                          <CardTitle className="text-xs text-muted-foreground flex items-center gap-1.5">
+                            <Coffee className="h-3.5 w-3.5" /> Free Period Sessions (Cover Available)
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="px-4 pb-3">
+                          {profileStats.freePeriodSessions.length === 0 ? (
+                            <p className="text-xs text-muted-foreground text-center py-4">No free/prep periods detected. Sessions labelled "Free", "Prep", or "Planning" will appear here.</p>
+                          ) : (
+                            <div className="space-y-1.5">
+                              {profileStats.freePeriodSessions.map((s, i) => (
+                                <div key={i} className="flex items-center justify-between text-xs border rounded px-2.5 py-1.5 bg-amber-50 dark:bg-amber-950/30">
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">{["Mon","Tue","Wed","Thu","Fri"][s.dayOfWeek - 1]}</Badge>
+                                    <span className="font-medium">{s.subject}</span>
+                                    {s.classGroup && <span className="text-muted-foreground">{s.classGroup}</span>}
+                                  </div>
+                                  <span className="text-muted-foreground">{s.startTime}–{s.endTime}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </>
+                  ) : null}
+                </TabsContent>
+
               </Tabs>
             </div>
           )}
         </div>
       </div>
+
+      {/* Profile Settings Dialog */}
+      <Dialog open={showProfileForm} onOpenChange={setShowProfileForm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Holiday &amp; Prep Profile — {selectedTeacher?.displayName || selectedTeacher?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label className="text-xs">Contracted h/wk</Label>
+                <Input type="number" min="0" max="80" step="0.5" value={profileForm.contractedHoursPerWeek}
+                  onChange={e => setProfileForm(f => ({ ...f, contractedHoursPerWeek: parseFloat(e.target.value) || 0 }))} />
+              </div>
+              <div>
+                <Label className="text-xs">Prep h/wk</Label>
+                <Input type="number" min="0" max="40" step="0.5" value={profileForm.prepHoursPerWeek}
+                  onChange={e => setProfileForm(f => ({ ...f, prepHoursPerWeek: parseFloat(e.target.value) || 0 }))} />
+              </div>
+              <div>
+                <Label className="text-xs">Holiday days/yr</Label>
+                <Input type="number" min="0" max="60" step="0.5" value={profileForm.annualHolidayDays}
+                  onChange={e => setProfileForm(f => ({ ...f, annualHolidayDays: parseFloat(e.target.value) || 0 }))} />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Notes (optional)</Label>
+              <Textarea value={profileForm.notes} onChange={e => setProfileForm(f => ({ ...f, notes: e.target.value }))}
+                placeholder="Any notes..." className="resize-none" rows={2} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowProfileForm(false)}>Cancel</Button>
+            <Button
+              disabled={upsertProfileMutation.isPending}
+              onClick={() => upsertProfileMutation.mutate({
+                id: matchedProfile?.id,
+                name: selectedTeacher?.displayName || selectedTeacher?.name || "",
+                email: selectedTeacher?.email || undefined,
+                contractedHoursPerWeek: profileForm.contractedHoursPerWeek,
+                prepHoursPerWeek: profileForm.prepHoursPerWeek,
+                annualHolidayDays: profileForm.annualHolidayDays,
+                notes: profileForm.notes || undefined,
+              })}
+            >
+              {upsertProfileMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Holiday Record Dialog */}
+      <Dialog open={showAddHoliday} onOpenChange={setShowAddHoliday}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Add Holiday Record</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Date</Label><Input type="date" value={holidayForm.date} onChange={e => setHolidayForm(f => ({ ...f, date: e.target.value }))} /></div>
+            <div>
+              <Label>Type</Label>
+              <Select value={holidayForm.type} onValueChange={v => setHolidayForm(f => ({ ...f, type: v as "taken" | "owed" }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="taken">Holiday Taken</SelectItem>
+                  <SelectItem value="owed">Holiday Owed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div><Label>Hours</Label><Input type="number" min="0.5" max="24" step="0.5" value={holidayForm.hours} onChange={e => setHolidayForm(f => ({ ...f, hours: e.target.value }))} /></div>
+            <div><Label>Notes (optional)</Label><Input value={holidayForm.notes} onChange={e => setHolidayForm(f => ({ ...f, notes: e.target.value }))} placeholder="e.g. Annual leave" /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddHoliday(false)}>Cancel</Button>
+            <Button
+              disabled={!holidayForm.date || addHolidayMutation.isPending}
+              onClick={() => activeProfileId && addHolidayMutation.mutate({
+                teacherProfileId: activeProfileId,
+                date: holidayForm.date,
+                type: holidayForm.type,
+                hours: parseFloat(holidayForm.hours) || 7.5,
+                notes: holidayForm.notes || undefined,
+              })}
+            >
+              {addHolidayMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Subject Dialog */}
       <Dialog open={subjectDialog} onOpenChange={setSubjectDialog}>

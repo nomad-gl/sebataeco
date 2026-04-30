@@ -1,4 +1,4 @@
-import { boolean, date, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { boolean, date, decimal, float, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -2425,3 +2425,48 @@ export const acSemesterDates = mysqlTable("ac_semester_dates", {
 });
 export type AcSemesterDate = typeof acSemesterDates.$inferSelect;
 export type InsertAcSemesterDate = typeof acSemesterDates.$inferInsert;
+
+/**
+ * teacher_profiles — extended profile for teachers, linked to ac_teachers or standalone.
+ * Stores contracted hours, prep hours, and annual holiday entitlement.
+ * @migration 0065
+ */
+export const teacherProfiles = mysqlTable("teacher_profiles", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Owner user ID (the director/admin who manages this profile) */
+  ownerId: varchar("ownerId", { length: 255 }).notNull(),
+  /** Teacher name — used as the primary identifier */
+  name: varchar("name", { length: 255 }).notNull(),
+  email: varchar("email", { length: 320 }),
+  /** Contracted teaching hours per week */
+  contractedHoursPerWeek: decimal("contractedHoursPerWeek", { precision: 5, scale: 2 }).notNull().default("20.00"),
+  /** Preparation / planning hours per week */
+  prepHoursPerWeek: decimal("prepHoursPerWeek", { precision: 5, scale: 2 }).notNull().default("5.00"),
+  /** Annual holiday entitlement in days */
+  annualHolidayDays: decimal("annualHolidayDays", { precision: 5, scale: 2 }).notNull().default("25.00"),
+  /** Optional notes */
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+export type TeacherProfile = typeof teacherProfiles.$inferSelect;
+export type InsertTeacherProfile = typeof teacherProfiles.$inferInsert;
+
+/**
+ * teacher_holiday_records — individual holiday taken/owed entries per teacher profile.
+ * @migration 0065
+ */
+export const teacherHolidayRecords = mysqlTable("teacher_holiday_records", {
+  id: int("id").autoincrement().primaryKey(),
+  teacherProfileId: int("teacherProfileId").notNull(),
+  /** Date of the holiday entry (YYYY-MM-DD) */
+  date: date("date").notNull(),
+  /** 'taken' = holiday used, 'owed' = extra holiday accrued/owed */
+  type: mysqlEnum("type", ["taken", "owed"]).notNull().default("taken"),
+  /** Duration in hours */
+  hours: decimal("hours", { precision: 5, scale: 2 }).notNull().default("7.50"),
+  notes: varchar("notes", { length: 500 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type TeacherHolidayRecord = typeof teacherHolidayRecords.$inferSelect;
+export type InsertTeacherHolidayRecord = typeof teacherHolidayRecords.$inferInsert;

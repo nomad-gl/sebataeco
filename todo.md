@@ -5278,3 +5278,40 @@
 - [x] Update holidays count card to include all non-teaching types
 - [x] Update isHolidayOnly check in week view to include all non-teaching types
 - [x] Update termCoverage calculation to exclude all non-teaching types
+
+## Feature: Academic Calendar Background & Teacher Links (2026-04-30)
+- [ ] Apply hero background image to /academic-calendar page (fixed, static background)
+- [ ] Add teacher name as clickable link on academic calendar detail page
+- [ ] Link connects to /director/teacher-profiles?teacher=<id> for individual teacher view
+
+## Feature: Teacher Profiles Page at /director/teacher-profiles (2026-04-30)
+- [ ] DB: teacher_profiles table (contractedHoursPerWeek, prepHoursPerWeek, annualHolidayEntitlement)
+- [ ] DB: teacher_holiday_records table (date, type: taken/owed, hours, notes)
+- [ ] Server: getTeacherProfiles procedure (list all teachers with computed stats)
+- [ ] Server: getTeacherProfile procedure (single teacher with weekly/monthly/semester/annual breakdown)
+- [ ] Server: upsertTeacherProfile procedure (create/update contracted hours, prep hours, holiday entitlement)
+- [ ] Server: addHolidayRecord procedure (log holiday taken or owed)
+- [ ] Client: /director/teacher-profiles page with teacher list and individual profile view
+- [ ] Client: Weekly teaching hours (from calendar events this week)
+- [ ] Client: Monthly teaching hours (from calendar events this month)
+- [ ] Client: Semester teaching hours (from calendar events in current semester)
+- [ ] Client: Academic year total teaching hours
+- [ ] Client: Contracted hours display (weekly, annualised)
+- [ ] Client: Prep hours display (weekly, annualised)
+- [ ] Client: Holiday owed, taken, balance display
+- [ ] Client: Free period sessions per week (weekday slots not occupied by lessons)
+- [ ] Client: Cover availability view (free periods across all teachers for a given week)
+
+## Feature: Academic Calendar Hero Background + Teacher Links + Teacher Profiles Holiday Tab (2026-04-30)
+- [x] Apply hero background image to Academic Calendar page (/academic-calendar)
+- [x] Make teacher names in Academic Calendar Teachers tab clickable links to /director/teacher-profiles
+- [x] Make teacher names in Academic Calendar schedule table clickable links to /director/teacher-profiles
+- [x] Make tutorName in SchoolCalendar header a clickable link to /director/teacher-profiles
+- [x] Add teacher_profiles DB table (contractedHoursPerWeek, prepHoursPerWeek, annualHolidayDays, notes)
+- [x] Add teacher_holiday_records DB table (teacherProfileId, date, type taken/owed, hours, notes)
+- [x] Add listProfiles, upsertProfile, deleteProfile, addHolidayRecord, deleteHolidayRecord, getProfileStats procedures
+- [x] Add Holiday & Prep tab to DirectorTeacherProfiles.tsx with weekly/monthly/annual teaching/contracted/prep hours
+- [x] Add semester breakdown to Holiday & Prep tab
+- [x] Add holiday balance section (entitlement, taken, owed, balance) with progress bar and records list
+- [x] Add free period sessions list for cover planning (detects Free/Prep/Planning sessions)
+- [x] Add unit tests for new procedures in teacherProfileExtended.test.ts (all 33 test files passing)

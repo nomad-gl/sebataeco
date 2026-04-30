@@ -14,6 +14,11 @@ import {
   teacherSchedule,
   schoolCalendarEvents,
   users,
+  teacherProfiles,
+  teacherHolidayRecords,
+  acTeachers,
+  acSessions,
+  acSemesterDates,
 } from "../../drizzle/schema";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -549,14 +554,12 @@ export const teacherProfileRouter = router({
       if (!tenantId) throw new TRPCError({ code: "BAD_REQUEST", message: "No tenant" });
       const db = await getDb(); if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
 
-      // Verify both teachers belong to this tenant
       const [fromTeacher, toTeacher] = await Promise.all([
         db.select({ id: users.id }).from(users).where(and(eq(users.id, input.fromUserId), eq(users.tenantId, tenantId))).limit(1),
         db.select({ id: users.id }).from(users).where(and(eq(users.id, input.toUserId), eq(users.tenantId, tenantId))).limit(1),
       ]);
       if (!fromTeacher.length || !toTeacher.length) throw new TRPCError({ code: "NOT_FOUND", message: "Teacher not found" });
 
-      // Fetch source slots
       const sourceSlots = await db
         .select()
         .from(teacherSchedule)
@@ -564,14 +567,12 @@ export const teacherProfileRouter = router({
 
       if (!sourceSlots.length) return { copied: 0 };
 
-      // Optionally delete existing slots for target teacher
       if (input.overwrite) {
         await db.delete(teacherSchedule).where(
           and(eq(teacherSchedule.userId, input.toUserId), eq(teacherSchedule.academicYear, input.academicYear))
         );
       }
 
-      // Insert copied slots
       const newSlots = sourceSlots.map(({ id: _id, userId: _uid, createdAt: _ca, ...rest }) => ({
         ...rest,
         userId: input.toUserId,
@@ -579,5 +580,309 @@ export const teacherProfileRouter = router({
       await db.insert(teacherSchedule).values(newSlots);
 
       return { copied: newSlots.length };
+    }),
+
+  // ── Teacher Profiles (standalone, by name) ──────────────────────────────────
+
+  /** List all teacher profiles owned by the current user */
+  listProfiles: protectedProcedure
+    .query(async ({ ctx }) => {
+      const db = await getDb(); if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      return db
+        .select()
+        .from(teacherProfiles)
+        .where(eq(teacherProfiles.ownerId, String(ctx.user.id)))
+        .orderBy(teacherProfiles.name);
+    }),
+
+  /** Upsert a teacher profile (create or update by name) */
+  upsertProfile: protectedProcedure
+    .input(z.object({
+      id: z.number().optional(),
+      name: z.string().min(1).max(255),
+      email: z.string().email().optional().or(z.literal("")).optional(),
+      contractedHoursPerWeek: z.number().min(0).max(80).default(20),
+      prepHoursPerWeek: z.number().min(0).max(40).default(5),
+      annualHolidayDays: z.number().min(0).max(60).default(25),
+      notes: z.string().max(2000).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb(); if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      const ownerId = String(ctx.user.id);
+      if (input.id) {
+        // Verify ownership
+        const existing = await db.select({ id: teacherProfiles.id }).from(teacherProfiles)
+          .where(and(eq(teacherProfiles.id, input.id), eq(teacherProfiles.ownerId, ownerId))).limit(1);
+        if (!existing.length) throw new TRPCError({ code: "NOT_FOUND" });
+        await db.update(teacherProfiles).set({
+          name: input.name,
+          email: input.email || null,
+          contractedHoursPerWeek: String(input.contractedHoursPerWeek),
+          prepHoursPerWeek: String(input.prepHoursPerWeek),
+          annualHolidayDays: String(input.annualHolidayDays),
+          notes: input.notes || null,
+          updatedAt: new Date(),
+        }).where(eq(teacherProfiles.id, input.id));
+        return { id: input.id };
+      } else {
+        const result = await db.insert(teacherProfiles).values({
+          ownerId,
+          name: input.name,
+          email: input.email || null,
+          contractedHoursPerWeek: String(input.contractedHoursPerWeek),
+          prepHoursPerWeek: String(input.prepHoursPerWeek),
+          annualHolidayDays: String(input.annualHolidayDays),
+          notes: input.notes || null,
+        });
+        return { id: Number((result as any).insertId) };
+      }
+    }),
+
+  /** Delete a teacher profile */
+  deleteProfile: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb(); if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      const ownerId = String(ctx.user.id);
+      const existing = await db.select({ id: teacherProfiles.id }).from(teacherProfiles)
+        .where(and(eq(teacherProfiles.id, input.id), eq(teacherProfiles.ownerId, ownerId))).limit(1);
+      if (!existing.length) throw new TRPCError({ code: "NOT_FOUND" });
+      await db.delete(teacherHolidayRecords).where(eq(teacherHolidayRecords.teacherProfileId, input.id));
+      await db.delete(teacherProfiles).where(eq(teacherProfiles.id, input.id));
+      return { success: true };
+    }),
+
+  // ── Holiday Records ──────────────────────────────────────────────────────────
+
+  /** List holiday records for a teacher profile */
+  listHolidayRecords: protectedProcedure
+    .input(z.object({ teacherProfileId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb(); if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      const ownerId = String(ctx.user.id);
+      // Verify ownership
+      const profile = await db.select({ id: teacherProfiles.id }).from(teacherProfiles)
+        .where(and(eq(teacherProfiles.id, input.teacherProfileId), eq(teacherProfiles.ownerId, ownerId))).limit(1);
+      if (!profile.length) throw new TRPCError({ code: "NOT_FOUND" });
+      return db
+        .select()
+        .from(teacherHolidayRecords)
+        .where(eq(teacherHolidayRecords.teacherProfileId, input.teacherProfileId))
+        .orderBy(teacherHolidayRecords.date);
+    }),
+
+  /** Add a holiday record */
+  addHolidayRecord: protectedProcedure
+    .input(z.object({
+      teacherProfileId: z.number(),
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      type: z.enum(["taken", "owed"]),
+      hours: z.number().min(0.5).max(24).default(7.5),
+      notes: z.string().max(500).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb(); if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      const ownerId = String(ctx.user.id);
+      const profile = await db.select({ id: teacherProfiles.id }).from(teacherProfiles)
+        .where(and(eq(teacherProfiles.id, input.teacherProfileId), eq(teacherProfiles.ownerId, ownerId))).limit(1);
+      if (!profile.length) throw new TRPCError({ code: "NOT_FOUND" });
+      const result = await db.insert(teacherHolidayRecords).values({
+        teacherProfileId: input.teacherProfileId,
+        date: new Date(input.date),
+        type: input.type,
+        hours: String(input.hours),
+        notes: input.notes || null,
+      });
+      return { id: Number((result as any).insertId) };
+    }),
+
+  /** Delete a holiday record */
+  deleteHolidayRecord: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb(); if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      await db.delete(teacherHolidayRecords).where(eq(teacherHolidayRecords.id, input.id));
+      return { success: true };
+    }),
+
+  /**
+   * getProfileStats — compute teaching hours, contracted hours, prep hours,
+   * holiday balance for a teacher profile, pulling sessions from ac_sessions.
+   */
+  getProfileStats: protectedProcedure
+    .input(z.object({
+      teacherProfileId: z.number(),
+      calendarId: z.number().optional(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb(); if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      const ownerId = String(ctx.user.id);
+
+      // Fetch profile
+      const [profile] = await db.select().from(teacherProfiles)
+        .where(and(eq(teacherProfiles.id, input.teacherProfileId), eq(teacherProfiles.ownerId, ownerId))).limit(1);
+      if (!profile) throw new TRPCError({ code: "NOT_FOUND" });
+
+      const contractedHPW = parseFloat(String(profile.contractedHoursPerWeek));
+      const prepHPW = parseFloat(String(profile.prepHoursPerWeek));
+      const annualHolidayDays = parseFloat(String(profile.annualHolidayDays));
+      const hoursPerDay = 7.5;
+      const annualHolidayHours = annualHolidayDays * hoursPerDay;
+
+      // Fetch holiday records
+      const holidayRecords = await db.select().from(teacherHolidayRecords)
+        .where(eq(teacherHolidayRecords.teacherProfileId, input.teacherProfileId));
+      const holidayTakenHours = holidayRecords
+        .filter(r => r.type === "taken")
+        .reduce((acc, r) => acc + parseFloat(String(r.hours)), 0);
+      const holidayOwedHours = holidayRecords
+        .filter(r => r.type === "owed")
+        .reduce((acc, r) => acc + parseFloat(String(r.hours)), 0);
+      const holidayBalance = annualHolidayHours + holidayOwedHours - holidayTakenHours;
+
+      // Find ac_teachers matching this name
+      const matchingTeachers = await db.select().from(acTeachers)
+        .where(eq(acTeachers.name, profile.name));
+
+      // Filter by calendarId if provided
+      const relevantTeachers = input.calendarId
+        ? matchingTeachers.filter(t => t.calendarId === input.calendarId)
+        : matchingTeachers;
+
+      // Fetch all sessions for these teachers
+      const teacherIds = relevantTeachers.map(t => t.id);
+      let allSessions: typeof acSessions.$inferSelect[] = [];
+      if (teacherIds.length > 0) {
+        for (const tid of teacherIds) {
+          const sessions = await db.select().from(acSessions).where(eq(acSessions.teacherId, tid));
+          allSessions = allSessions.concat(sessions);
+        }
+      }
+
+      // Compute session duration in hours
+      function sessionHours(s: typeof acSessions.$inferSelect): number {
+        const [sh, sm] = s.startTime.split(":").map(Number);
+        const [eh, em] = s.endTime.split(":").map(Number);
+        return Math.max(0, (eh * 60 + em - sh * 60 - sm)) / 60;
+      }
+
+      // Weekly teaching hours (unique day+subject+time combos, recurring)
+      const recurringSlots = allSessions.filter(s => !s.sessionDate);
+      const weeklyTeachingHours = recurringSlots.reduce((acc, s) => acc + sessionHours(s), 0);
+
+      // Semester totals — fetch semester dates
+      const semDateRows = input.calendarId
+        ? await db.select().from(acSemesterDates).where(eq(acSemesterDates.calendarId, input.calendarId))
+        : [];
+
+      // Build semester week counts
+      function weeksBetween(start: Date, end: Date): number {
+        const ms = end.getTime() - start.getTime();
+        return Math.max(1, Math.round(ms / (7 * 86400000)));
+      }
+
+      const semesterStats = semDateRows.map(sd => {
+        const semSessions = allSessions.filter(s => {
+          // For recurring, include all; for dated, check if date falls in semester
+          if (!s.sessionDate) return true;
+          const d = new Date(s.sessionDate as unknown as string).toISOString().slice(0, 10);
+          const start = new Date(sd.startDate as unknown as string).toISOString().slice(0, 10);
+          const end = new Date(sd.endDate as unknown as string).toISOString().slice(0, 10);
+          return d >= start && d <= end;
+        });
+        const recurringInSem = semSessions.filter(s => !s.sessionDate);
+        const weeks = weeksBetween(
+          new Date(sd.startDate as unknown as string),
+          new Date(sd.endDate as unknown as string)
+        );
+        const semTeachingHours = recurringInSem.reduce((acc, s) => acc + sessionHours(s), 0) * weeks;
+        const semContractedHours = contractedHPW * weeks;
+        const semPrepHours = prepHPW * weeks;
+        return {
+          semesterNumber: sd.semesterNumber,
+          weeks,
+          teachingHours: Math.round(semTeachingHours * 10) / 10,
+          contractedHours: Math.round(semContractedHours * 10) / 10,
+          prepHours: Math.round(semPrepHours * 10) / 10,
+        };
+      });
+
+      // Annual totals
+      const totalWeeks = semesterStats.reduce((a, s) => a + s.weeks, 0) || 36;
+      const annualTeachingHours = semesterStats.length > 0
+        ? semesterStats.reduce((a, s) => a + s.teachingHours, 0)
+        : weeklyTeachingHours * totalWeeks;
+      const annualContractedHours = contractedHPW * totalWeeks;
+      const annualPrepHours = prepHPW * totalWeeks;
+
+      // Monthly teaching hours (approximate: annual / 10 teaching months)
+      const monthlyTeachingHours = Math.round((annualTeachingHours / 10) * 10) / 10;
+      const monthlyContractedHours = Math.round((annualContractedHours / 10) * 10) / 10;
+      const monthlyPrepHours = Math.round((annualPrepHours / 10) * 10) / 10;
+
+      // Free period sessions per week (slots with no subject assigned, or gaps in schedule)
+      // We define free periods as recurring slots that are marked as "free" or "prep" in subject name
+      const freePeriodSessions = recurringSlots.filter(s =>
+        /free|prep|planning|break|recess/i.test(s.subject)
+      );
+
+      // Weekly schedule grid (Mon-Fri, all recurring sessions)
+      const weeklyGrid: Record<number, Array<{ subject: string; startTime: string; endTime: string; classGroup: string | null; hours: number }>> = {};
+      for (let d = 1; d <= 5; d++) {
+        weeklyGrid[d] = recurringSlots
+          .filter(s => s.dayOfWeek === d)
+          .sort((a, b) => a.startTime.localeCompare(b.startTime))
+          .map(s => ({
+            subject: s.subject,
+            startTime: s.startTime,
+            endTime: s.endTime,
+            classGroup: s.classGroup ?? null,
+            hours: Math.round(sessionHours(s) * 10) / 10,
+          }));
+      }
+
+      return {
+        profile: {
+          ...profile,
+          contractedHoursPerWeek: contractedHPW,
+          prepHoursPerWeek: prepHPW,
+          annualHolidayDays,
+        },
+        weekly: {
+          teachingHours: Math.round(weeklyTeachingHours * 10) / 10,
+          contractedHours: contractedHPW,
+          prepHours: prepHPW,
+          totalHours: Math.round((weeklyTeachingHours + prepHPW) * 10) / 10,
+        },
+        monthly: {
+          teachingHours: monthlyTeachingHours,
+          contractedHours: monthlyContractedHours,
+          prepHours: monthlyPrepHours,
+        },
+        annual: {
+          teachingHours: Math.round(annualTeachingHours * 10) / 10,
+          contractedHours: Math.round(annualContractedHours * 10) / 10,
+          prepHours: Math.round(annualPrepHours * 10) / 10,
+        },
+        semesterStats,
+        holiday: {
+          entitlementDays: annualHolidayDays,
+          entitlementHours: Math.round(annualHolidayHours * 10) / 10,
+          takenHours: Math.round(holidayTakenHours * 10) / 10,
+          owedHours: Math.round(holidayOwedHours * 10) / 10,
+          balanceHours: Math.round(holidayBalance * 10) / 10,
+          balanceDays: Math.round((holidayBalance / hoursPerDay) * 10) / 10,
+          records: holidayRecords,
+        },
+        weeklyGrid,
+        freePeriodSessions: freePeriodSessions.map(s => ({
+          dayOfWeek: s.dayOfWeek,
+          subject: s.subject,
+          startTime: s.startTime,
+          endTime: s.endTime,
+          classGroup: s.classGroup ?? null,
+        })),
+        linkedCalendars: relevantTeachers.map(t => t.calendarId),
+      };
     }),
 });

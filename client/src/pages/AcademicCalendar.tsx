@@ -17,6 +17,7 @@ import { CalendarDays, Plus, Trash2, Edit2, AlertTriangle, Users, Clock, BookOpe
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Link } from "wouter";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 const DAYS_ES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
@@ -805,7 +806,12 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-white font-semibold">{teacher.name}</span>
+                            <Link
+                              href={`/director/teacher-profiles?name=${encodeURIComponent(teacher.name)}`}
+                              className="text-white font-semibold hover:text-blue-200 hover:underline transition-colors"
+                            >
+                              {teacher.name}
+                            </Link>
                             <span className="text-blue-300 text-sm">{teacher.email}</span>
                           </div>
                           <div className="mt-2 space-y-1">
@@ -925,7 +931,14 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                     });
                     return (
                       <tr key={teacher.id} className="border-b border-white/10">
-                        <td className="text-white py-3 pr-4 font-medium align-top">{teacher.name}</td>
+                        <td className="text-white py-3 pr-4 font-medium align-top">
+                          <Link
+                            href={`/director/teacher-profiles?name=${encodeURIComponent(teacher.name)}`}
+                            className="hover:text-blue-200 hover:underline transition-colors"
+                          >
+                            {teacher.name}
+                          </Link>
+                        </td>
                         {[1, 2, 3, 4, 5].map(day => {
                           // Deduplicate: for dated sessions, show only one representative row per unique subject+startTime+endTime on this day
                           const allDaySessions = tSessions.filter(s => s.dayOfWeek === day);
@@ -2502,12 +2515,19 @@ export default function AcademicCalendar() {
   const [selectedCalendarId, setSelectedCalendarId] = useState<number | null>(null);
 
   return (
-    <div
-      className="min-h-screen"
-      style={{
-        background: "linear-gradient(135deg, #0f172a 0%, #1e3a5f 40%, #0f2d4a 100%)",
-      }}
-    >
+    <div className="min-h-screen relative">
+      {/* Fixed hero background */}
+      <div
+        className="fixed inset-0 -z-10"
+        style={{
+          backgroundImage: `url('/manus-storage/hero-bg_a767782c.jpg')`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+        }}
+      />
+      {/* Dark overlay for readability */}
+      <div className="fixed inset-0 -z-10 bg-black/60" />
       <NavBar />
       <div className="max-w-6xl mx-auto px-4 py-8">
         <BackButton />

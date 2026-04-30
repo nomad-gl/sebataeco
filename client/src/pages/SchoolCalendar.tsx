@@ -21,7 +21,7 @@ import { ChevronLeft, ChevronRight, Plus, Trash2, CalendarDays,
 } from "lucide-react";
 // DashboardLayout removed — SchoolCalendar uses standalone layout
 import { SebaSymbol } from "@/components/SebaSymbol";
-import { useLocation } from "wouter";
+import { useLocation, Link as WouterLink } from "wouter";
 import { useI18n } from "@/contexts/I18nContext";
 import { loadSchoolProfile } from "@/pages/Settings";
 import { exportToCsv, exportToXml } from "@/lib/exportUtils";
@@ -1831,7 +1831,12 @@ export default function SchoolCalendar() {
                           <span className="flex items-center gap-1"><School className="w-3.5 h-3.5" /> {selectedCalendar.schoolName}</span>
                         )}
                         {selectedCalendar.tutorName && (
-                          <span className="flex items-center gap-1"><User className="w-3.5 h-3.5" /> {selectedCalendar.tutorName}</span>
+                          <WouterLink
+                            href={`/director/teacher-profiles?name=${encodeURIComponent(selectedCalendar.tutorName)}`}
+                            className="flex items-center gap-1 hover:text-primary hover:underline transition-colors"
+                          >
+                            <User className="w-3.5 h-3.5" /> {selectedCalendar.tutorName}
+                          </WouterLink>
                         )}
                         {selectedCalendar.subject && (
                           <span className="flex items-center gap-1 font-medium text-foreground bg-primary/10 border border-primary/20 rounded-full px-2 py-0.5 text-xs">
