@@ -89,6 +89,7 @@ import AdminDocuments from "./pages/admin/AdminDocuments";
 import AdminGovernance from "./pages/admin/AdminGovernance";
 import AdminFacilities from "./pages/admin/AdminFacilities";
 import AdminWakeWords from "./pages/admin/AdminWakeWords";
+import AdminDpia from "./pages/admin/AdminDpia";
 import AdminAudioResponses from "./pages/admin/AdminAudioResponses";
 import AttendanceRegister from "./pages/AttendanceRegister";
 import IndividualPlans from "./pages/IndividualPlans";
@@ -99,6 +100,7 @@ import TerritorialDirectorOverview from "./pages/TerritorialDirectorOverview";
 import DirectorInviteAccept from "./pages/DirectorInviteAccept";
 import TeacherInviteAccept from "./pages/TeacherInviteAccept";
 import ChangePassword from "./pages/ChangePassword";
+import MfaSetup from "./pages/MfaSetup";
 import { useAuth } from "./_core/hooks/useAuth";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
@@ -185,6 +187,7 @@ function Router() {
         <Route path="/admin/governance" component={AdminGovernance} />
         <Route path="/admin/facilities" component={AdminFacilities} />
         <Route path="/admin/wake-words" component={AdminWakeWords} />
+        <Route path="/admin/dpia" component={AdminDpia} />
         <Route path="/admin/audio-responses" component={AdminAudioResponses} />
         <Route path="/create" component={Create} />
         <Route path="/my-materials" component={MyMaterials} />
@@ -252,6 +255,7 @@ function Router() {
         <Route path="/invite/director/:token" component={DirectorInviteAccept} />
         <Route path="/invite/teacher/:token" component={TeacherInviteAccept} />
         <Route path="/change-password" component={ChangePassword} />
+        <Route path="/settings/mfa" component={MfaSetup} />
         <Route path="/my-situacions">
           <HosOrAdminRoute component={MySituacions} />
         </Route>

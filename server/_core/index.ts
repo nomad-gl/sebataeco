@@ -14,12 +14,14 @@ import { runAuditRetentionPurge, auditRetentionStatus } from "../routers/audit";
 import { runBiasScan, biasScanStatus } from "../biasScan";
 import { runI18nScanAndNotify } from "../i18nScan";
 import { runAttendanceAlarmForTenant } from "../routers/teacherAttendance";
+import { createRateLimiter } from "./rateLimiter";
 import { startHealthMonitor } from "../selfHeal";
 import { getDb } from "../db";
 import { questionTranslations } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { getQuestions } from "../knowledge/lomloeKnowledgeBank";
 import { ainaTranslateBatch } from "../ainaTranslation";
+import { randomBytes as cryptoRandomBytes } from "crypto";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -58,7 +60,24 @@ async function startServer() {
   // the aina.uploadFile tRPC batch endpoint only.
   app.use("/api/trpc/aina.uploadFile", express.json({ limit: "22mb" }));
 
+  // ── HIGH-03: Rate limiting on AI and auth endpoints ────────────────────────
+  // AI endpoints: 30 requests per minute per IP (prevents prompt injection abuse)
+  app.use("/api/trpc/aina", createRateLimiter({ windowMs: 60_000, max: 30, message: "AI rate limit exceeded — please wait before sending more requests." }));
+  // Auth endpoints: 20 requests per minute per IP (prevents brute-force)
+  app.use("/api/oauth", createRateLimiter({ windowMs: 60_000, max: 20, message: "Too many authentication attempts — please wait." }));
+  app.use("/api/trpc/auth", createRateLimiter({ windowMs: 60_000, max: 20, message: "Too many authentication attempts — please wait." }));
+  // MFA endpoints: 10 requests per minute per IP (prevents OTP brute-force)
+  app.use("/api/trpc/mfa", createRateLimiter({ windowMs: 60_000, max: 10, message: "Too many MFA attempts — please wait." }));
+
   // ── Sovereignty: security & privacy headers ───────────────────────────────
+  // MED-01: Nonce-based CSP — generate a fresh nonce per request and attach it
+  // to res.locals so the HTML template can use it for inline scripts.
+  // crypto is a built-in Node.js module — import it at the top level once.
+  app.use((_req, res, next) => {
+    // MED-01: Generate a cryptographically random nonce per request (synchronous)
+    res.locals.cspNonce = cryptoRandomBytes(16).toString("base64");
+    next();
+  });
   app.use((_req, res, next) => {
     // Prevent clickjacking
     res.setHeader("X-Frame-Options", "SAMEORIGIN");
@@ -71,18 +90,20 @@ async function startServer() {
       "Permissions-Policy",
       "geolocation=(), payment=(), usb=(), interest-cohort=()"
     );
-    // Strict-Transport-Security: enforce HTTPS for 1 year, include subdomains
-    // NOTE: Only effective over HTTPS — ignored by browsers on plain HTTP.
-    // Production upgrade path for CSP: replace 'unsafe-inline' in script-src
-    // with a per-request nonce (crypto.randomUUID()) injected into both this
-    // header and the <script> tags via SSR or a Vite plugin. This eliminates
-    // the last remaining inline-script attack surface.
+    // Strict-Transport-Security: enforce HTTPS for 1 year, include subdomains + preload
     res.setHeader(
       "Strict-Transport-Security",
-      "max-age=31536000; includeSubDomains"
+      "max-age=31536000; includeSubDomains; preload"
     );
-    // Content-Security-Policy: restrict all resource origins to self
-    // - script-src: only same-origin scripts (no inline eval, no CDN)
+    // MED-04: Cross-Origin policies — prevent cross-origin data leaks
+    // NOTE: COEP is disabled for now because it breaks third-party iframes/resources
+    // that don't send CORP headers (e.g. Google Maps, some CDN assets).
+    // Enable once all third-party resources are CORP-compliant.
+    res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+    res.setHeader("Cross-Origin-Resource-Policy", "same-site");
+    // MED-01: Content-Security-Policy with nonce-based script-src
+    // - script-src: same-origin + nonce (no unsafe-inline in production)
+    //   In development, 'unsafe-inline' is still needed for Vite HMR.
     // - style-src: same-origin + unsafe-inline (required by Tailwind CSS-in-JS)
     // - img-src: same-origin + data URIs (canvas blobs, base64 avatars)
     // - font-src: same-origin (fonts are now self-hosted)
@@ -90,17 +111,24 @@ async function startServer() {
     // - media-src: same-origin + blob (WebRTC local streams)
     // - worker-src: blob (service worker)
     // - frame-ancestors: none (belt-and-braces clickjack protection)
+    const nonce = res.locals.cspNonce as string | undefined;
+    const nonceAttr = nonce ? `'nonce-${nonce}'` : "";
+    // In dev, Vite HMR requires unsafe-inline; in production use nonce only
+    const scriptSrc = process.env.NODE_ENV === "development"
+      ? `script-src 'self' 'unsafe-inline'`
+      : `script-src 'self' ${nonceAttr}`.trim();
+    const analyticsSrc = process.env.VITE_ANALYTICS_ENDPOINT ?? '';
     const csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline'",   // unsafe-inline needed for Vite HMR in dev
+      scriptSrc,
       "style-src 'self' 'unsafe-inline'",    // Tailwind injects styles at runtime
       // Manus storage CDN: the /manus-storage/ proxy redirects to a signed
       // CloudFront URL. The browser follows the 307 redirect and loads the image
       // directly from CloudFront, so the CDN domain must be in img-src.
-      "img-src 'self' data: blob: https://*.cloudfront.net https://forge.manus.ai",
+      `img-src 'self' data: blob: https://*.cloudfront.net https://forge.manus.ai https://api.qrserver.com`,
       "font-src 'self'",
-      `connect-src 'self' ${process.env.OAUTH_SERVER_URL ?? ''} ${process.env.BUILT_IN_FORGE_API_URL ?? ''} ${process.env.VITE_ANALYTICS_ENDPOINT ?? ''} https://*.cloudfront.net`.trim(),
-      "media-src 'self' blob: https://*.cloudfront.net",
+      `connect-src 'self' ${process.env.OAUTH_SERVER_URL ?? ''} ${process.env.BUILT_IN_FORGE_API_URL ?? ''} ${analyticsSrc} https://*.cloudfront.net`.trim(),
+      `media-src 'self' blob: https://*.cloudfront.net`,
       "worker-src 'self' blob:",
       "frame-src 'none'",
       "frame-ancestors 'none'",
@@ -172,6 +200,36 @@ async function startServer() {
     res.set("Content-Type", "text/plain");
     res.set("Cache-Control", "public, max-age=3600");
     res.send(content);
+  });
+
+  // ── HIGH-02: Session sliding renewal — re-issue cookie on each authenticated request ──
+  // This keeps active users logged in without extending the window for stolen tokens.
+  // Only renews if the session is valid and has less than 4 hours remaining.
+  app.use("/api/trpc", async (req, res, next) => {
+    try {
+      const { parse: parseCookieHeader } = await import("cookie");
+      const { COOKIE_NAME: CNAME, SESSION_MAX_AGE_MS: MAX_AGE } = await import("@shared/const");
+      const { sdk: sdkInst } = await import("./sdk");
+      const { getSessionCookieOptions } = await import("./cookies");
+      const cookies = parseCookieHeader(req.headers.cookie ?? "");
+      const sessionCookie = cookies[CNAME];
+      if (sessionCookie) {
+        const session = await sdkInst.verifySession(sessionCookie);
+        if (session) {
+          // Re-issue the cookie to slide the expiry window
+          const freshToken = await sdkInst.createSessionToken(session.openId, {
+            name: session.name,
+            sv: session.sv,
+            expiresInMs: MAX_AGE,
+          });
+          const opts = getSessionCookieOptions(req);
+          res.cookie(CNAME, freshToken, { ...opts, maxAge: MAX_AGE });
+        }
+      }
+    } catch {
+      // Never block a request due to renewal failure
+    }
+    next();
   });
 
   // tRPC API

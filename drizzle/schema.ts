@@ -103,6 +103,25 @@ export const users = mysqlTable("users", {
    * @migration 0060
    */
   invitedByUserId: int("invitedByUserId"),
+  /**
+   * HIGH-01: TOTP MFA secret (base32-encoded, 20 bytes).
+   * NULL = MFA not configured for this user.
+   * @migration 0066
+   */
+  mfaSecret: varchar("mfaSecret", { length: 64 }),
+  /**
+   * HIGH-01: Whether TOTP MFA is currently active for this user.
+   * Only set to true after the user has verified their first TOTP code.
+   * @migration 0066
+   */
+  mfaEnabled: boolean("mfaEnabled").default(false).notNull(),
+  /**
+   * HIGH-01: JSON array of bcrypt-hashed one-time backup codes.
+   * Each code can only be used once; used codes are removed from the array.
+   * NULL = no backup codes generated yet.
+   * @migration 0066
+   */
+  mfaBackupCodes: text("mfaBackupCodes"),
 });
 
 export type User = typeof users.$inferSelect;

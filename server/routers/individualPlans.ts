@@ -24,6 +24,7 @@ import { getDb } from "../db";
 import { individualLearningPlans, individualLessonPlans } from "../../drizzle/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
+import { encryptField, decryptField, encryptFields, decryptFields } from "../_core/fieldEncryption";
 import { sendPlanByEmail } from "../email";
 
 // ─── Shared Zod schemas ────────────────────────────────────────────────────────
@@ -70,11 +71,13 @@ export const ilpRouter = router({
   list: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-    return db
+    const rows = await db
       .select()
       .from(individualLearningPlans)
       .where(eq(individualLearningPlans.teacherId, ctx.user.id))
       .orderBy(desc(individualLearningPlans.updatedAt));
+    // MED-02: Decrypt sensitive fields before returning to client
+    return rows.map(r => decryptFields(r as Record<string, unknown>, ["studentContext", "learningGoals", "planContent"]) as typeof r);
   }),
 
   get: protectedProcedure
@@ -92,7 +95,8 @@ export const ilpRouter = router({
           )
         );
       if (!plan) throw new TRPCError({ code: "NOT_FOUND" });
-      return plan;
+      // MED-02: Decrypt sensitive fields before returning to client
+      return decryptFields(plan as Record<string, unknown>, ["studentContext", "learningGoals", "planContent"]) as typeof plan;
     }),
 
   create: protectedProcedure
@@ -100,9 +104,11 @@ export const ilpRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      // MED-02: Encrypt sensitive student data fields at rest
+      const encryptedInput = encryptFields(input as Record<string, unknown>, ["studentContext", "learningGoals", "planContent"]) as typeof input;
       const [result] = await db.insert(individualLearningPlans).values({
         teacherId: ctx.user.id,
-        ...input,
+        ...encryptedInput,
       });
       return { id: (result as any).insertId as number };
     }),
@@ -113,9 +119,11 @@ export const ilpRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       const { id, ...data } = input;
+      // MED-02: Encrypt sensitive fields before updating
+      const encryptedData = encryptFields(data as Record<string, unknown>, ["studentContext", "learningGoals", "planContent"]) as typeof data;
       await db
         .update(individualLearningPlans)
-        .set(data)
+        .set(encryptedData)
         .where(
           and(
             eq(individualLearningPlans.id, id),
@@ -237,11 +245,13 @@ export const lessonPlanRouter = router({
   list: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-    return db
+    const rows = await db
       .select()
       .from(individualLessonPlans)
       .where(eq(individualLessonPlans.teacherId, ctx.user.id))
       .orderBy(desc(individualLessonPlans.updatedAt));
+    // MED-02: Decrypt sensitive fields before returning to client
+    return rows.map(r => decryptFields(r as Record<string, unknown>, ["studentContext", "objectives", "planContent"]) as typeof r);
   }),
 
   get: protectedProcedure
@@ -259,7 +269,8 @@ export const lessonPlanRouter = router({
           )
         );
       if (!plan) throw new TRPCError({ code: "NOT_FOUND" });
-      return plan;
+      // MED-02: Decrypt sensitive fields before returning to client
+      return decryptFields(plan as Record<string, unknown>, ["studentContext", "objectives", "planContent"]) as typeof plan;
     }),
 
   create: protectedProcedure
@@ -267,9 +278,11 @@ export const lessonPlanRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      // MED-02: Encrypt sensitive student data fields at rest
+      const encryptedInput = encryptFields(input as Record<string, unknown>, ["studentContext", "objectives", "planContent"]) as typeof input;
       const [result] = await db.insert(individualLessonPlans).values({
         teacherId: ctx.user.id,
-        ...input,
+        ...encryptedInput,
       });
       return { id: (result as any).insertId as number };
     }),
@@ -280,9 +293,11 @@ export const lessonPlanRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       const { id, ...data } = input;
+      // MED-02: Encrypt sensitive fields before updating
+      const encryptedData = encryptFields(data as Record<string, unknown>, ["studentContext", "objectives", "planContent"]) as typeof data;
       await db
         .update(individualLessonPlans)
-        .set(data)
+        .set(encryptedData)
         .where(
           and(
             eq(individualLessonPlans.id, id),

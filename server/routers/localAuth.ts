@@ -14,7 +14,7 @@ import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { sdk } from "../_core/sdk";
 import { getSessionCookieOptions } from "../_core/cookies";
-import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import { COOKIE_NAME, ONE_YEAR_MS, SESSION_MAX_AGE_MS } from "@shared/const";
 import { getDb } from "../db";
 import { users, passwordResetTokens, teacherInvites } from "../../drizzle/schema";
 import { eq, and, gt, desc } from "drizzle-orm";
@@ -230,12 +230,12 @@ export const localAuthRouter = router({
       const sessionToken = await sdk.createSessionToken(openId, {
         name: input.displayName,
         sv: newUser?.sessionVersion ?? 1,
-        expiresInMs: ONE_YEAR_MS,
+        expiresInMs: SESSION_MAX_AGE_MS,
       });
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.cookie(COOKIE_NAME, sessionToken, {
         ...cookieOptions,
-        maxAge: ONE_YEAR_MS,
+        maxAge: SESSION_MAX_AGE_MS,
       });
 
       return { success: true };
@@ -372,10 +372,10 @@ export const localAuthRouter = router({
       // Issue a new session
       const sessionToken = await sdk.createSessionToken(user.openId, {
         name: user.displayName ?? user.name ?? user.email ?? user.openId,
-        expiresInMs: ONE_YEAR_MS,
+        expiresInMs: SESSION_MAX_AGE_MS,
       });
       const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+      ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: SESSION_MAX_AGE_MS });
 
       return { success: true };
     }),
@@ -455,12 +455,12 @@ export const localAuthRouter = router({
       const sessionToken = await sdk.createSessionToken(user.openId, {
         name: user.displayName ?? user.name ?? normalised,
         sv: user.sessionVersion ?? 1,
-        expiresInMs: ONE_YEAR_MS,
+        expiresInMs: SESSION_MAX_AGE_MS,
       });
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.cookie(COOKIE_NAME, sessionToken, {
         ...cookieOptions,
-        maxAge: ONE_YEAR_MS,
+        maxAge: SESSION_MAX_AGE_MS,
       });
 
       return { success: true, mustChangePassword: user.mustChangePassword ?? false, displayName: user.displayName ?? user.name ?? normalised };

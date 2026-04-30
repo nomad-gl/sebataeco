@@ -31,6 +31,7 @@ vi.mock("bcryptjs", () => ({
 vi.mock("@shared/const", () => ({
   COOKIE_NAME: "seba_session",
   ONE_YEAR_MS: 31536000000,
+  SESSION_MAX_AGE_MS: 8 * 60 * 60 * 1000, // 8 hours — HIGH-02 fix
 }));
 
 vi.mock("../server/_core/notification", () => ({

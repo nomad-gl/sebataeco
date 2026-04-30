@@ -1,4 +1,4 @@
-import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import { COOKIE_NAME, ONE_YEAR_MS, SESSION_MAX_AGE_MS } from "@shared/const";
 import { SignJWT, jwtVerify } from "jose";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -49,6 +49,8 @@ import { infantilRouter } from "./routers/infantil";
 import { directorAlertsRouter } from "./routers/directorAlerts";
 import { customSetsRouter } from "./routers/customSets";
 import { academicCalendarRouter } from "./routers/academicCalendar";
+import { mfaRouter } from "./routers/mfa";
+import { dpiaRouter } from "./routers/dpia";
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -134,7 +136,7 @@ export const appRouter = router({
           .where(eq(users.openId, payload.openId))
           .limit(1);
         if (!user) throw new TRPCError({ code: "UNAUTHORIZED", message: "User not found." });
-        // Issue a full 1-year session cookie on this domain
+        // HIGH-02: Issue an 8-hour session cookie on this domain (sliding window)
         const sessionToken = await new SignJWT({
           sub: String(user.id),
           openId: user.openId,
@@ -143,10 +145,10 @@ export const appRouter = router({
         })
           .setProtectedHeader({ alg: "HS256" })
           .setIssuedAt()
-          .setExpirationTime("365d")
+          .setExpirationTime(Math.floor((Date.now() + SESSION_MAX_AGE_MS) / 1000))
           .sign(secret);
         const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: SESSION_MAX_AGE_MS });
         return { success: true };
       }),
 
@@ -241,6 +243,8 @@ export const appRouter = router({
   directorAlerts: directorAlertsRouter,
   customSets: customSetsRouter,
   academicCalendar: academicCalendarRouter,
+  mfa: mfaRouter,
+  dpia: dpiaRouter,
 });
 
 export type AppRouter = typeof appRouter;

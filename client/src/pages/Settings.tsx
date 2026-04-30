@@ -20,6 +20,7 @@ import {
   Cpu,
   ExternalLink,
   ShieldAlert,
+  ShieldCheck,
   LogOut,
   KeyRound,
   Eye,
@@ -407,6 +408,19 @@ function AccountSecurityCard({ t }: { t: (k: TranslationKey) => string }) {
             </div>
           </form>
         )}
+
+        {/* ── MFA Setup ── */}
+        <Link href="/settings/mfa">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            asChild={false}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            Two-Factor Authentication (MFA)
+          </Button>
+        </Link>
 
         <AlertDialog>
           <AlertDialogTrigger asChild>

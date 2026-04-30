@@ -7,6 +7,7 @@ import { z } from "zod";
 import { and, eq, gte, lte } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../_core/trpc";
+import { encryptField, decryptField } from "../_core/fieldEncryption";
 import { getDb } from "../db";
 import type { InferSelectModel } from "drizzle-orm";
 import {
@@ -691,7 +692,8 @@ export const teacherProfileRouter = router({
         date: new Date(input.date),
         type: input.type,
         hours: String(input.hours),
-        notes: input.notes || null,
+        // MED-02: Encrypt sensitive notes field at rest
+        notes: encryptField(input.notes || null),
       });
       return { id: Number((result as any).insertId) };
     }),
@@ -872,7 +874,8 @@ export const teacherProfileRouter = router({
           owedHours: Math.round(holidayOwedHours * 10) / 10,
           balanceHours: Math.round(holidayBalance * 10) / 10,
           balanceDays: Math.round((holidayBalance / hoursPerDay) * 10) / 10,
-          records: holidayRecords,
+          // MED-02: Decrypt notes field before returning to client
+          records: holidayRecords.map(r => ({ ...r, notes: decryptField(r.notes) })),
         },
         weeklyGrid,
         freePeriodSessions: freePeriodSessions.map(s => ({

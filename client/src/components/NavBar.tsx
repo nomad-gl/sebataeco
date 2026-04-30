@@ -5,7 +5,7 @@ import {
   BookOpen, MessageCircle, Dumbbell, LayoutDashboard,
   Library, TrendingUp, ChevronDown, Menu, X, Zap,
   Presentation as PresentationIcon, Globe, Users, MessagesSquare, Bell, Download,
-  CalendarDays, FileText, Settings as SettingsIcon, ShieldAlert, Lock, HelpCircle,
+  CalendarDays, FileText, Settings as SettingsIcon, ShieldAlert, Shield, Lock, HelpCircle,
   BarChart3, UserCheck, BookCheck, GraduationCap, Mic,
   ClipboardList, ClipboardCheck, Banknote, UserCog, FolderOpen, Building2, Wrench, Music, Wifi, LogOut, LogIn, AlertTriangle,
   UserPlus, Copy, CheckCircle2, MapPin, Layers,
@@ -251,6 +251,7 @@ export default function NavBar() {
     { href: "/accountability",    label: t("nav_accountability"),    icon: Lock },
     { href: "/admin/wake-words",  label: t("nav_wake_words"),        icon: Mic },
     { href: "/admin/audio-responses", label: t("nav_audio_responses"), icon: Music },
+    { href: "/admin/dpia",          label: "DPIA",                     icon: Shield },
   ];
   const allAdminItems = [...schoolAdminItems, ...platformItems];
   const isAdminActive = allAdminItems.some(
