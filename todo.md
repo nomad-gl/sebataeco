@@ -5221,3 +5221,10 @@
 - [x] Edit Subject dialog: add overflow-y-auto max-h to DialogContent so it scrolls on small screens
 - [x] Calendar Semester views: when a subject has semesters=[all] or Academic Year, include its sessions in ALL semester views, not just the one matching subject.semester
 - [x] Schedule tab: Academic Year subjects already appear for all teachers (no semester filter on Schedule tab)
+
+## Bug: Sessions Not Showing in Schedule/Calendar Tabs
+
+- [x] Diagnose why sessions are invisible in Schedule tab (weekly timetable) and Calendar tab
+- [x] Root cause: getCalendar filtered by userId, so admin user could not see calendars created by another user
+- [x] Fix: getCalendar now allows admin users to view any calendar (not just their own)
+- [x] Fix: listCalendars now returns all calendars for admin users

@@ -61,11 +61,14 @@ function detectClashes(sessions: { id: number; teacherId: number; teacherName: s
 export const academicCalendarRouter = router({
   // ── Calendars ──────────────────────────────────────────────────────────────
 
-  /** List all calendars for the current director */
+  /** List all calendars for the current director (admins see all) */
   listCalendars: protectedProcedure.query(async ({ ctx }) => {
     assertDirector(ctx.user.role);
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+    if (ctx.user.role === "admin") {
+      return db.select().from(academicCalendars);
+    }
     return db.select().from(academicCalendars).where(eq(academicCalendars.userId, ctx.user.id));
   }),
 
@@ -148,8 +151,11 @@ export const academicCalendarRouter = router({
       assertDirector(ctx.user.role);
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      const [cal] = await db.select().from(academicCalendars)
-        .where(and(eq(academicCalendars.id, input.id), eq(academicCalendars.userId, ctx.user.id)));
+      // Admins can view any calendar; directors can only view their own
+      const calWhere = ctx.user.role === "admin"
+        ? eq(academicCalendars.id, input.id)
+        : and(eq(academicCalendars.id, input.id), eq(academicCalendars.userId, ctx.user.id));
+      const [cal] = await db.select().from(academicCalendars).where(calWhere);
       if (!cal) throw new TRPCError({ code: "NOT_FOUND" });
       const teachers = await db.select().from(acTeachers).where(eq(acTeachers.calendarId, input.id));
       const sessions = await db.select().from(acSessions).where(eq(acSessions.calendarId, input.id));
