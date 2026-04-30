@@ -164,26 +164,25 @@ export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat, o
           <div
             key={s.id}
             className={cn(
-              "group flex items-start gap-2 px-2 py-2 rounded-lg cursor-pointer transition-colors",
+              "group relative flex items-center gap-1.5 px-2 py-2 rounded-lg cursor-pointer transition-colors",
               activeSessionId === s.id
                 ? "bg-white/20 text-white"
                 : "hover:bg-white/10 text-white/80"
             )}
             onClick={() => onSelectSession(s.id)}
           >
-            <MessageSquare className="size-3.5 mt-0.5 flex-shrink-0 text-white/50" />
-            <div className="flex-1 min-w-0">
+            <MessageSquare className="size-3.5 flex-shrink-0 text-white/50" />
+            {/* Text area: truncates so delete button is never pushed off-screen */}
+            <div className="flex-1 min-w-0 overflow-hidden">
               <p className="text-xs font-medium truncate leading-tight">{s.title}</p>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <Clock className="size-2.5 text-white/30" />
-                <span className="text-[10px] text-white/40">{timeAgo(s.updatedAt)}</span>
-                <span className="text-[10px] text-white/30">·</span>
-                <span className="text-[10px] text-white/40">{s.messageCount} msg{s.messageCount !== 1 ? "s" : ""}</span>
+              <div className="flex items-center gap-1 mt-0.5 overflow-hidden">
+                <Clock className="size-2.5 flex-shrink-0 text-white/30" />
+                <span className="text-[10px] text-white/40 truncate">{timeAgo(s.updatedAt)}</span>
               </div>
             </div>
-            {/* Delete button — always visible at all widths */}
+            {/* Delete button — always visible, never pushed off-screen */}
             <button
-              className="flex-shrink-0 flex items-center justify-center size-6 rounded text-white/70 hover:text-red-400 hover:bg-red-400/15 active:bg-red-400/25 transition-colors touch-manipulation"
+              className="flex-shrink-0 flex items-center justify-center size-6 rounded text-white/50 hover:text-red-400 hover:bg-red-400/15 active:bg-red-400/25 transition-colors touch-manipulation"
               title="Delete chat"
               onClick={(e) => { e.stopPropagation(); setDeleteId(s.id); }}
             >

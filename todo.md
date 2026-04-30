@@ -5352,3 +5352,7 @@
 - [x] Add clustered markers with info-window popups (user name, email, IP, location, session age)
 - [x] Insert SessionMap card above the Active Sessions table on AdminSecurityDashboard
 - [x] Auto-refresh map every 30 s alongside other dashboard data
+
+## Bug Fixes
+- [ ] Chat history delete icon hidden at narrow widths — ensure icon is always visible/accessible
+- [ ] Aina image generation broken — diagnose and fix original image generation
