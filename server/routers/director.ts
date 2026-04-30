@@ -29,6 +29,7 @@ import { storagePut } from "../storage";
 import { assertFileSafe } from "../security/fileScanner";
 import bcrypt from "bcryptjs";
 import { sendTempPasswordEmail } from "../email";
+import { validateReauthToken } from "../_core/reauthToken";
 import { runI18nScanAndNotify, i18nScanStatus, autoFixMissingKeys, i18nAutoFixStatus, runI18nScan } from "../i18nScan";
 
 /** The 8 LOMLOE key competencies */
@@ -1354,8 +1355,12 @@ export const directorRouter = router({
     .input(z.object({
       userIds: z.array(z.number()).min(1).max(100),
       reason: z.string().max(512).optional(),
+      reauthToken: z.string().min(1, "Re-authentication token is required for bulk operations"),
     }))
     .mutation(async ({ input, ctx }) => {
+      // Require a valid re-auth token before bulk deactivation
+      validateReauthToken(ctx.user.id, input.reauthToken);
+
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       const safeIds = input.userIds.filter((id) => id !== ctx.user.id);

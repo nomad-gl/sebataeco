@@ -431,7 +431,7 @@ describe("localAuth.setPassword", () => {
     const caller = localAuthRouter.createCaller(ctx as any);
 
     const result = await caller.setPassword({ newPassword: "newsecurepass123" });
-    expect(result).toEqual({ success: true });
+    expect(result).toMatchObject({ success: true });
     expect(db.update).toHaveBeenCalled();
     expect(bcrypt.hash).toHaveBeenCalledWith("newsecurepass123", 12);
   });

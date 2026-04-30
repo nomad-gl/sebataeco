@@ -262,15 +262,28 @@ export default function AdminUserManagement() {
   });
   const [deleteConfirmUserId, setDeleteConfirmUserId] = useState<number | null>(null);
   const [deleteConfirmName, setDeleteConfirmName] = useState<string>("");
+  const [reauthPassword, setReauthPassword] = useState("");
+  const [reauthToken, setReauthToken] = useState<string | null>(null);
+  const [reauthStep, setReauthStep] = useState<"password" | "confirm">("password");
+  const verifyReauthMutation = trpc.localAuth.verifyAdminReauth.useMutation({
+    onSuccess: (data) => { setReauthToken(data.token); setReauthStep("confirm"); },
+    onError: (err) => toast.error(err.message),
+  });
   const deleteMutation = trpc.tenants.deleteUser.useMutation({
     onSuccess: () => {
       toast.success("User permanently deleted.");
       setDeleteConfirmUserId(null);
+      setReauthPassword("");
+      setReauthToken(null);
+      setReauthStep("password");
       refetch();
     },
     onError: (err) => {
       toast.error(err.message);
       setDeleteConfirmUserId(null);
+      setReauthPassword("");
+      setReauthToken(null);
+      setReauthStep("password");
     },
   });
 
@@ -660,7 +673,7 @@ export default function AdminUserManagement() {
         />
       )}
 
-      {/* Delete User Confirmation Dialog */}
+      {/* Delete User — Two-step Re-auth + Confirm Dialog */}
       {deleteConfirmUserId !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
@@ -669,33 +682,58 @@ export default function AdminUserManagement() {
                 <Trash2 className="w-5 h-5 text-red-600" />
               </div>
               <div>
-                <h3 className="text-base font-semibold text-gray-900 dark:text-white">Permanently delete user?</h3>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+                  {reauthStep === "password" ? "Confirm your identity" : "Permanently delete user?"}
+                </h3>
                 <p className="text-sm text-gray-500 mt-1">
-                  This will permanently delete <span className="font-medium text-gray-800 dark:text-gray-200">{deleteConfirmName}</span> and all their associated data. This action cannot be undone.
+                  {reauthStep === "password"
+                    ? "Enter your admin password to authorise this destructive action."
+                    : <span>This will permanently delete <span className="font-medium text-gray-800 dark:text-gray-200">{deleteConfirmName}</span> and all their data. This cannot be undone.</span>}
                 </p>
               </div>
             </div>
-            <div className="flex justify-end gap-2 mt-6">
+            {reauthStep === "password" && (
+              <div className="mb-4">
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Admin password</label>
+                <input
+                  type="password"
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                  placeholder="Enter your password"
+                  value={reauthPassword}
+                  onChange={(e) => setReauthPassword(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && reauthPassword.length > 0) verifyReauthMutation.mutate({ password: reauthPassword }); }}
+                  autoFocus
+                />
+              </div>
+            )}
+            <div className="flex justify-end gap-2 mt-4">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setDeleteConfirmUserId(null)}
-                disabled={deleteMutation.isPending}
+                onClick={() => { setDeleteConfirmUserId(null); setReauthPassword(""); setReauthToken(null); setReauthStep("password"); }}
+                disabled={deleteMutation.isPending || verifyReauthMutation.isPending}
               >
                 Cancel
               </Button>
-              <Button
-                size="sm"
-                className="bg-red-600 hover:bg-red-700 text-white"
-                disabled={deleteMutation.isPending}
-                onClick={() => deleteMutation.mutate({ userId: deleteConfirmUserId })}
-              >
-                {deleteMutation.isPending ? (
-                  <><Loader2 className="w-3 h-3 animate-spin mr-1" /> Deleting…</>
-                ) : (
-                  <><Trash2 className="w-3 h-3 mr-1" /> Delete permanently</>
-                )}
-              </Button>
+              {reauthStep === "password" ? (
+                <Button
+                  size="sm"
+                  className="bg-amber-600 hover:bg-amber-700 text-white"
+                  disabled={verifyReauthMutation.isPending || reauthPassword.length === 0}
+                  onClick={() => verifyReauthMutation.mutate({ password: reauthPassword })}
+                >
+                  {verifyReauthMutation.isPending ? <><Loader2 className="w-3 h-3 animate-spin mr-1" /> Verifying…</> : "Verify identity"}
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                  disabled={deleteMutation.isPending}
+                  onClick={() => { if (reauthToken) deleteMutation.mutate({ userId: deleteConfirmUserId!, reauthToken }); }}
+                >
+                  {deleteMutation.isPending ? <><Loader2 className="w-3 h-3 animate-spin mr-1" /> Deleting…</> : <><Trash2 className="w-3 h-3 mr-1" /> Delete permanently</>}
+                </Button>
+              )}
             </div>
           </div>
         </div>

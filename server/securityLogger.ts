@@ -7,6 +7,7 @@
  */
 import { getDb } from "./db";
 import { securityEvents } from "../drizzle/schema";
+import { maskEmail, maskMetadata } from "./_core/identityMask";
 
 export type SecurityEventType =
   | "login_success"
@@ -78,16 +79,24 @@ export function extractIp(req: { headers: Record<string, string | string[] | und
  */
 export function logSecurityEvent(payload: SecurityEventPayload): void {
   const severity = payload.severity ?? SEVERITY_MAP[payload.eventType] ?? "info";
+
+  // ── Quantum-resistant identity masking ──────────────────────────────────────
+  // All third-party PII is pseudonymised before being written to the DB.
+  // The real identity is never stored in the security_events table.
+  const tenantId: number | null = null; // events are platform-scoped
+  const maskedEmail = maskEmail(payload.userEmail, tenantId);
+  const maskedMetadata = maskMetadata(payload.metadata, tenantId);
+
   getDb()
     .then(db =>
       db.insert(securityEvents).values({
         eventType: payload.eventType,
         userId: payload.userId ?? null,
-        userEmail: payload.userEmail ?? null,
+        userEmail: maskedEmail,
         userRole: payload.userRole ?? null,
         ipAddress: payload.ipAddress ?? null,
         userAgent: payload.userAgent ? payload.userAgent.slice(0, 512) : null,
-        metadata: payload.metadata ? JSON.stringify(payload.metadata) : null,
+        metadata: maskedMetadata,
         severity,
       })
     )

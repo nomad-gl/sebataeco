@@ -282,8 +282,16 @@ function AccountSecurityCard({ t }: { t: (k: TranslationKey) => string }) {
   const [pwError, setPwError] = useState("");
 
   const setPasswordMutation = trpc.localAuth.setPassword.useMutation({
-    onSuccess: () => {
-      toast.success("Password set successfully. You can now log in with email + password.");
+    onSuccess: (data) => {
+      if (data.breachedPassword) {
+        const count = typeof data.breachedPassword === 'number' ? data.breachedPassword : 0;
+        toast.warning(
+          `Password saved, but it has appeared in ${count > 0 ? count.toLocaleString() : 'known'} data breach${count === 1 ? '' : 'es'}. We strongly recommend choosing a unique password.`,
+          { duration: 9000 }
+        );
+      } else {
+        toast.success("Password set successfully. You can now log in with email + password.");
+      }
       setShowSetPw(false);
       setCurrentPw(""); setNewPw(""); setConfirmPw(""); setPwError("");
     },

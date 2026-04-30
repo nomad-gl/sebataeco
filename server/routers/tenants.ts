@@ -22,6 +22,7 @@ import {
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { sendTeacherInviteEmail, sendDirectorInviteEmail, sendTempPasswordEmail } from "../email";
+import { validateReauthToken } from "../_core/reauthToken";
 
 // ─── Audit helper ────────────────────────────────────────────────────────────
 
@@ -1140,8 +1141,12 @@ export const tenantsRouter = router({
   deleteUser: adminProcedure
     .input(z.object({
       userId: z.number().int().positive(),
+      reauthToken: z.string().min(1, "Re-authentication token is required for this action"),
     }))
     .mutation(async ({ input, ctx }) => {
+      // Require a valid re-auth token before permanent deletion
+      validateReauthToken(ctx.user.id, input.reauthToken);
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
       if (input.userId === ctx.user.id) {

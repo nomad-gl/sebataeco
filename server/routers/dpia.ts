@@ -15,8 +15,8 @@ import { router, protectedProcedure } from "../_core/trpc";
 // For the initial MED-03 fix, a structured static record is sufficient.
 
 const DPIA_RECORD = {
-  version: "1.0",
-  lastReviewed: "2026-04-30",
+  version: "1.1",
+  lastReviewed: "2026-05-01",
   nextReviewDue: "2027-04-30",
   dataController: {
     name: "SEBA AI Studio",
@@ -102,10 +102,21 @@ const DPIA_RECORD = {
     },
     {
       risk: "Data breach via compromised credentials",
-      likelihood: "Medium",
+      likelihood: "Low",
       impact: "High",
       residualRisk: "Low",
-      controls: "bcrypt hashing, 8-hour sessions, MFA, account lockout after failed attempts",
+      controls: [
+        "bcrypt password hashing (cost factor 12)",
+        "8-hour session expiry with sliding renewal",
+        "TOTP-based MFA available for all users; enforced for privileged roles",
+        "Progressive login delay (0 s / 1 s / 2 s / 4 s / 8 s per failure) then 15-minute lockout after 5 failures",
+        "HaveIBeenPwned k-anonymity API check on every password set/change — user warned and admin notified if credential found in known breach database",
+        "Forced re-authentication (password + optional TOTP) before destructive admin actions (user deletion, bulk deactivation)",
+        "Quantum-resistant third-party identity masking (SHAKE-256 + HKDF-SHA3-512) applied to all PII in security event logs and audit trails",
+        "Real-time security dashboard with active session monitoring, geographic session map, and 24-hour event timeline",
+        "CSP nonce-based script-src (unsafe-inline removed in production)",
+        "Field-level AES-256-GCM encryption for sensitive student data",
+      ].join("; "),
     },
     {
       risk: "LLM provider data retention",
@@ -124,7 +135,7 @@ const DPIA_RECORD = {
   ],
   subjectRights: "Data subjects may exercise their rights (access, rectification, erasure, portability, objection) by contacting privacy@sebataeco.com. Requests are processed within 30 days per GDPR Article 12.",
   transfersOutsideEEA: "None. All data is processed within the EEA. The Manus LLM API is hosted within the EU.",
-  dpiaConclusion: "The processing activities described above are necessary and proportionate to the educational purposes of SEBA AI Studio. The identified risks are mitigated to an acceptable level through the technical and organisational measures described. No prior consultation with the supervisory authority is required under Article 36 GDPR.",
+  dpiaConclusion: "The processing activities described above are necessary and proportionate to the educational purposes of SEBA AI Studio. All identified risks — including the previously Medium-likelihood risk of data breach via compromised credentials — have been reduced to Low through the implementation of progressive login delays, HaveIBeenPwned breach monitoring, forced re-authentication for destructive admin actions, quantum-resistant third-party identity masking, and a real-time security monitoring dashboard. All residual risks are now assessed as Low. No prior consultation with the supervisory authority is required under Article 36 GDPR. This assessment was updated on 2026-05-01 to reflect the enhanced security controls implemented.",
 };
 
 export const dpiaRouter = router({

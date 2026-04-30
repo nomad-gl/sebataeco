@@ -5356,3 +5356,20 @@
 ## Bug Fixes
 - [ ] Chat history delete icon hidden at narrow widths — ensure icon is always visible/accessible
 - [ ] Aina image generation broken — diagnose and fix original image generation
+
+## Credential Risk Reduction & Third-Party Anonymisation
+- [ ] Progressive login delay: exponential back-off after failed attempts (200ms, 400ms, 800ms...) before lockout
+- [ ] HaveIBeenPwned k-anonymity check on password set/change — warn user + log security event
+- [ ] Forced re-auth gate for sensitive admin actions (PII export, bulk delete)
+- [ ] Anonymise third-party identities in security_events table (mask email/name with SHA-256 pseudonym)
+- [ ] Anonymise third-party identities in adminAuditLogs (redact email to first 2 chars + domain hash)
+- [ ] Security dashboard: display masked identities, add "Reveal" button for super-admin only
+- [ ] DPIA: update likelihood to Low, expand controls list, update conclusion
+
+## Quantum-Level Third-Party Identity Masking
+- [ ] Implement SHAKE-256 (XOF) pseudonymisation for third-party identifiers in security logs
+- [ ] Sealed key vault: derive per-tenant masking keys from a master secret using HKDF-SHA3-512
+- [ ] Deterministic pseudonyms: same identity always maps to same pseudonym within a tenant epoch
+- [ ] Epoch rotation: admin can rotate masking keys (old pseudonyms become permanently unresolvable)
+- [ ] Mask third-party names/emails in security_events, admin_audit_logs, and security dashboard UI
+- [ ] Admin-only "reveal" endpoint with re-auth gate for lawful access to original identity

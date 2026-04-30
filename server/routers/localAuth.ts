@@ -20,6 +20,8 @@ import { users, passwordResetTokens, teacherInvites } from "../../drizzle/schema
 import { eq, and, gt, desc } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
 import { logSecurityEvent, extractIp } from "../securityLogger";
+import { checkPasswordBreached } from "../_core/hibp";
+import { issueReauthToken } from "../_core/reauthToken";
 
 const BCRYPT_ROUNDS = 12;
 
@@ -53,8 +55,25 @@ function checkVerifyRateLimit(ip: string): void {
 // against a single account are still caught.
 const LOGIN_MAX_ATTEMPTS = 5;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+/** Base delay — doubles per attempt: 200, 400, 800, 1600, 3200 ms (capped at ~25 s) */
+const LOGIN_BASE_DELAY_MS = 200;
 
 const loginAttemptStore = new Map<string, { count: number; windowStart: number }>();
+
+/** Returns the current failure count without incrementing. */
+function getLoginFailCount(email: string): number {
+  const key = email.toLowerCase().trim();
+  const entry = loginAttemptStore.get(key);
+  if (!entry || Date.now() - entry.windowStart >= LOGIN_WINDOW_MS) return 0;
+  return entry.count;
+}
+
+/** Artificial delay to slow credential-stuffing automation. */
+function progressiveDelay(failCount: number): Promise<void> {
+  if (failCount <= 0) return Promise.resolve();
+  const ms = LOGIN_BASE_DELAY_MS * Math.pow(2, Math.min(failCount - 1, 7));
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function checkLoginRateLimit(email: string): void {
   const now = Date.now();
@@ -398,6 +417,8 @@ export const localAuthRouter = router({
       const normalised = input.email.toLowerCase().trim();
       // Check brute-force lockout before any DB work
       checkLoginRateLimit(normalised);
+      // Apply progressive delay based on prior failures to slow credential-stuffing
+      await progressiveDelay(getLoginFailCount(normalised));
       const openId = localOpenId(normalised);
 
       // Primary lookup: local:<email> openId (standard local accounts)
@@ -427,7 +448,7 @@ export const localAuthRouter = router({
 
       const valid = await bcrypt.compare(input.password, user.passwordHash);
       if (!valid) {
-        // Count this as a failed attempt
+        // Count this as a failed attempt and apply progressive delay for next attempt
         checkLoginRateLimit(normalised);
         logSecurityEvent({
           eventType: "login_fail",
@@ -526,6 +547,21 @@ export const localAuthRouter = router({
         }
       }
 
+      // ── HaveIBeenPwned breach check (k-anonymity, fail-open) ─────────────
+      const hibpResult = await checkPasswordBreached(input.newPassword);
+      if (hibpResult.breached) {
+        // Log the event but do NOT block — warn the user instead
+        logSecurityEvent({
+          eventType: "login_fail",
+          userId: ctx.user.id,
+          userEmail: ctx.user.email ?? null,
+          userRole: ctx.user.role ?? null,
+          ipAddress: extractIp(ctx.req as any),
+          userAgent: (ctx.req as any).headers?.["user-agent"] ?? null,
+          metadata: { reason: "breached_password_set", breachCount: hibpResult.count },
+        });
+      }
+
       const passwordHash = await bcrypt.hash(input.newPassword, BCRYPT_ROUNDS);
 
       await db
@@ -541,9 +577,12 @@ export const localAuthRouter = router({
         ipAddress: extractIp(ctx.req as any),
         userAgent: (ctx.req as any).headers?.["user-agent"] ?? null,
       });
-      return { success: true };
+      // Return breach warning so the frontend can advise the user to choose a different password
+      return {
+        success: true,
+        breachedPassword: hibpResult.breached ? hibpResult.count : false,
+      };
     }),
-
   /**
    * Sign out from all devices by incrementing the sessionVersion.
    * Any existing session tokens with an older version will be rejected
@@ -575,5 +614,66 @@ export const localAuthRouter = router({
       });
 
       return { success: true };
+    }),
+
+  /**
+   * Verify admin credentials and issue a short-lived re-auth token (5 min, single-use).
+   * Used as a gate before destructive admin operations (delete user, bulk deactivate, etc.).
+   */
+  verifyAdminReauth: protectedProcedure
+    .input(
+      z.object({
+        password: z.string().min(1),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      // Only admins and super-admins may obtain a re-auth token
+      if (ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
+      }
+
+      // Fetch the user's password hash
+      const [record] = await db
+        .select({ passwordHash: users.passwordHash })
+        .from(users)
+        .where(eq(users.id, ctx.user.id))
+        .limit(1);
+
+      if (!record?.passwordHash) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "No password set on this account. Please set a password first.",
+        });
+      }
+
+      const valid = await bcrypt.compare(input.password, record.passwordHash);
+      if (!valid) {
+        logSecurityEvent({
+          eventType: "login_fail",
+          userId: ctx.user.id,
+          userEmail: ctx.user.email ?? null,
+          userRole: ctx.user.role ?? null,
+          ipAddress: extractIp(ctx.req as any),
+          userAgent: (ctx.req as any).headers?.["user-agent"] ?? null,
+          metadata: { reason: "reauth_invalid_password" },
+        });
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Incorrect password." });
+      }
+
+      const token = issueReauthToken(ctx.user.id);
+      logSecurityEvent({
+        eventType: "login_success",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email ?? null,
+        userRole: ctx.user.role ?? null,
+        ipAddress: extractIp(ctx.req as any),
+        userAgent: (ctx.req as any).headers?.["user-agent"] ?? null,
+        metadata: { reason: "reauth_success" },
+      });
+
+      return { token };
     }),
 });

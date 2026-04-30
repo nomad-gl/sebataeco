@@ -11,6 +11,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
+import { maskEmail, maskName } from "../_core/identityMask";
 import { getDb } from "../db";
 import { securityEvents, users } from "../../drizzle/schema";
 import { desc, eq, gte, and, like, or, sql, count, inArray } from "drizzle-orm";
@@ -291,6 +292,10 @@ export const securityDashboardRouter = router({
       const geo = u.lastLoginIp ? geoMap[u.lastLoginIp] : undefined;
       return {
         ...u,
+        // Quantum-resistant pseudonymisation: real PII never leaves the server in dashboard responses
+        email: maskEmail(u.email, null),
+        name: maskName(u.name, null),
+        displayName: maskName(u.displayName ?? u.name, null),
         sessionAge: Math.round((Date.now() - new Date(u.lastSignedIn).getTime()) / 60_000),
         ipAddress: u.lastLoginIp ?? null,
         location: geo ? `${geo.city}, ${geo.country}` : (u.lastLoginIp ? "Resolving…" : "—"),
