@@ -680,4 +680,98 @@ export const academicCalendarRouter = router({
       });
       return { pdf: pdfBuffer.toString("base64"), filename: `academic-calendar-${cal.academicYear}.pdf` };
     }),
+
+  // ── Conflict Detection ───────────────────────────────────────────────────────
+
+  /**
+   * Detect time-slot conflicts between subjects in a calendar.
+   * Checks: same classroom double-booking, overlapping times on same day.
+   * Returns a list of conflict pairs with human-readable reasons.
+   */
+  detectSubjectConflicts: protectedProcedure
+    .input(z.object({ calendarId: z.number().int() }))
+    .query(async ({ ctx, input }) => {
+      assertDirector(ctx.user.role);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      const rows = await db.select().from(acSubjects)
+        .where(eq(acSubjects.calendarId, input.calendarId));
+
+      type SubjectFlat = {
+        id: number;
+        name: string;
+        classroom: string | null;
+        days: number[];
+        // effective times per day: {day -> {start, end}}
+        timesPerDay: Record<number, { start: number; end: number }>;
+      };
+
+      const subjects: SubjectFlat[] = rows.map(r => {
+        const days: number[] = (() => { try { return JSON.parse(r.days); } catch { return []; } })();
+        const dayTimes: Array<{ day: number; startTime: string; endTime: string }> | null =
+          (() => { try { return r.dayTimes ? JSON.parse(r.dayTimes) : null; } catch { return null; } })();
+        const timesPerDay: Record<number, { start: number; end: number }> = {};
+        for (const d of days) {
+          const override = dayTimes?.find(dt => dt.day === d);
+          timesPerDay[d] = {
+            start: timeToMinutes(override?.startTime ?? r.startTime),
+            end: timeToMinutes(override?.endTime ?? r.endTime),
+          };
+        }
+        return { id: r.id, name: r.name, classroom: r.classroom ?? null, days, timesPerDay };
+      });
+
+      type Conflict = {
+        subjectAId: number;
+        subjectAName: string;
+        subjectBId: number;
+        subjectBName: string;
+        day: number;
+        timeA: string;
+        timeB: string;
+        reason: "classroom" | "overlap";
+        classroom?: string;
+      };
+
+      const conflicts: Conflict[] = [];
+
+      for (let i = 0; i < subjects.length; i++) {
+        for (let j = i + 1; j < subjects.length; j++) {
+          const a = subjects[i];
+          const b = subjects[j];
+          // Find shared days
+          const sharedDays = a.days.filter(d => b.days.includes(d));
+          for (const day of sharedDays) {
+            const ta = a.timesPerDay[day];
+            const tb = b.timesPerDay[day];
+            if (!ta || !tb) continue;
+            const overlaps = ta.start < tb.end && tb.start < ta.end;
+            if (!overlaps) continue;
+            const formatTime = (mins: number) => `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`;
+            const timeAStr = `${formatTime(ta.start)}–${formatTime(ta.end)}`;
+            const timeBStr = `${formatTime(tb.start)}–${formatTime(tb.end)}`;
+            // Classroom double-booking (same non-null classroom)
+            if (a.classroom && b.classroom && a.classroom.trim().toLowerCase() === b.classroom.trim().toLowerCase()) {
+              conflicts.push({
+                subjectAId: a.id, subjectAName: a.name,
+                subjectBId: b.id, subjectBName: b.name,
+                day, timeA: timeAStr, timeB: timeBStr,
+                reason: "classroom", classroom: a.classroom,
+              });
+            } else {
+              // General time overlap
+              conflicts.push({
+                subjectAId: a.id, subjectAName: a.name,
+                subjectBId: b.id, subjectBName: b.name,
+                day, timeA: timeAStr, timeB: timeBStr,
+                reason: "overlap",
+              });
+            }
+          }
+        }
+      }
+
+      return { conflicts };
+    }),
 });

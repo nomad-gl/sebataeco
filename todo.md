@@ -5161,3 +5161,13 @@
 - [x] Subject add/edit form: when 2+ days selected, show individual start/end time inputs per day (fallback to global time if dayTimes not set)
 - [x] Subject card: when dayTimes is set, show per-day time rows instead of single time
 - [x] Add i18n keys: acal2_day_times_heading (EN/ES/CA)
+
+## Academic Calendar — Visual Conflict Detection
+
+- [x] Add detectSubjectConflicts tRPC procedure: compare all subjects in a calendar for same-day time overlaps (same classroom, same teacher assignment, or same student group)
+- [x] Conflict types: classroom double-booking, overlapping time slots on same day
+- [x] Return list of conflict pairs: {subjectAId, subjectBId, day, reason, timeA, timeB}
+- [x] Subject card: show red warning badge with conflict count when subject is involved in conflicts
+- [x] Subjects tab: show a collapsible Conflicts panel at the top listing all conflicts with subject names, day, times, and reason
+- [x] Real-time: conflicts re-fetched automatically when subjects are added/updated/deleted
+- [x] Add i18n keys: acal2_conflicts_title, acal2_no_conflicts, acal2_conflict_classroom, acal2_conflict_overlap (EN/ES/CA)

@@ -417,6 +417,17 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
   // Subjects query
   const { data: subjects = [] } = trpc.academicCalendar.listSubjects.useQuery({ calendarId });
 
+  // Subject conflict detection
+  const { data: conflictsData } = trpc.academicCalendar.detectSubjectConflicts.useQuery({ calendarId });
+  const subjectConflicts = conflictsData?.conflicts ?? [];
+  // Map subjectId -> conflict count for badge display
+  const conflictCountBySubject = subjectConflicts.reduce<Record<number, number>>((acc, c) => {
+    acc[c.subjectAId] = (acc[c.subjectAId] ?? 0) + 1;
+    acc[c.subjectBId] = (acc[c.subjectBId] ?? 0) + 1;
+    return acc;
+  }, {});
+  const [showConflictsPanel, setShowConflictsPanel] = useState(true);
+
   // Semester dates
   const { data: semesterDates = [], refetch: refetchSemDates } = trpc.academicCalendar.getSemesterDates.useQuery({ calendarId });
   const [editingSemDates, setEditingSemDates] = useState(false);
@@ -950,6 +961,44 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
 
         {/* ── Subjects Tab ── */}
         <TabsContent value="subjects" className="space-y-4 mt-4">
+          {/* Conflicts panel */}
+          {subjectConflicts.length > 0 && (
+            <div className="rounded-lg border border-red-500/40 bg-red-900/20 overflow-hidden">
+              <button
+                className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-red-900/30 transition-colors"
+                onClick={() => setShowConflictsPanel(v => !v)}
+              >
+                <span className="flex items-center gap-2 text-red-300 font-semibold text-sm">
+                  <AlertTriangle className="w-4 h-4" />
+                  {subjectConflicts.length} {subjectConflicts.length === 1 ? "time conflict detected" : "time conflicts detected"}
+                </span>
+                <ChevronRight className={`w-4 h-4 text-red-300 transition-transform ${showConflictsPanel ? "rotate-90" : ""}`} />
+              </button>
+              {showConflictsPanel && (
+                <div className="divide-y divide-red-500/20">
+                  {subjectConflicts.map((c, idx) => (
+                    <div key={idx} className="px-4 py-2.5 flex flex-wrap items-start gap-x-3 gap-y-1 text-sm">
+                      <span className="flex items-center gap-1 text-red-200">
+                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                        <span className="font-medium">{c.subjectAName}</span>
+                        <span className="text-red-400/70">&amp;</span>
+                        <span className="font-medium">{c.subjectBName}</span>
+                      </span>
+                      <span className="text-red-300/70">·</span>
+                      <span className="text-red-300">{days[c.day - 1]}</span>
+                      <span className="text-red-300/70">·</span>
+                      <span className="text-red-200">{c.timeA} / {c.timeB}</span>
+                      {c.reason === "classroom" && c.classroom && (
+                        <Badge className="bg-red-700/40 text-red-200 border-red-500/40 text-xs">
+                          <Building2 className="w-3 h-3 mr-1" /> Room: {c.classroom}
+                        </Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-white font-semibold text-lg">{t("acal2_subjects_heading")}</h2>
@@ -990,6 +1039,12 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                                   {sub.color && <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: sub.color }} />}
                                   <span className="text-white font-semibold">{sub.name}</span>
                                   {sub.unit && <Badge variant="secondary" className="bg-purple-600/30 text-purple-100 border-0 text-xs">{sub.unit}</Badge>}
+                                  {(conflictCountBySubject[sub.id] ?? 0) > 0 && (
+                                    <Badge className="bg-red-600/80 text-white border-0 text-xs flex items-center gap-1">
+                                      <AlertTriangle className="w-3 h-3" />
+                                      {conflictCountBySubject[sub.id]} conflict{conflictCountBySubject[sub.id] > 1 ? "s" : ""}
+                                    </Badge>
+                                  )}
                                 </div>
                                 <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-blue-200">
                                   {sub.classroom && (
