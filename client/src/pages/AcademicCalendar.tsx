@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
 import NavBar from "@/components/NavBar";
@@ -378,6 +378,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
   // Session form state
   const [showAddSession, setShowAddSession] = useState<number | null>(null); // teacherId
   const [sessionForm, setSessionForm] = useState({ subject: "", dayOfWeek: "1", startTime: "08:30", endTime: "09:30", classGroup: "" });
+  const [prefillSemester, setPrefillSemester] = useState(false);
   const [deleteSessionId, setDeleteSessionId] = useState<number | null>(null);
   const [editSession, setEditSession] = useState<null | { id: number; subject: string; dayOfWeek: number; startTime: string; endTime: string; classGroup: string }>(null);
   const [editSessionForm, setEditSessionForm] = useState({ subject: "", dayOfWeek: "1", startTime: "08:30", endTime: "09:30", classGroup: "" });
@@ -386,6 +387,8 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
   const [showAddBreak, setShowAddBreak] = useState(false);
   const [breakForm, setBreakForm] = useState({ semester: "1", label: "", startDate: "", endDate: "" });
   const [deleteBreakId, setDeleteBreakId] = useState<number | null>(null);
+  const [editBreak, setEditBreak] = useState<null | { id: number; semester: number; label: string; startDate: string; endDate: string }>(null);
+  const [editBreakForm, setEditBreakForm] = useState({ semester: "1", label: "", startDate: "", endDate: "" });
 
   // Subject form state
   const [showAddSubject, setShowAddSubject] = useState(false);
@@ -428,7 +431,11 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
 
   // Session mutations
   const addSessionMut = trpc.academicCalendar.addSession.useMutation({
-    onSuccess: () => { invalidate(); setShowAddSession(null); setSessionForm({ subject: "", dayOfWeek: "1", startTime: "08:30", endTime: "09:30", classGroup: "" }); toast.success(t("acal2_session_added")); },
+    onSuccess: () => { invalidate(); setShowAddSession(null); setPrefillSemester(false); setSessionForm({ subject: "", dayOfWeek: "1", startTime: "08:30", endTime: "09:30", classGroup: "" }); toast.success(t("acal2_session_added")); },
+    onError: (e) => toast.error(e.message),
+  });
+  const bulkAddSessionsMut = trpc.academicCalendar.bulkAddSessions.useMutation({
+    onSuccess: (result) => { invalidate(); setShowAddSession(null); setPrefillSemester(false); setSessionForm({ subject: "", dayOfWeek: "1", startTime: "08:30", endTime: "09:30", classGroup: "" }); toast.success(t("acal2_sessions_created").replace("{n}", String(result.count))); },
     onError: (e) => toast.error(e.message),
   });
   const updateSessionMut = trpc.academicCalendar.updateSession.useMutation({
@@ -447,6 +454,10 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
   });
   const deleteBreakMut = trpc.academicCalendar.deleteBreak.useMutation({
     onSuccess: () => { invalidate(); setDeleteBreakId(null); toast.success(t("acal2_break_deleted")); },
+    onError: (e) => toast.error(e.message),
+  });
+  const updateBreakMut = trpc.academicCalendar.updateBreak.useMutation({
+    onSuccess: () => { invalidate(); setEditBreak(null); toast.success(t("acal2_break_updated")); },
     onError: (e) => toast.error(e.message),
   });
 
@@ -893,14 +904,27 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                             {formatBreakLength(br.startDate, br.endDate)}
                           </Badge>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-300 hover:text-red-200 hover:bg-red-500/20 h-7 w-7 p-0"
-                          onClick={() => setDeleteBreakId(br.id)}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-blue-300 hover:text-white hover:bg-blue-600/30 h-7 w-7 p-0"
+                            onClick={() => {
+                              setEditBreak({ id: br.id, semester: br.semester, label: br.label, startDate: String(br.startDate).slice(0, 10), endDate: String(br.endDate).slice(0, 10) });
+                              setEditBreakForm({ semester: String(br.semester), label: br.label, startDate: String(br.startDate).slice(0, 10), endDate: String(br.endDate).slice(0, 10) });
+                            }}
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-300 hover:text-red-200 hover:bg-red-500/20 h-7 w-7 p-0"
+                            onClick={() => setDeleteBreakId(br.id)}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
@@ -1052,7 +1076,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
       </Dialog>
 
       {/* ── Add Session Dialog ── */}
-      <Dialog open={showAddSession !== null} onOpenChange={(o) => { if (!o) setShowAddSession(null); }}>
+      <Dialog open={showAddSession !== null} onOpenChange={(o) => { if (!o) { setShowAddSession(null); setPrefillSemester(false); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
@@ -1081,7 +1105,6 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                     <SelectValue placeholder={t("acal2_select_subject_placeholder")} />
                   </SelectTrigger>
                   <SelectContent>
-                    {/* Group by semester */}
                     {Array.from(new Set(subjects.map(s => s.semester))).sort().map(sem => (
                       <>
                         <div key={`sem-${sem}`} className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -1135,22 +1158,107 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                 onChange={e => setSessionForm(f => ({ ...f, classGroup: e.target.value }))}
               />
             </div>
+            {/* Pre-fill semester toggle — only shown when semester dates are configured */}
+            {semesterDates.length > 0 && (() => {
+              const selectedSubject = subjects.find(s => s.name === sessionForm.subject);
+              const subjectSemester = selectedSubject?.semester;
+              const semDate = semesterDates.find(sd => sd.semesterNumber === subjectSemester);
+              if (!semDate) return null;
+              const semStart = String(semDate.startDate).slice(0, 10);
+              const semEnd = String(semDate.endDate).slice(0, 10);
+              // Count how many occurrences of the selected day fall in the semester (excluding breaks)
+              const dayNum = parseInt(sessionForm.dayOfWeek); // 1=Mon … 5=Fri
+              const breakPeriods = (data?.breaks ?? []).filter(b => b.semester === subjectSemester);
+              let count = 0;
+              const cur = new Date(semStart + "T00:00:00");
+              const end = new Date(semEnd + "T00:00:00");
+              while (cur <= end) {
+                // JS getDay(): 0=Sun, 1=Mon … 5=Fri
+                const jsDow = cur.getDay();
+                const dow = jsDow === 0 ? 7 : jsDow; // convert to 1=Mon … 7=Sun
+                if (dow === dayNum) {
+                  const dateStr = cur.toISOString().slice(0, 10);
+                  const inBreak = breakPeriods.some(b => dateStr >= String(b.startDate).slice(0, 10) && dateStr <= String(b.endDate).slice(0, 10));
+                  if (!inBreak) count++;
+                }
+                cur.setDate(cur.getDate() + 1);
+              }
+              return (
+                <div className="flex items-start gap-3 bg-blue-600/10 border border-blue-500/30 rounded-md p-3">
+                  <Checkbox
+                    id="prefill-semester"
+                    checked={prefillSemester}
+                    onCheckedChange={v => setPrefillSemester(!!v)}
+                    className="mt-0.5"
+                  />
+                  <div>
+                    <label htmlFor="prefill-semester" className="text-sm font-medium cursor-pointer">
+                      {t("acal2_prefill_semester")}
+                    </label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {semStart} → {semEnd} · {count} {days[dayNum - 1]} sessions
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddSession(null)}>{t("acal2_cancel")}</Button>
+            <Button variant="outline" onClick={() => { setShowAddSession(null); setPrefillSemester(false); }}>{t("acal2_cancel")}</Button>
             <Button
-              onClick={() => showAddSession !== null && addSessionMut.mutate({
-                calendarId,
-                teacherId: showAddSession,
-                subject: sessionForm.subject,
-                dayOfWeek: parseInt(sessionForm.dayOfWeek),
-                startTime: sessionForm.startTime,
-                endTime: sessionForm.endTime,
-                classGroup: sessionForm.classGroup || undefined,
-              })}
-              disabled={addSessionMut.isPending}
+              onClick={() => {
+                if (showAddSession === null) return;
+                const teacherId = showAddSession;
+                if (prefillSemester) {
+                  // Generate one dated session per weekly occurrence across the semester
+                  const selectedSubject = subjects.find(s => s.name === sessionForm.subject);
+                  const subjectSemester = selectedSubject?.semester;
+                  const semDate = semesterDates.find(sd => sd.semesterNumber === subjectSemester);
+                  if (!semDate) return;
+                  const semStart = String(semDate.startDate).slice(0, 10);
+                  const semEnd = String(semDate.endDate).slice(0, 10);
+                  const dayNum = parseInt(sessionForm.dayOfWeek);
+                  const breakPeriods = (data?.breaks ?? []).filter(b => b.semester === subjectSemester);
+                  const rows: { calendarId: number; teacherId: number; subject: string; dayOfWeek: number; startTime: string; endTime: string; classGroup?: string; sessionDate: string }[] = [];
+                  const cur = new Date(semStart + "T00:00:00");
+                  const end = new Date(semEnd + "T00:00:00");
+                  while (cur <= end) {
+                    const jsDow = cur.getDay();
+                    const dow = jsDow === 0 ? 7 : jsDow;
+                    if (dow === dayNum) {
+                      const dateStr = cur.toISOString().slice(0, 10);
+                      const inBreak = breakPeriods.some(b => dateStr >= String(b.startDate).slice(0, 10) && dateStr <= String(b.endDate).slice(0, 10));
+                      if (!inBreak) {
+                        rows.push({
+                          calendarId,
+                          teacherId,
+                          subject: sessionForm.subject,
+                          dayOfWeek: dayNum,
+                          startTime: sessionForm.startTime,
+                          endTime: sessionForm.endTime,
+                          classGroup: sessionForm.classGroup || undefined,
+                          sessionDate: dateStr,
+                        });
+                      }
+                    }
+                    cur.setDate(cur.getDate() + 1);
+                  }
+                  if (rows.length > 0) bulkAddSessionsMut.mutate({ sessions: rows });
+                } else {
+                  addSessionMut.mutate({
+                    calendarId,
+                    teacherId,
+                    subject: sessionForm.subject,
+                    dayOfWeek: parseInt(sessionForm.dayOfWeek),
+                    startTime: sessionForm.startTime,
+                    endTime: sessionForm.endTime,
+                    classGroup: sessionForm.classGroup || undefined,
+                  });
+                }
+              }}
+              disabled={addSessionMut.isPending || bulkAddSessionsMut.isPending}
             >
-              {t("acal2_add_btn")}
+              {(addSessionMut.isPending || bulkAddSessionsMut.isPending) ? t("acal2_loading") : (prefillSemester ? t("acal2_prefill_semester") : t("acal2_add_btn"))}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1296,6 +1404,62 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
               disabled={addBreakMut.isPending || !breakForm.label || !breakForm.startDate || !breakForm.endDate}
             >
               {t("acal2_add_btn")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Edit Break Dialog ── */}
+      <Dialog open={editBreak !== null} onOpenChange={(o) => { if (!o) setEditBreak(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("acal2_edit_break_title")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>{t("acal2_semester")}</Label>
+              <Select value={editBreakForm.semester} onValueChange={v => setEditBreakForm(f => ({ ...f, semester: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: calendar.semesterCount }, (_, i) => i + 1).map(s => (
+                    <SelectItem key={s} value={String(s)}>{t("acal2_semester")} {s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>{t("acal2_break_label")}</Label>
+              <Input value={editBreakForm.label} onChange={e => setEditBreakForm(f => ({ ...f, label: e.target.value }))} placeholder="e.g. Christmas Break" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>{t("acal2_break_start")}</Label>
+                <Input type="date" value={editBreakForm.startDate} onChange={e => setEditBreakForm(f => ({ ...f, startDate: e.target.value }))} />
+              </div>
+              <div>
+                <Label>{t("acal2_break_end")}</Label>
+                <Input type="date" value={editBreakForm.endDate} onChange={e => setEditBreakForm(f => ({ ...f, endDate: e.target.value }))} />
+              </div>
+            </div>
+            {editBreakForm.startDate && editBreakForm.endDate && (
+              <p className="text-sm text-muted-foreground">
+                {t("acal2_break_length")}: {formatBreakLength(editBreakForm.startDate, editBreakForm.endDate)}
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditBreak(null)}>{t("acal2_cancel")}</Button>
+            <Button
+              onClick={() => editBreak !== null && updateBreakMut.mutate({
+                id: editBreak.id,
+                semester: parseInt(editBreakForm.semester),
+                label: editBreakForm.label,
+                startDate: editBreakForm.startDate,
+                endDate: editBreakForm.endDate,
+              })}
+              disabled={updateBreakMut.isPending || !editBreakForm.label || !editBreakForm.startDate || !editBreakForm.endDate}
+            >
+              {t("acal2_save")}
             </Button>
           </DialogFooter>
         </DialogContent>

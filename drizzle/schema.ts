@@ -2348,6 +2348,8 @@ export const acSessions = mysqlTable("ac_sessions", {
   startTime: varchar("startTime", { length: 8 }).notNull(),
   endTime: varchar("endTime", { length: 8 }).notNull(),
   classGroup: varchar("class_group", { length: 100 }),
+  /** Specific calendar date for this session (null = recurring weekly slot) */
+  sessionDate: date("sessionDate"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 export type AcSession = typeof acSessions.$inferSelect;

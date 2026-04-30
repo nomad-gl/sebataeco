@@ -5131,3 +5131,14 @@
 - [x] Feature 3: Teacher timetable visual grid (colour-blocked Mon-Fri x time rows)
 - [x] Feature 4: Student group/class assignment per session (classGroup field)
 - [x] Feature 5: Print schedule per teacher (PDF button on teacher card)
+
+## Academic Calendar — Edit Breaks + Semester Pre-fill Sessions
+
+- [x] Add sessionDate (nullable date) column to ac_sessions table via DB migration
+- [x] Add bulkAddSessions tRPC procedure: accepts array of dated session rows, inserts all
+- [x] Edit semester break: Edit button on each break card opens edit dialog (label, semester, startDate, endDate)
+- [x] Edit break dialog calls updateBreak tRPC procedure
+- [x] Add i18n keys: acal2_edit_break_title, acal2_break_updated, acal2_prefill_semester, acal2_sessions_created (EN/ES/CA)
+- [x] Add Session dialog: show "Pre-fill all weeks for semester" toggle when semester dates are set
+- [x] On submit with prefill enabled: generate one dated session row per weekly occurrence of subject.days within semester date range, skipping break periods
+- [x] Fix semester dates edit form: pre-populate all fields with current saved dates when editing

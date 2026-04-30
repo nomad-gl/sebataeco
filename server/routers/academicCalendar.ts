@@ -234,6 +234,7 @@ export const academicCalendarRouter = router({
       startTime: z.string().regex(/^\d{2}:\d{2}$/),
       endTime: z.string().regex(/^\d{2}:\d{2}$/),
       classGroup: z.string().max(100).optional(),
+      sessionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       assertDirector(ctx.user.role);
@@ -242,8 +243,39 @@ export const academicCalendarRouter = router({
       if (timeToMinutes(input.endTime) <= timeToMinutes(input.startTime)) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "End time must be after start time." });
       }
-      const [result] = await db.insert(acSessions).values(input);
+      const { sessionDate, ...rest } = input;
+      const [result] = await db.insert(acSessions).values({
+        ...rest,
+        sessionDate: sessionDate ? new Date(sessionDate) : null,
+      });
       return { id: (result as any).insertId as number };
+    }),
+
+  /** Bulk-create multiple sessions at once (e.g. pre-fill all weeks of a semester) */
+  bulkAddSessions: protectedProcedure
+    .input(z.object({
+      sessions: z.array(z.object({
+        calendarId: z.number().int(),
+        teacherId: z.number().int(),
+        subject: z.string().min(1).max(255),
+        dayOfWeek: z.number().int().min(1).max(5),
+        startTime: z.string().regex(/^\d{2}:\d{2}$/),
+        endTime: z.string().regex(/^\d{2}:\d{2}$/),
+        classGroup: z.string().max(100).optional(),
+        sessionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      })).min(1).max(500),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      assertDirector(ctx.user.role);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const rows = input.sessions.map(s => ({
+        ...s,
+        classGroup: s.classGroup ?? null,
+        sessionDate: new Date(s.sessionDate),
+      }));
+      await db.insert(acSessions).values(rows);
+      return { count: rows.length };
     }),
 
   updateSession: protectedProcedure
