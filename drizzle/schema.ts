@@ -2390,6 +2390,13 @@ export const acSubjects = mysqlTable("ac_subjects", {
   endTime: varchar("endTime", { length: 8 }).notNull().default("10:00"),
   color: varchar("color", { length: 20 }),
   /**
+   * JSON array of semester numbers this subject spans.
+   * e.g. [1] for Semester 1 only, [1,2,3] for Academic Year.
+   * NULL means use the scalar `semester` field (backward compat).
+   * @migration 0071
+   */
+  semesters: text("semesters"),
+  /**
    * JSON array of per-day time overrides.
    * Shape: [{day: number, startTime: string, endTime: string}]
    * NULL means all days share the global startTime/endTime.

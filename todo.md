@@ -5171,3 +5171,10 @@
 - [x] Subjects tab: show a collapsible Conflicts panel at the top listing all conflicts with subject names, day, times, and reason
 - [x] Real-time: conflicts re-fetched automatically when subjects are added/updated/deleted
 - [x] Add i18n keys: acal2_conflicts_title, acal2_no_conflicts, acal2_conflict_classroom, acal2_conflict_overlap (EN/ES/CA)
+
+## Academic Calendar — Edit Subject Semester Fix
+
+- [x] Edit Subject dialog: replace single-semester Select with multi-semester toggle buttons (matching Add Subject)
+- [x] Edit Subject dialog: add "Academic Year" option that selects all semesters at once
+- [x] Ensure editSubject state stores semesters as array; updateSubject procedure accepts array and stores as JSON
+- [x] Subject card: display "Academic Year" label when subject spans all semesters

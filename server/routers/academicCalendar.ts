@@ -376,6 +376,8 @@ export const academicCalendarRouter = router({
         ...r,
         days: (() => { try { return JSON.parse(r.days); } catch { return []; } })() as number[],
         dayTimes: (() => { try { return r.dayTimes ? JSON.parse(r.dayTimes) : null; } catch { return null; } })() as Array<{ day: number; startTime: string; endTime: string }> | null,
+        // Effective semesters array: use semesters JSON if present, else wrap scalar semester
+        semesters: (() => { try { return r.semesters ? JSON.parse(r.semesters) : [r.semester]; } catch { return [r.semester]; } })() as number[],
       }));
     }),
 
@@ -383,6 +385,8 @@ export const academicCalendarRouter = router({
     .input(z.object({
       calendarId: z.number().int(),
       semester: z.number().int().min(1).max(10),
+      // Optional multi-semester array (overrides scalar semester if provided)
+      semesters: z.array(z.number().int().min(1).max(10)).optional(),
       name: z.string().min(1).max(255),
       unit: z.string().max(255).optional(),
       classroom: z.string().max(100).optional(),
@@ -405,11 +409,15 @@ export const academicCalendarRouter = router({
       if (timeToMinutes(input.endTime) <= timeToMinutes(input.startTime)) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "End time must be after start time." });
       }
-      const { days, dayTimes, ...rest } = input;
+      const { days, dayTimes, semesters, ...rest } = input;
+      // Use first semester in array as the scalar semester for backward compat
+      const primarySemester = semesters && semesters.length > 0 ? semesters[0] : input.semester;
       const [result] = await db.insert(acSubjects).values({
         ...rest,
+        semester: primarySemester,
         days: JSON.stringify(days),
         dayTimes: dayTimes ? JSON.stringify(dayTimes) : null,
+        semesters: semesters && semesters.length > 0 ? JSON.stringify(semesters) : null,
       });
       return { id: (result as any).insertId as number };
     }),
@@ -418,6 +426,8 @@ export const academicCalendarRouter = router({
     .input(z.object({
       id: z.number().int(),
       semester: z.number().int().min(1).max(10).optional(),
+      // Optional multi-semester array
+      semesters: z.array(z.number().int().min(1).max(10)).nullable().optional(),
       name: z.string().min(1).max(255).optional(),
       unit: z.string().max(255).optional(),
       classroom: z.string().max(100).optional(),
@@ -437,11 +447,16 @@ export const academicCalendarRouter = router({
       assertDirector(ctx.user.role);
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      const { id, days, dayTimes, ...rest } = input;
+      const { id, days, dayTimes, semesters, ...rest } = input;
       type SubjectUpdate = Record<string, unknown>;
       const fields: SubjectUpdate = { ...rest };
       if (days !== undefined) fields.days = JSON.stringify(days);
       if (dayTimes !== undefined) fields.dayTimes = dayTimes ? JSON.stringify(dayTimes) : null;
+      if (semesters !== undefined) {
+        fields.semesters = semesters && semesters.length > 0 ? JSON.stringify(semesters) : null;
+        // Keep scalar semester in sync with first selected
+        if (semesters && semesters.length > 0) fields.semester = semesters[0];
+      }
       await db.update(acSubjects).set(fields).where(eq(acSubjects.id, id));
       return { success: true };
     }),

@@ -393,7 +393,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
 
   // Subject form state
   const [showAddSubject, setShowAddSubject] = useState(false);
-  const [editSubject, setEditSubject] = useState<null | { id: number; semester: number; name: string; unit: string; classroom: string; maxStudents: string; totalAcademicHours: string; days: number[]; startTime: string; endTime: string; color: string; dayTimes: Array<{ day: number; startTime: string; endTime: string }> | null }>(null);
+  const [editSubject, setEditSubject] = useState<null | { id: number; semester: number; semesters: number[]; name: string; unit: string; classroom: string; maxStudents: string; totalAcademicHours: string; days: number[]; startTime: string; endTime: string; color: string; dayTimes: Array<{ day: number; startTime: string; endTime: string }> | null }>(null);
   const [subjectForm, setSubjectForm] = useState({ semester: "1", name: "", unit: "", classroom: "", maxStudents: "", totalAcademicHours: "60", days: [] as number[], startTime: "09:00", endTime: "10:00", color: "#3b82f6" });
   // Per-day time overrides for the add/edit subject form
   const [subjectDayTimes, setSubjectDayTimes] = useState<Array<{ day: number; startTime: string; endTime: string }>>([]);
@@ -1039,6 +1039,15 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                                   {sub.color && <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: sub.color }} />}
                                   <span className="text-white font-semibold">{sub.name}</span>
                                   {sub.unit && <Badge variant="secondary" className="bg-purple-600/30 text-purple-100 border-0 text-xs">{sub.unit}</Badge>}
+                                  {(() => {
+                                    const subSems: number[] = (sub as any).semesters ?? [sub.semester];
+                                    const allSems = Array.from({ length: calendar.semesterCount }, (_, i) => i + 1);
+                                    const isAcYear = calendar.semesterCount > 1 && allSems.every(s => subSems.includes(s));
+                                    const isMulti = !isAcYear && subSems.length > 1;
+                                    if (isAcYear) return <Badge className="bg-indigo-600/60 text-indigo-100 border-0 text-xs">Academic Year</Badge>;
+                                    if (isMulti) return <Badge className="bg-indigo-600/40 text-indigo-100 border-0 text-xs">Sem {subSems.join(', ')}</Badge>;
+                                    return null;
+                                  })()}
                                   {(conflictCountBySubject[sub.id] ?? 0) > 0 && (
                                     <Badge className="bg-red-600/80 text-white border-0 text-xs flex items-center gap-1">
                                       <AlertTriangle className="w-3 h-3" />
@@ -1079,7 +1088,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                                 <Button
                                   variant="ghost" size="sm"
                                   className="text-blue-300 hover:text-white hover:bg-white/10 h-7 w-7 p-0"
-                                  onClick={() => { setEditSubject({ id: sub.id, semester: sub.semester, name: sub.name, unit: sub.unit ?? "", classroom: sub.classroom ?? "", maxStudents: sub.maxStudents ? String(sub.maxStudents) : "", totalAcademicHours: String(sub.totalAcademicHours), days: sub.days, startTime: sub.startTime, endTime: sub.endTime, color: sub.color ?? "#3b82f6", dayTimes: sub.dayTimes ?? null }); setSubjectDayTimes(sub.dayTimes ?? []); }}
+                                  onClick={() => { setEditSubject({ id: sub.id, semester: sub.semester, semesters: (sub as any).semesters ?? [sub.semester], name: sub.name, unit: sub.unit ?? "", classroom: sub.classroom ?? "", maxStudents: sub.maxStudents ? String(sub.maxStudents) : "", totalAcademicHours: String(sub.totalAcademicHours), days: sub.days, startTime: sub.startTime, endTime: sub.endTime, color: sub.color ?? "#3b82f6", dayTimes: sub.dayTimes ?? null }); setSubjectDayTimes(sub.dayTimes ?? []); }}
                                 >
                                   <Edit2 className="w-3.5 h-3.5" />
                                 </Button>
@@ -1980,45 +1989,65 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="grid grid-cols-2 gap-3">
-              <div>
+              <div className="col-span-2">
                 <Label>{t("acal2_subject_semester")}</Label>
-                <Select
-                  value={editSubject ? String(editSubject.semester) : subjectForm.semester}
-                  onValueChange={(v) => {
-                    if (editSubject) {
-                      setEditSubject(s => s && ({ ...s, semester: parseInt(v) }));
-                    } else {
-                      const semNum = parseInt(v);
-                      if (semNum > 1) {
-                        // Auto-populate from Semester 1 subjects (first one found)
-                        const sem1Subject = subjects.find(s => s.semester === 1);
-                        if (sem1Subject) {
-                          setSubjectForm({
-                            semester: v,
-                            name: sem1Subject.name,
-                            unit: sem1Subject.unit ?? "",
-                            classroom: sem1Subject.classroom ?? "",
-                            maxStudents: sem1Subject.maxStudents ? String(sem1Subject.maxStudents) : "",
-                            totalAcademicHours: String(sem1Subject.totalAcademicHours),
-                            days: Array.isArray(sem1Subject.days) ? sem1Subject.days : (sem1Subject.days ? JSON.parse(sem1Subject.days as unknown as string) : []),
-                            startTime: sem1Subject.startTime ?? "09:00",
-                            endTime: sem1Subject.endTime ?? "10:00",
-                            color: sem1Subject.color ?? "#3b82f6",
-                          });
-                          return;
-                        }
-                      }
-                      setSubjectForm(f => ({ ...f, semester: v }));
-                    }
-                  }}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: calendar.semesterCount }, (_, i) => i + 1).map(s => (
-                      <SelectItem key={s} value={String(s)}>{t("acal2_semester")} {s}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                  {/* Academic Year button */}
+                  {calendar.semesterCount > 1 && (() => {
+                    const allSems = Array.from({ length: calendar.semesterCount }, (_, i) => i + 1);
+                    const activeSems: number[] = editSubject ? editSubject.semesters : [parseInt(subjectForm.semester)];
+                    const isAcYear = allSems.every(s => activeSems.includes(s));
+                    return (
+                      <button
+                        type="button"
+                        className={`px-3 py-1 rounded text-xs font-semibold border transition-colors ${
+                          isAcYear
+                            ? "bg-blue-600 text-white border-blue-500"
+                            : "bg-white/10 text-blue-200 border-white/20 hover:bg-white/20"
+                        }`}
+                        onClick={() => {
+                          if (editSubject) {
+                            setEditSubject(s => s && ({ ...s, semesters: allSems, semester: allSems[0] }));
+                          } else {
+                            setSubjectForm(f => ({ ...f, semester: "1" }));
+                          }
+                        }}
+                      >
+                        Academic Year
+                      </button>
+                    );
+                  })()}
+                  {/* Individual semester buttons */}
+                  {Array.from({ length: calendar.semesterCount }, (_, i) => i + 1).map(s => {
+                    const activeSems: number[] = editSubject ? editSubject.semesters : [parseInt(subjectForm.semester)];
+                    const isActive = activeSems.includes(s);
+                    return (
+                      <button
+                        key={s}
+                        type="button"
+                        className={`px-3 py-1 rounded text-xs font-semibold border transition-colors ${
+                          isActive
+                            ? "bg-blue-600 text-white border-blue-500"
+                            : "bg-white/10 text-blue-200 border-white/20 hover:bg-white/20"
+                        }`}
+                        onClick={() => {
+                          if (editSubject) {
+                            const current = editSubject.semesters;
+                            const next = isActive
+                              ? current.filter(x => x !== s)
+                              : [...current, s].sort();
+                            const safe = next.length === 0 ? [s] : next;
+                            setEditSubject(es => es && ({ ...es, semesters: safe, semester: safe[0] }));
+                          } else {
+                            setSubjectForm(f => ({ ...f, semester: String(s) }));
+                          }
+                        }}
+                      >
+                        {t("acal2_semester")} {s}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
               <div>
                 <Label>{t("acal2_total_academic_hours")}</Label>
@@ -2194,7 +2223,8 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                   const hasPerDay = editSubject.days.length >= 2 && subjectDayTimes.length > 0;
                   updateSubjectMut.mutate({
                     id: editSubject.id,
-                    semester: editSubject.semester,
+                    semester: editSubject.semesters[0] ?? editSubject.semester,
+                    semesters: editSubject.semesters,
                     name: editSubject.name,
                     unit: editSubject.unit || undefined,
                     classroom: editSubject.classroom || undefined,
