@@ -30,6 +30,8 @@ interface AinaChatHistoryProps {
   onNewChat: () => void;
   /** Called whenever the sidebar width changes so Chat.tsx can react if needed */
   onWidthChange?: (width: number) => void;
+  /** Called when the user wants to fully close/hide the history panel */
+  onClose?: () => void;
 }
 
 function timeAgo(date: Date | string): string {
@@ -45,7 +47,7 @@ function timeAgo(date: Date | string): string {
   return d.toLocaleDateString();
 }
 
-export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat, onWidthChange }: AinaChatHistoryProps) {
+export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat, onWidthChange, onClose }: AinaChatHistoryProps) {
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
@@ -239,6 +241,17 @@ export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat, o
         >
           <ChevronRight className="size-4" />
         </button>
+
+        {/* Close panel entirely (if onClose provided) */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            title="Hide history"
+            className="mb-2 flex items-center justify-center size-8 rounded-lg hover:bg-white/15 text-white/40 hover:text-white/80 transition-colors"
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+        )}
       </div>
     );
   }
@@ -260,7 +273,7 @@ export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat, o
           <Plus className="size-3.5" />
           New Chat
         </Button>
-        {/* Collapse toggle */}
+        {/* Collapse to icon-only */}
         <button
           onClick={toggleCollapsed}
           title="Collapse sidebar"
@@ -268,6 +281,16 @@ export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat, o
         >
           <ChevronLeft className="size-4" />
         </button>
+        {/* Close panel entirely — shown on mobile where the outer toggle strip is hidden */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            title="Close history"
+            className="sm:hidden flex-shrink-0 flex items-center justify-center size-7 rounded-lg hover:bg-white/15 text-white/50 hover:text-white transition-colors"
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+        )}
       </div>
 
       {/* Search */}

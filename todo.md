@@ -5384,3 +5384,7 @@
 - [x] Mobile admin section: uses sortedSchoolItems and sortedPlatformItems (reflects desktop order)
 - [x] Order persisted to DB on drag-end; loaded on mount; missing items appended at end
 - [x] Vitest tests for navOrder router (7 tests, all passing)
+
+## Bug Fixes (May 2026)
+- [x] Fix pnpm-lock.yaml out-of-sync with package.json (dnd-kit entries missing) — causes deployment failure
+- [x] Fix chat history panel on Aina page not closing when close button is clicked

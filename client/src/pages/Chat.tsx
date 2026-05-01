@@ -528,6 +528,7 @@ export default function Chat() {
                 activeSessionId={activeSessionId}
                 onSelectSession={handleSelectSession}
                 onNewChat={handleNewChat}
+                onClose={() => setHistoryOpen(false)}
               />
             )}
             <button
