@@ -11,7 +11,23 @@ import {
   UserPlus, Copy, CheckCircle2, MapPin, Layers,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  arrayMove,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { GripVertical } from "lucide-react";
 import { AdminPinGate, isAdminUnlocked } from "@/components/AdminPinGate";
 import { useI18n, Lang } from "@/contexts/I18nContext";
 import { DialectBadge } from "@/components/CatalanDialectDetector";
@@ -69,6 +85,54 @@ function MeetingInviteActions({ notificationId, onDone }: { notificationId: numb
     </div>
   );
 }
+
+// ─── Sortable nav item for super-admin drag-and-drop reordering ──────────────
+type SortableNavItemProps = {
+  id: string;
+  href: string;
+  label: string;
+  icon: React.ElementType;
+  active: boolean;
+  onClick?: (e: React.MouseEvent) => void;
+  locked?: boolean;
+};
+function SortableNavItem({ id, href, label, icon: Icon, active, onClick, locked }: SortableNavItemProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    position: "relative",
+    zIndex: isDragging ? 50 : undefined,
+  };
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center group">
+      <span
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing px-1 py-2 text-muted-foreground/40 hover:text-muted-foreground transition-colors flex-shrink-0 touch-none"
+        title="Drag to reorder"
+      >
+        <GripVertical className="w-3.5 h-3.5" />
+      </span>
+      <Link
+        href={href}
+        role="menuitem"
+        onClick={onClick}
+        className={cn(
+          "flex-1 flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium transition-colors",
+          active ? "text-primary bg-primary/5" : "text-foreground hover:bg-secondary",
+          locked && "opacity-60"
+        )}
+      >
+        <Icon className="w-4 h-4" />
+        {label}
+        {locked && <Lock className="w-3 h-3 ml-auto text-muted-foreground" />}
+      </Link>
+    </div>
+  );
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function NavBar() {
   const [location] = useLocation();
@@ -377,9 +441,81 @@ export default function NavBar() {
 
   // Note: body scroll lock removed — the mobile nav panel itself scrolls instead
   // (overflow-y-auto on the nav element handles long menus on small screens)
-
   const currentLang = LANG_OPTIONS.find((l) => l.code === lang) ?? LANG_OPTIONS[0];
   const { state: pwaState, install: pwaInstall, showIosModal, setShowIosModal } = usePwaInstall();
+
+  // ─── Super-admin nav reordering ──────────────────────────────────────────
+  const isSuperAdmin = user?.role === "admin";
+  // Fetch persisted order (only for super-admins)
+  const { data: navOrderData } = trpc.navOrder.getNavOrder.useQuery(undefined, {
+    enabled: isSuperAdmin,
+    staleTime: 60_000,
+  });
+  const saveNavOrder = trpc.navOrder.saveNavOrder.useMutation({
+    onError: () => toast.error("Failed to save nav order"),
+  });
+  // Local state for the current order of schoolAdminItems hrefs
+  const defaultSchoolOrder = useMemo(() => schoolAdminItems.map((i) => i.href), []);
+  const defaultPlatformOrder = useMemo(() => platformItems.map((i) => i.href), []);
+  const [schoolOrder, setSchoolOrder] = useState<string[]>([]);
+  const [platformOrder, setPlatformOrderState] = useState<string[]>([]);
+  // Sync from server once loaded
+  useEffect(() => {
+    if (!navOrderData?.order) {
+      setSchoolOrder(defaultSchoolOrder);
+      setPlatformOrderState(defaultPlatformOrder);
+      return;
+    }
+    const serverOrder = navOrderData.order;
+    const schoolHrefs = schoolAdminItems.map((i) => i.href);
+    const platformHrefs = platformItems.map((i) => i.href);
+    const savedSchool = serverOrder.filter((h) => schoolHrefs.includes(h));
+    const missingSchool = schoolHrefs.filter((h) => !savedSchool.includes(h));
+    setSchoolOrder([...savedSchool, ...missingSchool]);
+    const savedPlatform = serverOrder.filter((h) => platformHrefs.includes(h));
+    const missingPlatform = platformHrefs.filter((h) => !savedPlatform.includes(h));
+    setPlatformOrderState([...savedPlatform, ...missingPlatform]);
+  }, [navOrderData]);
+  // Sorted item arrays derived from order state
+  const sortedSchoolItems = useMemo(() => {
+    if (!schoolOrder.length) return schoolAdminItems;
+    return schoolOrder
+      .map((href) => schoolAdminItems.find((i) => i.href === href))
+      .filter(Boolean) as typeof schoolAdminItems;
+  }, [schoolOrder]);
+  const sortedPlatformItems = useMemo(() => {
+    if (!platformOrder.length) return platformItems;
+    return platformOrder
+      .map((href) => platformItems.find((i) => i.href === href))
+      .filter(Boolean) as typeof platformItems;
+  }, [platformOrder]);
+  // DnD sensors
+  const dndSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
+  const handleSchoolDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setSchoolOrder((prev) => {
+      const oldIdx = prev.indexOf(active.id as string);
+      const newIdx = prev.indexOf(over.id as string);
+      const next = arrayMove(prev, oldIdx, newIdx);
+      saveNavOrder.mutate({ order: [...next, ...platformOrder] });
+      return next;
+    });
+  }, [platformOrder, saveNavOrder]);
+  const handlePlatformDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setPlatformOrderState((prev) => {
+      const oldIdx = prev.indexOf(active.id as string);
+      const newIdx = prev.indexOf(over.id as string);
+      const next = arrayMove(prev, oldIdx, newIdx);
+      saveNavOrder.mutate({ order: [...schoolOrder, ...next] });
+      return next;
+    });
+  }, [schoolOrder, saveNavOrder]);
+  // ─────────────────────────────────────────────────────────────────────────
 
   return (
     <>
@@ -601,24 +737,42 @@ export default function NavBar() {
                   <p className="sticky top-0 bg-white z-10 px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground border-b border-border/40">
                     {t("nav_admin_school_section")}
                   </p>
-                  {schoolAdminItems.map(({ href, label, icon: Icon }) => {
-                    const active = location === href || (href !== "/" && location.startsWith(href));
-                    return (
-                      <Link
-                        key={href}
-                        href={href}
-                        role="menuitem"
-                        onClick={() => setAdminOpen(false)}
-                        className={cn(
-                          "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
-                          active ? "text-primary bg-primary/5" : "text-foreground hover:bg-secondary"
-                        )}
-                      >
-                        <Icon className="w-4 h-4" />
-                        {label}
-                      </Link>
-                    );
-                  })}
+                  {isSuperAdmin ? (
+                    <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleSchoolDragEnd}>
+                      <SortableContext items={schoolOrder} strategy={verticalListSortingStrategy}>
+                        {sortedSchoolItems.map(({ href, label, icon: Icon }) => (
+                          <SortableNavItem
+                            key={href}
+                            id={href}
+                            href={href}
+                            label={label}
+                            icon={Icon}
+                            active={location === href || (href !== "/" && location.startsWith(href))}
+                            onClick={() => setAdminOpen(false)}
+                          />
+                        ))}
+                      </SortableContext>
+                    </DndContext>
+                  ) : (
+                    sortedSchoolItems.map(({ href, label, icon: Icon }) => {
+                      const active = location === href || (href !== "/" && location.startsWith(href));
+                      return (
+                        <Link
+                          key={href}
+                          href={href}
+                          role="menuitem"
+                          onClick={() => setAdminOpen(false)}
+                          className={cn(
+                            "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
+                            active ? "text-primary bg-primary/5" : "text-foreground hover:bg-secondary"
+                          )}
+                        >
+                          <Icon className="w-4 h-4" />
+                          {label}
+                        </Link>
+                      );
+                    })
+                  )}
                   {/* Divider */}
                   <div className="my-1 border-t border-border" />
                   {/* Platform tools section — collapsed by default when PIN-locked */}
@@ -633,26 +787,47 @@ export default function NavBar() {
                     {platformUnlocked && <span className="text-[9px] bg-green-100 text-green-700 rounded px-1">{t("nav_admin_unlocked")}</span>}
                     <ChevronDown className={cn("w-3 h-3 ml-auto transition-transform", platformExpanded && "rotate-180")} />
                   </button>
-                  {platformExpanded && platformItems.map(({ href, label, icon: Icon }) => {
-                    const active = location === href || (href !== "/" && location.startsWith(href));
-                    return (
-                      <Link
-                        key={href}
-                        href={href}
-                        role="menuitem"
-                        onClick={(e) => { handlePlatformClick(href, e); if (platformUnlocked) setAdminOpen(false); }}
-                        className={cn(
-                          "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
-                          active ? "text-primary bg-primary/5" : "text-foreground hover:bg-secondary",
-                          !platformUnlocked && "opacity-60"
-                        )}
-                      >
-                        <Icon className="w-4 h-4" />
-                        {label}
-                        {!platformUnlocked && <Lock className="w-3 h-3 ml-auto text-muted-foreground" />}
-                      </Link>
-                    );
-                  })}
+                  {platformExpanded && (
+                    isSuperAdmin ? (
+                      <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handlePlatformDragEnd}>
+                        <SortableContext items={platformOrder} strategy={verticalListSortingStrategy}>
+                          {sortedPlatformItems.map(({ href, label, icon: Icon }) => (
+                            <SortableNavItem
+                              key={href}
+                              id={href}
+                              href={href}
+                              label={label}
+                              icon={Icon}
+                              active={location === href || (href !== "/" && location.startsWith(href))}
+                              onClick={(e) => { handlePlatformClick(href, e as React.MouseEvent); if (platformUnlocked) setAdminOpen(false); }}
+                              locked={!platformUnlocked}
+                            />
+                          ))}
+                        </SortableContext>
+                      </DndContext>
+                    ) : (
+                      sortedPlatformItems.map(({ href, label, icon: Icon }) => {
+                        const active = location === href || (href !== "/" && location.startsWith(href));
+                        return (
+                          <Link
+                            key={href}
+                            href={href}
+                            role="menuitem"
+                            onClick={(e) => { handlePlatformClick(href, e); if (platformUnlocked) setAdminOpen(false); }}
+                            className={cn(
+                              "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
+                              active ? "text-primary bg-primary/5" : "text-foreground hover:bg-secondary",
+                              !platformUnlocked && "opacity-60"
+                            )}
+                          >
+                            <Icon className="w-4 h-4" />
+                            {label}
+                            {!platformUnlocked && <Lock className="w-3 h-3 ml-auto text-muted-foreground" />}
+                          </Link>
+                        );
+                      })
+                    )
+                  )}
                   {/* Divider + Territorial Services section */}
                   <div className="my-1 border-t border-border" />
                   <p className="sticky top-[28px] bg-white z-10 px-4 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1 border-b border-border/40">
@@ -1301,7 +1476,7 @@ export default function NavBar() {
               <p className={cn("text-xs font-semibold uppercase tracking-wider mb-2 px-1", isClassroomPage ? "text-white/50" : "text-muted-foreground")}>
                 {t("nav_administration")} — {t("nav_admin_school_section")}
               </p>
-              {schoolAdminItems.map(({ href, label, icon: Icon }) => {
+              {sortedSchoolItems.map(({ href, label, icon: Icon }) => {
                 const active = location === href || (href !== "/" && location.startsWith(href));
                 return (
                   <Link
@@ -1334,7 +1509,7 @@ export default function NavBar() {
                 {platformUnlocked && <span className="ml-auto text-[9px] bg-green-100 text-green-700 rounded px-1">{t("nav_admin_unlocked")}</span>}
                 <ChevronDown className={cn("w-3 h-3 ml-1 transition-transform", platformExpanded && "rotate-180")} />
               </button>
-              {platformExpanded && platformItems.map(({ href, label, icon: Icon }) => {
+              {platformExpanded && sortedPlatformItems.map(({ href, label, icon: Icon }) => {
                 const active = location === href || (href !== "/" && location.startsWith(href));
                 return (
                   <Link

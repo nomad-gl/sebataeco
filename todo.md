@@ -5373,3 +5373,14 @@
 - [ ] Epoch rotation: admin can rotate masking keys (old pseudonyms become permanently unresolvable)
 - [ ] Mask third-party names/emails in security_events, admin_audit_logs, and security dashboard UI
 - [ ] Admin-only "reveal" endpoint with re-auth gate for lawful access to original identity
+
+## Super-admin Nav Link Reordering
+- [x] Install @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities packages
+- [x] Add navLinkOrder TEXT column to users table (migration 0069)
+- [x] Add navOrder tRPC router (getNavOrder + saveNavOrder, adminProcedure + isSuperAdmin guard)
+- [x] Wire navOrderRouter into appRouter
+- [x] SortableNavItem component with GripVertical drag handle
+- [x] Desktop admin dropdown: school section and platform section both sortable via DnD for super-admins
+- [x] Mobile admin section: uses sortedSchoolItems and sortedPlatformItems (reflects desktop order)
+- [x] Order persisted to DB on drag-end; loaded on mount; missing items appended at end
+- [x] Vitest tests for navOrder router (7 tests, all passing)

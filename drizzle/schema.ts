@@ -129,6 +129,13 @@ export const users = mysqlTable("users", {
    * @migration 0068
    */
   lastLoginIp: varchar("lastLoginIp", { length: 45 }),
+  /**
+   * JSON array of nav-link href strings in the super-admin's preferred order.
+   * NULL = use the default order defined in NavBar.tsx.
+   * Only written/read for users where isSuperAdmin is true.
+   * @migration 0069
+   */
+  navLinkOrder: text("navLinkOrder"),
 });
 
 export type User = typeof users.$inferSelect;
