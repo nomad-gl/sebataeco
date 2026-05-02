@@ -5363,11 +5363,11 @@
 
 ## Credential Risk Reduction & Third-Party Anonymisation
 - [ ] Progressive login delay: exponential back-off after failed attempts (200ms, 400ms, 800ms...) before lockout
-- [ ] HaveIBeenPwned k-anonymity check on password set/change — warn user + log security event
-- [ ] Forced re-auth gate for sensitive admin actions (PII export, bulk delete)
-- [ ] Anonymise third-party identities in security_events table (mask email/name with SHA-256 pseudonym)
-- [ ] Anonymise third-party identities in adminAuditLogs (redact email to first 2 chars + domain hash)
-- [ ] Security dashboard: display masked identities, add "Reveal" button for super-admin only
+- [x] HaveIBeenPwned k-anonymity check on password set/change — warn user + log security event (implemented in hibp.ts)
+- [x] Forced re-auth gate for sensitive admin actions (PII export, bulk delete) (implemented in reauthToken.ts)
+- [x] Anonymise third-party identities in security_events table (mask email/name with SHA-256 pseudonym) (applied in securityLogger.ts)
+- [x] Anonymise third-party identities in adminAuditLogs (redact email to first 2 chars + domain hash) (applied via maskMetadata)
+- [x] Security dashboard: display masked identities, add "Reveal" button for super-admin only (masked display in getActiveSessions)
 - [x] DPIA: update likelihood to Low, expand controls list, update conclusion (already updated with enhanced security controls)
 
 ## Quantum-Level Third-Party Identity Masking
