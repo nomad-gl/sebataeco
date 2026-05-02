@@ -540,14 +540,7 @@ export default function Presentation() {
 
   const slide = slides[currentSlide];
 
-  // Show loading only for first 5 seconds, then show content anyway
-  const [showContent, setShowContent] = useState(false);
-  useEffect(() => {
-    const timer = setTimeout(() => setShowContent(true), 5000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (loading && !showContent) return (
+  if (loading) return (
     <div className="presentation-bg min-h-screen flex items-center justify-center">
       <Loader2 className="w-8 h-8 animate-spin text-white" />
     </div>

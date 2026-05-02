@@ -53,7 +53,6 @@ import { academicCalendarRouter } from "./routers/academicCalendar";
 import { mfaRouter } from "./routers/mfa";
 import { dpiaRouter } from "./routers/dpia";
 import { securityDashboardRouter } from "./routers/securityDashboard";
-import { bscCurriculumRouter } from "./routers/bscCurriculum";
 import { navOrderRouter } from "./routers/navOrder";
 export const appRouter = router({
   system: systemRouter,
@@ -251,7 +250,6 @@ export const appRouter = router({
   mfa: mfaRouter,
   dpia: dpiaRouter,
   securityDashboard: securityDashboardRouter,
-  bscCurriculum: bscCurriculumRouter,
   navOrder: navOrderRouter,
 });
 
