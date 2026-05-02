@@ -4968,7 +4968,7 @@
 - [x] Add TA Forum button to Administration menu
 - [x] Improve AINA document reproduction (Arial 11pt, professional quality)
 - [x] Fix missing Catalan translations for Signes de puntuació and Abreviacions
-- [ ] Allow super-admin to delete users
+- [x] Allow super-admin to delete users
 - [x] Fix AINA history sidebar independent scroll (should not move with main page scroll)
 - [ ] Personalise AINA suggested questions based on user chat history after re-login
 - [ ] Add web search capability to AINA for Spanish government curriculum sources (Decree 175/2022)
