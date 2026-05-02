@@ -4967,7 +4967,7 @@
 - [x] Add 'Primary (Yr 1-2)' year group option to Practice Mode (and all related selectors/knowledge bank)
 - [x] Add TA Forum button to Administration menu
 - [x] Improve AINA document reproduction (Arial 11pt, professional quality)
-- [ ] Fix missing Catalan translations for Signes de puntuació and Abreviacions
+- [x] Fix missing Catalan translations for Signes de puntuació and Abreviacions
 - [ ] Allow super-admin to delete users
 - [x] Fix AINA history sidebar independent scroll (should not move with main page scroll)
 - [ ] Personalise AINA suggested questions based on user chat history after re-login
