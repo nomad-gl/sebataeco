@@ -5247,23 +5247,27 @@
 
 ## Bug: Semester/Academic Year Calendar Views Empty
 
-- [ ] Diagnose why Semester 1/2/3 and Academic Year views show no sessions despite subjects existing
-- [ ] Fix the root cause and verify all views populate correctly
+- [x] Diagnose why Semester 1/2/3 and Academic Year views show no sessions despite subjects existing
+  - Root cause: Missing `semesters` and `dayTimes` columns in ac_subjects table (migration 0072 not applied)
+  - Solution: Created migration SQL file at drizzle/migrations/0072_add_semesters_and_dayTimes.sql
+  - Status: Migration file created, needs to be applied via database management UI
+- [ ] Apply migration 0072 via database management UI to add semesters and dayTimes columns
+- [ ] Verify all calendar views populate correctly after migration
 
 ## Feature: Catalan Holidays + Non-Teaching Days in Calendar
 
-- [ ] Review spanishHolidays.ts and seedCatalanHolidays to understand current holiday data and types
-- [ ] Add eventType values: 'bank_holiday', 'national_holiday', 'teacher_training', 'inset_day', 'parent_evening', 'open_day', 'staff_meeting' to school_calendar_events schema
-- [ ] Run migration SQL for updated eventType enum/values
-- [ ] Update seedCatalanHolidays server procedure to tag holidays as 'bank_holiday' or 'national_holiday'
-- [ ] Update createCalendar auto-insert logic to use correct holiday type tags
-- [ ] Block AI infill from scheduling lessons on bank_holiday, national_holiday, teacher_training, inset_day dates
-- [ ] Add non-teaching day types to the event type buttons in SchoolCalendar UI (Teacher Training, INSET Day, Parent Evening, Open Day, Staff Meeting)
-- [ ] Color-code non-teaching day types distinctly on the calendar grid
-- [ ] Show non-teaching day chips in the day panel with appropriate icons
-- [ ] Add i18n keys for all new event types (EN/ES/CA)
-- [ ] Verify TypeScript 0 errors
-- [ ] Save checkpoint
+- [x] Review spanishHolidays.ts and seedCatalanHolidays to understand current holiday data and types
+- [x] Add eventType values: 'bank_holiday', 'national_holiday', 'teacher_training', 'inset_day', 'parent_evening', 'open_day', 'staff_meeting' to school_calendar_events schema
+- [x] Run migration SQL for updated eventType enum/values
+- [x] Update seedCatalanHolidays server procedure to tag holidays as 'bank_holiday' or 'national_holiday'
+- [x] Update createCalendar auto-insert logic to use correct holiday type tags
+- [x] Block AI infill from scheduling lessons on bank_holiday, national_holiday, teacher_training, inset_day dates
+- [x] Add non-teaching day types to the event type buttons in SchoolCalendar UI (Teacher Training, INSET Day, Parent Evening, Open Day, Staff Meeting)
+- [x] Color-code non-teaching day types distinctly on the calendar grid
+- [x] Show non-teaching day chips in the day panel with appropriate icons
+- [x] Add i18n keys for all new event types (EN/ES/CA)
+- [x] Verify TypeScript 0 errors
+- [x] Save checkpoint
 
 ## Feature: Catalan Holidays & Non-Teaching Days (2026-04-30)
 - [x] Extend eventType enum in DB schema with national_holiday, bank_holiday, teacher_training, inset_day, parent_evening, open_day, staff_meeting
