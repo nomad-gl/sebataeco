@@ -227,7 +227,7 @@ export default function AdminUserManagement() {
   const [backfillOpen, setBackfillOpen] = useState(false);
   const [backfillSelections, setBackfillSelections] = useState<Record<number, number>>({});
 
-  const { data: users = [], isLoading, refetch } = trpc.director.listAllLocalUsersForAdmin.useQuery();
+  const { data: users = [], isLoading, refetch } = trpc.director.listLocalUsersByRole.useQuery();
   // Fetch director/admin users for backfill dropdown
   const { data: allAdminUsers = [] } = trpc.director.listAllUsersForAdmin.useQuery();
   const directors = (allAdminUsers as Array<{ id: number; name: string | null; email: string | null; role: string }>).filter((u) => u.role === "director" || u.role === "admin");
@@ -359,7 +359,7 @@ export default function AdminUserManagement() {
           <div>
             <h1 className="text-2xl font-bold">User Management</h1>
             <p className="text-sm text-muted-foreground">
-              All local accounts across all schools — super-admin view
+              Manage user accounts — view depends on your role
             </p>
           </div>
         </div>

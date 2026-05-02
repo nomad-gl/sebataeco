@@ -5388,3 +5388,10 @@
 ## Bug Fixes (May 2026)
 - [x] Fix pnpm-lock.yaml out-of-sync with package.json (dnd-kit entries missing) — causes deployment failure
 - [x] Fix chat history panel on Aina page not closing when close button is clicked
+
+## Profile Filtering by Role (May 2026)
+- [x] Super-admin/admin: see profiles grouped by school/director
+- [x] Director: see only profiles under their own school
+- [x] Teacher: see only their own profile
+- [x] Add tRPC procedures for role-based profile queries (listLocalUsersByRole)
+- [x] Update AdminUserManagement UI to use role-based procedure

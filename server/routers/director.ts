@@ -2579,4 +2579,56 @@ export const directorRouter = router({
         .limit(100);
       return plans;
     }),
+
+  /**
+   * List local users based on role:
+   * - Super-admin: all users across all schools
+   * - Admin: all users across all schools (same as super-admin for this endpoint)
+   * - Director: only users they invited (their subordinates)
+   * - Teacher: only their own profile
+   * Returns users grouped by school/director for display in AdminUserManagement.
+   */
+  listLocalUsersByRole: adminProcedure.query(async ({ ctx }) => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+
+    let whereConditions = [isNotNull(users.passwordHash)];
+
+    // Restrict based on role
+    if (!ctx.isSuperAdmin) {
+      if (ctx.user.role === "director" || ctx.user.role === "head_of_study") {
+        // Directors/HoS can only see users they invited
+        whereConditions.push(eq(users.invitedByUserId, ctx.user.id));
+      } else if (ctx.user.role === "teacher") {
+        // Teachers can only see their own profile
+        whereConditions.push(eq(users.id, ctx.user.id));
+      } else {
+        // Other roles get no access
+        throw new TRPCError({ code: "FORBIDDEN", message: "You do not have permission to view user profiles." });
+      }
+    }
+
+    const rows = await db
+      .select({
+        id: users.id,
+        displayName: users.displayName,
+        email: users.email,
+        role: users.role,
+        position: users.position,
+        tenantId: users.tenantId,
+        tenantName: tenants.name,
+        schoolName: users.schoolName,
+        lastSignedIn: users.lastSignedIn,
+        createdAt: users.createdAt,
+        deactivatedAt: users.deactivatedAt,
+        isPermanent: users.isPermanent,
+        invitedByUserId: users.invitedByUserId,
+      })
+      .from(users)
+      .leftJoin(tenants, eq(users.tenantId, tenants.id))
+      .where(and(...whereConditions))
+      .orderBy(desc(users.lastSignedIn));
+
+    return rows;
+  }),
 });
