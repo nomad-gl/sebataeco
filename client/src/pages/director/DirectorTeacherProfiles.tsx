@@ -48,6 +48,8 @@ export default function DirectorTeacherProfiles() {
   const [semesterFilter, setSemesterFilter] = useState<"all" | "1" | "2" | "full_year">("all");
   const [contractedHoursInput, setContractedHoursInput] = useState<string>("");
   const [showTempOnly, setShowTempOnly] = useState(false);
+  const [showDetailView, setShowDetailView] = useState(false);
+  const [detailTeacherId, setDetailTeacherId] = useState<number | null>(null);
   const [copyScheduleDialog, setCopyScheduleDialog] = useState(false);
   const [copyFromTeacherId, setCopyFromTeacherId] = useState<number | null>(null);
   const [copyOverwrite, setCopyOverwrite] = useState(false);
@@ -313,6 +315,20 @@ export default function DirectorTeacherProfiles() {
     }
   }, [selectedTeacherId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Show detail view if a teacher is selected for viewing details
+  if (showDetailView && detailTeacherId) {
+    const TeacherDetailView = require("@/pages/TeacherDetailView").default;
+    return (
+      <TeacherDetailView
+        teacherId={detailTeacherId}
+        onBack={() => {
+          setShowDetailView(false);
+          setDetailTeacherId(null);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="container py-6 space-y-6">
       {/* Back to Approvals contextual link — shown when navigated from approval shortcut */}
@@ -442,6 +458,16 @@ export default function DirectorTeacherProfiles() {
             </div>
           ) : (
             <div className="space-y-4">
+              {/* Detail View Button */}
+              <Button
+                onClick={() => {
+                  setDetailTeacherId(selectedTeacherId);
+                  setShowDetailView(true);
+                }}
+                className="w-full"
+              >
+                {t("view_teacher_details")}
+              </Button>
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-2 min-w-0">
                   <h2 className="font-semibold text-lg truncate">{selectedTeacher?.displayName || selectedTeacher?.name}</h2>

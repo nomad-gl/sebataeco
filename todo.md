@@ -5399,10 +5399,10 @@
 ## Teacher Detail View with Cover Lessons & Absence History
 - [x] Examine database schema for cover lessons and absence tracking
 - [x] Add tRPC procedures: getCoverLessons, getAbsenceHistory, getHourBalance
-- [ ] Create TeacherDetailView page component with back button
-- [ ] Display teacher details, own lessons hours, covered lessons hours
-- [ ] Display absence history (dates, reasons, duration)
-- [ ] Calculate and display hour balance (own vs. covered vs. weekly total)
-- [ ] Add red warning when hours exceed weekly teaching hours
-- [ ] Add director acknowledgment system for excess hour warnings
-- [ ] Add back button to teacher profiles page
+- [x] Create TeacherDetailView page component with back button
+- [x] Display teacher details, own lessons hours, covered lessons hours
+- [x] Display absence history (dates, reasons, duration)
+- [x] Calculate and display hour balance (own vs. covered vs. weekly total)
+- [x] Add red warning when hours exceed weekly teaching hours
+- [x] Add director acknowledgment system for excess hour warnings
+- [x] Add back button to teacher profiles page
