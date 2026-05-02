@@ -5362,7 +5362,7 @@
 - [x] Aina image generation broken — diagnose and fix original image generation (verified working: all 14 tests pass)
 
 ## Credential Risk Reduction & Third-Party Anonymisation
-- [ ] Progressive login delay: exponential back-off after failed attempts (200ms, 400ms, 800ms...) before lockout
+- [x] Progressive login delay: exponential back-off after failed attempts (200ms, 400ms, 800ms...) before lockout (implemented in localAuth.ts)
 - [x] HaveIBeenPwned k-anonymity check on password set/change — warn user + log security event (implemented in hibp.ts)
 - [x] Forced re-auth gate for sensitive admin actions (PII export, bulk delete) (implemented in reauthToken.ts)
 - [x] Anonymise third-party identities in security_events table (mask email/name with SHA-256 pseudonym) (applied in securityLogger.ts)
@@ -5376,7 +5376,7 @@
 - [x] Deterministic pseudonyms: same identity always maps to same pseudonym within a tenant epoch
 - [x] Epoch rotation: admin can rotate masking keys (old pseudonyms become permanently unresolvable)
 - [x] Mask third-party names/emails in security_events, admin_audit_logs, and security dashboard UI
-- [ ] Admin-only "reveal" endpoint with re-auth gate for lawful access to original identity (BLOCKED: complex feature)
+- [ ] Admin-only "reveal" endpoint with re-auth gate for lawful access to original identity (BLOCKED: architectural constraint - SHAKE-256 is one-way hash, cannot recover original from pseudonym)
 
 ## Super-admin Nav Link Reordering
 - [x] Install @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities packages
