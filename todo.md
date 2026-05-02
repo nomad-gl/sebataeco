@@ -4970,7 +4970,7 @@
 - [x] Fix missing Catalan translations for Signes de puntuació and Abreviacions
 - [x] Allow super-admin to delete users
 - [x] Fix AINA history sidebar independent scroll (should not move with main page scroll)
-- [ ] Personalise AINA suggested questions based on user chat history after re-login
+- [x] Personalise AINA suggested questions based on user chat history after re-login
 - [ ] Add web search capability to AINA for Spanish government curriculum sources (Decree 175/2022)
 - [ ] Expand AINA live search to more official educational sources
 - [ ] Display source citations in AINA chat UI after each answer
