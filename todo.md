@@ -4671,7 +4671,7 @@
 - [x] Update all `class_groups` queries to filter out `deletedAt IS NOT NULL` rows
 - [x] Add "Recently Deleted" section in My Classes page with restore button
 - [x] i18n keys for soft-delete/restore in EN/ES/CA
-- [ ] Partial recovery: re-insert deleted class_groups rows once user provides class names
+- [ ] Partial recovery: re-insert deleted class_groups rows once user provides class names (BLOCKED: awaiting user input)
 
 ## Fix: Director Name/Title/School not showing in Export School Report PDF Preview
 
@@ -4902,12 +4902,12 @@
 - [x] Show "Pending approval" badge on plan cards that are awaiting confirmation
 
 ## Feature: BSC data from Hugging Face
-- [ ] Identify the BSC dataset on the user's Hugging Face account
-- [ ] Add HF_API_KEY secret for Hugging Face authentication
-- [ ] Extract BSC competency/curriculum data from the HF dataset
-- [ ] Transform BSC data into the knowledge bank format (competencies × year groups)
-- [ ] Update server procedures (lomloe.chat, materials.create, aiGenerateLessonPlan) to use BSC data
-- [ ] Update the nightly scheduled refresh to pull from Hugging Face BSC dataset
+- [ ] Identify the BSC dataset on the user's Hugging Face account (BLOCKED: awaiting user input)
+- [ ] Add HF_API_KEY secret for Hugging Face authentication (BLOCKED: awaiting user input)
+- [ ] Extract BSC competency/curriculum data from the HF dataset (BLOCKED: awaiting user input)
+- [ ] Transform BSC data into the knowledge bank format (competencies × year groups) (BLOCKED: awaiting dataset)
+- [ ] Update server procedures (lomloe.chat, materials.create, aiGenerateLessonPlan) to use BSC data (BLOCKED: awaiting dataset)
+- [ ] Update the nightly scheduled refresh to pull from Hugging Face BSC dataset (BLOCKED: awaiting dataset)
 
 ## Sprint: Performance + UI fixes (Apr 29)
 - [x] Speed up bulk lesson plan AI generation (parallelise all plan LLM calls)
@@ -4971,11 +4971,11 @@
 - [x] Allow super-admin to delete users
 - [x] Fix AINA history sidebar independent scroll (should not move with main page scroll)
 - [x] Personalise AINA suggested questions based on user chat history after re-login
-- [ ] Add web search capability to AINA for Spanish government curriculum sources (Decree 175/2022)
-- [ ] Expand AINA live search to more official educational sources
-- [ ] Display source citations in AINA chat UI after each answer
-- [ ] Enforce LOMLOE/Decret 175/2022 Catalan language and punctuation norms in AINA responses (Catalan as default, approved sources only)
-- [ ] Investigate HuggingFace LOMLOE RAG space 'no backend found' error and help user download dataset
+- [ ] Add web search capability to AINA for Spanish government curriculum sources (Decree 175/2022) (BLOCKED: requires web search API)
+- [ ] Expand AINA live search to more official educational sources (BLOCKED: requires web search API)
+- [ ] Display source citations in AINA chat UI after each answer (BLOCKED: requires web search API)
+- [ ] Enforce LOMLOE/Decret 175/2022 Catalan language and punctuation norms in AINA responses (Catalan as default, approved sources only) (BLOCKED: requires curriculum data)
+- [ ] Investigate HuggingFace LOMLOE RAG space 'no backend found' error and help user download dataset (BLOCKED: requires user investigation)
 - [x] Ensure Practice Mode questions use age-appropriate language for each year group level
 - [x] Add DB schema tables: custom_question_sets and custom_questions
 - [x] Add tRPC procedures: createSet, updateSet, deleteSet, addQuestion, updateQuestion, deleteQuestion, listSets, getSet
@@ -5340,7 +5340,7 @@
 ## UI Fixes (post-security-dashboard)
 - [x] Cover Requests (Director): add back/return button to navigate back to director dashboard
 - [x] Cover Requests (Director): add dropdown list (filter by status/type) and search bar for all requests
-- [ ] Super-Admin User Management: copy Invite History card from Director User Management, add delete invite functionality
+- [x] Super-Admin User Management: copy Invite History card from Director User Management, add delete invite functionality
 
 ## Active Sessions IP + Location Enhancement
 - [x] Add lastLoginIp column to users table (migration 0068)
