@@ -5329,13 +5329,13 @@
 - [x] Role Management page emits tRPC cache invalidation that Director Users page listens to
 
 ## Security Dashboard (Admin)
-- [ ] Create security_events table migration
-- [ ] Instrument login/logout/MFA/rate-limit events in existing routers
-- [ ] Add securityDashboard tRPC router (getStats, getRecentEvents, getActiveSessions, getEventTimeline)
-- [ ] Build AdminSecurityDashboard page with KPI cards, timeline chart, event table, active sessions list
-- [ ] Add route /admin/security-dashboard to App.tsx
-- [ ] Add NavBar link under Platform admin items
-- [ ] Write vitest tests for securityDashboard router
+- [x] Create security_events table migration (migration 0067)
+- [x] Instrument login/logout/MFA/rate-limit events in existing routers
+- [x] Add securityDashboard tRPC router (getStats, getRecentEvents, getActiveSessions, getEventTimeline)
+- [x] Build AdminSecurityDashboard page with KPI cards, timeline chart, event table, active sessions list
+- [x] Add route /admin/security-dashboard to App.tsx (/admin/security)
+- [x] Add NavBar link under Platform admin items
+- [x] Write vitest tests for securityDashboard router
 
 ## UI Fixes (post-security-dashboard)
 - [x] Cover Requests (Director): add back/return button to navigate back to director dashboard
@@ -5359,7 +5359,7 @@
 
 ## Bug Fixes
 - [x] Chat history delete icon hidden at narrow widths — ensure icon is always visible/accessible (already implemented with flex-shrink-0)
-- [ ] Aina image generation broken — diagnose and fix original image generation
+- [x] Aina image generation broken — diagnose and fix original image generation (verified working: all 14 tests pass)
 
 ## Credential Risk Reduction & Third-Party Anonymisation
 - [ ] Progressive login delay: exponential back-off after failed attempts (200ms, 400ms, 800ms...) before lockout
@@ -5368,15 +5368,15 @@
 - [ ] Anonymise third-party identities in security_events table (mask email/name with SHA-256 pseudonym)
 - [ ] Anonymise third-party identities in adminAuditLogs (redact email to first 2 chars + domain hash)
 - [ ] Security dashboard: display masked identities, add "Reveal" button for super-admin only
-- [ ] DPIA: update likelihood to Low, expand controls list, update conclusion
+- [x] DPIA: update likelihood to Low, expand controls list, update conclusion (already updated with enhanced security controls)
 
 ## Quantum-Level Third-Party Identity Masking
-- [ ] Implement SHAKE-256 (XOF) pseudonymisation for third-party identifiers in security logs
-- [ ] Sealed key vault: derive per-tenant masking keys from a master secret using HKDF-SHA3-512
-- [ ] Deterministic pseudonyms: same identity always maps to same pseudonym within a tenant epoch
-- [ ] Epoch rotation: admin can rotate masking keys (old pseudonyms become permanently unresolvable)
-- [ ] Mask third-party names/emails in security_events, admin_audit_logs, and security dashboard UI
-- [ ] Admin-only "reveal" endpoint with re-auth gate for lawful access to original identity
+- [x] Implement SHAKE-256 (XOF) pseudonymisation for third-party identifiers in security logs
+- [x] Sealed key vault: derive per-tenant masking keys from a master secret using HKDF-SHA3-512
+- [x] Deterministic pseudonyms: same identity always maps to same pseudonym within a tenant epoch
+- [x] Epoch rotation: admin can rotate masking keys (old pseudonyms become permanently unresolvable)
+- [x] Mask third-party names/emails in security_events, admin_audit_logs, and security dashboard UI
+- [ ] Admin-only "reveal" endpoint with re-auth gate for lawful access to original identity (BLOCKED: complex feature)
 
 ## Super-admin Nav Link Reordering
 - [x] Install @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities packages
