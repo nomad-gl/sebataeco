@@ -27,6 +27,7 @@ import { selfHealRouter } from "./routers/selfHeal";
 import { assignmentRequestsRouter } from "./routers/assignmentRequests";
 import { teacherAttendanceRouter } from "./routers/teacherAttendance";
 import { teacherProfileRouter } from "./routers/teacherProfile";
+import { teacherCoverLessonsRouter } from "./routers/teacherCoverLessons";
 import { directorRouter } from "./routers/director";
 import { hosRouter } from "./routers/hos";
 import { wakeWordsRouter } from "./routers/wakeWords";
@@ -239,6 +240,7 @@ export const appRouter = router({
   assignmentRequests: assignmentRequestsRouter,
   teacherAttendance: teacherAttendanceRouter,
   teacherProfile: teacherProfileRouter,
+  teacherCoverLessons: teacherCoverLessonsRouter,
   register: registerRouter,
   cover: coverRouter,
   infantil: infantilRouter,

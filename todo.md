@@ -5395,3 +5395,14 @@
 - [x] Teacher: see only their own profile
 - [x] Add tRPC procedures for role-based profile queries (listLocalUsersByRole)
 - [x] Update AdminUserManagement UI to use role-based procedure
+
+## Teacher Detail View with Cover Lessons & Absence History
+- [x] Examine database schema for cover lessons and absence tracking
+- [x] Add tRPC procedures: getCoverLessons, getAbsenceHistory, getHourBalance
+- [ ] Create TeacherDetailView page component with back button
+- [ ] Display teacher details, own lessons hours, covered lessons hours
+- [ ] Display absence history (dates, reasons, duration)
+- [ ] Calculate and display hour balance (own vs. covered vs. weekly total)
+- [ ] Add red warning when hours exceed weekly teaching hours
+- [ ] Add director acknowledgment system for excess hour warnings
+- [ ] Add back button to teacher profiles page
