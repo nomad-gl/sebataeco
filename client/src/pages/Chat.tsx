@@ -542,7 +542,7 @@ export default function Chat() {
         )}
         {/* ── Main chat area ─────────────────────────────────────────────── */}
         <div className="flex-1 overflow-y-auto">
-      <div className="container py-4 sm:py-6 flex flex-col gap-3 sm:gap-4 max-w-4xl mx-auto w-full flex-1">
+      <div className="container py-2 xs:py-3 sm:py-6 flex flex-col gap-2 xs:gap-3 sm:gap-4 max-w-4xl mx-auto w-full flex-1 px-2 xs:px-4">
         {/* Header */}
         <div className="flex flex-col gap-1">
           <BackButton variant="ghost" label={t("btn_back")} />
@@ -554,12 +554,12 @@ export default function Chat() {
             <span>Restoring your last conversation…</span>
           </div>
         )}
-        <div className="flex items-start sm:items-center justify-between gap-2">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">{t("chat_title")}</h1>
-            <p className="text-sm text-white/70">{t("chat_subtitle")}</p>
+        <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 xs:gap-3">
+          <div className="min-w-0">
+            <h1 className="text-lg xs:text-xl sm:text-2xl font-bold text-white">{t("chat_title")}</h1>
+            <p className="text-xs xs:text-sm text-white/70">{t("chat_subtitle")}</p>
           </div>
-          <div className="flex gap-2 flex-shrink-0 items-center">
+          <div className="flex gap-1.5 xs:gap-2 flex-shrink-0 items-center flex-wrap xs:flex-nowrap">
             {isTranslating && (
               <div className="flex items-center gap-1.5 text-white/70 text-xs">
                 <Loader2 className="size-3 animate-spin" />
@@ -571,7 +571,7 @@ export default function Chat() {
               size="sm"
               onClick={() => setShowFilters((v) => !v)}
               className={cn(
-                "bg-white/15 text-white border-white/40 hover:bg-white/25 hover:text-white",
+                "bg-white/15 text-white border-white/40 hover:bg-white/25 hover:text-white text-xs xs:text-sm px-2 xs:px-3 py-1.5 xs:py-2",
                 showFilters && "bg-primary text-primary-foreground border-primary hover:bg-primary/90"
               )}
             >
@@ -582,7 +582,7 @@ export default function Chat() {
                 variant="outline"
                 size="sm"
                 onClick={handleNewChat}
-                className="bg-white/15 text-white border-white/40 hover:bg-white/25 hover:text-white"
+                className="bg-white/15 text-white border-white/40 hover:bg-white/25 hover:text-white text-xs xs:text-sm px-2 xs:px-3 py-1.5 xs:py-2"
               >
                 {t("chat_clear")}
               </Button>
@@ -635,7 +635,7 @@ export default function Chat() {
             onRateMessage={user ? handleRateMessage : undefined}
             onRetry={handleRetry}
             retryLabel={t("chat_retry")}
-            height="calc(100dvh - 220px)"
+            height="calc(100dvh - 180px)"
           />
           {/* Download improved document button */}
           {(() => {

@@ -1095,7 +1095,7 @@ export function AIChatBox({
                 <p className="text-sm">{resolvedEmptyState}</p>
               </div>
               {suggestedPrompts && suggestedPrompts.length > 0 && (
-                <div className="flex w-full max-w-2xl flex-col sm:flex-row sm:flex-wrap sm:justify-center gap-2">
+                <div className="flex w-full max-w-2xl flex-col gap-2 xs:gap-2.5">
                   {suggestedPrompts.map((prompt, index) => (
                     <button
                       key={index}
@@ -1112,7 +1112,7 @@ export function AIChatBox({
                         onSendMessage(prompt);
                       }}
                       disabled={isLoading}
-                      className="w-full sm:w-auto rounded-lg border border-white/40 bg-white/25 text-white px-4 py-2.5 text-sm text-left sm:text-center transition-colors hover:bg-white/35 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="w-full rounded-lg border border-white/40 bg-white/25 text-white px-3 xs:px-4 py-3 xs:py-2.5 text-xs xs:text-sm text-left transition-colors hover:bg-white/35 disabled:cursor-not-allowed disabled:opacity-50 min-h-[44px] xs:min-h-auto flex items-center"
                     >
                       {prompt}
                     </button>
@@ -1544,7 +1544,7 @@ export function AIChatBox({
                 : resolvedPlaceholder
             }
             className={cn(
-              "flex-1 max-h-32 resize-none min-h-9 bg-white/10 border-white/25 text-white placeholder:text-white/40 focus-visible:ring-white/30",
+              "flex-1 max-h-32 resize-none min-h-10 xs:min-h-9 bg-white/10 border-white/25 text-white placeholder:text-white/40 focus-visible:ring-white/30 text-sm xs:text-base",
               (isRecording || wakeState === "recording") && "border-red-400/60 bg-red-500/10"
             )}
             rows={1}
@@ -1566,7 +1566,7 @@ export function AIChatBox({
               onClick={() => { setTtsEnabled(v => !v); if (isSpeaking) stopSpeaking(); }}
               title={ttsEnabled ? `Voice responses: ON (${ttsVoice.charAt(0).toUpperCase() + ttsVoice.slice(1)}) — click to mute` : "Voice responses: OFF — click to enable"}
               className={cn(
-                "h-[38px] w-[38px]",
+                "h-[44px] w-[44px] xs:h-[38px] xs:w-[38px]",
                 ttsEnabled
                   ? "text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
                   : "text-white/40 hover:text-white hover:bg-white/15"

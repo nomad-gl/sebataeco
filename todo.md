@@ -5406,3 +5406,13 @@
 - [x] Add red warning when hours exceed weekly teaching hours
 - [x] Add director acknowledgment system for excess hour warnings
 - [x] Add back button to teacher profiles page
+
+
+## Mobile/Tablet AINA UI Improvements (May 2026)
+- [x] Improve responsive layout for Chat.tsx on mobile/tablet (spacing, font sizes, button sizes)
+- [x] Optimize suggested questions display for mobile (stack vertically, increase touch targets)
+- [x] Improve message input field layout for mobile (larger input area, better button placement)
+- [x] Adjust AIChatBox message bubbles for mobile (better spacing, readable text)
+- [x] Optimize file upload button and controls for mobile touch
+- [x] Improve history panel layout for mobile (full-width or side drawer)
+- [x] Test and verify responsive layout on mobile/tablet viewports
