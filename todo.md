@@ -4977,11 +4977,11 @@
 - [ ] Enforce LOMLOE/Decret 175/2022 Catalan language and punctuation norms in AINA responses (Catalan as default, approved sources only)
 - [ ] Investigate HuggingFace LOMLOE RAG space 'no backend found' error and help user download dataset
 - [x] Ensure Practice Mode questions use age-appropriate language for each year group level
-- [ ] Add DB schema tables: custom_question_sets and custom_questions
-- [ ] Add tRPC procedures: createSet, updateSet, deleteSet, addQuestion, updateQuestion, deleteQuestion, listSets, getSet
-- [ ] Build Custom Question Sets page (list + create/edit set + add/edit questions)
-- [ ] Integrate custom sets into Practice Mode (select custom set as source)
-- [ ] Validate custom questions against 8 LOMLOE competencies on save
+- [x] Add DB schema tables: custom_question_sets and custom_questions
+- [x] Add tRPC procedures: createSet, updateSet, deleteSet, addQuestion, updateQuestion, deleteQuestion, listSets, getSet
+- [x] Build Custom Question Sets page (list + create/edit set + add/edit questions)
+- [x] Integrate custom sets into Practice Mode (select custom set as source)
+- [x] Validate custom questions against 8 LOMLOE competencies on save
 
 ## Custom Question Sets (Full Feature)
 - [x] Fix questionGenerator.ts esbuild syntax error (line 233)
@@ -5022,14 +5022,14 @@
 - [x] Add infinitive correction to document analysis mode (step 5 in doc analysis instructions)
 
 ## File Upload Security Scanning
-- [ ] Audit all upload endpoints (document upload, image upload, audio upload)
-- [ ] Build server/security/fileScanner.ts module with phishing URL detection, malicious script patterns, data exfiltration patterns, credential harvesting patterns
-- [ ] Wire scanner into document upload endpoint (lomloe router)
-- [ ] Wire scanner into image upload endpoint
-- [ ] Wire scanner into audio/voice upload endpoint
-- [ ] Reject flagged files with descriptive error messages (no silent failures)
-- [ ] Log all blocked upload attempts to DB for admin review
-- [ ] Write vitest tests for the scanner module
+- [x] Audit all upload endpoints (document upload, image upload, audio upload)
+- [x] Build server/security/fileScanner.ts module with phishing URL detection, malicious script patterns, data exfiltration patterns, credential harvesting patterns
+- [x] Wire scanner into document upload endpoint (lomloe router)
+- [x] Wire scanner into image upload endpoint
+- [x] Wire scanner into audio/voice upload endpoint
+- [x] Reject flagged files with descriptive error messages (no silent failures)
+- [x] Log all blocked upload attempts to DB for admin review (blocked_uploads table schema added)
+- [x] Write vitest tests for the scanner module
 
 ## LOMLOE Four-Level Competency Grading Scale (AE/AN/AS/NA)
 - [x] Research official definitions from Decret 175/2022 Article 29 (portaljuridic.gencat.cat) and XTEC school implementations

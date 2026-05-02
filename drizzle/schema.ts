@@ -2528,3 +2528,37 @@ export const teacherHolidayRecords = mysqlTable("teacher_holiday_records", {
 });
 export type TeacherHolidayRecord = typeof teacherHolidayRecords.$inferSelect;
 export type InsertTeacherHolidayRecord = typeof teacherHolidayRecords.$inferInsert;
+
+
+/**
+ * blocked_uploads — audit log for rejected file uploads
+ * Stores details of files rejected by security scanner for admin review
+ * @migration 0070
+ */
+export const blockedUploads = mysqlTable("blocked_uploads", {
+  id: int("id").autoincrement().primaryKey(),
+  /** User ID who attempted the upload */
+  userId: varchar("userId", { length: 255 }).notNull(),
+  /** Original file name */
+  fileName: varchar("fileName", { length: 500 }).notNull(),
+  /** MIME type of the file */
+  mimeType: varchar("mimeType", { length: 100 }).notNull(),
+  /** Threat type detected (e.g., SCRIPT_INJECTION, PHISHING_URL) */
+  threatType: varchar("threatType", { length: 100 }).notNull(),
+  /** Comma-separated list of detected threats */
+  threats: text("threats").notNull(),
+  /** Severity level: warning or critical */
+  severity: mysqlEnum("severity", ["warning", "critical"]).notNull().default("warning"),
+  /** Context where upload was attempted (e.g., aina-upload, forum-file, etc.) */
+  context: varchar("context", { length: 100 }),
+  /** IP address of uploader (if available) */
+  ipAddress: varchar("ipAddress", { length: 45 }),
+  /** Timestamp of the blocked attempt */
+  blockedAt: timestamp("blockedAt").defaultNow().notNull(),
+  /** Whether admin has reviewed this attempt */
+  reviewed: boolean("reviewed").notNull().default(false),
+  /** Admin notes about the attempt */
+  adminNotes: text("adminNotes"),
+});
+export type BlockedUpload = typeof blockedUploads.$inferSelect;
+export type InsertBlockedUpload = typeof blockedUploads.$inferInsert;
