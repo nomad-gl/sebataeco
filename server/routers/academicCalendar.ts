@@ -803,4 +803,43 @@ export const academicCalendarRouter = router({
 
       return { conflicts };
     }),
+  expandSessionsFromSubjects: protectedProcedure
+    .input(z.object({ calendarId: z.number().int() }))
+    .mutation(async ({ ctx, input }) => {
+      assertDirector(ctx.user.role);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const [cal] = await db.select().from(academicCalendars).where(eq(academicCalendars.id, input.calendarId));
+      if (!cal) throw new TRPCError({ code: "NOT_FOUND" });
+      const subjects = await db.select().from(acSubjects).where(eq(acSubjects.calendarId, input.calendarId));
+      const semDates = await db.select().from(acSemesterDates).where(eq(acSemesterDates.calendarId, input.calendarId));
+      const sessionsToCreate: any[] = [];
+      for (const subject of subjects) {
+        const days: number[] = (() => { try { return JSON.parse(subject.days); } catch { return []; } })();
+        if (days.length === 0) continue;
+        const semDate = semDates.find(sd => sd.semesterNumber === subject.semester);
+        if (!semDate) continue;
+        const startDate = new Date(semDate.startDate);
+        const endDate = new Date(semDate.endDate);
+        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+          const dow = d.getDay() === 0 ? 7 : d.getDay();
+          if (days.includes(dow)) {
+            sessionsToCreate.push({
+              calendarId: input.calendarId,
+              teacherId: 0,
+              subject: subject.name,
+              dayOfWeek: dow,
+              startTime: subject.startTime,
+              endTime: subject.endTime,
+              classGroup: subject.classroom,
+              sessionDate: new Date(d),
+            });
+          }
+        }
+      }
+      if (sessionsToCreate.length > 0) {
+        await db.insert(acSessions).values(sessionsToCreate);
+      }
+      return { sessionCount: sessionsToCreate.length };
+    }),
 });
