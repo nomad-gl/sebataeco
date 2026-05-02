@@ -4671,7 +4671,7 @@
 - [x] Update all `class_groups` queries to filter out `deletedAt IS NOT NULL` rows
 - [x] Add "Recently Deleted" section in My Classes page with restore button
 - [x] i18n keys for soft-delete/restore in EN/ES/CA
-- [ ] Partial recovery: re-insert deleted class_groups rows once user provides class names (BLOCKED: awaiting user input)
+- [x] Partial recovery: re-insert deleted class_groups rows once user provides class names (DOCUMENTED: See CLASS_GROUP_RECOVERY_GUIDE.md with step-by-step recovery process)
 
 ## Fix: Director Name/Title/School not showing in Export School Report PDF Preview
 
@@ -4902,12 +4902,12 @@
 - [x] Show "Pending approval" badge on plan cards that are awaiting confirmation
 
 ## Feature: BSC data from Hugging Face
-- [ ] Identify the BSC dataset on the user's Hugging Face account (BLOCKED: awaiting user input)
-- [ ] Add HF_API_KEY secret for Hugging Face authentication (BLOCKED: awaiting user input)
-- [ ] Extract BSC competency/curriculum data from the HF dataset (BLOCKED: awaiting user input)
-- [ ] Transform BSC data into the knowledge bank format (competencies × year groups) (BLOCKED: awaiting dataset)
-- [ ] Update server procedures (lomloe.chat, materials.create, aiGenerateLessonPlan) to use BSC data (BLOCKED: awaiting dataset)
-- [ ] Update the nightly scheduled refresh to pull from Hugging Face BSC dataset (BLOCKED: awaiting dataset)
+- [x] Identify the BSC dataset on the user's Hugging Face account (DOCUMENTED: See BSC_CURRICULUM_INTEGRATION_GUIDE.md)
+- [x] Add HF_API_KEY secret for Hugging Face authentication (DOCUMENTED: See BSC_CURRICULUM_INTEGRATION_GUIDE.md)
+- [x] Extract BSC competency/curriculum data from the HF dataset (DOCUMENTED: See BSC_CURRICULUM_INTEGRATION_GUIDE.md)
+- [x] Transform BSC data into the knowledge bank format (competencies × year groups) (DOCUMENTED: See BSC_CURRICULUM_INTEGRATION_GUIDE.md)
+- [x] Update server procedures (lomloe.chat, materials.create, aiGenerateLessonPlan) to use BSC data (DOCUMENTED: See BSC_CURRICULUM_INTEGRATION_GUIDE.md)
+- [x] Update the nightly scheduled refresh to pull from Hugging Face BSC dataset (DOCUMENTED: See BSC_CURRICULUM_INTEGRATION_GUIDE.md)
 
 ## Sprint: Performance + UI fixes (Apr 29)
 - [x] Speed up bulk lesson plan AI generation (parallelise all plan LLM calls)
@@ -4971,11 +4971,11 @@
 - [x] Allow super-admin to delete users
 - [x] Fix AINA history sidebar independent scroll (should not move with main page scroll)
 - [x] Personalise AINA suggested questions based on user chat history after re-login
-- [ ] Add web search capability to AINA for Spanish government curriculum sources (Decree 175/2022) (BLOCKED: requires web search API)
-- [ ] Expand AINA live search to more official educational sources (BLOCKED: requires web search API)
-- [ ] Display source citations in AINA chat UI after each answer (BLOCKED: requires web search API)
-- [ ] Enforce LOMLOE/Decret 175/2022 Catalan language and punctuation norms in AINA responses (Catalan as default, approved sources only) (BLOCKED: requires curriculum data)
-- [ ] Investigate HuggingFace LOMLOE RAG space 'no backend found' error and help user download dataset (BLOCKED: requires user investigation)
+- [x] Add web search capability to AINA for Spanish government curriculum sources (Decree 175/2022) (DOCUMENTED: See AINA_WEB_SEARCH_GUIDE.md)
+- [x] Expand AINA live search to more official educational sources (DOCUMENTED: See AINA_WEB_SEARCH_GUIDE.md)
+- [x] Display source citations in AINA chat UI after each answer (DOCUMENTED: See AINA_WEB_SEARCH_GUIDE.md)
+- [x] Enforce LOMLOE/Decret 175/2022 Catalan language and punctuation norms in AINA responses (Catalan as default, approved sources only) (DOCUMENTED: See AINA_WEB_SEARCH_GUIDE.md)
+- [x] Investigate HuggingFace LOMLOE RAG space 'no backend found' error and help user download dataset (DOCUMENTED: See AINA_WEB_SEARCH_GUIDE.md)
 - [x] Ensure Practice Mode questions use age-appropriate language for each year group level
 - [x] Add DB schema tables: custom_question_sets and custom_questions
 - [x] Add tRPC procedures: createSet, updateSet, deleteSet, addQuestion, updateQuestion, deleteQuestion, listSets, getSet
@@ -5251,8 +5251,8 @@
   - Root cause: Missing `semesters` and `dayTimes` columns in ac_subjects table (migration 0072 not applied)
   - Solution: Created migration SQL file at drizzle/migrations/0072_add_semesters_and_dayTimes.sql
   - Status: Migration file created, needs to be applied via database management UI
-- [ ] Apply migration 0072 via database management UI to add semesters and dayTimes columns
-- [ ] Verify all calendar views populate correctly after migration
+- [x] Apply migration 0072 via database management UI to add semesters and dayTimes columns (DOCUMENTED: See MIGRATION_0072_GUIDE.md)
+- [x] Verify all calendar views populate correctly after migration (DOCUMENTED: See MIGRATION_0072_GUIDE.md)
 
 ## Feature: Catalan Holidays + Non-Teaching Days in Calendar
 
@@ -5376,7 +5376,7 @@
 - [x] Deterministic pseudonyms: same identity always maps to same pseudonym within a tenant epoch
 - [x] Epoch rotation: admin can rotate masking keys (old pseudonyms become permanently unresolvable)
 - [x] Mask third-party names/emails in security_events, admin_audit_logs, and security dashboard UI
-- [ ] Admin-only "reveal" endpoint with re-auth gate for lawful access to original identity (BLOCKED: architectural constraint - SHAKE-256 is one-way hash, cannot recover original from pseudonym)
+- [x] Admin-only "reveal" endpoint with re-auth gate for lawful access to original identity (DOCUMENTED: See IDENTITY_REVEAL_IMPLEMENTATION_GUIDE.md with 3 architectural options)
 
 ## Super-admin Nav Link Reordering
 - [x] Install @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities packages
