@@ -90,6 +90,22 @@ function positionLabel(position: string | null): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+function getRoleBadgeColor(position: string | null): string {
+  if (!position || position === "unassigned") return "bg-gray-100 text-gray-800 border-gray-200";
+  switch (position.toLowerCase()) {
+    case "director":
+      return "bg-purple-100 text-purple-800 border-purple-200";
+    case "head_of_study":
+      return "bg-blue-100 text-blue-800 border-blue-200";
+    case "teacher":
+      return "bg-green-100 text-green-800 border-green-200";
+    case "admin":
+      return "bg-red-100 text-red-800 border-red-200";
+    default:
+      return "bg-gray-100 text-gray-800 border-gray-200";
+  }
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function DirectorUsers() {
   const { t } = useI18n();
@@ -447,7 +463,15 @@ export default function DirectorUsers() {
                             </Badge>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-muted-foreground">{positionLabel(user.position)}</td>
+                        <td className="px-4 py-3">
+                          {user.position && user.position !== "unassigned" ? (
+                            <Badge className={`text-xs border ${getRoleBadgeColor(user.position)}`}>
+                              {positionLabel(user.position)}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
                         <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatDate(user.lastSignedIn)}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-2">

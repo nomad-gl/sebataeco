@@ -5289,22 +5289,22 @@
 - [x] Link connects to /director/teacher-profiles?teacher=<id> for individual teacher view
 
 ## Feature: Teacher Profiles Page at /director/teacher-profiles (2026-04-30)
-- [ ] DB: teacher_profiles table (contractedHoursPerWeek, prepHoursPerWeek, annualHolidayEntitlement)
-- [ ] DB: teacher_holiday_records table (date, type: taken/owed, hours, notes)
-- [ ] Server: getTeacherProfiles procedure (list all teachers with computed stats)
-- [ ] Server: getTeacherProfile procedure (single teacher with weekly/monthly/semester/annual breakdown)
-- [ ] Server: upsertTeacherProfile procedure (create/update contracted hours, prep hours, holiday entitlement)
-- [ ] Server: addHolidayRecord procedure (log holiday taken or owed)
-- [ ] Client: /director/teacher-profiles page with teacher list and individual profile view
-- [ ] Client: Weekly teaching hours (from calendar events this week)
-- [ ] Client: Monthly teaching hours (from calendar events this month)
-- [ ] Client: Semester teaching hours (from calendar events in current semester)
-- [ ] Client: Academic year total teaching hours
-- [ ] Client: Contracted hours display (weekly, annualised)
-- [ ] Client: Prep hours display (weekly, annualised)
-- [ ] Client: Holiday owed, taken, balance display
-- [ ] Client: Free period sessions per week (weekday slots not occupied by lessons)
-- [ ] Client: Cover availability view (free periods across all teachers for a given week)
+- [x] DB: teacher_profiles table (contractedHoursPerWeek, prepHoursPerWeek, annualHolidayEntitlement)
+- [x] DB: teacher_holiday_records table (date, type: taken/owed, hours, notes)
+- [x] Server: getTeacherProfiles procedure (list all teachers with computed stats)
+- [x] Server: getTeacherProfile procedure (single teacher with weekly/monthly/semester/annual breakdown)
+- [x] Server: upsertTeacherProfile procedure (create/update contracted hours, prep hours, holiday entitlement)
+- [x] Server: addHolidayRecord procedure (log holiday taken or owed)
+- [x] Client: /director/teacher-profiles page with teacher list and individual profile view
+- [x] Client: Weekly teaching hours (from calendar events this week)
+- [x] Client: Monthly teaching hours (from calendar events this month)
+- [x] Client: Semester teaching hours (from calendar events in current semester)
+- [x] Client: Academic year total teaching hours
+- [x] Client: Contracted hours display (weekly, annualised)
+- [x] Client: Prep hours display (weekly, annualised)
+- [x] Client: Holiday owed, taken, balance display
+- [x] Client: Free period sessions per week (weekday slots not occupied by lessons)
+- [x] Client: Cover availability view (free periods across all teachers for a given week)
 
 ## Feature: Academic Calendar Hero Background + Teacher Links + Teacher Profiles Holiday Tab (2026-04-30)
 - [x] Apply hero background image to Academic Calendar page (/academic-calendar)
@@ -5324,7 +5324,7 @@
 - [x] Fix DirectorTeacherProfiles.tsx JSX nesting error (Cover Availability panel outside root div)
 - [x] Add missing i18n keys: sa_meta_teacher, sa_meta_class, sa_meta_date
 - [x] When role is updated on /seba/roles, Director Users page (/director/users) reflects the change immediately
-- [ ] Director Users page shows user role badges (teacher, director, head_of_study, admin, etc.)
+- [x] Director Users page shows user role badges (teacher, director, head_of_study, admin, etc.)
 - [x] Director Users page auto-refreshes or invalidates when role changes are made
 - [x] Role Management page emits tRPC cache invalidation that Director Users page listens to
 
