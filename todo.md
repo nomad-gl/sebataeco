@@ -5338,8 +5338,8 @@
 - [ ] Write vitest tests for securityDashboard router
 
 ## UI Fixes (post-security-dashboard)
-- [ ] Cover Requests (Director): add back/return button to navigate back to director dashboard
-- [ ] Cover Requests (Director): add dropdown list (filter by status/type) and search bar for all requests
+- [x] Cover Requests (Director): add back/return button to navigate back to director dashboard
+- [x] Cover Requests (Director): add dropdown list (filter by status/type) and search bar for all requests
 - [ ] Super-Admin User Management: copy Invite History card from Director User Management, add delete invite functionality
 
 ## Active Sessions IP + Location Enhancement
@@ -5358,7 +5358,7 @@
 - [x] Auto-refresh map every 30 s alongside other dashboard data
 
 ## Bug Fixes
-- [ ] Chat history delete icon hidden at narrow widths — ensure icon is always visible/accessible
+- [x] Chat history delete icon hidden at narrow widths — ensure icon is always visible/accessible (already implemented with flex-shrink-0)
 - [ ] Aina image generation broken — diagnose and fix original image generation
 
 ## Credential Risk Reduction & Third-Party Anonymisation
