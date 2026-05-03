@@ -376,6 +376,7 @@ export const forumRouter = router({
           toUserId: m.toUserId,
           fromName: m.fromName ?? "Unknown",
           body: (input.lang && input.lang !== "en" && translated[input.lang]) ? translated[input.lang] : m.body,
+          originalBody: m.body,
           read: m.read,
           createdAt: m.createdAt,
           isMine: m.fromUserId === userId,
