@@ -535,7 +535,7 @@ export default function DirectorTeacherProfiles() {
                 {editingSchoolName === selectedTeacherId ? (
                   <div className="space-y-2">
                     <Input
-                      placeholder="Enter school name"
+                      placeholder={t("tp_school_placeholder") || "Enter school name"}
                       value={schoolNameInput}
                       onChange={(e) => setSchoolNameInput(e.target.value)}
                       className="text-xs"
@@ -555,7 +555,7 @@ export default function DirectorTeacherProfiles() {
                         }}
                       >
                         {updateSchoolMutation.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : null}
-                        Save
+                        {t("tp_save") || "Save"}
                       </Button>
                       <Button
                         size="sm"
@@ -563,7 +563,7 @@ export default function DirectorTeacherProfiles() {
                         className="text-xs"
                         onClick={() => setEditingSchoolName(null)}
                       >
-                        Cancel
+                        {t("tp_cancel") || "Cancel"}
                       </Button>
                     </div>
                   </div>
@@ -963,30 +963,30 @@ export default function DirectorTeacherProfiles() {
                       {/* Holiday balance */}
                       <Card>
                         <CardHeader className="pb-1 pt-3 px-4 flex flex-row items-center justify-between">
-                          <CardTitle className="text-xs text-muted-foreground">Holiday Balance</CardTitle>
+                          <CardTitle className="text-xs text-muted-foreground">{t("tp_holiday_balance") || "Holiday Balance"}</CardTitle>
                           <Button size="sm" className="h-7 text-xs" onClick={() => setShowAddHoliday(true)}>
-                            <Plus className="h-3.5 w-3.5 mr-1" /> Add Record
+                            <Plus className="h-3.5 w-3.5 mr-1" /> {t("tp_add_record") || "Add Record"}
                           </Button>
                         </CardHeader>
                         <CardContent className="px-4 pb-3 space-y-3">
                           <div className="grid grid-cols-3 gap-2 text-center">
                             <div className="border rounded-lg p-2">
                               <div className="text-lg font-bold">{profileStats.holiday.entitlementDays.toFixed(1)}</div>
-                              <div className="text-xs text-muted-foreground">Days Entitled</div>
+                              <div className="text-xs text-muted-foreground">{t("tp_days_entitled") || "Days Entitled"}</div>
                             </div>
                             <div className="border rounded-lg p-2 border-red-200 dark:border-red-800">
                               <div className="text-lg font-bold text-red-600 dark:text-red-400">{(profileStats.holiday.takenHours / 7.5).toFixed(1)}</div>
-                              <div className="text-xs text-muted-foreground">Days Taken</div>
+                              <div className="text-xs text-muted-foreground">{t("tp_days_taken") || "Days Taken"}</div>
                             </div>
                             <div className={`border rounded-lg p-2 ${profileStats.holiday.balanceDays >= 0 ? "border-green-200 dark:border-green-800" : "border-orange-200 dark:border-orange-800"}`}>
                               <div className={`text-lg font-bold ${profileStats.holiday.balanceDays >= 0 ? "text-green-600 dark:text-green-400" : "text-orange-600 dark:text-orange-400"}`}>{profileStats.holiday.balanceDays.toFixed(1)}</div>
-                              <div className="text-xs text-muted-foreground">Balance</div>
+                              <div className="text-xs text-muted-foreground">{t("tp_balance") || "Balance"}</div>
                             </div>
                           </div>
                           <div className="space-y-1">
                             <div className="flex justify-between text-xs text-muted-foreground">
-                              <span>{profileStats.holiday.takenHours.toFixed(1)}h taken</span>
-                              <span>{profileStats.holiday.balanceHours.toFixed(1)}h remaining</span>
+                              <span>{profileStats.holiday.takenHours.toFixed(1)}h {t("tp_taken") || "taken"}</span>
+                              <span>{profileStats.holiday.balanceHours.toFixed(1)}h {t("tp_remaining") || "remaining"}</span>
                             </div>
                             <Progress value={Math.min(100, (profileStats.holiday.takenHours / (profileStats.holiday.entitlementHours + profileStats.holiday.owedHours || 1)) * 100)} className="h-1.5" />
                           </div>
@@ -995,7 +995,7 @@ export default function DirectorTeacherProfiles() {
                               {profileStats.holiday.records.map(r => (
                                 <div key={r.id} className="flex items-center justify-between text-xs border rounded px-2.5 py-1.5">
                                   <div className="flex items-center gap-2">
-                                    <Badge variant={r.type === "taken" ? "destructive" : "secondary"} className="text-[10px] px-1.5 py-0">{r.type === "taken" ? "Taken" : "Owed"}</Badge>
+                                    <Badge variant={r.type === "taken" ? "destructive" : "secondary"} className="text-[10px] px-1.5 py-0">{r.type === "taken" ? t("tp_holiday_type_taken") || "Taken" : t("tp_holiday_type_owed") || "Owed"}</Badge>
                                     <span>{new Date(r.date as unknown as string).toLocaleDateString()}</span>
                                     <span className="text-muted-foreground">{parseFloat(String(r.hours)).toFixed(1)}h</span>
                                     {r.notes && <span className="text-muted-foreground italic">{r.notes}</span>}
@@ -1150,7 +1150,7 @@ export default function DirectorTeacherProfiles() {
                 notes: profileForm.notes || undefined,
               })}
             >
-              {upsertProfileMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+              {upsertProfileMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("tp_save") || "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1159,7 +1159,7 @@ export default function DirectorTeacherProfiles() {
       {/* Add Holiday Record Dialog */}
       <Dialog open={showAddHoliday} onOpenChange={setShowAddHoliday}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Add Holiday Record</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("tp_add_holiday_record") || "Add Holiday Record"}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div><Label>Date</Label><Input type="date" value={holidayForm.date} onChange={e => setHolidayForm(f => ({ ...f, date: e.target.value }))} /></div>
             <div>
@@ -1167,8 +1167,8 @@ export default function DirectorTeacherProfiles() {
               <Select value={holidayForm.type} onValueChange={v => setHolidayForm(f => ({ ...f, type: v as "taken" | "owed" }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="taken">Holiday Taken</SelectItem>
-                  <SelectItem value="owed">Holiday Owed</SelectItem>
+                  <SelectItem value="taken">{t("tp_holiday_type_taken") || "Holiday Taken"}</SelectItem>
+                  <SelectItem value="owed">{t("tp_holiday_type_owed") || "Holiday Owed"}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1176,7 +1176,7 @@ export default function DirectorTeacherProfiles() {
             <div><Label>Notes (optional)</Label><Input value={holidayForm.notes} onChange={e => setHolidayForm(f => ({ ...f, notes: e.target.value }))} placeholder="e.g. Annual leave" /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddHoliday(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setShowAddHoliday(false)}>{t("tp_cancel") || "Cancel"}</Button>
             <Button
               disabled={!holidayForm.date || addHolidayMutation.isPending}
               onClick={() => activeProfileId && addHolidayMutation.mutate({
