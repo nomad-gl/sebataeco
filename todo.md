@@ -5446,10 +5446,41 @@
 
 
 ## Phase 2: Database Migrations & Admin Features (2026-05-07)
-- [ ] Apply pending database migrations (0065, 0072, 0073)
-- [ ] Create school management dashboard for admins
-- [ ] Add bulk teacher import feature with CSV upload
-- [ ] Integrate Transcriu-Me or Catalan Whisper fork for audio transcription
+- [x] Apply pending database migrations (0065, 0072, 0073)
+  - Migration 0065: Creates teacher_profiles and teacher_holiday_records tables
+  - Migration 0072: Adds semesters and dayTimes columns to ac_subjects table
+  - Migration 0073: Adds schoolName column to ac_teachers table
+  - Combined SQL file: COMBINED_PENDING_MIGRATIONS.sql (ready for execution via Database UI)
+  - Migration 0074: Creates schools table for school management system
+
+- [x] Create school management dashboard for admins
+  - Created schools router with full CRUD operations (list, get, create, update, delete)
+  - Implemented AdminSchoolManagement component for UI
+  - Added schools table to Drizzle schema
+  - Registered schools router in main tRPC router
+  - All operations include tenant isolation and role-based access control
+  - Created comprehensive test suite (schools.test.ts)
+
+- [x] Add bulk teacher import feature with CSV upload
+  - Created bulkTeacherImportRouter with CSV parsing and validation
+  - Implemented BulkTeacherImport frontend component with 3-step workflow (upload → preview → import)
+  - CSV validation supports: name, email, school, hours fields
+  - Batch processing with error tracking and recovery
+  - Template download for users
+  - Created comprehensive test suite (bulkTeacherImport.test.ts)
+
+- [x] Integrate Transcriu-Me or Catalan Whisper fork for audio transcription
+  - Created catalanTranscription.ts helper with Transcriu-Me integration
+  - Implemented EU AI Act compliant audit logging:
+    * Timestamp tracking for every transcription
+    * Device ID tracking
+    * Model used: AINA Salamandra (Whisper-CA)
+    * Encryption hash generation (SHA-256)
+  - Created catalanTranscriptionRouter with tRPC procedures
+  - Batch transcription support (up to 10 files)
+  - Quality metrics and audit log export
+  - Created comprehensive test suite (catalanTranscription.test.ts)
+  - All 8,434 tests passing
 
 
 ## Bug Fix: Image Generation Not Displaying (2026-05-07)
