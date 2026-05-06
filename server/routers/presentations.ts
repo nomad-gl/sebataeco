@@ -8,6 +8,7 @@ import PDFDocument from "pdfkit";
 import { protectedProcedure, router } from "../_core/trpc";
 import { storagePut } from "../storage";
 import { generateImage } from "../_core/imageGeneration";
+import { TRPCError } from "@trpc/server";
 
 const slideSchema = z.object({
   title: z.string(),
@@ -24,8 +25,25 @@ export const presentationsRouter = router({
   generateSlideImage: protectedProcedure
     .input(z.object({ prompt: z.string().min(1).max(500) }))
     .mutation(async ({ input }) => {
-      const { url } = await generateImage({ prompt: input.prompt });
-      return { url };
+      try {
+        const result = await generateImage({ prompt: input.prompt });
+        if (!result.url) {
+          console.error("[generateSlideImage] Image generation returned no URL", result);
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Image generation failed: no URL returned",
+          });
+        }
+        return { url: result.url };
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.error("[generateSlideImage] Error generating image:", errorMsg);
+        if (error instanceof TRPCError) throw error;
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Image generation failed: ${errorMsg}`,
+        });
+      }
     }),
 
   /**

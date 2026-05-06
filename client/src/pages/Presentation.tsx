@@ -391,13 +391,21 @@ export default function Presentation() {
   const generateSlideImageMut = trpc.presentations.generateSlideImage.useMutation({
     onSuccess: (data, _vars, context) => {
       const idx = context as number;
-      setSlideImages(prev => ({ ...prev, [idx]: data.url ?? "" }));
+      if (!data.url) {
+        console.error("[Presentation] Image generation returned no URL");
+        toast.error(t("pres_image_gen_failed"));
+        setGeneratingImageFor(null);
+        return;
+      }
+      setSlideImages(prev => ({ ...prev, [idx]: data.url }));
       setGeneratingImageFor(null);
       toast.success(t("pres_image_generated"));
     },
-    onError: () => {
+    onError: (error) => {
       setGeneratingImageFor(null);
-      toast.error(t("pres_image_gen_failed"));
+      const errorMsg = error instanceof Error ? error.message : "Unknown error";
+      console.error("[Presentation] Image generation error:", errorMsg);
+      toast.error(`${t("pres_image_gen_failed")}: ${errorMsg}`);
     },
   });
 
