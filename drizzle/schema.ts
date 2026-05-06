@@ -2563,3 +2563,37 @@ export const blockedUploads = mysqlTable("blocked_uploads", {
 });
 export type BlockedUpload = typeof blockedUploads.$inferSelect;
 export type InsertBlockedUpload = typeof blockedUploads.$inferInsert;
+
+
+// ─── Schools Management ───────────────────────────────────────────────────────
+
+export const schools = mysqlTable("schools", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Tenant ID for multi-tenancy */
+  tenantId: varchar("tenantId", { length: 255 }).notNull(),
+  /** School name */
+  name: varchar("name", { length: 255 }).notNull(),
+  /** School code/identifier */
+  code: varchar("code", { length: 50 }).unique(),
+  /** School address */
+  address: text("address"),
+  /** City */
+  city: varchar("city", { length: 255 }),
+  /** Postal code */
+  postalCode: varchar("postalCode", { length: 20 }),
+  /** Phone number */
+  phone: varchar("phone", { length: 20 }),
+  /** Email address */
+  email: varchar("email", { length: 320 }),
+  /** Headmaster/Principal name */
+  headmaster: varchar("headmaster", { length: 255 }),
+  /** Additional notes */
+  notes: text("notes"),
+  /** Created timestamp */
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  /** Updated timestamp */
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type School = typeof schools.$inferSelect;
+export type InsertSchool = typeof schools.$inferInsert;

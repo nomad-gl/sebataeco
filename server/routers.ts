@@ -48,6 +48,7 @@ import { registerRouter } from "./routers/register";
 import { coverRouter } from "./routers/cover";
 import { infantilRouter } from "./routers/infantil";
 import { directorAlertsRouter } from "./routers/directorAlerts";
+import { schoolsRouter } from "./routers/schools";
 import { customSetsRouter } from "./routers/customSets";
 import { academicCalendarRouter } from "./routers/academicCalendar";
 import { mfaRouter } from "./routers/mfa";
@@ -244,6 +245,7 @@ export const appRouter = router({
   register: registerRouter,
   cover: coverRouter,
   infantil: infantilRouter,
+  schools: schoolsRouter,
   directorAlerts: directorAlertsRouter,
   customSets: customSetsRouter,
   academicCalendar: academicCalendarRouter,
