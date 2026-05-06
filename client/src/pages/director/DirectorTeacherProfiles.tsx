@@ -510,6 +510,12 @@ export default function DirectorTeacherProfiles() {
                 </Button>
               </div>
 
+              {/* School Assignment Section */}
+              <div className="bg-accent/50 rounded-lg p-3 space-y-2">
+                <Label className="text-sm font-semibold">{t("tp_school_assignment") || "School Assignment"}</Label>
+                <p className="text-xs text-muted-foreground">{selectedTeacher?.schoolName || "Unassigned"}</p>
+              </div>
+
               <Tabs defaultValue="subjects">
                 <TabsList>
                   <TabsTrigger value="subjects"><BookOpen className="h-4 w-4 mr-1" />{t("tp_tab_subjects")}</TabsTrigger>
