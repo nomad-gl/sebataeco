@@ -81,7 +81,6 @@ Schema:
   "keyVocabulary": [{ "term": string, "definition": string }],   // 6-8 key terms
   "slides": [
     {
-      "slideNumber": number,
       "heading": string,
       "bullets": [string],            // 3-5 substantive bullet points with real content
       "speakerNote": string,          // 2-3 sentences for the teacher; teaching tips, pacing guidance
@@ -197,6 +196,21 @@ Rules:
 }
 
 // --- Content rule validators / auto-fixers ---
+
+function validateAndFixSlides(parsed: Record<string, unknown>): Record<string, unknown> {
+  const slides = (parsed.slides as Array<Record<string, unknown>> | undefined) ?? [];
+  const fixed = slides
+    .filter((s) => s.heading)
+    .map((s) => ({
+      heading: String(s.heading ?? ""),
+      bullets: Array.isArray(s.bullets) ? s.bullets.map(String) : [],
+      speakerNote: String(s.speakerNote ?? ""),
+      talkingPoints: Array.isArray(s.talkingPoints) ? s.talkingPoints.map(String) : [],
+      imagePrompt: String(s.imagePrompt ?? ""),
+      keyVocabulary: Array.isArray(s.keyVocabulary) ? s.keyVocabulary : [],
+    }));
+  return { ...parsed, slides: fixed.length >= 3 ? fixed : slides };
+}
 
 function validateAndFixQuiz(parsed: Record<string, unknown>): Record<string, unknown> {
   const questions = (parsed.questions as Array<Record<string, unknown>> | undefined) ?? [];
@@ -410,9 +424,13 @@ export const materialsRouter = router({
       try {
         const cleaned = guardedContent.replace(/^```json?\n?/, "").replace(/\n?```$/, "").trim();
         parsed = JSON.parse(cleaned) as Record<string, unknown>;
-      } catch {
+      } catch (err) {
+        console.error("JSON parsing failed. Raw content:", rawContent.substring(0, 500));
+        console.error("Guarded content:", guardedContent.substring(0, 500));
+        console.error("Parse error:", err instanceof Error ? err.message : String(err));
         throw new Error("AI returned invalid JSON. Please try again.");
       }
+      if (input.type === "slides")        parsed = validateAndFixSlides(parsed);
       if (input.type === "quiz")          parsed = validateAndFixQuiz(parsed);
       if (input.type === "crossword")     parsed = validateAndFixCrossword(parsed);
       if (input.type === "missing_words") parsed = validateAndFixMissingWords(parsed);
@@ -506,8 +524,16 @@ export const materialsRouter = router({
       try {
         const cleaned = guardedContent.replace(/^```json?\n?/, "").replace(/\n?```$/, "").trim();
         parsed = JSON.parse(cleaned) as Record<string, unknown>;
-      } catch {
+      } catch (err) {
+        console.error("JSON parsing failed. Raw content:", rawContent.substring(0, 500));
+        console.error("Guarded content:", guardedContent.substring(0, 500));
+        console.error("Parse error:", err instanceof Error ? err.message : String(err));
         throw new Error("AI returned invalid JSON. Please try again.");
+      }
+
+      // Validate and fix slides
+      if (input.type === "slides") {
+        parsed = validateAndFixSlides(parsed);
       }
 
       // For wordsearch: if the LLM didn't build the grid, build it server-side

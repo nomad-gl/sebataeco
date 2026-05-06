@@ -5428,3 +5428,13 @@
   - Solution: Modify listProfiles to include acTeachers and group by school/director
   - Add automatic sync when subjects are assigned to teachers
   - Teachers should be grouped by their director/head of study/school name
+
+
+## Bug Fix: Presentation Generation Failure (2026-05-06)
+- [x] Presentation generation failing with "Generation failed - please try again" error
+  - Root cause: Missing slideNumber field in schema + no validation function for slides
+  - Solution: Removed redundant slideNumber field from slides schema
+  - Added validateAndFixSlides function to ensure proper slide structure
+  - Added better error logging for JSON parsing failures
+  - All 8,337 tests passing including new slides validation tests
+  - Fix applied to both preview and create procedures
