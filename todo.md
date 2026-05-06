@@ -5423,11 +5423,16 @@
 
 
 ## Current Bug Fixes (2026-05-03)
-- [ ] Teachers allocated to subjects not showing on teacher profiles page
+- [x] Teachers allocated to subjects not showing on teacher profiles page
   - Root cause: acTeachers table not synced with teacherProfiles table
   - Solution: Modify listProfiles to include acTeachers and group by school/director
   - Add automatic sync when subjects are assigned to teachers
   - Teachers should be grouped by their director/head of study/school name
+  - COMPLETED: Updated getTeacherRoster and listProfiles to merge both tables
+  - Added schoolName field and sorting by school + name
+  - Added groupTeachersBySchool helper function in DirectorTeacherProfiles
+  - Fixed TypeScript errors in related routers
+  - Created comprehensive multi-school test suite (all 8,337 tests passing)
 
 
 ## Bug Fix: Presentation Generation Failure (2026-05-06)
