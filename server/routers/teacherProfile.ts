@@ -1035,3 +1035,33 @@ export const teacherProfileRouter = router({
       };
     }),
 });
+
+  /**
+   * updateTeacherSchool — Update a teacher's school assignment
+   * Only directors can update teacher school assignments
+   */
+  updateTeacherSchool: protectedProcedure
+    .input(z.object({
+      teacherId: z.number(),
+      schoolName: z.string().nullable(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      // Check if user is director or head of study
+      if (ctx.user.role !== "director" && ctx.user.position !== "director" && ctx.user.position !== "head_of_study") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only directors can update teacher school assignments" });
+      }
+
+      // Update the acTeachers table with the new school name
+      const result = await db.update(acTeachers)
+        .set({ schoolName: input.schoolName })
+        .where(eq(acTeachers.id, input.teacherId));
+
+      if (!result) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Teacher not found" });
+      }
+
+      return { success: true, schoolName: input.schoolName };
+});

@@ -71,6 +71,8 @@ export default function DirectorTeacherProfiles() {
   const [copyScheduleDialog, setCopyScheduleDialog] = useState(false);
   const [copyFromTeacherId, setCopyFromTeacherId] = useState<number | null>(null);
   const [copyOverwrite, setCopyOverwrite] = useState(false);
+  const [editingSchoolName, setEditingSchoolName] = useState<string | null>(null);
+  const [schoolNameInput, setSchoolNameInput] = useState("");
 
   // Pre-select teacher from ?teacher= query param (set by approval shortcut)
   useEffect(() => {
@@ -138,6 +140,10 @@ export default function DirectorTeacherProfiles() {
   });
   const deleteSubjectMutation = trpc.teacherProfile.deleteSubject.useMutation({
     onSuccess: () => { toast.success(t("tp_subject_deleted")); refetchSubjects(); utils.teacherProfile.getTeacherRoster.invalidate(); },
+    onError: (e) => toast.error(e.message),
+  });
+  const updateSchoolMutation = trpc.teacherProfile.updateTeacherSchool.useMutation({
+    onSuccess: () => { toast.success(t("tp_school_updated") || "School assignment updated"); setEditingSchoolName(null); utils.teacherProfile.getTeacherRoster.invalidate(); },
     onError: (e) => toast.error(e.message),
   });
 
@@ -512,8 +518,58 @@ export default function DirectorTeacherProfiles() {
 
               {/* School Assignment Section */}
               <div className="bg-accent/50 rounded-lg p-3 space-y-2">
-                <Label className="text-sm font-semibold">{t("tp_school_assignment") || "School Assignment"}</Label>
-                <p className="text-xs text-muted-foreground">{selectedTeacher?.schoolName || "Unassigned"}</p>
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-semibold">{t("tp_school_assignment") || "School Assignment"}</Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0"
+                    onClick={() => {
+                      setEditingSchoolName(selectedTeacherId);
+                      setSchoolNameInput(selectedTeacher?.schoolName || "");
+                    }}
+                  >
+                    <Edit2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                {editingSchoolName === selectedTeacherId ? (
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="Enter school name"
+                      value={schoolNameInput}
+                      onChange={(e) => setSchoolNameInput(e.target.value)}
+                      className="text-xs"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        className="text-xs"
+                        disabled={updateSchoolMutation.isPending}
+                        onClick={() => {
+                          if (selectedTeacherId) {
+                            updateSchoolMutation.mutate({
+                              teacherId: selectedTeacherId,
+                              schoolName: schoolNameInput || null,
+                            });
+                          }
+                        }}
+                      >
+                        {updateSchoolMutation.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : null}
+                        Save
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs"
+                        onClick={() => setEditingSchoolName(null)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">{selectedTeacher?.schoolName || "Unassigned"}</p>
+                )}
               </div>
 
               <Tabs defaultValue="subjects">

@@ -2388,6 +2388,7 @@ export const acTeachers = mysqlTable("ac_teachers", {
   name: varchar("name", { length: 255 }).notNull(),
   email: varchar("email", { length: 320 }).notNull(),
   weeklyHours: int("weeklyHours").notNull().default(20),
+  schoolName: varchar("schoolName", { length: 255 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 export type AcTeacher = typeof acTeachers.$inferSelect;
