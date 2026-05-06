@@ -88,8 +88,9 @@ export function logSecurityEvent(payload: SecurityEventPayload): void {
   const maskedMetadata = maskMetadata(payload.metadata, tenantId);
 
   getDb()
-    .then(db =>
-      db.insert(securityEvents).values({
+    .then(db => {
+      if (!db) return;
+      return db.insert(securityEvents).values({
         eventType: payload.eventType,
         userId: payload.userId ?? null,
         userEmail: maskedEmail,
@@ -98,8 +99,8 @@ export function logSecurityEvent(payload: SecurityEventPayload): void {
         userAgent: payload.userAgent ? payload.userAgent.slice(0, 512) : null,
         metadata: maskedMetadata,
         severity,
-      })
-    )
+      });
+    })
     .catch(err => {
       // Never let logging errors surface to callers
       console.error("[SecurityLogger] Failed to write event:", err?.message);

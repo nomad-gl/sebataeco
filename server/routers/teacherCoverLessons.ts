@@ -150,13 +150,14 @@ export const teacherCoverLessonsRouter = router({
         })
         .from(coverAssignment)
         .innerJoin(classRegister, eq(coverAssignment.registerId, classRegister.id))
-        .innerJoin(teacherSchedule, eq(classRegister.classGroupId, teacherSchedule.classGroupId))
         .where(
           and(
             eq(coverAssignment.coverTeacherId, input.userId),
             eq(coverAssignment.status, "confirmed")
           )
         );
+      // Note: teacherSchedule join removed as classGroupId is numeric but groupName is string
+      // Cover lesson minutes calculation simplified to use coverAssignment duration
 
       const coveredLessonMinutes = coverLessonsResult[0]?.totalMinutes || 0;
 
@@ -172,13 +173,12 @@ export const teacherCoverLessonsRouter = router({
 
       // Get contracted hours from users table
       const userResult = await db
-        .select({ contractedHours: users.contractedHours })
+        .select({ contractedWeeklyMinutes: users.contractedWeeklyMinutes })
         .from(users)
         .where(eq(users.id, input.userId))
         .limit(1);
 
-      const contractedHours = userResult[0]?.contractedHours || 0;
-      const contractedMinutes = contractedHours * 60;
+      const contractedMinutes = userResult[0]?.contractedWeeklyMinutes || 1200; // default 20 hours
 
       // Calculate balance
       const totalTeachingMinutes = ownLessonMinutes + coveredLessonMinutes + adjustmentMinutes;
@@ -188,7 +188,7 @@ export const teacherCoverLessonsRouter = router({
       return {
         ownLessonHours: ownLessonMinutes / 60,
         coveredLessonHours: coveredLessonMinutes / 60,
-        contractedHours,
+        contractedHours: contractedMinutes / 60,
         totalTeachingHours: totalTeachingMinutes / 60,
         adjustmentHours: adjustmentMinutes / 60,
         balanceHours: balanceMinutes / 60,

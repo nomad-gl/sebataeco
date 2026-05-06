@@ -20,6 +20,7 @@ import {
   acTeachers,
   acSessions,
   acSemesterDates,
+  academicCalendars,
 } from "../../drizzle/schema";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -457,6 +458,7 @@ export const teacherProfileRouter = router({
           contractedWeeklyMinutes: users.contractedWeeklyMinutes,
           isPermanent: users.isPermanent,
           cutcgMemberNumber: users.cutcgMemberNumber,
+          schoolName: users.schoolName,
         })
         .from(users)
         .where(
@@ -497,11 +499,16 @@ export const teacherProfileRouter = router({
             scheduleSlots: slots.length,
             contractedWeeklyMinutes: t.contractedWeeklyMinutes ?? null,
             isPermanent: t.isPermanent ?? true,
+            schoolName: t.schoolName || "Unassigned",
           };
         })
       );
 
-      return results;
+      // Sort by schoolName, then by name
+      return results.sort((a, b) => {
+        const schoolCmp = (a.schoolName || "").localeCompare(b.schoolName || "");
+        return schoolCmp !== 0 ? schoolCmp : a.name.localeCompare(b.name);
+      });
     }),
 
   setTeacherPermanent: protectedProcedure
@@ -589,11 +596,54 @@ export const teacherProfileRouter = router({
   listProfiles: protectedProcedure
     .query(async ({ ctx }) => {
       const db = await getDb(); if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
-      return db
+      const ownerId = String(ctx.user.id);
+      
+      // Get teacher profiles from teacherProfiles table
+      const profiles = await db
         .select()
         .from(teacherProfiles)
-        .where(eq(teacherProfiles.ownerId, String(ctx.user.id)))
+        .where(eq(teacherProfiles.ownerId, ownerId))
         .orderBy(teacherProfiles.name);
+      
+      // Get teachers from acTeachers table who have subjects assigned
+      // Note: acTeachers doesn't have ownerId; it's linked via calendar
+      const rawAcTeachers = await db
+        .select({
+          id: acTeachers.id,
+          name: acTeachers.name,
+          email: acTeachers.email,
+          calendarId: acTeachers.calendarId,
+        })
+        .from(acTeachers);
+      // Filter to only those from calendars owned by this user
+      const userCalendars = await db
+        .select({ id: academicCalendars.id })
+        .from(academicCalendars)
+        .where(eq(academicCalendars.userId, parseInt(ownerId)));
+      const userCalendarIds = new Set(userCalendars.map(c => c.id));
+      const filteredAcTeachers = rawAcTeachers.filter(t => userCalendarIds.has(t.calendarId));
+      // Map to match profile structure
+      const acTeachersFormatted = filteredAcTeachers.map(t => ({
+        id: 0,
+        ownerId: ownerId as any,
+        name: t.name,
+        email: t.email || null,
+        contractedHoursPerWeek: "0",
+        prepHoursPerWeek: "0",
+        annualHolidayDays: "0",
+        notes: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }));
+      
+      // Merge both lists, avoiding duplicates (by name)
+      const profileNames = new Set(profiles.map(p => p.name));
+      const merged = [
+        ...profiles,
+        ...acTeachersFormatted.filter(t => !profileNames.has(t.name))
+      ];
+      
+      return merged.sort((a, b) => a.name.localeCompare(b.name));
     }),
 
   /** Upsert a teacher profile (create or update by name) */

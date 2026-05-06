@@ -30,6 +30,24 @@ const currentAcademicYear = (() => {
   return now.getMonth() >= 8 ? `${y}-${y + 1}` : `${y - 1}-${y}`;
 })();
 
+// Group teachers by school name
+function groupTeachersBySchool(teachers: any[]) {
+  const grouped = new Map<string, any[]>();
+  teachers.forEach(t => {
+    const school = t.schoolName || "Unassigned";
+    if (!grouped.has(school)) {
+      grouped.set(school, []);
+    }
+    grouped.get(school)!.push(t);
+  });
+  return Array.from(grouped.entries())
+    .map(([school, teacherList]) => ({
+      school,
+      teachers: teacherList.sort((a, b) => (a.displayName || a.name).localeCompare(b.displayName || b.name)),
+    }))
+    .sort((a, b) => a.school.localeCompare(b.school));
+}
+
 export default function DirectorTeacherProfiles() {
   const { t } = useI18n();
   const { user } = useAuth();

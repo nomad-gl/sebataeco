@@ -5420,3 +5420,11 @@
 - [x] Optimize file upload button and controls for mobile touch
 - [x] Improve history panel layout for mobile (full-width or side drawer)
 - [x] Test and verify responsive layout on mobile/tablet viewports
+
+
+## Current Bug Fixes (2026-05-03)
+- [ ] Teachers allocated to subjects not showing on teacher profiles page
+  - Root cause: acTeachers table not synced with teacherProfiles table
+  - Solution: Modify listProfiles to include acTeachers and group by school/director
+  - Add automatic sync when subjects are assigned to teachers
+  - Teachers should be grouped by their director/head of study/school name
