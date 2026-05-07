@@ -138,16 +138,30 @@ function TimetableView({ calendarId, onBack }: { calendarId: number; onBack: () 
       </td>`;
     }).join('');
 
-    // Build subject details HTML
-    const subjectsHtml = teacherSubjectDetails.length > 0
-      ? `<h2 style="font-size:0.9rem;text-transform:uppercase;letter-spacing:.05em;color:#555;margin:18px 0 6px;">${t("tt_subject_details")}</h2>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;">
-          ${teacherSubjectDetails.map(sub => `<div style="border-left:3px solid ${sub.color ?? '#3b82f6'};background:${(sub.color ?? '#3b82f6')}10;padding:6px 10px;border-radius:4px;font-size:0.8rem;">
-            <strong>${sub.name}</strong>
-            ${sub.classroom ? `<span style="color:#555;"> · ${sub.classroom}</span>` : ''}
-            ${sub.unit ? `<br/><span style="color:#666;font-size:0.72rem;">${sub.unit}</span>` : ''}
-          </div>`).join('')}
-        </div>`
+    // Build subject color legend HTML
+    const legendHtml = teacherSubjectDetails.length > 0
+      ? `<h2 style="font-size:0.9rem;text-transform:uppercase;letter-spacing:.05em;color:#555;margin:20px 0 8px;">${t("tt_subject_legend") || 'Subject Legend'}</h2>
+        <table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
+          <thead>
+            <tr style="background:#f1f5f9;">
+              <th style="text-align:left;padding:6px 10px;border:1px solid #e2e8f0;">${t("tt_color") || 'Color'}</th>
+              <th style="text-align:left;padding:6px 10px;border:1px solid #e2e8f0;">${t("acal2_subject") || 'Subject'}</th>
+              <th style="text-align:left;padding:6px 10px;border:1px solid #e2e8f0;">${t("tt_classroom") || 'Classroom'}</th>
+              <th style="text-align:left;padding:6px 10px;border:1px solid #e2e8f0;">${t("tt_unit") || 'Unit'}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${teacherSubjectDetails.map(sub => {
+              const color = sub.color ?? '#3b82f6';
+              return `<tr>
+                <td style="padding:5px 10px;border:1px solid #e2e8f0;"><span style="display:inline-block;width:20px;height:14px;background:${color};border-radius:3px;vertical-align:middle;"></span></td>
+                <td style="padding:5px 10px;border:1px solid #e2e8f0;font-weight:500;">${sub.name}</td>
+                <td style="padding:5px 10px;border:1px solid #e2e8f0;color:#555;">${sub.classroom || '—'}</td>
+                <td style="padding:5px 10px;border:1px solid #e2e8f0;color:#555;">${sub.unit || '—'}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>`
       : '';
 
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${calendar.academicYear} — ${selectedTeacher.name}</title>
@@ -169,8 +183,13 @@ function TimetableView({ calendarId, onBack }: { calendarId: number; onBack: () 
   </div>
 </div>
 <table><tr>${gridHtml}</tr></table>
-${subjectsHtml}
-<div class="footer">Powered by SEBA · ${new Date().toLocaleDateString()}</div>
+${legendHtml}
+<div class="footer">
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <span style="font-weight:500;color:#1e3a5f;">Powered by SEBA</span>
+    <span>${t("tt_printed_on") || 'Printed on'}: ${new Date().toLocaleDateString()} · ${calendar.academicYear}</span>
+  </div>
+</div>
 </body></html>`;
 
     const w = window.open('', '_blank');

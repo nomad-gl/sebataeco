@@ -5558,3 +5558,9 @@
 - [x] Change print from window.print() to new-window HTML document approach (like /my-situacions)
 - [x] Include school logo, branded header, and footer in print output
 - [x] Format timetable grid as clean HTML table for print
+
+## Follow-up: Print Enhancements (2026-05-07)
+- [x] Add "Powered by SEBA" footer to printed timetable output
+- [x] Add subject color legend table to printed timetable (color swatch, name, classroom, unit)
+- [x] Verify print layout renders correctly (A4 landscape)
+- [x] Added i18n translations (EN, ES, CA) for legend labels
