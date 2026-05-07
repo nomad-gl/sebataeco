@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { RefreshCw, X } from "lucide-react";
 import { SebaSymbol } from "@/components/SebaSymbol";
 import { useAppUpdate } from "@/hooks/useAppUpdate";
@@ -7,6 +7,13 @@ import WhatsNewModal from "./WhatsNewModal";
 export default function UpdateBanner() {
   const { updateAvailable, applyUpdate, dismiss } = useAppUpdate();
   const [showChangelog, setShowChangelog] = useState(false);
+
+  // Broadcast visibility changes so other components (e.g. chat history) can adjust spacing
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("seba_update_banner_visibility", { detail: { visible: updateAvailable } })
+    );
+  }, [updateAvailable]);
 
   if (!updateAvailable) return null;
 

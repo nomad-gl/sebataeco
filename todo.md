@@ -5585,3 +5585,6 @@
 
 ## Bug Fix: Chat History Panel Positioning (2026-05-07)
 - [x] Move chat history panel down so top icons are not partially covered by NavBar
+
+## Enhancement: Dynamic Chat History Panel Spacing (2026-05-08)
+- [x] Make chat history panel dynamically adjust top spacing based on UpdateBanner visibility

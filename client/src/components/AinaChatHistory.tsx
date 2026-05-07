@@ -52,6 +52,22 @@ export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat, o
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [showClearAll, setShowClearAll] = useState(false);
 
+  // ── Dynamic top spacing based on UpdateBanner visibility ──────────────────
+  const [updateBannerVisible, setUpdateBannerVisible] = useState(() => {
+    // Check if the banner is already in the DOM on mount (handles timing where
+    // UpdateBanner dispatched its event before this component mounted)
+    const banner = document.querySelector('[role="status"][aria-live="polite"]');
+    return !!banner;
+  });
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ visible: boolean }>).detail;
+      setUpdateBannerVisible(detail.visible);
+    };
+    window.addEventListener("seba_update_banner_visibility", handler);
+    return () => window.removeEventListener("seba_update_banner_visibility", handler);
+  }, []);
+
   // ── Collapsed state ───────────────────────────────────────────────────────
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try {
@@ -240,7 +256,10 @@ export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat, o
         <button
           onClick={onNewChat}
           title="New Chat"
-          className="mt-5 flex items-center justify-center size-8 rounded-lg bg-white/15 hover:bg-white/25 text-white border border-white/20 transition-colors"
+          className={cn(
+            "flex items-center justify-center size-8 rounded-lg bg-white/15 hover:bg-white/25 text-white border border-white/20 transition-all duration-200",
+            updateBannerVisible ? "mt-12" : "mt-3"
+          )}
         >
           <Plus className="size-4" />
         </button>
@@ -296,7 +315,10 @@ export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat, o
       style={{ width }}
     >
       {/* Header */}
-      <div className="px-3 pt-4 pb-3 border-b border-white/10 flex items-center gap-2">
+      <div className={cn(
+        "px-3 pb-3 border-b border-white/10 flex items-center gap-2 transition-all duration-200",
+        updateBannerVisible ? "pt-12" : "pt-3"
+      )}>
         <Button
           size="sm"
           onClick={onNewChat}
