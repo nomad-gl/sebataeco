@@ -5570,3 +5570,9 @@
 - [x] Truncate chat titles to max 30 characters in history list (with ellipsis + tooltip)
 - [x] Add share buttons next to delete buttons (Web Share API + clipboard fallback)
 - [x] Fix missing print button for created content (added Print button to /create preview)
+
+## Follow-up: Create Page Print & Export Enhancements (2026-05-07)
+- [x] Add print metadata dialog to /create (opens new window with branded print)
+- [x] Add "Clear all history" button to chat history panel (with confirmation dialog)
+- [x] Add PDF/Word export buttons to /create preview page
+- [x] Added clearAllChatSessions backend procedure

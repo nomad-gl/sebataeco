@@ -14,8 +14,9 @@ import { getLoginUrl } from "@/const";
 import {
   BookOpen, Presentation, Grid3X3, AlignLeft, Search, CreditCard,
   Loader2, ChevronRight, Lock, Save, ArrowLeft, Pencil, X,
-  ImagePlus, Upload, Wand2, Trash2, Gamepad2, Printer,
+  ImagePlus, Upload, Wand2, Trash2, Gamepad2, Printer, FileText, FileDown,
 } from "lucide-react";
+import { exportPDF, exportWord } from "@/lib/exportUtils";
 import { useLocation } from "wouter";
 import { useI18n } from "@/contexts/I18nContext";
 import { SebaSymbol } from "@/components/SebaSymbol";
@@ -585,24 +586,46 @@ export default function Create() {
             />
           </div>
 
-          {/* Bottom save bar */}
-          <div className="flex items-center justify-between border-t border-border pt-4 gap-3">
+          {/* Bottom save & export bar */}
+          <div className="flex items-center justify-between border-t border-border pt-4 gap-3 flex-wrap">
             <Button variant="outline" size="sm" onClick={handleSave} disabled={saveMutation.isPending} className="gap-1.5">
               {saveMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
               {t("create_save_material")}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => {
-              const previewEl = document.getElementById("material-preview-content");
-              if (!previewEl) { window.print(); return; }
-              const win = window.open("", "_blank");
-              if (!win) return;
-              win.document.write(`<!DOCTYPE html><html><head><title>${editableTitle}</title><style>body{font-family:system-ui,sans-serif;padding:32px;max-width:800px;margin:0 auto}h1{font-size:22px;margin-bottom:16px}@media print{button{display:none}}</style></head><body><h1>${editableTitle}</h1>${previewEl.innerHTML}<br/><button onclick="window.print()" style="padding:8px 20px;background:#2563eb;color:white;border:none;border-radius:6px;cursor:pointer;font-size:14px">Print</button></body></html>`);
-              win.document.close();
-              setTimeout(() => win.print(), 600);
-            }} className="gap-1.5">
-              <Printer className="w-3.5 h-3.5" />
-              {t("material_print")}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => {
+                const previewEl = document.getElementById("material-preview-content");
+                if (!previewEl) { window.print(); return; }
+                const win = window.open("", "_blank");
+                if (!win) return;
+                win.document.write(`<!DOCTYPE html><html><head><title>${editableTitle}</title><style>body{font-family:system-ui,sans-serif;padding:32px;max-width:800px;margin:0 auto}h1{font-size:22px;margin-bottom:16px}@media print{button{display:none}}</style></head><body><h1>${editableTitle}</h1>${previewEl.innerHTML}<br/><button onclick="window.print()" style="padding:8px 20px;background:#2563eb;color:white;border:none;border-radius:6px;cursor:pointer;font-size:14px">Print</button></body></html>`);
+                win.document.close();
+                setTimeout(() => win.print(), 600);
+              }} className="gap-1.5">
+                <Printer className="w-3.5 h-3.5" />
+                {t("material_print")}
+              </Button>
+              <Button variant="outline" size="sm" onClick={async () => {
+                try {
+                  await exportPDF("material-preview-content", editableTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40));
+                  toast.success("PDF downloaded");
+                } catch { toast.error("PDF export failed"); }
+              }} className="gap-1.5">
+                <FileText className="w-3.5 h-3.5" />
+                PDF
+              </Button>
+              {selectedType && (
+                <Button variant="outline" size="sm" onClick={async () => {
+                  try {
+                    await exportWord(selectedType, editableContent as any, editableTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40));
+                    toast.success("Word document downloaded");
+                  } catch { toast.error("Word export failed"); }
+                }} className="gap-1.5">
+                  <FileDown className="w-3.5 h-3.5" />
+                  Word
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>

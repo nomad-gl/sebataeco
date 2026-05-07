@@ -50,6 +50,7 @@ function timeAgo(date: Date | string): string {
 export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat, onWidthChange, onClose }: AinaChatHistoryProps) {
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [showClearAll, setShowClearAll] = useState(false);
 
   // ── Collapsed state ───────────────────────────────────────────────────────
   const [collapsed, setCollapsed] = useState<boolean>(() => {
@@ -131,6 +132,16 @@ export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat, o
       setDeleteId(null);
     },
     onError: () => toast.error("Failed to delete chat"),
+  });
+
+  const clearAllMutation = trpc.lomloe.clearAllChatSessions.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Deleted ${data.deleted} conversation${data.deleted !== 1 ? "s" : ""}`);
+      refetch();
+      setShowClearAll(false);
+      onNewChat();
+    },
+    onError: () => toast.error("Failed to clear history"),
   });
 
   const filtered = useMemo(() => {
@@ -353,10 +364,16 @@ export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat, o
 
       {/* Footer */}
       {sessions.length > 0 && (
-        <div className="p-2 border-t border-white/10">
+        <div className="p-2 border-t border-white/10 flex flex-col items-center gap-1">
           <p className="text-[10px] text-white/30 text-center">
             {sessions.length} conversation{sessions.length !== 1 ? "s" : ""}
           </p>
+          <button
+            onClick={() => setShowClearAll(true)}
+            className="text-[10px] text-red-400/60 hover:text-red-400 transition-colors"
+          >
+            Clear all history
+          </button>
         </div>
       )}
 
@@ -385,6 +402,28 @@ export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat, o
               onClick={() => deleteId !== null && deleteMutation.mutate({ sessionId: deleteId })}
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Clear all confirmation */}
+      <AlertDialog open={showClearAll} onOpenChange={(o) => !o && setShowClearAll(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear all chat history?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete all {sessions.length} conversation{sessions.length !== 1 ? "s" : ""} and their messages. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => clearAllMutation.mutate()}
+              disabled={clearAllMutation.isPending}
+            >
+              {clearAllMutation.isPending ? "Clearing..." : "Clear all"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

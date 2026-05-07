@@ -1741,6 +1741,22 @@ Return ONLY a valid JSON object (no markdown, no code fences) with exactly these
       return { ok: true };
     }),
 
+  /** Delete all chat sessions for the current user */
+  clearAllChatSessions: protectedProcedure
+    .mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const sessions = await db.select({ id: ainaChatSessions.id })
+        .from(ainaChatSessions)
+        .where(eq(ainaChatSessions.userId, ctx.user.id));
+      if (sessions.length > 0) {
+        const ids = sessions.map(s => s.id);
+        await db.delete(ainaChatMessages).where(inArray(ainaChatMessages.sessionId, ids));
+        await db.delete(ainaChatSessions).where(eq(ainaChatSessions.userId, ctx.user.id));
+      }
+      return { ok: true, deleted: sessions.length };
+    }),
+
   /** Update the title of a chat session */
   updateChatSessionTitle: protectedProcedure
     .input(z.object({ sessionId: z.number(), title: z.string().max(255) }))
