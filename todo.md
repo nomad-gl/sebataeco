@@ -5564,3 +5564,9 @@
 - [x] Add subject color legend table to printed timetable (color swatch, name, classroom, unit)
 - [x] Verify print layout renders correctly (A4 landscape)
 - [x] Added i18n translations (EN, ES, CA) for legend labels
+
+## Bug/Feature: Chat History UI Fixes (2026-05-07)
+- [x] Restore missing delete/erase chat button in chat history (always visible)
+- [x] Truncate chat titles to max 30 characters in history list (with ellipsis + tooltip)
+- [x] Add share buttons next to delete buttons (Web Share API + clipboard fallback)
+- [x] Fix missing print button for created content (added Print button to /create preview)

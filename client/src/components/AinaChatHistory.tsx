@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
-import { Search, Trash2, MessageSquare, Clock, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Trash2, MessageSquare, Clock, Plus, ChevronLeft, ChevronRight, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -174,15 +174,37 @@ export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat, o
             onClick={() => onSelectSession(s.id)}
           >
             <MessageSquare className="size-3.5 flex-shrink-0 text-white/50" />
-            {/* Text area: truncates so delete button is never pushed off-screen */}
+            {/* Text area: truncates title to max 30 characters */}
             <div className="flex-1 min-w-0 overflow-hidden">
-              <p className="text-xs font-medium truncate leading-tight">{s.title}</p>
+              <p className="text-xs font-medium truncate leading-tight" title={s.title}>
+                {s.title.length > 30 ? s.title.slice(0, 30) + "…" : s.title}
+              </p>
               <div className="flex items-center gap-1 mt-0.5 overflow-hidden">
                 <Clock className="size-2.5 flex-shrink-0 text-white/30" />
                 <span className="text-[10px] text-white/40 truncate">{timeAgo(s.updatedAt)}</span>
               </div>
             </div>
-            {/* Delete button — always visible, never pushed off-screen */}
+            {/* Share button */}
+            <button
+              className="flex-shrink-0 flex items-center justify-center size-6 rounded text-white/50 hover:text-blue-400 hover:bg-blue-400/15 active:bg-blue-400/25 transition-colors touch-manipulation"
+              title="Share chat"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (navigator.share) {
+                  navigator.share({
+                    title: s.title,
+                    text: `Chat: ${s.title}`,
+                    url: window.location.origin + "/chat?session=" + s.id,
+                  }).catch(() => {});
+                } else {
+                  navigator.clipboard.writeText(window.location.origin + "/chat?session=" + s.id);
+                  toast.success("Link copied to clipboard");
+                }
+              }}
+            >
+              <Share2 className="size-3.5" />
+            </button>
+            {/* Delete button — always visible */}
             <button
               className="flex-shrink-0 flex items-center justify-center size-6 rounded text-white/50 hover:text-red-400 hover:bg-red-400/15 active:bg-red-400/25 transition-colors touch-manipulation"
               title="Delete chat"
