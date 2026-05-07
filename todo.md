@@ -5506,3 +5506,33 @@
 - [x] Test print process and save final checkpoint
   - All 8,434 tests passing
   - Checkpoint b5d93ed6 saved with working implementation
+
+
+## Bug: AINA Chat Not Responding (2026-05-07)
+- [ ] Check server logs for AINA chat errors
+- [ ] Verify AINA backend API connectivity
+- [ ] Check for rate limiting or timeout issues
+- [ ] Test AINA chat mutation and fix issue
+
+
+## Follow-up Tasks (2026-05-07)
+- [ ] Execute database migrations (0065, 0072, 0073, 0074) via Database Management UI
+- [ ] Create audit log dashboard with EU AI Act compliance data display
+- [ ] Add audit log data export and reporting features
+
+
+## Feature: Link Groups to Subjects (2026-05-07)
+- [x] Allow groups on /groups page to be linked to subjects from /teacher-timetable
+- [x] Update "Link Class to a Calendar" card to include subject selection (added Subjects tab)
+- [x] Create backend procedures: linkSubject, unlinkSubject, listLinkedSubjects, listAvailableSubjects
+- [x] Create class_group_subjects junction table (migration 0076)
+- [x] Add i18n translations (EN, ES, CA) for subject linking UI
+- [ ] Test linking functionality end-to-end
+
+
+## Bug: Academic Calendar Server Error (2026-05-07)
+- [x] Investigate "Server error — please try again" on /academic-calendar
+- [x] Root cause: missing schoolName column in ac_teachers table (migration 0073 not applied to production)
+- [x] Apply migration 0073 to add schoolName column to ac_teachers
+- [x] Update assertDirector to allow head_of_study role access to academic calendar
+- [x] Update listCalendars and getCalendar to give head_of_study same visibility as admin

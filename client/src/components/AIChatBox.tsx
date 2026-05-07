@@ -1281,7 +1281,7 @@ export function AIChatBox({
           {resolvedRetryLabel}
         </button>
                       )}
-                        {message.role === "assistant" &&
+                      {message.role === "assistant" &&
                         !isLoading &&
                         message.sources &&
                         message.sources.length > 0 && (

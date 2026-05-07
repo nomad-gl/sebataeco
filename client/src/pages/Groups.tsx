@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { LevelCombobox } from "@/components/LevelCombobox";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -773,6 +773,8 @@ export default function Groups() {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [showLinkCalendar, setShowLinkCalendar] = useState(false);
   const [linkCalendarId, setLinkCalendarId] = useState<string>("");
+  const [linkSubjectId, setLinkSubjectId] = useState<string>("");
+  const [linkDialogTab, setLinkDialogTab] = useState<"calendars" | "subjects">("calendars");
 
   const { data: groups = [], isLoading } = trpc.groups.list.useQuery(undefined, {
     enabled: !!user,
@@ -808,6 +810,34 @@ export default function Groups() {
     onSuccess: () => { toast.success(t("groups_unlink_calendar_saved")); refetchLinked(); },
     onError: () => toast.error(t("groups_link_calendar_saved")),
   });
+
+  // Subject linking
+  const { data: availableSubjects = [] } = trpc.groups.listAvailableSubjects.useQuery(undefined, { enabled: !!user });
+  const { data: linkedSubjects = [], refetch: refetchLinkedSubjects } = trpc.groups.listLinkedSubjects.useQuery(
+    { groupId: selectedGroupId! },
+    { enabled: !!selectedGroupId }
+  );
+  const linkSubjectMutation = trpc.groups.linkSubject.useMutation({
+    onSuccess: () => {
+      toast.success(t("groups_link_subject_saved") || "Subject linked");
+      refetchLinkedSubjects();
+      setLinkSubjectId("");
+    },
+    onError: () => toast.error(t("groups_link_subject_error") || "Failed to link subject"),
+  });
+  const unlinkSubjectMutation = trpc.groups.unlinkSubject.useMutation({
+    onSuccess: () => { toast.success(t("groups_unlink_subject_saved") || "Subject unlinked"); refetchLinkedSubjects(); },
+    onError: () => toast.error(t("groups_unlink_subject_error") || "Failed to unlink subject"),
+  });
+  const subjectsByYear = useMemo(() => {
+    const map: Record<string, typeof availableSubjects> = {};
+    for (const s of availableSubjects) {
+      const year = s.academicYear || "Unknown";
+      if (!map[year]) map[year] = [];
+      map[year].push(s);
+    }
+    return map;
+  }, [availableSubjects]);
 
   if (!user) {
     return (
@@ -1014,81 +1044,162 @@ export default function Groups() {
         onCreated={() => utils.groups.list.invalidate()}
       />
 
-      {/* Link to Calendar Dialog */}
+      {/* Link to Calendar / Subject Dialog */}
       {selectedGroup && (
         <Dialog open={showLinkCalendar} onOpenChange={(o) => { if (!o) setShowLinkCalendar(false); }}>
-          <DialogContent className="bg-gray-900 border-white/10 text-white max-w-md">
+          <DialogContent className="bg-gray-900 border-white/10 text-white max-w-lg">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <CalendarDays className="w-5 h-5 text-blue-400" />
                 {t("groups_link_calendar_title")}
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-2">
-              <p className="text-white/60 text-sm">{t("groups_link_calendar_desc")}</p>
 
-              {/* Currently linked calendars */}
-              {linkedCalendars.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-white/50 uppercase tracking-wide">{t("groups_linked_calendar")}</p>
-                  {linkedCalendars.map((cal) => (
-                    <div key={cal.id} className="flex items-center justify-between gap-2 bg-white/5 border border-white/10 rounded-lg px-3 py-2">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-white truncate">{cal.name}</p>
-                        <p className="text-xs text-white/50">{[cal.subject, cal.yearLevel, cal.academicYear].filter(Boolean).join(" · ")}</p>
+            {/* Tabs: Calendars | Subjects */}
+            <Tabs value={linkDialogTab} onValueChange={(v) => setLinkDialogTab(v as any)} className="w-full">
+              <TabsList className="bg-white/5 border border-white/10 w-full">
+                <TabsTrigger value="calendars" className="flex-1 data-[state=active]:bg-blue-600/30 data-[state=active]:text-blue-300 text-white/60">
+                  <CalendarDays className="w-3.5 h-3.5 mr-1.5" />{t("groups_tab_calendars") || "Calendars"}
+                </TabsTrigger>
+                <TabsTrigger value="subjects" className="flex-1 data-[state=active]:bg-purple-600/30 data-[state=active]:text-purple-300 text-white/60">
+                  <BookOpen className="w-3.5 h-3.5 mr-1.5" />{t("groups_tab_subjects") || "Subjects"}
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Calendars Tab */}
+              <TabsContent value="calendars" className="space-y-4 pt-2">
+                <p className="text-white/60 text-sm">{t("groups_link_calendar_desc")}</p>
+                {linkedCalendars.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-white/50 uppercase tracking-wide">{t("groups_linked_calendar")}</p>
+                    {linkedCalendars.map((cal) => (
+                      <div key={cal.id} className="flex items-center justify-between gap-2 bg-white/5 border border-white/10 rounded-lg px-3 py-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-white truncate">{cal.name}</p>
+                          <p className="text-xs text-white/50">{[cal.subject, cal.yearLevel, cal.academicYear].filter(Boolean).join(" · ")}</p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => unlinkCalendarMutation.mutate({ groupId: selectedGroup.id, calendarId: cal.id })}
+                          disabled={unlinkCalendarMutation.isPending}
+                          className="text-red-400 hover:text-red-300 hover:bg-red-400/10 shrink-0"
+                        >
+                          <Link2Off className="w-3.5 h-3.5 mr-1" /> {t("groups_unlink_calendar")}
+                        </Button>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => unlinkCalendarMutation.mutate({ groupId: selectedGroup.id, calendarId: cal.id })}
-                        disabled={unlinkCalendarMutation.isPending}
-                        className="text-red-400 hover:text-red-300 hover:bg-red-400/10 shrink-0"
-                      >
-                        <Link2Off className="w-3.5 h-3.5 mr-1" /> {t("groups_unlink_calendar")}
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Add new link */}
-              <div className="space-y-2">
-                <Label className="text-white/70 text-sm">{t("groups_link_calendar_select")}</Label>
-                {allCalendars.length === 0 ? (
-                  <p className="text-white/40 text-sm">{t("groups_link_calendar_none")}</p>
-                ) : (
-                  <select
-                    value={linkCalendarId}
-                    onChange={(e) => setLinkCalendarId(e.target.value)}
-                    className="w-full bg-white/5 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500/60"
-                  >
-                    <option value="" className="bg-gray-900">{t("groups_link_calendar_select")}</option>
-                    {allCalendars
-                      .filter((c) => !linkedCalendars.some((lc) => lc.id === c.id))
-                      .map((c) => (
-                        <option key={c.id} value={String(c.id)} className="bg-gray-900">
-                          {c.name}{(c as any).subject ? ` · ${(c as any).subject}` : ""}{(c as any).yearLevel ? ` · ${(c as any).yearLevel}` : ""}
-                        </option>
-                      ))}
-                  </select>
+                    ))}
+                  </div>
                 )}
-              </div>
-            </div>
-            <DialogFooter className="gap-2">
-              <Button variant="ghost" onClick={() => setShowLinkCalendar(false)} className="text-white/60 hover:text-white">
-                {t("cancel") || "Cancel"}
-              </Button>
-              <Button
-                onClick={() => {
-                  if (linkCalendarId) linkCalendarMutation.mutate({ groupId: selectedGroup.id, calendarId: Number(linkCalendarId) });
-                }}
-                disabled={!linkCalendarId || linkCalendarMutation.isPending}
-                className="bg-blue-600 hover:bg-blue-500 text-white"
-              >
-                {linkCalendarMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Link2 className="w-4 h-4 mr-1.5" />}
-                {t("groups_link_calendar")}
-              </Button>
-            </DialogFooter>
+                <div className="space-y-2">
+                  <Label className="text-white/70 text-sm">{t("groups_link_calendar_select")}</Label>
+                  {allCalendars.length === 0 ? (
+                    <p className="text-white/40 text-sm">{t("groups_link_calendar_none")}</p>
+                  ) : (
+                    <select
+                      value={linkCalendarId}
+                      onChange={(e) => setLinkCalendarId(e.target.value)}
+                      className="w-full bg-white/5 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500/60"
+                    >
+                      <option value="" className="bg-gray-900">{t("groups_link_calendar_select")}</option>
+                      {allCalendars
+                        .filter((c) => !linkedCalendars.some((lc) => lc.id === c.id))
+                        .map((c) => (
+                          <option key={c.id} value={String(c.id)} className="bg-gray-900">
+                            {c.name}{(c as any).subject ? ` · ${(c as any).subject}` : ""}{(c as any).yearLevel ? ` · ${(c as any).yearLevel}` : ""}
+                          </option>
+                        ))}
+                    </select>
+                  )}
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button variant="ghost" onClick={() => setShowLinkCalendar(false)} className="text-white/60 hover:text-white">
+                    {t("cancel") || "Cancel"}
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      if (linkCalendarId) linkCalendarMutation.mutate({ groupId: selectedGroup.id, calendarId: Number(linkCalendarId) });
+                    }}
+                    disabled={!linkCalendarId || linkCalendarMutation.isPending}
+                    className="bg-blue-600 hover:bg-blue-500 text-white"
+                  >
+                    {linkCalendarMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Link2 className="w-4 h-4 mr-1.5" />}
+                    {t("groups_link_calendar")}
+                  </Button>
+                </div>
+              </TabsContent>
+
+              {/* Subjects Tab */}
+              <TabsContent value="subjects" className="space-y-4 pt-2">
+                <p className="text-white/60 text-sm">{t("groups_link_subject_desc") || "Link this group to subjects from your Teacher Timetable."}</p>
+
+                {/* Currently linked subjects */}
+                {linkedSubjects.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-white/50 uppercase tracking-wide">{t("groups_linked_subjects") || "Linked Subjects"}</p>
+                    {linkedSubjects.map((sub) => (
+                      <div key={sub.id} className="flex items-center justify-between gap-2 bg-purple-500/5 border border-purple-500/20 rounded-lg px-3 py-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-white truncate">{sub.name}</p>
+                          <p className="text-xs text-white/50">{[sub.classroom, sub.semester, sub.academicYear].filter(Boolean).join(" · ")}</p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => unlinkSubjectMutation.mutate({ groupId: selectedGroup.id, subjectId: sub.id })}
+                          disabled={unlinkSubjectMutation.isPending}
+                          className="text-red-400 hover:text-red-300 hover:bg-red-400/10 shrink-0"
+                        >
+                          <Link2Off className="w-3.5 h-3.5 mr-1" /> {t("groups_unlink") || "Unlink"}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Add subject link */}
+                <div className="space-y-2">
+                  <Label className="text-white/70 text-sm">{t("groups_link_subject_select") || "Select a subject"}</Label>
+                  {availableSubjects.length === 0 ? (
+                    <p className="text-white/40 text-sm">{t("groups_link_subject_none") || "No subjects found. Create subjects in Teacher Timetable first."}</p>
+                  ) : (
+                    <select
+                      value={linkSubjectId}
+                      onChange={(e) => setLinkSubjectId(e.target.value)}
+                      className="w-full bg-white/5 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500/60"
+                    >
+                      <option value="" className="bg-gray-900">{t("groups_link_subject_select") || "Select a subject"}</option>
+                      {Object.entries(subjectsByYear).map(([year, subjects]) => (
+                        <optgroup key={year} label={year} className="bg-gray-900 text-white/80">
+                          {subjects
+                            .filter((s) => !linkedSubjects.some((ls) => ls.id === s.id))
+                            .map((s) => (
+                              <option key={s.id} value={String(s.id)} className="bg-gray-900">
+                                {s.name}{s.classroom ? ` · ${s.classroom}` : ""}{s.semester ? ` · ${s.semester}` : ""}
+                              </option>
+                            ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                  )}
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button variant="ghost" onClick={() => setShowLinkCalendar(false)} className="text-white/60 hover:text-white">
+                    {t("cancel") || "Cancel"}
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      if (linkSubjectId) linkSubjectMutation.mutate({ groupId: selectedGroup.id, subjectId: Number(linkSubjectId) });
+                    }}
+                    disabled={!linkSubjectId || linkSubjectMutation.isPending}
+                    className="bg-purple-600 hover:bg-purple-500 text-white"
+                  >
+                    {linkSubjectMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Link2 className="w-4 h-4 mr-1.5" />}
+                    {t("groups_link_subject") || "Link Subject"}
+                  </Button>
+                </div>
+              </TabsContent>
+            </Tabs>
           </DialogContent>
         </Dialog>
       )}

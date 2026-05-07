@@ -600,4 +600,95 @@ export const groupsRouter = router({
         .from(schoolCalendars)
         .where(and(eq(schoolCalendars.linkedGroupId, input.groupId), eq(schoolCalendars.userId, ctx.user.id)));
     }),
+
+  /** List all subjects from the user's academic calendars (for linking) */
+  listAvailableSubjects: protectedProcedure
+    .query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      // Get all academic calendars owned by this user
+      const { academicCalendars, acSubjects } = await import("../../drizzle/schema");
+      const calendars = await db.select({ id: academicCalendars.id, academicYear: academicCalendars.academicYear })
+        .from(academicCalendars)
+        .where(eq(academicCalendars.userId, ctx.user.id));
+      if (calendars.length === 0) return [];
+      const calIds = calendars.map(c => c.id);
+      const subjects = await db.select({
+        id: acSubjects.id,
+        calendarId: acSubjects.calendarId,
+        name: acSubjects.name,
+        semester: acSubjects.semester,
+        classroom: acSubjects.classroom,
+        days: acSubjects.days,
+        startTime: acSubjects.startTime,
+        endTime: acSubjects.endTime,
+      }).from(acSubjects).where(inArray(acSubjects.calendarId, calIds));
+      // Attach academic year to each subject
+      return subjects.map(s => {
+        const cal = calendars.find(c => c.id === s.calendarId);
+        return { ...s, academicYear: cal?.academicYear || "", days: (() => { try { return JSON.parse(s.days); } catch { return []; } })() as number[] };
+      });
+    }),
+
+  /** Link a group to a subject from the teacher timetable */
+  linkSubject: protectedProcedure
+    .input(z.object({ groupId: z.number(), subjectId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      // Verify group belongs to user
+      const [group] = await db.select().from(classGroups).where(and(eq(classGroups.id, input.groupId), eq(classGroups.userId, ctx.user.id)));
+      if (!group) throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
+      // Verify subject belongs to user's calendar
+      const { academicCalendars, acSubjects } = await import("../../drizzle/schema");
+      const [subject] = await db.select().from(acSubjects).where(eq(acSubjects.id, input.subjectId));
+      if (!subject) throw new TRPCError({ code: "NOT_FOUND", message: "Subject not found" });
+      const [cal] = await db.select().from(academicCalendars).where(and(eq(academicCalendars.id, subject.calendarId), eq(academicCalendars.userId, ctx.user.id)));
+      if (!cal) throw new TRPCError({ code: "FORBIDDEN", message: "Subject does not belong to your calendar" });
+      // Store link in class_group_subjects junction table
+      const { classGroupSubjects } = await import("../../drizzle/schema");
+      await db.insert(classGroupSubjects).values({ groupId: input.groupId, subjectId: input.subjectId }).onDuplicateKeyUpdate({ set: { subjectId: input.subjectId } });
+      return { ok: true };
+    }),
+
+  /** Unlink a subject from a group */
+  unlinkSubject: protectedProcedure
+    .input(z.object({ groupId: z.number(), subjectId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      const [group] = await db.select().from(classGroups).where(and(eq(classGroups.id, input.groupId), eq(classGroups.userId, ctx.user.id)));
+      if (!group) throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
+      const { classGroupSubjects } = await import("../../drizzle/schema");
+      await db.delete(classGroupSubjects).where(and(eq(classGroupSubjects.groupId, input.groupId), eq(classGroupSubjects.subjectId, input.subjectId)));
+      return { ok: true };
+    }),
+
+  /** List subjects linked to a group */
+  listLinkedSubjects: protectedProcedure
+    .input(z.object({ groupId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const { classGroupSubjects, acSubjects, academicCalendars } = await import("../../drizzle/schema");
+      const links = await db.select({ subjectId: classGroupSubjects.subjectId }).from(classGroupSubjects).where(eq(classGroupSubjects.groupId, input.groupId));
+      if (links.length === 0) return [];
+      const subjectIds = links.map(l => l.subjectId);
+      const subjects = await db.select({
+        id: acSubjects.id,
+        calendarId: acSubjects.calendarId,
+        name: acSubjects.name,
+        semester: acSubjects.semester,
+        classroom: acSubjects.classroom,
+        startTime: acSubjects.startTime,
+        endTime: acSubjects.endTime,
+      }).from(acSubjects).where(inArray(acSubjects.id, subjectIds));
+      // Attach academic year
+      const calIds = [...new Set(subjects.map(s => s.calendarId))];
+      const calendars = calIds.length > 0 ? await db.select({ id: academicCalendars.id, academicYear: academicCalendars.academicYear }).from(academicCalendars).where(inArray(academicCalendars.id, calIds)) : [];
+      return subjects.map(s => {
+        const cal = calendars.find(c => c.id === s.calendarId);
+        return { ...s, academicYear: cal?.academicYear || "" };
+      });
+    }),
 });

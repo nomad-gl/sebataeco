@@ -1,4 +1,4 @@
-import { boolean, date, decimal, float, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { boolean, date, decimal, float, index, int, mysqlEnum, mysqlTable, text, timestamp, unique, varchar } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -2597,3 +2597,54 @@ export const schools = mysqlTable("schools", {
 
 export type School = typeof schools.$inferSelect;
 export type InsertSchool = typeof schools.$inferInsert;
+
+// Audit Logs Table - EU AI Act Compliance Tracking
+export const auditLogs = mysqlTable(
+  "audit_logs",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    userId: int("userId").notNull(),
+    sessionId: varchar("sessionId", { length: 36 }),
+    deviceId: varchar("deviceId", { length: 255 }).notNull(),
+    modelUsed: varchar("modelUsed", { length: 100 }).notNull().default("AINA Salamandra"),
+    contentType: mysqlEnum("contentType", ["transcription", "generation", "chat", "analysis"]).notNull(),
+    contentHash: varchar("contentHash", { length: 64 }).notNull(),
+    encryptionHash: varchar("encryptionHash", { length: 64 }).notNull(),
+    inputTokens: int("inputTokens").default(0),
+    outputTokens: int("outputTokens").default(0),
+    processingTimeMs: int("processingTimeMs").default(0),
+    status: mysqlEnum("status", ["success", "partial", "failed"]).notNull().default("success"),
+    errorMessage: text("errorMessage"),
+    metadata: text("metadata"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    expiresAt: timestamp("expiresAt"),
+  },
+  (table) => ({
+    userIdIdx: index("idx_userId").on(table.userId),
+    deviceIdIdx: index("idx_deviceId").on(table.deviceId),
+    createdAtIdx: index("idx_createdAt").on(table.createdAt),
+    contentTypeIdx: index("idx_contentType").on(table.contentType),
+    statusIdx: index("idx_status").on(table.status),
+  })
+);
+
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type AuditLogInsert = typeof auditLogs.$inferInsert;
+
+// ─── Class Group ↔ Subject Junction ─────────────────────────────────────────
+export const classGroupSubjects = mysqlTable(
+  "class_group_subjects",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    groupId: int("groupId").notNull(),
+    subjectId: int("subjectId").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    uniq: unique().on(table.groupId, table.subjectId),
+    groupIdIdx: index("idx_cgs_groupId").on(table.groupId),
+    subjectIdIdx: index("idx_cgs_subjectId").on(table.subjectId),
+  })
+);
+export type ClassGroupSubject = typeof classGroupSubjects.$inferSelect;
+export type ClassGroupSubjectInsert = typeof classGroupSubjects.$inferInsert;

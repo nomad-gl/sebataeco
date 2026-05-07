@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS `class_group_subjects` (\n  `id` int NOT NULL AUTO_INCREMENT,\n  `groupId` int NOT NULL,\n  `subjectId` int NOT NULL,\n  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `uniq_group_subject` (`groupId`, `subjectId`),\n  KEY `idx_cgs_groupId` (`groupId`),\n  KEY `idx_cgs_subjectId` (`subjectId`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user pGBiNPeXsjmyJ4x.10d1550e6f39 --database ZdUr4NNhMJ6HJrxx9nW6jZ --execute CREATE TABLE IF NOT EXISTS `class_group_subjects` (\n  `id` int NOT NULL AUTO_INCREMENT,\n  `groupId` int NOT NULL,\n  `subjectId` int NOT NULL,\n  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `uniq_group_subject` (`groupId`, `subjectId`),\n  KEY `idx_cgs_groupId` (`groupId`),\n  KEY `idx_cgs_subjectId` (`subjectId`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 211
+}

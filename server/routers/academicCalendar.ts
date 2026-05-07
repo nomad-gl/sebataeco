@@ -19,7 +19,7 @@ import { generateAcademicCalendarPdf } from "../academicCalendarPdf";
 
 /** Utility: assert user is director or admin */
 function assertDirector(role: string) {
-  if (role !== "admin" && role !== "director") {
+  if (role !== "admin" && role !== "director" && role !== "head_of_study") {
     throw new TRPCError({ code: "FORBIDDEN", message: "Director access required." });
   }
 }
@@ -66,7 +66,7 @@ export const academicCalendarRouter = router({
     assertDirector(ctx.user.role);
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-    if (ctx.user.role === "admin") {
+    if (ctx.user.role === "admin" || ctx.user.role === "head_of_study") {
       return db.select().from(academicCalendars);
     }
     return db.select().from(academicCalendars).where(eq(academicCalendars.userId, ctx.user.id));
@@ -151,8 +151,8 @@ export const academicCalendarRouter = router({
       assertDirector(ctx.user.role);
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      // Admins can view any calendar; directors can only view their own
-      const calWhere = ctx.user.role === "admin"
+      // Admins and head_of_study can view any calendar; directors can only view their own
+      const calWhere = (ctx.user.role === "admin" || ctx.user.role === "head_of_study")
         ? eq(academicCalendars.id, input.id)
         : and(eq(academicCalendars.id, input.id), eq(academicCalendars.userId, ctx.user.id));
       const [cal] = await db.select().from(academicCalendars).where(calWhere);
