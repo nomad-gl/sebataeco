@@ -1,0 +1,16 @@
+{
+  "query": "SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name IN ('teacher_profiles', 'teacher_holiday_records', 'schools');",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user pGBiNPeXsjmyJ4x.10d1550e6f39 --database ZdUr4NNhMJ6HJrxx9nW6jZ --execute SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name IN ('teacher_profiles', 'teacher_holiday_records', 'schools');",
+  "rows": [
+    {
+      "table_name": "teacher_profiles"
+    },
+    {
+      "table_name": "teacher_holiday_records"
+    }
+  ],
+  "messages": [],
+  "stdout": "table_name\nteacher_profiles\nteacher_holiday_records\n",
+  "stderr": "",
+  "execution_time_ms": 55
+}

@@ -1,0 +1,16 @@
+{
+  "query": "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ac_subjects' AND COLUMN_NAME IN ('semesters', 'dayTimes');",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user pGBiNPeXsjmyJ4x.10d1550e6f39 --database ZdUr4NNhMJ6HJrxx9nW6jZ --execute SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ac_subjects' AND COLUMN_NAME IN ('semesters', 'dayTimes');",
+  "rows": [
+    {
+      "COLUMN_NAME": "semesters"
+    },
+    {
+      "COLUMN_NAME": "dayTimes"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\nsemesters\ndayTimes\n",
+  "stderr": "",
+  "execution_time_ms": 59
+}

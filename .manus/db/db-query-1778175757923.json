@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS `schools` (\n  `id` int NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  `tenantId` varchar(255) NOT NULL,\n  `name` varchar(255) NOT NULL,\n  `code` varchar(50) UNIQUE,\n  `address` text,\n  `city` varchar(255),\n  `postalCode` varchar(20),\n  `phone` varchar(20),\n  `email` varchar(320),\n  `headmaster` varchar(255),\n  `notes` text,\n  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n  KEY `idx_tenantId` (`tenantId`),\n  KEY `idx_name` (`name`),\n  KEY `idx_code` (`code`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user pGBiNPeXsjmyJ4x.10d1550e6f39 --database ZdUr4NNhMJ6HJrxx9nW6jZ --execute CREATE TABLE IF NOT EXISTS `schools` (\n  `id` int NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  `tenantId` varchar(255) NOT NULL,\n  `name` varchar(255) NOT NULL,\n  `code` varchar(50) UNIQUE,\n  `address` text,\n  `city` varchar(255),\n  `postalCode` varchar(20),\n  `phone` varchar(20),\n  `email` varchar(320),\n  `headmaster` varchar(255),\n  `notes` text,\n  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n  KEY `idx_tenantId` (`tenantId`),\n  KEY `idx_name` (`name`),\n  KEY `idx_code` (`code`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 280
+}

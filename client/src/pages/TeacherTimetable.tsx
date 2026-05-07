@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
 import NavBar from "@/components/NavBar";
@@ -59,7 +59,7 @@ function CalendarPicker({ onSelect }: { onSelect: (id: number) => void }) {
 function TimetableView({ calendarId, onBack }: { calendarId: number; onBack: () => void }) {
   const { t, lang } = useI18n();
   const [selectedTeacherId, setSelectedTeacherId] = useState<number | null>(null);
-  const printRef = useRef<HTMLDivElement>(null);
+
   const days = getDayNames(lang);
 
   const { data, isLoading } = trpc.academicCalendar.getPublishedCalendar.useQuery({ id: calendarId });
@@ -115,7 +115,69 @@ function TimetableView({ calendarId, onBack }: { calendarId: number; onBack: () 
     .filter(s => !/free|prep|planning|break|recess/i.test(s.name));
 
   const handlePrint = () => {
-    window.print();
+    if (!selectedTeacher) return;
+    const logo = localStorage.getItem("seba_school_logo");
+    const logoHtml = logo
+      ? `<img src="${logo}" alt="School Logo" style="height:56px;object-fit:contain;margin-bottom:6px;" />`
+      : ``;
+
+    // Build timetable grid HTML
+    const gridHtml = [1, 2, 3, 4, 5].map(day => {
+      const daySessions = sessionsByDay[day] || [];
+      const rows = daySessions.map(s => {
+        const subDetails = subjectMap.get(s.subject);
+        const color = subDetails?.color ?? "#3b82f6";
+        return `<div style="padding:4px 6px;margin-bottom:4px;border-left:3px solid ${color};background:${color}15;border-radius:4px;">
+          <strong style="font-size:0.8rem;">${s.subject}</strong><br/>
+          <span style="font-size:0.72rem;color:#555;">${s.startTime}–${s.endTime}${subDetails?.classroom ? ' · ' + subDetails.classroom : ''}</span>
+        </div>`;
+      }).join('');
+      return `<td style="vertical-align:top;padding:6px;border:1px solid #ddd;min-width:120px;">
+        <div style="font-weight:600;text-align:center;background:#e0e7ff;padding:4px;margin:-6px -6px 6px -6px;font-size:0.8rem;color:#1e3a5f;">${days[day - 1]}</div>
+        ${rows || '<p style="color:#999;font-size:0.75rem;text-align:center;padding:8px 0;">—</p>'}
+      </td>`;
+    }).join('');
+
+    // Build subject details HTML
+    const subjectsHtml = teacherSubjectDetails.length > 0
+      ? `<h2 style="font-size:0.9rem;text-transform:uppercase;letter-spacing:.05em;color:#555;margin:18px 0 6px;">${t("tt_subject_details")}</h2>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          ${teacherSubjectDetails.map(sub => `<div style="border-left:3px solid ${sub.color ?? '#3b82f6'};background:${(sub.color ?? '#3b82f6')}10;padding:6px 10px;border-radius:4px;font-size:0.8rem;">
+            <strong>${sub.name}</strong>
+            ${sub.classroom ? `<span style="color:#555;"> · ${sub.classroom}</span>` : ''}
+            ${sub.unit ? `<br/><span style="color:#666;font-size:0.72rem;">${sub.unit}</span>` : ''}
+          </div>`).join('')}
+        </div>`
+      : '';
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${calendar.academicYear} — ${selectedTeacher.name}</title>
+<style>
+  body { font-family: sans-serif; margin: 32px; color: #111; }
+  h1 { font-size: 1.3rem; margin-bottom: 4px; }
+  h2 { font-size: 0.9rem; text-transform: uppercase; letter-spacing: .05em; color: #555; margin: 18px 0 6px; }
+  p, li { font-size: 0.88rem; line-height: 1.55; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  .header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; border-bottom: 2px solid #1e3a5f; padding-bottom: 12px; }
+  .footer { margin-top: 32px; font-size: 0.7rem; color: #999; border-top: 1px solid #eee; padding-top: 8px; }
+  @media print { body { margin: 16px; } }
+</style></head><body>
+<div class="header">
+  ${logoHtml}
+  <div>
+    <h1 style="margin:0">${calendar.academicYear} — ${selectedTeacher.name}</h1>
+    <p style="margin:2px 0;color:#555;font-size:0.8rem;">${selectedTeacher.email ? selectedTeacher.email + ' · ' : ''}${calendar.schoolStartTime} – ${calendar.schoolEndTime} · ${uniqueTeacherSessions.length} ${t("tt_sessions")}</p>
+  </div>
+</div>
+<table><tr>${gridHtml}</tr></table>
+${subjectsHtml}
+<div class="footer">Powered by SEBA · ${new Date().toLocaleDateString()}</div>
+</body></html>`;
+
+    const w = window.open('', '_blank');
+    if (!w) return;
+    w.document.write(html);
+    w.document.close();
+    setTimeout(() => { w.print(); }, 400);
   };
 
   return (
@@ -167,12 +229,8 @@ function TimetableView({ calendarId, onBack }: { calendarId: number; onBack: () 
 
       {/* Timetable Grid */}
       {selectedTeacher ? (
-        <div ref={printRef} className="space-y-4" id="timetable-print-area">
-          {/* Print header (only visible when printing) */}
-          <div className="hidden print:block mb-4">
-            <h1 className="text-2xl font-bold text-black">{calendar.academicYear} — {selectedTeacher.name}</h1>
-            <p className="text-gray-600 text-sm">{calendar.schoolStartTime} – {calendar.schoolEndTime} · {selectedTeacher.email}</p>
-          </div>
+        <div className="space-y-4">
+
 
           <div className="flex items-center gap-3 print:hidden">
             <h3 className="text-white font-semibold text-lg">{selectedTeacher.name}</h3>
