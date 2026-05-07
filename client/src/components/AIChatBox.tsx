@@ -1,4 +1,3 @@
-import { AinaCreationActions } from "./AinaCreationActions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -1271,16 +1270,6 @@ export function AIChatBox({
                       )}
                       {message.role === "assistant" && !isLoading && message.id && onRateMessage && (
                         <RatingButtons messageId={message.id} rating={message.rating} onRate={onRateMessage} />
-                      {message.role === "assistant" && !isLoading && message.id && (
-                        <div className="mt-2">
-                          <AinaCreationActions
-                            title={`AINA Response · ${new Date().toLocaleDateString()}`}
-                            content={message.content}
-                            subject="General"
-                            yearGroup="All"
-                          />
-                        </div>
-                      )}
                       )}
                       {/* Retry button — shown on the last assistant error message when no id (error messages have no id) */}
                       {message.role === "assistant" && !isLoading && !message.id && onRetry && isLastMessage && (
