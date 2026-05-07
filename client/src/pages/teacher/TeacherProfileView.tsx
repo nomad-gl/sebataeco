@@ -7,9 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { BookOpen, Clock, Calendar, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { BookOpen, Clock, Calendar, TrendingUp, TrendingDown, Minus, MapPin, GraduationCap } from "lucide-react";
 
 const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
+const DAY_LABELS: Record<string, Record<number, string>> = {
+  en: { 1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri" },
+  es: { 1: "Lun", 2: "Mar", 3: "Mié", 4: "Jue", 5: "Vie" },
+  ca: { 1: "Dl", 2: "Dt", 3: "Dc", 4: "Dj", 5: "Dv" },
+};
 
 const currentAcademicYear = (() => {
   const now = new Date();
@@ -18,11 +23,16 @@ const currentAcademicYear = (() => {
 })();
 
 export default function TeacherProfileView() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { user } = useAuth();
   const [academicYear, setAcademicYear] = useState(currentAcademicYear);
 
   const { data: subjects, isLoading: subjectsLoading } = trpc.teacherProfile.getSubjects.useQuery(
+    { userId: user?.id ?? 0 },
+    { enabled: !!user?.id }
+  );
+
+  const { data: calendarSubjects, isLoading: calSubjectsLoading } = trpc.teacherProfile.getCalendarSubjects.useQuery(
     { userId: user?.id ?? 0 },
     { enabled: !!user?.id }
   );
@@ -45,6 +55,8 @@ export default function TeacherProfileView() {
       scheduleByDay[slot.dayOfWeek]!.push(slot);
     }
   }
+
+  const dayLabels = DAY_LABELS[lang] || DAY_LABELS.en;
 
   return (
     <div className="container py-6 space-y-6">
@@ -73,24 +85,94 @@ export default function TeacherProfileView() {
         </TabsList>
 
         {/* Subjects Tab */}
-        <TabsContent value="subjects" className="mt-4">
+        <TabsContent value="subjects" className="mt-4 space-y-6">
+          {/* Calendar Subjects (from Academic Calendar) */}
+          {calSubjectsLoading ? (
+            <div className="text-muted-foreground text-sm">{t("loading")}</div>
+          ) : calendarSubjects && calendarSubjects.length > 0 ? (
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                <GraduationCap className="h-4 w-4" />
+                {t("tp_calendar_subjects_title")}
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {calendarSubjects.map((sub) => (
+                  <Card key={sub.name} className="overflow-hidden" style={{ borderLeft: `4px solid ${sub.color ?? "#3b82f6"}` }}>
+                    <CardContent className="p-4">
+                      <p className="font-semibold">{sub.name}</p>
+                      {sub.unit && <p className="text-xs text-muted-foreground mt-0.5">{sub.unit}</p>}
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {sub.classroom && (
+                          <Badge variant="outline" className="text-xs flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            {sub.classroom}
+                          </Badge>
+                        )}
+                        {sub.semesters ? (
+                          <Badge variant="secondary" className="text-xs">
+                            {(() => {
+                              try {
+                                const sems = JSON.parse(sub.semesters);
+                                return sems.length > 1 ? `${t("tt_semesters")}: ${sems.join(", ")}` : `${t("tt_semester")} ${sems[0]}`;
+                              } catch { return `${t("tt_semester")} ${sub.semester}`; }
+                            })()}
+                          </Badge>
+                        ) : sub.semester ? (
+                          <Badge variant="secondary" className="text-xs">{t("tt_semester")} {sub.semester}</Badge>
+                        ) : null}
+                        {sub.sessionsPerWeek > 0 && (
+                          <Badge variant="secondary" className="text-xs">
+                            {sub.sessionsPerWeek} {t("tp_sessions_per_week")}
+                          </Badge>
+                        )}
+                      </div>
+                      {sub.days && sub.days.length > 0 && (
+                        <div className="flex gap-1 mt-2">
+                          {sub.days.map(d => (
+                            <span key={d} className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                              {dayLabels[d] ?? `D${d}`}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {sub.totalAcademicHours && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          {sub.totalAcademicHours}h {t("tp_total_hours_label")}
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {/* Manually assigned subjects */}
           {subjectsLoading ? (
             <div className="text-muted-foreground text-sm">{t("loading")}</div>
-          ) : !subjects?.length ? (
+          ) : !subjects?.length && (!calendarSubjects || calendarSubjects.length === 0) ? (
             <div className="text-muted-foreground text-sm text-center py-12">{t("tp_no_subjects_assigned")}</div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {subjects.map((s) => (
-                <Card key={s.id}>
-                  <CardContent className="p-4">
-                    <p className="font-semibold">{s.subject}</p>
-                    <Badge variant="secondary" className="mt-1 text-xs">{s.level}</Badge>
-                    {s.notes && <p className="text-xs text-muted-foreground mt-2">{s.notes}</p>}
-                  </CardContent>
-                </Card>
-              ))}
+          ) : subjects && subjects.length > 0 ? (
+            <div>
+              {calendarSubjects && calendarSubjects.length > 0 && (
+                <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                  <BookOpen className="h-4 w-4" />
+                  {t("tp_manual_subjects_title")}
+                </h3>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {subjects.map((s) => (
+                  <Card key={s.id}>
+                    <CardContent className="p-4">
+                      <p className="font-semibold">{s.subject}</p>
+                      <Badge variant="secondary" className="mt-1 text-xs">{s.level}</Badge>
+                      {s.notes && <p className="text-xs text-muted-foreground mt-2">{s.notes}</p>}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
-          )}
+          ) : null}
         </TabsContent>
 
         {/* Schedule Tab */}

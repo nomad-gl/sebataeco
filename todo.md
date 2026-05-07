@@ -5538,14 +5538,18 @@
 - [x] Update listCalendars and getCalendar to give head_of_study same visibility as admin
 
 ## Feature: Show Subject Details in Teacher Profile & Timetable (2026-05-07)
-- [ ] When a subject is created and a teacher is allocated, show subject details in teacher's teaching profile
-- [ ] Display subject info under appropriate tabs in teacher profile
-- [ ] Show subject details in /teacher-timetable page
-- [ ] Ensure data flows from academic calendar subjects to teacher timetable view
+- [x] When a subject is created and a teacher is allocated, show subject details in teacher's teaching profile
+- [x] Display subject info under appropriate tabs in teacher profile (Calendar Subjects section)
+- [x] Show subject details in /teacher-timetable page (classroom, color, semester, unit, days)
+- [x] Ensure data flows from academic calendar subjects to teacher timetable view
+- [x] Added getCalendarSubjects procedure to teacherProfile router
+- [x] Updated getPublishedCalendar to return subjects data
+- [x] Added i18n translations (EN, ES, CA)
 
 ## Fix: Deployment pnpm version issue (2026-05-07)
-- [ ] Pin pnpm to version 9.x to fix Docker build failure with global bin directory error
+- [x] Pin pnpm to version 9.15.4 via packageManager field to fix Docker build failure
 
 ## Feature: Print Teacher Timetable Calendar (2026-05-07)
-- [ ] Add print button to /teacher-timetable page
-- [ ] Ensure calendar renders properly for printing (print-optimized CSS)
+- [x] Add print button to /teacher-timetable page
+- [x] Ensure calendar renders properly for printing (print-optimized CSS)
+- [x] Print hides nav, adjusts colors for readability, preserves subject colors

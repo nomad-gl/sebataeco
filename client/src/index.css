@@ -319,6 +319,18 @@
   .presentation-bg, .material-view-bg {
     background: white !important;
   }
+  /* Teacher timetable print overrides */
+  body, .min-h-screen {
+    background: white !important;
+    min-height: auto !important;
+  }
+  nav {
+    display: none !important;
+  }
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
 }
 
 /* ── PARAULA game animations ─────────────────────────────────────────────── */

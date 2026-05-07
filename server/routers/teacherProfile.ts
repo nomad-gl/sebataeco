@@ -132,8 +132,72 @@ export const teacherProfileRouter = router({
       return { success: true };
     }),
 
-  // ── Schedule ─────────────────────────────────────────────────────────────────
+  // ── Calendar Subjects (from Academic Calendar) ──────────────────────────────────────
+  /**
+   * Get subjects assigned to a teacher from the academic calendar.
+   * Matches the teacher by email (from users table) to acTeachers,
+   * then finds all unique subjects from their sessions enriched with acSubjects details.
+   */
+  getCalendarSubjects: protectedProcedure
+    .input(z.object({ userId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const isSelf = ctx.user.id === input.userId;
+      const isAdmin = isDirectorOrHos(ctx.user.role, ctx.user.position ?? "");
+      if (!isSelf && !isAdmin) throw new TRPCError({ code: "FORBIDDEN" });
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      // Get user email/name to match against acTeachers
+      const [user] = await db.select().from(users).where(eq(users.id, input.userId));
+      if (!user) return [];
+      const userEmail = user.email;
+      const userName = user.displayName || (user.name as string | null);
+      if (!userEmail && !userName) return [];
+      // Find matching acTeacher records by email (primary) or name (fallback)
+      let teacherRows;
+      if (userEmail) {
+        teacherRows = await db.select().from(acTeachers).where(eq(acTeachers.email, userEmail));
+      }
+      if ((!teacherRows || teacherRows.length === 0) && userName) {
+        teacherRows = await db.select().from(acTeachers).where(eq(acTeachers.name, userName));
+      }
+      if (!teacherRows || teacherRows.length === 0) return [];
+      // Get all sessions for these teacher records
+      const teacherIds = teacherRows.map(t => t.id);
+      const allSessions = await db.select().from(acSessions);
+      const teacherSessionsFiltered = allSessions.filter(s => teacherIds.includes(s.teacherId));
+      // Get unique subject names
+      const subjectNames = [...new Set(teacherSessionsFiltered.map(s => s.subject))];
+      // Get calendar IDs for enrichment
+      const calendarIds = [...new Set(teacherRows.map(t => t.calendarId))];
+      // Get subject details from acSubjects
+      const allSubjects = await db.select().from(acSubjects);
+      const relevantSubjects = allSubjects.filter(s => calendarIds.includes(s.calendarId));
+      // Build enriched subject list
+      const result = subjectNames
+        .filter(name => !/free|prep|planning|break|recess|cover/i.test(name))
+        .map(name => {
+          const details = relevantSubjects.find(s => s.name === name);
+          const sessions = teacherSessionsFiltered.filter(s => s.subject === name);
+          const daysSet = new Set(sessions.map(s => s.dayOfWeek));
+          return {
+            name,
+            classroom: details?.classroom ?? null,
+            color: details?.color ?? null,
+            unit: details?.unit ?? null,
+            semester: details?.semester ?? null,
+            semesters: details?.semesters ?? null,
+            totalAcademicHours: details?.totalAcademicHours ?? null,
+            days: [...daysSet].sort(),
+            sessionsPerWeek: sessions.filter((s, i, arr) => {
+              const k = `${s.dayOfWeek}|${s.startTime}|${s.endTime}`;
+              return arr.findIndex(x => `${x.dayOfWeek}|${x.startTime}|${x.endTime}` === k) === i;
+            }).length,
+          };
+        });
+      return result;
+    }),
 
+  // ── Schedule ───────────────────────────────────────────────────────────────────────
   /** Get schedule for a teacher (director/HoS or self) */
   getSchedule: protectedProcedure
     .input(

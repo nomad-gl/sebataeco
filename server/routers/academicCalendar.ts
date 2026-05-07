@@ -664,7 +664,8 @@ export const academicCalendarRouter = router({
       if (!cal) throw new TRPCError({ code: "NOT_FOUND" });
       const teachers = await db.select().from(acTeachers).where(eq(acTeachers.calendarId, input.id));
       const sessions = await db.select().from(acSessions).where(eq(acSessions.calendarId, input.id));
-      return { calendar: cal, teachers, sessions };
+      const subjects = await db.select().from(acSubjects).where(eq(acSubjects.calendarId, input.id));
+      return { calendar: cal, teachers, sessions, subjects };
     }),
 
   /** Export the academic calendar as a PDF (base64 encoded). */
