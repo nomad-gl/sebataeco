@@ -5576,3 +5576,9 @@
 - [x] Add "Clear all history" button to chat history panel (with confirmation dialog)
 - [x] Add PDF/Word export buttons to /create preview page
 - [x] Added clearAllChatSessions backend procedure
+
+## Feature: Print Metadata Dialog on /create (2026-05-07)
+- [x] Add print metadata dialog to /create page matching MaterialView pattern
+- [x] Fields: school name, school badge/logo upload, teacher name, class/group, date
+- [x] Pre-fill from school branding if available (via trpc.director.getSchoolBranding)
+- [x] Print output includes header with school details and footer (uses printWithMeta)

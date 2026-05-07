@@ -16,7 +16,10 @@ import {
   Loader2, ChevronRight, Lock, Save, ArrowLeft, Pencil, X,
   ImagePlus, Upload, Wand2, Trash2, Gamepad2, Printer, FileText, FileDown,
 } from "lucide-react";
-import { exportPDF, exportWord } from "@/lib/exportUtils";
+import { exportPDF, exportWord, printWithMeta, type PrintMeta } from "@/lib/exportUtils";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from "@/components/ui/dialog";
 import { useLocation } from "wouter";
 import { useI18n } from "@/contexts/I18nContext";
 import { SebaSymbol } from "@/components/SebaSymbol";
@@ -455,6 +458,49 @@ export default function Create() {
   const [editableTitle, setEditableTitle] = useState("");
   const [editableContent, setEditableContent] = useState<Record<string, unknown>>({});
 
+  // Print metadata dialog state
+  const [printDialogOpen, setPrintDialogOpen] = useState(false);
+  const brandingQ = trpc.director.getSchoolBranding.useQuery(undefined, { staleTime: 60_000, retry: false });
+  const branding = brandingQ.data;
+  const [schoolName, setSchoolName] = useState("");
+  const [schoolBadgeUrl, setSchoolBadgeUrl] = useState("");
+  const [teacherName, setTeacherName] = useState("");
+  const [classDetails, setClassDetails] = useState("");
+  const [printDate, setPrintDate] = useState(() => new Date().toLocaleDateString());
+  const [badgeUploading, setBadgeUploading] = useState(false);
+
+  function openPrintDialog() {
+    if (branding) {
+      if (!schoolName && branding.schoolName) setSchoolName(branding.schoolName);
+      if (!schoolBadgeUrl && branding.logoUrl) setSchoolBadgeUrl(branding.logoUrl);
+    }
+    setPrintDialogOpen(true);
+  }
+
+  function handleBadgeUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBadgeUploading(true);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setSchoolBadgeUrl(ev.target?.result as string);
+      setBadgeUploading(false);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function handlePrintWithMeta() {
+    const meta: PrintMeta = {
+      schoolName: schoolName.trim() || undefined,
+      schoolBadgeUrl: schoolBadgeUrl.trim() || undefined,
+      teacherName: teacherName.trim() || undefined,
+      yearClass: classDetails.trim() || undefined,
+      date: printDate.trim() || undefined,
+    };
+    setPrintDialogOpen(false);
+    setTimeout(() => printWithMeta("material-preview-content", editableTitle, meta, selectedType || undefined, editableContent), 150);
+  }
+
   const generateMutation = trpc.materials.generate.useMutation({
     onSuccess: (data) => {
       setDraft(data as typeof draft);
@@ -537,6 +583,7 @@ export default function Create() {
     const typeInfo = ACTIVITY_TYPES.find(a => a.type === draft.type);
     const Icon = typeInfo?.icon ?? BookOpen;
     return (
+      <>
       <div className="create-bg flex flex-col min-h-screen">
         <NavBar />
         <div className="container py-4 sm:py-8 max-w-3xl mx-auto flex flex-col gap-6">
@@ -593,15 +640,7 @@ export default function Create() {
               {t("create_save_material")}
             </Button>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => {
-                const previewEl = document.getElementById("material-preview-content");
-                if (!previewEl) { window.print(); return; }
-                const win = window.open("", "_blank");
-                if (!win) return;
-                win.document.write(`<!DOCTYPE html><html><head><title>${editableTitle}</title><style>body{font-family:system-ui,sans-serif;padding:32px;max-width:800px;margin:0 auto}h1{font-size:22px;margin-bottom:16px}@media print{button{display:none}}</style></head><body><h1>${editableTitle}</h1>${previewEl.innerHTML}<br/><button onclick="window.print()" style="padding:8px 20px;background:#2563eb;color:white;border:none;border-radius:6px;cursor:pointer;font-size:14px">Print</button></body></html>`);
-                win.document.close();
-                setTimeout(() => win.print(), 600);
-              }} className="gap-1.5">
+              <Button variant="outline" size="sm" onClick={openPrintDialog} className="gap-1.5">
                 <Printer className="w-3.5 h-3.5" />
                 {t("material_print")}
               </Button>
@@ -629,6 +668,101 @@ export default function Create() {
           </div>
         </div>
       </div>
+
+      {/* Print metadata dialog */}
+      <Dialog open={printDialogOpen} onOpenChange={setPrintDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("sa_meta_title")}</DialogTitle>
+            <DialogDescription>{t("sa_meta_description")}</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 py-2">
+            {/* School badge */}
+            <div className="flex flex-col gap-1.5">
+              <Label>{t("sa_meta_school_badge")}</Label>
+              <div className="flex items-center gap-3">
+                {schoolBadgeUrl ? (
+                  <div className="relative">
+                    <img src={schoolBadgeUrl} alt="badge" className="w-14 h-14 object-contain rounded border border-border" />
+                    <button
+                      onClick={() => setSchoolBadgeUrl("")}
+                      className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full w-4 h-4 flex items-center justify-center text-xs"
+                    >&times;</button>
+                  </div>
+                ) : (
+                  <div className="w-14 h-14 rounded border-2 border-dashed border-muted-foreground/30 flex items-center justify-center text-muted-foreground text-xs text-center leading-tight">
+                    {t("sa_meta_school_badge")}
+                  </div>
+                )}
+                <div className="flex flex-col gap-1">
+                  <label className="cursor-pointer">
+                    <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded border border-border bg-muted hover:bg-muted/80 transition-colors">
+                      {badgeUploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                      {t("sa_meta_school_badge_upload")}
+                    </span>
+                    <input type="file" accept="image/*" className="hidden" onChange={handleBadgeUpload} />
+                  </label>
+                  {branding?.logoUrl && !schoolBadgeUrl && (
+                    <button
+                      onClick={() => setSchoolBadgeUrl(branding.logoUrl!)}
+                      className="text-xs text-primary underline underline-offset-2 text-left"
+                    >
+                      {t("sa_meta_school_badge_use_existing")}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+            {/* School name */}
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="pm-school">{t("sa_meta_school_name")}</Label>
+              <Input
+                id="pm-school"
+                value={schoolName}
+                onChange={e => setSchoolName(e.target.value)}
+                placeholder="e.g. Escola Sant Sebastià"
+              />
+            </div>
+            {/* Teacher name */}
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="pm-teacher">{t("sa_meta_teacher_name")}</Label>
+              <Input
+                id="pm-teacher"
+                value={teacherName}
+                onChange={e => setTeacherName(e.target.value)}
+                placeholder="e.g. Marta López"
+              />
+            </div>
+            {/* Class details */}
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="pm-class">{t("sa_meta_class_group")}</Label>
+              <Input
+                id="pm-class"
+                value={classDetails}
+                onChange={e => setClassDetails(e.target.value)}
+                placeholder="e.g. 5è A · Ciències Naturals"
+              />
+            </div>
+            {/* Date */}
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="pm-date">{t("sa_meta_date")}</Label>
+              <Input
+                id="pm-date"
+                value={printDate}
+                onChange={e => setPrintDate(e.target.value)}
+                placeholder={new Date().toLocaleDateString()}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPrintDialogOpen(false)}>{t("cancel")}</Button>
+            <Button onClick={handlePrintWithMeta}>
+              <Printer className="w-4 h-4 mr-1.5" /> {t("material_print")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      </>
     );
   }
 
