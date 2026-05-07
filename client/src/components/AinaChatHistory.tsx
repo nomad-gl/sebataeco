@@ -240,7 +240,7 @@ export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat, o
         <button
           onClick={onNewChat}
           title="New Chat"
-          className="mt-3 flex items-center justify-center size-8 rounded-lg bg-white/15 hover:bg-white/25 text-white border border-white/20 transition-colors"
+          className="mt-5 flex items-center justify-center size-8 rounded-lg bg-white/15 hover:bg-white/25 text-white border border-white/20 transition-colors"
         >
           <Plus className="size-4" />
         </button>
@@ -296,7 +296,7 @@ export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat, o
       style={{ width }}
     >
       {/* Header */}
-      <div className="p-3 border-b border-white/10 flex items-center gap-2">
+      <div className="px-3 pt-4 pb-3 border-b border-white/10 flex items-center gap-2">
         <Button
           size="sm"
           onClick={onNewChat}

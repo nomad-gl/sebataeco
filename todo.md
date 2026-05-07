@@ -5582,3 +5582,6 @@
 - [x] Fields: school name, school badge/logo upload, teacher name, class/group, date
 - [x] Pre-fill from school branding if available (via trpc.director.getSchoolBranding)
 - [x] Print output includes header with school details and footer (uses printWithMeta)
+
+## Bug Fix: Chat History Panel Positioning (2026-05-07)
+- [x] Move chat history panel down so top icons are not partially covered by NavBar
