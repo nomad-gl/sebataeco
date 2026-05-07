@@ -5536,3 +5536,16 @@
 - [x] Apply migration 0073 to add schoolName column to ac_teachers
 - [x] Update assertDirector to allow head_of_study role access to academic calendar
 - [x] Update listCalendars and getCalendar to give head_of_study same visibility as admin
+
+## Feature: Show Subject Details in Teacher Profile & Timetable (2026-05-07)
+- [ ] When a subject is created and a teacher is allocated, show subject details in teacher's teaching profile
+- [ ] Display subject info under appropriate tabs in teacher profile
+- [ ] Show subject details in /teacher-timetable page
+- [ ] Ensure data flows from academic calendar subjects to teacher timetable view
+
+## Fix: Deployment pnpm version issue (2026-05-07)
+- [ ] Pin pnpm to version 9.x to fix Docker build failure with global bin directory error
+
+## Feature: Print Teacher Timetable Calendar (2026-05-07)
+- [ ] Add print button to /teacher-timetable page
+- [ ] Ensure calendar renders properly for printing (print-optimized CSS)
