@@ -375,7 +375,8 @@ export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat, o
       </div>
 
       {/* Sessions list */}
-      <ScrollArea className="flex-1 px-1 py-2">
+      <div className="flex-1 min-h-0 overflow-hidden">
+      <ScrollArea className="h-full px-1 py-2">
         {sessions.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-8 px-3 text-center">
             <MessageSquare className="size-8 text-white/20" />
@@ -396,6 +397,7 @@ export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat, o
           </>
         )}
       </ScrollArea>
+      </div>
 
       {/* Footer */}
       {sessions.length > 0 && (

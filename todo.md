@@ -5596,3 +5596,9 @@
 
 ## Enhancement: Persist Chat History Panel State (2026-05-08)
 - [x] Save chat history panel open/closed state in localStorage so it persists across page reloads
+
+## Enhancement: Persist Sidebar Collapsed/Expanded State (2026-05-08)
+- [x] Save sidebar collapsed/expanded state in localStorage so it persists across page reloads (already implemented via COLLAPSED_KEY)
+
+## Bug Fix: Chat History Does Not Scroll (2026-05-08)
+- [x] Fix chat history panel so it scrolls when there are many conversations
