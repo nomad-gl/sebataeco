@@ -5602,3 +5602,6 @@
 
 ## Bug Fix: Chat History Does Not Scroll (2026-05-08)
 - [x] Fix chat history panel so it scrolls when there are many conversations
+
+## Bug Fix: Learning Descriptors Level Label (2026-05-08)
+- [x] Change "Junior (years 1-3)" to "Primary (years 1-3)" in learning descriptors by level
