@@ -5617,3 +5617,8 @@
 
 ## Bug Fix: Microphone Slow to Detect Sound (2026-05-08)
 - [x] Fix microphone being slow to detect sound in wake word detection feature
+
+## Enhancement: Web Audio API Voice Activity Detector (2026-05-08)
+- [x] Create useVAD hook with Web Audio API AnalyserNode for real-time voice detection
+- [x] Integrate VAD with useAinaWakeWord to gate SpeechRecognition on voice activity
+- [x] Integrate VAD with useClaraWakeWord (legacy, not actively used — skipped)

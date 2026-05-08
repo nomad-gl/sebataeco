@@ -150,6 +150,24 @@ export function useAinaWakeWord({
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scheduleWakeListenerRef = useRef<() => void>(() => {});
 
+  // ─── VAD (Voice Activity Detection) layer ──────────────────────────────────
+  // Keeps a persistent mic stream + AnalyserNode to detect voice activity.
+  // SpeechRecognition is only started/restarted when the VAD detects sound,
+  // eliminating false restarts during silence.
+  const vadStreamRef = useRef<MediaStream | null>(null);
+  const vadCtxRef = useRef<AudioContext | null>(null);
+  const vadAnalyserRef = useRef<AnalyserNode | null>(null);
+  const vadTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const vadNoiseFloorRef = useRef(5);
+  const vadIsSpeakingRef = useRef(false);
+  const vadSilenceStartRef = useRef<number | null>(null);
+  // When VAD detects voice and SR isn't running, this triggers startWakeListeners
+  const vadPendingStartRef = useRef(false);
+
+  const VAD_SPEECH_THRESHOLD = 12; // above noise floor to count as speech
+  const VAD_SILENCE_DEBOUNCE_MS = 400; // sustained silence before declaring quiet
+  const VAD_POLL_MS = 50; // polling interval
+
   useEffect(() => { enabledRef.current = enabled; }, [enabled]);
   useEffect(() => { onTranscriptRef.current = onTranscript; }, [onTranscript]);
   useEffect(() => { onActivatedRef.current = onActivated; }, [onActivated]);
@@ -159,6 +177,89 @@ export function useAinaWakeWord({
     wakeStateRef.current = s;
     setWakeState(s);
   }, []);
+
+  // ─── VAD start/stop ─────────────────────────────────────────────────────────
+
+  const stopVAD = useCallback(() => {
+    if (vadTimerRef.current) { clearInterval(vadTimerRef.current); vadTimerRef.current = null; }
+    if (vadCtxRef.current && vadCtxRef.current.state !== "closed") {
+      try { vadCtxRef.current.close(); } catch { /* ignore */ }
+    }
+    vadCtxRef.current = null;
+    vadAnalyserRef.current = null;
+    if (vadStreamRef.current) {
+      vadStreamRef.current.getTracks().forEach(t => t.stop());
+      vadStreamRef.current = null;
+    }
+    vadIsSpeakingRef.current = false;
+    vadSilenceStartRef.current = null;
+    vadPendingStartRef.current = false;
+  }, []);
+
+  const startVAD = useCallback(async () => {
+    stopVAD();
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: true },
+      });
+      vadStreamRef.current = stream;
+      const ctx = new AudioContext();
+      vadCtxRef.current = ctx;
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.3;
+      source.connect(analyser);
+      vadAnalyserRef.current = analyser;
+
+      const buf = new Uint8Array(analyser.frequencyBinCount);
+
+      vadTimerRef.current = setInterval(() => {
+        if (!vadAnalyserRef.current) return;
+        vadAnalyserRef.current.getByteFrequencyData(buf);
+        // Focus on speech-frequency bins (0–3kHz)
+        const speechBins = buf.slice(0, 20);
+        const avg = speechBins.reduce((sum, v) => sum + v, 0) / speechBins.length;
+
+        // Adaptive noise floor during silence
+        if (!vadIsSpeakingRef.current) {
+          vadNoiseFloorRef.current = vadNoiseFloorRef.current * 0.97 + avg * 0.03;
+          vadNoiseFloorRef.current = Math.max(2, Math.min(vadNoiseFloorRef.current, 40));
+        }
+
+        const threshold = vadNoiseFloorRef.current + VAD_SPEECH_THRESHOLD;
+        const isAbove = avg > threshold;
+
+        if (isAbove) {
+          vadSilenceStartRef.current = null;
+          if (!vadIsSpeakingRef.current) {
+            vadIsSpeakingRef.current = true;
+            console.log("[Aina VAD] Voice detected — level:", avg.toFixed(1), "threshold:", threshold.toFixed(1));
+            // If SR isn't running and we're idle, trigger start
+            if (enabledRef.current && wakeStateRef.current === "idle" && wakeRefs.current.every(r => r === null) && !activatingRef.current) {
+              vadPendingStartRef.current = true;
+              // Clear any existing restart timer and start immediately
+              if (restartTimerRef.current) { clearTimeout(restartTimerRef.current); restartTimerRef.current = null; }
+              scheduleWakeListenerRef.current();
+            }
+          }
+        } else {
+          if (vadIsSpeakingRef.current) {
+            if (vadSilenceStartRef.current === null) {
+              vadSilenceStartRef.current = Date.now();
+            } else if (Date.now() - vadSilenceStartRef.current >= VAD_SILENCE_DEBOUNCE_MS) {
+              vadIsSpeakingRef.current = false;
+              vadSilenceStartRef.current = null;
+            }
+          }
+        }
+      }, VAD_POLL_MS);
+
+      console.log("[Aina VAD] Started — monitoring mic for voice activity");
+    } catch (err) {
+      console.warn("[Aina VAD] Failed to start:", err);
+    }
+  }, [stopVAD]);
 
   // ─── Stop all sessions ───────────────────────────────────────────────────────
 
@@ -179,7 +280,8 @@ export function useAinaWakeWord({
     }
     activatingRef.current = false;
     setIsListening(false);
-  }, []);
+    stopVAD();
+  }, [stopVAD]);
 
   // ─── Input recording session ─────────────────────────────────────────────────
 
@@ -392,9 +494,18 @@ export function useAinaWakeWord({
   }, [startInputSession, updateState]);
 
   // Keep scheduleWakeListenerRef current
+  // VAD-gated: only restart SR if voice activity is detected (or VAD unavailable)
   useEffect(() => {
     scheduleWakeListenerRef.current = () => {
       if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
+
+      // If VAD is active and no voice detected, don't restart — wait for voice
+      if (vadAnalyserRef.current && !vadIsSpeakingRef.current && !vadPendingStartRef.current) {
+        console.log("[Aina VAD] Silence detected — deferring SR restart until voice returns");
+        return;
+      }
+      vadPendingStartRef.current = false;
+
       restartTimerRef.current = setTimeout(() => {
         restartTimerRef.current = null;
         if (enabledRef.current && wakeStateRef.current === "idle") {
@@ -409,14 +520,16 @@ export function useAinaWakeWord({
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
-        console.log("[Aina] Page hidden — pausing wake listeners");
+        console.log("[Aina] Page hidden — pausing wake listeners + VAD");
         wakeRefs.current.forEach((r, i) => {
           if (r) { try { r.abort(); } catch { /* ignore */ } wakeRefs.current[i] = null; }
         });
         if (restartTimerRef.current) { clearTimeout(restartTimerRef.current); restartTimerRef.current = null; }
         setIsListening(false);
+        stopVAD();
       } else if (document.visibilityState === "visible" && enabledRef.current && wakeStateRef.current === "idle") {
-        console.log("[Aina] Page visible — resuming wake listeners");
+        console.log("[Aina] Page visible — resuming VAD + wake listeners");
+        startVAD();
         restartTimerRef.current = setTimeout(() => {
           restartTimerRef.current = null;
           if (enabledRef.current && wakeStateRef.current === "idle") startWakeListeners();
@@ -425,13 +538,15 @@ export function useAinaWakeWord({
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [startWakeListeners]);
+  }, [startWakeListeners, startVAD, stopVAD]);
 
   // ─── Lifecycle ───────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (enabled) {
       updateState("idle");
+      // Start VAD first, then SR
+      startVAD();
       const t = setTimeout(() => startWakeListeners(), 100);
       return () => { clearTimeout(t); stopAll(); };
     } else {
@@ -439,7 +554,8 @@ export function useAinaWakeWord({
       updateState("idle");
       return () => { stopAll(); };
     }
-  }, [enabled, startWakeListeners, stopAll, updateState]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, startWakeListeners, stopAll, updateState, startVAD]);
 
   const requestPermission = useCallback(async () => {
     try {
