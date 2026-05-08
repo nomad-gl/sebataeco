@@ -19,6 +19,7 @@ import {
   teacherHolidayRecords,
   acTeachers,
   acSessions,
+  acSubjects,
   acSemesterDates,
   academicCalendars,
 } from "../../drizzle/schema";

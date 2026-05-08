@@ -5622,3 +5622,6 @@
 - [x] Create useVAD hook with Web Audio API AnalyserNode for real-time voice detection
 - [x] Integrate VAD with useAinaWakeWord to gate SpeechRecognition on voice activity
 - [x] Integrate VAD with useClaraWakeWord (legacy, not actively used — skipped)
+
+## Bug Fix: Teacher Profile Page Disappears After Task Resolution (2026-05-08)
+- [x] Fix Teacher Profile page crash — missing `acSubjects` import in teacherProfile router
