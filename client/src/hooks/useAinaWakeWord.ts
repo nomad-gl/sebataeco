@@ -145,7 +145,7 @@ export function useAinaWakeWord({
   // Shared flag: prevents double-activation when both parallel listeners fire
   const activatingRef = useRef(false);
 
-  const backoffMsRef = useRef<number>(isMobileBrowser() ? 1500 : 200);
+  const backoffMsRef = useRef<number>(isMobileBrowser() ? 500 : 50);
   const sessionStartTimesRef = useRef<number[]>(WAKE_LANGS.map(() => 0));
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scheduleWakeListenerRef = useRef<() => void>(() => {});
@@ -243,7 +243,7 @@ export function useAinaWakeWord({
         console.log("Transcript:", finalTranscript.trim());
         console.groupEnd();
         onTranscriptRef.current(finalTranscript.trim());
-        backoffMsRef.current = isMobileBrowser() ? 1500 : 200;
+        backoffMsRef.current = isMobileBrowser() ? 500 : 50;
       } else {
         console.log("[Aina] Input session ended with no speech — playing timeout tone");
         playTimeoutTone();
@@ -319,7 +319,7 @@ export function useAinaWakeWord({
             }
           });
           setIsListening(false);
-          backoffMsRef.current = isMobileBrowser() ? 1500 : 200;
+          backoffMsRef.current = isMobileBrowser() ? 500 : 50;
 
           // Fire the onActivated callback (for toast)
           try { onActivatedRef.current?.(); } catch { /* ignore */ }
@@ -327,7 +327,7 @@ export function useAinaWakeWord({
           playBeep().then(() => {
             setTimeout(() => {
               if (enabledRef.current) startInputSession();
-            }, 300);
+            }, 100);
           });
         }
       };
@@ -350,7 +350,7 @@ export function useAinaWakeWord({
         // If all listeners have errored, schedule a restart
         if (wakeRefs.current.every(r => r === null) && enabledRef.current && wakeStateRef.current === "idle") {
           if (isMobileBrowser()) {
-            backoffMsRef.current = Math.min(backoffMsRef.current * 1.5, 8000);
+            backoffMsRef.current = Math.min(backoffMsRef.current * 1.3, 3000);
           }
           scheduleWakeListenerRef.current();
         }
@@ -362,9 +362,9 @@ export function useAinaWakeWord({
         console.log(`[Aina] Wake listener (${wakeLang}) ended after ${sessionDuration}ms`);
 
         if (isMobileBrowser() && sessionDuration < 2000) {
-          backoffMsRef.current = Math.min(backoffMsRef.current * 1.5, 8000);
+          backoffMsRef.current = Math.min(backoffMsRef.current * 1.3, 3000);
         } else if (sessionDuration > 5000) {
-          backoffMsRef.current = isMobileBrowser() ? 1500 : 200;
+          backoffMsRef.current = isMobileBrowser() ? 500 : 50;
         }
 
         // If all listeners have ended and we're still idle, schedule restart
@@ -420,7 +420,7 @@ export function useAinaWakeWord({
         restartTimerRef.current = setTimeout(() => {
           restartTimerRef.current = null;
           if (enabledRef.current && wakeStateRef.current === "idle") startWakeListeners();
-        }, 500);
+        }, 150);
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
@@ -432,7 +432,7 @@ export function useAinaWakeWord({
   useEffect(() => {
     if (enabled) {
       updateState("idle");
-      const t = setTimeout(() => startWakeListeners(), 300);
+      const t = setTimeout(() => startWakeListeners(), 100);
       return () => { clearTimeout(t); stopAll(); };
     } else {
       stopAll();

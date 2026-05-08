@@ -128,7 +128,7 @@ export function useAinaWakeWord({
   const langRef = useRef(lang);
 
   // Backoff state for mobile — prevents hammering the OS mic notification
-  const backoffMsRef = useRef<number>(isMobileBrowser() ? 1500 : 400);
+  const backoffMsRef = useRef<number>(isMobileBrowser() ? 500 : 50);
   const sessionStartTimeRef = useRef<number>(0);
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -202,7 +202,7 @@ export function useAinaWakeWord({
       if (finalTranscript.trim()) {
         onTranscriptRef.current(finalTranscript.trim());
         // Reset backoff after a successful transcript — session was productive
-        backoffMsRef.current = isMobileBrowser() ? 1500 : 400;
+        backoffMsRef.current = isMobileBrowser() ? 500 : 50;
       } else {
         playTimeoutTone();
       }
@@ -251,11 +251,11 @@ export function useAinaWakeWord({
         try { rec.abort(); } catch { /* ignore */ }
         wakeRef.current = null;
         // Reset backoff — wake word was detected, session was productive
-        backoffMsRef.current = isMobileBrowser() ? 1500 : 400;
+        backoffMsRef.current = isMobileBrowser() ? 500 : 50;
         playBeep().then(() => {
           setTimeout(() => {
             if (enabledRef.current) startInputSession();
-          }, 300);
+          }, 100);
         });
       }
     };
@@ -270,7 +270,7 @@ export function useAinaWakeWord({
       if (enabledRef.current && wakeStateRef.current === "idle") {
         // Increase backoff on error (network, aborted, etc.)
         if (isMobileBrowser()) {
-          backoffMsRef.current = Math.min(backoffMsRef.current * 1.5, 8000);
+          backoffMsRef.current = Math.min(backoffMsRef.current * 1.3, 3000);
         }
         scheduleWakeListenerRef.current();
       }
@@ -283,10 +283,10 @@ export function useAinaWakeWord({
         // on mobile — apply backoff to avoid hammering the mic notification.
         const sessionDuration = Date.now() - sessionStartTimeRef.current;
         if (isMobileBrowser() && sessionDuration < 2000) {
-          backoffMsRef.current = Math.min(backoffMsRef.current * 1.5, 8000);
+          backoffMsRef.current = Math.min(backoffMsRef.current * 1.3, 3000);
         } else if (sessionDuration > 5000) {
           // Long session — reset backoff, things are working well
-          backoffMsRef.current = isMobileBrowser() ? 1500 : 400;
+          backoffMsRef.current = isMobileBrowser() ? 500 : 50;
         }
         scheduleWakeListenerRef.current();
       }

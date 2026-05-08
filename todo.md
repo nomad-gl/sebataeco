@@ -5614,3 +5614,6 @@
 
 ## Enhancement: Bulk Generate Textarea Placeholder Translation (2026-05-08)
 - [x] Translate the Bulk Generate textarea placeholder to support Catalan and Spanish
+
+## Bug Fix: Microphone Slow to Detect Sound (2026-05-08)
+- [x] Fix microphone being slow to detect sound in wake word detection feature
