@@ -3415,6 +3415,7 @@ export const translations = {
     pres_bulk_cancel: "Cancel",
     pres_bulk_select_subject: "Select subject",
     pres_bulk_select_year: "Select year group",
+    pres_bulk_placeholder: "The Water Cycle\nPhotosynthesis\nThe Roman Empire\nFractions and Decimals",
     // Privacy page
     privacy_primary: "Primary",
     privacy_target: "Target",
@@ -7473,6 +7474,7 @@ export const translations = {
     pres_bulk_cancel: "Cancelar",
     pres_bulk_select_subject: "Seleccionar asignatura",
     pres_bulk_select_year: "Seleccionar curso",
+    pres_bulk_placeholder: "El ciclo del agua\nLa fotosíntesis\nEl Imperio Romano\nFracciones y decimales",
     // Privacy page
     privacy_primary: "Primario",
     privacy_target: "Objetivo",
@@ -11531,6 +11533,7 @@ export const translations = {
     pres_bulk_cancel: "Cancel\u00b7lar",
     pres_bulk_select_subject: "Seleccionar assignatura",
     pres_bulk_select_year: "Seleccionar curs",
+    pres_bulk_placeholder: "El cicle de l'aigua\nLa fotosíntesi\nL'Imperi Romà\nFraccions i decimals",
     // Privacy page
     privacy_primary: "Primari",
     privacy_target: "Objectiu",

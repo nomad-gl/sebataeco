@@ -5611,3 +5611,6 @@
 
 ## Bug Fix: Create Presentation Page English in Catalan Mode (2026-05-08)
 - [x] Fix "Number of Slides (3-12)", "Options", "Discussion talking points" showing English in Catalan mode
+
+## Enhancement: Bulk Generate Textarea Placeholder Translation (2026-05-08)
+- [x] Translate the Bulk Generate textarea placeholder to support Catalan and Spanish

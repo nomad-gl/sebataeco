@@ -977,7 +977,7 @@ export default function Presentation() {
               <Textarea
                 value={bulkTopics}
                 onChange={e => setBulkTopics(e.target.value)}
-                placeholder={"The Water Cycle\nPhotosynthesis\nThe Roman Empire\nFractions and Decimals"}
+                placeholder={t("pres_bulk_placeholder" as any)}
                 rows={6}
                 className="bg-white/10 border-white/30 text-white placeholder:text-white/30 resize-none focus:border-blue-400 font-mono text-sm"
               />
