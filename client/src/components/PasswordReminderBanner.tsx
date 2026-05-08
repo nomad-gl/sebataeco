@@ -8,7 +8,7 @@
  * The banner is dismissible for the current session but will reappear
  * on next login until the password has actually been changed.
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ShieldAlert, X, Lock } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Link } from "wouter";
@@ -17,10 +17,18 @@ export default function PasswordReminderBanner() {
   const { user, loading } = useAuth();
   const [dismissed, setDismissed] = useState(false);
 
+  // Determine visibility
+  const isVisible = !loading && !!user && !!(user as any).mustChangePassword && !dismissed;
+
+  // Broadcast visibility changes so other components (e.g. chat history) can adjust spacing
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("seba_password_banner_visibility", { detail: { visible: isVisible } })
+    );
+  }, [isVisible]);
+
   // Only show for authenticated local users who still have a temp password
-  if (loading || !user) return null;
-  if (!(user as any).mustChangePassword) return null;
-  if (dismissed) return null;
+  if (!isVisible) return null;
 
   return (
     <div

@@ -52,21 +52,36 @@ export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat, o
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [showClearAll, setShowClearAll] = useState(false);
 
-  // ── Dynamic top spacing based on UpdateBanner visibility ──────────────────
+  // ── Dynamic top spacing based on top-banner visibility ──────────────────────
+  // Track each banner independently and compute combined offset
+  const BANNER_HEIGHT = 40; // approx height of each fixed top banner in px
   const [updateBannerVisible, setUpdateBannerVisible] = useState(() => {
-    // Check if the banner is already in the DOM on mount (handles timing where
-    // UpdateBanner dispatched its event before this component mounted)
-    const banner = document.querySelector('[role="status"][aria-live="polite"]');
-    return !!banner;
+    return !!document.querySelector('[role="status"][aria-live="polite"]');
   });
+  const [passwordBannerVisible, setPasswordBannerVisible] = useState(() => {
+    return !!document.querySelector('[role="alert"][aria-live="assertive"]');
+  });
+
   useEffect(() => {
-    const handler = (e: Event) => {
+    const handleUpdate = (e: Event) => {
       const detail = (e as CustomEvent<{ visible: boolean }>).detail;
       setUpdateBannerVisible(detail.visible);
     };
-    window.addEventListener("seba_update_banner_visibility", handler);
-    return () => window.removeEventListener("seba_update_banner_visibility", handler);
+    const handlePassword = (e: Event) => {
+      const detail = (e as CustomEvent<{ visible: boolean }>).detail;
+      setPasswordBannerVisible(detail.visible);
+    };
+    window.addEventListener("seba_update_banner_visibility", handleUpdate);
+    window.addEventListener("seba_password_banner_visibility", handlePassword);
+    return () => {
+      window.removeEventListener("seba_update_banner_visibility", handleUpdate);
+      window.removeEventListener("seba_password_banner_visibility", handlePassword);
+    };
   }, []);
+
+  // Compute the number of visible top banners and derive a dynamic top offset
+  const visibleBannerCount = (updateBannerVisible ? 1 : 0) + (passwordBannerVisible ? 1 : 0);
+  const bannerTopOffset = visibleBannerCount * BANNER_HEIGHT;
 
   // ── Collapsed state ───────────────────────────────────────────────────────
   const [collapsed, setCollapsed] = useState<boolean>(() => {
@@ -256,10 +271,8 @@ export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat, o
         <button
           onClick={onNewChat}
           title="New Chat"
-          className={cn(
-            "flex items-center justify-center size-8 rounded-lg bg-white/15 hover:bg-white/25 text-white border border-white/20 transition-all duration-200",
-            updateBannerVisible ? "mt-12" : "mt-3"
-          )}
+          className="flex items-center justify-center size-8 rounded-lg bg-white/15 hover:bg-white/25 text-white border border-white/20 transition-all duration-200"
+          style={{ marginTop: `${12 + bannerTopOffset}px` }}
         >
           <Plus className="size-4" />
         </button>
@@ -315,10 +328,10 @@ export function AinaChatHistory({ activeSessionId, onSelectSession, onNewChat, o
       style={{ width }}
     >
       {/* Header */}
-      <div className={cn(
-        "px-3 pb-3 border-b border-white/10 flex items-center gap-2 transition-all duration-200",
-        updateBannerVisible ? "pt-12" : "pt-3"
-      )}>
+      <div
+        className="px-3 pb-3 border-b border-white/10 flex items-center gap-2 transition-all duration-200"
+        style={{ paddingTop: `${12 + bannerTopOffset}px` }}
+      >
         <Button
           size="sm"
           onClick={onNewChat}

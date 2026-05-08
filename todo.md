@@ -5588,3 +5588,8 @@
 
 ## Enhancement: Dynamic Chat History Panel Spacing (2026-05-08)
 - [x] Make chat history panel dynamically adjust top spacing based on UpdateBanner visibility
+
+## Enhancement: Chat History Panel Follow-ups (2026-05-08)
+- [x] Add PasswordReminderBanner visibility event dispatch for dynamic spacing
+- [x] Handle stacking of multiple top banners (combined height awareness in chat history panel)
+- [x] Add subtle slide animation to chat history panel open/close

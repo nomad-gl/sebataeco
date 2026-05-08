@@ -523,14 +523,19 @@ export default function Chat() {
         {/* ── History sidebar ───────────────────────────────────────────── */}
         {user && (
           <>
-            {historyOpen && (
+            <div
+              className={cn(
+                "transition-all duration-300 ease-in-out overflow-hidden",
+                historyOpen ? "opacity-100" : "w-0 opacity-0"
+              )}
+            >
               <AinaChatHistory
                 activeSessionId={activeSessionId}
                 onSelectSession={handleSelectSession}
                 onNewChat={handleNewChat}
                 onClose={() => setHistoryOpen(false)}
               />
-            )}
+            </div>
             <button
               onClick={() => setHistoryOpen((v) => !v)}
               className="hidden sm:flex flex-col items-center justify-center w-5 bg-white/5 hover:bg-white/10 border-r border-white/10 transition-colors text-white/40 hover:text-white/70"
