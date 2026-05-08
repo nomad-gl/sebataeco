@@ -5593,3 +5593,6 @@
 - [x] Add PasswordReminderBanner visibility event dispatch for dynamic spacing
 - [x] Handle stacking of multiple top banners (combined height awareness in chat history panel)
 - [x] Add subtle slide animation to chat history panel open/close
+
+## Enhancement: Persist Chat History Panel State (2026-05-08)
+- [x] Save chat history panel open/closed state in localStorage so it persists across page reloads

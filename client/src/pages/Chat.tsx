@@ -50,7 +50,17 @@ export default function Chat() {
   // ── Local UI state ───────────────────────────────────────────────────────
   const [showFilters, setShowFilters] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(true);
+  const [historyOpen, setHistoryOpen] = useState(() => {
+    try {
+      const stored = localStorage.getItem("seba_chat_history_open");
+      return stored !== null ? stored === "true" : true;
+    } catch { return true; }
+  });
+  // Persist historyOpen to localStorage
+  useEffect(() => {
+    try { localStorage.setItem("seba_chat_history_open", String(historyOpen)); } catch {}
+  }, [historyOpen]);
+
   const [isRestoringSession, setIsRestoringSession] = useState(false);
   const [pendingDocContext, setPendingDocContext] = useState<{ text: string; fileName: string } | null>(null);
   const [pendingImageUrls, setPendingImageUrls] = useState<string[]>([]);
