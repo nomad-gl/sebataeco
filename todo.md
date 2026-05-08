@@ -5608,3 +5608,6 @@
 
 ## Bug Fix: Eix 1-4 Cards English Text in Catalan Mode (2026-05-08)
 - [x] Fix Eix 1, 2, 3, 4 cards in Educació Infantil to show Catalan text when in Catalan language mode
+
+## Bug Fix: Create Presentation Page English in Catalan Mode (2026-05-08)
+- [x] Fix "Number of Slides (3-12)", "Options", "Discussion talking points" showing English in Catalan mode

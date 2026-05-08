@@ -667,7 +667,7 @@ export default function Presentation() {
             </div>
             <div className="space-y-1.5">
               <Label className="text-white/90 font-medium">
-                Number of Slides <span className="text-white/50 font-normal">(3–12)</span>
+                {t("pres_num_slides" as any)} <span className="text-white/50 font-normal">(3–12)</span>
               </Label>
               <Input
                 type="number" min={3} max={12} value={slideCount}
@@ -676,7 +676,7 @@ export default function Presentation() {
               />
             </div>
             <div className="space-y-1.5 flex flex-col justify-end">
-              <Label className="text-white/90 font-medium">Options</Label>
+              <Label className="text-white/90 font-medium">{t("pres_options" as any)}</Label>
               <label className="flex items-center gap-2 cursor-pointer select-none h-10 px-3 rounded-md bg-white/10 border border-white/30 hover:bg-white/15 transition-colors">
                 <input
                   type="checkbox"
@@ -684,7 +684,7 @@ export default function Presentation() {
                   onChange={e => setIncludeTalkingPoints(e.target.checked)}
                   className="w-4 h-4 accent-blue-400"
                 />
-                <span className="text-white/90 text-sm">Discussion talking points</span>
+                <span className="text-white/90 text-sm">{t("pres_discussion_points" as any)}</span>
               </label>
             </div>
             <div className="flex items-end">
@@ -963,7 +963,7 @@ export default function Presentation() {
           >
             <div className="flex items-center gap-2">
               <Layers className="w-5 h-5 text-blue-300" />
-              <span className="font-semibold text-white">Bulk Generate</span>
+              <span className="font-semibold text-white">{t("pres_bulk_generate" as any)}</span>
               <Badge className="bg-blue-400/20 text-blue-200 border-blue-400/30 text-xs ml-1">New</Badge>
             </div>
             <ChevronDown className={`w-4 h-4 text-white/60 transition-transform ${showBulk ? "rotate-180" : ""}`} />
@@ -972,7 +972,7 @@ export default function Presentation() {
           {showBulk && (
             <CardContent className="px-5 pb-5 pt-0 space-y-4 border-t border-blue-400/20">
               <p className="text-white/70 text-sm">
-                Enter one topic per line. Each will be generated as a separate presentation and saved to My Materials automatically.
+                {t("pres_bulk_desc" as any)}
               </p>
               <Textarea
                 value={bulkTopics}
@@ -983,7 +983,7 @@ export default function Presentation() {
               />
               {/* School / Institution */}
               <div className="space-y-1.5">
-                <Label className="text-white/90 font-medium text-sm">School / Institution <span className="text-white/40 font-normal">(optional)</span></Label>
+                <Label className="text-white/90 font-medium text-sm">{t("pres_bulk_school_label" as any)} <span className="text-white/40 font-normal">({t("pres_bulk_school_optional" as any)})</span></Label>
                 <Input
                   value={bulkSchool}
                   onChange={e => setBulkSchool(e.target.value)}
@@ -994,10 +994,10 @@ export default function Presentation() {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-white/90 font-medium text-sm">Subject <span className="text-red-400">*</span></Label>
+                  <Label className="text-white/90 font-medium text-sm">{t("pres_bulk_subject" as any)} <span className="text-red-400">*</span></Label>
                   <Select value={bulkSubject} onValueChange={setBulkSubject}>
                     <SelectTrigger className="bg-white/10 border-white/30 text-white focus:border-blue-400">
-                      <SelectValue placeholder="Select subject" />
+                      <SelectValue placeholder={t("pres_bulk_select_subject" as any)} />
                     </SelectTrigger>
                     <SelectContent>
                       {SUBJECT_KEYS.map((k, i) => <SelectItem key={k} value={SUBJECT_VALUES[i]!}>{t(k)}</SelectItem>)}
@@ -1005,10 +1005,10 @@ export default function Presentation() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-white/90 font-medium text-sm">Year Group <span className="text-red-400">*</span></Label>
+                  <Label className="text-white/90 font-medium text-sm">{t("pres_bulk_year_group" as any)} <span className="text-red-400">*</span></Label>
                   <Select value={bulkYearGroup} onValueChange={setBulkYearGroup}>
                     <SelectTrigger className="bg-white/10 border-white/30 text-white focus:border-blue-400">
-                      <SelectValue placeholder="Select year group" />
+                      <SelectValue placeholder={t("pres_bulk_select_year" as any)} />
                     </SelectTrigger>
                     <SelectContent>
                       {YEAR_GROUP_VALUES.map(y => <SelectItem key={y.value} value={y.value}>{t(y.labelKey)}</SelectItem>)}
@@ -1016,13 +1016,13 @@ export default function Presentation() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-white/90 font-medium text-sm">Competency</Label>
+                  <Label className="text-white/90 font-medium text-sm">{t("pres_bulk_competency" as any)}</Label>
                   <Select value={bulkCompetency} onValueChange={setBulkCompetency}>
                     <SelectTrigger className="bg-white/10 border-white/30 text-white focus:border-blue-400">
-                      <SelectValue placeholder="Any" />
+                      <SelectValue placeholder={t("pres_bulk_any" as any)} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="any">Any</SelectItem>
+                      <SelectItem value="any">{t("pres_bulk_any" as any)}</SelectItem>
                       {COMPETENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                     </SelectContent>
                   </Select>
@@ -1032,7 +1032,7 @@ export default function Presentation() {
               {bulkProgress && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm text-white/70">
-                    <span>Generating: <span className="text-white font-medium">{bulkProgress.current}</span></span>
+                    <span>{t("pres_bulk_generating" as any)} <span className="text-white font-medium">{bulkProgress.current}</span></span>
                     <span>{bulkProgress.done} / {bulkProgress.total}</span>
                   </div>
                   <Progress value={(bulkProgress.done / bulkProgress.total) * 100} className="h-2 bg-white/10" />
@@ -1048,13 +1048,13 @@ export default function Presentation() {
                   onClick={handleBulkGenerate}
                 >
                   {bulkProgress
-                    ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Generating…</>
-                    : <><Layers className="w-4 h-4 mr-2" /> Bulk Generate & Save</>}
+                    ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> {t("pres_bulk_generating_ellipsis" as any)}</>
+                    : <><Layers className="w-4 h-4 mr-2" /> {t("pres_bulk_generate_save" as any)}</>}
                 </Button>
                 {bulkProgress && (
                   <Button variant="outline" className="border-white/30 text-white hover:bg-white/10"
                     onClick={() => { bulkAbortRef.current = true; }}>
-                    Cancel
+                    {t("pres_bulk_cancel" as any)}
                   </Button>
                 )}
               </div>
