@@ -3812,6 +3812,21 @@ export const translations = {
     eix4_saber36_4: "Recognition of elements of the sociocultural environment (festivals, traditions)",
     eix4_saber36_5: "Participation in cultural celebrations and traditions in the environment",
     eix4_saber36_6: "Knowledge of the linguistic reality of the classroom and the nearby environment",
+    // EIX axis names (translated)
+    eix1_name: "Personal Growth & Autonomy",
+    eix2_name: "Communication & Languages",
+    eix3_name: "Discovery of the Environment",
+    eix4_name: "Living Together in Diversity",
+    // EIX axis descriptions (translated)
+    eix1_desc: "Explores the construction of personal identity, body awareness, emotional regulation and progressive autonomy in everyday life.",
+    eix2_desc: "Covers oral, written, artistic and digital communication — all the languages children use to express and understand the world.",
+    eix3_desc: "Focuses on mathematical thinking, scientific inquiry and sustainable interaction with the natural environment.",
+    eix4_desc: "Addresses social relationships, cultural diversity, democratic values and the child's place in the community.",
+    // EIX pedagogical focus (translated)
+    eix1_pedagogical: "Respectful accompaniment of motor development and emotional self-regulation through free play and daily routines.",
+    eix2_pedagogical: "Immersion in rich communicative contexts that value all expressive languages equally.",
+    eix3_pedagogical: "Inquiry-based learning through direct manipulation, experimentation and sustained observation.",
+    eix4_pedagogical: "Creating a classroom culture of belonging, empathy and respect for diversity.",
     eix_official_text_note: "Official legislative text (Decret 21/2023)",
     // Director Notification System
     dir_notif_bell_label: "Notifications",
@@ -7841,6 +7856,21 @@ export const translations = {
     eix4_saber36_4: "Reconocimiento de elementos del entorno sociocultural (fiestas, tradiciones)",
     eix4_saber36_5: "Participaci\u00f3n en celebraciones y tradiciones culturales del entorno",
     eix4_saber36_6: "Conocimiento de la realidad ling\u00fc\u00edstica del aula y el entorno cercano",
+    // EIX axis names (translated)
+    eix1_name: "Crecimiento personal y autonomía",
+    eix2_name: "Comunicación y lenguajes",
+    eix3_name: "Descubrimiento del entorno",
+    eix4_name: "Convivir en la diversidad",
+    // EIX axis descriptions (translated)
+    eix1_desc: "Explora la construcción de la identidad personal, la conciencia corporal, la regulación emocional y la autonomía progresiva en la vida cotidiana.",
+    eix2_desc: "Abarca la comunicación oral, escrita, artística y digital — todos los lenguajes que los niños utilizan para expresar y comprender el mundo.",
+    eix3_desc: "Se centra en el pensamiento matemático, la indagación científica y la interacción sostenible con el medio natural.",
+    eix4_desc: "Aborda las relaciones sociales, la diversidad cultural, los valores democráticos y el lugar del niño en la comunidad.",
+    // EIX pedagogical focus (translated)
+    eix1_pedagogical: "Acompañamiento respetuoso del desarrollo motor y la autorregulación emocional a través del juego libre y las rutinas diarias.",
+    eix2_pedagogical: "Inmersión en contextos comunicativos ricos que valoran todos los lenguajes expresivos por igual.",
+    eix3_pedagogical: "Aprendizaje basado en la indagación mediante la manipulación directa, la experimentación y la observación sostenida.",
+    eix4_pedagogical: "Creación de una cultura de aula basada en la pertenencia, la empatía y el respeto a la diversidad.",
     eix_official_text_note: "Texto legislativo oficial (Decret 21/2023)",
     // Director Notification System
     dir_notif_bell_label: "Notificaciones",
@@ -11870,6 +11900,21 @@ export const translations = {
     eix4_saber36_4: "Reconeixement d'elements de l'entorn sociocultural (festes, tradicions)",
     eix4_saber36_5: "Participaci\u00f3 en celebracions i tradicions culturals de l'entorn",
     eix4_saber36_6: "Coneixement de la realitat ling\u00fc\u00edstica de l'aula i l'entorn proper",
+    // EIX axis names (in Catalan)
+    eix1_name: "Creixement personal i autonomia",
+    eix2_name: "Comunicació i llenguatges",
+    eix3_name: "Descoberta de l'entorn",
+    eix4_name: "Conviure en la diversitat",
+    // EIX axis descriptions (in Catalan)
+    eix1_desc: "Explora la construcció de la identitat personal, la consciència corporal, la regulació emocional i l'autonomia progressiva en la vida quotidiana.",
+    eix2_desc: "Abasta la comunicació oral, escrita, artística i digital — tots els llenguatges que els infants utilitzen per expressar i comprendre el món.",
+    eix3_desc: "Se centra en el pensament matemàtic, la indagació científica i la interacció sostenible amb el medi natural.",
+    eix4_desc: "Aborda les relacions socials, la diversitat cultural, els valors democràtics i el lloc de l'infant a la comunitat.",
+    // EIX pedagogical focus (in Catalan)
+    eix1_pedagogical: "Acompanyament respectuós del desenvolupament motor i l'autoregulació emocional a través del joc lliure i les rutines diàries.",
+    eix2_pedagogical: "Immersió en contextos comunicatius rics que valoren tots els llenguatges expressius per igual.",
+    eix3_pedagogical: "Aprenentatge basat en la indagació mitjançant la manipulació directa, l'experimentació i l'observació sostinguda.",
+    eix4_pedagogical: "Creació d'una cultura d'aula basada en la pertinença, l'empatia i el respecte a la diversitat.",
     eix_official_text_note: "Text legislatiu oficial (Decret 21/2023)",
     // Director Notification System
     dir_notif_bell_label: "Notificacions",

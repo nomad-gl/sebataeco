@@ -5605,3 +5605,6 @@
 
 ## Bug Fix: Learning Descriptors Level Label (2026-05-08)
 - [x] Change "Junior (years 1-3)" to "Primary (years 1-3)" in learning descriptors by level
+
+## Bug Fix: Eix 1-4 Cards English Text in Catalan Mode (2026-05-08)
+- [x] Fix Eix 1, 2, 3, 4 cards in Educació Infantil to show Catalan text when in Catalan language mode
