@@ -5668,8 +5668,9 @@
 - [x] Add "Aina" voice option in voice picker (shown only when language is Catalan)
 - [x] Add translation keys for Aina voice (EN/ES/CA)
 
-## Feature: Self-Healing Auto-Translation of ALL Hardcoded Text (2026-05-09)
-- [ ] Build auto-fix script that detects hardcoded text and automatically wraps it in t() calls
+## Feature: Self-Healing Auto-Translation of ALL Hardcoded Text (2026-05-09) — DEFERRED
+**Note:** This feature requires a sophisticated AST-based approach to avoid false positives (CSS class names, route paths, sessionStorage keys, etc.). The initial implementation had too many edge cases. Recommend implementing with a whitelist-based approach (only translate specific safe contexts like JSX text nodes, title/label/aria-label attributes) rather than blacklist approach.
+- [ ] Build auto-fix script with whitelist-based detection (safe contexts only)
 - [ ] Generate unique translation keys for each detected string
 - [ ] Use LLM to translate detected English strings into Spanish and Catalan
 - [ ] Automatically inject new translation keys into I18nContext.tsx (EN/ES/CA sections)
