@@ -20,6 +20,7 @@ import {
 import { HourAdjustmentsLog } from "@/components/HourAdjustmentsLog";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
+import TeacherDetailView from "@/pages/TeacherDetailView";
 
 const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
 const SEMESTERS = ["1", "2", "full_year"] as const;
@@ -198,8 +199,8 @@ export default function DirectorTeacherProfiles() {
   // ── Cover Availability tab state ──────────────────────────────────────────
   const [coverCalendarId, setCoverCalendarId] = useState<number | undefined>(undefined);
   const { data: coverData, isLoading: coverLoading } = trpc.teacherProfile.getCoverAvailability.useQuery(
-    { calendarId: coverCalendarId },
-    { enabled: true }
+    { calendarId: coverCalendarId ?? 0 },
+    { enabled: !!coverCalendarId }
   );
 
   // ── Holiday & Prep tab state ──────────────────────────────────────────────
@@ -357,7 +358,6 @@ export default function DirectorTeacherProfiles() {
 
   // Show detail view if a teacher is selected for viewing details
   if (showDetailView && detailTeacherId) {
-    const TeacherDetailView = require("@/pages/TeacherDetailView").default;
     return (
       <TeacherDetailView
         teacherId={detailTeacherId}
