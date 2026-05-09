@@ -1,14 +1,17 @@
 /**
  * i18nAutoFix.ts
  * ─────────────────────────────────────────────────────────────────────────────
- * Self-healing translation system that automatically:
- *   1. Detects ALL hardcoded (untranslated) user-visible strings in source files
+ * Whitelist-based self-healing translation system that automatically:
+ *   1. Detects hardcoded user-visible strings in SAFE CONTEXTS ONLY:
+ *      - JSX text nodes (text between > and <)
+ *      - Specific JSX attributes (placeholder, aria-label, alt, title, label)
  *   2. Generates unique translation keys for each detected string
  *   3. Uses LLM to translate English strings into Spanish and Catalan
  *   4. Rewrites source files to replace hardcoded text with t() calls
  *   5. Injects new translation keys into I18nContext.tsx (EN/ES/CA)
  *
- * NO EXCEPTIONS — every user-visible string must be translated.
+ * WHITELIST APPROACH: Only translates in proven-safe contexts to avoid false positives
+ * on CSS classes, route paths, sessionStorage keys, and other technical strings.
  *
  * This module is designed to be called from the scheduled weekly audit endpoint
  * and runs fully autonomously without manual intervention.
@@ -20,7 +23,6 @@ import { invokeLLM } from "./_core/llm";
 import { notifyOwner } from "./_core/notification";
 
 // ── Configuration ─────────────────────────────────────────────────────────────
-// Use process.cwd() for reliable path resolution in both dev (tsx watch) and production (node dist/)
 const PROJECT_ROOT = process.cwd();
 const CLIENT_SRC = path.resolve(PROJECT_ROOT, "client/src");
 const I18N_CONTEXT = path.resolve(CLIENT_SRC, "contexts/I18nContext.tsx");
@@ -46,7 +48,7 @@ interface DetectedString {
   line: number;
   column: number;
   text: string;        // the original hardcoded text
-  type: "jsx_text" | "jsx_attr" | "string_literal";
+  type: "jsx_text" | "jsx_attr";  // WHITELIST: only these two safe types
   context: string;     // the full line for context
 }
 
@@ -104,11 +106,31 @@ function collectFiles(dir: string): string[] {
 // ── Detection logic ──────────────────────────────────────────────────────────
 
 /**
- * Comprehensive list of patterns that indicate a string is NOT user-visible.
- * This is intentionally very broad to avoid false positives.
+ * Check if a string is clearly user-visible UI text (not technical).
+ * Very strict — only returns true for strings meant for users.
+ */
+function isUserVisibleText(text: string): boolean {
+  const trimmed = text.trim();
+  
+  // Must have at least 2 consecutive word characters
+  if (!/[A-Za-z\u00C0-\u017F]{2,}/.test(trimmed)) return false;
+  
+  // Must not be a technical string (CSS, routes, etc.)
+  if (isTechnicalString(trimmed)) return false;
+  
+  // Must have at least 3 characters of actual text (words)
+  if (trimmed.replace(/[^A-Za-z\u00C0-\u017F]/g, "").length < 3) return false;
+  
+  return true;
+}
+
+/**
+ * Check if a string is technical (CSS class, route path, identifier, etc.).
+ * This is a strict list of patterns that should NOT be translated.
  */
 function isTechnicalString(text: string): boolean {
   const trimmed = text.trim();
+  
   const technicalPatterns = [
     /^[a-z][a-z0-9_]*$/,                    // snake_case identifiers
     /^[a-z][a-zA-Z0-9]*$/,                  // camelCase identifiers
@@ -118,7 +140,7 @@ function isTechnicalString(text: string): boolean {
     /^\d+(\.\d+)?$/,                        // numbers
     /^[a-z]+\/[a-z]+/,                      // MIME types
     /^\./,                                   // file paths
-    /^\//,                                   // route paths (start with /)
+    /^\//,                                   // route paths
     /^@/,                                    // decorators/imports
     /^(px|rem|em|vh|vw|%|ms|s)$/,          // CSS units
     /^(flex|grid|block|inline|none|auto|inherit|initial|unset)$/,  // CSS values
@@ -129,14 +151,14 @@ function isTechnicalString(text: string): boolean {
     /^(div|span|p|h[1-6]|button|input|form|img|a|ul|li|nav|header|footer|section|main|aside)$/, // HTML tags
     /^(onClick|onChange|onSubmit|onFocus|onBlur|className|style|key|ref|id|type|name|value|src|href|alt|title)$/, // React props
     /^data-/,                                // data attributes
-    /^aria-/,                                // aria attributes (as prop names)
+    /^aria-/,                                // aria attributes as prop names
     /^\{/,                                   // template expressions
     /^[<>]/,                                 // JSX brackets
     /^(sm|md|lg|xl|2xl):/,                  // Tailwind breakpoints
     /^(bg|text|border|ring|shadow|rounded|flex|grid|p|m|w|h|gap|space|items|justify|self|place|overflow|z|opacity|transition|duration|ease|delay|animate|transform|scale|rotate|translate|skew|origin|cursor|select|resize|appearance|outline|fill|stroke|object|float|clear|isolation|mix|backdrop|filter|blur|brightness|contrast|grayscale|hue|invert|saturate|sepia|drop|table|caption|empty|list|decoration|underline|overline|line|no-underline|font|tracking|leading|whitespace|break|truncate|indent|align|vertical|content|order|col|row|auto|span|start|end|gap|flow|grid-cols|grid-rows|min|max|aspect|container|columns|basis|grow|shrink|sr)-/, // Tailwind classes
-    /^(items-start|items-end|items-center|items-baseline|items-stretch)$/, // Tailwind flex alignment
+    /^(items-start|items-end|items-center|items-baseline|items-stretch)$/, // Tailwind flex
     /^(justify-start|justify-end|justify-center|justify-between|justify-around|justify-evenly)$/, // Tailwind justify
-    /^(center|left|right|top|bottom|start|end|between|around|evenly|wrap|nowrap|column|row|hidden|visible|scroll|fixed|absolute|relative|sticky|static)$/i, // CSS/layout values
+    /^(center|left|right|top|bottom|start|end|between|around|evenly|wrap|nowrap|column|row|hidden|visible|scroll|fixed|absolute|relative|sticky|static)$/i, // CSS/layout
     /^(default|secondary|destructive|outline|ghost|link)$/, // Button variants
     /^(sm|md|lg|xl|xs|2xl|3xl|4xl|5xl|icon)$/, // Size variants
     /^(success|error|warning|info|pending|loading)$/, // Status values
@@ -147,40 +169,24 @@ function isTechnicalString(text: string): boolean {
     /^(application|audio|video|image|text|font|model|multipart)\//,  // MIME types
     /^(Bearer|Basic)\s/,                     // Auth headers
     /^[a-z]+-[a-z]+(-[a-z]+)*$/,            // kebab-case (CSS classes, etc.)
-    /^[a-z]+_[a-z]+(_[a-z]+)*$/,            // snake_case with multiple segments
-    /^\w+\.(\w+\.)*\w+$/,                   // dot-notation paths (obj.prop.sub)
-    /^(query|mutation|subscription)\./,      // GraphQL/tRPC operation paths
+    /^[a-z]+_[a-z]+(_[a-z]+)*$/,            // snake_case with segments
+    /^\w+\.(\w+\.)*\w+$/,                   // dot-notation paths
+    /^(query|mutation|subscription)\./,      // GraphQL/tRPC paths
     /^(audio|video)\/\w+/,                   // media MIME subtypes
     /^[A-Z][a-z]+[A-Z]/,                    // PascalCase component names
   ];
+  
   return technicalPatterns.some(p => p.test(trimmed));
 }
 
 /**
- * Check if a string looks like user-visible UI text.
- * Very strict — only returns true for strings that are clearly meant for users.
- */
-function isUserVisibleText(text: string): boolean {
-  const trimmed = text.trim();
-  // Must have at least 2 consecutive word characters
-  if (!/[A-Za-z\u00C0-\u017F]{2,}/.test(trimmed)) return false;
-  // Must not be a technical string
-  if (isTechnicalString(trimmed)) return false;
-  // Must have at least 3 characters of actual text (words)
-  if (trimmed.replace(/[^A-Za-z\u00C0-\u017F]/g, "").length < 3) return false;
-  // Must contain a space or be a recognizable word (not a single token like "Cancel")
-  // Single words are OK if they're common UI labels
-  return true;
-}
-
-/**
- * Check if a line context indicates the string is inside a className or CSS context.
+ * Check if a line is inside a className or CSS context.
  * This prevents wrapping CSS class names in t() calls.
  */
 function isInCSSContext(line: string, matchIndex: number): boolean {
-  // Check if the string appears inside className={...}, cn(...), clsx(...), or style={...}
   const before = line.slice(0, matchIndex);
-  // className, cn(, clsx(, cva(, twMerge(
+  
+  // className={...}, cn(...), clsx(...), etc.
   if (/className\s*=\s*\{[^}]*$/.test(before)) return true;
   if (/className\s*=\s*"[^"]*$/.test(before)) return true;
   if (/className\s*=\s*`[^`]*$/.test(before)) return true;
@@ -189,32 +195,14 @@ function isInCSSContext(line: string, matchIndex: number): boolean {
   if (/\bcva\s*\([^)]*$/.test(before)) return true;
   if (/\btwMerge\s*\([^)]*$/.test(before)) return true;
   if (/style\s*=\s*\{[^}]*$/.test(before)) return true;
-  // Ternary inside className: message.role === "user" ? "items-end" : "items-start"
-  if (/\?\s*["'][^"']*["']\s*:\s*$/.test(before)) return true;
-  if (/:\s*$/.test(before) && /className/.test(line)) return true;
+  
   return false;
 }
 
 /**
- * Check if a line is a function parameter default value.
- * e.g., `label = "Back"` in function parameters.
- */
-function isDefaultParamValue(line: string, matchIndex: number): boolean {
-  const before = line.slice(0, matchIndex);
-  // Pattern: identifier = "value" inside function params
-  if (/[a-zA-Z_]\w*\s*=\s*$/.test(before)) {
-    // Check if we're inside a function parameter list (between { and })
-    const openBraces = (before.match(/\{/g) || []).length;
-    const closeBraces = (before.match(/\}/g) || []).length;
-    if (openBraces > closeBraces) return true;
-  }
-  return false;
-}
-
-/**
- * Detect hardcoded strings in a single file.
- * Returns detailed findings with enough context to perform auto-fix.
- * STRICT: Only detects strings that are clearly user-visible UI text.
+ * Detect hardcoded strings in a single file using WHITELIST approach.
+ * Only detects JSX text nodes and safe JSX attributes.
+ * Returns detailed findings with context for auto-fix.
  */
 function detectHardcodedStrings(filePath: string): DetectedString[] {
   let content: string;
@@ -228,10 +216,10 @@ function detectHardcodedStrings(filePath: string): DetectedString[] {
   const findings: DetectedString[] = [];
   const lines = content.split("\n");
 
-  // Skip UI component library files
+  // Skip UI component library files (these are pre-built and shouldn't be modified)
   if (relFile.startsWith("components/ui/")) return [];
 
-  // Lines that are safe to skip entirely (only truly code-only lines)
+  // Lines that are safe to skip entirely
   const skipLinePatterns = [
     /^\s*\/\//,                              // single-line comment
     /^\s*\*/,                                // JSDoc line
@@ -255,21 +243,16 @@ function detectHardcodedStrings(filePath: string): DetectedString[] {
     // Skip lines that already use t()
     if (/\bt\s*\(\s*["'`]/.test(line)) continue;
 
-    // Skip lines that are inside a function parameter declaration
-    // (default values can't use hooks like t())
-    if (/^\s*\w+\s*=\s*["']/.test(line.trim()) && /^\s*(function|export|const|let|var)/.test(lines.slice(Math.max(0, i - 10), i).join("\n"))) {
-      // Likely a default parameter — skip
-    }
-
-    // ── 1. JSX text nodes: text between > and < ──
+    // ── 1. JSX TEXT NODES: text between > and < ──
     // Only match text that starts with a capital letter or is clearly a sentence
     const jsxTextRegex = />\s*([A-Z\u00C0-\u00DC][A-Za-z\u00C0-\u017F\s,.'!?:;()\-\u2013\u2014&/]+)\s*</g;
     let match: RegExpExecArray | null;
     while ((match = jsxTextRegex.exec(line)) !== null) {
       const text = match[1].trim();
       if (isUserVisibleText(text) && text.length >= 3) {
-        // Extra check: skip if it looks like it's inside a className context
+        // Extra check: skip if inside CSS context
         if (isInCSSContext(line, match.index)) continue;
+        
         findings.push({
           file: filePath,
           relFile,
@@ -282,16 +265,16 @@ function detectHardcodedStrings(filePath: string): DetectedString[] {
       }
     }
 
-    // ── 2. JSX attributes with hardcoded text ──
-    // ONLY these specific attributes contain user-visible text
-    const attrRegex = /(?:placeholder|aria-label|alt)\s*=\s*["']([^"']+)["']/g;
+    // ── 2. JSX ATTRIBUTES (WHITELIST): only safe attributes ──
+    // WHITELIST: placeholder, aria-label, alt, title, label
+    // These are proven-safe contexts for user-visible text
+    const attrRegex = /(?:placeholder|aria-label|alt|title|label)\s*=\s*["']([^"']+)["']/g;
     while ((match = attrRegex.exec(line)) !== null) {
       const text = match[1].trim();
       if (isUserVisibleText(text) && text.length >= 3 && !text.includes("${")) {
-        // Skip if inside className context
+        // Skip if inside CSS context
         if (isInCSSContext(line, match.index)) continue;
-        // Skip if it's a default parameter value
-        if (isDefaultParamValue(line, match.index)) continue;
+        
         findings.push({
           file: filePath,
           relFile,
@@ -304,11 +287,12 @@ function detectHardcodedStrings(filePath: string): DetectedString[] {
       }
     }
 
-    // NOTE: String literal detection (ternaries, default params, etc.) is disabled for now
-    // because it produces too many false positives (CSS classes, sessionStorage keys, etc.).
-    // We only detect JSX text nodes and JSX attributes, which are safe and unambiguous.
-    // Future: Implement a whitelist-based approach for ternaries in specific props (title, label, aria-label)
+    // NOTE: String literal detection is DISABLED in this whitelist approach
+    // because it produces false positives on CSS classes, sessionStorage keys,
+    // route paths, and other technical strings. Only JSX text nodes and
+    // whitelisted attributes are safe to auto-translate.
   }
+  
   return findings;
 }
 
@@ -433,7 +417,7 @@ async function translateBatch(
       }
     } catch (err) {
       console.error("[AutoFix] Translation batch failed:", err);
-      // For failed translations, use the English text as fallback
+      // For failed translations, use English as fallback
       for (const entry of chunk) {
         allTranslations.push({
           key: entry.key,
@@ -487,15 +471,10 @@ function rewriteSourceFile(
       // Replace: placeholder="Some text" with placeholder={t("key")}
       const escaped = fix.text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const regex = new RegExp(
-        `((?:placeholder|title|aria-label|label|alt|description)\\s*=\\s*)["']${escaped}["']`,
+        `((?:placeholder|title|aria-label|label|alt)\\s*=\\s*)["']${escaped}["']`,
         "g"
       );
       newLine = line.replace(regex, `$1{t("${fix.key}")}`);
-    } else if (fix.type === "string_literal") {
-      // Replace: "Some text" with t("key") inside JSX expressions
-      const escaped = fix.text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const regex = new RegExp(`["']${escaped}["']`, "g");
-      newLine = line.replace(regex, `t("${fix.key}")`);
     }
 
     if (newLine !== line) {
@@ -547,8 +526,6 @@ function rewriteSourceFile(
         }
       );
     }
-    // If no useI18n call exists at all, we need to add it inside the component
-    // This is complex — we'll add a comment for manual review
   }
 
   try {
@@ -574,11 +551,6 @@ function injectTranslationKeys(translations: TranslationEntry[]): { success: boo
     return { success: false, error: `Cannot read I18nContext.tsx: ${err}` };
   }
 
-  // The file structure is: export const translations = { en: { ... }, es: { ... }, ca: { ... } } as const;
-  // Each language block ends with `  },` followed by the next lang or `} as const;`
-  // We find the closing `  },` for each block and insert before it.
-
-  // Line numbers where each section ends (closing `  },`)
   const lines = content.split("\n");
   
   // Find the start of each language section
@@ -589,7 +561,7 @@ function injectTranslationKeys(translations: TranslationEntry[]): { success: boo
     if (/^\s*ca:\s*\{/.test(lines[i]) && langStarts.ca === -1) langStarts.ca = i;
   }
 
-  // Find the closing `  },` for each section (the `},` that closes the lang object)
+  // Find the closing `  },` for each section
   const langEnds: Record<string, number> = { en: -1, es: -1, ca: -1 };
   const langOrder = ["en", "es", "ca"];
   for (let idx = 0; idx < langOrder.length; idx++) {
@@ -597,7 +569,6 @@ function injectTranslationKeys(translations: TranslationEntry[]): { success: boo
     const start = langStarts[lang];
     if (start === -1) return { success: false, error: `Cannot find ${lang} block start` };
     
-    // The end is the next `  },` at indent level 2 after the start
     const nextLang = langOrder[idx + 1];
     const boundary = nextLang && langStarts[nextLang] !== -1 ? langStarts[nextLang] : lines.length;
     
@@ -612,7 +583,7 @@ function injectTranslationKeys(translations: TranslationEntry[]): { success: boo
     }
   }
 
-  // Insert new keys before the closing `},` of each section (in reverse order to preserve line numbers)
+  // Insert new keys before the closing `},` of each section (in reverse order)
   const insertions: { lineIdx: number; content: string }[] = [];
   
   for (const lang of langOrder) {
@@ -632,7 +603,7 @@ function injectTranslationKeys(translations: TranslationEntry[]): { success: boo
     }
   }
 
-  // Apply insertions in reverse order (highest line number first) to preserve indices
+  // Apply insertions in reverse order (highest line number first)
   insertions.sort((a, b) => b.lineIdx - a.lineIdx);
   for (const ins of insertions) {
     lines.splice(ins.lineIdx, 0, ins.content);
@@ -652,7 +623,7 @@ function injectTranslationKeys(translations: TranslationEntry[]): { success: boo
 
 /**
  * Run the full self-healing auto-fix pipeline:
- * 1. Scan all source files for hardcoded text
+ * 1. Scan all source files for hardcoded text in SAFE CONTEXTS ONLY
  * 2. Generate translation keys
  * 3. Translate via LLM
  * 4. Rewrite source files
@@ -684,7 +655,7 @@ export async function runAutoFixTranslation(): Promise<AutoFixFullResult> {
   };
 
   try {
-    console.log("[AutoFix] Starting self-healing translation scan...");
+    console.log("[AutoFix] Starting whitelist-based translation scan...");
 
     // ── Step 1: Collect and scan all files ──
     const allFiles = collectFiles(CLIENT_SRC);
@@ -786,10 +757,10 @@ export async function runAutoFixTranslation(): Promise<AutoFixFullResult> {
 
     // ── Step 6: Notify owner ──
     if (result.fixedStrings > 0 || result.errors.length > 0) {
-      let content = `**Self-healing translation auto-fix completed at ${result.ranAt.toISOString()}**\n\n`;
+      let content = `**Whitelist-based auto-translation completed at ${result.ranAt.toISOString()}**\n\n`;
       content += `📊 **Summary:**\n`;
       content += `- Scanned: ${result.scannedFiles} files\n`;
-      content += `- Detected: ${result.detectedStrings} hardcoded strings\n`;
+      content += `- Detected: ${result.detectedStrings} hardcoded strings (safe contexts only)\n`;
       content += `- Fixed: ${result.fixedStrings} strings\n`;
       content += `- New keys added: ${result.newKeysAdded}\n`;
       content += `- Files modified: ${result.filesModified.length}\n\n`;

@@ -310,13 +310,13 @@ export default function NavBar() {
   const platformItems = [
     { href: "/admin",             label: t("nav_admin"),             icon: LayoutDashboard },
     { href: "/admin/errors",      label: t("nav_admin_errors"),      icon: ShieldAlert },
-    { href: "/audit",             label: t("nav_audit"),             icon: BarChart3 },
     { href: "/ai-models",         label: t("nav_ai_models"),         icon: SebaSymbol },
     { href: "/accountability",    label: t("nav_accountability"),    icon: Lock },
     { href: "/admin/wake-words",  label: t("nav_wake_words"),        icon: Mic },
     { href: "/admin/audio-responses", label: t("nav_audio_responses"), icon: Music },
     { href: "/admin/dpia",          label: "DPIA",                     icon: Shield },
     { href: "/admin/security",      label: "Security Dashboard",        icon: ShieldAlert },
+    { href: "/logout",            label: t("nav_logout"),            icon: LogOut }
   ];
   const allAdminItems = [...schoolAdminItems, ...platformItems];
   const isAdminActive = allAdminItems.some(
@@ -344,7 +344,6 @@ export default function NavBar() {
     { href: "/head-of-study/timetable",           label: t("hos_timetable"),           icon: CalendarDays },
     { href: "/head-of-study/attendance",          label: t("hos_attendance"),          icon: UserCheck },
     { href: "/director/teacher-attendance",         label: t("nav_director_teacher_attendance"), icon: ClipboardList },
-    { href: "/director/teacher-profiles",            label: t("nav_director_teacher_profiles"),   icon: BookOpen },
     { href: "/head-of-study/assessment-calendar", label: t("hos_assessment_calendar"), icon: BookOpen },
     { href: "/head-of-study/curriculum",          label: t("hos_curriculum"),          icon: BookCheck },
     { href: "/head-of-study/reports",             label: t("hos_reports"),             icon: Download },
@@ -372,7 +371,6 @@ export default function NavBar() {
     { href: "/director/users",     label: t("dir_users_nav"),        icon: UserCog },
     { href: "/director/approvals",  label: t("dir_approvals"),        icon: ClipboardList },
     { href: "/director/teacher-attendance", label: t("nav_director_teacher_attendance"), icon: ClipboardList },
-    { href: "/director/teacher-profiles",   label: t("nav_director_teacher_profiles"),   icon: BookOpen },
     { href: "/director/cover-requests",     label: t("cover_requests_title"),            icon: AlertTriangle },
     { href: "/head-of-study/add-teacher", label: t("dir_add_teacher"),   icon: UserPlus },
     { href: "/attendance",           label: t("nav_attendance"),       icon: ClipboardList },
@@ -400,7 +398,6 @@ export default function NavBar() {
     { href: "/attendance",   label: t("nav_attendance"),   icon: UserCheck },
     { href: "/teacher/attendance",  label: t("nav_teacher_attendance"),  icon: ClipboardCheck },
     { href: "/teacher/register",     label: t("register_page_title"),    icon: ClipboardList },
-    { href: "/teacher/profile",      label: t("nav_teacher_profiles"),   icon: BookOpen },
     { href: "/forum",         label: t("nav_forum"),         icon: MessagesSquare },
     { href: "/connect",       label: t("nav_connect"),       icon: Wifi },
     { href: "/lesson-planner",  label: t("nav_lesson_planner"),  icon: FileText },

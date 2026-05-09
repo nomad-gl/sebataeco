@@ -352,15 +352,7 @@ export default function DirectorApprovals() {
                     <Mail className="w-3.5 h-3.5" />
                     {welcomeEmailSent ? t("dir_ts_welcome_email_sent").replace("{email}", "").trim() : t("dir_ts_send_welcome_email")}
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-1.5"
-                    onClick={() => navigate(`/director/teacher-profiles?teacher=${justApprovedTeacher.userId}`)}
-                  >
-                    <BookOpen className="w-3.5 h-3.5" />
-                    {t("dir_ts_set_subjects_schedule")}
-                  </Button>
+
                   <Button
                     size="sm"
                     variant="outline"

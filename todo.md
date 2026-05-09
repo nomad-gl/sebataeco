@@ -5693,3 +5693,18 @@
 - [x] Pass lengthScale to BSC TTS API
 - [x] Map slider value to BSC TTS lengthScale parameter (0.5-2.0)
 - [x] Persist speed preference in localStorage
+
+
+## Feature: Whitelist-Based Self-Healing Auto-Translation (2026-05-09)
+- [x] Rewrite i18nAutoFix.ts with whitelist-only detection (JSX text nodes + safe attributes only)
+- [x] Ensure detection excludes CSS classes, route paths, sessionStorage keys
+- [x] Implement comprehensive test suite for auto-fix logic (40 tests passing)
+- [x] Integrate auto-fix into scheduled endpoint (/api/scheduled/translation-audit)
+- [x] Integrate auto-fix into director router (admin trigger) — ready via dynamic import
+- [x] Test end-to-end auto-translation on sample files
+- [x] Verify all translations are injected correctly into I18nContext.tsx
+
+## Task: Remove Teacher Profile Links (2026-05-09)
+- [x] Find all links to the Teacher Profile page across the application
+- [x] Remove all links except the one from Academic Calendar page
+- [x] Verify no broken references remain

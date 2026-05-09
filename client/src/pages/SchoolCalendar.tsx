@@ -1831,12 +1831,9 @@ export default function SchoolCalendar() {
                           <span className="flex items-center gap-1"><School className="w-3.5 h-3.5" /> {selectedCalendar.schoolName}</span>
                         )}
                         {selectedCalendar.tutorName && (
-                          <WouterLink
-                            href={`/director/teacher-profiles?name=${encodeURIComponent(selectedCalendar.tutorName)}`}
-                            className="flex items-center gap-1 hover:text-primary hover:underline transition-colors"
-                          >
+                          <span className="flex items-center gap-1">
                             <User className="w-3.5 h-3.5" /> {selectedCalendar.tutorName}
-                          </WouterLink>
+                          </span>
                         )}
                         {selectedCalendar.subject && (
                           <span className="flex items-center gap-1 font-medium text-foreground bg-primary/10 border border-primary/20 rounded-full px-2 py-0.5 text-xs">

@@ -207,12 +207,15 @@ async function startServer() {
     try {
       console.log("[ScheduledAudit] Running weekly translation audit + auto-fix...");
 
-      // Step 1: Run the auto-fix to translate ALL hardcoded text (no exceptions)
-      // NOTE: Auto-fix is temporarily disabled due to syntax errors in i18nAutoFix.ts
-      // TODO: Fix i18nAutoFix.ts and re-enable
-      const autoFixResult = { fixedStrings: 0, newKeysAdded: 0, filesModified: [] };
-      // const { runAutoFixTranslation } = await import("../i18nAutoFix");
-      // const autoFixResult = await runAutoFixTranslation();
+      // Step 1: Run the whitelist-based auto-fix to translate hardcoded text in safe contexts
+      let autoFixResult = { fixedStrings: 0, newKeysAdded: 0, filesModified: [], errors: [] };
+      try {
+        const { runAutoFixTranslation } = await import("../i18nAutoFix");
+        autoFixResult = await runAutoFixTranslation();
+      } catch (autoFixErr) {
+        console.error("[ScheduledAudit] Auto-fix failed:", autoFixErr);
+        autoFixResult.errors = [autoFixErr instanceof Error ? autoFixErr.message : String(autoFixErr)];
+      }
       console.log(`[ScheduledAudit] Auto-fix: ${autoFixResult.fixedStrings} strings fixed, ${autoFixResult.newKeysAdded} keys added`);
 
       // Step 2: Run the standard scan to report any remaining issues
@@ -225,15 +228,14 @@ async function startServer() {
         autoFix: {
           fixedStrings: autoFixResult.fixedStrings,
           newKeysAdded: autoFixResult.newKeysAdded,
-          filesModified: autoFixResult.filesModified.length,
-          errors: autoFixResult.errors.length,
+          filesModified: (autoFixResult.filesModified || []).length,
+          errors: (autoFixResult.errors || []).length,
         },
       });
     } catch (err: any) {
       console.error("[ScheduledAudit] Translation audit failed:", err);
       res.status(500).json({
-        error: err.message || "Unknown error",
-        stack: err.stack,
+        error: err?.message || "Unknown error",
         context: { url: req.url, taskUid: req.headers["x-manus-cron-task-uid"] },
         timestamp: new Date().toISOString(),
       });
