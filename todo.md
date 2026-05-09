@@ -5708,3 +5708,10 @@
 - [x] Find all links to the Teacher Profile page across the application
 - [x] Remove all links except the one from Academic Calendar page
 - [x] Verify no broken references remain
+
+
+## Feature: Add Teacher Profiles to Dropdowns (2026-05-09)
+- [x] Add teacher profiles link to teacher dropdown (self-view only)
+- [x] Add teacher profiles link to head of study dropdown (view all)
+- [x] Add teacher profiles link to director dropdown (view all)
+- [x] Test access controls and navigation

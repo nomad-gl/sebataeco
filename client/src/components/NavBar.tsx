@@ -2,16 +2,61 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Link, useLocation } from "wouter";
 import {
-  BookOpen, MessageCircle, Dumbbell, LayoutDashboard,
-  Library, TrendingUp, ChevronDown, Menu, X, Zap,
-  Presentation as PresentationIcon, Globe, Users, MessagesSquare, Bell, Download,
-  CalendarDays, FileText, Settings as SettingsIcon, ShieldAlert, Shield, Lock, HelpCircle,
-  BarChart3, UserCheck, BookCheck, GraduationCap, Mic,
-  ClipboardList, ClipboardCheck, Banknote, UserCog, FolderOpen, Building2, Wrench, Music, Wifi, LogOut, LogIn, AlertTriangle,
-  UserPlus, Copy, CheckCircle2, MapPin, Layers,
+  BookOpen,
+  MessageCircle,
+  Dumbbell,
+  LayoutDashboard,
+  Library,
+  TrendingUp,
+  ChevronDown,
+  Menu,
+  X,
+  Zap,
+  Presentation as PresentationIcon,
+  Globe,
+  Users,
+  MessagesSquare,
+  Bell,
+  Download,
+  CalendarDays,
+  FileText,
+  Settings as SettingsIcon,
+  ShieldAlert,
+  Shield,
+  Lock,
+  HelpCircle,
+  BarChart3,
+  UserCheck,
+  BookCheck,
+  GraduationCap,
+  Mic,
+  ClipboardList,
+  ClipboardCheck,
+  Banknote,
+  UserCog,
+  FolderOpen,
+  Building2,
+  Wrench,
+  Music,
+  Wifi,
+  LogOut,
+  LogIn,
+  AlertTriangle,
+  UserPlus,
+  Copy,
+  CheckCircle2,
+  MapPin,
+  Layers,
+  User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   DndContext,
   closestCenter,
@@ -44,10 +89,18 @@ const LANG_OPTIONS: { code: Lang; label: string; flag: string }[] = [
 ];
 
 /** Inline Accept/Decline buttons for meeting_invite notifications in the bell dropdown */
-function MeetingInviteActions({ notificationId, onDone }: { notificationId: number; onDone: () => void }) {
+function MeetingInviteActions({
+  notificationId,
+  onDone,
+}: {
+  notificationId: number;
+  onDone: () => void;
+}) {
   const utils = trpc.useUtils();
   const markRead = trpc.notifications.markRead.useMutation();
-  const getPending = trpc.meetingInvitation.getPending.useQuery(undefined, { enabled: true });
+  const getPending = trpc.meetingInvitation.getPending.useQuery(undefined, {
+    enabled: true,
+  });
   const accept = trpc.meetingInvitation.accept.useMutation({
     onSuccess: () => {
       markRead.mutate({ id: notificationId });
@@ -67,7 +120,7 @@ function MeetingInviteActions({ notificationId, onDone }: { notificationId: numb
   if (!inv) return null;
   const busy = accept.isPending || decline.isPending;
   return (
-    <div className="flex gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
+    <div className="flex gap-2 mt-2" onClick={e => e.stopPropagation()}>
       <button
         disabled={busy}
         onClick={() => accept.mutate({ invitationId: inv.id })}
@@ -96,8 +149,23 @@ type SortableNavItemProps = {
   onClick?: (e: React.MouseEvent) => void;
   locked?: boolean;
 };
-function SortableNavItem({ id, href, label, icon: Icon, active, onClick, locked }: SortableNavItemProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+function SortableNavItem({
+  id,
+  href,
+  label,
+  icon: Icon,
+  active,
+  onClick,
+  locked,
+}: SortableNavItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -121,7 +189,9 @@ function SortableNavItem({ id, href, label, icon: Icon, active, onClick, locked 
         onClick={onClick}
         className={cn(
           "flex-1 flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium transition-colors",
-          active ? "text-primary bg-primary/5" : "text-foreground hover:bg-secondary",
+          active
+            ? "text-primary bg-primary/5"
+            : "text-foreground hover:bg-secondary",
           locked && "opacity-60"
         )}
       >
@@ -137,75 +207,105 @@ function SortableNavItem({ id, href, label, icon: Icon, active, onClick, locked 
 export default function NavBar() {
   const [location] = useLocation();
   const { t, lang, setLang } = useI18n();
-  const isClassroomPage = location === "/chat" || location === "/practice" || location === "/progress";
-  const [dropOpen, setDropOpen]         = useState(false);
+  const isClassroomPage =
+    location === "/chat" ||
+    location === "/practice" ||
+    location === "/progress";
+  const [dropOpen, setDropOpen] = useState(false);
   const [directorOpen, setDirectorOpen] = useState(false);
-  const [hosOpen, setHosOpen]           = useState(false);
+  const [hosOpen, setHosOpen] = useState(false);
   const [situacioOpen, setSituacioOpen] = useState(false);
-  const [adminOpen, setAdminOpen]       = useState(false);
-  const [platformExpanded, setPlatformExpanded] = useState(() => isAdminUnlocked());
-  const adminMenuRef    = useRef<HTMLDivElement>(null);
+  const [adminOpen, setAdminOpen] = useState(false);
+  const [platformExpanded, setPlatformExpanded] = useState(() =>
+    isAdminUnlocked()
+  );
+  const adminMenuRef = useRef<HTMLDivElement>(null);
   const situacioMenuRef = useRef<HTMLDivElement>(null);
-  const hosMenuRef      = useRef<HTMLDivElement>(null);
+  const hosMenuRef = useRef<HTMLDivElement>(null);
   const directorMenuRef = useRef<HTMLDivElement>(null);
-  const langMenuRef     = useRef<HTMLDivElement>(null);
-  const [pinOpen, setPinOpen]           = useState(false);
-  const [pinTarget, setPinTarget]       = useState<string | null>(null);
-  const [platformUnlocked, setPlatformUnlocked] = useState(() => isAdminUnlocked());
-  const [langOpen, setLangOpen]         = useState(false);
-  const [mobileOpen, setMobileOpen]     = useState(false);
-  const [bellOpen, setBellOpen]         = useState(false);
+  const langMenuRef = useRef<HTMLDivElement>(null);
+  const [pinOpen, setPinOpen] = useState(false);
+  const [pinTarget, setPinTarget] = useState<string | null>(null);
+  const [platformUnlocked, setPlatformUnlocked] = useState(() =>
+    isAdminUnlocked()
+  );
+  const [langOpen, setLangOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [bellOpen, setBellOpen] = useState(false);
   // Register Territorial Director dialog state
-  const [tdDialogOpen, setTdDialogOpen]   = useState(false);
-  const [tdName, setTdName]               = useState("");
-  const [tdEmail, setTdEmail]             = useState("");
-  const [tdReason, setTdReason]           = useState("");
-  const [tdResult, setTdResult]           = useState<{ email: string; tempPassword: string; territoryName: string } | null>(null);
-  const [tdCopied, setTdCopied]           = useState(false);
-  const dropRef     = useRef<HTMLDivElement>(null);
+  const [tdDialogOpen, setTdDialogOpen] = useState(false);
+  const [tdName, setTdName] = useState("");
+  const [tdEmail, setTdEmail] = useState("");
+  const [tdReason, setTdReason] = useState("");
+  const [tdResult, setTdResult] = useState<{
+    email: string;
+    tempPassword: string;
+    territoryName: string;
+  } | null>(null);
+  const [tdCopied, setTdCopied] = useState(false);
+  const dropRef = useRef<HTMLDivElement>(null);
   const directorRef = useRef<HTMLDivElement>(null);
-  const hosRef      = useRef<HTMLDivElement>(null);
+  const hosRef = useRef<HTMLDivElement>(null);
   const situacioRef = useRef<HTMLDivElement>(null);
-  const adminRef    = useRef<HTMLDivElement>(null);
-  const langRef     = useRef<HTMLDivElement>(null);
-  const bellRef     = useRef<HTMLDivElement>(null);
+  const adminRef = useRef<HTMLDivElement>(null);
+  const langRef = useRef<HTMLDivElement>(null);
+  const bellRef = useRef<HTMLDivElement>(null);
 
   const { user, logout } = useAuth();
-  const { navigateCrossOrigin, isPending: crossOriginPending } = useCrossOriginLink();
+  const { navigateCrossOrigin, isPending: crossOriginPending } =
+    useCrossOriginLink();
   // Detect which domain we are on so we can offer a link to the other
-  const hostname = typeof window !== "undefined" ? window.location.hostname : "";
+  const hostname =
+    typeof window !== "undefined" ? window.location.hostname : "";
   const isAinaDomain = hostname.includes("aina.forum");
-  const crossOriginTarget = isAinaDomain ? "https://sebataeco.com" : "https://aina.forum";
+  const crossOriginTarget = isAinaDomain
+    ? "https://sebataeco.com"
+    : "https://aina.forum";
   const crossOriginLabel = isAinaDomain ? "sebataeco.com" : "aina.forum";
 
   // Invite Teacher dialog state
   const [teacherInviteOpen, setTeacherInviteOpen] = useState(false);
   const [teacherInviteEmail, setTeacherInviteEmail] = useState("");
-  const [teacherInviteLink, setTeacherInviteLink] = useState<string | null>(null);
+  const [teacherInviteLink, setTeacherInviteLink] = useState<string | null>(
+    null
+  );
   const [teacherInviteCopied, setTeacherInviteCopied] = useState(false);
   const [teacherInviteEmailSent, setTeacherInviteEmailSent] = useState(false);
   const createTeacherInvite = trpc.tenants.createTeacherInvite.useMutation({
-    onSuccess: (data) => {
+    onSuccess: data => {
       setTeacherInviteLink(data.inviteUrl);
       setTeacherInviteEmailSent(!!teacherInviteEmail.trim());
       toast.success("Teacher invite link generated");
     },
-    onError: (err) => toast.error(err.message),
+    onError: err => toast.error(err.message),
   });
 
   // Territorial Director registration mutation
-  const registerTD = trpc.tenants.registerAndGrantTerritorialDirector.useMutation({
-    onSuccess: (data) => {
-      setTdResult({ email: data.email, tempPassword: data.tempPassword, territoryName: data.territoryName });
-      toast.success(`Territorial Director registered for ${data.territoryName}`);
-    },
-    onError: (err) => toast.error(err.message),
-  });
-  const { data: tdTerritories = [] } = trpc.tenants.listTerritories.useQuery(undefined, { enabled: tdDialogOpen && !!user && user.role === "admin" });
-  const { data: tdStatus } = trpc.tenants.hasTerritorialDirector.useQuery(undefined, {
-    enabled: !!user && user.role === "admin",
-    staleTime: 60_000,
-  });
+  const registerTD =
+    trpc.tenants.registerAndGrantTerritorialDirector.useMutation({
+      onSuccess: data => {
+        setTdResult({
+          email: data.email,
+          tempPassword: data.tempPassword,
+          territoryName: data.territoryName,
+        });
+        toast.success(
+          `Territorial Director registered for ${data.territoryName}`
+        );
+      },
+      onError: err => toast.error(err.message),
+    });
+  const { data: tdTerritories = [] } = trpc.tenants.listTerritories.useQuery(
+    undefined,
+    { enabled: tdDialogOpen && !!user && user.role === "admin" }
+  );
+  const { data: tdStatus } = trpc.tenants.hasTerritorialDirector.useQuery(
+    undefined,
+    {
+      enabled: !!user && user.role === "admin",
+      staleTime: 60_000,
+    }
+  );
   const tdConnected = tdStatus?.connected ?? false;
   const tdConnectedDirectors = tdStatus?.directors ?? [];
   const [tdTerritoryId, setTdTerritoryId] = useState<number | null>(null);
@@ -213,25 +313,32 @@ export default function NavBar() {
   // Position-based visibility helpers
   // Director sees everything; each role sees its own menus plus shared menus
   const pos = (user as { position?: string } | null)?.position ?? "unassigned";
-  const isDirectorPos   = pos === "director";
-  const isHosPos        = pos === "head_of_study" || pos === "director";
-  const isTeacherPos    = pos === "teacher" || pos === "director";
-  const isSituacioPos   = pos === "head_of_study" || pos === "director";
+  const isDirectorPos = pos === "director";
+  const isHosPos = pos === "head_of_study" || pos === "director";
+  const isTeacherPos = pos === "teacher" || pos === "director";
+  const isSituacioPos = pos === "head_of_study" || pos === "director";
 
   // ZER dual-role: query status so we can show the badge
   const { data: zerStatus } = trpc.director.getZerStatus.useQuery(undefined, {
     enabled: !!user && (user.role === "director" || user.role === "admin"),
     staleTime: 60_000,
   });
-  const isZerHos = !!zerStatus?.isZer && !!zerStatus?.zerActsAsHos && user?.role === "director";
+  const isZerHos =
+    !!zerStatus?.isZer &&
+    !!zerStatus?.zerActsAsHos &&
+    user?.role === "director";
 
-  const { data: unreadCount = 0 } = trpc.notifications.getUnreadCount.useQuery(undefined, {
-    enabled: !!user,
-    refetchInterval: 30_000,
-  });
-  const { data: myNotifications = [] } = trpc.notifications.getMyNotifications.useQuery(undefined, {
-    enabled: !!user && bellOpen,
-  });
+  const { data: unreadCount = 0 } = trpc.notifications.getUnreadCount.useQuery(
+    undefined,
+    {
+      enabled: !!user,
+      refetchInterval: 30_000,
+    }
+  );
+  const { data: myNotifications = [] } =
+    trpc.notifications.getMyNotifications.useQuery(undefined, {
+      enabled: !!user && bellOpen,
+    });
   const markRead = trpc.notifications.markRead.useMutation();
   const markAllRead = trpc.notifications.markAllRead.useMutation({
     onSuccess: () => utils.notifications.getUnreadCount.invalidate(),
@@ -239,98 +346,131 @@ export default function NavBar() {
   const utils = trpc.useUtils();
 
   // Missed call badge — poll for unanswered incoming calls
-  const { data: missedCallData } = trpc.dmCall.getMissedCount.useQuery(undefined, {
-    enabled: !!user,
-    refetchInterval: 15_000,
-  });
+  const { data: missedCallData } = trpc.dmCall.getMissedCount.useQuery(
+    undefined,
+    {
+      enabled: !!user,
+      refetchInterval: 15_000,
+    }
+  );
   const missedCallCount = missedCallData?.count ?? 0;
 
   // Pending meeting invitation badge
-  const { data: pendingMeetData } = trpc.meetingInvitation.getPendingCount.useQuery(undefined, {
-    enabled: !!user,
-    refetchInterval: 20_000,
-  });
+  const { data: pendingMeetData } =
+    trpc.meetingInvitation.getPendingCount.useQuery(undefined, {
+      enabled: !!user,
+      refetchInterval: 20_000,
+    });
   const pendingMeetCount = pendingMeetData?.count ?? 0;
   const connectBadge = missedCallCount + pendingMeetCount;
 
   // Unread forum DM badge
-  const { data: forumUnreadData } = trpc.forum.getUnreadCount.useQuery(undefined, {
-    enabled: !!user,
-    refetchInterval: 20_000,
-  });
+  const { data: forumUnreadData } = trpc.forum.getUnreadCount.useQuery(
+    undefined,
+    {
+      enabled: !!user,
+      refetchInterval: 20_000,
+    }
+  );
   const forumBadge = forumUnreadData?.unread ?? 0;
 
   // Pending teacher invite badge (Director only)
-  const { data: pendingInviteData } = trpc.director.getPendingInviteCount.useQuery(undefined, {
-    enabled: !!user && isDirectorPos,
-    refetchInterval: 60_000,
-  });
+  const { data: pendingInviteData } =
+    trpc.director.getPendingInviteCount.useQuery(undefined, {
+      enabled: !!user && isDirectorPos,
+      refetchInterval: 60_000,
+    });
   const pendingInviteCount = pendingInviteData?.count ?? 0;
 
   // Pending assignment request badge (Director/Admin)
   const isDirectorOrAdmin = user?.role === "director" || user?.role === "admin";
-  const { data: pendingAssignData } = trpc.assignmentRequests.pendingCount.useQuery(undefined, {
-    enabled: !!user && isDirectorOrAdmin,
-    refetchInterval: 30_000,
-  });
+  const { data: pendingAssignData } =
+    trpc.assignmentRequests.pendingCount.useQuery(undefined, {
+      enabled: !!user && isDirectorOrAdmin,
+      refetchInterval: 30_000,
+    });
   const pendingAssignCount = pendingAssignData?.count ?? 0;
 
   // Pending teacher submissions badge (Director/Admin)
-  const { data: pendingTeacherSubData } = trpc.director.pendingTeacherSubmissionsCount.useQuery(undefined, {
-    enabled: !!user && isDirectorOrAdmin,
-    refetchInterval: 30_000,
-  });
+  const { data: pendingTeacherSubData } =
+    trpc.director.pendingTeacherSubmissionsCount.useQuery(undefined, {
+      enabled: !!user && isDirectorOrAdmin,
+      refetchInterval: 30_000,
+    });
   const pendingTeacherSubCount = pendingTeacherSubData?.count ?? 0;
   const totalApprovalsCount = pendingAssignCount + pendingTeacherSubCount;
 
   // Items before Teacher dropdown (Home removed — logo already links to /)
   const mainNavItemsBefore = [
-    { href: "/chat",           label: t("nav_chat"),           icon: MessageCircle },
+    { href: "/chat", label: t("nav_chat"), icon: MessageCircle },
   ];
 
   // Situació dropdown items — gated to admin/head_of_study
   const situacioItems = [
-    { href: "/situacio",      label: t("nav_situacio"),       icon: SebaSymbol },
-    { href: "/my-situacions", label: t("nav_my_situacions"),  icon: Library },
+    { href: "/situacio", label: t("nav_situacio"), icon: SebaSymbol },
+    { href: "/my-situacions", label: t("nav_my_situacions"), icon: Library },
   ];
   const isSituacioActive = situacioItems.some(
-    (i) => location === i.href || (i.href !== "/" && location.startsWith(i.href))
+    i => location === i.href || (i.href !== "/" && location.startsWith(i.href))
   );
   // Administration dropdown — school admin functions (top section)
   const schoolAdminItems = [
-    { href: "/admin/enrolment",   label: t("nav_admin_enrolment"),   icon: ClipboardList },
-    { href: "/admin/finance",     label: t("nav_admin_finance"),     icon: Banknote },
-    { href: "/admin/staff",       label: t("nav_admin_staff"),       icon: UserCog },
-    { href: "/admin/documents",   label: t("nav_admin_documents"),   icon: FolderOpen },
-    { href: "/admin/governance",  label: t("nav_admin_governance"),  icon: Building2 },
-    { href: "/admin/facilities",  label: t("nav_admin_facilities"),  icon: Wrench },
-    { href: "/forum",             label: t("nav_forum"),             icon: MessagesSquare },
+    {
+      href: "/admin/enrolment",
+      label: t("nav_admin_enrolment"),
+      icon: ClipboardList,
+    },
+    { href: "/admin/finance", label: t("nav_admin_finance"), icon: Banknote },
+    { href: "/admin/staff", label: t("nav_admin_staff"), icon: UserCog },
+    {
+      href: "/admin/documents",
+      label: t("nav_admin_documents"),
+      icon: FolderOpen,
+    },
+    {
+      href: "/admin/governance",
+      label: t("nav_admin_governance"),
+      icon: Building2,
+    },
+    {
+      href: "/admin/facilities",
+      label: t("nav_admin_facilities"),
+      icon: Wrench,
+    },
+    { href: "/forum", label: t("nav_forum"), icon: MessagesSquare },
   ];
   // Platform management tools (bottom section — PIN-gated)
   const platformItems = [
-    { href: "/admin",             label: t("nav_admin"),             icon: LayoutDashboard },
-    { href: "/admin/errors",      label: t("nav_admin_errors"),      icon: ShieldAlert },
-    { href: "/ai-models",         label: t("nav_ai_models"),         icon: SebaSymbol },
-    { href: "/accountability",    label: t("nav_accountability"),    icon: Lock },
-    { href: "/admin/wake-words",  label: t("nav_wake_words"),        icon: Mic },
-    { href: "/admin/audio-responses", label: t("nav_audio_responses"), icon: Music },
-    { href: "/admin/dpia",          label: "DPIA",                     icon: Shield },
-    { href: "/admin/security",      label: "Security Dashboard",        icon: ShieldAlert },
-    { href: "/logout",            label: t("nav_logout"),            icon: LogOut }
+    { href: "/admin", label: t("nav_admin"), icon: LayoutDashboard },
+    { href: "/admin/errors", label: t("nav_admin_errors"), icon: ShieldAlert },
+    { href: "/ai-models", label: t("nav_ai_models"), icon: SebaSymbol },
+    { href: "/accountability", label: t("nav_accountability"), icon: Lock },
+    { href: "/admin/wake-words", label: t("nav_wake_words"), icon: Mic },
+    {
+      href: "/admin/audio-responses",
+      label: t("nav_audio_responses"),
+      icon: Music,
+    },
+    { href: "/admin/dpia", label: "DPIA", icon: Shield },
+    { href: "/admin/security", label: "Security Dashboard", icon: ShieldAlert },
+    { href: "/logout", label: t("nav_logout"), icon: LogOut },
   ];
   const allAdminItems = [...schoolAdminItems, ...platformItems];
   const isAdminActive = allAdminItems.some(
-    (i) => location === i.href || (i.href !== "/" && location.startsWith(i.href))
+    i => location === i.href || (i.href !== "/" && location.startsWith(i.href))
   );
   // Handler: navigate to platform tool — prompt PIN if not yet unlocked
-  const handlePlatformClick = useCallback((href: string, e: React.MouseEvent) => {
-    if (!platformUnlocked) {
-      e.preventDefault();
-      setPinTarget(href);
-      setPinOpen(true);
-      setAdminOpen(false);
-    }
-  }, [platformUnlocked]);
+  const handlePlatformClick = useCallback(
+    (href: string, e: React.MouseEvent) => {
+      if (!platformUnlocked) {
+        e.preventDefault();
+        setPinTarget(href);
+        setPinOpen(true);
+        setAdminOpen(false);
+      }
+    },
+    [platformUnlocked]
+  );
   const handlePinSuccess = useCallback(() => {
     setPlatformUnlocked(true);
     setPinOpen(false);
@@ -339,107 +479,307 @@ export default function NavBar() {
   }, [pinTarget]);
 
   const hosItems = [
-    { href: "/head-of-study/progress",            label: t("hos_progress"),            icon: GraduationCap },
-    { href: "/head-of-study/groups",              label: t("hos_groups"),              icon: Users },
-    { href: "/head-of-study/timetable",           label: t("hos_timetable"),           icon: CalendarDays },
-    { href: "/head-of-study/attendance",          label: t("hos_attendance"),          icon: UserCheck },
-    { href: "/director/teacher-attendance",         label: t("nav_director_teacher_attendance"), icon: ClipboardList },
-    { href: "/head-of-study/assessment-calendar", label: t("hos_assessment_calendar"), icon: BookOpen },
-    { href: "/head-of-study/curriculum",          label: t("hos_curriculum"),          icon: BookCheck },
-    { href: "/head-of-study/reports",             label: t("hos_reports"),             icon: Download },
-    { href: "/head-of-study/settings",            label: t("hos_settings"),            icon: SettingsIcon },
-    { href: "/head-of-study/assign-users",        label: t("hos_assign_users"),        icon: UserPlus },
-    { href: "/head-of-study/add-teacher",          label: t("dir_add_teacher"),          icon: UserPlus },
-    { href: "/academic-calendar",                 label: t("nav_academic_calendar"),   icon: CalendarDays },
-    { href: "/school-calendar",                   label: t("nav_school_calendar"),     icon: CalendarDays },
-    { href: "/connect",                           label: t("nav_connect"),             icon: Wifi },
+    {
+      href: "/head-of-study/progress",
+      label: t("hos_progress"),
+      icon: GraduationCap,
+    },
+    { href: "/head-of-study/groups", label: t("hos_groups"), icon: Users },
+    {
+      href: "/head-of-study/timetable",
+      label: t("hos_timetable"),
+      icon: CalendarDays,
+    },
+    {
+      href: "/head-of-study/attendance",
+      label: t("hos_attendance"),
+      icon: UserCheck,
+    },
+    {
+      href: "/director/teacher-attendance",
+      label: t("nav_director_teacher_attendance"),
+      icon: ClipboardList,
+    },
+    {
+      href: "/head-of-study/assessment-calendar",
+      label: t("hos_assessment_calendar"),
+      icon: BookOpen,
+    },
+    {
+      href: "/head-of-study/curriculum",
+      label: t("hos_curriculum"),
+      icon: BookCheck,
+    },
+    { href: "/head-of-study/reports", label: t("hos_reports"), icon: Download },
+    {
+      href: "/head-of-study/settings",
+      label: t("hos_settings"),
+      icon: SettingsIcon,
+    },
+    {
+      href: "/head-of-study/assign-users",
+      label: t("hos_assign_users"),
+      icon: UserPlus,
+    },
+    {
+      href: "/head-of-study/add-teacher",
+      label: t("dir_add_teacher"),
+      icon: UserPlus,
+    },
+    {
+      href: "/academic-calendar",
+      label: t("nav_academic_calendar"),
+      icon: CalendarDays,
+    },
+    {
+      href: "/school-calendar",
+      label: t("nav_school_calendar"),
+      icon: CalendarDays,
+    },
+    { href: "/connect", label: t("nav_connect"), icon: Wifi },
+    {
+      href: "/director/teacher-profiles",
+      label: t("nav_teacher_profiles"),
+      icon: Users,
+    },
   ];
 
   const isHosActive = hosItems.some(
-    (i) => location === i.href || (i.href !== "/" && location.startsWith(i.href))
+    i => location === i.href || (i.href !== "/" && location.startsWith(i.href))
   );
 
   const directorItems = [
-    { href: "/director/overview",  label: t("dir_overview"),         icon: BarChart3 },
-    { href: "/director/staff",     label: t("dir_staff"),            icon: UserCheck },
-    { href: "/director/curriculum",label: t("dir_curriculum"),       icon: BookCheck },
-    { href: "/accountability",     label: t("dir_accountability"),   icon: ShieldAlert },
-    { href: "/director/progress",  label: t("dir_student_progress"), icon: GraduationCap },
-    { href: "/director/students",   label: t("std_dir_title"),         icon: Users },
-    { href: "/director/reports",   label: t("dir_reports"),          icon: Download },
-    { href: "/director/settings",  label: t("dir_settings"),         icon: SettingsIcon },
-    { href: "/director/users",     label: t("dir_users_nav"),        icon: UserCog },
-    { href: "/director/approvals",  label: t("dir_approvals"),        icon: ClipboardList },
-    { href: "/director/teacher-attendance", label: t("nav_director_teacher_attendance"), icon: ClipboardList },
-    { href: "/director/cover-requests",     label: t("cover_requests_title"),            icon: AlertTriangle },
-    { href: "/head-of-study/add-teacher", label: t("dir_add_teacher"),   icon: UserPlus },
-    { href: "/attendance",           label: t("nav_attendance"),       icon: ClipboardList },
-    { href: "/academic-calendar",   label: t("nav_academic_calendar"), icon: CalendarDays },
-    { href: "/school-calendar",      label: t("nav_school_calendar"),  icon: CalendarDays },
-    { href: "/connect",             label: t("nav_connect"),          icon: Wifi },
-    { href: "/audit",               label: t("nav_audit"),            icon: BarChart3 },
-    { href: "/ai-models",           label: t("nav_ai_models"),        icon: SebaSymbol },
-    { href: "/accountability",      label: t("nav_accountability"),   icon: Lock },
+    { href: "/director/overview", label: t("dir_overview"), icon: BarChart3 },
+    { href: "/director/staff", label: t("dir_staff"), icon: UserCheck },
+    {
+      href: "/director/curriculum",
+      label: t("dir_curriculum"),
+      icon: BookCheck,
+    },
+    {
+      href: "/accountability",
+      label: t("dir_accountability"),
+      icon: ShieldAlert,
+    },
+    {
+      href: "/director/progress",
+      label: t("dir_student_progress"),
+      icon: GraduationCap,
+    },
+    { href: "/director/students", label: t("std_dir_title"), icon: Users },
+    { href: "/director/reports", label: t("dir_reports"), icon: Download },
+    {
+      href: "/director/settings",
+      label: t("dir_settings"),
+      icon: SettingsIcon,
+    },
+    { href: "/director/users", label: t("dir_users_nav"), icon: UserCog },
+    {
+      href: "/director/approvals",
+      label: t("dir_approvals"),
+      icon: ClipboardList,
+    },
+    {
+      href: "/director/teacher-attendance",
+      label: t("nav_director_teacher_attendance"),
+      icon: ClipboardList,
+    },
+    {
+      href: "/director/cover-requests",
+      label: t("cover_requests_title"),
+      icon: AlertTriangle,
+    },
+    {
+      href: "/head-of-study/add-teacher",
+      label: t("dir_add_teacher"),
+      icon: UserPlus,
+    },
+    { href: "/attendance", label: t("nav_attendance"), icon: ClipboardList },
+    {
+      href: "/academic-calendar",
+      label: t("nav_academic_calendar"),
+      icon: CalendarDays,
+    },
+    {
+      href: "/school-calendar",
+      label: t("nav_school_calendar"),
+      icon: CalendarDays,
+    },
+    { href: "/connect", label: t("nav_connect"), icon: Wifi },
+    { href: "/audit", label: t("nav_audit"), icon: BarChart3 },
+    { href: "/ai-models", label: t("nav_ai_models"), icon: SebaSymbol },
+    { href: "/accountability", label: t("nav_accountability"), icon: Lock },
+    {
+      href: "/director/teacher-profiles",
+      label: t("nav_teacher_profiles"),
+      icon: Users,
+    },
   ];
 
   const isDirectorActive = directorItems.some(
-    (i) => location === i.href || (i.href !== "/" && location.startsWith(i.href))
+    i => location === i.href || (i.href !== "/" && location.startsWith(i.href))
   );
 
   const teacherItems = [
-    { href: "/create",        label: t("nav_create"),        icon: SebaSymbol },
-    { href: "/presentation",  label: t("nav_presentation"),  icon: PresentationIcon },
-    { href: "/my-materials",  label: t("nav_my_materials"),  icon: Library },
-    { href: "/challenge",     label: t("nav_challenge"),     icon: Zap },
-    { href: "/groups",        label: t("nav_groups"),        icon: Users },
-    { href: "/questions",     label: t("nav_questions"),     icon: BookOpen },
-    { href: "/practice/custom-sets", label: t("nav_custom_sets"), icon: Layers },
-    { href: "/progress",      label: t("nav_group_progress"), icon: TrendingUp },
-    { href: "/attendance",   label: t("nav_attendance"),   icon: UserCheck },
-    { href: "/teacher/attendance",  label: t("nav_teacher_attendance"),  icon: ClipboardCheck },
-    { href: "/teacher/register",     label: t("register_page_title"),    icon: ClipboardList },
-    { href: "/forum",         label: t("nav_forum"),         icon: MessagesSquare },
-    { href: "/connect",       label: t("nav_connect"),       icon: Wifi },
-    { href: "/lesson-planner",  label: t("nav_lesson_planner"),  icon: FileText },
-    { href: "/teacher-timetable", label: t("nav_teacher_timetable"), icon: CalendarDays },
-    { href: "/individual-plans",  label: t("nav_individual_plans"),  icon: GraduationCap },
-    { href: "/help",             label: t("nav_help"),            icon: HelpCircle },
-    { href: "/privacy",           label: t("nav_privacy"),          icon: Lock },
+    { href: "/create", label: t("nav_create"), icon: SebaSymbol },
+    {
+      href: "/presentation",
+      label: t("nav_presentation"),
+      icon: PresentationIcon,
+    },
+    { href: "/my-materials", label: t("nav_my_materials"), icon: Library },
+    { href: "/challenge", label: t("nav_challenge"), icon: Zap },
+    { href: "/groups", label: t("nav_groups"), icon: Users },
+    { href: "/questions", label: t("nav_questions"), icon: BookOpen },
+    {
+      href: "/practice/custom-sets",
+      label: t("nav_custom_sets"),
+      icon: Layers,
+    },
+    { href: "/progress", label: t("nav_group_progress"), icon: TrendingUp },
+    { href: "/attendance", label: t("nav_attendance"), icon: UserCheck },
+    {
+      href: "/teacher/attendance",
+      label: t("nav_teacher_attendance"),
+      icon: ClipboardCheck,
+    },
+    {
+      href: "/teacher/register",
+      label: t("register_page_title"),
+      icon: ClipboardList,
+    },
+    { href: "/forum", label: t("nav_forum"), icon: MessagesSquare },
+    { href: "/connect", label: t("nav_connect"), icon: Wifi },
+    { href: "/lesson-planner", label: t("nav_lesson_planner"), icon: FileText },
+    {
+      href: "/teacher-timetable",
+      label: t("nav_teacher_timetable"),
+      icon: CalendarDays,
+    },
+    {
+      href: "/individual-plans",
+      label: t("nav_individual_plans"),
+      icon: GraduationCap,
+    },
+    { href: "/help", label: t("nav_help"), icon: HelpCircle },
+    { href: "/privacy", label: t("nav_privacy"), icon: Lock },
+    {
+      href: "/director/teacher-profiles?self=true",
+      label: t("nav_my_profile"),
+      icon: User,
+    },
   ];
 
   const isTeacherActive = teacherItems.some(
-    (i) => location === i.href || (i.href !== "/" && location.startsWith(i.href))
+    i => location === i.href || (i.href !== "/" && location.startsWith(i.href))
   );
 
   // Close dropdowns on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (dropRef.current && !dropRef.current.contains(e.target as Node)) setDropOpen(false);
-      if (directorRef.current && !directorRef.current.contains(e.target as Node)) setDirectorOpen(false);
-      if (hosRef.current && !hosRef.current.contains(e.target as Node)) setHosOpen(false);
-      if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false);
-      if (bellRef.current && !bellRef.current.contains(e.target as Node)) setBellOpen(false);
-      if (situacioRef.current && !situacioRef.current.contains(e.target as Node)) setSituacioOpen(false);
-      if (adminRef.current && !adminRef.current.contains(e.target as Node)) setAdminOpen(false);
+      if (dropRef.current && !dropRef.current.contains(e.target as Node))
+        setDropOpen(false);
+      if (
+        directorRef.current &&
+        !directorRef.current.contains(e.target as Node)
+      )
+        setDirectorOpen(false);
+      if (hosRef.current && !hosRef.current.contains(e.target as Node))
+        setHosOpen(false);
+      if (langRef.current && !langRef.current.contains(e.target as Node))
+        setLangOpen(false);
+      if (bellRef.current && !bellRef.current.contains(e.target as Node))
+        setBellOpen(false);
+      if (
+        situacioRef.current &&
+        !situacioRef.current.contains(e.target as Node)
+      )
+        setSituacioOpen(false);
+      if (adminRef.current && !adminRef.current.contains(e.target as Node))
+        setAdminOpen(false);
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
   // Close mobile menu on route change
-  useEffect(() => { setMobileOpen(false); setDropOpen(false); setDirectorOpen(false); setHosOpen(false); setSituacioOpen(false); setAdminOpen(false); setLangOpen(false); }, [location]);
+  useEffect(() => {
+    setMobileOpen(false);
+    setDropOpen(false);
+    setDirectorOpen(false);
+    setHosOpen(false);
+    setSituacioOpen(false);
+    setAdminOpen(false);
+    setLangOpen(false);
+  }, [location]);
 
   // Auto-focus first menuitem when any dropdown opens
-  useEffect(() => { if (adminOpen)    { setTimeout(() => adminMenuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus(), 0); } }, [adminOpen]);
-  useEffect(() => { if (situacioOpen) { setTimeout(() => situacioMenuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus(), 0); } }, [situacioOpen]);
-  useEffect(() => { if (hosOpen)      { setTimeout(() => hosMenuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus(), 0); } }, [hosOpen]);
-  useEffect(() => { if (directorOpen) { setTimeout(() => directorMenuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus(), 0); } }, [directorOpen]);
-  useEffect(() => { if (langOpen)     { setTimeout(() => langMenuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus(), 0); } }, [langOpen]);
+  useEffect(() => {
+    if (adminOpen) {
+      setTimeout(
+        () =>
+          adminMenuRef.current
+            ?.querySelector<HTMLElement>('[role="menuitem"]')
+            ?.focus(),
+        0
+      );
+    }
+  }, [adminOpen]);
+  useEffect(() => {
+    if (situacioOpen) {
+      setTimeout(
+        () =>
+          situacioMenuRef.current
+            ?.querySelector<HTMLElement>('[role="menuitem"]')
+            ?.focus(),
+        0
+      );
+    }
+  }, [situacioOpen]);
+  useEffect(() => {
+    if (hosOpen) {
+      setTimeout(
+        () =>
+          hosMenuRef.current
+            ?.querySelector<HTMLElement>('[role="menuitem"]')
+            ?.focus(),
+        0
+      );
+    }
+  }, [hosOpen]);
+  useEffect(() => {
+    if (directorOpen) {
+      setTimeout(
+        () =>
+          directorMenuRef.current
+            ?.querySelector<HTMLElement>('[role="menuitem"]')
+            ?.focus(),
+        0
+      );
+    }
+  }, [directorOpen]);
+  useEffect(() => {
+    if (langOpen) {
+      setTimeout(
+        () =>
+          langMenuRef.current
+            ?.querySelector<HTMLElement>('[role="menuitem"]')
+            ?.focus(),
+        0
+      );
+    }
+  }, [langOpen]);
 
   // Note: body scroll lock removed — the mobile nav panel itself scrolls instead
   // (overflow-y-auto on the nav element handles long menus on small screens)
-  const currentLang = LANG_OPTIONS.find((l) => l.code === lang) ?? LANG_OPTIONS[0];
-  const { state: pwaState, install: pwaInstall, showIosModal, setShowIosModal } = usePwaInstall();
+  const currentLang =
+    LANG_OPTIONS.find(l => l.code === lang) ?? LANG_OPTIONS[0];
+  const {
+    state: pwaState,
+    install: pwaInstall,
+    showIosModal,
+    setShowIosModal,
+  } = usePwaInstall();
 
   // ─── Super-admin nav reordering ──────────────────────────────────────────
   const isSuperAdmin = user?.role === "admin";
@@ -452,8 +792,14 @@ export default function NavBar() {
     onError: () => toast.error("Failed to save nav order"),
   });
   // Local state for the current order of schoolAdminItems hrefs
-  const defaultSchoolOrder = useMemo(() => schoolAdminItems.map((i) => i.href), []);
-  const defaultPlatformOrder = useMemo(() => platformItems.map((i) => i.href), []);
+  const defaultSchoolOrder = useMemo(
+    () => schoolAdminItems.map(i => i.href),
+    []
+  );
+  const defaultPlatformOrder = useMemo(
+    () => platformItems.map(i => i.href),
+    []
+  );
   const [schoolOrder, setSchoolOrder] = useState<string[]>([]);
   const [platformOrder, setPlatformOrderState] = useState<string[]>([]);
   // Sync from server once loaded
@@ -464,69 +810,84 @@ export default function NavBar() {
       return;
     }
     const serverOrder = navOrderData.order;
-    const schoolHrefs = schoolAdminItems.map((i) => i.href);
-    const platformHrefs = platformItems.map((i) => i.href);
-    const savedSchool = serverOrder.filter((h) => schoolHrefs.includes(h));
-    const missingSchool = schoolHrefs.filter((h) => !savedSchool.includes(h));
+    const schoolHrefs = schoolAdminItems.map(i => i.href);
+    const platformHrefs = platformItems.map(i => i.href);
+    const savedSchool = serverOrder.filter(h => schoolHrefs.includes(h));
+    const missingSchool = schoolHrefs.filter(h => !savedSchool.includes(h));
     setSchoolOrder([...savedSchool, ...missingSchool]);
-    const savedPlatform = serverOrder.filter((h) => platformHrefs.includes(h));
-    const missingPlatform = platformHrefs.filter((h) => !savedPlatform.includes(h));
+    const savedPlatform = serverOrder.filter(h => platformHrefs.includes(h));
+    const missingPlatform = platformHrefs.filter(
+      h => !savedPlatform.includes(h)
+    );
     setPlatformOrderState([...savedPlatform, ...missingPlatform]);
   }, [navOrderData]);
   // Sorted item arrays derived from order state
   const sortedSchoolItems = useMemo(() => {
     if (!schoolOrder.length) return schoolAdminItems;
     return schoolOrder
-      .map((href) => schoolAdminItems.find((i) => i.href === href))
+      .map(href => schoolAdminItems.find(i => i.href === href))
       .filter(Boolean) as typeof schoolAdminItems;
   }, [schoolOrder]);
   const sortedPlatformItems = useMemo(() => {
     if (!platformOrder.length) return platformItems;
     return platformOrder
-      .map((href) => platformItems.find((i) => i.href === href))
+      .map(href => platformItems.find(i => i.href === href))
       .filter(Boolean) as typeof platformItems;
   }, [platformOrder]);
   // DnD sensors
   const dndSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
-  const handleSchoolDragEnd = useCallback((event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    setSchoolOrder((prev) => {
-      const oldIdx = prev.indexOf(active.id as string);
-      const newIdx = prev.indexOf(over.id as string);
-      const next = arrayMove(prev, oldIdx, newIdx);
-      saveNavOrder.mutate({ order: [...next, ...platformOrder] });
-      return next;
-    });
-  }, [platformOrder, saveNavOrder]);
-  const handlePlatformDragEnd = useCallback((event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    setPlatformOrderState((prev) => {
-      const oldIdx = prev.indexOf(active.id as string);
-      const newIdx = prev.indexOf(over.id as string);
-      const next = arrayMove(prev, oldIdx, newIdx);
-      saveNavOrder.mutate({ order: [...schoolOrder, ...next] });
-      return next;
-    });
-  }, [schoolOrder, saveNavOrder]);
+  const handleSchoolDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+      setSchoolOrder(prev => {
+        const oldIdx = prev.indexOf(active.id as string);
+        const newIdx = prev.indexOf(over.id as string);
+        const next = arrayMove(prev, oldIdx, newIdx);
+        saveNavOrder.mutate({ order: [...next, ...platformOrder] });
+        return next;
+      });
+    },
+    [platformOrder, saveNavOrder]
+  );
+  const handlePlatformDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+      setPlatformOrderState(prev => {
+        const oldIdx = prev.indexOf(active.id as string);
+        const newIdx = prev.indexOf(over.id as string);
+        const next = arrayMove(prev, oldIdx, newIdx);
+        saveNavOrder.mutate({ order: [...schoolOrder, ...next] });
+        return next;
+      });
+    },
+    [schoolOrder, saveNavOrder]
+  );
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
     <>
-      <header className={cn(
-        "sticky top-0 z-50 backdrop-blur-md border-b shadow-sm",
-        isClassroomPage
-          ? "bg-black/40 border-white/15"
-          : "bg-white/95 border-border"
-      )}>
+      <header
+        className={cn(
+          "sticky top-0 z-50 backdrop-blur-md border-b shadow-sm",
+          isClassroomPage
+            ? "bg-black/40 border-white/15"
+            : "bg-white/95 border-border"
+        )}
+      >
         <div className="container flex items-center justify-between h-14 sm:h-16">
-
           {/* Logo — crossfade between classroom and standard variants */}
-          <Link href="/" className="flex items-center gap-2 group flex-shrink-0">
-            <div className="relative h-10 sm:h-12" style={{ width: 'auto', minWidth: '60px' }}>
+          <Link
+            href="/"
+            className="flex items-center gap-2 group flex-shrink-0"
+          >
+            <div
+              className="relative h-10 sm:h-12"
+              style={{ width: "auto", minWidth: "60px" }}
+            >
               {/* Standard logo (white bg) */}
               <img
                 src="/manus-storage/SEBA_hd_new_b460fab2.png"
@@ -555,7 +916,9 @@ export default function NavBar() {
           <nav className="hidden md:flex items-center gap-1">
             {/* Items before Teacher dropdown: Chat, Practice */}
             {mainNavItemsBefore.map(({ href, label, icon: Icon }) => {
-              const active = location === href || (href !== "/" && location.startsWith(href));
+              const active =
+                location === href ||
+                (href !== "/" && location.startsWith(href));
               return (
                 <Link
                   key={href}
@@ -578,492 +941,684 @@ export default function NavBar() {
 
             {/* Situació dropdown — gated by position */}
             {isSituacioPos && (
-            <div ref={situacioRef} className="relative">
-              <button
-                onClick={() => setSituacioOpen((o) => !o)}
-                title={t("nav_situacio_nav")}
-                aria-label={t("nav_situacio_nav")}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
-                  isSituacioActive
-                    ? "bg-primary text-primary-foreground"
-                    : isClassroomPage
-                      ? "text-white/80 hover:text-white hover:bg-white/15"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                )}
-              >
-                <SebaSymbol className="w-4 h-4" />
-                <span className="hidden lg:inline">{t("nav_situacio_nav")}</span>
-                <ChevronDown className={cn("w-3 h-3 transition-transform hidden lg:inline", situacioOpen && "rotate-180")} />
-              </button>
-
-              {situacioOpen && (
-                <div
-                  ref={situacioMenuRef}
-                  role="menu"
+              <div ref={situacioRef} className="relative">
+                <button
+                  onClick={() => setSituacioOpen(o => !o)}
+                  title={t("nav_situacio_nav")}
                   aria-label={t("nav_situacio_nav")}
-                  className="absolute left-0 top-full mt-1 w-52 bg-white border border-border rounded-xl shadow-lg py-1 z-50 max-h-[70vh] overflow-y-auto"
-                  onKeyDown={(e) => {
-                    const items = situacioMenuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]');
-                    if (!items?.length) return;
-                    const idx = Array.from(items).indexOf(document.activeElement as HTMLElement);
-                    if (e.key === "ArrowDown") { e.preventDefault(); (items[idx < items.length - 1 ? idx + 1 : 0]).focus(); }
-                    else if (e.key === "ArrowUp") { e.preventDefault(); (items[idx > 0 ? idx - 1 : items.length - 1]).focus(); }
-                    else if (e.key === "Escape") setSituacioOpen(false);
-                  }}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                    isSituacioActive
+                      ? "bg-primary text-primary-foreground"
+                      : isClassroomPage
+                        ? "text-white/80 hover:text-white hover:bg-white/15"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  )}
                 >
-                  {situacioItems.map(({ href, label, icon: Icon }) => {
-                    const active = location === href || (href !== "/" && location.startsWith(href));
-                    return (
-                      <Link
-                        key={href}
-                        href={href}
-                        role="menuitem"
-                        onClick={() => setSituacioOpen(false)}
-                        className={cn(
-                          "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
-                          active ? "text-primary bg-primary/5" : "text-foreground hover:bg-secondary"
-                        )}
-                      >
-                        <Icon className="w-4 h-4" />
-                        {label}
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-            )}
+                  <SebaSymbol className="w-4 h-4" />
+                  <span className="hidden lg:inline">
+                    {t("nav_situacio_nav")}
+                  </span>
+                  <ChevronDown
+                    className={cn(
+                      "w-3 h-3 transition-transform hidden lg:inline",
+                      situacioOpen && "rotate-180"
+                    )}
+                  />
+                </button>
 
-            {/* Teacher dropdown (after Practice, before TA Forum) — gated by position */}
-            {isTeacherPos && (
-            <div ref={dropRef} className="relative group/teacher">
-              <button
-                onClick={() => setDropOpen((o) => !o)}
-                title={t("nav_teacher")}
-                aria-label={t("nav_teacher")}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
-                  isTeacherActive
-                    ? "bg-primary text-primary-foreground"
-                    : isClassroomPage
-                      ? "text-white/80 hover:text-white hover:bg-white/15"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                )}
-              >
-                <SebaSymbol className="w-4 h-4" />
-                <span className="hidden lg:inline">{t("nav_teacher")}</span>
-                <ChevronDown className={cn("w-3 h-3 transition-transform hidden lg:inline", dropOpen && "rotate-180")} />
-              </button>
-
-              {dropOpen && (
-                <div className="absolute right-0 top-full mt-1 w-52 bg-white border border-border rounded-xl shadow-lg py-1 z-50 max-h-[70vh] overflow-y-auto">
-                  {teacherItems.map(({ href, label, icon: Icon }) => {
-                    const active = location === href || (href !== "/" && location.startsWith(href));
-                    const isConnect = href === "/connect";
-                    return (
-                      <Link
-                        key={href}
-                        href={href}
-                        onClick={() => setDropOpen(false)}
-                        className={cn(
-                          "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
-                          active ? "text-primary bg-primary/5" : "text-foreground hover:bg-secondary"
-                        )}
-                      >
-                        <Icon className="w-4 h-4" />
-                        <span className="flex-1">{label}</span>
-                        {isConnect && connectBadge > 0 && (
-                          <span className="ml-auto flex items-center justify-center w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold">
-                            {connectBadge > 9 ? "9+" : connectBadge}
-                          </span>
-                        )}
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-            )}
-
-            {/* Administration dropdown — admin only (system-level, role-gated) */}
-            {user?.role === "admin" && (
-            <div ref={adminRef} className="relative">
-              <button
-                onClick={() => setAdminOpen((o) => !o)}
-                title={t("nav_administration")}
-                aria-label={t("nav_administration")}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
-                  isAdminActive
-                    ? "bg-primary text-primary-foreground"
-                    : isClassroomPage
-                      ? "text-white/80 hover:text-white hover:bg-white/15"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                )}
-              >
-                <LayoutDashboard className="w-4 h-4" />
-                <span className="hidden lg:inline">{t("nav_administration")}</span>
-                <ChevronDown className={cn("w-3 h-3 transition-transform hidden lg:inline", adminOpen && "rotate-180")} />
-              </button>
-              {adminOpen && (
-                <div
-                  ref={adminMenuRef}
-                  role="menu"
-                  aria-label={t("nav_administration")}
-                  className="absolute right-0 top-full mt-1 w-64 bg-white border border-border rounded-xl shadow-lg py-1 z-50 max-h-[80vh] overflow-y-auto"
-                  onKeyDown={(e) => {
-                    const items = adminMenuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]');
-                    if (!items || items.length === 0) return;
-                    const focused = document.activeElement as HTMLElement;
-                    const idx = Array.from(items).indexOf(focused);
-                    if (e.key === "ArrowDown") {
-                      e.preventDefault();
-                      const next = idx < items.length - 1 ? items[idx + 1] : items[0];
-                      next.focus();
-                    } else if (e.key === "ArrowUp") {
-                      e.preventDefault();
-                      const prev = idx > 0 ? items[idx - 1] : items[items.length - 1];
-                      prev.focus();
-                    } else if (e.key === "Escape") {
-                      setAdminOpen(false);
-                    }
-                  }}
-                >
-                  {/* School administration section — sticky header */}
-                  <p className="sticky top-0 bg-white z-10 px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground border-b border-border/40">
-                    {t("nav_admin_school_section")}
-                  </p>
-                  {isSuperAdmin ? (
-                    <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleSchoolDragEnd}>
-                      <SortableContext items={schoolOrder} strategy={verticalListSortingStrategy}>
-                        {sortedSchoolItems.map(({ href, label, icon: Icon }) => (
-                          <SortableNavItem
-                            key={href}
-                            id={href}
-                            href={href}
-                            label={label}
-                            icon={Icon}
-                            active={location === href || (href !== "/" && location.startsWith(href))}
-                            onClick={() => setAdminOpen(false)}
-                          />
-                        ))}
-                      </SortableContext>
-                    </DndContext>
-                  ) : (
-                    sortedSchoolItems.map(({ href, label, icon: Icon }) => {
-                      const active = location === href || (href !== "/" && location.startsWith(href));
+                {situacioOpen && (
+                  <div
+                    ref={situacioMenuRef}
+                    role="menu"
+                    aria-label={t("nav_situacio_nav")}
+                    className="absolute left-0 top-full mt-1 w-52 bg-white border border-border rounded-xl shadow-lg py-1 z-50 max-h-[70vh] overflow-y-auto"
+                    onKeyDown={e => {
+                      const items =
+                        situacioMenuRef.current?.querySelectorAll<HTMLElement>(
+                          '[role="menuitem"]'
+                        );
+                      if (!items?.length) return;
+                      const idx = Array.from(items).indexOf(
+                        document.activeElement as HTMLElement
+                      );
+                      if (e.key === "ArrowDown") {
+                        e.preventDefault();
+                        items[idx < items.length - 1 ? idx + 1 : 0].focus();
+                      } else if (e.key === "ArrowUp") {
+                        e.preventDefault();
+                        items[idx > 0 ? idx - 1 : items.length - 1].focus();
+                      } else if (e.key === "Escape") setSituacioOpen(false);
+                    }}
+                  >
+                    {situacioItems.map(({ href, label, icon: Icon }) => {
+                      const active =
+                        location === href ||
+                        (href !== "/" && location.startsWith(href));
                       return (
                         <Link
                           key={href}
                           href={href}
                           role="menuitem"
-                          onClick={() => setAdminOpen(false)}
+                          onClick={() => setSituacioOpen(false)}
                           className={cn(
                             "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
-                            active ? "text-primary bg-primary/5" : "text-foreground hover:bg-secondary"
+                            active
+                              ? "text-primary bg-primary/5"
+                              : "text-foreground hover:bg-secondary"
                           )}
                         >
                           <Icon className="w-4 h-4" />
                           {label}
                         </Link>
                       );
-                    })
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Teacher dropdown (after Practice, before TA Forum) — gated by position */}
+            {isTeacherPos && (
+              <div ref={dropRef} className="relative group/teacher">
+                <button
+                  onClick={() => setDropOpen(o => !o)}
+                  title={t("nav_teacher")}
+                  aria-label={t("nav_teacher")}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                    isTeacherActive
+                      ? "bg-primary text-primary-foreground"
+                      : isClassroomPage
+                        ? "text-white/80 hover:text-white hover:bg-white/15"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                   )}
-                  {/* Divider */}
-                  <div className="my-1 border-t border-border" />
-                  {/* Platform tools section — collapsed by default when PIN-locked */}
-                  <button
-                    role="menuitem"
-                    onClick={() => setPlatformExpanded((v) => !v)}
-                    className="sticky top-[28px] bg-white z-10 w-full px-4 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1 hover:bg-secondary/50 transition-colors border-b border-border/40"
+                >
+                  <SebaSymbol className="w-4 h-4" />
+                  <span className="hidden lg:inline">{t("nav_teacher")}</span>
+                  <ChevronDown
+                    className={cn(
+                      "w-3 h-3 transition-transform hidden lg:inline",
+                      dropOpen && "rotate-180"
+                    )}
+                  />
+                </button>
+
+                {dropOpen && (
+                  <div className="absolute right-0 top-full mt-1 w-52 bg-white border border-border rounded-xl shadow-lg py-1 z-50 max-h-[70vh] overflow-y-auto">
+                    {teacherItems.map(({ href, label, icon: Icon }) => {
+                      const active =
+                        location === href ||
+                        (href !== "/" && location.startsWith(href));
+                      const isConnect = href === "/connect";
+                      return (
+                        <Link
+                          key={href}
+                          href={href}
+                          onClick={() => setDropOpen(false)}
+                          className={cn(
+                            "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
+                            active
+                              ? "text-primary bg-primary/5"
+                              : "text-foreground hover:bg-secondary"
+                          )}
+                        >
+                          <Icon className="w-4 h-4" />
+                          <span className="flex-1">{label}</span>
+                          {isConnect && connectBadge > 0 && (
+                            <span className="ml-auto flex items-center justify-center w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold">
+                              {connectBadge > 9 ? "9+" : connectBadge}
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Administration dropdown — admin only (system-level, role-gated) */}
+            {user?.role === "admin" && (
+              <div ref={adminRef} className="relative">
+                <button
+                  onClick={() => setAdminOpen(o => !o)}
+                  title={t("nav_administration")}
+                  aria-label={t("nav_administration")}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                    isAdminActive
+                      ? "bg-primary text-primary-foreground"
+                      : isClassroomPage
+                        ? "text-white/80 hover:text-white hover:bg-white/15"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  )}
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  <span className="hidden lg:inline">
+                    {t("nav_administration")}
+                  </span>
+                  <ChevronDown
+                    className={cn(
+                      "w-3 h-3 transition-transform hidden lg:inline",
+                      adminOpen && "rotate-180"
+                    )}
+                  />
+                </button>
+                {adminOpen && (
+                  <div
+                    ref={adminMenuRef}
+                    role="menu"
+                    aria-label={t("nav_administration")}
+                    className="absolute right-0 top-full mt-1 w-64 bg-white border border-border rounded-xl shadow-lg py-1 z-50 max-h-[80vh] overflow-y-auto"
+                    onKeyDown={e => {
+                      const items =
+                        adminMenuRef.current?.querySelectorAll<HTMLElement>(
+                          '[role="menuitem"]'
+                        );
+                      if (!items || items.length === 0) return;
+                      const focused = document.activeElement as HTMLElement;
+                      const idx = Array.from(items).indexOf(focused);
+                      if (e.key === "ArrowDown") {
+                        e.preventDefault();
+                        const next =
+                          idx < items.length - 1 ? items[idx + 1] : items[0];
+                        next.focus();
+                      } else if (e.key === "ArrowUp") {
+                        e.preventDefault();
+                        const prev =
+                          idx > 0 ? items[idx - 1] : items[items.length - 1];
+                        prev.focus();
+                      } else if (e.key === "Escape") {
+                        setAdminOpen(false);
+                      }
+                    }}
                   >
-                    <Lock className="w-3 h-3" />
-                    {t("nav_admin_platform_section")}
-                    {!platformUnlocked && <span className="ml-auto text-[9px] bg-amber-100 text-amber-700 rounded px-1">PIN</span>}
-                    {platformUnlocked && <span className="text-[9px] bg-green-100 text-green-700 rounded px-1">{t("nav_admin_unlocked")}</span>}
-                    <ChevronDown className={cn("w-3 h-3 ml-auto transition-transform", platformExpanded && "rotate-180")} />
-                  </button>
-                  {platformExpanded && (
-                    isSuperAdmin ? (
-                      <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handlePlatformDragEnd}>
-                        <SortableContext items={platformOrder} strategy={verticalListSortingStrategy}>
-                          {sortedPlatformItems.map(({ href, label, icon: Icon }) => (
-                            <SortableNavItem
-                              key={href}
-                              id={href}
-                              href={href}
-                              label={label}
-                              icon={Icon}
-                              active={location === href || (href !== "/" && location.startsWith(href))}
-                              onClick={(e) => { handlePlatformClick(href, e as React.MouseEvent); if (platformUnlocked) setAdminOpen(false); }}
-                              locked={!platformUnlocked}
-                            />
-                          ))}
+                    {/* School administration section — sticky header */}
+                    <p className="sticky top-0 bg-white z-10 px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground border-b border-border/40">
+                      {t("nav_admin_school_section")}
+                    </p>
+                    {isSuperAdmin ? (
+                      <DndContext
+                        sensors={dndSensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleSchoolDragEnd}
+                      >
+                        <SortableContext
+                          items={schoolOrder}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          {sortedSchoolItems.map(
+                            ({ href, label, icon: Icon }) => (
+                              <SortableNavItem
+                                key={href}
+                                id={href}
+                                href={href}
+                                label={label}
+                                icon={Icon}
+                                active={
+                                  location === href ||
+                                  (href !== "/" && location.startsWith(href))
+                                }
+                                onClick={() => setAdminOpen(false)}
+                              />
+                            )
+                          )}
                         </SortableContext>
                       </DndContext>
                     ) : (
-                      sortedPlatformItems.map(({ href, label, icon: Icon }) => {
-                        const active = location === href || (href !== "/" && location.startsWith(href));
+                      sortedSchoolItems.map(({ href, label, icon: Icon }) => {
+                        const active =
+                          location === href ||
+                          (href !== "/" && location.startsWith(href));
                         return (
                           <Link
                             key={href}
                             href={href}
                             role="menuitem"
-                            onClick={(e) => { handlePlatformClick(href, e); if (platformUnlocked) setAdminOpen(false); }}
+                            onClick={() => setAdminOpen(false)}
                             className={cn(
                               "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
-                              active ? "text-primary bg-primary/5" : "text-foreground hover:bg-secondary",
-                              !platformUnlocked && "opacity-60"
+                              active
+                                ? "text-primary bg-primary/5"
+                                : "text-foreground hover:bg-secondary"
                             )}
                           >
                             <Icon className="w-4 h-4" />
                             {label}
-                            {!platformUnlocked && <Lock className="w-3 h-3 ml-auto text-muted-foreground" />}
                           </Link>
                         );
                       })
-                    )
-                  )}
-                  {/* Divider + Territorial Services section */}
-                  <div className="my-1 border-t border-border" />
-                  <p className="sticky top-[28px] bg-white z-10 px-4 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1 border-b border-border/40">
-                    <MapPin className="w-3 h-3" />
-                    {t("nav_admin_territorial_section")}
-                  </p>
-                  <button
-                    role="menuitem"
-                    onClick={() => { setTeacherInviteOpen(true); setAdminOpen(false); setTeacherInviteLink(null); setTeacherInviteEmail(""); setTeacherInviteCopied(false); }}
-                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary transition-colors text-left"
-                  >
-                    <GraduationCap className="w-4 h-4 text-green-600" />
-                    {t("nav_admin_invite_teacher")}
-                  </button>
-                  {tdConnected ? (
-                    <div
-                      role="menuitem"
-                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-left cursor-default select-none"
-                    >
-                      <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
-                      <span className="text-green-700 font-semibold">Connected</span>
-                      {tdConnectedDirectors[0] && (
-                        <span className="ml-auto text-xs text-muted-foreground truncate max-w-[120px]" title={tdConnectedDirectors[0].name ?? ""}>
-                          {tdConnectedDirectors[0].name}
-                        </span>
-                      )}
-                    </div>
-                  ) : (
+                    )}
+                    {/* Divider */}
+                    <div className="my-1 border-t border-border" />
+                    {/* Platform tools section — collapsed by default when PIN-locked */}
                     <button
                       role="menuitem"
-                      onClick={() => { setTdDialogOpen(true); setAdminOpen(false); setTdResult(null); setTdName(""); setTdEmail(""); setTdReason(""); setTdTerritoryId(null); }}
+                      onClick={() => setPlatformExpanded(v => !v)}
+                      className="sticky top-[28px] bg-white z-10 w-full px-4 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1 hover:bg-secondary/50 transition-colors border-b border-border/40"
+                    >
+                      <Lock className="w-3 h-3" />
+                      {t("nav_admin_platform_section")}
+                      {!platformUnlocked && (
+                        <span className="ml-auto text-[9px] bg-amber-100 text-amber-700 rounded px-1">
+                          PIN
+                        </span>
+                      )}
+                      {platformUnlocked && (
+                        <span className="text-[9px] bg-green-100 text-green-700 rounded px-1">
+                          {t("nav_admin_unlocked")}
+                        </span>
+                      )}
+                      <ChevronDown
+                        className={cn(
+                          "w-3 h-3 ml-auto transition-transform",
+                          platformExpanded && "rotate-180"
+                        )}
+                      />
+                    </button>
+                    {platformExpanded &&
+                      (isSuperAdmin ? (
+                        <DndContext
+                          sensors={dndSensors}
+                          collisionDetection={closestCenter}
+                          onDragEnd={handlePlatformDragEnd}
+                        >
+                          <SortableContext
+                            items={platformOrder}
+                            strategy={verticalListSortingStrategy}
+                          >
+                            {sortedPlatformItems.map(
+                              ({ href, label, icon: Icon }) => (
+                                <SortableNavItem
+                                  key={href}
+                                  id={href}
+                                  href={href}
+                                  label={label}
+                                  icon={Icon}
+                                  active={
+                                    location === href ||
+                                    (href !== "/" && location.startsWith(href))
+                                  }
+                                  onClick={e => {
+                                    handlePlatformClick(
+                                      href,
+                                      e as React.MouseEvent
+                                    );
+                                    if (platformUnlocked) setAdminOpen(false);
+                                  }}
+                                  locked={!platformUnlocked}
+                                />
+                              )
+                            )}
+                          </SortableContext>
+                        </DndContext>
+                      ) : (
+                        sortedPlatformItems.map(
+                          ({ href, label, icon: Icon }) => {
+                            const active =
+                              location === href ||
+                              (href !== "/" && location.startsWith(href));
+                            return (
+                              <Link
+                                key={href}
+                                href={href}
+                                role="menuitem"
+                                onClick={e => {
+                                  handlePlatformClick(href, e);
+                                  if (platformUnlocked) setAdminOpen(false);
+                                }}
+                                className={cn(
+                                  "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
+                                  active
+                                    ? "text-primary bg-primary/5"
+                                    : "text-foreground hover:bg-secondary",
+                                  !platformUnlocked && "opacity-60"
+                                )}
+                              >
+                                <Icon className="w-4 h-4" />
+                                {label}
+                                {!platformUnlocked && (
+                                  <Lock className="w-3 h-3 ml-auto text-muted-foreground" />
+                                )}
+                              </Link>
+                            );
+                          }
+                        )
+                      ))}
+                    {/* Divider + Territorial Services section */}
+                    <div className="my-1 border-t border-border" />
+                    <p className="sticky top-[28px] bg-white z-10 px-4 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1 border-b border-border/40">
+                      <MapPin className="w-3 h-3" />
+                      {t("nav_admin_territorial_section")}
+                    </p>
+                    <button
+                      role="menuitem"
+                      onClick={() => {
+                        setTeacherInviteOpen(true);
+                        setAdminOpen(false);
+                        setTeacherInviteLink(null);
+                        setTeacherInviteEmail("");
+                        setTeacherInviteCopied(false);
+                      }}
                       className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary transition-colors text-left"
                     >
-                      <UserPlus className="w-4 h-4 text-blue-600" />
-                      {platformUnlocked ? t("nav_admin_register_td") : <span className="opacity-60">{t("nav_admin_register_td")}</span>}
+                      <GraduationCap className="w-4 h-4 text-green-600" />
+                      {t("nav_admin_invite_teacher")}
                     </button>
-                  )}
-                  <Link
-                    href="/seba/tenants"
-                    role="menuitem"
-                    onClick={() => setAdminOpen(false)}
-                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary transition-colors"
-                  >
-                    <Building2 className="w-4 h-4 text-purple-600" />
-                    {t("nav_admin_tenant_management")}
-                  </Link>
-                  <Link
-                    href="/seba/roles"
-                    role="menuitem"
-                    onClick={() => { if (platformUnlocked) setAdminOpen(false); else handlePlatformClick("/seba/roles", { preventDefault: () => {} } as React.MouseEvent); }}
-                    className={cn("flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary transition-colors", !platformUnlocked && "opacity-60")}
-                  >
-                    <UserCog className="w-4 h-4 text-violet-600" />
-                    {t("nav_admin_role_mgmt")}
-                    {!platformUnlocked && <Lock className="w-3 h-3 ml-auto text-muted-foreground" />}
-                  </Link>
-                  <Link
-                    href="/seba/user-management"
-                    role="menuitem"
-                    onClick={() => { if (platformUnlocked) setAdminOpen(false); else handlePlatformClick("/seba/user-management", { preventDefault: () => {} } as React.MouseEvent); }}
-                    className={cn("flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary transition-colors", !platformUnlocked && "opacity-60")}
-                  >
-                    <Users className="w-4 h-4 text-indigo-600" />
-                    User Management
-                    {!platformUnlocked && <Lock className="w-3 h-3 ml-auto text-muted-foreground" />}
-                  </Link>
-                </div>
-              )}
-            </div>
+                    {tdConnected ? (
+                      <div
+                        role="menuitem"
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-left cursor-default select-none"
+                      >
+                        <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                        <span className="text-green-700 font-semibold">
+                          Connected
+                        </span>
+                        {tdConnectedDirectors[0] && (
+                          <span
+                            className="ml-auto text-xs text-muted-foreground truncate max-w-[120px]"
+                            title={tdConnectedDirectors[0].name ?? ""}
+                          >
+                            {tdConnectedDirectors[0].name}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <button
+                        role="menuitem"
+                        onClick={() => {
+                          setTdDialogOpen(true);
+                          setAdminOpen(false);
+                          setTdResult(null);
+                          setTdName("");
+                          setTdEmail("");
+                          setTdReason("");
+                          setTdTerritoryId(null);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary transition-colors text-left"
+                      >
+                        <UserPlus className="w-4 h-4 text-blue-600" />
+                        {platformUnlocked ? (
+                          t("nav_admin_register_td")
+                        ) : (
+                          <span className="opacity-60">
+                            {t("nav_admin_register_td")}
+                          </span>
+                        )}
+                      </button>
+                    )}
+                    <Link
+                      href="/seba/tenants"
+                      role="menuitem"
+                      onClick={() => setAdminOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary transition-colors"
+                    >
+                      <Building2 className="w-4 h-4 text-purple-600" />
+                      {t("nav_admin_tenant_management")}
+                    </Link>
+                    <Link
+                      href="/seba/roles"
+                      role="menuitem"
+                      onClick={() => {
+                        if (platformUnlocked) setAdminOpen(false);
+                        else
+                          handlePlatformClick("/seba/roles", {
+                            preventDefault: () => {},
+                          } as React.MouseEvent);
+                      }}
+                      className={cn(
+                        "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary transition-colors",
+                        !platformUnlocked && "opacity-60"
+                      )}
+                    >
+                      <UserCog className="w-4 h-4 text-violet-600" />
+                      {t("nav_admin_role_mgmt")}
+                      {!platformUnlocked && (
+                        <Lock className="w-3 h-3 ml-auto text-muted-foreground" />
+                      )}
+                    </Link>
+                    <Link
+                      href="/seba/user-management"
+                      role="menuitem"
+                      onClick={() => {
+                        if (platformUnlocked) setAdminOpen(false);
+                        else
+                          handlePlatformClick("/seba/user-management", {
+                            preventDefault: () => {},
+                          } as React.MouseEvent);
+                      }}
+                      className={cn(
+                        "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary transition-colors",
+                        !platformUnlocked && "opacity-60"
+                      )}
+                    >
+                      <Users className="w-4 h-4 text-indigo-600" />
+                      User Management
+                      {!platformUnlocked && (
+                        <Lock className="w-3 h-3 ml-auto text-muted-foreground" />
+                      )}
+                    </Link>
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Head of Study dropdown — visible by position */}
             {isHosPos && (
-            <div ref={hosRef} className="relative">
-              <button
-                onClick={() => setHosOpen((o) => !o)}
-                title={t("nav_head_of_study")}
-                aria-label={t("nav_head_of_study")}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
-                  isHosActive
-                    ? "bg-primary text-primary-foreground"
-                    : isClassroomPage
-                      ? "text-white/80 hover:text-white hover:bg-white/15"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                )}
-              >
-                <GraduationCap className="w-4 h-4" />
-                <span className="hidden lg:inline">{t("nav_head_of_study")}</span>
-                <ChevronDown className={cn("w-3 h-3 transition-transform hidden lg:inline", hosOpen && "rotate-180")} />
-              </button>
-
-              {hosOpen && (
-                <div
-                  ref={hosMenuRef}
-                  role="menu"
+              <div ref={hosRef} className="relative">
+                <button
+                  onClick={() => setHosOpen(o => !o)}
+                  title={t("nav_head_of_study")}
                   aria-label={t("nav_head_of_study")}
-                  className="absolute right-0 top-full mt-1 w-56 bg-white border border-border rounded-xl shadow-lg py-1 z-50 max-h-[70vh] overflow-y-auto"
-                  onKeyDown={(e) => {
-                    const items = hosMenuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]');
-                    if (!items?.length) return;
-                    const idx = Array.from(items).indexOf(document.activeElement as HTMLElement);
-                    if (e.key === "ArrowDown") { e.preventDefault(); (items[idx < items.length - 1 ? idx + 1 : 0]).focus(); }
-                    else if (e.key === "ArrowUp") { e.preventDefault(); (items[idx > 0 ? idx - 1 : items.length - 1]).focus(); }
-                    else if (e.key === "Escape") setHosOpen(false);
-                  }}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                    isHosActive
+                      ? "bg-primary text-primary-foreground"
+                      : isClassroomPage
+                        ? "text-white/80 hover:text-white hover:bg-white/15"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  )}
                 >
-                  {hosItems.map(({ href, label, icon: Icon }) => {
-                    const active = location === href || (href !== "/" && location.startsWith(href));
-                    return (
-                      <Link
-                        key={href}
-                        href={href}
-                        role="menuitem"
-                        onClick={() => setHosOpen(false)}
-                        className={cn(
-                          "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
-                          active ? "text-primary bg-primary/5" : "text-foreground hover:bg-secondary"
-                        )}
-                      >
-                        <Icon className="w-4 h-4" />
-                        {label}
-                      </Link>
-                    );
-                  })}
-                  {/* TA Forum */}
-                  <Link
-                    href="/forum"
-                    role="menuitem"
-                    onClick={() => setHosOpen(false)}
+                  <GraduationCap className="w-4 h-4" />
+                  <span className="hidden lg:inline">
+                    {t("nav_head_of_study")}
+                  </span>
+                  <ChevronDown
                     className={cn(
-                      "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
-                      location === "/forum" ? "text-primary bg-primary/5" : "text-foreground hover:bg-secondary"
+                      "w-3 h-3 transition-transform hidden lg:inline",
+                      hosOpen && "rotate-180"
                     )}
+                  />
+                </button>
+
+                {hosOpen && (
+                  <div
+                    ref={hosMenuRef}
+                    role="menu"
+                    aria-label={t("nav_head_of_study")}
+                    className="absolute right-0 top-full mt-1 w-56 bg-white border border-border rounded-xl shadow-lg py-1 z-50 max-h-[70vh] overflow-y-auto"
+                    onKeyDown={e => {
+                      const items =
+                        hosMenuRef.current?.querySelectorAll<HTMLElement>(
+                          '[role="menuitem"]'
+                        );
+                      if (!items?.length) return;
+                      const idx = Array.from(items).indexOf(
+                        document.activeElement as HTMLElement
+                      );
+                      if (e.key === "ArrowDown") {
+                        e.preventDefault();
+                        items[idx < items.length - 1 ? idx + 1 : 0].focus();
+                      } else if (e.key === "ArrowUp") {
+                        e.preventDefault();
+                        items[idx > 0 ? idx - 1 : items.length - 1].focus();
+                      } else if (e.key === "Escape") setHosOpen(false);
+                    }}
                   >
-                    <MessagesSquare className="w-4 h-4" />
-                    {t("nav_forum")}
-                    {forumBadge > 0 && (
-                      <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
-                        {forumBadge > 9 ? "9+" : forumBadge}
-                      </span>
-                    )}
-                  </Link>
-                </div>
-              )}
-            </div>
+                    {hosItems.map(({ href, label, icon: Icon }) => {
+                      const active =
+                        location === href ||
+                        (href !== "/" && location.startsWith(href));
+                      return (
+                        <Link
+                          key={href}
+                          href={href}
+                          role="menuitem"
+                          onClick={() => setHosOpen(false)}
+                          className={cn(
+                            "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
+                            active
+                              ? "text-primary bg-primary/5"
+                              : "text-foreground hover:bg-secondary"
+                          )}
+                        >
+                          <Icon className="w-4 h-4" />
+                          {label}
+                        </Link>
+                      );
+                    })}
+                    {/* TA Forum */}
+                    <Link
+                      href="/forum"
+                      role="menuitem"
+                      onClick={() => setHosOpen(false)}
+                      className={cn(
+                        "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
+                        location === "/forum"
+                          ? "text-primary bg-primary/5"
+                          : "text-foreground hover:bg-secondary"
+                      )}
+                    >
+                      <MessagesSquare className="w-4 h-4" />
+                      {t("nav_forum")}
+                      {forumBadge > 0 && (
+                        <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+                          {forumBadge > 9 ? "9+" : forumBadge}
+                        </span>
+                      )}
+                    </Link>
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Director dropdown — position-gated */}
             {isDirectorPos && (
-            <div ref={directorRef} className="relative">
-              <button
-                onClick={() => setDirectorOpen((o) => !o)}
-                title={t("nav_director")}
-                aria-label={t("nav_director")}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
-                  isDirectorActive
-                    ? "bg-primary text-primary-foreground"
-                    : isClassroomPage
-                      ? "text-white/80 hover:text-white hover:bg-white/15"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                )}
-              >
-                <BarChart3 className="w-4 h-4" />
-                <span className="hidden lg:inline">{t("nav_director")}</span>
-                {pendingInviteCount > 0 && (
-                  <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-bold text-white leading-none">
-                    {pendingInviteCount > 9 ? "9+" : pendingInviteCount}
-                  </span>
-                )}
-                <ChevronDown className={cn("w-3 h-3 transition-transform hidden lg:inline", directorOpen && "rotate-180")} />
-              </button>
-
-              {directorOpen && (
-                <div
-                  ref={directorMenuRef}
-                  role="menu"
+              <div ref={directorRef} className="relative">
+                <button
+                  onClick={() => setDirectorOpen(o => !o)}
+                  title={t("nav_director")}
                   aria-label={t("nav_director")}
-                  className="absolute right-0 top-full mt-1 w-56 bg-white border border-border rounded-xl shadow-lg py-1 z-50 max-h-[70vh] overflow-y-auto"
-                  onKeyDown={(e) => {
-                    const items = directorMenuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]');
-                    if (!items?.length) return;
-                    const idx = Array.from(items).indexOf(document.activeElement as HTMLElement);
-                    if (e.key === "ArrowDown") { e.preventDefault(); (items[idx < items.length - 1 ? idx + 1 : 0]).focus(); }
-                    else if (e.key === "ArrowUp") { e.preventDefault(); (items[idx > 0 ? idx - 1 : items.length - 1]).focus(); }
-                    else if (e.key === "Escape") setDirectorOpen(false);
-                  }}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                    isDirectorActive
+                      ? "bg-primary text-primary-foreground"
+                      : isClassroomPage
+                        ? "text-white/80 hover:text-white hover:bg-white/15"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  )}
                 >
-                  {directorItems.map(({ href, label, icon: Icon }) => {
-                    const active = location === href || (href !== "/" && location.startsWith(href));
-                    const isUsersItem = href === "/director/users";
-                    return (
-                      <Link
-                        key={href}
-                        href={href}
-                        role="menuitem"
-                        onClick={() => setDirectorOpen(false)}
-                        className={cn(
-                          "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
-                          active ? "text-primary bg-primary/5" : "text-foreground hover:bg-secondary"
-                        )}
-                      >
-                        <Icon className="w-4 h-4" />
-                        {label}
-                        {isUsersItem && pendingInviteCount > 0 && (
-                          <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-bold text-white leading-none">
-                            {pendingInviteCount > 9 ? "9+" : pendingInviteCount}
-                          </span>
-                        )}
-                        {href === "/director/approvals" && totalApprovalsCount > 0 && (
-                          <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white leading-none">
-                            {totalApprovalsCount > 9 ? "9+" : totalApprovalsCount}
-                          </span>
-                        )}
-                      </Link>
-                    );
-                  })}
-                  {/* TA Forum */}
-                  <Link
-                    href="/forum"
-                    role="menuitem"
-                    onClick={() => setDirectorOpen(false)}
+                  <BarChart3 className="w-4 h-4" />
+                  <span className="hidden lg:inline">{t("nav_director")}</span>
+                  {pendingInviteCount > 0 && (
+                    <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-bold text-white leading-none">
+                      {pendingInviteCount > 9 ? "9+" : pendingInviteCount}
+                    </span>
+                  )}
+                  <ChevronDown
                     className={cn(
-                      "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
-                      location === "/forum" ? "text-primary bg-primary/5" : "text-foreground hover:bg-secondary"
+                      "w-3 h-3 transition-transform hidden lg:inline",
+                      directorOpen && "rotate-180"
                     )}
+                  />
+                </button>
+
+                {directorOpen && (
+                  <div
+                    ref={directorMenuRef}
+                    role="menu"
+                    aria-label={t("nav_director")}
+                    className="absolute right-0 top-full mt-1 w-56 bg-white border border-border rounded-xl shadow-lg py-1 z-50 max-h-[70vh] overflow-y-auto"
+                    onKeyDown={e => {
+                      const items =
+                        directorMenuRef.current?.querySelectorAll<HTMLElement>(
+                          '[role="menuitem"]'
+                        );
+                      if (!items?.length) return;
+                      const idx = Array.from(items).indexOf(
+                        document.activeElement as HTMLElement
+                      );
+                      if (e.key === "ArrowDown") {
+                        e.preventDefault();
+                        items[idx < items.length - 1 ? idx + 1 : 0].focus();
+                      } else if (e.key === "ArrowUp") {
+                        e.preventDefault();
+                        items[idx > 0 ? idx - 1 : items.length - 1].focus();
+                      } else if (e.key === "Escape") setDirectorOpen(false);
+                    }}
                   >
-                    <MessagesSquare className="w-4 h-4" />
-                    {t("nav_forum")}
-                    {forumBadge > 0 && (
-                      <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
-                        {forumBadge > 9 ? "9+" : forumBadge}
-                      </span>
-                    )}
-                  </Link>
-                </div>
-              )}
-            </div>
+                    {directorItems.map(({ href, label, icon: Icon }) => {
+                      const active =
+                        location === href ||
+                        (href !== "/" && location.startsWith(href));
+                      const isUsersItem = href === "/director/users";
+                      return (
+                        <Link
+                          key={href}
+                          href={href}
+                          role="menuitem"
+                          onClick={() => setDirectorOpen(false)}
+                          className={cn(
+                            "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
+                            active
+                              ? "text-primary bg-primary/5"
+                              : "text-foreground hover:bg-secondary"
+                          )}
+                        >
+                          <Icon className="w-4 h-4" />
+                          {label}
+                          {isUsersItem && pendingInviteCount > 0 && (
+                            <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-bold text-white leading-none">
+                              {pendingInviteCount > 9
+                                ? "9+"
+                                : pendingInviteCount}
+                            </span>
+                          )}
+                          {href === "/director/approvals" &&
+                            totalApprovalsCount > 0 && (
+                              <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white leading-none">
+                                {totalApprovalsCount > 9
+                                  ? "9+"
+                                  : totalApprovalsCount}
+                              </span>
+                            )}
+                        </Link>
+                      );
+                    })}
+                    {/* TA Forum */}
+                    <Link
+                      href="/forum"
+                      role="menuitem"
+                      onClick={() => setDirectorOpen(false)}
+                      className={cn(
+                        "flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors",
+                        location === "/forum"
+                          ? "text-primary bg-primary/5"
+                          : "text-foreground hover:bg-secondary"
+                      )}
+                    >
+                      <MessagesSquare className="w-4 h-4" />
+                      {t("nav_forum")}
+                      {forumBadge > 0 && (
+                        <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+                          {forumBadge > 9 ? "9+" : forumBadge}
+                        </span>
+                      )}
+                    </Link>
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Settings link (desktop) */}
@@ -1089,7 +1644,7 @@ export default function NavBar() {
             {user && (
               <div ref={bellRef} className="relative ml-1">
                 <button
-                  onClick={() => setBellOpen((o) => !o)}
+                  onClick={() => setBellOpen(o => !o)}
                   className={cn(
                     "relative flex items-center justify-center w-9 h-9 rounded-lg transition-all",
                     isClassroomPage
@@ -1109,7 +1664,9 @@ export default function NavBar() {
                 {bellOpen && (
                   <div className="absolute right-0 top-full mt-1 w-80 bg-white border border-border rounded-xl shadow-lg z-50 overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-                      <span className="text-sm font-semibold text-foreground">{t("nav_notifications")}</span>
+                      <span className="text-sm font-semibold text-foreground">
+                        {t("nav_notifications")}
+                      </span>
                       {unreadCount > 0 && (
                         <button
                           onClick={() => markAllRead.mutate()}
@@ -1121,46 +1678,82 @@ export default function NavBar() {
                     </div>
                     <div className="max-h-80 overflow-y-auto">
                       {myNotifications.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-8">{t("nav_no_notifications")}</p>
+                        <p className="text-sm text-muted-foreground text-center py-8">
+                          {t("nav_no_notifications")}
+                        </p>
                       ) : (
-                        myNotifications.map((n: { id: number; title: string; body: string; link: string | null; isRead: boolean; createdAt: Date; type: string; userId: string }) => (
-                          <div
-                            key={n.id}
-                            className={cn(
-                              "flex items-start gap-3 px-4 py-3 border-b border-border last:border-0 transition-colors",
-                              !n.isRead && "bg-primary/5",
-                              n.type !== "meeting_invite" && "cursor-pointer hover:bg-secondary/40"
-                            )}
-                            onClick={() => {
-                              if (n.type === "meeting_invite") return;
-                              if (!n.isRead) {
-                                markRead.mutate({ id: n.id });
-                                utils.notifications.getUnreadCount.invalidate();
-                                utils.notifications.getMyNotifications.invalidate();
-                              }
-                              if (n.link) window.location.href = n.link;
-                              setBellOpen(false);
-                            }}
-                          >
-                            <Bell className={cn("w-4 h-4 mt-0.5 flex-shrink-0", n.isRead ? "text-muted-foreground" : "text-primary")} />
-                            <div className="flex-1 min-w-0">
-                              <p className={cn("text-sm font-medium truncate", n.isRead ? "text-muted-foreground" : "text-foreground")}>{n.title}</p>
-                              <p className="text-xs text-muted-foreground line-clamp-2">{n.body}</p>
-                              <p className="text-[10px] text-muted-foreground mt-0.5">{new Date(n.createdAt).toLocaleString()}</p>
-                              {n.type === "meeting_invite" && !n.isRead && (
-                                <MeetingInviteActions
-                                  notificationId={n.id}
-                                  onDone={() => {
-                                    utils.notifications.getMyNotifications.invalidate();
-                                    utils.notifications.getUnreadCount.invalidate();
-                                    utils.meetingInvitation.getPendingCount.invalidate();
-                                  }}
-                                />
+                        myNotifications.map(
+                          (n: {
+                            id: number;
+                            title: string;
+                            body: string;
+                            link: string | null;
+                            isRead: boolean;
+                            createdAt: Date;
+                            type: string;
+                            userId: string;
+                          }) => (
+                            <div
+                              key={n.id}
+                              className={cn(
+                                "flex items-start gap-3 px-4 py-3 border-b border-border last:border-0 transition-colors",
+                                !n.isRead && "bg-primary/5",
+                                n.type !== "meeting_invite" &&
+                                  "cursor-pointer hover:bg-secondary/40"
+                              )}
+                              onClick={() => {
+                                if (n.type === "meeting_invite") return;
+                                if (!n.isRead) {
+                                  markRead.mutate({ id: n.id });
+                                  utils.notifications.getUnreadCount.invalidate();
+                                  utils.notifications.getMyNotifications.invalidate();
+                                }
+                                if (n.link) window.location.href = n.link;
+                                setBellOpen(false);
+                              }}
+                            >
+                              <Bell
+                                className={cn(
+                                  "w-4 h-4 mt-0.5 flex-shrink-0",
+                                  n.isRead
+                                    ? "text-muted-foreground"
+                                    : "text-primary"
+                                )}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p
+                                  className={cn(
+                                    "text-sm font-medium truncate",
+                                    n.isRead
+                                      ? "text-muted-foreground"
+                                      : "text-foreground"
+                                  )}
+                                >
+                                  {n.title}
+                                </p>
+                                <p className="text-xs text-muted-foreground line-clamp-2">
+                                  {n.body}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground mt-0.5">
+                                  {new Date(n.createdAt).toLocaleString()}
+                                </p>
+                                {n.type === "meeting_invite" && !n.isRead && (
+                                  <MeetingInviteActions
+                                    notificationId={n.id}
+                                    onDone={() => {
+                                      utils.notifications.getMyNotifications.invalidate();
+                                      utils.notifications.getUnreadCount.invalidate();
+                                      utils.meetingInvitation.getPendingCount.invalidate();
+                                    }}
+                                  />
+                                )}
+                              </div>
+                              {!n.isRead && n.type !== "meeting_invite" && (
+                                <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1" />
                               )}
                             </div>
-                            {!n.isRead && n.type !== "meeting_invite" && <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1" />}
-                          </div>
-                        ))
+                          )
+                        )
                       )}
                     </div>
                   </div>
@@ -1188,7 +1781,7 @@ export default function NavBar() {
             {/* Language toggle */}
             <div ref={langRef} className="relative ml-1">
               <button
-                onClick={() => setLangOpen((o) => !o)}
+                onClick={() => setLangOpen(o => !o)}
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
                   isClassroomPage
@@ -1198,8 +1791,16 @@ export default function NavBar() {
                 aria-label={t("nav_change_language")}
               >
                 <Globe className="w-4 h-4" />
-                <span>{currentLang.flag} {currentLang.label}<DialectBadge /></span>
-                <ChevronDown className={cn("w-3 h-3 transition-transform", langOpen && "rotate-180")} />
+                <span>
+                  {currentLang.flag} {currentLang.label}
+                  <DialectBadge />
+                </span>
+                <ChevronDown
+                  className={cn(
+                    "w-3 h-3 transition-transform",
+                    langOpen && "rotate-180"
+                  )}
+                />
               </button>
 
               {langOpen && (
@@ -1208,27 +1809,47 @@ export default function NavBar() {
                   role="menu"
                   aria-label={t("nav_change_language")}
                   className="absolute right-0 top-full mt-1 w-36 bg-white border border-border rounded-xl shadow-lg py-1 z-50"
-                  onKeyDown={(e) => {
-                    const items = langMenuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]');
+                  onKeyDown={e => {
+                    const items =
+                      langMenuRef.current?.querySelectorAll<HTMLElement>(
+                        '[role="menuitem"]'
+                      );
                     if (!items?.length) return;
-                    const idx = Array.from(items).indexOf(document.activeElement as HTMLElement);
-                    if (e.key === "ArrowDown") { e.preventDefault(); (items[idx < items.length - 1 ? idx + 1 : 0]).focus(); }
-                    else if (e.key === "ArrowUp") { e.preventDefault(); (items[idx > 0 ? idx - 1 : items.length - 1]).focus(); }
-                    else if (e.key === "Escape") setLangOpen(false);
+                    const idx = Array.from(items).indexOf(
+                      document.activeElement as HTMLElement
+                    );
+                    if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      items[idx < items.length - 1 ? idx + 1 : 0].focus();
+                    } else if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      items[idx > 0 ? idx - 1 : items.length - 1].focus();
+                    } else if (e.key === "Escape") setLangOpen(false);
                   }}
                 >
-                  {LANG_OPTIONS.map((opt) => (
+                  {LANG_OPTIONS.map(opt => (
                     <button
                       key={opt.code}
                       role="menuitem"
-                      onClick={() => { setLang(opt.code); setLangOpen(false); }}
+                      onClick={() => {
+                        setLang(opt.code);
+                        setLangOpen(false);
+                      }}
                       className={cn(
                         "w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors text-left",
-                        lang === opt.code ? "text-primary bg-primary/5 font-semibold" : "text-foreground hover:bg-secondary"
+                        lang === opt.code
+                          ? "text-primary bg-primary/5 font-semibold"
+                          : "text-foreground hover:bg-secondary"
                       )}
                     >
                       <span>{opt.flag}</span>
-                      <span>{opt.code === "ca" ? "Català" : opt.code === "es" ? "Español" : "English"}</span>
+                      <span>
+                        {opt.code === "ca"
+                          ? "Català"
+                          : opt.code === "es"
+                            ? "Español"
+                            : "English"}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -1258,18 +1879,29 @@ export default function NavBar() {
               <div className="flex items-center gap-1.5">
                 {/* ZER badge — shown when director is acting as HoS */}
                 {isZerHos && (
-                  <span className="hidden lg:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-600 text-[10px] font-bold border border-green-500/30" title="ZER — Acting as Head of Study">
+                  <span
+                    className="hidden lg:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-600 text-[10px] font-bold border border-green-500/30"
+                    title="ZER — Acting as Head of Study"
+                  >
                     ZER
                   </span>
                 )}
                 {/* CUTCG professional body badge */}
-                <span className={cn(
-                  "hidden lg:inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0",
-                  isClassroomPage
-                    ? "bg-white/15 text-white border-white/30"
-                    : "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700"
-                )} title="Col·legi Unificat de Titulats en Ciències de l'Educació de Girona">
-                  CUTCG{(user as any).cutcgMemberNumber ? <span className="opacity-75">#{(user as any).cutcgMemberNumber}</span> : null}
+                <span
+                  className={cn(
+                    "hidden lg:inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0",
+                    isClassroomPage
+                      ? "bg-white/15 text-white border-white/30"
+                      : "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700"
+                  )}
+                  title="Col·legi Unificat de Titulats en Ciències de l'Educació de Girona"
+                >
+                  CUTCG
+                  {(user as any).cutcgMemberNumber ? (
+                    <span className="opacity-75">
+                      #{(user as any).cutcgMemberNumber}
+                    </span>
+                  ) : null}
                 </span>
                 {/* Avatar circle with initials */}
                 <div
@@ -1323,11 +1955,15 @@ export default function NavBar() {
           {/* Mobile: language pill + hamburger */}
           <div className="md:hidden flex items-center gap-2">
             {/* Compact language switcher on mobile */}
-            <div className={cn(
+            <div
+              className={cn(
                 "flex items-center gap-0.5 rounded-lg p-0.5",
-                isClassroomPage ? "bg-white/15 backdrop-blur-sm" : "bg-secondary"
-              )}>
-              {LANG_OPTIONS.map((opt) => (
+                isClassroomPage
+                  ? "bg-white/15 backdrop-blur-sm"
+                  : "bg-secondary"
+              )}
+            >
+              {LANG_OPTIONS.map(opt => (
                 <button
                   key={opt.code}
                   onClick={() => setLang(opt.code)}
@@ -1354,10 +1990,14 @@ export default function NavBar() {
                   ? "text-white/80 hover:text-white hover:bg-white/15"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary"
               )}
-              onClick={() => setMobileOpen((o) => !o)}
+              onClick={() => setMobileOpen(o => !o)}
               aria-label={mobileOpen ? t("nav_close_menu") : t("nav_open_menu")}
             >
-              {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {mobileOpen ? (
+                <X className="w-5 h-5" />
+              ) : (
+                <Menu className="w-5 h-5" />
+              )}
             </button>
           </div>
         </div>
@@ -1365,7 +2005,10 @@ export default function NavBar() {
 
       {/* Mobile slide-down menu */}
       {mobileOpen && (
-        <div className="md:hidden fixed inset-0 top-14 z-40 bg-black/40" onClick={() => setMobileOpen(false)}>
+        <div
+          className="md:hidden fixed inset-0 top-14 z-40 bg-black/40"
+          onClick={() => setMobileOpen(false)}
+        >
           <nav
             className={cn(
               "border-b shadow-xl flex flex-col overflow-y-auto max-h-[calc(100vh-3.5rem)]",
@@ -1373,12 +2016,22 @@ export default function NavBar() {
                 ? "bg-black/70 backdrop-blur-md border-white/15"
                 : "bg-white border-border"
             )}
-            onClick={(e) => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
           >
             {/* Main nav */}
-            <div className={cn("px-4 py-3 border-b", isClassroomPage ? "border-white/15" : "border-border")}>
-              <p className={cn("text-xs font-semibold uppercase tracking-wider mb-2 px-1", isClassroomPage ? "text-white/50" : "text-muted-foreground")}>
-  {t("nav_home")} &amp; {t("nav_chat")}
+            <div
+              className={cn(
+                "px-4 py-3 border-b",
+                isClassroomPage ? "border-white/15" : "border-border"
+              )}
+            >
+              <p
+                className={cn(
+                  "text-xs font-semibold uppercase tracking-wider mb-2 px-1",
+                  isClassroomPage ? "text-white/50" : "text-muted-foreground"
+                )}
+              >
+                {t("nav_home")} &amp; {t("nav_chat")}
               </p>
               {/* Sign In — mobile, only when not authenticated */}
               {!user && (
@@ -1397,7 +2050,9 @@ export default function NavBar() {
                 </Link>
               )}
               {mainNavItemsBefore.map(({ href, label, icon: Icon }) => {
-                const active = location === href || (href !== "/" && location.startsWith(href));
+                const active =
+                  location === href ||
+                  (href !== "/" && location.startsWith(href));
                 return (
                   <Link
                     key={href}
@@ -1420,9 +2075,17 @@ export default function NavBar() {
 
             {/* Install App — mobile */}
             {pwaState !== "unavailable" && (
-              <div className={cn("px-4 py-3 border-t", isClassroomPage ? "border-white/15" : "border-border")}>
+              <div
+                className={cn(
+                  "px-4 py-3 border-t",
+                  isClassroomPage ? "border-white/15" : "border-border"
+                )}
+              >
                 <button
-                  onClick={() => { pwaInstall(); setMobileOpen(false); }}
+                  onClick={() => {
+                    pwaInstall();
+                    setMobileOpen(false);
+                  }}
                   className={cn(
                     "w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all",
                     isClassroomPage
@@ -1438,292 +2101,373 @@ export default function NavBar() {
 
             {/* Situació tools — role-gated to admin / head_of_study */}
             {isSituacioPos && (
-            <div className={cn("px-4 py-3 border-b", isClassroomPage ? "border-white/15" : "border-border")}>
-              <p className={cn("text-xs font-semibold uppercase tracking-wider mb-2 px-1", isClassroomPage ? "text-white/50" : "text-muted-foreground")}>
-                {t("nav_situacio_nav")}
-              </p>
-              {situacioItems.map(({ href, label, icon: Icon }) => {
-                const active = location === href || (href !== "/" && location.startsWith(href));
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    onClick={() => setMobileOpen(false)}
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mb-1",
-                      active
-                        ? "bg-primary text-primary-foreground"
-                        : isClassroomPage
-                          ? "text-white/80 hover:text-white hover:bg-white/15"
-                          : "text-foreground hover:bg-secondary"
-                    )}
-                  >
-                    <Icon className="w-5 h-5 flex-shrink-0" />
-                    {label}
-                  </Link>
-                );
-              })}
-            </div>
+              <div
+                className={cn(
+                  "px-4 py-3 border-b",
+                  isClassroomPage ? "border-white/15" : "border-border"
+                )}
+              >
+                <p
+                  className={cn(
+                    "text-xs font-semibold uppercase tracking-wider mb-2 px-1",
+                    isClassroomPage ? "text-white/50" : "text-muted-foreground"
+                  )}
+                >
+                  {t("nav_situacio_nav")}
+                </p>
+                {situacioItems.map(({ href, label, icon: Icon }) => {
+                  const active =
+                    location === href ||
+                    (href !== "/" && location.startsWith(href));
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      onClick={() => setMobileOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mb-1",
+                        active
+                          ? "bg-primary text-primary-foreground"
+                          : isClassroomPage
+                            ? "text-white/80 hover:text-white hover:bg-white/15"
+                            : "text-foreground hover:bg-secondary"
+                      )}
+                    >
+                      <Icon className="w-5 h-5 flex-shrink-0" />
+                      {label}
+                    </Link>
+                  );
+                })}
+              </div>
             )}
 
             {/* Administration tools — admin only */}
             {user?.role === "admin" && (
-            <div className="px-4 py-3">
-              {/* School admin section */}
-              <p className={cn("text-xs font-semibold uppercase tracking-wider mb-2 px-1", isClassroomPage ? "text-white/50" : "text-muted-foreground")}>
-                {t("nav_administration")} — {t("nav_admin_school_section")}
-              </p>
-              {sortedSchoolItems.map(({ href, label, icon: Icon }) => {
-                const active = location === href || (href !== "/" && location.startsWith(href));
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    onClick={() => setMobileOpen(false)}
+              <div className="px-4 py-3">
+                {/* School admin section */}
+                <p
+                  className={cn(
+                    "text-xs font-semibold uppercase tracking-wider mb-2 px-1",
+                    isClassroomPage ? "text-white/50" : "text-muted-foreground"
+                  )}
+                >
+                  {t("nav_administration")} — {t("nav_admin_school_section")}
+                </p>
+                {sortedSchoolItems.map(({ href, label, icon: Icon }) => {
+                  const active =
+                    location === href ||
+                    (href !== "/" && location.startsWith(href));
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      onClick={() => setMobileOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mb-1",
+                        active
+                          ? "bg-primary text-primary-foreground"
+                          : isClassroomPage
+                            ? "text-white/80 hover:text-white hover:bg-white/15"
+                            : "text-foreground hover:bg-secondary"
+                      )}
+                    >
+                      <Icon className="w-5 h-5 flex-shrink-0" />
+                      {label}
+                    </Link>
+                  );
+                })}
+                {/* Divider + Platform tools */}
+                <div className="my-2 border-t border-border/40" />
+                <button
+                  onClick={() => setPlatformExpanded(v => !v)}
+                  className={cn(
+                    "w-full text-xs font-semibold uppercase tracking-wider mb-2 px-1 flex items-center gap-1 text-left",
+                    isClassroomPage ? "text-white/50" : "text-muted-foreground"
+                  )}
+                >
+                  <Lock className="w-3 h-3" />
+                  {t("nav_admin_platform_section")}
+                  {!platformUnlocked && (
+                    <span className="ml-auto text-[9px] bg-amber-100 text-amber-700 rounded px-1">
+                      PIN
+                    </span>
+                  )}
+                  {platformUnlocked && (
+                    <span className="ml-auto text-[9px] bg-green-100 text-green-700 rounded px-1">
+                      {t("nav_admin_unlocked")}
+                    </span>
+                  )}
+                  <ChevronDown
                     className={cn(
-                      "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mb-1",
-                      active
-                        ? "bg-primary text-primary-foreground"
-                        : isClassroomPage
-                          ? "text-white/80 hover:text-white hover:bg-white/15"
-                          : "text-foreground hover:bg-secondary"
+                      "w-3 h-3 ml-1 transition-transform",
+                      platformExpanded && "rotate-180"
                     )}
-                  >
-                    <Icon className="w-5 h-5 flex-shrink-0" />
-                    {label}
-                  </Link>
-                );
-              })}
-              {/* Divider + Platform tools */}
-              <div className="my-2 border-t border-border/40" />
-              <button
-                onClick={() => setPlatformExpanded((v) => !v)}
-                className={cn("w-full text-xs font-semibold uppercase tracking-wider mb-2 px-1 flex items-center gap-1 text-left", isClassroomPage ? "text-white/50" : "text-muted-foreground")}
-              >
-                <Lock className="w-3 h-3" />
-                {t("nav_admin_platform_section")}
-                {!platformUnlocked && <span className="ml-auto text-[9px] bg-amber-100 text-amber-700 rounded px-1">PIN</span>}
-                {platformUnlocked && <span className="ml-auto text-[9px] bg-green-100 text-green-700 rounded px-1">{t("nav_admin_unlocked")}</span>}
-                <ChevronDown className={cn("w-3 h-3 ml-1 transition-transform", platformExpanded && "rotate-180")} />
-              </button>
-              {platformExpanded && sortedPlatformItems.map(({ href, label, icon: Icon }) => {
-                const active = location === href || (href !== "/" && location.startsWith(href));
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    onClick={(e) => { handlePlatformClick(href, e); if (platformUnlocked) setMobileOpen(false); }}
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mb-1",
-                      active
-                        ? "bg-primary text-primary-foreground"
-                        : isClassroomPage
-                          ? "text-white/80 hover:text-white hover:bg-white/15"
-                          : "text-foreground hover:bg-secondary",
-                      !platformUnlocked && "opacity-60"
-                    )}
-                  >
-                    <Icon className="w-5 h-5 flex-shrink-0" />
-                    {label}
-                    {!platformUnlocked && <Lock className="w-4 h-4 ml-auto text-muted-foreground" />}
-                  </Link>
-                );
-              })}
-            </div>
+                  />
+                </button>
+                {platformExpanded &&
+                  sortedPlatformItems.map(({ href, label, icon: Icon }) => {
+                    const active =
+                      location === href ||
+                      (href !== "/" && location.startsWith(href));
+                    return (
+                      <Link
+                        key={href}
+                        href={href}
+                        onClick={e => {
+                          handlePlatformClick(href, e);
+                          if (platformUnlocked) setMobileOpen(false);
+                        }}
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mb-1",
+                          active
+                            ? "bg-primary text-primary-foreground"
+                            : isClassroomPage
+                              ? "text-white/80 hover:text-white hover:bg-white/15"
+                              : "text-foreground hover:bg-secondary",
+                          !platformUnlocked && "opacity-60"
+                        )}
+                      >
+                        <Icon className="w-5 h-5 flex-shrink-0" />
+                        {label}
+                        {!platformUnlocked && (
+                          <Lock className="w-4 h-4 ml-auto text-muted-foreground" />
+                        )}
+                      </Link>
+                    );
+                  })}
+              </div>
             )}
 
             {/* Head of Study tools — role-gated */}
             {isHosPos && (
-            <div className="px-4 py-3">
-              <p className={cn("text-xs font-semibold uppercase tracking-wider mb-2 px-1", isClassroomPage ? "text-white/50" : "text-muted-foreground")}>
-                {t("nav_head_of_study")}
-              </p>
-              {hosItems.map(({ href, label, icon: Icon }) => {
-                const active = location === href || (href !== "/" && location.startsWith(href));
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    onClick={() => setMobileOpen(false)}
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mb-1",
-                      active
-                        ? "bg-primary text-primary-foreground"
-                        : isClassroomPage
-                          ? "text-white/80 hover:text-white hover:bg-white/15"
-                          : "text-foreground hover:bg-secondary"
-                    )}
-                  >
-                    <Icon className="w-5 h-5 flex-shrink-0" />
-                    {label}
-                  </Link>
-                );
-              })}
-              {/* TA Forum */}
-              <Link
-                href="/forum"
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mb-1",
-                  location === "/forum"
-                    ? "bg-primary text-primary-foreground"
-                    : isClassroomPage
-                      ? "text-white/80 hover:text-white hover:bg-white/15"
-                      : "text-foreground hover:bg-secondary"
-                )}
-              >
-                <MessagesSquare className="w-5 h-5 flex-shrink-0" />
-                {t("nav_forum")}
-                {forumBadge > 0 && (
-                  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-                    {forumBadge > 9 ? "9+" : forumBadge}
-                  </span>
-                )}
-              </Link>
-            </div>
-            )}
-
-            {/* Director tools */}
-            {isDirectorPos && (
-            <div className="px-4 py-3">
-              <p className={cn("text-xs font-semibold uppercase tracking-wider mb-2 px-1", isClassroomPage ? "text-white/50" : "text-muted-foreground")}>
-                {t("nav_director")}
-              </p>
-              {directorItems.map(({ href, label, icon: Icon }) => {
-                const active = location === href || (href !== "/" && location.startsWith(href));
-                const isUsersItem = href === "/director/users";
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    onClick={() => setMobileOpen(false)}
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mb-1",
-                      active
-                        ? "bg-primary text-primary-foreground"
-                        : isClassroomPage
-                          ? "text-white/80 hover:text-white hover:bg-white/15"
-                          : "text-foreground hover:bg-secondary"
-                    )}
-                  >
-                    <Icon className="w-5 h-5 flex-shrink-0" />
-                    {label}
-                    {isUsersItem && pendingInviteCount > 0 && (
-                      <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-white leading-none">
-                        {pendingInviteCount > 9 ? "9+" : pendingInviteCount}
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
-              {/* TA Forum */}
-              <Link
-                href="/forum"
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mb-1",
-                  location === "/forum"
-                    ? "bg-primary text-primary-foreground"
-                    : isClassroomPage
-                      ? "text-white/80 hover:text-white hover:bg-white/15"
-                      : "text-foreground hover:bg-secondary"
-                )}
-              >
-                <MessagesSquare className="w-5 h-5 flex-shrink-0" />
-                {t("nav_forum")}
-                {forumBadge > 0 && (
-                  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-                    {forumBadge > 9 ? "9+" : forumBadge}
-                  </span>
-                )}
-              </Link>
-            </div>
-            )}
-
-            {/* Teacher tools */}
-            {isTeacherPos && (
-            <div className="px-4 py-3">
-              <p className={cn("text-xs font-semibold uppercase tracking-wider mb-2 px-1", isClassroomPage ? "text-white/50" : "text-muted-foreground")}>
-                {t("nav_teacher")}
-              </p>
-              {/* Settings link in mobile menu */}
-              {user && (
+              <div className="px-4 py-3">
+                <p
+                  className={cn(
+                    "text-xs font-semibold uppercase tracking-wider mb-2 px-1",
+                    isClassroomPage ? "text-white/50" : "text-muted-foreground"
+                  )}
+                >
+                  {t("nav_head_of_study")}
+                </p>
+                {hosItems.map(({ href, label, icon: Icon }) => {
+                  const active =
+                    location === href ||
+                    (href !== "/" && location.startsWith(href));
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      onClick={() => setMobileOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mb-1",
+                        active
+                          ? "bg-primary text-primary-foreground"
+                          : isClassroomPage
+                            ? "text-white/80 hover:text-white hover:bg-white/15"
+                            : "text-foreground hover:bg-secondary"
+                      )}
+                    >
+                      <Icon className="w-5 h-5 flex-shrink-0" />
+                      {label}
+                    </Link>
+                  );
+                })}
+                {/* TA Forum */}
                 <Link
-                  href="/settings"
+                  href="/forum"
                   onClick={() => setMobileOpen(false)}
                   className={cn(
                     "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mb-1",
-                    location === "/settings"
+                    location === "/forum"
                       ? "bg-primary text-primary-foreground"
                       : isClassroomPage
                         ? "text-white/80 hover:text-white hover:bg-white/15"
                         : "text-foreground hover:bg-secondary"
                   )}
                 >
-                  <SettingsIcon className="w-5 h-5 flex-shrink-0" />
-                  {t("nav_settings")}
+                  <MessagesSquare className="w-5 h-5 flex-shrink-0" />
+                  {t("nav_forum")}
+                  {forumBadge > 0 && (
+                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                      {forumBadge > 9 ? "9+" : forumBadge}
+                    </span>
+                  )}
                 </Link>
-              )}
-              {teacherItems.map(({ href, label, icon: Icon }) => {
-                const active = location === href || (href !== "/" && location.startsWith(href));
-                const isMobileConnect = href === "/connect";
-                return (
+              </div>
+            )}
+
+            {/* Director tools */}
+            {isDirectorPos && (
+              <div className="px-4 py-3">
+                <p
+                  className={cn(
+                    "text-xs font-semibold uppercase tracking-wider mb-2 px-1",
+                    isClassroomPage ? "text-white/50" : "text-muted-foreground"
+                  )}
+                >
+                  {t("nav_director")}
+                </p>
+                {directorItems.map(({ href, label, icon: Icon }) => {
+                  const active =
+                    location === href ||
+                    (href !== "/" && location.startsWith(href));
+                  const isUsersItem = href === "/director/users";
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      onClick={() => setMobileOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mb-1",
+                        active
+                          ? "bg-primary text-primary-foreground"
+                          : isClassroomPage
+                            ? "text-white/80 hover:text-white hover:bg-white/15"
+                            : "text-foreground hover:bg-secondary"
+                      )}
+                    >
+                      <Icon className="w-5 h-5 flex-shrink-0" />
+                      {label}
+                      {isUsersItem && pendingInviteCount > 0 && (
+                        <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-white leading-none">
+                          {pendingInviteCount > 9 ? "9+" : pendingInviteCount}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+                {/* TA Forum */}
+                <Link
+                  href="/forum"
+                  onClick={() => setMobileOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mb-1",
+                    location === "/forum"
+                      ? "bg-primary text-primary-foreground"
+                      : isClassroomPage
+                        ? "text-white/80 hover:text-white hover:bg-white/15"
+                        : "text-foreground hover:bg-secondary"
+                  )}
+                >
+                  <MessagesSquare className="w-5 h-5 flex-shrink-0" />
+                  {t("nav_forum")}
+                  {forumBadge > 0 && (
+                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                      {forumBadge > 9 ? "9+" : forumBadge}
+                    </span>
+                  )}
+                </Link>
+              </div>
+            )}
+
+            {/* Teacher tools */}
+            {isTeacherPos && (
+              <div className="px-4 py-3">
+                <p
+                  className={cn(
+                    "text-xs font-semibold uppercase tracking-wider mb-2 px-1",
+                    isClassroomPage ? "text-white/50" : "text-muted-foreground"
+                  )}
+                >
+                  {t("nav_teacher")}
+                </p>
+                {/* Settings link in mobile menu */}
+                {user && (
                   <Link
-                    key={href}
-                    href={href}
+                    href="/settings"
+                    onClick={() => setMobileOpen(false)}
                     className={cn(
                       "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mb-1",
-                      active
+                      location === "/settings"
                         ? "bg-primary text-primary-foreground"
                         : isClassroomPage
                           ? "text-white/80 hover:text-white hover:bg-white/15"
                           : "text-foreground hover:bg-secondary"
                     )}
                   >
-                    <Icon className="w-5 h-5 flex-shrink-0" />
-                    <span className="flex-1">{label}</span>
-                    {isMobileConnect && connectBadge > 0 && (
-                      <span className="flex items-center justify-center w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold">
-                        {connectBadge > 9 ? "9+" : connectBadge}
-                      </span>
-                    )}
+                    <SettingsIcon className="w-5 h-5 flex-shrink-0" />
+                    {t("nav_settings")}
                   </Link>
-                );
-              })}
-            </div>
+                )}
+                {teacherItems.map(({ href, label, icon: Icon }) => {
+                  const active =
+                    location === href ||
+                    (href !== "/" && location.startsWith(href));
+                  const isMobileConnect = href === "/connect";
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mb-1",
+                        active
+                          ? "bg-primary text-primary-foreground"
+                          : isClassroomPage
+                            ? "text-white/80 hover:text-white hover:bg-white/15"
+                            : "text-foreground hover:bg-secondary"
+                      )}
+                    >
+                      <Icon className="w-5 h-5 flex-shrink-0" />
+                      <span className="flex-1">{label}</span>
+                      {isMobileConnect && connectBadge > 0 && (
+                        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold">
+                          {connectBadge > 9 ? "9+" : connectBadge}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
             )}
 
             {/* User info + Sign Out — mobile */}
             {user && (
               <div className="px-4 py-3 border-t border-border mt-1 space-y-1">
                 {/* User identity row */}
-                <div className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-xl",
-                  isClassroomPage ? "bg-white/10" : "bg-muted/50"
-                )}>
-                  <div className={cn(
-                    "flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold select-none shrink-0",
-                    isClassroomPage ? "bg-white/20 text-white" : "bg-primary/15 text-primary"
-                  )}>
+                <div
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-xl",
+                    isClassroomPage ? "bg-white/10" : "bg-muted/50"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold select-none shrink-0",
+                      isClassroomPage
+                        ? "bg-white/20 text-white"
+                        : "bg-primary/15 text-primary"
+                    )}
+                  >
                     {(user.name ?? user.email ?? "?").slice(0, 2).toUpperCase()}
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <p className={cn(
-                        "text-sm font-semibold truncate",
-                        isClassroomPage ? "text-white" : "text-foreground"
-                      )}>
+                      <p
+                        className={cn(
+                          "text-sm font-semibold truncate",
+                          isClassroomPage ? "text-white" : "text-foreground"
+                        )}
+                      >
                         {user.name ?? user.email ?? ""}
                       </p>
                       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700 shrink-0">
-                        CUTCG{(user as any).cutcgMemberNumber ? <span className="opacity-75">#{(user as any).cutcgMemberNumber}</span> : null}
+                        CUTCG
+                        {(user as any).cutcgMemberNumber ? (
+                          <span className="opacity-75">
+                            #{(user as any).cutcgMemberNumber}
+                          </span>
+                        ) : null}
                       </span>
                     </div>
                     {user.name && user.email && (
-                      <p className={cn(
-                        "text-xs truncate",
-                        isClassroomPage ? "text-white/60" : "text-muted-foreground"
-                      )}>
+                      <p
+                        className={cn(
+                          "text-xs truncate",
+                          isClassroomPage
+                            ? "text-white/60"
+                            : "text-muted-foreground"
+                        )}
+                      >
                         {user.email}
                       </p>
                     )}
@@ -1731,7 +2475,10 @@ export default function NavBar() {
                 </div>
                 {/* Cross-domain switch button — mobile */}
                 <button
-                  onClick={() => { setMobileOpen(false); navigateCrossOrigin(crossOriginTarget); }}
+                  onClick={() => {
+                    setMobileOpen(false);
+                    navigateCrossOrigin(crossOriginTarget);
+                  }}
                   disabled={crossOriginPending}
                   className={cn(
                     "flex items-center gap-3 w-full px-3 py-3 rounded-xl text-sm font-medium transition-all",
@@ -1749,7 +2496,10 @@ export default function NavBar() {
                 </button>
                 {/* Sign Out button */}
                 <button
-                  onClick={() => { setMobileOpen(false); logout(); }}
+                  onClick={() => {
+                    setMobileOpen(false);
+                    logout();
+                  }}
                   className={cn(
                     "flex items-center gap-3 w-full px-3 py-3 rounded-xl text-sm font-medium transition-all",
                     isClassroomPage
@@ -1767,26 +2517,54 @@ export default function NavBar() {
       )}
       {/* iOS install instructions modal */}
       {showIosModal && (
-        <div className="fixed inset-0 z-[100] flex items-end justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowIosModal(false)}>
-          <div className="w-full max-w-sm bg-[#0f172a] border border-white/20 rounded-2xl shadow-2xl p-5" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-[100] flex items-end justify-center p-4 bg-black/50 backdrop-blur-sm"
+          onClick={() => setShowIosModal(false)}
+        >
+          <div
+            className="w-full max-w-sm bg-[#0f172a] border border-white/20 rounded-2xl shadow-2xl p-5"
+            onClick={e => e.stopPropagation()}
+          >
             <div className="flex items-start justify-between gap-2 mb-4">
-              <p className="text-base font-semibold text-white">Install AINA on your iPhone</p>
-              <button onClick={() => setShowIosModal(false)} className="text-white/40 hover:text-white transition-colors">
+              <p className="text-base font-semibold text-white">
+                Install AINA on your iPhone
+              </p>
+              <button
+                onClick={() => setShowIosModal(false)}
+                className="text-white/40 hover:text-white transition-colors"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
             <ol className="space-y-3">
               <li className="flex items-center gap-3 text-sm text-white/70">
-                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-white text-xs font-bold">1</span>
-                <span>Tap the <Share className="w-4 h-4 inline-block mx-1 text-blue-400" /> Share button in Safari</span>
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-white text-xs font-bold">
+                  1
+                </span>
+                <span>
+                  Tap the{" "}
+                  <Share className="w-4 h-4 inline-block mx-1 text-blue-400" />{" "}
+                  Share button in Safari
+                </span>
               </li>
               <li className="flex items-center gap-3 text-sm text-white/70">
-                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-white text-xs font-bold">2</span>
-                <span>Scroll down and tap <strong className="text-white">"Add to Home Screen"</strong> <Plus className="w-3.5 h-3.5 inline-block ml-0.5" /></span>
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-white text-xs font-bold">
+                  2
+                </span>
+                <span>
+                  Scroll down and tap{" "}
+                  <strong className="text-white">"Add to Home Screen"</strong>{" "}
+                  <Plus className="w-3.5 h-3.5 inline-block ml-0.5" />
+                </span>
               </li>
               <li className="flex items-center gap-3 text-sm text-white/70">
-                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-white text-xs font-bold">3</span>
-                <span>Tap <strong className="text-white">"Add"</strong> — AINA will appear on your home screen</span>
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-white text-xs font-bold">
+                  3
+                </span>
+                <span>
+                  Tap <strong className="text-white">"Add"</strong> — AINA will
+                  appear on your home screen
+                </span>
               </li>
             </ol>
             <button
@@ -1802,13 +2580,22 @@ export default function NavBar() {
       <AdminPinGate
         open={pinOpen}
         onSuccess={handlePinSuccess}
-        onCancel={() => { setPinOpen(false); setPinTarget(null); }}
+        onCancel={() => {
+          setPinOpen(false);
+          setPinTarget(null);
+        }}
       />
 
       {/* Register Territorial Director dialog */}
       {tdDialogOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => !registerTD.isPending && setTdDialogOpen(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          onClick={() => !registerTD.isPending && setTdDialogOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6"
+            onClick={e => e.stopPropagation()}
+          >
             {!tdResult ? (
               <>
                 <div className="flex items-center gap-3 mb-5">
@@ -1816,50 +2603,68 @@ export default function NavBar() {
                     <UserPlus className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
-                    <h2 className="text-base font-semibold text-gray-900">{t("nav_admin_register_td")}</h2>
-                    <p className="text-xs text-gray-500">Creates account, grants role, assigns territory</p>
+                    <h2 className="text-base font-semibold text-gray-900">
+                      {t("nav_admin_register_td")}
+                    </h2>
+                    <p className="text-xs text-gray-500">
+                      Creates account, grants role, assigns territory
+                    </p>
                   </div>
                 </div>
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Full Name</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Full Name
+                    </label>
                     <input
                       type="text"
                       value={tdName}
-                      onChange={(e) => setTdName(e.target.value)}
+                      onChange={e => setTdName(e.target.value)}
                       placeholder="e.g. Director Territorial Terres de l'Ebre"
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Email Address</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Email Address
+                    </label>
                     <input
                       type="email"
                       value={tdEmail}
-                      onChange={(e) => setTdEmail(e.target.value)}
+                      onChange={e => setTdEmail(e.target.value)}
                       placeholder="e.g. territorial.ebre@educacio.gencat.cat"
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Territory</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Territory
+                    </label>
                     <select
                       value={tdTerritoryId ?? ""}
-                      onChange={(e) => setTdTerritoryId(e.target.value ? Number(e.target.value) : null)}
+                      onChange={e =>
+                        setTdTerritoryId(
+                          e.target.value ? Number(e.target.value) : null
+                        )
+                      }
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                     >
                       <option value="">Select territory...</option>
                       {tdTerritories.map((t: { id: number; name: string }) => (
-                        <option key={t.id} value={t.id}>{t.name}</option>
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                        </option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Reason (optional)</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Reason (optional)
+                    </label>
                     <input
                       type="text"
                       value={tdReason}
-                      onChange={(e) => setTdReason(e.target.value)}
+                      onChange={e => setTdReason(e.target.value)}
                       placeholder="e.g. Appointed by Departament d'Educació"
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
@@ -1873,11 +2678,25 @@ export default function NavBar() {
                     Cancel
                   </button>
                   <button
-                    disabled={!tdName.trim() || !tdEmail.trim() || !tdTerritoryId || registerTD.isPending}
-                    onClick={() => registerTD.mutate({ name: tdName.trim(), email: tdEmail.trim(), territoryId: tdTerritoryId!, reason: tdReason.trim() || undefined })}
+                    disabled={
+                      !tdName.trim() ||
+                      !tdEmail.trim() ||
+                      !tdTerritoryId ||
+                      registerTD.isPending
+                    }
+                    onClick={() =>
+                      registerTD.mutate({
+                        name: tdName.trim(),
+                        email: tdEmail.trim(),
+                        territoryId: tdTerritoryId!,
+                        reason: tdReason.trim() || undefined,
+                      })
+                    }
                     className="flex-1 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
                   >
-                    {registerTD.isPending ? "Registering..." : "Register & Grant"}
+                    {registerTD.isPending
+                      ? "Registering..."
+                      : "Register & Grant"}
                   </button>
                 </div>
               </>
@@ -1888,31 +2707,50 @@ export default function NavBar() {
                     <CheckCircle2 className="w-5 h-5 text-green-600" />
                   </div>
                   <div>
-                    <h2 className="text-base font-semibold text-gray-900">Director Registered</h2>
-                    <p className="text-xs text-gray-500">{tdResult.territoryName}</p>
+                    <h2 className="text-base font-semibold text-gray-900">
+                      Director Registered
+                    </h2>
+                    <p className="text-xs text-gray-500">
+                      {tdResult.territoryName}
+                    </p>
                   </div>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-500">Email</span>
-                    <span className="font-medium text-gray-900">{tdResult.email}</span>
+                    <span className="font-medium text-gray-900">
+                      {tdResult.email}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-500">Temp Password</span>
                     <div className="flex items-center gap-2">
-                      <code className="font-mono text-xs bg-white border border-gray-200 px-2 py-0.5 rounded">{tdResult.tempPassword}</code>
+                      <code className="font-mono text-xs bg-white border border-gray-200 px-2 py-0.5 rounded">
+                        {tdResult.tempPassword}
+                      </code>
                       <button
-                        onClick={() => { navigator.clipboard.writeText(`Email: ${tdResult!.email}\nPassword: ${tdResult!.tempPassword}\nPortal: ${window.location.origin}/login`); setTdCopied(true); setTimeout(() => setTdCopied(false), 2000); }}
+                        onClick={() => {
+                          navigator.clipboard.writeText(
+                            `Email: ${tdResult!.email}\nPassword: ${tdResult!.tempPassword}\nPortal: ${window.location.origin}/login`
+                          );
+                          setTdCopied(true);
+                          setTimeout(() => setTdCopied(false), 2000);
+                        }}
                         className="p-1 rounded hover:bg-gray-100 transition-colors"
                         title="Copy credentials"
                       >
-                        {tdCopied ? <CheckCircle2 className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4 text-gray-400" />}
+                        {tdCopied ? (
+                          <CheckCircle2 className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <Copy className="w-4 h-4 text-gray-400" />
+                        )}
                       </button>
                     </div>
                   </div>
                 </div>
                 <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2 mt-3">
-                  Share these credentials securely. The director should change their password on first login.
+                  Share these credentials securely. The director should change
+                  their password on first login.
                 </p>
                 <button
                   onClick={() => setTdDialogOpen(false)}
@@ -1928,8 +2766,16 @@ export default function NavBar() {
 
       {/* Invite Teacher dialog */}
       {teacherInviteOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => !createTeacherInvite.isPending && setTeacherInviteOpen(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          onClick={() =>
+            !createTeacherInvite.isPending && setTeacherInviteOpen(false)
+          }
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6"
+            onClick={e => e.stopPropagation()}
+          >
             {!teacherInviteLink ? (
               <>
                 <div className="flex items-center gap-3 mb-5">
@@ -1937,21 +2783,29 @@ export default function NavBar() {
                     <GraduationCap className="w-5 h-5 text-green-600" />
                   </div>
                   <div>
-                    <h2 className="text-base font-semibold text-gray-900">{t("nav_admin_invite_teacher")}</h2>
-                    <p className="text-xs text-gray-500 mt-0.5">Generate a 7-day invite link for a new teacher.</p>
+                    <h2 className="text-base font-semibold text-gray-900">
+                      {t("nav_admin_invite_teacher")}
+                    </h2>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Generate a 7-day invite link for a new teacher.
+                    </p>
                   </div>
                 </div>
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Teacher Email (optional)</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Teacher Email (optional)
+                    </label>
                     <input
                       type="email"
                       value={teacherInviteEmail}
-                      onChange={(e) => setTeacherInviteEmail(e.target.value)}
+                      onChange={e => setTeacherInviteEmail(e.target.value)}
                       placeholder="teacher@school.cat"
                       className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                     />
-                    <p className="text-xs text-gray-400 mt-1">If provided, the invite page will pre-fill this email.</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      If provided, the invite page will pre-fill this email.
+                    </p>
                   </div>
                 </div>
                 <div className="flex gap-2 mt-5">
@@ -1963,10 +2817,17 @@ export default function NavBar() {
                   </button>
                   <button
                     disabled={createTeacherInvite.isPending}
-                    onClick={() => createTeacherInvite.mutate({ email: teacherInviteEmail.trim() || undefined, origin: window.location.origin })}
+                    onClick={() =>
+                      createTeacherInvite.mutate({
+                        email: teacherInviteEmail.trim() || undefined,
+                        origin: window.location.origin,
+                      })
+                    }
                     className="flex-1 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
                   >
-                    {createTeacherInvite.isPending ? "Generating…" : "Generate Link"}
+                    {createTeacherInvite.isPending
+                      ? "Generating…"
+                      : "Generate Link"}
                   </button>
                 </div>
               </>
@@ -1977,33 +2838,53 @@ export default function NavBar() {
                     <CheckCircle2 className="w-5 h-5 text-green-600" />
                   </div>
                   <div>
-                    <h2 className="text-base font-semibold text-gray-900">Invite Link Ready</h2>
-                    <p className="text-xs text-gray-500 mt-0.5">Valid for 7 days. Share this link with the teacher.</p>
+                    <h2 className="text-base font-semibold text-gray-900">
+                      Invite Link Ready
+                    </h2>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Valid for 7 days. Share this link with the teacher.
+                    </p>
                   </div>
                 </div>
                 {teacherInviteEmailSent && (
                   <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 mb-3">
                     <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
-                    <p className="text-xs text-blue-800">Email sent to <strong>{teacherInviteEmail}</strong></p>
+                    <p className="text-xs text-blue-800">
+                      Email sent to <strong>{teacherInviteEmail}</strong>
+                    </p>
                   </div>
                 )}
                 <div className="bg-gray-50 rounded-xl p-4 space-y-3">
                   <div className="flex items-center gap-2">
-                    <code className="flex-1 text-xs font-mono text-gray-700 break-all">{teacherInviteLink}</code>
+                    <code className="flex-1 text-xs font-mono text-gray-700 break-all">
+                      {teacherInviteLink}
+                    </code>
                     <button
-                      onClick={() => { navigator.clipboard.writeText(teacherInviteLink!); setTeacherInviteCopied(true); setTimeout(() => setTeacherInviteCopied(false), 2000); }}
+                      onClick={() => {
+                        navigator.clipboard.writeText(teacherInviteLink!);
+                        setTeacherInviteCopied(true);
+                        setTimeout(() => setTeacherInviteCopied(false), 2000);
+                      }}
                       className="p-1.5 rounded-lg hover:bg-gray-200 transition-colors flex-shrink-0"
                       title="Copy link"
                     >
-                      {teacherInviteCopied ? <CheckCircle2 className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4 text-gray-400" />}
+                      {teacherInviteCopied ? (
+                        <CheckCircle2 className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <Copy className="w-4 h-4 text-gray-400" />
+                      )}
                     </button>
                   </div>
                 </div>
                 <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2 mt-3">
-                  This link can only be used once. The teacher will set their own password on the invite page.
+                  This link can only be used once. The teacher will set their
+                  own password on the invite page.
                 </p>
                 <button
-                  onClick={() => { setTeacherInviteOpen(false); setTeacherInviteEmailSent(false); }}
+                  onClick={() => {
+                    setTeacherInviteOpen(false);
+                    setTeacherInviteEmailSent(false);
+                  }}
                   className="w-full mt-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors"
                 >
                   Done
