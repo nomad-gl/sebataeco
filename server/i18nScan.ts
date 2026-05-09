@@ -24,20 +24,14 @@
 
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
 import { notifyOwner } from "./_core/notification";
 import { invokeLLM } from "./_core/llm";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 // ── Configuration ─────────────────────────────────────────────────────────────
-
-const CLIENT_SRC = path.resolve(__dirname, "../../client/src");
-const I18N_CONTEXT = path.resolve(
-  __dirname,
-  "../../client/src/contexts/I18nContext.tsx"
-);
+// Use process.cwd() for reliable path resolution in both dev (tsx watch) and production (node dist/)
+const PROJECT_ROOT = process.cwd();
+const CLIENT_SRC = path.resolve(PROJECT_ROOT, "client/src");
+const I18N_CONTEXT = path.resolve(CLIENT_SRC, "contexts/I18nContext.tsx");
 
 /** File extensions to scan */
 const SCAN_EXTENSIONS = new Set([".tsx", ".ts", ".jsx", ".js"]);

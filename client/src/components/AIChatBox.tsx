@@ -188,6 +188,22 @@ export function AIChatBox({
     const saved = localStorage.getItem("seba_speech_rate");
     return (saved === "0.75" || saved === "1.25") ? parseFloat(saved) as 0.75 | 1.25 : 1.0;
   });
+  /** Catalan accent for Aina voice: central, balear, nord-occidental, valencia */
+  const [ainaAccent, setAinaAccent] = useState<"central" | "balear" | "nord-occidental" | "valencia">(() => {
+    const saved = localStorage.getItem("seba_aina_accent");
+    if (saved === "central" || saved === "nord-occidental" || saved === "valencia") return saved;
+    return "balear";
+  });
+
+  const cycleAinaAccent = useCallback(() => {
+    setAinaAccent(prev => {
+      const accents: ("central" | "balear" | "nord-occidental" | "valencia")[] = ["central", "balear", "nord-occidental", "valencia"];
+      const idx = accents.indexOf(prev);
+      const next = accents[(idx + 1) % accents.length];
+      localStorage.setItem("seba_aina_accent", next);
+      return next;
+    });
+  }, []);
 
   const cycleSpeechRate = useCallback(() => {
     setSpeechRate(prev => {

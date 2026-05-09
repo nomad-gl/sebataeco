@@ -231,7 +231,7 @@ export const voiceRouter = router({
         text: z.string().min(1).max(4096),
         lang: z.string().nullish(),
         /** Optional voice override. If omitted, pickVoice() selects based on lang. */
-        voice: z.enum(["alloy", "ash", "ballad", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer", "verse", "marin", "cedar"]).nullish(),
+        voice: z.enum(["alloy", "ash", "ballad", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer", "verse", "marin", "cedar", "aina"]).nullish(),
       })
     )
     .mutation(async ({ input }) => {

@@ -5667,3 +5667,28 @@
 - [x] Keep OpenAI TTS as fallback for ES/EN languages
 - [x] Add "Aina" voice option in voice picker (shown only when language is Catalan)
 - [x] Add translation keys for Aina voice (EN/ES/CA)
+
+## Feature: Self-Healing Auto-Translation of ALL Hardcoded Text (2026-05-09)
+- [ ] Build auto-fix script that detects hardcoded text and automatically wraps it in t() calls
+- [ ] Generate unique translation keys for each detected string
+- [ ] Use LLM to translate detected English strings into Spanish and Catalan
+- [ ] Automatically inject new translation keys into I18nContext.tsx (EN/ES/CA sections)
+- [ ] Automatically rewrite source files to replace hardcoded strings with t() calls
+- [ ] Integrate into scheduled self-healing endpoint (runs weekly, fixes without exception)
+- [ ] No manual intervention required — all text must be translated automatically
+
+## Bug Fix: Aina Voice Not Playing in Catalan Mode (2026-05-09)
+- [x] Fix Aina voice option not producing audio when in Catalan language mode (added "aina" to voice enum)
+- [x] Debug the BSC TTS API integration to identify why audio isn't playing (issue was tRPC validation)
+
+## Feature: Catalan Accent Selection in Voice Picker (2026-05-09)
+- [ ] Add accent selection dropdown (central, balear, nord-occidental, valencia) — IN PROGRESS
+- [ ] Pass selected accent to BSC TTS API
+- [ ] Persist accent preference in localStorage
+
+## Feature: Speech Speed Slider for BSC Aina Voice (2026-05-09)
+- [ ] Add speech speed slider UI in voice settings (lengthScale parameter)
+- [ ] Persist speed preference in localStorage
+- [ ] Pass lengthScale to BSC TTS API
+- [ ] Map slider value to BSC TTS lengthScale parameter (0.5-2.0)
+- [ ] Persist speed preference in localStorage

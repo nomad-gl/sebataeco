@@ -1996,6 +1996,24 @@ export const directorRouter = router({
     }),
 
   /**
+   * Full self-healing auto-fix: detects ALL hardcoded text in source files,
+   * wraps them in t() calls, generates translation keys, translates via LLM,
+   * and injects into I18nContext.tsx. No exceptions.
+   */
+  autoFixAllHardcodedText: adminProcedure
+    .mutation(async () => {
+      const { runAutoFixTranslation, autoFixFullStatus } = await import("../i18nAutoFix");
+      if (autoFixFullStatus.running) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "Full auto-fix is already running. Please wait.",
+        });
+      }
+      const result = await runAutoFixTranslation();
+      return result;
+    }),
+
+  /**
    * Resend welcome email with a fresh temp password to a newly approved teacher.
    * Used from the approval shortcut banner in DirectorApprovals.
    */
