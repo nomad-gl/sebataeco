@@ -197,13 +197,15 @@ export function AIChatBox({
     });
   }, []);
 
-  type TtsVoice = "nova" | "shimmer" | "alloy" | "fable" | "coral" | "marin";
+  type TtsVoice = "nova" | "shimmer" | "alloy" | "fable" | "coral" | "marin" | "aina";
 
   /** Derive the best default voice for a given language code */
   const defaultVoiceForLang = (langCode: string): TtsVoice => {
     const l = langCode.toLowerCase().split(/[-_]/)[0];
-    // coral: warm, natural female — best for ES/CA with gpt-4o-mini-tts prompting
-    return (l === "es" || l === "ca") ? "coral" : "nova";
+    // aina: native BSC Catalan voice — best for CA
+    if (l === "ca") return "aina";
+    // coral: warm, natural female — best for ES with gpt-4o-mini-tts prompting
+    return l === "es" ? "coral" : "nova";
   };
 
   /** True when the active language is Catalan or Spanish — use neural TTS */
@@ -219,7 +221,7 @@ export function AIChatBox({
   const [ttsVoice, setTtsVoice] = useState<TtsVoice>(() => {
     const saved = localStorage.getItem("seba_tts_voice");
     const hasManual = localStorage.getItem("seba_tts_voice_manual") === "1";
-    if (hasManual && (["nova", "shimmer", "alloy", "fable", "coral", "marin"] as TtsVoice[]).includes(saved as TtsVoice)) {
+    if (hasManual && (["nova", "shimmer", "alloy", "fable", "coral", "marin", "aina"] as TtsVoice[]).includes(saved as TtsVoice)) {
       return saved as TtsVoice;
     }
     // No manual override — derive from current browser/document language
@@ -285,7 +287,8 @@ export function AIChatBox({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  const TTS_VOICES: { id: TtsVoice; labelKey: string; descKey: string }[] = [
+  const TTS_VOICES: { id: TtsVoice; labelKey: string; descKey: string; catalanOnly?: boolean }[] = [
+    { id: "aina",    labelKey: "tts_voice_aina",    descKey: "tts_voice_aina_desc", catalanOnly: true },
     { id: "coral",   labelKey: "tts_voice_coral",   descKey: "tts_voice_coral_desc" },
     { id: "marin",   labelKey: "tts_voice_marin",   descKey: "tts_voice_marin_desc" },
     { id: "nova",    labelKey: "tts_voice_nova",    descKey: "tts_voice_nova_desc" },
@@ -293,6 +296,12 @@ export function AIChatBox({
     { id: "alloy",   labelKey: "tts_voice_alloy",   descKey: "tts_voice_alloy_desc" },
     { id: "fable",   labelKey: "tts_voice_fable",   descKey: "tts_voice_fable_desc" },
   ];
+
+  // Filter voices based on current language — show Aina only for Catalan
+  const filteredVoices = TTS_VOICES.filter(v => {
+    if (v.catalanOnly && lang !== "ca") return false;
+    return true;
+  });
 
   /** True on any mobile/tablet device — kept for layout-only decisions (input row direction) */
   const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
@@ -481,10 +490,11 @@ export function AIChatBox({
     if (isNeuralLang(langCode)) {
       // Use neural TTS for CA/ES preview
       try {
+        const previewVoiceParam = voiceId === "aina" ? undefined : voiceId as "nova" | "shimmer" | "alloy" | "fable";
         const result = await ttsMutation.mutateAsync({
           text: sampleText,
           lang: langCode,
-          voice: voiceId as "nova" | "shimmer" | "alloy" | "fable",
+          ...(previewVoiceParam ? { voice: previewVoiceParam } : {}),
         });
         const dataUrl = `data:${result.mimeType};base64,${result.audioBase64}`;
         const audio = new Audio(dataUrl);
@@ -629,18 +639,21 @@ export function AIChatBox({
   }, [hasSpeechSynthesis, speechRate]);
 
   /**
-   * Neural TTS path — calls the server-side OpenAI tts-1-hd API.
-   * Used for Catalan and Spanish to deliver a natural, human-sounding voice.
+   * Neural TTS path — calls the server-side TTS API.
+   * For Catalan with "aina" voice: uses BSC AINA native Catalan TTS.
+   * For ES/other: uses OpenAI gpt-4o-mini-tts.
    */
   const playNeuralTTS = useCallback(async (text: string, langCode: string) => {
     const cacheKey = `${ttsVoice}:${langCode}:${text.slice(0, 120)}`;
     let dataUrl = ttsCacheRef.current.get(cacheKey);
     if (!dataUrl) {
       try {
+        // For "aina" voice, don't pass voice param — server routes to BSC automatically for CA
+        const voiceParam = ttsVoice === "aina" ? undefined : ttsVoice as "nova" | "shimmer" | "alloy" | "fable";
         const result = await ttsMutation.mutateAsync({
           text: text.slice(0, 4096),
           lang: langCode,
-          voice: ttsVoice as "nova" | "shimmer" | "alloy" | "fable",
+          ...(voiceParam ? { voice: voiceParam } : {}),
         });
         dataUrl = `data:${result.mimeType};base64,${result.audioBase64}`;
         ttsCacheRef.current.set(cacheKey, dataUrl);
@@ -1655,7 +1668,7 @@ export function AIChatBox({
                       </button>
                     </div>
                   )}
-                  {TTS_VOICES.map(v => (
+                  {filteredVoices.map(v => (
                     <div
                       key={v.id}
                       className={cn(

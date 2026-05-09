@@ -5658,3 +5658,12 @@
 
 ## Bug Fix: EIX Card Titles Showing English Instead of Catalan (2026-05-09)
 - [x] Fix EIX card titles (EIX1-4) displaying English text when language is set to Catalan (use t() with eix*_name keys)
+
+## Bug Fix: Voice Synthesizer Too Robotic / Missing Catalan Style (2026-05-09)
+- [x] Research BSC (Barcelona Supercomputing Center) AINA TTS API for native Catalan voice
+- [x] Integrate BSC TTS API on the server side for Catalan language (server/ainaTTS.ts)
+- [x] Route Catalan TTS through BSC API instead of device Web Speech or OpenAI voices
+- [x] Ensure natural Catalan pronunciation and intonation (balear accent, olga speaker)
+- [x] Keep OpenAI TTS as fallback for ES/EN languages
+- [x] Add "Aina" voice option in voice picker (shown only when language is Catalan)
+- [x] Add translation keys for Aina voice (EN/ES/CA)

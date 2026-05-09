@@ -12,6 +12,7 @@ import { publicProcedure, router } from "../_core/trpc";
 import { transcribeAudio } from "../_core/voiceTranscription";
 import { ENV } from "../_core/env";
 import { storagePut } from "../storage";
+import { synthesizeCatalanBSC } from "../ainaTTS";
 
 // ─── TTS helper ───────────────────────────────────────────────────────────────
 
@@ -48,7 +49,25 @@ function getVoicePrompt(lang?: string): string | undefined {
   }
 }
 
-async function synthesizeSpeech(text: string, lang?: string, voiceOverride?: string): Promise<Buffer> {
+async function synthesizeSpeech(text: string, lang?: string, voiceOverride?: string): Promise<{ buffer: Buffer; mimeType: string }> {
+  // Route Catalan through BSC AINA native TTS for authentic pronunciation
+  const langNorm = (lang ?? "").toLowerCase().split(/[-_]/)[0];
+  if (langNorm === "ca" && voiceOverride !== "__skip_bsc") {
+    try {
+      const wavBuffer = await synthesizeCatalanBSC({
+        text: text.slice(0, 4096),
+        accent: "balear",
+        speaker: "olga",
+        temperature: 0.2,
+        lengthScale: 0.89,
+      });
+      return { buffer: wavBuffer, mimeType: "audio/wav" };
+    } catch (err) {
+      // If BSC fails, fall through to OpenAI as fallback
+      console.warn("[TTS] BSC AINA Catalan TTS failed, falling back to OpenAI:", (err as Error).message);
+    }
+  }
+
   if (!ENV.forgeApiUrl || !ENV.forgeApiKey) {
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
@@ -108,7 +127,7 @@ async function synthesizeSpeech(text: string, lang?: string, voiceOverride?: str
       });
       if (fallbackResponse.ok) {
         const arrayBuffer = await fallbackResponse.arrayBuffer();
-        return Buffer.from(arrayBuffer);
+        return { buffer: Buffer.from(arrayBuffer), mimeType: "audio/mpeg" };
       }
     }
     throw new TRPCError({
@@ -118,7 +137,7 @@ async function synthesizeSpeech(text: string, lang?: string, voiceOverride?: str
   }
 
   const arrayBuffer = await response.arrayBuffer();
-  return Buffer.from(arrayBuffer);
+  return { buffer: Buffer.from(arrayBuffer), mimeType: "audio/mpeg" };
 }
 
 /** Map language code to the best voice for gpt-4o-mini-tts.
@@ -216,14 +235,14 @@ export const voiceRouter = router({
       })
     )
     .mutation(async ({ input }) => {
-      const audioBuffer = await synthesizeSpeech(
+      const { buffer, mimeType } = await synthesizeSpeech(
         input.text,
         input.lang ?? undefined,
         input.voice ?? undefined,
       );
       return {
-        audioBase64: audioBuffer.toString("base64"),
-        mimeType: "audio/mpeg" as const,
+        audioBase64: buffer.toString("base64"),
+        mimeType: mimeType as "audio/mpeg" | "audio/wav",
       };
     }),
 });
