@@ -418,10 +418,58 @@ export default function DirectorTeacherProfiles() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Teacher Roster */}
         <div className="lg:col-span-1 space-y-3">
+          {/* Advanced Filters */}
+          <div className="space-y-2 p-3 bg-muted rounded-lg">
+            <h3 className="text-xs font-semibold uppercase text-muted-foreground">{t("tp_filters") || "Filters"}</h3>
+            
+            {/* Subject Filter */}
+            <div>
+              <Label className="text-xs">{t("tp_filter_subject") || "Subject"}</Label>
+              <Input
+                placeholder="Search by subject..."
+                value={filterSubject}
+                onChange={(e) => setFilterSubject(e.target.value)}
+                className="h-8 text-xs"
+              />
+            </div>
+            
+            {/* School Filter */}
+            <div>
+              <Label className="text-xs">{t("tp_filter_school") || "School"}</Label>
+              <Select value={filterSchool} onValueChange={setFilterSchool}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="All schools" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All schools</SelectItem>
+                  {roster?.map((g) => (
+                    <SelectItem key={g.school} value={g.school}>
+                      {g.school}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Availability Filter */}
+            <div>
+              <Label className="text-xs">{t("tp_filter_availability") || "Availability"}</Label>
+              <Select value={filterAvailability} onValueChange={(v: any) => setFilterAvailability(v)}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="available">Available for Cover</SelectItem>
+                  <SelectItem value="unavailable">Not Available</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">{t("tp_roster")}</h2>
-            {roster && roster.some((t) => t.isPermanent === false) && (
-              <button
+            {roster && roster.some((g) => g.teachers.some((t) => t.isPermanent === false)) && (     <button
                 onClick={() => setShowTempOnly((v) => !v)}
                 className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
                   showTempOnly
@@ -438,7 +486,17 @@ export default function DirectorTeacherProfiles() {
           ) : !roster?.length ? (
             <div className="text-muted-foreground text-sm">{t("tp_no_teachers")}</div>
           ) : (
-            roster.filter((t) => !showTempOnly || t.isPermanent === false).map((teacher) => (
+            roster
+              .flatMap((g) => g.teachers.map((t) => ({ ...t, schoolName: g.school })))
+              .filter((teacher) => {
+                if (showTempOnly && teacher.isPermanent) return false;
+                if (filterSchool && teacher.schoolName !== filterSchool) return false;
+                if (filterSubject && !teacher.subjects?.some((s: string) => s.toLowerCase().includes(filterSubject.toLowerCase()))) return false;
+                if (filterAvailability === "available" && !teacher.isAvailable) return false;
+                if (filterAvailability === "unavailable" && teacher.isAvailable) return false;
+                return true;
+              })
+              .map((teacher) => (
               <Card
                 key={teacher.id}
                 className={`cursor-pointer transition-colors ${selectedTeacherId === teacher.id ? "ring-2 ring-primary" : "hover:bg-accent/50"} ${newlyApprovedId === teacher.id ? "ring-2 ring-green-500" : ""}`}
