@@ -1099,7 +1099,151 @@ export const teacherProfileRouter = router({
         days: DAY_NAMES,
       };
     }),
-});
+
+  // ── Teacher Self-Edit ─────────────────────────────────────────────────────────
+  /**
+   * updateOwnProfile — Allow teachers to edit their own profile information
+   * Teachers can update: contracted hours, display name, and bio/notes
+   */
+  updateOwnProfile: protectedProcedure
+    .input(
+      z.object({
+        displayName: z.string().max(128).optional(),
+        contractedWeeklyMinutes: z.number().min(0).max(1000).optional(),
+        bio: z.string().max(1024).optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      
+      // Build update object with only provided fields
+      const updateFields: any = {};
+      if (input.displayName !== undefined) updateFields.displayName = input.displayName;
+      if (input.contractedWeeklyMinutes !== undefined) updateFields.contractedWeeklyMinutes = input.contractedWeeklyMinutes;
+      
+      // Update users table
+      await db
+        .update(users)
+        .set(updateFields)
+        .where(eq(users.id, ctx.user.id));
+      
+      // Update bio in teacherProfiles if provided
+      if (input.bio !== undefined) {
+        const [profile] = await db
+          .select()
+          .from(teacherProfiles)
+          .where(eq(teacherProfiles.ownerId, String(ctx.user.id)));
+        
+        if (profile) {
+          await db
+            .update(teacherProfiles)
+            .set({ notes: input.bio })
+            .where(eq(teacherProfiles.id, profile.id));
+        } else {
+          // Create profile if it doesn't exist
+          await db.insert(teacherProfiles).values({
+            ownerId: String(ctx.user.id),
+            name: ctx.user.displayName || ctx.user.name || "Teacher",
+            email: ctx.user.email || undefined,
+            notes: input.bio,
+          });
+        }
+      }
+      
+      return { success: true };
+    }),
+
+  /**
+   * addOwnSubject — Allow teachers to add their own subject/level
+   * Teachers can self-report subjects they teach
+   */
+  addOwnSubject: protectedProcedure
+    .input(
+      z.object({
+        subject: z.string().min(1).max(128),
+        level: z.string().min(1).max(128),
+        notes: z.string().max(512).optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      
+      const tenantId = ctx.user.tenantId;
+      if (!tenantId) throw new TRPCError({ code: "BAD_REQUEST", message: "No tenant" });
+      
+      await db.insert(teacherSubjects).values({
+        userId: ctx.user.id,
+        subject: input.subject,
+        level: input.level,
+        notes: input.notes ?? null,
+        tenantId,
+      });
+      
+      return { success: true };
+    }),
+
+  /**
+   * updateOwnSubject — Allow teachers to edit their own subject entries
+   */
+  updateOwnSubject: protectedProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        subject: z.string().min(1).max(128).optional(),
+        level: z.string().min(1).max(128).optional(),
+        notes: z.string().max(512).optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      
+      // Verify the subject belongs to the current user
+      const [subject] = await db
+        .select()
+        .from(teacherSubjects)
+        .where(eq(teacherSubjects.id, input.id));
+      
+      if (!subject || subject.userId !== ctx.user.id) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Cannot edit another teacher's subjects" });
+      }
+      
+      const { id, ...fields } = input;
+      await db
+        .update(teacherSubjects)
+        .set(fields)
+        .where(eq(teacherSubjects.id, id));
+      
+      return { success: true };
+    }),
+
+  /**
+   * deleteOwnSubject — Allow teachers to delete their own subject entries
+   */
+  deleteOwnSubject: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      
+      // Verify the subject belongs to the current user
+      const [subject] = await db
+        .select()
+        .from(teacherSubjects)
+        .where(eq(teacherSubjects.id, input.id));
+      
+      if (!subject || subject.userId !== ctx.user.id) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Cannot delete another teacher's subjects" });
+      }
+      
+      await db
+        .delete(teacherSubjects)
+        .where(eq(teacherSubjects.id, input.id));
+      
+      return { success: true };
+    }),
 
   /**
    * updateTeacherSchool — Update a teacher's school assignment
@@ -1129,4 +1273,5 @@ export const teacherProfileRouter = router({
       }
 
       return { success: true, schoolName: input.schoolName };
+    }),
 });

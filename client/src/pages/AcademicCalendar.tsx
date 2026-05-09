@@ -806,12 +806,9 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <Link
-                              href={`/director/teacher-profiles?name=${encodeURIComponent(teacher.name)}`}
-                              className="text-white font-semibold hover:text-blue-200 hover:underline transition-colors"
-                            >
+                            <span className="text-white font-semibold">
                               {teacher.name}
-                            </Link>
+                            </span>
                             <span className="text-blue-300 text-sm">{teacher.email}</span>
                           </div>
                           <div className="mt-2 space-y-1">
@@ -932,12 +929,7 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                     return (
                       <tr key={teacher.id} className="border-b border-white/10">
                         <td className="text-white py-3 pr-4 font-medium align-top">
-                          <Link
-                            href={`/director/teacher-profiles?name=${encodeURIComponent(teacher.name)}`}
-                            className="hover:text-blue-200 hover:underline transition-colors"
-                          >
-                            {teacher.name}
-                          </Link>
+                          {teacher.name}
                         </td>
                         {[1, 2, 3, 4, 5].map(day => {
                           // Deduplicate: for dated sessions, show only one representative row per unique subject+startTime+endTime on this day

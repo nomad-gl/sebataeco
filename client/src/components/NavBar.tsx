@@ -537,11 +537,6 @@ export default function NavBar() {
       icon: CalendarDays,
     },
     { href: "/connect", label: t("nav_connect"), icon: Wifi },
-    {
-      href: "/director/teacher-profiles",
-      label: t("nav_teacher_profiles"),
-      icon: Users,
-    },
   ];
 
   const isHosActive = hosItems.some(
@@ -609,11 +604,6 @@ export default function NavBar() {
     { href: "/audit", label: t("nav_audit"), icon: BarChart3 },
     { href: "/ai-models", label: t("nav_ai_models"), icon: SebaSymbol },
     { href: "/accountability", label: t("nav_accountability"), icon: Lock },
-    {
-      href: "/director/teacher-profiles",
-      label: t("nav_teacher_profiles"),
-      icon: Users,
-    },
   ];
 
   const isDirectorActive = directorItems.some(
@@ -664,7 +654,7 @@ export default function NavBar() {
     { href: "/help", label: t("nav_help"), icon: HelpCircle },
     { href: "/privacy", label: t("nav_privacy"), icon: Lock },
     {
-      href: "/director/teacher-profiles?self=true",
+      href: "/teacher/my-profile",
       label: t("nav_my_profile"),
       icon: User,
     },
