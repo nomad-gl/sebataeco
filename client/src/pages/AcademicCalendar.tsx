@@ -425,6 +425,9 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
   const [calFilterSubject, setCalFilterSubject] = useState<string>("all");
   const [calFilterTeacher, setCalFilterTeacher] = useState<string>("all");
   const [calFilterLocation, setCalFilterLocation] = useState<string>("all");
+  
+  // Teacher search state
+  const [teacherSearchQuery, setTeacherSearchQuery] = useState<string>("");
 
   const invalidate = () => {
     utils.academicCalendar.getCalendar.invalidate({ id: calendarId });
@@ -781,6 +784,17 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
             </Button>
           </div>
 
+          {teachers.length > 0 && (
+            <div className="mb-4">
+              <Input
+                placeholder={t("acal2_search_teacher") || "Search by name or email..."}
+                value={teacherSearchQuery}
+                onChange={(e) => setTeacherSearchQuery(e.target.value)}
+                className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-blue-400 focus:ring-blue-400/20"
+              />
+            </div>
+          )}
+
           {teachers.length === 0 ? (
             <Card className="bg-white/10 border-white/20 text-center py-10">
               <CardContent>
@@ -790,7 +804,16 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
             </Card>
           ) : (
             <div className="space-y-3">
-              {teachers.map(teacher => {
+              {teachers
+                .filter(teacher => {
+                  if (!teacherSearchQuery.trim()) return true;
+                  const query = teacherSearchQuery.toLowerCase();
+                  return (
+                    teacher.name.toLowerCase().includes(query) ||
+                    teacher.email.toLowerCase().includes(query)
+                  );
+                })
+                .map(teacher => {
                 const hrs = teacherHours.find(h => h.teacherId === teacher.id);
                 const allocatedMins = hrs?.weeklyMinutes ?? 0;
                 // Use optimistic local value if director is actively editing this teacher's hours
@@ -894,6 +917,21 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                   </Card>
                 );
               })}
+              {teachers.filter(teacher => {
+                if (!teacherSearchQuery.trim()) return true;
+                const query = teacherSearchQuery.toLowerCase();
+                return (
+                  teacher.name.toLowerCase().includes(query) ||
+                  teacher.email.toLowerCase().includes(query)
+                );
+              }).length === 0 && teacherSearchQuery.trim() && (
+                <Card className="bg-white/10 border-white/20 text-center py-8">
+                  <CardContent>
+                    <Users className="w-6 h-6 text-blue-300 mx-auto mb-2" />
+                    <p className="text-blue-200 text-sm">{t("acal2_no_search_results") || "No teachers found matching your search."}</p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
         </TabsContent>
