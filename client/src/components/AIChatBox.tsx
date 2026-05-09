@@ -617,14 +617,14 @@ export function AIChatBox({
           ?? voices.find(v => v.lang.startsWith(l) && /google/i.test(v.name))
           // 4. Any Microsoft voice for this language
           ?? voices.find(v => v.lang.startsWith(l) && /microsoft/i.test(v.name))
-          // 5. Any female-sounding voice
-          ?? voices.find(v => v.lang.startsWith(l) && /female|mujer|dona/i.test(v.name))
+          // 5. Prioritize female-sounding voice (CRITICAL for user experience)
+          ?? voices.find(v => v.lang.startsWith(l) && /female|mujer|dona|woman|ella|helena|elvira/i.test(v.name))
           // 6. Any voice for this language
           ?? voices.find(v => v.lang.startsWith(l))
           ?? voices[0] ?? null;
       } else {
-        // English — keep existing behaviour
-        voice = voices.find(v => v.lang.startsWith(l) && /female|samantha|karen|moira|nova|shimmer/i.test(v.name))
+        // English — prioritize female voices for consistency
+        voice = voices.find(v => v.lang.startsWith(l) && /female|samantha|karen|moira|nova|shimmer|woman|ella/i.test(v.name))
           ?? voices.find(v => v.lang.startsWith(l)) ?? voices[0] ?? null;
       }
       const speakChunk = (i: number) => {

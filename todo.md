@@ -5715,3 +5715,18 @@
 - [x] Add teacher profiles link to head of study dropdown (view all)
 - [x] Add teacher profiles link to director dropdown (view all)
 - [x] Test access controls and navigation
+
+
+## Bug: Voice Synthesiser Not Initializing (2026-05-09)
+- [ ] Investigate voice synthesiser initialization logs
+- [ ] Identify root cause of initialization failure
+- [ ] Fix voice synthesiser initialization
+- [ ] Test voice synthesiser functionality
+
+
+## Bug: Voice Selection Not Persisting (2026-05-09)
+- [x] Investigate voice selection state management in AIChatBox
+- [x] Check if voice preference is being saved to localStorage
+- [x] Fix voice selection state to properly apply user choice
+- [x] Ensure Catalan female voice (coral/aina) is used instead of default male
+- [x] Test voice selection persistence across page reloads
