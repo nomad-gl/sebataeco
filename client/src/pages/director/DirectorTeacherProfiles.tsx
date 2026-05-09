@@ -53,6 +53,16 @@ export default function DirectorTeacherProfiles() {
   const { t } = useI18n();
   const { user } = useAuth();
   const [, navigate] = useLocation();
+  
+  // Performance monitoring
+  useEffect(() => {
+    const startTime = performance.now();
+    return () => {
+      const endTime = performance.now();
+      const loadTime = endTime - startTime;
+      console.log(`[Performance] DirectorTeacherProfiles rendered in ${loadTime.toFixed(2)}ms`);
+    };
+  }, []);
   const [selectedTeacherId, setSelectedTeacherId] = useState<number | null>(null);
   const [academicYear, setAcademicYear] = useState(currentAcademicYear);
   const [expandedTeacher, setExpandedTeacher] = useState<number | null>(null);
@@ -113,13 +123,19 @@ export default function DirectorTeacherProfiles() {
 
   const { data: rosterRaw, isLoading: rosterLoading } = trpc.teacherProfile.getTeacherRoster.useQuery(
     { academicYear },
-    { refetchInterval: 30000 }
+    { refetchInterval: 30000, onSuccess: (data) => {
+      console.log(`[Performance] Roster loaded: ${data?.length || 0} teachers`);
+    }}
   );
 
   // Group roster by school
   const roster = useMemo(() => {
+    const startTime = performance.now();
     if (!rosterRaw) return [];
-    return groupTeachersBySchool(rosterRaw);
+    const grouped = groupTeachersBySchool(rosterRaw);
+    const endTime = performance.now();
+    console.log(`[Performance] Roster grouped in ${(endTime - startTime).toFixed(2)}ms`);
+    return grouped;
   }, [rosterRaw]);
 
   const { data: subjects, refetch: refetchSubjects } = trpc.teacherProfile.getSubjects.useQuery(
