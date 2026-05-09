@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import {
   Loader2, Send, User, Mic, MicOff, Radio,
   ThumbsUp, ThumbsDown, Volume2, VolumeX, Play, Square,
-  Paperclip, ImageIcon, X as XIcon, RefreshCw, ExternalLink, BookOpen,
+  Paperclip, ImageIcon, X as XIcon, RefreshCw, ExternalLink, BookOpen, Globe,
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Streamdown } from "streamdown";
@@ -1742,7 +1742,19 @@ export function AIChatBox({
               )}
             </div>
           )}
-
+          {/* Accent selector for Aina voice (Catalan only) */}
+          {ttsVoice === "aina" && lang === "ca" && !isMobile && (
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              onClick={cycleAinaAccent}
+              title={`Catalan accent: ${ainaAccent} (click to cycle: central → balear → nord-occidental → valencia)`}
+              className="shrink-0 h-[38px] w-[38px] text-white/60 hover:text-white hover:bg-white/15"
+            >
+              <Globe className="size-4" />
+            </Button>
+          )}
           {/* Always-on toggle (Radio icon) — desktop only */}
           {!isMobile && (
             <Button
