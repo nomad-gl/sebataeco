@@ -21,6 +21,8 @@ import LogoUploader from "@/components/LogoUploader";
 import { useI18n } from "@/contexts/I18nContext";
 import { useAutoCorrect } from "@/hooks/useAutoCorrect";
 import { AutoCorrectIndicator } from "@/components/AutoCorrectIndicator";
+import { AutoCorrectTextarea } from "@/components/AutoCorrectTextarea";
+import { AutoCorrectInput } from "@/components/AutoCorrectInput";
 import { useIsMobile } from "@/hooks/useMobile";
 import { exportToCsv, exportToXml } from "@/lib/exportUtils";
 import ExportDropdown, { PrintIcon, CsvIcon, XmlIcon } from "@/components/ExportDropdown";
@@ -1780,7 +1782,7 @@ export default function LessonPlanner() {
                   </div>
                   {form.specificCompetences.map((v, i) => (
                     <div key={i} className="flex gap-2 mb-2">
-                      <Input value={v} onChange={e => updateListItem("specificCompetences", i, e.target.value)} placeholder={t('lp_ph_competence')} className="flex-1" />
+                      <AutoCorrectInput value={v} onChange={(val) => updateListItem("specificCompetences", i, val)} placeholder={t('lp_ph_competence')} className="flex-1" showIndicator={false} />
                       <Button variant="ghost" size="icon" className="shrink-0" onClick={() => removeListItem("specificCompetences", i)}><Trash2 className="w-4 h-4 text-red-400" /></Button>
                     </div>
                   ))}
@@ -1804,7 +1806,7 @@ export default function LessonPlanner() {
                   </div>
                   {form.saberesBasicos.map((v, i) => (
                     <div key={i} className="flex gap-2 mb-2">
-                      <Input value={v} onChange={e => updateListItem("saberesBasicos", i, e.target.value)} placeholder={t('lp_ph_saberes')} className="flex-1" />
+                      <AutoCorrectInput value={v} onChange={(val) => updateListItem("saberesBasicos", i, val)} placeholder={t('lp_ph_saberes')} className="flex-1" showIndicator={false} />
                       <Button variant="ghost" size="icon" className="shrink-0" onClick={() => removeListItem("saberesBasicos", i)}><Trash2 className="w-4 h-4 text-red-400" /></Button>
                     </div>
                   ))}
@@ -1822,7 +1824,7 @@ export default function LessonPlanner() {
                   </div>
                   {form.learningOutcomes.map((v, i) => (
                     <div key={i} className="flex gap-2 mb-2">
-                      <Input value={v} onChange={e => updateListItem("learningOutcomes", i, e.target.value)} placeholder={t('lp_ph_outcomes')} className="flex-1" />
+                      <AutoCorrectInput value={v} onChange={(val) => updateListItem("learningOutcomes", i, val)} placeholder={t('lp_ph_outcomes')} className="flex-1" showIndicator={false} />
                       <Button variant="ghost" size="icon" className="shrink-0" onClick={() => removeListItem("learningOutcomes", i)}><Trash2 className="w-4 h-4 text-red-400" /></Button>
                     </div>
                   ))}
@@ -1840,7 +1842,7 @@ export default function LessonPlanner() {
                   </div>
                   {form.evaluationCriteria.map((v, i) => (
                     <div key={i} className="flex gap-2 mb-2">
-                      <Input value={v} onChange={e => updateListItem("evaluationCriteria", i, e.target.value)} placeholder={t('lp_ph_criteria')} className="flex-1" />
+                      <AutoCorrectInput value={v} onChange={(val) => updateListItem("evaluationCriteria", i, val)} placeholder={t('lp_ph_criteria')} className="flex-1" showIndicator={false} />
                       <Button variant="ghost" size="icon" className="shrink-0" onClick={() => removeListItem("evaluationCriteria", i)}><Trash2 className="w-4 h-4 text-red-400" /></Button>
                     </div>
                   ))}
@@ -1862,7 +1864,7 @@ export default function LessonPlanner() {
                       </Button>
                     )}
                   </div>
-                  <Textarea value={form.previousKnowledge} onChange={e => setField("previousKnowledge", e.target.value)} rows={2} placeholder={t('lp_ph_prev_knowledge')} />
+                  <AutoCorrectTextarea value={form.previousKnowledge} onChange={(val) => setField("previousKnowledge", val)} rows={2} placeholder={t('lp_ph_prev_knowledge')} />
                 </div>
                 <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -1873,7 +1875,7 @@ export default function LessonPlanner() {
                       </Button>
                     )}
                   </div>
-                  <Textarea value={form.materials} onChange={e => setField("materials", e.target.value)} rows={2} placeholder={t('lp_ph_materials')} />
+                  <AutoCorrectTextarea value={form.materials} onChange={(val) => setField("materials", val)} rows={2} placeholder={t('lp_ph_materials')} />
                 </div>
               </CardContent>
             </Card>
@@ -1905,7 +1907,7 @@ export default function LessonPlanner() {
                     <div className="hidden sm:grid grid-cols-12 gap-2 items-start">
                       <Input className="col-span-2" value={p.timing} onChange={e => updateProcedure(i, "timing", e.target.value)} placeholder={t('lp_ph_timing')} />
                       <Input className="col-span-2" value={p.stage} onChange={e => updateProcedure(i, "stage", e.target.value)} placeholder={t('lp_ph_stage')} />
-                      <Textarea className="col-span-6 min-h-[60px]" value={p.activities} onChange={e => updateProcedure(i, "activities", e.target.value)} placeholder={t('lp_ph_activities')} />
+                      <AutoCorrectTextarea className="col-span-6 min-h-[60px]" value={p.activities} onChange={(val) => updateProcedure(i, "activities", val)} placeholder={t('lp_ph_activities')} showIndicator={false} />
                       <Input className="col-span-1" value={p.grouping} onChange={e => updateProcedure(i, "grouping", e.target.value)} placeholder={t('lp_ph_grouping')} />
                       <Button variant="ghost" size="icon" className="col-span-1" onClick={() => removeProcedure(i)}><Trash2 className="w-4 h-4 text-red-400" /></Button>
                     </div>
@@ -1928,7 +1930,7 @@ export default function LessonPlanner() {
                       </div>
                       <div>
                         <Label className="text-xs">{t("lp_activities")}</Label>
-                        <Textarea value={p.activities} onChange={e => updateProcedure(i, "activities", e.target.value)} placeholder={t('lp_ph_activities')} rows={3} className="text-sm" />
+                        <AutoCorrectTextarea value={p.activities} onChange={(val) => updateProcedure(i, "activities", val)} placeholder={t('lp_ph_activities')} rows={3} className="text-sm" showIndicator={false} />
                       </div>
                       <div>
                         <Label className="text-xs">{t("lp_grouping")}</Label>
@@ -1956,26 +1958,26 @@ export default function LessonPlanner() {
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs text-muted-foreground">{t("lp_diff_objectives")}</Label>
-                        <Textarea
+                        <AutoCorrectTextarea
                           value={form.differentiation.advanced.objectives}
-                          onChange={e => setField("differentiation", { ...form.differentiation!, advanced: { ...form.differentiation!.advanced, objectives: e.target.value } })}
-                          rows={3} className="text-sm resize-none"
+                          onChange={(val) => setField("differentiation", { ...form.differentiation!, advanced: { ...form.differentiation!.advanced, objectives: val } })}
+                          rows={3} className="text-sm resize-none" showIndicator={false}
                         />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs text-muted-foreground">{t("lp_diff_activities")}</Label>
-                        <Textarea
+                        <AutoCorrectTextarea
                           value={form.differentiation.advanced.activities}
-                          onChange={e => setField("differentiation", { ...form.differentiation!, advanced: { ...form.differentiation!.advanced, activities: e.target.value } })}
-                          rows={4} className="text-sm resize-none"
+                          onChange={(val) => setField("differentiation", { ...form.differentiation!, advanced: { ...form.differentiation!.advanced, activities: val } })}
+                          rows={4} className="text-sm resize-none" showIndicator={false}
                         />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs text-muted-foreground">{t("lp_diff_assessment")}</Label>
-                        <Textarea
+                        <AutoCorrectTextarea
                           value={form.differentiation.advanced.assessment}
-                          onChange={e => setField("differentiation", { ...form.differentiation!, advanced: { ...form.differentiation!.advanced, assessment: e.target.value } })}
-                          rows={3} className="text-sm resize-none"
+                          onChange={(val) => setField("differentiation", { ...form.differentiation!, advanced: { ...form.differentiation!.advanced, assessment: val } })}
+                          rows={3} className="text-sm resize-none" showIndicator={false}
                         />
                       </div>
                     </div>
@@ -1987,26 +1989,26 @@ export default function LessonPlanner() {
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs text-muted-foreground">{t("lp_diff_objectives")}</Label>
-                        <Textarea
+                        <AutoCorrectTextarea
                           value={form.differentiation.standard.objectives}
-                          onChange={e => setField("differentiation", { ...form.differentiation!, standard: { ...form.differentiation!.standard, objectives: e.target.value } })}
-                          rows={3} className="text-sm resize-none"
+                          onChange={(val) => setField("differentiation", { ...form.differentiation!, standard: { ...form.differentiation!.standard, objectives: val } })}
+                          rows={3} className="text-sm resize-none" showIndicator={false}
                         />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs text-muted-foreground">{t("lp_diff_activities")}</Label>
-                        <Textarea
+                        <AutoCorrectTextarea
                           value={form.differentiation.standard.activities}
-                          onChange={e => setField("differentiation", { ...form.differentiation!, standard: { ...form.differentiation!.standard, activities: e.target.value } })}
-                          rows={4} className="text-sm resize-none"
+                          onChange={(val) => setField("differentiation", { ...form.differentiation!, standard: { ...form.differentiation!.standard, activities: val } })}
+                          rows={4} className="text-sm resize-none" showIndicator={false}
                         />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs text-muted-foreground">{t("lp_diff_assessment")}</Label>
-                        <Textarea
+                        <AutoCorrectTextarea
                           value={form.differentiation.standard.assessment}
-                          onChange={e => setField("differentiation", { ...form.differentiation!, standard: { ...form.differentiation!.standard, assessment: e.target.value } })}
-                          rows={3} className="text-sm resize-none"
+                          onChange={(val) => setField("differentiation", { ...form.differentiation!, standard: { ...form.differentiation!.standard, assessment: val } })}
+                          rows={3} className="text-sm resize-none" showIndicator={false}
                         />
                       </div>
                     </div>
@@ -2019,26 +2021,26 @@ export default function LessonPlanner() {
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs text-muted-foreground">{t("lp_diff_objectives")}</Label>
-                        <Textarea
+                        <AutoCorrectTextarea
                           value={form.differentiation.slower.objectives}
-                          onChange={e => setField("differentiation", { ...form.differentiation!, slower: { ...form.differentiation!.slower, objectives: e.target.value } })}
-                          rows={3} className="text-sm resize-none"
+                          onChange={(val) => setField("differentiation", { ...form.differentiation!, slower: { ...form.differentiation!.slower, objectives: val } })}
+                          rows={3} className="text-sm resize-none" showIndicator={false}
                         />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs text-muted-foreground">{t("lp_diff_activities")}</Label>
-                        <Textarea
+                        <AutoCorrectTextarea
                           value={form.differentiation.slower.activities}
-                          onChange={e => setField("differentiation", { ...form.differentiation!, slower: { ...form.differentiation!.slower, activities: e.target.value } })}
-                          rows={4} className="text-sm resize-none"
+                          onChange={(val) => setField("differentiation", { ...form.differentiation!, slower: { ...form.differentiation!.slower, activities: val } })}
+                          rows={4} className="text-sm resize-none" showIndicator={false}
                         />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs text-muted-foreground">{t("lp_diff_assessment")}</Label>
-                        <Textarea
+                        <AutoCorrectTextarea
                           value={form.differentiation.slower.assessment}
-                          onChange={e => setField("differentiation", { ...form.differentiation!, slower: { ...form.differentiation!.slower, assessment: e.target.value } })}
-                          rows={3} className="text-sm resize-none"
+                          onChange={(val) => setField("differentiation", { ...form.differentiation!, slower: { ...form.differentiation!.slower, assessment: val } })}
+                          rows={3} className="text-sm resize-none" showIndicator={false}
                         />
                       </div>
                     </div>

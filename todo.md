@@ -5648,3 +5648,13 @@
 - [x] Use debounced LLM-based correction (1500ms) that respects the current UI language
 - [x] Show visual indicator when auto-correction is active (AutoCorrectIndicator component)
 - [x] Allow users to undo/dismiss auto-corrections (undo button + toggle on/off)
+
+## Feature: Extend Auto-Correct to Additional Text-Heavy Inputs (2026-05-09)
+- [x] Integrate auto-correct into Lesson Planner procedure activities fields
+- [x] Integrate auto-correct into Lesson Planner competences, saberes, outcomes, evaluation criteria fields
+- [x] Integrate auto-correct into Lesson Planner previous knowledge, materials, spaces, differentiation fields
+- [x] Integrate auto-correct into Forum post/reply text inputs
+- [x] Ensure auto-correct works consistently across all integrated fields
+
+## Bug Fix: EIX Card Titles Showing English Instead of Catalan (2026-05-09)
+- [x] Fix EIX card titles (EIX1-4) displaying English text when language is set to Catalan (use t() with eix*_name keys)

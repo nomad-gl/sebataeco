@@ -15,6 +15,7 @@ import PreCallScreen, { VideoBackground, VideoFilter } from "@/components/PreCal
 import { SebaMeet } from "@/components/SebaMeet";
 import { Link } from "wouter";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useAutoCorrect } from "@/hooks/useAutoCorrect";
 
 
 const HERO_BG =
@@ -139,6 +140,10 @@ export default function Forum() {
   const [showReactionPicker, setShowReactionPicker] = useState<number | null>(null);
   const [threadMsgId, setThreadMsgId] = useState<number | null>(null);
   const [threadInput, setThreadInput] = useState("");
+
+  // Auto-correct for forum inputs
+  const forumAutoCorrect = useAutoCorrect({ debounceMs: 1500, minLength: 10, maxLength: 2000 });
+  const threadAutoCorrect = useAutoCorrect({ debounceMs: 1500, minLength: 10, maxLength: 500 });
   const [showPinned, setShowPinned] = useState(false);
   const [fileUploadRef] = useState(() => ({ current: null as HTMLInputElement | null }));
 
@@ -1214,7 +1219,10 @@ export default function Forum() {
                 <input
                   type="text"
                   value={threadInput}
-                  onChange={e => setThreadInput(e.target.value)}
+                  onChange={e => {
+                    setThreadInput(e.target.value);
+                    threadAutoCorrect.handleChange(e.target.value, (corrected) => setThreadInput(corrected));
+                  }}
                   onKeyDown={e => {
                     if (e.key === "Enter" && threadInput.trim() && threadMsgId && activeChannelId) {
                       postReplyMut.mutate({ parentMessageId: threadMsgId, channelId: activeChannelId, body: threadInput.trim() });
@@ -1262,6 +1270,7 @@ export default function Forum() {
                     setInput(e.target.value);
                     e.target.style.height = "auto";
                     e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+                    forumAutoCorrect.handleChange(e.target.value, (corrected) => setInput(corrected));
                   }}
                   onKeyDown={handleKeyDown}
                   placeholder={

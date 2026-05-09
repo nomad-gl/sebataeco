@@ -22,7 +22,7 @@ const EIX_COLORS: Record<EixCode, string> = {
 };
 
 export default function InfantilPractice() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   useDocumentTitle("Pràctica Educació Infantil · Decree 21/2023");
 
   const [location] = useLocation();
@@ -200,7 +200,7 @@ export default function InfantilPractice() {
                 </div>
                 {eix && eixos && (
                   <p className="text-xs text-white/50 mt-2 italic">
-                    {eixos.find((e) => e.code === eix)?.catalan}
+                    {t(`eix${eix?.replace("EIX", "")}_desc` as any)}
                   </p>
                 )}
               </div>

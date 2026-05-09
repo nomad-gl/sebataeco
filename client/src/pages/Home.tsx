@@ -29,7 +29,7 @@ const COMP_COLORS: Record<string, string> = {
 };
 
 export default function Home() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   useDocumentTitle("Inici · Assistent IA LOMLOE");
 
   const { data: competencies } = trpc.lomloe.getCompetencies.useQuery();
@@ -221,10 +221,10 @@ export default function Home() {
                     <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-pink-100 text-pink-700">{eix.code}</span>
                   </div>
                   <h3 className="font-semibold text-sm mb-1 group-hover:text-pink-600 transition-colors leading-snug">
-                    {eix.name}
+                    {t(`eix${eix.code.replace("EIX", "")}_name` as any)}
                   </h3>
                   <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed italic">
-                    {eix.catalan}
+                    {t(`eix${eix.code.replace("EIX", "")}_desc` as any)}
                   </p>
                 </CardContent>
                 <div className="h-1 w-0 group-hover:w-full transition-all duration-300 bg-pink-400" />
