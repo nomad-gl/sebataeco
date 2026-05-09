@@ -5738,3 +5738,12 @@
 - [x] Check teacher profiles page component for issues
 - [x] Identify redirect or unmount logic causing disappearance (missing HosOrAdminRoute wrapper)
 - [x] Fix and test page persistence (wrapped route with HosOrAdminRoute)
+
+
+## Feature: Persistent Speaker Settings for AINA Chat (2026-05-09)
+- [x] Analyze current voice preference storage in AIChatBox (localStorage + database)
+- [x] Ensure voice preference is loaded on component mount (loads from DB on login)
+- [x] Persist voice preference to database on user change (setTtsVoiceMutation)
+- [x] Apply voice setting consistently across all message scenarios (voice used for all TTS)
+- [x] Test persistent settings across page reloads and sessions (working correctly)
+- [x] Implement suggested follow-ups after settings are applied (already implemented as suggestedPrompts)

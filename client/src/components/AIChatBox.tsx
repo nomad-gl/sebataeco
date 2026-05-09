@@ -301,7 +301,7 @@ export function AIChatBox({
   useEffect(() => {
     if (!user) return;
     const dbVoice = (user as { ttsVoice?: string }).ttsVoice;
-    if (dbVoice && (["nova", "shimmer", "alloy", "fable", "coral", "marin"] as string[]).includes(dbVoice)) {
+    if (dbVoice && (["nova", "shimmer", "alloy", "fable", "coral", "marin", "cedar", "aina"] as string[]).includes(dbVoice)) {
       setTtsVoice(dbVoice as TtsVoice);
       localStorage.setItem("seba_tts_voice", dbVoice);
       // If they have a DB preference, treat it as a manual override
