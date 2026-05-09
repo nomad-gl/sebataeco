@@ -5682,13 +5682,13 @@
 - [x] Debug the BSC TTS API integration to identify why audio isn't playing (issue was tRPC validation)
 
 ## Feature: Catalan Accent Selection in Voice Picker (2026-05-09)
-- [ ] Add accent selection dropdown (central, balear, nord-occidental, valencia) — IN PROGRESS
-- [ ] Pass selected accent to BSC TTS API
-- [ ] Persist accent preference in localStorage
+- [x] Add accent selection button (central, balear, nord-occidental, valencia) with Globe icon
+- [x] Pass selected accent to BSC TTS API
+- [x] Persist accent preference in localStorage
 
 ## Feature: Speech Speed Slider for BSC Aina Voice (2026-05-09)
-- [ ] Add speech speed slider UI in voice settings (lengthScale parameter)
-- [ ] Persist speed preference in localStorage
-- [ ] Pass lengthScale to BSC TTS API
-- [ ] Map slider value to BSC TTS lengthScale parameter (0.5-2.0)
-- [ ] Persist speed preference in localStorage
+- [x] Add speech speed slider UI in voice settings (lengthScale parameter, 0.5-2.0x)
+- [x] Persist speed preference in localStorage
+- [x] Pass lengthScale to BSC TTS API
+- [x] Map slider value to BSC TTS lengthScale parameter (0.5-2.0)
+- [x] Persist speed preference in localStorage

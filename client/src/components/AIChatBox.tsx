@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -204,6 +205,12 @@ export function AIChatBox({
       return next;
     });
   }, []);
+
+  /** Speech speed (lengthScale) for Aina voice: 0.5 (slow) to 2.0 (fast), default 0.89 */
+  const [ainaSpeedScale, setAinaSpeedScale] = useState<number>(() => {
+    const saved = localStorage.getItem("seba_aina_speed_scale");
+    return saved ? parseFloat(saved) : 0.89;
+  });
 
   const cycleSpeechRate = useCallback(() => {
     setSpeechRate(prev => {
@@ -511,6 +518,8 @@ export function AIChatBox({
           text: sampleText,
           lang: langCode,
           ...(previewVoiceParam ? { voice: previewVoiceParam } : {}),
+          ...(voiceId === "aina" && langCode === "ca" ? { accent: ainaAccent } : {}),
+          ...(voiceId === "aina" && langCode === "ca" ? { lengthScale: ainaSpeedScale } : {}),
         });
         const dataUrl = `data:${result.mimeType};base64,${result.audioBase64}`;
         const audio = new Audio(dataUrl);
@@ -670,6 +679,8 @@ export function AIChatBox({
           text: text.slice(0, 4096),
           lang: langCode,
           ...(voiceParam ? { voice: voiceParam } : {}),
+          ...(ttsVoice === "aina" && langCode === "ca" ? { accent: ainaAccent } : {}),
+          ...(ttsVoice === "aina" && langCode === "ca" ? { lengthScale: ainaSpeedScale } : {}),
         });
         dataUrl = `data:${result.mimeType};base64,${result.audioBase64}`;
         ttsCacheRef.current.set(cacheKey, dataUrl);
@@ -1754,6 +1765,25 @@ export function AIChatBox({
             >
               <Globe className="size-4" />
             </Button>
+          )}
+          {/* Speech speed slider for Aina voice (Catalan only) */}
+          {ttsVoice === "aina" && lang === "ca" && !isMobile && (
+            <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-white/5 hover:bg-white/10 transition-colors">
+              <span className="text-xs text-white/50 whitespace-nowrap">Speed:</span>
+              <Slider
+                value={[ainaSpeedScale]}
+                onValueChange={(val) => {
+                  const newSpeed = Math.max(0.5, Math.min(2.0, val[0]));
+                  setAinaSpeedScale(newSpeed);
+                  localStorage.setItem("seba_aina_speed_scale", String(newSpeed));
+                }}
+                min={0.5}
+                max={2.0}
+                step={0.1}
+                className="w-20"
+              />
+              <span className="text-xs text-white/60 w-8 text-right">{ainaSpeedScale.toFixed(1)}x</span>
+            </div>
           )}
           {/* Always-on toggle (Radio icon) — desktop only */}
           {!isMobile && (

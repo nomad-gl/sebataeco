@@ -49,17 +49,25 @@ function getVoicePrompt(lang?: string): string | undefined {
   }
 }
 
-async function synthesizeSpeech(text: string, lang?: string, voiceOverride?: string): Promise<{ buffer: Buffer; mimeType: string }> {
+async function synthesizeSpeech(text: string, lang?: string, voiceOverride?: string, accent?: string, lengthScale?: number): Promise<{ buffer: Buffer; mimeType: string }> {
   // Route Catalan through BSC AINA native TTS for authentic pronunciation
   const langNorm = (lang ?? "").toLowerCase().split(/[-_]/)[0];
   if (langNorm === "ca" && voiceOverride !== "__skip_bsc") {
     try {
+      // Map accent names to BSC AINA speaker combinations
+      const accentMap: Record<string, { accent: string; speaker: string }> = {
+        "central": { accent: "central", speaker: "elia" },
+        "balear": { accent: "balear", speaker: "olga" },
+        "nord-occidental": { accent: "nord-occidental", speaker: "quim" },
+        "valencia": { accent: "valencia", speaker: "olga" },
+      };
+      const accentConfig = accentMap[accent ?? "balear"] ?? { accent: "balear", speaker: "olga" };
       const wavBuffer = await synthesizeCatalanBSC({
         text: text.slice(0, 4096),
-        accent: "balear",
-        speaker: "olga",
+        accent: accentConfig.accent,
+        speaker: accentConfig.speaker,
         temperature: 0.2,
-        lengthScale: 0.89,
+        lengthScale: lengthScale ?? 0.89,
       });
       return { buffer: wavBuffer, mimeType: "audio/wav" };
     } catch (err) {
@@ -232,6 +240,10 @@ export const voiceRouter = router({
         lang: z.string().nullish(),
         /** Optional voice override. If omitted, pickVoice() selects based on lang. */
         voice: z.enum(["alloy", "ash", "ballad", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer", "verse", "marin", "cedar", "aina"]).nullish(),
+        /** Optional Catalan accent for Aina voice (central, balear, nord-occidental, valencia) */
+        accent: z.enum(["central", "balear", "nord-occidental", "valencia"]).nullish(),
+        /** Optional speech speed (lengthScale) for Aina voice (0.5 slow to 2.0 fast) */
+        lengthScale: z.number().min(0.5).max(2.0).nullish(),
       })
     )
     .mutation(async ({ input }) => {
@@ -239,6 +251,8 @@ export const voiceRouter = router({
         input.text,
         input.lang ?? undefined,
         input.voice ?? undefined,
+        input.accent ?? undefined,
+        input.lengthScale ?? undefined,
       );
       return {
         audioBase64: buffer.toString("base64"),
