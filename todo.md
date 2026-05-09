@@ -5625,3 +5625,9 @@
 
 ## Bug Fix: Teacher Profile Page Disappears After Task Resolution (2026-05-08)
 - [x] Fix Teacher Profile page crash — missing `acSubjects` import in teacherProfile router
+
+## Audit: Server Router Schema Import Check (2026-05-08)
+- [x] Run full import audit across all server routers — only genuine issue was acSubjects in teacherProfile.ts (already fixed)
+
+## Enhancement: More Realistic Female Voice for Catalan and Spanish TTS (2026-05-09)
+- [x] Find and implement more realistic female voices for Catalan and Spanish text-to-speech (coral + marin via gpt-4o-mini-tts)

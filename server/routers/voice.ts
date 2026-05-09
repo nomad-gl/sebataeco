@@ -15,6 +15,39 @@ import { storagePut } from "../storage";
 
 // ─── TTS helper ───────────────────────────────────────────────────────────────
 
+/** All available voices for gpt-4o-mini-tts */
+const ALL_VOICES = [
+  "alloy", "ash", "ballad", "coral", "echo", "fable",
+  "nova", "onyx", "sage", "shimmer", "verse", "marin", "cedar",
+] as const;
+
+type TtsVoice = (typeof ALL_VOICES)[number];
+
+/** Language-specific system prompts for more natural pronunciation */
+function getVoicePrompt(lang?: string): string | undefined {
+  if (!lang) return undefined;
+  const l = lang.toLowerCase().split(/[-_]/)[0];
+
+  switch (l) {
+    case "ca":
+      return "Speak in a warm, natural female voice with a native Catalan accent. " +
+        "Pronounce all Catalan phonemes correctly, including the neutral vowel, " +
+        "voiced and unvoiced sibilants, and the palatal lateral. " +
+        "Use natural intonation patterns typical of Central Catalan. " +
+        "Speak clearly and at a moderate pace suitable for an educational context.";
+    case "es":
+      return "Speak in a warm, natural female voice with a native Castilian Spanish accent. " +
+        "Pronounce all Spanish phonemes correctly, including the distinction between " +
+        "the interdental /θ/ and /s/ sounds. Use natural intonation patterns typical " +
+        "of peninsular Spanish. Speak clearly and at a moderate pace suitable for an educational context.";
+    case "en":
+      return "Speak in a warm, clear female voice suitable for an educational context. " +
+        "Use natural intonation and a moderate pace.";
+    default:
+      return undefined;
+  }
+}
+
 async function synthesizeSpeech(text: string, lang?: string, voiceOverride?: string): Promise<Buffer> {
   if (!ENV.forgeApiUrl || !ENV.forgeApiKey) {
     throw new TRPCError({
@@ -32,22 +65,52 @@ async function synthesizeSpeech(text: string, lang?: string, voiceOverride?: str
   // Pick a voice: use explicit override if provided, otherwise pick by language
   const voice = voiceOverride ?? pickVoice(lang);
 
+  // Build the request body — use gpt-4o-mini-tts with prompting for best quality
+  const prompt = getVoicePrompt(lang);
+  const body: Record<string, unknown> = {
+    model: "gpt-4o-mini-tts",
+    input: text.slice(0, 4096),
+    voice,
+    response_format: "mp3",
+  };
+
+  // Add instructions prompt for language-specific pronunciation (gpt-4o-mini-tts feature)
+  if (prompt) {
+    body.instructions = prompt;
+  }
+
   const response = await fetch(url, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${ENV.forgeApiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      model: "tts-1-hd", // HD model for significantly more natural, human-like speech
-      input: text.slice(0, 4096), // API limit
-      voice,
-      response_format: "mp3",
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
     const errText = await response.text().catch(() => "");
+    // Fallback: if gpt-4o-mini-tts is not available, retry with tts-1-hd
+    if (response.status === 404 || response.status === 400) {
+      const fallbackBody: Record<string, unknown> = {
+        model: "tts-1-hd",
+        input: text.slice(0, 4096),
+        voice: pickVoiceFallback(voice, lang),
+        response_format: "mp3",
+      };
+      const fallbackResponse = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${ENV.forgeApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(fallbackBody),
+      });
+      if (fallbackResponse.ok) {
+        const arrayBuffer = await fallbackResponse.arrayBuffer();
+        return Buffer.from(arrayBuffer);
+      }
+    }
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: `TTS request failed: ${response.status} ${errText}`,
@@ -58,16 +121,34 @@ async function synthesizeSpeech(text: string, lang?: string, voiceOverride?: str
   return Buffer.from(arrayBuffer);
 }
 
-/** Map language code to the most natural OpenAI TTS voice for that language.
- *  OpenAI voices: alloy (neutral), echo (male), fable (British), onyx (deep male),
- *  nova (warm female EN), shimmer (soft female, good for ES/CA).
+/** Map language code to the best voice for gpt-4o-mini-tts.
+ *  coral: warm, natural female — excellent for Spanish and Catalan
+ *  nova: warm and clear — best for English education contexts
  */
 function pickVoice(lang?: string): string {
-  if (!lang) return "nova";
+  if (!lang) return "coral";
   const l = lang.toLowerCase().split(/[-_]/)[0];
-  // shimmer has a softer, more natural cadence for Spanish and Catalan
-  if (l === "es" || l === "ca") return "shimmer";
+  // coral has a warm, expressive female voice — ideal for ES/CA with prompting
+  if (l === "es" || l === "ca") return "coral";
   // nova is warm and clear — best for English education contexts
+  return "nova";
+}
+
+/** Fallback voice mapping for tts-1-hd (doesn't support coral/marin/cedar) */
+function pickVoiceFallback(requestedVoice: string, lang?: string): string {
+  const tts1hdVoices = ["alloy", "ash", "coral", "echo", "fable", "onyx", "nova", "sage", "shimmer"];
+  if (tts1hdVoices.includes(requestedVoice)) return requestedVoice;
+  // Map newer voices to closest tts-1-hd equivalent
+  const fallbackMap: Record<string, string> = {
+    marin: "shimmer",
+    cedar: "nova",
+    ballad: "fable",
+    verse: "alloy",
+  };
+  if (fallbackMap[requestedVoice]) return fallbackMap[requestedVoice];
+  // Default based on language
+  const l = (lang ?? "").toLowerCase().split(/[-_]/)[0];
+  if (l === "es" || l === "ca") return "shimmer";
   return "nova";
 }
 
@@ -131,7 +212,7 @@ export const voiceRouter = router({
         text: z.string().min(1).max(4096),
         lang: z.string().nullish(),
         /** Optional voice override. If omitted, pickVoice() selects based on lang. */
-        voice: z.enum(["alloy", "echo", "fable", "onyx", "nova", "shimmer"]).nullish(),
+        voice: z.enum(["alloy", "ash", "ballad", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer", "verse", "marin", "cedar"]).nullish(),
       })
     )
     .mutation(async ({ input }) => {

@@ -194,13 +194,13 @@ export function AIChatBox({
     });
   }, []);
 
-  type TtsVoice = "nova" | "shimmer" | "alloy" | "fable";
+  type TtsVoice = "nova" | "shimmer" | "alloy" | "fable" | "coral" | "marin";
 
   /** Derive the best default voice for a given language code */
   const defaultVoiceForLang = (langCode: string): TtsVoice => {
     const l = langCode.toLowerCase().split(/[-_]/)[0];
-    // nova: warm, expressive, natural cadence — works well for ES and CA
-    return (l === "es" || l === "ca") ? "nova" : "nova";
+    // coral: warm, natural female — best for ES/CA with gpt-4o-mini-tts prompting
+    return (l === "es" || l === "ca") ? "coral" : "nova";
   };
 
   /** True when the active language is Catalan or Spanish — use neural TTS */
@@ -216,7 +216,7 @@ export function AIChatBox({
   const [ttsVoice, setTtsVoice] = useState<TtsVoice>(() => {
     const saved = localStorage.getItem("seba_tts_voice");
     const hasManual = localStorage.getItem("seba_tts_voice_manual") === "1";
-    if (hasManual && (["nova", "shimmer", "alloy", "fable"] as TtsVoice[]).includes(saved as TtsVoice)) {
+    if (hasManual && (["nova", "shimmer", "alloy", "fable", "coral", "marin"] as TtsVoice[]).includes(saved as TtsVoice)) {
       return saved as TtsVoice;
     }
     // No manual override — derive from current browser/document language
@@ -273,7 +273,7 @@ export function AIChatBox({
   useEffect(() => {
     if (!user) return;
     const dbVoice = (user as { ttsVoice?: string }).ttsVoice;
-    if (dbVoice && (["nova", "shimmer", "alloy", "fable"] as string[]).includes(dbVoice)) {
+    if (dbVoice && (["nova", "shimmer", "alloy", "fable", "coral", "marin"] as string[]).includes(dbVoice)) {
       setTtsVoice(dbVoice as TtsVoice);
       localStorage.setItem("seba_tts_voice", dbVoice);
       // If they have a DB preference, treat it as a manual override
@@ -282,7 +282,9 @@ export function AIChatBox({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  const TTS_VOICES: { id: TtsVoice; labelKey: "tts_voice_nova" | "tts_voice_shimmer" | "tts_voice_alloy" | "tts_voice_fable"; descKey: "tts_voice_nova_desc" | "tts_voice_shimmer_desc" | "tts_voice_alloy_desc" | "tts_voice_fable_desc" }[] = [
+  const TTS_VOICES: { id: TtsVoice; labelKey: string; descKey: string }[] = [
+    { id: "coral",   labelKey: "tts_voice_coral",   descKey: "tts_voice_coral_desc" },
+    { id: "marin",   labelKey: "tts_voice_marin",   descKey: "tts_voice_marin_desc" },
     { id: "nova",    labelKey: "tts_voice_nova",    descKey: "tts_voice_nova_desc" },
     { id: "shimmer", labelKey: "tts_voice_shimmer", descKey: "tts_voice_shimmer_desc" },
     { id: "alloy",   labelKey: "tts_voice_alloy",   descKey: "tts_voice_alloy_desc" },
