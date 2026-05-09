@@ -5718,10 +5718,10 @@
 
 
 ## Bug: Voice Synthesiser Not Initializing (2026-05-09)
-- [ ] Investigate voice synthesiser initialization logs
-- [ ] Identify root cause of initialization failure
-- [ ] Fix voice synthesiser initialization
-- [ ] Test voice synthesiser functionality
+- [x] Investigate voice synthesiser initialization logs
+- [x] Identify root cause of initialization failure (browser fallback not respecting voice selection)
+- [x] Fix voice synthesiser initialization (enhanced playBrowserTTS to prioritize female voices)
+- [x] Test voice synthesiser functionality (page loading correctly, voice selection working)
 
 
 ## Bug: Voice Selection Not Persisting (2026-05-09)
@@ -5730,3 +5730,11 @@
 - [x] Fix voice selection state to properly apply user choice
 - [x] Ensure Catalan female voice (coral/aina) is used instead of default male
 - [x] Test voice selection persistence across page reloads
+
+
+## Bug: Teacher Profiles Page Disappears (2026-05-09)
+- [x] Check browser console logs for errors
+- [x] Investigate page routing logic in App.tsx
+- [x] Check teacher profiles page component for issues
+- [x] Identify redirect or unmount logic causing disappearance (missing HosOrAdminRoute wrapper)
+- [x] Fix and test page persistence (wrapped route with HosOrAdminRoute)

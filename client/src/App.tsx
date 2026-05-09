@@ -228,7 +228,9 @@ function Router() {
         <Route path="/director/users" component={DirectorUsers} />
         <Route path="/director/approvals" component={DirectorApprovals} />
         <Route path="/director/teacher-attendance" component={DirectorTeacherAttendance} />
-        <Route path="/director/teacher-profiles" component={DirectorTeacherProfiles} />
+        <Route path="/director/teacher-profiles">
+          <HosOrAdminRoute component={DirectorTeacherProfiles} />
+        </Route>
         <Route path="/director/cover-requests" component={DirectorCoverRequests} />
         <Route path="/director/notifications" component={DirectorNotifications} />
         <Route path="/director/students/:id" component={StudentDetails} />
