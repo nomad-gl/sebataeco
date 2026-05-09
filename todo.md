@@ -5631,3 +5631,6 @@
 
 ## Enhancement: More Realistic Female Voice for Catalan and Spanish TTS (2026-05-09)
 - [x] Find and implement more realistic female voices for Catalan and Spanish text-to-speech (coral + marin via gpt-4o-mini-tts)
+
+## Bug Fix: Filter by Competency Dropdown Not Translating (2026-05-09)
+- [x] Fix "Filter by competency" dropdown in Question Library not translating to CA/ES (use t() with comp_*_name keys)

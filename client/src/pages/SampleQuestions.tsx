@@ -215,7 +215,7 @@ export default function SampleQuestions() {
             >
               <option value="" className="bg-slate-800">{t("questions_all")}</option>
               {(competencies ?? []).map((c) => (
-                <option key={c.code} value={c.code} className="bg-slate-800">{c.code} – {c.name}</option>
+                <option key={c.code} value={c.code} className="bg-slate-800">{c.code} – {t(`comp_${c.code.toLowerCase()}_name`)}</option>
               ))}
             </select>
           </div>
