@@ -202,6 +202,24 @@ async function startServer() {
     res.send(content);
   });
 
+  // ── Scheduled: Weekly Translation Audit (Heartbeat callback) ───────────────────
+  app.post("/api/scheduled/translation-audit", async (req, res) => {
+    try {
+      console.log("[ScheduledAudit] Running weekly translation audit...");
+      const { runI18nScanAndNotify: runScan } = await import("../i18nScan");
+      await runScan();
+      res.json({ ok: true, ranAt: new Date().toISOString() });
+    } catch (err: any) {
+      console.error("[ScheduledAudit] Translation audit failed:", err);
+      res.status(500).json({
+        error: err.message || "Unknown error",
+        stack: err.stack,
+        context: { url: req.url, taskUid: req.headers["x-manus-cron-task-uid"] },
+        timestamp: new Date().toISOString(),
+      });
+    }
+  });
+
   // ── HIGH-02: Session sliding renewal — re-issue cookie on each authenticated request ──
   // This keeps active users logged in without extending the window for stolen tokens.
   // Only renews if the session is valid and has less than 4 hours remaining.

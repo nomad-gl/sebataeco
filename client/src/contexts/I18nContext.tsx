@@ -4095,6 +4095,13 @@ export const translations = {
     cat_expressio_escrita: "Written Expression",
     cat_tipologia_textual: "Text Types",
 
+    // Auto-correct
+    autocorrect_checking: "Checking...",
+    autocorrect_undo: "Undo",
+    autocorrect_undo_title: "Undo auto-correction",
+    autocorrect_enable: "Enable auto-correct",
+    autocorrect_disable: "Disable auto-correct",
+
   },
   es: {
     // NavBar
@@ -8158,6 +8165,13 @@ export const translations = {
     cat_expressio_escrita: "Expresión Escrita",
     cat_tipologia_textual: "Tipología Textual",
 
+    // Auto-correct
+    autocorrect_checking: "Comprobando...",
+    autocorrect_undo: "Deshacer",
+    autocorrect_undo_title: "Deshacer autocorrección",
+    autocorrect_enable: "Activar autocorrección",
+    autocorrect_disable: "Desactivar autocorrección",
+
   },
   ca: {
     // NavBar
@@ -12220,6 +12234,13 @@ export const translations = {
     cat_comprensio_escrita: "Comprensió Escrita",
     cat_expressio_escrita: "Expressió Escrita",
     cat_tipologia_textual: "Tipologia Textual",
+
+    // Auto-correct
+    autocorrect_checking: "Comprovant...",
+    autocorrect_undo: "Desfer",
+    autocorrect_undo_title: "Desfer autocorrecció",
+    autocorrect_enable: "Activar autocorrecció",
+    autocorrect_disable: "Desactivar autocorrecció",
   },
 } as const;
 

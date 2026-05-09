@@ -24,6 +24,8 @@ import { useLocation } from "wouter";
 import { useI18n } from "@/contexts/I18nContext";
 import { SebaSymbol } from "@/components/SebaSymbol";
 import type { TranslationKey } from "@/contexts/I18nContext";
+import { useAutoCorrect } from "@/hooks/useAutoCorrect";
+import { AutoCorrectIndicator } from "@/components/AutoCorrectIndicator";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 
@@ -445,6 +447,7 @@ export default function Create() {
 
   const [selectedType, setSelectedType] = useState<MaterialType | null>(null);
   const [topic, setTopic] = useState("");
+  const topicAutoCorrect = useAutoCorrect({ debounceMs: 1500, minLength: 10 });
   const [competency, setCompetency] = useState<CompetencyCode | undefined>();
   const [yearGroup, setYearGroup] = useState<YearGroup | undefined>();
 
@@ -822,10 +825,21 @@ export default function Create() {
             <Input
               id="topic"
               value={topic}
-              onChange={(e) => setTopic(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setTopic(val);
+                topicAutoCorrect.handleChange(val, (corrected) => setTopic(corrected));
+              }}
               placeholder={t("create_topic_placeholder")}
               className="text-base bg-white/10 border-white/25 text-white placeholder:text-white/40 backdrop-blur-sm focus:border-white/50"
               maxLength={200}
+            />
+            <AutoCorrectIndicator
+              isPending={topicAutoCorrect.state.isPending}
+              lastCorrection={topicAutoCorrect.state.lastCorrection}
+              isEnabled={topicAutoCorrect.state.isEnabled}
+              onUndo={() => { const o = topicAutoCorrect.undoLastCorrection(); if (o) setTopic(o); }}
+              onToggle={topicAutoCorrect.toggleEnabled}
             />
           </div>
         </div>

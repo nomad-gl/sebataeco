@@ -22,6 +22,8 @@ import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { useI18n } from "@/contexts/I18nContext";
 import { useState, useRef, useEffect } from "react";
+import { useAutoCorrect } from "@/hooks/useAutoCorrect";
+import { AutoCorrectIndicator } from "@/components/AutoCorrectIndicator";
 
 const COMPETENCIES = ["CCL","CP","STEM","CD","CPSAA","CC","CE","CCEC"];
 const YEAR_GROUP_VALUES = [
@@ -257,6 +259,7 @@ export default function Presentation() {
 
   // Single generate form state
   const [topic, setTopic] = useState("");
+  const topicAutoCorrect = useAutoCorrect({ debounceMs: 1500, minLength: 12 });
   const [heading, setHeading] = useState("");
   const [school, setSchool] = useState("");
   const [subject, setSubject] = useState<string | undefined>(undefined);
@@ -621,9 +624,20 @@ export default function Presentation() {
               <Label className="text-white/90 font-medium">
                 {t("pres_topic_label")} <span className="text-red-400">*</span>
               </Label>
-              <Textarea value={topic} onChange={(e) => setTopic(e.target.value)}
+              <Textarea value={topic} onChange={(e) => {
+                const val = e.target.value;
+                setTopic(val);
+                topicAutoCorrect.handleChange(val, (corrected) => setTopic(corrected));
+              }}
                 placeholder={t("pres_topic_placeholder")} rows={2}
                 className="bg-white/10 border-white/30 text-white placeholder:text-white/40 resize-none focus:border-blue-400" />
+              <AutoCorrectIndicator
+                isPending={topicAutoCorrect.state.isPending}
+                lastCorrection={topicAutoCorrect.state.lastCorrection}
+                isEnabled={topicAutoCorrect.state.isEnabled}
+                onUndo={() => { const o = topicAutoCorrect.undoLastCorrection(); if (o) setTopic(o); }}
+                onToggle={topicAutoCorrect.toggleEnabled}
+              />
             </div>
             <div className="space-y-1.5">
               <Label className="text-white/90 font-medium">

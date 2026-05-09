@@ -5634,3 +5634,17 @@
 
 ## Bug Fix: Filter by Competency Dropdown Not Translating (2026-05-09)
 - [x] Fix "Filter by competency" dropdown in Question Library not translating to CA/ES (use t() with comp_*_name keys)
+
+## Feature: Comprehensive Translation Audit Algorithm (2026-05-09)
+- [x] Create algorithm that checks ALL text (hardcoded, template literals, JSX text nodes) for translation coverage
+- [x] No exceptions — flag everything not wrapped in t()
+- [x] Integrate as npm script for ongoing use (`pnpm audit:translations`)
+- [x] Schedule to run automatically once a week (POST /api/scheduled/translation-audit)
+
+## Feature: Real-Time Auto-Correct for User-Typed Text (2026-05-09)
+- [x] Implement real-time spelling/grammar auto-correction as users type in text inputs
+- [x] Support all three languages (EN, ES, CA) with language-aware correction
+- [x] Apply to main text input areas: AI chat input, presentation topic, material creation, lesson planner
+- [x] Use debounced LLM-based correction (1500ms) that respects the current UI language
+- [x] Show visual indicator when auto-correction is active (AutoCorrectIndicator component)
+- [x] Allow users to undo/dismiss auto-corrections (undo button + toggle on/off)

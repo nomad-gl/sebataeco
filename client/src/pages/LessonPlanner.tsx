@@ -19,6 +19,8 @@ import { useLocation } from "wouter";
 import NavBar from "@/components/NavBar";
 import LogoUploader from "@/components/LogoUploader";
 import { useI18n } from "@/contexts/I18nContext";
+import { useAutoCorrect } from "@/hooks/useAutoCorrect";
+import { AutoCorrectIndicator } from "@/components/AutoCorrectIndicator";
 import { useIsMobile } from "@/hooks/useMobile";
 import { exportToCsv, exportToXml } from "@/lib/exportUtils";
 import ExportDropdown, { PrintIcon, CsvIcon, XmlIcon } from "@/components/ExportDropdown";
@@ -1152,6 +1154,8 @@ export default function LessonPlanner() {
     setIsDirty(true);
   };
 
+  const titleAutoCorrect = useAutoCorrect({ debounceMs: 1500, minLength: 10 });
+
   const loadPlan = (plan: any) => {
     setSelectedId(plan.id);
     setForm(planToForm(plan));
@@ -1610,7 +1614,17 @@ export default function LessonPlanner() {
                       </Button>
                     )}
                   </div>
-                  <Input value={form.title} onChange={e => setField("title", e.target.value)} placeholder={t('lp_ph_title')} />
+                  <Input value={form.title} onChange={e => {
+                    setField("title", e.target.value);
+                    titleAutoCorrect.handleChange(e.target.value, (corrected) => setField("title", corrected));
+                  }} placeholder={t('lp_ph_title')} />
+                  <AutoCorrectIndicator
+                    isPending={titleAutoCorrect.state.isPending}
+                    lastCorrection={titleAutoCorrect.state.lastCorrection}
+                    isEnabled={titleAutoCorrect.state.isEnabled}
+                    onUndo={() => { const o = titleAutoCorrect.undoLastCorrection(); if (o) setField("title", o); }}
+                    onToggle={titleAutoCorrect.toggleEnabled}
+                  />
                 </div>
                 {/* Row 1: unit / lesson no / academic year / duration / session time — 2 cols on mobile, 5 on lg */}
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">

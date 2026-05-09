@@ -57,6 +57,7 @@ import { mfaRouter } from "./routers/mfa";
 import { dpiaRouter } from "./routers/dpia";
 import { securityDashboardRouter } from "./routers/securityDashboard";
 import { navOrderRouter } from "./routers/navOrder";
+import { autoCorrectRouter } from "./routers/autoCorrect";
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -257,6 +258,7 @@ export const appRouter = router({
   dpia: dpiaRouter,
   securityDashboard: securityDashboardRouter,
   navOrder: navOrderRouter,
+  autoCorrect: autoCorrectRouter,
 });
 
 export type AppRouter = typeof appRouter;

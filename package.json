@@ -14,6 +14,9 @@
     "test:i18n": "vitest run server/i18n.parity.test.ts server/i18n.switching.test.ts server/i18n.placeholders.test.ts",
     "test:ci": "vitest run",
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
+    "audit:translations": "node scripts/translation-audit.mjs",
+    "audit:translations:json": "node scripts/translation-audit.mjs --json",
+    "audit:translations:summary": "node scripts/translation-audit.mjs --summary",
     "postinstall": "node scripts/apply-patches.mjs"
   },
   "dependencies": {

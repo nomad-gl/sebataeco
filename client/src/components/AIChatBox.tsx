@@ -11,6 +11,8 @@ import {
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Streamdown } from "streamdown";
 import { useAinaWakeWord } from "@/hooks/useAinaWakeWord";
+import { useAutoCorrect } from "@/hooks/useAutoCorrect";
+import { AutoCorrectIndicator } from "@/components/AutoCorrectIndicator";
 import { useWakeWordConfig } from "@/hooks/useWakeWordConfig";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
@@ -170,6 +172,7 @@ export function AIChatBox({
   const resolvedRetryLabel = retryLabel ?? t("chat_retry_label");
   const { user } = useAuth();
   const [input, setInput] = useState("");
+  const autoCorrect = useAutoCorrect({ debounceMs: 1500, minLength: 12 });
   const [isRecording, setIsRecording] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [alwaysOnEnabled, setAlwaysOnEnabled] = useState(true);
@@ -1534,7 +1537,11 @@ export function AIChatBox({
           <Textarea
             ref={textareaRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setInput(val);
+              autoCorrect.handleChange(val, (corrected) => setInput(corrected));
+            }}
             onKeyDown={handleKeyDown}
             placeholder={
               mobileRecordingStatus
@@ -1554,6 +1561,16 @@ export function AIChatBox({
           {voiceError && (
             <p className="text-xs text-red-400/80 px-1">{voiceError}</p>
           )}
+          <AutoCorrectIndicator
+            isPending={autoCorrect.state.isPending}
+            lastCorrection={autoCorrect.state.lastCorrection}
+            isEnabled={autoCorrect.state.isEnabled}
+            onUndo={() => {
+              const original = autoCorrect.undoLastCorrection();
+              if (original) setInput(original);
+            }}
+            onToggle={autoCorrect.toggleEnabled}
+          />
         </div>
 
         {/* Icon buttons row — on mobile this is a separate row below the textarea */}
