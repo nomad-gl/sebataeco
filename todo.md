@@ -5747,3 +5747,10 @@
 - [x] Apply voice setting consistently across all message scenarios (voice used for all TTS)
 - [x] Test persistent settings across page reloads and sessions (working correctly)
 - [x] Implement suggested follow-ups after settings are applied (already implemented as suggestedPrompts)
+
+
+## Bug: Teacher Profiles Page Error (2026-05-09)
+- [x] Investigate teacher profiles page code and data loading
+- [x] Identify the root cause of Error Ref: 7Y2LAZ (undefined selectedTeacher variable)
+- [x] Fix the issue (derived selectedTeacher from roster using useMemo)
+- [x] Test the teacher profiles page (page now loads correctly)

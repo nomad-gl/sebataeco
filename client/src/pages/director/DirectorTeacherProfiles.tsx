@@ -110,10 +110,16 @@ export default function DirectorTeacherProfiles() {
 
   const utils = trpc.useUtils();
 
-  const { data: roster, isLoading: rosterLoading } = trpc.teacherProfile.getTeacherRoster.useQuery(
+  const { data: rosterRaw, isLoading: rosterLoading } = trpc.teacherProfile.getTeacherRoster.useQuery(
     { academicYear },
     { refetchInterval: 30000 }
   );
+
+  // Group roster by school
+  const roster = useMemo(() => {
+    if (!rosterRaw) return [];
+    return groupTeachersBySchool(rosterRaw);
+  }, [rosterRaw]);
 
   const { data: subjects, refetch: refetchSubjects } = trpc.teacherProfile.getSubjects.useQuery(
     { userId: selectedTeacherId! },
@@ -205,6 +211,16 @@ export default function DirectorTeacherProfiles() {
   const [deleteHolidayId, setDeleteHolidayId] = useState<number | null>(null);
 
   const { data: profiles = [] } = trpc.teacherProfile.listProfiles.useQuery();
+
+  // Derive selected teacher from roster
+  const selectedTeacher = useMemo(() => {
+    if (!selectedTeacherId || !roster) return null;
+    for (const group of roster) {
+      const found = group.teachers.find(t => t.id === selectedTeacherId);
+      if (found) return found;
+    }
+    return null;
+  }, [selectedTeacherId, roster]);
 
   // Find profile matching selected teacher name
   const matchedProfile = profiles.find(p => {
@@ -328,7 +344,7 @@ export default function DirectorTeacherProfiles() {
     return map;
   }, [filteredSchedule]);
 
-  const selectedTeacher = roster?.find((t) => t.id === selectedTeacherId);
+
 
   // Sync contracted hours input when selected teacher changes
   useEffect(() => {
