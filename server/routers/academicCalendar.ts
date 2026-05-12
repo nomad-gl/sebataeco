@@ -196,6 +196,7 @@ export const academicCalendarRouter = router({
       name: z.string().min(1).max(255),
       email: z.string().email().max(320),
       weeklyHours: z.number().int().min(1).max(60).default(20),
+      userId: z.number().int().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       assertDirector(ctx.user.role);
@@ -206,6 +207,7 @@ export const academicCalendarRouter = router({
         name: input.name,
         email: input.email,
         weeklyHours: input.weeklyHours,
+        userId: input.userId ?? null,
       });
       return { id: (result as any).insertId as number };
     }),
@@ -216,6 +218,7 @@ export const academicCalendarRouter = router({
       name: z.string().min(1).max(255).optional(),
       email: z.string().email().max(320).optional(),
       weeklyHours: z.number().int().min(1).max(60).optional(),
+      userId: z.number().int().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       assertDirector(ctx.user.role);

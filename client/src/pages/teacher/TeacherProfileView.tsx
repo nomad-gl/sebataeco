@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/contexts/I18nContext";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -25,26 +26,31 @@ const currentAcademicYear = (() => {
 export default function TeacherProfileView() {
   const { t, lang } = useI18n();
   const { user } = useAuth();
+  const params = useParams<{ userId?: string }>();
   const [academicYear, setAcademicYear] = useState(currentAcademicYear);
 
+  // Use userId from URL params if available, otherwise use current user's ID
+  const targetUserId = params?.userId ? parseInt(params.userId, 10) : user?.id ?? 0;
+  const isViewingOther = params?.userId && parseInt(params.userId, 10) !== user?.id;
+
   const { data: subjects, isLoading: subjectsLoading } = trpc.teacherProfile.getSubjects.useQuery(
-    { userId: user?.id ?? 0 },
-    { enabled: !!user?.id }
+    { userId: targetUserId },
+    { enabled: !!targetUserId }
   );
 
   const { data: calendarSubjects, isLoading: calSubjectsLoading } = trpc.teacherProfile.getCalendarSubjects.useQuery(
-    { userId: user?.id ?? 0 },
-    { enabled: !!user?.id }
+    { userId: targetUserId },
+    { enabled: !!targetUserId }
   );
 
   const { data: schedule, isLoading: scheduleLoading } = trpc.teacherProfile.getSchedule.useQuery(
-    { userId: user?.id ?? 0, academicYear },
-    { enabled: !!user?.id }
+    { userId: targetUserId, academicYear },
+    { enabled: !!targetUserId }
   );
 
   const { data: hoursSummary } = trpc.teacherProfile.getTeachingHoursSummary.useQuery(
-    { userId: user?.id ?? 0, academicYear },
-    { enabled: !!user?.id }
+    { userId: targetUserId, academicYear },
+    { enabled: !!targetUserId }
   );
 
   // Group schedule by day

@@ -276,13 +276,6 @@
 - [x] Students see a "Waiting for teacher..." state when answers are not yet revealed
 - [x] Reveal state is broadcast to all participants via the existing poll mechanism
 
-## Feature: Teacher Profile Standalone Page
-- [x] Create standalone MyProfile page for teachers viewing their own profile
-- [x] Register new route in App.tsx
-- [x] Update teacher dropdown in NavBar to link to new page
-- [x] Remove all other teacher profile links from the application
-- [x] Test and verify the page is clean and error-free
-
 ## Feature: Import from sebasnap.com admin area
 - [x] Add Import button on My Materials page
 - [x] Server procedure to fetch materials list from sebasnap.com admin API
@@ -5785,22 +5778,27 @@
 - [x] Test voice synthesis with concurrent users to ensure no bottlenecks (voice synthesis tested and working)
 
 ### Follow-up 3: Feature Enhancement & Expansion
+- [ ] Implement teacher profile editing capabilities (allow teachers to update own profiles) — DEFERRED
+- [ ] Add bulk schedule import via CSV for teachers — DEFERRED
+- [ ] Implement email notifications for profile changes and schedule updates — DEFERRED
 - [x] Add teacher profile filtering by subject, school, or availability (advanced filters implemented)
 - [x] Create admin dashboard for monitoring auto-translation activity and coverage (can be viewed via logs)
 
----
 
-## DEFERRED FEATURES (Future Releases)
-
-These features are not included in the current stable release but are planned for future versions:
-
-### Teacher Profile Self-Editing
-- [ ] Implement teacher profile editing capabilities (allow teachers to update own profiles)
+## Feature: Teacher Profile Self-Editing (2026-05-09)
+- [ ] Analyze teacher profile data structure and current permissions
 - [ ] Add database mutations for updating teacher profile data
 - [ ] Implement editing UI in TeacherDetailView component
 - [ ] Add permission checks to ensure teachers can only edit their own profiles
 - [ ] Test profile editing functionality end-to-end
 
-### Schedule Management
-- [ ] Add bulk schedule import via CSV for teachers
-- [ ] Implement email notifications for profile changes and schedule updates
+
+## Feature: Teacher Profile Links from Academic Calendar (2026-05-12)
+- [x] Add userId field to acTeachers table in database
+- [x] Update addTeacher mutation to accept and store userId
+- [x] Update updateTeacher mutation to accept userId
+- [x] Add clickable teacher profile links to Academic Calendar page (card view)
+- [x] Add clickable teacher profile links to Academic Calendar page (table view)
+- [x] Update TeacherProfileView to accept userId parameter from URL
+- [ ] Test teacher profile links from Academic Calendar
+- [ ] Verify allocated subjects display correctly on teacher profile page

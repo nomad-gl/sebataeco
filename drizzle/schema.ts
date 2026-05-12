@@ -2389,8 +2389,11 @@ export const acTeachers = mysqlTable("ac_teachers", {
   email: varchar("email", { length: 320 }).notNull(),
   weeklyHours: int("weeklyHours").notNull().default(20),
   schoolName: varchar("schoolName", { length: 255 }),
+  userId: int("userId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+}, table => ({
+  userIdIdx: index("ac_teachers_userId_idx").on(table.userId),
+}));
 export type AcTeacher = typeof acTeachers.$inferSelect;
 export type InsertAcTeacher = typeof acTeachers.$inferInsert;
 

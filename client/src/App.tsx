@@ -69,7 +69,6 @@ import StudentDetails from "./pages/director/StudentDetails";
 import TeacherAttendance from "./pages/teacher/TeacherAttendance";
 import RegisterPage from "./pages/RegisterPage";
 import TeacherProfileView from "./pages/teacher/TeacherProfileView";
-import MyProfile from "./pages/teacher/MyProfile";
 import HosProgress from "./pages/hos/HosProgress";
 import HosGroups from "./pages/hos/HosGroups";
 import HosTimetable from "./pages/hos/HosTimetable";
@@ -237,8 +236,8 @@ function Router() {
         <Route path="/director/students/:id" component={StudentDetails} />
         <Route path="/director/students" component={StudentDirectory} />
         <Route path="/teacher/attendance" component={TeacherAttendance} />
+        <Route path="/teacher/profile/:userId" component={TeacherProfileView} />
         <Route path="/teacher/profile" component={TeacherProfileView} />
-        <Route path="/teacher/my-profile" component={MyProfile} />
         <Route path="/teacher/register" component={RegisterPage} />
         <Route path="/head-of-study/progress" component={HosProgress} />
         <Route path="/head-of-study/groups" component={HosGroups} />
