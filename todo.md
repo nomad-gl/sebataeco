@@ -5800,5 +5800,6 @@
 - [x] Add clickable teacher profile links to Academic Calendar page (card view)
 - [x] Add clickable teacher profile links to Academic Calendar page (table view)
 - [x] Update TeacherProfileView to accept userId parameter from URL
-- [ ] Test teacher profile links from Academic Calendar
-- [ ] Verify allocated subjects display correctly on teacher profile page
+- [x] Test teacher profile links from Academic Calendar
+- [x] Verify allocated subjects display correctly on teacher profile page
+- [ ] Link existing teachers in Academic Calendar to user accounts (future enhancement)

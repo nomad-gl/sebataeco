@@ -30,8 +30,9 @@ export default function TeacherProfileView() {
   const [academicYear, setAcademicYear] = useState(currentAcademicYear);
 
   // Use userId from URL params if available, otherwise use current user's ID
-  const targetUserId = params?.userId ? parseInt(params.userId, 10) : user?.id ?? 0;
-  const isViewingOther = params?.userId && parseInt(params.userId, 10) !== user?.id;
+  const parsedUserId = params?.userId && params.userId !== 'null' ? parseInt(params.userId, 10) : null;
+  const targetUserId = parsedUserId ?? user?.id ?? 0;
+  const isViewingOther = parsedUserId && parsedUserId !== user?.id;
 
   const { data: subjects, isLoading: subjectsLoading } = trpc.teacherProfile.getSubjects.useQuery(
     { userId: targetUserId },
