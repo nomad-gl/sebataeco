@@ -5803,3 +5803,42 @@
 - [x] Test teacher profile links from Academic Calendar
 - [x] Verify allocated subjects display correctly on teacher profile page
 - [ ] Link existing teachers in Academic Calendar to user accounts (future enhancement)
+
+
+## Follow-up: Link Existing Teachers to User Accounts (2026-05-12)
+- [x] Create UI component for linking teachers to user accounts
+- [x] Add tRPC procedure to link teacher to user account
+- [x] Display available users in a dropdown/search for directors
+- [ ] Auto-match teachers by email when possible
+- [ ] Show linked status on teacher profile
+- [ ] Test linking functionality
+
+## Follow-up: Teacher Profile Editing (2026-05-12)
+- [ ] Add edit mode to teacher profile page
+- [ ] Allow teachers to update personal information
+- [ ] Enable subject assignment management from profile
+- [ ] Add availability/schedule preferences
+- [ ] Implement permission checks for editing own profile only
+- [ ] Test profile editing end-to-end
+
+## Follow-up: Teacher Directory (2026-05-12)
+- [ ] Create new /teacher/directory page
+- [ ] Display searchable list of all teachers
+- [ ] Add filters: subject, school, availability
+- [ ] Show teacher cards with contact info
+- [ ] Add view profile button for each teacher
+- [ ] Test directory functionality
+
+## Follow-up: Subject Assignment Management (2026-05-12)
+- [ ] Add bulk import subjects from CSV
+- [ ] Implement drag-and-drop subject assignment
+- [ ] Add conflict detection for overlapping subjects
+- [ ] Show conflict resolution suggestions
+- [ ] Test assignment management
+
+## Follow-up: Teacher Notifications (2026-05-12)
+- [ ] Add notification for new subject assignments
+- [ ] Add notification for schedule changes
+- [ ] Add notification for profile updates
+- [ ] Implement notification preferences
+- [ ] Test notification delivery

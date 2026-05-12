@@ -388,6 +388,9 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
   const [editTeacher, setEditTeacher] = useState<{ id: number; name: string; email: string; weeklyHours: number } | null>(null);
   const [teacherForm, setTeacherForm] = useState({ name: "", email: "", weeklyHours: "20" });
   const [deleteTeacherId, setDeleteTeacherId] = useState<number | null>(null);
+  const [linkTeacherId, setLinkTeacherId] = useState<number | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const { data: availableUsers = [] } = trpc.academicCalendar.getTeachers.useQuery();
 
   // Session form state
   const [showAddSession, setShowAddSession] = useState<number | null>(null); // teacherId
@@ -430,6 +433,16 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
     utils.academicCalendar.getCalendar.invalidate({ id: calendarId });
     utils.academicCalendar.listSubjects.invalidate({ calendarId });
   };
+
+  const linkTeacherMut = trpc.academicCalendar.linkTeacherToUser.useMutation({
+    onSuccess: () => {
+      invalidate();
+      setLinkTeacherId(null);
+      setSelectedUserId(null);
+      toast.success(t("acal2_teacher_linked"));
+    },
+    onError: (e) => toast.error(e.message),
+  });
 
   // Subjects query
   const { data: subjects = [] } = trpc.academicCalendar.listSubjects.useQuery({ calendarId });
@@ -887,6 +900,14 @@ function CalendarDetail({ calendarId, onBack }: { calendarId: number; onBack: ()
                             disabled={exportPdfMut.isPending}
                           >
                             <Download className="w-3 h-3 mr-1" /> {t("acal2_print_schedule")}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-amber-300 hover:text-white hover:bg-amber-600/30 h-8 px-2 text-xs"
+                            onClick={() => setLinkTeacherId(teacher.id)}
+                          >
+                            <Users className="w-3 h-3 mr-1" /> Link User
                           </Button>
                         </div>
                       </div>
@@ -2176,6 +2197,47 @@ setEditBreak({ id: br.id, semester: br.semester, label: br.label, startDate: toD
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Link Teacher to User Dialog */}
+      <Dialog open={linkTeacherId !== null} onOpenChange={() => setLinkTeacherId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Link Teacher to User Account</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-white">Select User Account</Label>
+              <Select value={selectedUserId?.toString() || ""} onValueChange={(val) => setSelectedUserId(parseInt(val))}>
+                <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                  <SelectValue placeholder="Choose a teacher user..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableUsers.map((user) => (
+                    <SelectItem key={user.id} value={user.id.toString()}>
+                      {user.name || user.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLinkTeacherId(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (linkTeacherId && selectedUserId) {
+                  linkTeacherMut.mutate({ teacherId: linkTeacherId, userId: selectedUserId });
+                }
+              }}
+              disabled={!selectedUserId || linkTeacherMut.isPending}
+            >
+              Link User
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={deleteSessionId !== null} onOpenChange={() => setDeleteSessionId(null)}>
         <AlertDialogContent>

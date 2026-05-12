@@ -13,6 +13,7 @@ import {
   acBreaks,
   acSubjects,
   acSemesterDates,
+  users,
 } from "../../drizzle/schema";
 import { eq, and } from "drizzle-orm";
 import { generateAcademicCalendarPdf } from "../academicCalendarPdf";
@@ -229,6 +230,19 @@ export const academicCalendarRouter = router({
       return { success: true };
     }),
 
+  linkTeacherToUser: protectedProcedure
+    .input(z.object({
+      teacherId: z.number().int(),
+      userId: z.number().int(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      assertDirector(ctx.user.role);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      await db.update(acTeachers).set({ userId: input.userId }).where(eq(acTeachers.id, input.teacherId));
+      return { success: true };
+    }),
+
   deleteTeacher: protectedProcedure
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ ctx, input }) => {
@@ -238,6 +252,14 @@ export const academicCalendarRouter = router({
       await db.delete(acSessions).where(eq(acSessions.teacherId, input.id));
       await db.delete(acTeachers).where(eq(acTeachers.id, input.id));
       return { success: true };
+    }),
+
+  getTeachers: protectedProcedure
+    .query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const teachers = await db.select().from(users).where(eq(users.role, "teacher"));
+      return teachers;
     }),
 
   // ── Sessions ───────────────────────────────────────────────────────────────
