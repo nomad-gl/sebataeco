@@ -8,7 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { BookOpen, Clock, Calendar, TrendingUp, TrendingDown, Minus, MapPin, GraduationCap } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { BookOpen, Clock, Calendar, TrendingUp, TrendingDown, Minus, MapPin, GraduationCap, Edit2 } from "lucide-react";
+import TeacherProfileEditForm from "@/components/TeacherProfileEditForm";
 
 const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
 const DAY_LABELS: Record<string, Record<number, string>> = {
@@ -28,6 +30,7 @@ export default function TeacherProfileView() {
   const { user } = useAuth();
   const params = useParams<{ userId?: string }>();
   const [academicYear, setAcademicYear] = useState(currentAcademicYear);
+  const [isEditing, setIsEditing] = useState(false);
 
   // Use userId from URL params if available, otherwise use current user's ID
   const parsedUserId = params?.userId && params.userId !== 'null' ? parseInt(params.userId, 10) : null;
@@ -65,6 +68,27 @@ export default function TeacherProfileView() {
 
   const dayLabels = DAY_LABELS[lang] || DAY_LABELS.en;
 
+  if (isEditing && !isViewingOther) {
+    return (
+      <div className="container py-6">
+        <TeacherProfileEditForm
+          initialData={{
+            name: user?.name,
+            email: user?.email,
+            phone: user?.phone,
+            bio: user?.bio,
+            preferredLanguage: user?.preferredLanguage,
+            officeLocation: user?.officeLocation,
+          }}
+          onSave={() => {
+            setIsEditing(false);
+          }}
+          onCancel={() => setIsEditing(false)}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="container py-6 space-y-6">
       {/* Header */}
@@ -81,6 +105,17 @@ export default function TeacherProfileView() {
             onChange={(e) => setAcademicYear(e.target.value)}
             placeholder="2025-2026"
           />
+          {!isViewingOther && (
+            <Button
+              onClick={() => setIsEditing(true)}
+              variant="outline"
+              size="sm"
+              className="ml-2"
+            >
+              <Edit2 className="h-4 w-4 mr-1" />
+              {t("edit")}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -250,36 +285,6 @@ export default function TeacherProfileView() {
                   </CardContent>
                 </Card>
               </div>
-
-              <Card>
-                <CardContent className="p-4 space-y-2">
-                  <p className="text-sm font-medium">{t("tp_calendar_info")}</p>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{t("tp_teaching_days")}</span>
-                    <span className="font-medium">{hoursSummary.calendarTeachingDays}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{t("tp_calendar_hours")}</span>
-                    <span className="font-medium">{hoursSummary.calendarTeachingHours}</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {hoursSummary.semesterSummary.length > 0 && (
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">{t("tp_semester_breakdown")}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {hoursSummary.semesterSummary.map((sem) => (
-                      <div key={sem.semester} className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">{({ "1": t("tp_sem_1"), "2": t("tp_sem_2"), full_year: t("tp_sem_full_year") } as Record<string, string>)[sem.semester] ?? sem.semester}</span>
-                        <span className="font-medium">{sem.weeklyHours}/wk · {sem.slots} {t("tp_slots")}</span>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              )}
             </>
           )}
         </TabsContent>

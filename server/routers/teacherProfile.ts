@@ -1274,4 +1274,39 @@ export const teacherProfileRouter = router({
 
       return { success: true, schoolName: input.schoolName };
     }),
+
+  /**
+   * updateTeacherProfile - Allow teachers to edit their own profile information
+   */
+  updateTeacherProfile: protectedProcedure
+    .input(
+      z.object({
+        displayName: z.string().min(1).max(128).optional(),
+        phone: z.string().max(20).optional(),
+        bio: z.string().max(500).optional(),
+        preferredLanguage: z.enum(['en', 'es', 'ca']).optional(),
+        officeLocation: z.string().max(255).optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'DB unavailable' });
+
+      const updateData: any = {};
+      if (input.displayName) updateData.name = input.displayName;
+      if (input.phone !== undefined) updateData.phone = input.phone;
+      if (input.bio !== undefined) updateData.bio = input.bio;
+      if (input.preferredLanguage) updateData.preferredLanguage = input.preferredLanguage;
+      if (input.officeLocation !== undefined) updateData.officeLocation = input.officeLocation;
+
+      const result = await db.update(users)
+        .set(updateData)
+        .where(eq(users.id, ctx.user.id));
+
+      if (!result) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
+      }
+
+      return { success: true, message: 'Profile updated successfully' };
+    }),
 });

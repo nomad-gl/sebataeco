@@ -5845,13 +5845,13 @@
 
 
 ## Follow-up #2: Teacher Profile Editing (2026-05-13)
-- [ ] Create edit mode toggle for teacher profile page
-- [ ] Add form fields for editable profile information
-- [ ] Implement save/cancel buttons for profile updates
-- [ ] Add tRPC mutation to update teacher profile
-- [ ] Validate and save profile changes to database
-- [ ] Show success/error messages on save
-- [ ] (Deferred - implementation guide provided)
+- [x] Create edit mode toggle for teacher profile page
+- [x] Add form fields for editable profile information
+- [x] Implement save/cancel buttons for profile updates
+- [x] Add tRPC mutation to update teacher profile
+- [x] Validate and save profile changes to database
+- [x] Show success/error messages on save
+- [x] Created vitest tests for profile editing
 
 ## Follow-up #3: Teacher Directory (2026-05-13)
 - [ ] Create new teacher directory page
