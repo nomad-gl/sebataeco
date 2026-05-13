@@ -506,3 +506,82 @@ export async function sendCoverCancellationEmail(opts: {
     return { sent: false, smtpNotConfigured: false, error: err?.message };
   }
 }
+
+// ─── Teacher Notification Emails ──────────────────────────────────────────────
+
+function teacherNotificationHtml(opts: {
+  recipientName: string;
+  notificationType: string;
+  title: string;
+  message: string;
+  actionUrl?: string;
+  actionLabel?: string;
+}): string {
+  const actionBlock = opts.actionUrl && opts.actionLabel
+    ? `<div class="cta-wrapper">
+        <a href="${opts.actionUrl}" class="cta-btn">${opts.actionLabel} &rarr;</a>
+      </div>`
+    : "";
+
+  const typeEmoji: Record<string, string> = {
+    profile_update: "👤",
+    subject_assignment: "📚",
+    schedule_change: "📅",
+    assignment_history: "📊",
+    general: "📢",
+  };
+
+  const emoji = typeEmoji[opts.notificationType] || "📢";
+
+  return htmlWrapper(`
+    <p class="greeting">${emoji} ${opts.title}</p>
+    <p class="text">${opts.message}</p>
+    ${actionBlock}
+    <p class="text" style="font-size:13px;color:#6b7280;">
+      You can also view all your notifications by logging into SEBA AI Studio.
+    </p>
+    <p class="expiry">This is an automated notification from SEBA AI Studio.</p>
+  `);
+}
+
+export interface SendTeacherNotificationResult {
+  sent: boolean;
+  smtpNotConfigured: boolean;
+  error?: string;
+}
+
+/**
+ * Send a teacher notification email.
+ * Returns a result object — never throws.
+ */
+export async function sendTeacherNotificationEmail(opts: {
+  to: string;
+  recipientName: string;
+  notificationType: string;
+  title: string;
+  message: string;
+  actionUrl?: string;
+  actionLabel?: string;
+}): Promise<SendTeacherNotificationResult> {
+  const transport = createTransport();
+  if (!transport) {
+    console.warn("[Email] SMTP not configured — skipping teacher notification email.");
+    return { sent: false, smtpNotConfigured: true };
+  }
+
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+
+  try {
+    await transport.sendMail({
+      from: `"SEBA AI Studio" <${from}>`,
+      to: opts.to,
+      subject: opts.title,
+      html: teacherNotificationHtml(opts),
+    });
+    console.log(`[Email] Teacher notification sent to ${opts.to}`);
+    return { sent: true, smtpNotConfigured: false };
+  } catch (err: any) {
+    console.error("[Email] Failed to send teacher notification email:", err?.message ?? err);
+    return { sent: false, smtpNotConfigured: false, error: err?.message };
+  }
+}

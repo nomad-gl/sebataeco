@@ -102,3 +102,167 @@ export async function notifyAssignmentHistory(teacherId: number, action: string,
     details
   );
 }
+
+import { sendTeacherNotificationEmail } from "../email";
+
+/**
+ * Send email notification to teacher
+ */
+export async function sendEmailNotification(
+  teacherId: number,
+  notificationType: string,
+  title: string,
+  message: string,
+  actionUrl?: string,
+  actionLabel?: string
+) {
+  try {
+    const db = await getDb();
+    if (!db) {
+      console.warn("[Email] Database not available");
+      return { sent: false, smtpNotConfigured: true };
+    }
+
+    // Get teacher email from users table
+    const teachers = await db
+      .selectFrom("users")
+      .select(["email", "displayName", "name"])
+      .where("id", "=", teacherId)
+      .execute();
+
+    const teacher = teachers[0];
+
+    if (!teacher || !teacher.email) {
+      console.warn(`[Notification] Teacher ${teacherId} has no email address`);
+      return { sent: false, smtpNotConfigured: false, error: "No email address" };
+    }
+
+    const recipientName = teacher.displayName || teacher.name || "Teacher";
+
+    const emailResult = await sendTeacherNotificationEmail({
+      to: teacher.email,
+      recipientName,
+      notificationType,
+      title,
+      message,
+      actionUrl,
+      actionLabel,
+    });
+
+    return emailResult;
+  } catch (error) {
+    console.error("Failed to send email notification:", error);
+    return { sent: false, smtpNotConfigured: false, error };
+  }
+}
+
+/**
+ * Send email notification to multiple teachers
+ */
+export async function sendBulkEmailNotifications(
+  teacherIds: number[],
+  notificationType: string,
+  title: string,
+  message: string,
+  actionUrl?: string,
+  actionLabel?: string
+) {
+  const results = await Promise.all(
+    teacherIds.map((teacherId) =>
+      sendEmailNotification(
+        teacherId,
+        notificationType,
+        title,
+        message,
+        actionUrl,
+        actionLabel
+      )
+    )
+  );
+
+  const successful = results.filter((r) => r.success).length;
+  const failed = results.length - successful;
+
+  return { success: true, successful, failed };
+}
+
+
+import { sendSmsNotification, sendBulkSmsNotifications } from "../sms";
+
+/**
+ * Send SMS notification to teacher
+ */
+export async function sendSmsToTeacher(
+  teacherId: number,
+  message: string
+) {
+  try {
+    const db = await getDb();
+    if (!db) {
+      console.warn("[SMS] Database not available");
+      return { sent: false, twilioNotConfigured: true };
+    }
+
+    // Get teacher phone from users table
+    const teachers = await db
+      .selectFrom("users")
+      .select(["phone", "displayName", "name"])
+      .where("id", "=", teacherId)
+      .execute();
+
+    const teacher = teachers[0];
+
+    if (!teacher || !teacher.phone) {
+      console.warn(`[SMS] Teacher ${teacherId} has no phone number`);
+      return { sent: false, twilioNotConfigured: false, error: "No phone number" };
+    }
+
+    const result = await sendSmsNotification({
+      to: teacher.phone,
+      message,
+    });
+
+    return result;
+  } catch (error) {
+    console.error("Failed to send SMS notification:", error);
+    return { sent: false, twilioNotConfigured: false, error };
+  }
+}
+
+/**
+ * Send SMS notification to multiple teachers
+ */
+export async function sendBulkSmsToTeachers(
+  teacherIds: number[],
+  message: string
+) {
+  try {
+    const db = await getDb();
+    if (!db) {
+      console.warn("[SMS] Database not available");
+      return { success: false, error: "Database not available" };
+    }
+
+    // Get teacher phones from users table
+    const teachers = await db
+      .selectFrom("users")
+      .select(["phone"])
+      .where("id", "in", teacherIds)
+      .execute();
+
+    const phoneNumbers = teachers
+      .filter((t) => t.phone)
+      .map((t) => t.phone as string);
+
+    if (phoneNumbers.length === 0) {
+      console.warn(`[SMS] No phone numbers found for teachers`);
+      return { success: false, error: "No phone numbers" };
+    }
+
+    const result = await sendBulkSmsNotifications(phoneNumbers, message);
+    return result;
+  } catch (error) {
+    console.error("Failed to send bulk SMS notifications:", error);
+    return { success: false, error };
+  }
+}
