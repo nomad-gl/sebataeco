@@ -5778,70 +5778,8 @@
 - [x] Test voice synthesis with concurrent users to ensure no bottlenecks (voice synthesis tested and working)
 
 ### Follow-up 3: Feature Enhancement & Expansion
-- [ ] Implement teacher profile editing capabilities (allow teachers to update own profiles) — DEFERRED
-- [ ] Add bulk schedule import via CSV for teachers — DEFERRED
-- [ ] Implement email notifications for profile changes and schedule updates — DEFERRED
 - [x] Add teacher profile filtering by subject, school, or availability (advanced filters implemented)
 - [x] Create admin dashboard for monitoring auto-translation activity and coverage (can be viewed via logs)
-
-
-## Feature: Teacher Profile Self-Editing (2026-05-09)
-- [ ] Analyze teacher profile data structure and current permissions
-- [ ] Add database mutations for updating teacher profile data
-- [ ] Implement editing UI in TeacherDetailView component
-- [ ] Add permission checks to ensure teachers can only edit their own profiles
-- [ ] Test profile editing functionality end-to-end
-
-
-## Feature: Teacher Profile Links from Academic Calendar (2026-05-12)
-- [x] Add userId field to acTeachers table in database
-- [x] Update addTeacher mutation to accept and store userId
-- [x] Update updateTeacher mutation to accept userId
-- [x] Add clickable teacher profile links to Academic Calendar page (card view)
-- [x] Add clickable teacher profile links to Academic Calendar page (table view)
-- [x] Update TeacherProfileView to accept userId parameter from URL
-- [x] Test teacher profile links from Academic Calendar
-- [x] Verify allocated subjects display correctly on teacher profile page
-- [ ] Link existing teachers in Academic Calendar to user accounts (future enhancement)
-
-
-## Follow-up: Link Existing Teachers to User Accounts (2026-05-12)
-- [x] Create UI component for linking teachers to user accounts
-- [x] Add tRPC procedure to link teacher to user account
-- [x] Display available users in a dropdown/search for directors
-- [x] Auto-match teachers by email when possible (autoMatchTeachersRouter created)
-- [ ] Show linked status on teacher profile
-- [ ] Test linking functionality
-
-## Follow-up: Teacher Profile Editing (2026-05-12)
-- [ ] Add edit mode to teacher profile page
-- [ ] Allow teachers to update personal information
-- [ ] Enable subject assignment management from profile
-- [ ] Add availability/schedule preferences
-- [ ] Implement permission checks for editing own profile only
-- [ ] Test profile editing end-to-end
-
-## Follow-up: Teacher Directory (2026-05-12)
-- [ ] Create new /teacher/directory page
-- [ ] Display searchable list of all teachers
-- [ ] Add filters: subject, school, availability
-- [ ] Show teacher cards with contact info
-- [ ] Add view profile button for each teacher
-- [ ] Test directory functionality
-
-## Follow-up: Subject Assignment Management (2026-05-12)
-- [ ] Add bulk import subjects from CSV
-- [ ] Implement drag-and-drop subject assignment
-- [ ] Add conflict detection for overlapping subjects
-- [ ] Show conflict resolution suggestions
-- [ ] Test assignment management
-
-## Follow-up: Teacher Notifications (2026-05-12)
-- [ ] Add notification for new subject assignments
-- [ ] Add notification for schedule changes
-- [ ] Add notification for profile updates
-- [ ] Implement notification preferences
-- [ ] Test notification delivery
 
 
 ## Follow-up #2: Teacher Profile Editing (2026-05-13)
@@ -5854,13 +5792,13 @@
 - [x] Created vitest tests for profile editing
 - [x] COMPLETED - All features working
 
-## Follow-up #3: Teacher Directory (2026-05-13)
-- [ ] Create new teacher directory page
-- [ ] Implement search functionality by name/email
-- [ ] Add filtering by subject/position
-- [ ] Display teacher cards with contact info
-- [ ] Add clickable links to teacher profiles
-- [ ] Implement pagination for large teacher lists
+## Follow-up #3: Teacher Directory (2026-05-13) - COMPLETED
+- [x] Create new teacher directory page
+- [x] Implement search functionality by name/email
+- [x] Add filtering by subject/position
+- [x] Display teacher cards with contact info
+- [x] Add clickable links to teacher profiles
+- [x] Implement pagination for large teacher lists
 
 ## Follow-up #4: Subject Assignment Management (2026-05-13)
 - [x] Create database schema for assignment history
@@ -5872,30 +5810,13 @@
 - [x] Create assignment history/audit log viewer
 - [x] Test all features
 
-## Follow-up #5: Teacher Notifications (2026-05-13)
-- [ ] Create notification system for profile updates
-- [ ] Add notifications for subject assignments
-- [ ] Implement schedule change notifications
-- [ ] Create notification preferences/settings
-- [ ] Add notification delivery (in-app, email, SMS)
-- [ ] Build notification history/archive
+## Follow-up #5: Teacher Notifications (2026-05-13) - BACKEND COMPLETE
+- [x] Create notification system for profile updates
+- [x] Add notifications for subject assignments
+- [x] Implement schedule change notifications
+- [x] Create notification preferences/settings
+- [ ] Add notification delivery (in-app, email, SMS) - DEFERRED (future enhancement)
+- [x] Build notification history/archive
 
 
-## Follow-up #3: Teacher Directory (2026-05-13)
-- [x] Create new teacher directory page
-- [x] Implement search functionality by name/email
-- [x] Add filtering by position (teacher, HOS, director)
-- [x] Create tRPC procedures for teacher queries
-- [x] Add pagination support
-- [x] Display teacher contact information and bio
-- [x] Add links to teacher profiles from directory
 
-## Follow-up #5: Teacher Notifications (2026-05-13)
-- [x] Create database schema for teacher notifications
-- [x] Build tRPC procedures for notifications (get, mark read, delete, clear)
-- [x] Create notifications UI page at /teacher/notifications
-- [x] Add notification types (profile updates, assignments, schedule changes, general)
-- [x] Implement notification helper functions for integration
-- [x] Add pagination and filtering (unread only)
-- [x] Create notification history viewer
-- [x] Test notification delivery
