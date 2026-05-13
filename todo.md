@@ -5853,3 +5853,30 @@
 - [x] Add "Use Template" button to pre-fill material form
 - [x] Create default templates for common scenarios
 - [x] Test template creation, saving, and application
+
+
+## Follow-up: Template UI Integration & Default Library (May 13, 2026)
+
+### Follow-up 1: Integrate Templates UI into Create Page
+- [x] Add template picker dropdown to Create page form
+- [x] Implement "Load Template" button to pre-fill material form
+- [x] Add "Save as Template" button to save current material as template
+- [x] Show template name and description in dropdown
+- [x] Filter templates by material type
+- [x] Test template loading and saving workflow
+
+### Follow-up 2: Add Template Preview Modal
+- [x] Create TemplatePreviewModal component
+- [x] Display template structure (questions, slides, words, etc.)
+- [x] Show material count and type information
+- [x] Add "Use This Template" and "Cancel" buttons
+- [x] Prevent accidental template usage with confirmation
+- [x] Test modal with various template types
+
+### Follow-up 3: Create Default Template Library
+- [x] Create database seeding script for default templates
+- [x] Add 5-10 common templates (e.g., "5-Question Quiz", "10-Word Crossword")
+- [x] Implement template seeding on first teacher login
+- [x] Make default templates available to all teachers
+- [x] Add template descriptions and usage guidelines
+- [x] Test template availability and accessibility
