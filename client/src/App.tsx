@@ -66,6 +66,7 @@ import DirectorCoverRequests from "./pages/director/DirectorCoverRequests";
 import DirectorNotifications from "./pages/director/DirectorNotifications";
 import SubjectAssignmentManager from "./pages/director/SubjectAssignmentManager";
 import StudentDirectory from "./pages/director/StudentDirectory";
+import TeacherDirectory from "./pages/TeacherDirectory";
 import StudentDetails from "./pages/director/StudentDetails";
 import TeacherAttendance from "./pages/teacher/TeacherAttendance";
 import RegisterPage from "./pages/RegisterPage";
@@ -241,6 +242,7 @@ function Router() {
         <Route path="/teacher/profile/:userId" component={TeacherProfileView} />
         <Route path="/teacher/profile" component={TeacherProfileView} />
         <Route path="/teacher/my-profile" component={TeacherProfileView} />
+        <Route path="/teacher/directory" component={TeacherDirectory} />
         <Route path="/teacher/register" component={RegisterPage} />
         <Route path="/head-of-study/progress" component={HosProgress} />
         <Route path="/head-of-study/groups" component={HosGroups} />

@@ -5878,3 +5878,22 @@
 - [ ] Create notification preferences/settings
 - [ ] Add notification delivery (in-app, email, SMS)
 - [ ] Build notification history/archive
+
+
+## Follow-up #3: Teacher Directory (2026-05-13)
+- [x] Create new teacher directory page
+- [x] Implement search functionality by name/email
+- [x] Add filtering by position (teacher, HOS, director)
+- [x] Create tRPC procedures for teacher queries
+- [x] Add pagination support
+- [x] Display teacher contact information and bio
+- [x] Add links to teacher profiles from directory
+
+## Follow-up #5: Teacher Notifications (2026-05-13)
+- [ ] Create notification preferences page
+- [ ] Add notification types (profile updates, assignments, schedule changes)
+- [ ] Implement notification delivery system
+- [ ] Add email notification support
+- [ ] Create notification history viewer
+- [ ] Add in-app notification bell icon
+- [ ] Test notification delivery

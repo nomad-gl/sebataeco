@@ -59,6 +59,7 @@ import { securityDashboardRouter } from "./routers/securityDashboard";
 import { navOrderRouter } from "./routers/navOrder";
 import { autoCorrectRouter } from "./routers/autoCorrect";
 import { subjectAssignmentRouter } from "./routers/subjectAssignment";
+import { teacherDirectoryRouter } from "./routers/teacherDirectory";
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -261,6 +262,7 @@ export const appRouter = router({
   navOrder: navOrderRouter,
   autoCorrect: autoCorrectRouter,
   subjectAssignment: subjectAssignmentRouter,
+  teacherDirectory: teacherDirectoryRouter,
 });
 
 export type AppRouter = typeof appRouter;
