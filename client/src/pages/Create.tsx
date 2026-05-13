@@ -27,6 +27,7 @@ import type { TranslationKey } from "@/contexts/I18nContext";
 import { useAutoCorrect } from "@/hooks/useAutoCorrect";
 import { AutoCorrectIndicator } from "@/components/AutoCorrectIndicator";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { CrosswordGrid, type CrosswordWord } from "@/components/CrosswordGrid";
 
 
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
@@ -345,19 +346,21 @@ function MissingWordsPreview({ content, onChange }: { content: Record<string, un
 
 function CrosswordPreview({ content }: { content: Record<string, unknown> }) {
   const words = (content.words as Array<Record<string, unknown>>) ?? [];
+  const crosswordWords: CrosswordWord[] = words.map((w, idx) => ({
+    word: String(w.word ?? ""),
+    direction: (String(w.direction ?? "across") as "across" | "down"),
+    clue: String(w.clue ?? ""),
+    row: Number(w.row ?? 0),
+    col: Number(w.col ?? 0),
+    number: Number(w.number ?? idx + 1),
+  }));
+
   return (
-    <div className="flex flex-col gap-2">
-      <p className="text-xs text-muted-foreground">Crossword with {words.length} words. Edit clues below:</p>
-      <div className="flex flex-col gap-0 max-h-72 overflow-y-auto divide-y divide-border">
-        {words.map((w, wi) => (
-          <div key={wi} className="flex items-start gap-2 text-sm py-2.5">
-            <span className="text-xs font-bold text-muted-foreground w-6 pt-0.5 shrink-0">{wi + 1}.</span>
-            <span className="font-mono font-semibold text-primary w-24 shrink-0 pt-0.5">{String(w.word)}</span>
-            <span className="text-xs text-muted-foreground w-12 shrink-0 pt-0.5">{String(w.direction)}</span>
-            <span className="text-sm text-foreground leading-relaxed">{String(w.clue)}</span>
-          </div>
-        ))}
-      </div>
+    <div className="flex flex-col gap-4">
+      <p className="text-xs text-muted-foreground">Crossword with {words.length} words</p>
+      {crosswordWords.length > 0 && (
+        <CrosswordGrid words={crosswordWords} showAnswers={false} />
+      )}
     </div>
   );
 }
