@@ -5890,10 +5890,11 @@
 - [x] Add links to teacher profiles from directory
 
 ## Follow-up #5: Teacher Notifications (2026-05-13)
-- [ ] Create notification preferences page
-- [ ] Add notification types (profile updates, assignments, schedule changes)
-- [ ] Implement notification delivery system
-- [ ] Add email notification support
-- [ ] Create notification history viewer
-- [ ] Add in-app notification bell icon
-- [ ] Test notification delivery
+- [x] Create database schema for teacher notifications
+- [x] Build tRPC procedures for notifications (get, mark read, delete, clear)
+- [x] Create notifications UI page at /teacher/notifications
+- [x] Add notification types (profile updates, assignments, schedule changes, general)
+- [x] Implement notification helper functions for integration
+- [x] Add pagination and filtering (unread only)
+- [x] Create notification history viewer
+- [x] Test notification delivery

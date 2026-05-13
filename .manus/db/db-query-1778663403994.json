@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS teacher_notifications (\n  id INT AUTO_INCREMENT PRIMARY KEY,\n  teacher_id INT NOT NULL,\n  notification_type ENUM('profile_update', 'subject_assignment', 'schedule_change', 'assignment_history', 'general') NOT NULL,\n  title VARCHAR(255) NOT NULL,\n  message TEXT NOT NULL,\n  related_id INT,\n  is_read BOOLEAN DEFAULT FALSE,\n  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n  FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE,\n  INDEX idx_teacher_id (teacher_id),\n  INDEX idx_created_at (created_at),\n  INDEX idx_is_read (is_read)\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user pGBiNPeXsjmyJ4x.10d1550e6f39 --database ZdUr4NNhMJ6HJrxx9nW6jZ --execute CREATE TABLE IF NOT EXISTS teacher_notifications (\n  id INT AUTO_INCREMENT PRIMARY KEY,\n  teacher_id INT NOT NULL,\n  notification_type ENUM('profile_update', 'subject_assignment', 'schedule_change', 'assignment_history', 'general') NOT NULL,\n  title VARCHAR(255) NOT NULL,\n  message TEXT NOT NULL,\n  related_id INT,\n  is_read BOOLEAN DEFAULT FALSE,\n  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n  FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE,\n  INDEX idx_teacher_id (teacher_id),\n  INDEX idx_created_at (created_at),\n  INDEX idx_is_read (is_read)\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 763
+}
