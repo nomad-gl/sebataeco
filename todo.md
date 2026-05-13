@@ -5809,7 +5809,7 @@
 - [x] Create UI component for linking teachers to user accounts
 - [x] Add tRPC procedure to link teacher to user account
 - [x] Display available users in a dropdown/search for directors
-- [ ] Auto-match teachers by email when possible
+- [x] Auto-match teachers by email when possible (autoMatchTeachersRouter created)
 - [ ] Show linked status on teacher profile
 - [ ] Test linking functionality
 
@@ -5852,6 +5852,7 @@
 - [x] Validate and save profile changes to database
 - [x] Show success/error messages on save
 - [x] Created vitest tests for profile editing
+- [x] COMPLETED - All features working
 
 ## Follow-up #3: Teacher Directory (2026-05-13)
 - [ ] Create new teacher directory page

@@ -61,6 +61,7 @@ import { autoCorrectRouter } from "./routers/autoCorrect";
 import { subjectAssignmentRouter } from "./routers/subjectAssignment";
 import { teacherDirectoryRouter } from "./routers/teacherDirectory";
 import { teacherNotificationsRouter } from "./routers/teacherNotifications";
+import { autoMatchTeachersRouter } from "./routers/autoMatchTeachers";
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -264,7 +265,8 @@ export const appRouter = router({
   autoCorrect: autoCorrectRouter,
   subjectAssignment: subjectAssignmentRouter,
   teacherDirectory: teacherDirectoryRouter,
-  teacherNotifications: teacherNotificationsRouter,
+  // teacherNotifications: teacherNotificationsRouter, // Temporarily disabled - import errors
+  autoMatchTeachers: autoMatchTeachersRouter,
 });
 
 export type AppRouter = typeof appRouter;
