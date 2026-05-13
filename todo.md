@@ -5826,3 +5826,30 @@
 - [x] Fix crossword layout not rendering on /create page - Added CrosswordGrid component with visual grid rendering and auto-placement algorithm
 
 - [x] Fix passage text not appearing in print output - Modified MissingWordsPreview to display passage as formatted text (clickable div) instead of just editable textarea so it renders in print
+
+
+## Follow-up Features (May 13, 2026)
+
+### Follow-up 1: Enhanced Print Formatting with Educational Guidelines
+- [x] Apply grey cell background (#d1d5db) to crossword grids in print output
+- [x] Increase crossword numbers by 200% (font-size multiplier)
+- [x] Double line thickness for crossword grid borders
+- [x] Apply formatting to PDF, Word, and print outputs
+- [x] Test print output with all material types
+
+### Follow-up 2: Interactive Word Placement for Crossword Grids
+- [x] Add drag-and-drop functionality to CrosswordGrid component
+- [x] Allow teachers to reposition words on the grid
+- [x] Add "Lock" button to finalize grid layout
+- [x] Persist custom grid layout to material
+- [x] Add "Reset to Auto-Layout" button for easy reset
+- [x] Test drag-and-drop with various word counts
+
+### Follow-up 3: Material Templates System
+- [x] Create templates database table (template_id, name, type, structure, created_at)
+- [x] Build template creation UI (save current material as template)
+- [x] Add template picker to Create page
+- [x] Implement template preview before applying
+- [x] Add "Use Template" button to pre-fill material form
+- [x] Create default templates for common scenarios
+- [x] Test template creation, saving, and application

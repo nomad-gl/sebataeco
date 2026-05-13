@@ -558,8 +558,13 @@ export function printWithMeta(
         h2 { font-size: 15px; margin-top: 14px; }
         h3 { font-size: 13px; }
         table { border-collapse: collapse; }
-        td, th { border: 1px solid #9ca3af; padding: 4px 6px; text-align: center;
+        td, th { border: 2px solid #374151; padding: 4px 6px; text-align: center;
                  font-family: monospace; font-size: 12px; }
+        /* Crossword grid styling */
+        .crossword-grid td { border: 2px solid #374151; }
+        .crossword-grid td.black-cell { background-color: #000; }
+        .crossword-grid td.white-cell { background-color: #d1d5db; }
+        .crossword-grid .cell-number { font-size: 18px; font-weight: 700; }
         .no-print { display: none !important; }
 
         /* ── Page 2: answer sheet ── */
@@ -576,9 +581,14 @@ export function printWithMeta(
                        text-overflow: ellipsis; }
         .answer-line { flex: 1; border-bottom: 1px solid #9ca3af; margin-bottom: 2px; }
 
+        /* Print-specific enhancements */
         @media print {
           .no-print { display: none !important; }
           .answer-page { page-break-before: always; }
+          /* Crossword grid print styles */
+          .crossword-grid td { border: 2px solid #374151; padding: 8px; }
+          .crossword-grid td.white-cell { background-color: #d1d5db; }
+          .crossword-grid .cell-number { font-size: 18px; font-weight: 700; }
         }
       </style>
     </head>
