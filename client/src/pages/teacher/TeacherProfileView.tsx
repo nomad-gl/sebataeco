@@ -9,7 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Clock, Calendar, TrendingUp, TrendingDown, Minus, MapPin, GraduationCap, Edit2 } from "lucide-react";
+import { BookOpen, Clock, Calendar, TrendingUp, TrendingDown, Minus, MapPin, GraduationCap, Edit2, ArrowLeft } from "lucide-react";
+import { useLocation } from "wouter";
 import TeacherProfileEditForm from "@/components/TeacherProfileEditForm";
 
 const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
@@ -29,6 +30,7 @@ export default function TeacherProfileView() {
   const { t, lang } = useI18n();
   const { user } = useAuth();
   const params = useParams<{ userId?: string }>();
+  const [, navigate] = useLocation();
   const [academicYear, setAcademicYear] = useState(currentAcademicYear);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -93,9 +95,20 @@ export default function TeacherProfileView() {
     <div className="container py-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">{t("tp_my_profile")}</h1>
-          <p className="text-muted-foreground text-sm mt-1">{user?.displayName || user?.name}</p>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate(-1)}
+            className="gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {t("back") || "Back"}
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">{t("tp_my_profile")}</h1>
+            <p className="text-muted-foreground text-sm mt-1">{user?.displayName || user?.name}</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Label className="text-sm whitespace-nowrap">{t("tp_academic_year")}</Label>

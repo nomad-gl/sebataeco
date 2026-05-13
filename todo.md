@@ -5880,3 +5880,8 @@
 - [x] Make default templates available to all teachers
 - [x] Add template descriptions and usage guidelines
 - [x] Test template availability and accessibility
+
+
+## UI Improvements (May 13, 2026)
+
+- [x] Add return button to teacher profile page (/teacher/my-profile)
