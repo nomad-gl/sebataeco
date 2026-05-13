@@ -5842,3 +5842,36 @@
 - [ ] Add notification for profile updates
 - [ ] Implement notification preferences
 - [ ] Test notification delivery
+
+
+## Follow-up #2: Teacher Profile Editing (2026-05-13)
+- [ ] Create edit mode toggle for teacher profile page
+- [ ] Add form fields for editable profile information
+- [ ] Implement save/cancel buttons for profile updates
+- [ ] Add tRPC mutation to update teacher profile
+- [ ] Validate and save profile changes to database
+- [ ] Show success/error messages on save
+
+## Follow-up #3: Teacher Directory (2026-05-13)
+- [ ] Create new teacher directory page
+- [ ] Implement search functionality by name/email
+- [ ] Add filtering by subject/position
+- [ ] Display teacher cards with contact info
+- [ ] Add clickable links to teacher profiles
+- [ ] Implement pagination for large teacher lists
+
+## Follow-up #4: Subject Assignment Management (2026-05-13)
+- [ ] Create bulk import UI for subjects from CSV
+- [ ] Add drag-and-drop subject assignment
+- [ ] Implement conflict detection for overlapping assignments
+- [ ] Add assignment validation and warnings
+- [ ] Create assignment history/audit log
+- [ ] Add undo/rollback functionality
+
+## Follow-up #5: Teacher Notifications (2026-05-13)
+- [ ] Create notification system for profile updates
+- [ ] Add notifications for subject assignments
+- [ ] Implement schedule change notifications
+- [ ] Create notification preferences/settings
+- [ ] Add notification delivery (in-app, email, SMS)
+- [ ] Build notification history/archive

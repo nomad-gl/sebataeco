@@ -664,7 +664,7 @@ export default function NavBar() {
     { href: "/help", label: t("nav_help"), icon: HelpCircle },
     { href: "/privacy", label: t("nav_privacy"), icon: Lock },
     {
-      href: "/director/teacher-profiles?self=true",
+      href: "/teacher/my-profile",
       label: t("nav_my_profile"),
       icon: User,
     },

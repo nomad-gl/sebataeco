@@ -1,0 +1,130 @@
+{
+  "query": "SELECT id, email, role, position FROM users LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user pGBiNPeXsjmyJ4x.10d1550e6f39 --database ZdUr4NNhMJ6HJrxx9nW6jZ --execute SELECT id, email, role, position FROM users LIMIT 20;",
+  "rows": [
+    {
+      "id": "1",
+      "email": "paulharrymitchell@gmail.com",
+      "role": "admin",
+      "position": "director"
+    },
+    {
+      "id": "1170001",
+      "email": "e3003951@xtec.cat",
+      "role": "director",
+      "position": "director"
+    },
+    {
+      "id": "1503056",
+      "email": "e3004232@xtec.cat",
+      "role": "user",
+      "position": "director"
+    },
+    {
+      "id": "1503258",
+      "email": "jferre75@xtec.cat",
+      "role": "head_of_study",
+      "position": "head_of_study"
+    },
+    {
+      "id": "1682391",
+      "email": "cblanch5@xtec.cat",
+      "role": "director",
+      "position": "director"
+    },
+    {
+      "id": "1830602",
+      "email": "mpuig@escolalamerce.cat",
+      "role": "teacher",
+      "position": "teacher"
+    },
+    {
+      "id": "1830603",
+      "email": "jmas@escolalamerce.cat",
+      "role": "teacher",
+      "position": "teacher"
+    },
+    {
+      "id": "1830604",
+      "email": "avidal@escolalamerce.cat",
+      "role": "teacher",
+      "position": "teacher"
+    },
+    {
+      "id": "1830605",
+      "email": "pllopis@escolalamerce.cat",
+      "role": "teacher",
+      "position": "teacher"
+    },
+    {
+      "id": "1830606",
+      "email": "lbosch@escolalamerce.cat",
+      "role": "teacher",
+      "position": "teacher"
+    },
+    {
+      "id": "1830607",
+      "email": "mriera@escolalamerce.cat",
+      "role": "teacher",
+      "position": "teacher"
+    },
+    {
+      "id": "1890987",
+      "email": "e3003801@xtec.cat",
+      "role": "director",
+      "position": "director"
+    },
+    {
+      "id": "1891690",
+      "email": "e3004268@xtec.cat",
+      "role": "director",
+      "position": "director"
+    },
+    {
+      "id": "1892982",
+      "email": "neli.granados@escolaremolins.cat",
+      "role": "teacher",
+      "position": "teacher"
+    },
+    {
+      "id": "1894915",
+      "email": "monica@zerriuavall.cat",
+      "role": "teacher",
+      "position": "unassigned"
+    },
+    {
+      "id": "1894983",
+      "email": "berta@zerriuavall.cat",
+      "role": "teacher",
+      "position": "unassigned"
+    },
+    {
+      "id": "1895668",
+      "email": "mdomen48@zerriuavall.cat",
+      "role": "teacher",
+      "position": "teacher"
+    },
+    {
+      "id": "1900475",
+      "email": "mitchellromi@gmail.com",
+      "role": "admin",
+      "position": "unassigned"
+    },
+    {
+      "id": "2520025",
+      "email": "llopez41@xtec.cat",
+      "role": "teacher",
+      "position": "teacher"
+    },
+    {
+      "id": "2520080",
+      "email": "apla25@xtec.cat",
+      "role": "teacher",
+      "position": "teacher"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\trole\tposition\n1\tpaulharrymitchell@gmail.com\tadmin\tdirector\n1170001\te3003951@xtec.cat\tdirector\tdirector\n1503056\te3004232@xtec.cat\tuser\tdirector\n1503258\tjferre75@xtec.cat\thead_of_study\thead_of_study\n1682391\tcblanch5@xtec.cat\tdirector\tdirector\n1830602\tmpuig@escolalamerce.cat\tteacher\tteacher\n1830603\tjmas@escolalamerce.cat\tteacher\tteacher\n1830604\tavidal@escolalamerce.cat\tteacher\tteacher\n1830605\tpllopis@escolalamerce.cat\tteacher\tteacher\n1830606\tlbosch@escolalamerce.cat\tteacher\tteacher\n1830607\tmriera@escolalamerce.cat\tteacher\tteacher\n1890987\te3003801@xtec.cat\tdirector\tdirector\n1891690\te3004268@xtec.cat\tdirector\tdirector\n1892982\tneli.granados@escolaremolins.cat\tteacher\tteacher\n1894915\tmonica@zerriuavall.cat\tteacher\tunassigned\n1894983\tberta@zerriuavall.cat\tteacher\tunassigned\n1895668\tmdomen48@zerriuavall.cat\tteacher\tteacher\n1900475\tmitchellromi@gmail.com\tadmin\tunassigned\n2520025\tllopez41@xtec.cat\tteacher\tteacher\n2520080\tapla25@xtec.cat\tteacher\tteacher\n",
+  "stderr": "",
+  "execution_time_ms": 628
+}

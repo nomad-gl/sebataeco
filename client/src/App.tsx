@@ -238,6 +238,7 @@ function Router() {
         <Route path="/teacher/attendance" component={TeacherAttendance} />
         <Route path="/teacher/profile/:userId" component={TeacherProfileView} />
         <Route path="/teacher/profile" component={TeacherProfileView} />
+        <Route path="/teacher/my-profile" component={TeacherProfileView} />
         <Route path="/teacher/register" component={RegisterPage} />
         <Route path="/head-of-study/progress" component={HosProgress} />
         <Route path="/head-of-study/groups" component={HosGroups} />
