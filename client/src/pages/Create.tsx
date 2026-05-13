@@ -29,7 +29,6 @@ import { AutoCorrectIndicator } from "@/components/AutoCorrectIndicator";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { CrosswordGrid, type CrosswordWord } from "@/components/CrosswordGrid";
 
-
 type CompetencyCode = "CCL" | "CP" | "STEM" | "CD" | "CPSAA" | "CC" | "CE" | "CCEC";
 type YearGroup = "infantil" | "lower_primary" | "junior" | "primary" | "secondary";
 type MaterialType = "quiz" | "slides" | "crossword" | "missing_words" | "wordsearch" | "flashcards" | "paraula";
@@ -313,16 +312,34 @@ function SlidesPreview({ content, onChange }: { content: Record<string, unknown>
 }
 
 function MissingWordsPreview({ content, onChange }: { content: Record<string, unknown>; onChange: (c: Record<string, unknown>) => void }) {
+  const [editingPassage, setEditingPassage] = React.useState(false);
+  const passage = String(content.passage ?? "");
+  const blanks = (content.blanks as Array<Record<string, unknown>>) ?? [];
+
   return (
     <div className="flex flex-col gap-4">
+      {/* Passage display (for printing) */}
       <div>
         <Label className="text-xs text-muted-foreground uppercase tracking-wide mb-1 block">Passage</Label>
-        <textarea
-          value={String(content.passage ?? "")}
-          onChange={(e) => onChange({ ...content, passage: e.target.value })}
-          className="w-full min-h-[140px] text-sm bg-muted/30 rounded-lg p-3 border border-border resize-y focus:outline-none focus:ring-1 focus:ring-ring"
-        />
+        {editingPassage ? (
+          <textarea
+            autoFocus
+            value={passage}
+            onChange={(e) => onChange({ ...content, passage: e.target.value })}
+            onBlur={() => setEditingPassage(false)}
+            className="w-full min-h-[140px] text-sm bg-muted/30 rounded-lg p-3 border border-border resize-y focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+        ) : (
+          <div
+            onClick={() => setEditingPassage(true)}
+            className="w-full min-h-[140px] text-sm bg-white rounded-lg p-3 border border-border cursor-pointer hover:bg-muted/10 whitespace-pre-wrap break-words leading-relaxed"
+          >
+            {passage || <span className="text-muted-foreground italic">Click to add passage...</span>}
+          </div>
+        )}
       </div>
+
+      {/* Word Bank */}
       <div>
         <Label className="text-xs text-muted-foreground uppercase tracking-wide mb-1 block">Word Bank</Label>
         <div className="flex flex-wrap gap-2">
@@ -340,6 +357,13 @@ function MissingWordsPreview({ content, onChange }: { content: Record<string, un
           ))}
         </div>
       </div>
+
+      {/* Blanks summary */}
+      {blanks.length > 0 && (
+        <div className="text-xs text-muted-foreground">
+          {blanks.length} blank{blanks.length !== 1 ? 's' : ''} to fill
+        </div>
+      )}
     </div>
   );
 }

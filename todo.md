@@ -5824,3 +5824,5 @@
 ## Bug Fixes (May 13, 2026)
 
 - [x] Fix crossword layout not rendering on /create page - Added CrosswordGrid component with visual grid rendering and auto-placement algorithm
+
+- [x] Fix passage text not appearing in print output - Modified MissingWordsPreview to display passage as formatted text (clickable div) instead of just editable textarea so it renders in print
