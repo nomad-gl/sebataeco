@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { trpc } from "../lib/trpc";
-import { Button } from "../components/ui/button";
-import { Card } from "../components/ui/card";
-import { Badge } from "../components/ui/badge";
+import { trpc } from "@/lib/trpc";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Bell, CheckCircle, Trash2, MailOpen } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { useToast } from "../hooks/use-toast";
-import { useAuth } from "../contexts/AuthContext";
+// Toast notifications removed - use-toast not available
+import { useAuth } from "@/contexts/AuthContext";
+import { Pagination } from "@/components/ui/pagination";
 
 type NotificationType = "profile_update" | "subject_assignment" | "schedule_change" | "assignment_history" | "general";
 
@@ -20,7 +21,6 @@ const notificationTypeConfig: Record<NotificationType, { icon: React.ReactNode; 
 
 export default function TeacherNotifications() {
   const { user } = useAuth();
-  const { toast } = useToast();
   const [page, setPage] = useState(1);
   const [unreadOnly, setUnreadOnly] = useState(false);
 
@@ -41,21 +41,21 @@ export default function TeacherNotifications() {
   const markAllAsReadMutation = trpc.teacherNotifications.markAllAsRead.useMutation({
     onSuccess: () => {
       refetch();
-      toast({ title: "All notifications marked as read" });
+      console.log("All notifications marked as read");
     },
   });
 
   const deleteNotificationMutation = trpc.teacherNotifications.deleteNotification.useMutation({
     onSuccess: () => {
       refetch();
-      toast({ title: "Notification deleted" });
+      console.log("Notification deleted");
     },
   });
 
   const clearAllMutation = trpc.teacherNotifications.clearAll.useMutation({
     onSuccess: () => {
       refetch();
-      toast({ title: "All notifications cleared" });
+      console.log("All notifications cleared");
     },
   });
 

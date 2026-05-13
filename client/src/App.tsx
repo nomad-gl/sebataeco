@@ -48,7 +48,7 @@ import CatalanDialectDetector from "./components/CatalanDialectDetector";
 import DataNoticeBanner from "./components/DataNoticeBanner";
 import DpaAcceptanceDialog from "./components/DpaAcceptanceDialog";
 import WhatsNewBanner from "./components/WhatsNewBanner";
-import TeacherNotifications from "./pages/TeacherNotifications";
+// import TeacherNotifications from "./pages/TeacherNotifications"; // Temporarily disabled due to missing dependencies
 import Dpa from "./pages/Dpa";
 import AiModels from "./pages/AiModels";
 import Paraula from "./pages/Paraula";
@@ -244,7 +244,7 @@ function Router() {
         <Route path="/teacher/profile" component={TeacherProfileView} />
         <Route path="/teacher/my-profile" component={TeacherProfileView} />
         <Route path="/teacher/directory" component={TeacherDirectory} />
-        <Route path="/teacher/notifications" component={TeacherNotifications} />
+        {/* <Route path="/teacher/notifications" component={TeacherNotifications} /> */}
         <Route path="/teacher/register" component={RegisterPage} />
         <Route path="/head-of-study/progress" component={HosProgress} />
         <Route path="/head-of-study/groups" component={HosGroups} />
