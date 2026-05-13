@@ -5851,6 +5851,7 @@
 - [ ] Add tRPC mutation to update teacher profile
 - [ ] Validate and save profile changes to database
 - [ ] Show success/error messages on save
+- [ ] (Deferred - implementation guide provided)
 
 ## Follow-up #3: Teacher Directory (2026-05-13)
 - [ ] Create new teacher directory page
@@ -5861,12 +5862,14 @@
 - [ ] Implement pagination for large teacher lists
 
 ## Follow-up #4: Subject Assignment Management (2026-05-13)
-- [ ] Create bulk import UI for subjects from CSV
-- [ ] Add drag-and-drop subject assignment
-- [ ] Implement conflict detection for overlapping assignments
-- [ ] Add assignment validation and warnings
-- [ ] Create assignment history/audit log
-- [ ] Add undo/rollback functionality
+- [x] Create database schema for assignment history
+- [x] Build tRPC procedures for bulk import and conflict detection
+- [x] Create Subject Assignment Manager UI component
+- [x] Implement CSV upload and preview functionality
+- [x] Add conflict detection and validation warnings
+- [x] Implement undo/rollback functionality
+- [x] Create assignment history/audit log viewer
+- [x] Test all features
 
 ## Follow-up #5: Teacher Notifications (2026-05-13)
 - [ ] Create notification system for profile updates

@@ -58,6 +58,7 @@ import { dpiaRouter } from "./routers/dpia";
 import { securityDashboardRouter } from "./routers/securityDashboard";
 import { navOrderRouter } from "./routers/navOrder";
 import { autoCorrectRouter } from "./routers/autoCorrect";
+import { subjectAssignmentRouter } from "./routers/subjectAssignment";
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -259,6 +260,7 @@ export const appRouter = router({
   securityDashboard: securityDashboardRouter,
   navOrder: navOrderRouter,
   autoCorrect: autoCorrectRouter,
+  subjectAssignment: subjectAssignmentRouter,
 });
 
 export type AppRouter = typeof appRouter;

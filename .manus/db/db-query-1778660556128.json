@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS subject_assignments_history (\n  id INT PRIMARY KEY AUTO_INCREMENT,\n  teacher_id INT NOT NULL,\n  subject_id INT,\n  action VARCHAR(50) NOT NULL,\n  old_value JSON,\n  new_value JSON,\n  created_by INT,\n  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n  FOREIGN KEY (teacher_id) REFERENCES users(id),\n  FOREIGN KEY (created_by) REFERENCES users(id),\n  INDEX idx_teacher_id (teacher_id),\n  INDEX idx_created_at (created_at)\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user pGBiNPeXsjmyJ4x.10d1550e6f39 --database ZdUr4NNhMJ6HJrxx9nW6jZ --execute CREATE TABLE IF NOT EXISTS subject_assignments_history (\n  id INT PRIMARY KEY AUTO_INCREMENT,\n  teacher_id INT NOT NULL,\n  subject_id INT,\n  action VARCHAR(50) NOT NULL,\n  old_value JSON,\n  new_value JSON,\n  created_by INT,\n  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n  FOREIGN KEY (teacher_id) REFERENCES users(id),\n  FOREIGN KEY (created_by) REFERENCES users(id),\n  INDEX idx_teacher_id (teacher_id),\n  INDEX idx_created_at (created_at)\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 765
+}
