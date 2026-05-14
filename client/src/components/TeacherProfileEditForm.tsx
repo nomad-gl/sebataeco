@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle, Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 
@@ -27,13 +28,16 @@ interface TeacherProfileEditFormProps {
   };
   onSave?: () => void;
   onCancel?: () => void;
+  onSaveAndReturn?: () => void;
 }
 
 export default function TeacherProfileEditForm({
   initialData,
   onSave,
   onCancel,
+  onSaveAndReturn,
 }: TeacherProfileEditFormProps) {
+  const [, navigate] = useLocation();
   const [formData, setFormData] = useState({
     displayName: initialData?.name || "",
     phone: initialData?.phone || "",
@@ -89,6 +93,31 @@ export default function TeacherProfileEditForm({
 
       toast.success("Profile updated successfully!");
       onSave?.();
+    } catch (error) {
+      toast.error(`Failed to update profile: ${(error as Error).message}`);
+    }
+  };
+
+  const handleSaveAndReturn = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
+      toast.error("Please fix the errors in the form");
+      return;
+    }
+
+    try {
+      await updateProfileMutation.mutateAsync({
+        displayName: formData.displayName,
+        phone: formData.phone || undefined,
+        bio: formData.bio || undefined,
+        preferredLanguage: formData.preferredLanguage as "en" | "es" | "ca",
+        officeLocation: formData.officeLocation || undefined,
+      });
+
+      toast.success("Profile updated successfully!");
+      onSaveAndReturn?.();
+      navigate(-1);
     } catch (error) {
       toast.error(`Failed to update profile: ${(error as Error).message}`);
     }
@@ -259,6 +288,18 @@ export default function TeacherProfileEditForm({
                 <Loader2 className="w-4 h-4 animate-spin" />
               )}
               Save Changes
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSaveAndReturn}
+              disabled={updateProfileMutation.isPending}
+              className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
+            >
+              {updateProfileMutation.isPending && (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              )}
+              <ArrowLeft className="w-4 h-4" />
+              Save & Return
             </Button>
             <Button
               type="button"

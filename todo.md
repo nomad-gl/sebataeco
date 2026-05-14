@@ -5885,3 +5885,5 @@
 ## UI Improvements (May 13, 2026)
 
 - [x] Add return button to teacher profile page (/teacher/my-profile)
+
+- [x] Add "Save & Return" button to all edit forms (TeacherProfileEditForm, material edit forms, etc.)
