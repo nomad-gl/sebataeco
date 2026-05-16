@@ -428,6 +428,34 @@ export const auditRouter = router({
     }),
 
   /**
+   * Run TypeScript error detection and self-healing (admin only)
+   */
+  runTypeScriptHealing: adminProcedure.mutation(async ({ ctx }) => {
+    try {
+      const { runAuditWithHealing, formatAuditResults } = await import("../audit/auditWithHealing");
+      const projectRoot = process.cwd();
+      
+      const result = await runAuditWithHealing(projectRoot);
+      const formattedResults = formatAuditResults(result);
+      
+      console.log(formattedResults);
+      
+      return {
+        success: result.success,
+        message: result.message,
+        typeScriptHealing: result.typeScriptHealing,
+        timestamp: result.timestamp,
+      };
+    } catch (error) {
+      console.error("TypeScript healing failed:", error);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: `TypeScript healing failed: ${(error as Error).message}`,
+      });
+    }
+  }),
+
+  /**
    * Manually trigger the audit log retention purge (admin only).
    * Deletes all admin_audit_logs rows older than 24 months.
    */
