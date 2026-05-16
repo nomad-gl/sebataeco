@@ -64,8 +64,8 @@ async function synthesizeSpeech(text: string, lang?: string, voiceOverride?: str
       const accentConfig = accentMap[accent ?? "balear"] ?? { accent: "balear", speaker: "olga" };
       const wavBuffer = await synthesizeCatalanBSC({
         text: text.slice(0, 4096),
-        accent: accentConfig.accent as any,
-        speaker: accentConfig.speaker as any,
+        accent: accentConfig.accent,
+        speaker: accentConfig.speaker,
         temperature: 0.2,
         lengthScale: lengthScale ?? 0.89,
       });

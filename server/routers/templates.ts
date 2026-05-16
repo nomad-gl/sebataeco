@@ -4,7 +4,7 @@
 
 import { router, protectedProcedure } from "../_core/trpc";
 import { z } from "zod";
-import { getDb } from "../db";
+import { db } from "../db";
 import { eq, and } from "drizzle-orm";
 
 // Schema for template creation
@@ -54,7 +54,7 @@ export const templatesRouter = router({
         ),
       });
 
-      return templates.map((t: any) => ({
+      return templates.map(t => ({
         ...t,
         structure: typeof t.structure === 'string' ? JSON.parse(t.structure) : t.structure,
       }));
@@ -105,7 +105,7 @@ export const templatesRouter = router({
           ),
         });
 
-        return templates.map((t: any) => ({
+        return templates.map(t => ({
           ...t,
           structure: typeof t.structure === 'string' ? JSON.parse(t.structure) : t.structure,
         }));
