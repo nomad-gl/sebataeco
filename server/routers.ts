@@ -2,7 +2,7 @@ import { COOKIE_NAME, ONE_YEAR_MS, SESSION_MAX_AGE_MS } from "@shared/const";
 import { SignJWT, jwtVerify } from "jose";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, router, t, adminProcedure } from "./_core/trpc";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { getDb } from "./db";
@@ -62,6 +62,57 @@ import { subjectAssignmentRouter } from "./routers/subjectAssignment";
 import { teacherDirectoryRouter } from "./routers/teacherDirectory";
 import { teacherNotificationsRouter } from "./routers/teacherNotifications";
 import { autoMatchTeachersRouter } from "./routers/autoMatchTeachers";
+
+// Audit system procedures for weekly security audits
+const auditSystemRouter = t.router({
+  getLatestAudit: publicProcedure.query(async () => {
+    try {
+      const { getAuditHistory } = await import("./audit/auditLogger");
+      const history = getAuditHistory(1);
+      return history[0] || null;
+    } catch (error) {
+      console.error("[AUDIT] Failed to get latest audit:", error);
+      return null;
+    }
+  }),
+
+  getAuditHistory: publicProcedure
+    .input(z.object({ weeks: z.number().min(1).max(52).default(12) }))
+    .query(async ({ input }) => {
+      try {
+        const { getAuditHistory } = await import("./audit/auditLogger");
+        return getAuditHistory(input.weeks);
+      } catch (error) {
+        console.error("[AUDIT] Failed to get audit history:", error);
+        return [];
+      }
+    }),
+
+  getAuditTrendReport: publicProcedure
+    .input(z.object({ weeks: z.number().min(1).max(52).default(12) }))
+    .query(async ({ input }) => {
+      try {
+        const { generateAuditTrendReport } = await import("./audit/auditLogger");
+        return generateAuditTrendReport(input.weeks);
+      } catch (error) {
+        console.error("[AUDIT] Failed to generate audit report:", error);
+        return "Failed to generate audit report";
+      }
+    }),
+
+  runAuditNow: adminProcedure.mutation(async () => {
+    try {
+      console.log("[AUDIT] Manual audit triggered by admin");
+      const { executeWeeklyAudit } = await import("./audit/scheduler");
+      const result = await executeWeeklyAudit();
+      return { success: true, result };
+    } catch (error) {
+      console.error("[AUDIT] Manual audit failed:", error);
+      return { success: false, error: (error as Error).message };
+    }
+  }),
+});
+
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -210,6 +261,7 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
+  auditSystem: auditSystemRouter,
   lomloe: lomloeRouter,
   materials: materialsRouter,
   challenge: challengeRouter,
@@ -265,7 +317,7 @@ export const appRouter = router({
   autoCorrect: autoCorrectRouter,
   subjectAssignment: subjectAssignmentRouter,
   teacherDirectory: teacherDirectoryRouter,
-  // teacherNotifications: teacherNotificationsRouter, // Temporarily disabled - import errors
+  teacherNotifications: teacherNotificationsRouter,
   autoMatchTeachers: autoMatchTeachersRouter,
 });
 
