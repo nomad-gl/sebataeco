@@ -117,7 +117,7 @@ export default function TeacherProfileEditForm({
 
       toast.success("Profile updated successfully!");
       onSaveAndReturn?.();
-      navigate(-1);
+      navigate(-1 as any);
     } catch (error) {
       toast.error(`Failed to update profile: ${(error as Error).message}`);
     }

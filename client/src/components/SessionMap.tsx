@@ -112,7 +112,7 @@ export function SessionMap({ sessions, className }: SessionMapProps) {
     // Fit map bounds to all session locations
     const bounds = new window.google.maps.LatLngBounds();
 
-    for (const [key, groupSessions] of groups) {
+    for (const [key, groupSessions] of Array.from(groups.entries())) {
       const [latStr, lngStr] = key.split(",");
       const position = { lat: parseFloat(latStr), lng: parseFloat(lngStr) };
       bounds.extend(position);
@@ -172,7 +172,7 @@ export function SessionMap({ sessions, className }: SessionMapProps) {
 
     // Fit the map to show all markers; if only one, zoom in nicely
     if (groups.size === 1) {
-      const [[latStr, lngStr]] = [...groups.keys()].map(k => k.split(","));
+      const [[latStr, lngStr]] = Array.from(groups.keys()).map((k: string) => k.split(","));
       map.setCenter({ lat: parseFloat(latStr), lng: parseFloat(lngStr) });
       map.setZoom(5);
     } else {

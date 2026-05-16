@@ -36,7 +36,7 @@ function buildGrid(
     .map(() =>
       Array(gridSize)
         .fill(null)
-        .map(() => ({ letter: undefined, number: undefined, isBlack: true }))
+        .map(() => ({ letter: undefined as string | undefined, number: undefined as number | undefined, isBlack: true }))
     );
 
   // Place each word on the grid
@@ -48,8 +48,8 @@ function buildGrid(
     for (let i = 0; i < word.length; i++) {
       if (row >= 0 && row < gridSize && col >= 0 && col < gridSize) {
         grid[row][col] = {
-          letter: w.showAnswers ? word[i] : undefined,
-          number: grid[row][col].number || w.number,
+          letter: w.showAnswers ? word[i] : (undefined as string | undefined),
+          number: (grid[row][col].number || w.number) as number | undefined,
           isBlack: false,
         };
       }
