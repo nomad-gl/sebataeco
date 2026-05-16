@@ -5,7 +5,7 @@
  * Run this on first teacher login or via admin panel
  */
 
-import { db } from "../db";
+import { getDb } from "../db";
 
 export interface DefaultTemplate {
   name: string;
@@ -170,30 +170,38 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
  */
 export async function seedDefaultTemplates(tenantId: number): Promise<void> {
   try {
-    // Check if templates already exist for this tenant
-    const existingCount = await db.query.templates.findMany({
-      where: (t) => eq(t.tenantId, tenantId),
-    });
-
-    if (existingCount.length > 0) {
-      console.log(`Default templates already exist for tenant ${tenantId}`);
+    const db = await getDb();
+    if (!db) {
+      console.warn("Database not available for seeding templates");
       return;
     }
 
-    // Create default templates for this tenant
-    for (const template of DEFAULT_TEMPLATES) {
-      await db.query.templates.create({
-        userId: 0, // System user (0 = admin/system)
-        name: template.name,
-        description: template.description,
-        type: template.type,
-        structure: JSON.stringify(template.structure),
-        isPublic: true,
-        tenantId,
-      });
-    }
+    // TODO: Implement template seeding when templates table is created
+    console.log(`Seeding default templates for tenant ${tenantId}`);
+    // Check if templates already exist for this tenant
+    // const existingCount = await db.query.templates.findMany({
+    //   where: (t) => eq(t.tenantId, tenantId),
+    // });
 
-    console.log(`Successfully seeded ${DEFAULT_TEMPLATES.length} default templates for tenant ${tenantId}`);
+    // if (existingCount.length > 0) {
+    //   console.log(`Default templates already exist for tenant ${tenantId}`);
+    //   return;
+    // }
+
+    // Create default templates for this tenant
+    // for (const template of DEFAULT_TEMPLATES) {
+    //   await db.query.templates.create({
+    //     userId: 0, // System user (0 = admin/system)
+    //     name: template.name,
+    //     description: template.description,
+    //     type: template.type,
+    //     structure: JSON.stringify(template.structure),
+    //     isPublic: true,
+    //     tenantId,
+    //   });
+    // }
+
+    // console.log(`Successfully seeded ${DEFAULT_TEMPLATES.length} default templates for tenant ${tenantId}`);
   } catch (error) {
     console.error("Error seeding default templates:", error);
     throw error;
