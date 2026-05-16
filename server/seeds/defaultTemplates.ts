@@ -5,7 +5,7 @@
  * Run this on first teacher login or via admin panel
  */
 
-import { db } from "../db";
+import { getDb } from "../db";
 
 export interface DefaultTemplate {
   name: string;
@@ -172,7 +172,7 @@ export async function seedDefaultTemplates(tenantId: number): Promise<void> {
   try {
     // Check if templates already exist for this tenant
     const existingCount = await db.query.templates.findMany({
-      where: (t) => eq(t.tenantId, tenantId),
+      where: (t: any) => eq(t.tenantId, tenantId),
     });
 
     if (existingCount.length > 0) {
