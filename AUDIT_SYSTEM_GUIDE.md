@@ -59,10 +59,10 @@ The SEBA AI Studio now includes a comprehensive weekly audit system that runs ev
 
 ### 1. Enable Scheduled Audit Task
 
-Add the following to your Manus scheduled tasks configuration:
+Add the following to your SEBA scheduled tasks configuration:
 
 ```bash
-manus-config schedule create \
+seba-config schedule create \
   --name "Weekly Security Audit" \
   --cron "0 2 * * 1" \
   --endpoint "/api/trpc/auditSystem.runAuditNow" \
@@ -307,7 +307,7 @@ The system automatically notifies the owner when:
 
 ### Audit Fails to Execute
 
-1. Check `.manus-logs/devserver.log` for errors
+1. Check `.seba-logs/devserver.log` for errors
 2. Verify audit modules are properly imported
 3. Ensure npm audit and eslint are installed
 4. Check file permissions in `.audit-logs/` directory

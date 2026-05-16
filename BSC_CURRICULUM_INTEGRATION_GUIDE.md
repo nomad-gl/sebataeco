@@ -42,9 +42,9 @@ Once you identify your dataset, note:
 
 ## Step 2: Add Hugging Face API Key
 
-### Via Manus Dashboard
+### Via SEBA Dashboard
 
-1. Open the Manus dashboard for your project
+1. Open the SEBA dashboard for your project
 2. Go to **Settings** → **Secrets**
 3. Click **Add Secret** or **Add Environment Variable**
 4. Set the following:

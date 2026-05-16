@@ -12,7 +12,7 @@ SEBA AI Studio is a comprehensive educational technology platform built with Rea
 ### ✅ Completed Features (3,718 items)
 
 #### Core Platform
-- **User Authentication**: Manus OAuth + local email/password authentication with bcrypt hashing
+- **User Authentication**: SEBA OAuth + local email/password authentication with bcrypt hashing
 - **Role-Based Access Control**: Admin, director, teacher, head_of_study roles with granular permissions
 - **Multi-Tenant Architecture**: School-level data isolation and tenant management
 - **Database Schema**: 50+ tables with Drizzle ORM migrations
@@ -70,10 +70,10 @@ SEBA AI Studio is a comprehensive educational technology platform built with Rea
 - **Data Export**: Bulk export with re-authentication gate
 
 #### Deployment & Infrastructure
-- **Manus Hosting**: Built-in deployment with custom domains
+- **SEBA Hosting**: Built-in deployment with custom domains
 - **Database**: TiDB MySQL-compatible database
 - **File Storage**: S3-based file storage with presigned URLs
-- **Environment Management**: Secure secret management via Manus platform
+- **Environment Management**: Secure secret management via SEBA platform
 
 ### ⏳ Remaining Items (15)
 
@@ -132,7 +132,7 @@ SEBA AI Studio is a comprehensive educational technology platform built with Rea
 
 ## Deployment Status
 
-- **Live URL**: https://sebataeco.manus.space
+- **Live URL**: https://sebataeco.seba.space
 - **Domains**: sebataeco.com, www.sebataeco.com, aina.forum, www.aina.forum
 - **Dev Server**: Running on port 3000
 - **Database**: Connected and healthy

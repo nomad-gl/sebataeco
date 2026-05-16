@@ -18,9 +18,9 @@ ADD COLUMN `dayTimes` text AFTER `semesters`;
 
 ## How to Apply
 
-### Option 1: Via Manus Dashboard (Recommended)
+### Option 1: Via SEBA Dashboard (Recommended)
 
-1. Open the Manus dashboard and navigate to your project
+1. Open the SEBA dashboard and navigate to your project
 2. Click on the **Management UI** button (or open the right panel)
 3. Go to **Database** section
 4. Click on **Database Management** or **SQL Console**

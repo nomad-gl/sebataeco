@@ -31,9 +31,9 @@ Currently, AINA operates with static curriculum data. Web search integration wil
 
 ## Web Search API Options
 
-### Option 1: Manus Built-in Search (Recommended)
+### Option 1: SEBA Built-in Search (Recommended)
 
-SEBA already has access to Manus's built-in search capabilities via the Forge API:
+SEBA already has access to SEBA's built-in search capabilities via the Forge API:
 
 ```typescript
 import { invokeLLM } from "./server/_core/llm";
@@ -361,7 +361,7 @@ async function getCachedOrFreshResults(
 
 ## Implementation Checklist
 
-- [ ] Choose web search API (Manus built-in recommended)
+- [ ] Choose web search API (SEBA built-in recommended)
 - [ ] Create `server/routers/ainaWebSearch.ts`
 - [ ] Implement official source whitelisting
 - [ ] Integrate with AINA chat router
@@ -419,7 +419,7 @@ describe("ainaWebSearch", () => {
 
 ## Next Steps
 
-1. **Choose API Provider**: Recommend using Manus built-in search
+1. **Choose API Provider**: Recommend using SEBA built-in search
 2. **Implement Module**: Create `ainaWebSearch.ts` router
 3. **Test Searches**: Verify official sources are returned
 4. **Integrate with Chat**: Update AINA chat to use web search

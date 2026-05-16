@@ -51,7 +51,7 @@ export function useAuth(options?: UseAuthOptions) {
       // redirecting, so the login page does not see a stale authenticated state
       // and immediately bounce back to home.
       utils.auth.me.setData(undefined, null);
-      localStorage.removeItem("manus-runtime-user-info");
+      localStorage.removeItem("seba-runtime-user-info");
       // Redirect to the login page — use replace so the back button doesn't
       // return to a protected page after logout.
       if (typeof window !== "undefined") {
@@ -62,7 +62,7 @@ export function useAuth(options?: UseAuthOptions) {
 
   const state = useMemo(() => {
     localStorage.setItem(
-      "manus-runtime-user-info",
+      "seba-runtime-user-info",
       JSON.stringify(meQuery.data)
     );
     return {

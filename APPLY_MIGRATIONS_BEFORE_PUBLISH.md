@@ -8,7 +8,7 @@ You cannot publish because there are 2 pending database migrations that need to 
 ## Solution
 
 ### Step 1: Open Database Management UI
-1. Click the **Management UI** button in the top-right corner of Manus
+1. Click the **Management UI** button in the top-right corner of SEBA
 2. Go to **Settings** → **Database**
 3. You'll see the database connection details and a SQL execution panel
 
@@ -79,7 +79,7 @@ You should see:
 
 ### Step 5: Publish
 Once both migrations are confirmed:
-1. Return to the main Manus dashboard
+1. Return to the main SEBA dashboard
 2. Click the **Publish** button
 3. The publication should now succeed
 

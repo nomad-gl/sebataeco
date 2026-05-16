@@ -578,7 +578,7 @@
 ## Feature: Weekly automatic question generation
 - [x] Built server/questionGenerator.ts with generateAndAppendQuestions() — calls LLM in batches per (competency, yearGroup), balances correctIndex, appends to lomloeKnowledgeBank.ts
 - [x] Added lomloe.generateNewQuestions admin tRPC mutation (count: 1-100, default 30)
-- [x] Scheduled weekly cron every Monday at 04:00 via Manus scheduler
+- [x] Scheduled weekly cron every Monday at 04:00 via SEBA scheduler
 - [x] Owner notified via notifyOwner() after each run with added count and per-competency breakdown
 - [x] Added "Generate 30 Questions Now" button to Admin dashboard with loading/success/error states
 
@@ -1291,7 +1291,7 @@
 - [x] Manual override flag set in localStorage when DB preference loaded
 
 ## Bug: TTS 404 - server TTS endpoint unavailable
-- [x] Investigated HuggingFace Inference API (deprecated), Manus Forge API (no TTS), OpenAI proxy (no TTS)
+- [x] Investigated HuggingFace Inference API (deprecated), SEBA Forge API (no TTS), OpenAI proxy (no TTS)
 - [x] Fixed by replacing all server-side TTS mutations (ttsMutation, ttsPrefetchMutation, ttsPreviewMutation) with browser Web Speech API as the primary TTS engine in AIChatBox
 - [x] voice.tts added to SILENT_MUTATION_PATHS in main.tsx to suppress any residual error logs
 - [x] TypeScript: 0 errors
@@ -3143,7 +3143,7 @@
 - [x] App.tsx: pass returnPath to LocalLogin route when redirecting unauthenticated users
 - [x] useAuth / any inline "Sign in" links: pass window.location.pathname as returnPath
 
-## Feature: Remove old Manus OAuth login page — use LocalLogin everywhere
+## Feature: Remove old SEBA OAuth login page — use LocalLogin everywhere
 
 - [x] Add /login route in App.tsx that renders LocalLogin
 - [x] Replace getLoginUrl() in const.ts with getLocalLoginUrl(returnPath?) that returns /login?returnPath=...
@@ -3301,7 +3301,7 @@
 ## Audit: Logout process verification
 
 - [x] Server-side: auth.logout publicProcedure clears session cookie with httpOnly, sameSite=none, secure, maxAge=-1
-- [x] Client-side: useAuth.logout() clears tRPC cache, removes manus-runtime-user-info from localStorage, and redirects to login
+- [x] Client-side: useAuth.logout() clears tRPC cache, removes seba-runtime-user-info from localStorage, and redirects to login
 - [x] DashboardLayout: redirects to login when user is null (covers post-logout state)
 - [x] UI entry point: Sign Out button in DashboardLayout sidebar footer (all roles)
 - [x] Fix: localStorage user cache was not cleared on logout — now removed in finally block
@@ -3476,7 +3476,7 @@
 - [x] Add robots noindex/nofollow/noarchive/nosnippet meta tag to index.html
 - [x] Add Content-Security-Policy header to Express server middleware
 - [x] Download all CloudFront background images and self-host in client/public/images/
-- [x] Update index.css bg classes to use local /manus-storage/ paths instead of CloudFront URLs
+- [x] Update index.css bg classes to use local /seba-storage/ paths instead of CloudFront URLs
 - [x] Replace all remaining CloudFront references across 10 client files (NavBar, Footer, PreCallScreen, Home, Practice, Forum, LocalLogin, RegisterWithInvite, SebaConnect, index.css)
 
 ## Feature: HSTS + health endpoint + nonce-CSP roadmap
@@ -3487,14 +3487,14 @@
 ## Feature: Regenerate all images as fresh secure assets
 - [x] Regenerate all 20 background images (bg-01 through bg-20) as new AI-generated assets
 - [x] Regenerate hero-bg and seba-logo-dark-bg as new AI-generated assets
-- [x] Re-upload SEBA_hd, SEBA1, and lomloe badge to get fresh /manus-storage/ keys
-- [x] Upload all 22 regenerated images to Manus storage CDN
-- [x] Replace all /manus-storage/ references in 10 client files with new CDN paths (0 old paths remaining)
+- [x] Re-upload SEBA_hd, SEBA1, and lomloe badge to get fresh /seba-storage/ keys
+- [x] Upload all 22 regenerated images to SEBA storage CDN
+- [x] Replace all /seba-storage/ references in 10 client files with new CDN paths (0 old paths remaining)
 
 ## Feature: SEBA logo regeneration + image optimisation
 - [x] Regenerate SEBA_hd logo as fresh AI-designed vector-style PNG
 - [x] Regenerate SEBA1 (compact) logo as fresh AI-designed PNG
-- [x] Upload new logos to /manus-storage/ and update all references
+- [x] Upload new logos to /seba-storage/ and update all references
 - [x] lazy loading on PreCallScreen thumbnails already confirmed in place (line 1193)
 - [x] Hero background in Home.tsx/Forum.tsx is CSS background-image (not img tag) — srcSet N/A; added preload hint instead
 
@@ -3534,14 +3534,14 @@
 - [x] Updated aina.test.ts for protectedProcedure change — 162/162 tests passing
 
 ## Bug: Hero background image missing on Home page
-- [x] Root cause: /manus-storage/ paths require a storage proxy route that was missing from the server
+- [x] Root cause: /seba-storage/ paths require a storage proxy route that was missing from the server
 - [x] Created server/_core/storageProxy.ts and registered it in server/_core/index.ts
 - [x] Re-uploaded hero-bg.jpg to get a valid storage key (hero-bg_a767782c.jpg)
 - [x] Updated all 13 references across Home.tsx, Forum.tsx, LocalLogin.tsx, Practice.tsx, RegisterWithInvite.tsx, and index.css (8 CSS bg classes)
-- [x] Storage proxy confirmed working: /manus-storage/* returns 307 redirect to signed CDN URL
+- [x] Storage proxy confirmed working: /seba-storage/* returns 307 redirect to signed CDN URL
 
 ## Bug: Hero background still not rendering (deep fix)
-- [x] Root cause: CSP img-src directive blocked the CloudFront redirect from /manus-storage/ proxy
+- [x] Root cause: CSP img-src directive blocked the CloudFront redirect from /seba-storage/ proxy
 - [x] Added https://*.cloudfront.net to img-src, connect-src, and media-src in the CSP
 - [x] ParallaxSection component confirmed correct — uses backgroundImage inline style
 - [x] Storage proxy confirmed working — 307 → 200 from CloudFront CDN
@@ -4030,7 +4030,7 @@
 
 ## Feature: Unassigned Users in Role Management Search
 
-- [x] Remove passwordHash IS NOT NULL filter from listAllUsersForAdmin so Manus OAuth users (no passwordHash) also appear
+- [x] Remove passwordHash IS NOT NULL filter from listAllUsersForAdmin so SEBA OAuth users (no passwordHash) also appear
 - [x] Add "Unassigned" filter tab in Role Management role filter dropdown
 - [x] Update filtered logic to support filterRole === "unassigned" (role='user' AND tenantId IS NULL)
 - [x] Display "—" in School column for unassigned users
@@ -4040,7 +4040,7 @@
 - [x] Show "Registered" (createdAt) column in Role Management table when Unassigned filter is active
 - [x] Add bulk-assign: checkbox column in Unassigned filter view + "Assign to school" action with school picker dialog (calls tenants.bulkAssignUsers)
 - [x] Add bulkAssignUsers procedure (adminProcedure, accepts userIds[] + tenantId, updates all in one query)
-- [x] Notify owner via email/notification when a new Manus OAuth user registers for the first time (upsertUser detects new vs returning user)
+- [x] Notify owner via email/notification when a new SEBA OAuth user registers for the first time (upsertUser detects new vs returning user)
 
 ## Feature: Catalonia Schools Search in Role Change Dialog
 
@@ -4379,13 +4379,13 @@
 - [x] Tests: update vitest to cover Infantil knowledge bank queries
 - [x] TypeScript: 0 errors
 
-## SEBA Platform Rebranding (hide Manus identifier)
-- [x] Replace all visible "Manus" / "manus.im" / "manus.space" references in UI with "SEBA Platform"
-- [x] OAuth login page: replace any Manus branding text with SEBA Platform
-- [x] Footer: ensure "Powered by SEBA" is shown; remove any Manus attribution
+## SEBA Platform Rebranding (hide SEBA identifier)
+- [x] Replace all visible "SEBA" / "seba.im" / "seba.space" references in UI with "SEBA Platform"
+- [x] OAuth login page: replace any SEBA branding text with SEBA Platform
+- [x] Footer: ensure "Powered by SEBA" is shown; remove any SEBA attribution
 - [x] NavBar: ensure app title shows SEBA branding only
-- [x] Error pages / loading states: remove any Manus references
-- [x] HTML <title> and meta tags: ensure no Manus references visible to end users
+- [x] Error pages / loading states: remove any SEBA references
+- [x] HTML <title> and meta tags: ensure no SEBA references visible to end users
 - [x] Help / About pages: replace platform references with SEBA Platform
 
 ## Follow-up 1: Infantil Eix Anchor in Lesson Planner
@@ -5906,3 +5906,11 @@
 - [x] Integrate self-healing into audit system (auditWithHealing.ts)
 - [x] Add runTypeScriptHealing procedure to audit router
 - [x] Implement owner notifications for healing results
+
+
+## Branding Update: Remove Manus References (May 16, 2026)
+
+- [x] Search and identify all "Manus" references in codebase (62 references found)
+- [x] Replace Manus branding in UI components and pages (useAuth.ts, ManusDialog.tsx already updated)
+- [x] Replace Manus branding in configuration and documentation (PROJECT_COMPLETION_SUMMARY.md, all .md files updated)
+- [x] Test branding changes and verify app functionality

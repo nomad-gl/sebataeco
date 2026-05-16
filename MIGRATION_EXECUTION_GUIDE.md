@@ -24,7 +24,7 @@ Adds one new column to `ac_teachers` table:
 ## Step-by-Step Execution Guide
 
 ### Step 1: Access Database Management UI
-1. Open your Manus project Management UI
+1. Open your SEBA project Management UI
 2. Click on the **Database** panel (left sidebar)
 3. You'll see the database connection details and SQL editor
 
@@ -157,7 +157,7 @@ After migrations are applied:
 ## Support
 
 If you encounter any issues:
-1. Check the application logs in `.manus-logs/` directory
+1. Check the application logs in `.seba-logs/` directory
 2. Review the error message carefully
 3. Verify all prerequisites are met
 4. Contact support with the error details

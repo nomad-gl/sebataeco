@@ -33,7 +33,7 @@ This classification triggers the full obligations of Chapter 3 of the EU AI Act,
 
 | Model | Provider | Purpose | Hosting |
 |---|---|---|---|
-| **BSC Salamandra** (via Manus Forge API) | Barcelona Supercomputing Centre | Conversational AI (Aina), content generation, bias detection | EEA (BSC, Barcelona) |
+| **BSC Salamandra** (via SEBA Forge API) | Barcelona Supercomputing Centre | Conversational AI (Aina), content generation, bias detection | EEA (BSC, Barcelona) |
 | **Helsinki-NLP/opus-mt-en-es** | University of Helsinki / Hugging Face | EN→ES translation of practice questions | Hugging Face Inference (EEA) |
 | **Helsinki-NLP/opus-mt-en-ROMANCE** | University of Helsinki / Hugging Face | EN→CA translation of practice questions | Hugging Face Inference (EEA) |
 
@@ -52,7 +52,7 @@ SEBA is a full-stack web application with the following components:
 | Frontend | React 19, TypeScript, Tailwind CSS 4 | User interface, i18n (EN/ES/CA + Catalan dialects) |
 | API layer | tRPC 11, Express 4 | Type-safe RPC between client and server |
 | Database | MySQL / TiDB (EEA-hosted) | Persistent storage of all user and educational data |
-| AI inference | BSC Salamandra via Manus Forge API | LLM-based content generation and chat |
+| AI inference | BSC Salamandra via SEBA Forge API | LLM-based content generation and chat |
 | Translation | Hugging Face Inference API (Helsinki-NLP) | Question bank localisation |
 | File storage | S3-compatible object storage (EEA) | Teaching material files |
 

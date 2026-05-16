@@ -4,7 +4,7 @@ Scope: any recurring or scheduled work for this site (digests, refreshes, cleanu
 
 Forbidden: `setInterval`, `node-cron`, or any in-process timer. Cloud Run terminates idle instances; in-process timers will not survive.
 
-> **You are working on a legacy project that pre-dates the Heartbeat scaffold.** The CLI (`manus-heartbeat bootstrap-legacy-project`) has just dropped this file plus `server/_core/heartbeat.ts` into the project. Two more local files (`server/_core/sdk.ts` + `server/_core/types/manusTypes.ts`) need a small patch before site-driven Heartbeat (§3) will compile — see §5c. Without those patches, sandbox-CLI Heartbeat (§4a) and AGENT cron (§4b) work as-is; only the §3 path is gated on §5c.
+> **You are working on a legacy project that pre-dates the Heartbeat scaffold.** The CLI (`seba-heartbeat bootstrap-legacy-project`) has just dropped this file plus `server/_core/heartbeat.ts` into the project. Two more local files (`server/_core/sdk.ts` + `server/_core/types/sebaTypes.ts`) need a small patch before site-driven Heartbeat (§3) will compile — see §5c. Without those patches, sandbox-CLI Heartbeat (§4a) and AGENT cron (§4b) work as-is; only the §3 path is gated on §5c.
 
 ---
 
@@ -13,7 +13,7 @@ Forbidden: `setInterval`, `node-cron`, or any in-process timer. Cloud Run termin
 Two flavors. The difference is what runs at trigger time:
 
 - **Heartbeat (HTTP cron).** Platform POSTs directly to `/api/scheduled/*` on this site. Your handler runs and returns. No agent spawned — if the handler needs an LLM call, do it inline via the site's own LLM SDK (`server/_core/llm.ts`).
-- **AGENT cron.** Platform spawns a fresh, isolated Manus session that runs the prompt you wrote at create time. The agent has the full Manus toolchain — browser, file system, shell, image gen, deep research — but **no** session history, DB, source code, or credentials beyond the two env vars `$SCHEDULED_TASK_ENDPOINT_BASE` / `$SCHEDULED_TASK_COOKIE`. If your prompt tells it to, it `curl`s back to `/api/scheduled/*` on this site at the end.
+- **AGENT cron.** Platform spawns a fresh, isolated SEBA session that runs the prompt you wrote at create time. The agent has the full SEBA toolchain — browser, file system, shell, image gen, deep research — but **no** session history, DB, source code, or credentials beyond the two env vars `$SCHEDULED_TASK_ENDPOINT_BASE` / `$SCHEDULED_TASK_COOKIE`. If your prompt tells it to, it `curl`s back to `/api/scheduled/*` on this site at the end.
 
 Decision: AGENT cron only if the trigger genuinely needs **agentic capabilities** — i.e. tool use beyond a single LLM call: web browsing, file manipulation, shell, deep research, multi-step planning, etc. A one-shot LLM completion belongs inline in a Heartbeat handler. Do not attempt to replicate complex agentic flows using website-inbuilt capabilities, if it could be outsourced to AGENT cron. End-user-defined schedules (UI on this site lets a user pick when X runs) are **always** Heartbeat — see §3.
 
@@ -87,41 +87,41 @@ res.json({ ok: true });
 app.post("/api/scheduled/sendMarketing", sendMarketingHandler);
 ```
 
-After deploy, end-users create their own crons via your tRPC mutation. As the project owner, you can also inspect / pause / resume / view logs for any end-user's cron from the sandbox terminal — `manus-heartbeat list --user-id u_xxx` and friends; see §5b. End-users can never see another user's cron through your tRPC SDK.
+After deploy, end-users create their own crons via your tRPC mutation. As the project owner, you can also inspect / pause / resume / view logs for any end-user's cron from the sandbox terminal — `seba-heartbeat list --user-id u_xxx` and friends; see §5b. End-users can never see another user's cron through your tRPC SDK.
 
 ---
 
 ## 4. Variants — when the trigger isn't an end-user
 
-Same callback handler, same `/api/scheduled/*` URL, same `user.isCron` check, **same Manus-platform-managed cron lifecycle** (cron persistence and triggering live entirely on the platform, independent of any sandbox session). Only the **creator** changes.
+Same callback handler, same `/api/scheduled/*` URL, same `user.isCron` check, **same SEBA-platform-managed cron lifecycle** (cron persistence and triggering live entirely on the platform, independent of any sandbox session). Only the **creator** changes.
 
 ### 4a. Project-level Heartbeat (no end-user)
 
 For crons your end-users never see (nightly DB cleanup, daily digest to admins, hourly external-API ping) — the cron is owned by the project owner identity. Create via the sandbox CLI (see §5b for the full subcommand list):
 
 ```bash
-manus-heartbeat create \
+seba-heartbeat create \
   --name nightly-cleanup \
   --cron "0 0 3 * * *" \
   --path /api/scheduled/cleanup \
   --description "Nightly expired-row cleanup"
 ```
 
-The created cron lives on the Manus platform, not in this sandbox: it survives sandbox hibernation/teardown and keeps firing as long as the deployed site is reachable. Any future Manus session can `manus-heartbeat list` / `update` / `pause` / `delete` it — the cron is bound to the project owner, not to the build session that created it.
+The created cron lives on the SEBA platform, not in this sandbox: it survives sandbox hibernation/teardown and keeps firing as long as the deployed site is reachable. Any future SEBA session can `seba-heartbeat list` / `update` / `pause` / `delete` it — the cron is bound to the project owner, not to the build session that created it.
 
-Persist the returned `task_uid` somewhere durable (admin DB row / config) if you'll need to update/delete it later — `manus-heartbeat list` can also recover it.
+Persist the returned `task_uid` somewhere durable (admin DB row / config) if you'll need to update/delete it later — `seba-heartbeat list` can also recover it.
 
 This path **does not require** the §5c patches — the CLI talks to the platform directly with the project owner identity, no `sdk.authenticateRequest` involved on the create path.
 
 ### 4b. AGENT cron — when the trigger needs agentic capabilities
 
-Created via the `schedule` tool inside this Manus session (not from site code). Each trigger spawns a **fresh, isolated** Manus agent — no session history, no source/DB/credentials, no skills. The only knowledge transfer is whatever you write into the cron prompt.
+Created via the `schedule` tool inside this SEBA session (not from site code). Each trigger spawns a **fresh, isolated** SEBA agent — no session history, no source/DB/credentials, no skills. The only knowledge transfer is whatever you write into the cron prompt.
 
 Use it when the work genuinely needs agent intelligence (deep research, content composition, image gen). Tell it WHAT to do, not HOW — it's a real agent, not a workflow runner.
 
 If the AGENT cron needs to write back to **this** site, the only path in is the site's HTTP API:
 
-1. Add `/api/scheduled/<name>` as in §3 Step 2 (same auth, same handler shape) — requires §5c if you want `user.isCron`. Without §5c, you can read the trigger task UID from `req.headers["x-manus-cron-task-uid"]` instead and trust the platform gateway (which restricts `/api/scheduled/*` to cron callers only).
+1. Add `/api/scheduled/<name>` as in §3 Step 2 (same auth, same handler shape) — requires §5c if you want `user.isCron`. Without §5c, you can read the trigger task UID from `req.headers["x-seba-cron-task-uid"]` instead and trust the platform gateway (which restricts `/api/scheduled/*` to cron callers only).
 2. Save a checkpoint and ask the user to Deploy.
 3. In the cron prompt, instruct the agent to POST via `curl` (not python libs) using two auto-injected envs:
    - `$SCHEDULED_TASK_ENDPOINT_BASE` — base URL of this site
@@ -133,9 +133,9 @@ If the AGENT cron needs to write back to **this** site, the only path in is the 
      -d '{"title":"…","body":"…"}'
    ```
 
-### 4c. Owner UI on manus.im (NOT something you build)
+### 4c. Owner UI on seba.im (NOT something you build)
 
-The Manus dashboard surfaces ALL crons in the project (both end-user-driven and agent-driven), with execution history, pause/resume, edit, Run Now, and Investigate. Owners can't *create* crons there — only via §3 / §4a / §4b. Mention this to the user when they ask "how do I see/manage all my crons".
+The SEBA dashboard surfaces ALL crons in the project (both end-user-driven and agent-driven), with execution history, pause/resume, edit, Run Now, and Investigate. Owners can't *create* crons there — only via §3 / §4a / §4b. Mention this to the user when they ask "how do I see/manage all my crons".
 
 ---
 
@@ -181,11 +181,11 @@ listHeartbeatJobs(userSession: string, pagination?: { page?: number; pageSize?: 
 
 `userSession` is the **decoded `app_session_id` cookie value**, NOT the raw Cookie header. All four functions throw `TRPCError` (UNAUTHORIZED / NOT_FOUND / TOO_MANY_REQUESTS / FORBIDDEN / BAD_REQUEST) — let trpc bubble them.
 
-### 5b. Sandbox CLI — `manus-heartbeat`
+### 5b. Sandbox CLI — `seba-heartbeat`
 
 In-sandbox tool that hits the same backend as the SDK in §5a but with project owner identity (no end-user cookie). `BUILT_IN_FORGE_API_*` envs are pre-set on PATH; run from a sandbox terminal during this session.
 
-The table below is just an index — `manus-heartbeat <cmd> --help` is canonical for full flag lists and examples.
+The table below is just an index — `seba-heartbeat <cmd> --help` is canonical for full flag lists and examples.
 
 | Command | What |
 | --- | --- |
@@ -202,7 +202,7 @@ If you only ever use AGENT cron (§4b) or sandbox-CLI Heartbeat (§4a), **skip t
 
 Edit two existing files:
 
-**`server/_core/types/manusTypes.ts`** — add the cron-only `taskUid` field to `GetUserInfoWithJwtResponse` (everything else stays as-is):
+**`server/_core/types/sebaTypes.ts`** — add the cron-only `taskUid` field to `GetUserInfoWithJwtResponse` (everything else stays as-is):
 
 ```ts
 export interface GetUserInfoWithJwtResponse {
@@ -236,7 +236,7 @@ function buildCronUser(userInfo: GetUserInfoWithJwtResponse): AuthenticatedUser 
   return {
     id: -1,                                          // surrogate; real users are auto-increment > 0
     openId: userInfo.openId,
-    name: userInfo.name || "Manus Scheduled Task",
+    name: userInfo.name || "SEBA Scheduled Task",
     email: null,
     loginMethod: null,
     role: "user",

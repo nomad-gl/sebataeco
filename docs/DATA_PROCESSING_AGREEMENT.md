@@ -11,7 +11,7 @@
 
 This Data Processing Agreement ("Agreement") is entered into between:
 
-**Data Controller:** The educational institution or individual teacher ("Controller") accessing AINA | TA through the platform at `sebaaihub-zdur4nnh.manus.space` or any associated domain.
+**Data Controller:** The educational institution or individual teacher ("Controller") accessing AINA | TA through the platform at `sebaaihub-zdur4nnh.seba.space` or any associated domain.
 
 **Data Processor:** The operator of AINA | TA ("Processor"), acting on behalf of the Controller to process personal data as described in this Agreement.
 
@@ -132,7 +132,7 @@ Implement and maintain appropriate technical and organisational measures to ensu
 - **Encryption in transit:** All data transmitted between clients and the server is encrypted using TLS 1.2 or higher.
 - **Encryption at rest:** Database contents are encrypted at rest using AES-256.
 - **Access control:** Role-based access control (RBAC) ensures that only authorised users can access specific data. Admin-only procedures are protected by server-side role checks.
-- **Authentication:** OAuth 2.0 authentication via the Manus identity provider; session tokens are signed with a server-side secret (JWT_SECRET).
+- **Authentication:** OAuth 2.0 authentication via the SEBA identity provider; session tokens are signed with a server-side secret (JWT_SECRET).
 - **PII minimisation:** Bias incident logs are truncated to 200 characters to minimise exposure of personal data.
 - **Pseudonymisation:** Student data is processed using teacher-assigned pseudonymous identifiers; the platform does not link student IDs to real identities.
 - **Audit logging:** All significant AI decisions are logged with timestamps, user IDs, and action summaries for accountability purposes.
@@ -191,7 +191,7 @@ The Processor applies the following automated retention policy:
 
 ### 7.1 EEA Hosting Commitment
 
-All personal data processed by AINA | TA is stored and processed exclusively within the **European Economic Area (EEA)**. The platform's primary infrastructure is hosted on the **Manus Platform**, whose data centres are located within the EEA. Where technically feasible, data is additionally hosted on or migrated towards the **Núvol Públic de Catalunya** (Catalan Public Cloud), in accordance with Catalan data sovereignty principles.
+All personal data processed by AINA | TA is stored and processed exclusively within the **European Economic Area (EEA)**. The platform's primary infrastructure is hosted on the **SEBA Platform**, whose data centres are located within the EEA. Where technically feasible, data is additionally hosted on or migrated towards the **Núvol Públic de Catalunya** (Catalan Public Cloud), in accordance with Catalan data sovereignty principles.
 
 The Catalan Public Cloud initiative is supported by two complementary frameworks:
 
@@ -221,7 +221,7 @@ The Controller authorises the Processor to engage the following sub-processors:
 
 | Sub-processor | Role | Location | Transfer Safeguard |
 |---|---|---|---|
-| **Manus Platform** | Infrastructure hosting, OAuth authentication, database services | EEA | EEA-based processing |
+| **SEBA Platform** | Infrastructure hosting, OAuth authentication, database services | EEA | EEA-based processing |
 | **Hugging Face** | Neural machine translation (Helsinki-NLP models) for question bank localisation | EEA (EU data centres) | EEA-based processing; no personal data transmitted |
 | **BSC (Barcelona Supercomputing Center)** | Salamandra LLM framework attribution; model weights | Spain (EEA) | EEA-based processing |
 | **ip-api.com** | IP geolocation for Catalan dialect detection | EEA | Only IP address transmitted; no personal data linked to user accounts |
@@ -343,7 +343,7 @@ Security measures are reviewed at least annually. Automated TypeScript type-chec
 
 ## Appendix B: Data Flow Diagram (Narrative)
 
-1. **Teacher logs in** via OAuth 2.0 (Manus identity provider). No password is stored by the Processor.
+1. **Teacher logs in** via OAuth 2.0 (SEBA identity provider). No password is stored by the Processor.
 2. **Teacher creates content** (lesson plans, calendars, materials). Content is stored in the EEA-hosted database.
 3. **Teacher initiates AI interaction** (chat with Aina, material generation, assessment). The request is sent to the server, which calls the LLM inference endpoint. No personal data is included in the LLM prompt beyond what the teacher explicitly provides.
 4. **AI response is generated** and passed through the bias detection module before being returned to the teacher.
