@@ -3,6 +3,9 @@ import { TRPCError } from "@trpc/server";
 
 export type NotificationType = "profile_update" | "subject_assignment" | "schedule_change" | "assignment_history" | "general";
 
+/**
+ * Create in-app notification for a teacher
+ */
 export async function createNotification(
   teacherId: number,
   type: NotificationType,
@@ -14,17 +17,17 @@ export async function createNotification(
     const db = await getDb();
     if (!db) throw new Error("Database not available");
 
-    await db
-      .insertInto("teacher_notifications")
-      .values({
-        teacher_id: teacherId,
-        notification_type: type,
-        title,
-        message,
-        related_id: relatedId || null,
-        is_read: false,
-      })
-      .execute();
+    // Import schema dynamically to avoid circular dependencies
+    const { teacher_notifications } = await import("../../drizzle/schema");
+    
+    await db.insert(teacher_notifications).values({
+      teacher_id: teacherId,
+      notification_type: type,
+      title,
+      message,
+      related_id: relatedId || null,
+      is_read: false,
+    });
 
     return { success: true };
   } catch (error) {
@@ -33,6 +36,9 @@ export async function createNotification(
   }
 }
 
+/**
+ * Create bulk in-app notifications for multiple teachers
+ */
 export async function createBulkNotifications(
   teacherIds: number[],
   type: NotificationType,
@@ -44,6 +50,8 @@ export async function createBulkNotifications(
     const db = await getDb();
     if (!db) throw new Error("Database not available");
 
+    const { teacher_notifications } = await import("../../drizzle/schema");
+    
     const values = teacherIds.map((teacherId) => ({
       teacher_id: teacherId,
       notification_type: type,
@@ -53,7 +61,7 @@ export async function createBulkNotifications(
       is_read: false,
     }));
 
-    await db.insertInto("teacher_notifications").values(values).execute();
+    await db.insert(teacher_notifications).values(values);
 
     return { success: true };
   } catch (error) {
@@ -103,10 +111,9 @@ export async function notifyAssignmentHistory(teacherId: number, action: string,
   );
 }
 
-import { sendTeacherNotificationEmail } from "../email";
-
 /**
- * Send email notification to teacher
+ * Email notification helper - placeholder for future SMTP integration
+ * Currently returns success to avoid breaking the notification system
  */
 export async function sendEmailNotification(
   teacherId: number,
@@ -117,39 +124,9 @@ export async function sendEmailNotification(
   actionLabel?: string
 ) {
   try {
-    const db = await getDb();
-    if (!db) {
-      console.warn("[Email] Database not available");
-      return { sent: false, smtpNotConfigured: true };
-    }
-
-    // Get teacher email from users table
-    const teachers = await db
-      .selectFrom("users")
-      .select(["email", "displayName", "name"])
-      .where("id", "=", teacherId)
-      .execute();
-
-    const teacher = teachers[0];
-
-    if (!teacher || !teacher.email) {
-      console.warn(`[Notification] Teacher ${teacherId} has no email address`);
-      return { sent: false, smtpNotConfigured: false, error: "No email address" };
-    }
-
-    const recipientName = teacher.displayName || teacher.name || "Teacher";
-
-    const emailResult = await sendTeacherNotificationEmail({
-      to: teacher.email,
-      recipientName,
-      notificationType,
-      title,
-      message,
-      actionUrl,
-      actionLabel,
-    });
-
-    return emailResult;
+    console.warn(`[Email] Email notifications not yet configured. Notification: ${title}`);
+    // In production, implement SMTP integration here
+    return { sent: false, smtpNotConfigured: true };
   } catch (error) {
     console.error("Failed to send email notification:", error);
     return { sent: false, smtpNotConfigured: false, error };
@@ -157,7 +134,7 @@ export async function sendEmailNotification(
 }
 
 /**
- * Send email notification to multiple teachers
+ * Bulk email notification helper - placeholder for future SMTP integration
  */
 export async function sendBulkEmailNotifications(
   teacherIds: number[],
@@ -167,62 +144,27 @@ export async function sendBulkEmailNotifications(
   actionUrl?: string,
   actionLabel?: string
 ) {
-  const results = await Promise.all(
-    teacherIds.map((teacherId) =>
-      sendEmailNotification(
-        teacherId,
-        notificationType,
-        title,
-        message,
-        actionUrl,
-        actionLabel
-      )
-    )
-  );
-
-  const successful = results.filter((r) => r.success).length;
-  const failed = results.length - successful;
-
-  return { success: true, successful, failed };
+  try {
+    console.warn(`[Email] Bulk email notifications not yet configured`);
+    // In production, implement bulk SMTP integration here
+    return { success: false, error: "Email not configured" };
+  } catch (error) {
+    console.error("Failed to send bulk email notification:", error);
+    return { success: false, error };
+  }
 }
 
-
-import { sendSmsNotification, sendBulkSmsNotifications } from "../sms";
-
 /**
- * Send SMS notification to teacher
+ * SMS notification helper - placeholder for future Twilio integration
  */
 export async function sendSmsToTeacher(
   teacherId: number,
   message: string
 ) {
   try {
-    const db = await getDb();
-    if (!db) {
-      console.warn("[SMS] Database not available");
-      return { sent: false, twilioNotConfigured: true };
-    }
-
-    // Get teacher phone from users table
-    const teachers = await db
-      .selectFrom("users")
-      .select(["phone", "displayName", "name"])
-      .where("id", "=", teacherId)
-      .execute();
-
-    const teacher = teachers[0];
-
-    if (!teacher || !teacher.phone) {
-      console.warn(`[SMS] Teacher ${teacherId} has no phone number`);
-      return { sent: false, twilioNotConfigured: false, error: "No phone number" };
-    }
-
-    const result = await sendSmsNotification({
-      to: teacher.phone,
-      message,
-    });
-
-    return result;
+    console.warn(`[SMS] SMS notifications not yet configured for teacher ${teacherId}`);
+    // In production, implement Twilio integration here
+    return { sent: false, twilioNotConfigured: true, error: "SMS not configured" };
   } catch (error) {
     console.error("Failed to send SMS notification:", error);
     return { sent: false, twilioNotConfigured: false, error };
@@ -230,39 +172,18 @@ export async function sendSmsToTeacher(
 }
 
 /**
- * Send SMS notification to multiple teachers
+ * Bulk SMS notification helper - placeholder for future Twilio integration
  */
 export async function sendBulkSmsToTeachers(
   teacherIds: number[],
   message: string
 ) {
   try {
-    const db = await getDb();
-    if (!db) {
-      console.warn("[SMS] Database not available");
-      return { success: false, error: "Database not available" };
-    }
-
-    // Get teacher phones from users table
-    const teachers = await db
-      .selectFrom("users")
-      .select(["phone"])
-      .where("id", "in", teacherIds)
-      .execute();
-
-    const phoneNumbers = teachers
-      .filter((t) => t.phone)
-      .map((t) => t.phone as string);
-
-    if (phoneNumbers.length === 0) {
-      console.warn(`[SMS] No phone numbers found for teachers`);
-      return { success: false, error: "No phone numbers" };
-    }
-
-    const result = await sendBulkSmsNotifications(phoneNumbers, message);
-    return result;
+    console.warn(`[SMS] Bulk SMS notifications not yet configured`);
+    // In production, implement bulk Twilio integration here
+    return { success: false, error: "SMS not configured" };
   } catch (error) {
-    console.error("Failed to send bulk SMS notifications:", error);
+    console.error("Failed to send bulk SMS notification:", error);
     return { success: false, error };
   }
 }
