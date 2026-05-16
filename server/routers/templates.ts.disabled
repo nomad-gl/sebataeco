@@ -4,7 +4,7 @@
 
 import { router, protectedProcedure } from "../_core/trpc";
 import { z } from "zod";
-import { db } from "../db";
+import { getDb } from "../db";
 import { eq, and } from "drizzle-orm";
 
 // Schema for template creation
@@ -54,7 +54,7 @@ export const templatesRouter = router({
         ),
       });
 
-      return templates.map(t => ({
+      return templates.map((t: typeof templates[0]) => ({
         ...t,
         structure: typeof t.structure === 'string' ? JSON.parse(t.structure) : t.structure,
       }));
@@ -105,7 +105,7 @@ export const templatesRouter = router({
           ),
         });
 
-        return templates.map(t => ({
+        return templates.map((t: typeof templates[0]) => ({
           ...t,
           structure: typeof t.structure === 'string' ? JSON.parse(t.structure) : t.structure,
         }));
@@ -161,7 +161,8 @@ export const templatesRouter = router({
           throw new Error("Template not found or unauthorized");
         }
 
-        await db.templates.update()
+        const database = await getDb();
+        await database.templates.update()
           .set({ isPublic: input.isPublic })
           .where(eq(db.templates.id, input.templateId));
 
