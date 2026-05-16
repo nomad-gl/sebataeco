@@ -39,6 +39,7 @@ import Help from "./pages/Help";
 import Settings from "./pages/Settings";
 import Accountability from "./pages/Accountability";
 import AuditDashboard from "./pages/AuditDashboard";
+import SecurityAuditDashboard from "./pages/SecurityAuditDashboard";
 import Privacy from "./pages/Privacy";
 import PwaInstallBanner from "./components/PwaInstallBanner";
 import { BackToTop } from "./components/BackToTop";
@@ -217,6 +218,7 @@ function Router() {
         <Route path="/settings" component={Settings} />
         <Route path="/accountability" component={Accountability} />
         <Route path="/audit" component={AuditDashboard} />
+        <Route path="/security-audit" component={SecurityAuditDashboard} />
         <Route path="/privacy" component={Privacy} />
         <Route path="/dpa" component={Dpa} />
         <Route path="/ai-models" component={AiModels} />
