@@ -2651,26 +2651,3 @@ export const classGroupSubjects = mysqlTable(
 );
 export type ClassGroupSubject = typeof classGroupSubjects.$inferSelect;
 export type ClassGroupSubjectInsert = typeof classGroupSubjects.$inferInsert;
-
-/**
- * Teacher notifications table for in-app notifications
- */
-export const teacher_notifications = mysqlTable(
-  "teacher_notifications",
-  {
-    id: int("id").autoincrement().primaryKey(),
-    teacher_id: int("teacher_id").notNull(),
-    notification_type: varchar("notification_type", { length: 64 }).notNull(),
-    title: varchar("title", { length: 255 }).notNull(),
-    message: text("message").notNull(),
-    related_id: int("related_id"),
-    is_read: boolean("is_read").default(false).notNull(),
-    created_at: timestamp("created_at").defaultNow().notNull(),
-  },
-  (table) => ({
-    teacherIdIdx: index("idx_tn_teacher_id").on(table.teacher_id),
-    createdAtIdx: index("idx_tn_created_at").on(table.created_at),
-  })
-);
-export type TeacherNotification = typeof teacher_notifications.$inferSelect;
-export type TeacherNotificationInsert = typeof teacher_notifications.$inferInsert;
