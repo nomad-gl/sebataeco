@@ -2,7 +2,8 @@ import { z } from "zod";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { TRPCError } from "@trpc/server";
-import { sql } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
+import { teacher_notifications } from "../drizzle/schema";
 
 export const teacherNotificationsRouter = router({
   // Get all notifications for current teacher
@@ -20,26 +21,28 @@ export const teacherNotificationsRouter = router({
 
       const offset = (input.page - 1) * input.limit;
 
-      // Build query
-      let query = db
-        .selectFrom("teacher_notifications")
-        .selectAll()
-        .where("teacher_id", "=", ctx.user.id);
-
+      // Build where conditions
+      const conditions = [eq(teacher_notifications.teacher_id, ctx.user.id)];
       if (input.unreadOnly) {
-        query = query.where("is_read", "=", false);
+        conditions.push(eq(teacher_notifications.is_read, false));
       }
 
       // Get total count
-      const countResult = await query.execute();
-      const total = countResult.length;
+      const countResult = await db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(teacher_notifications)
+        .where(and(...conditions));
+      
+      const total = countResult[0]?.count || 0;
 
       // Get paginated results
-      const notifications = await query
-        .orderBy("created_at", "desc")
+      const notifications = await db
+        .select()
+        .from(teacher_notifications)
+        .where(and(...conditions))
+        .orderBy(desc(teacher_notifications.created_at))
         .limit(input.limit)
-        .offset(offset)
-        .execute();
+        .offset(offset);
 
       return {
         notifications,
@@ -56,11 +59,14 @@ export const teacherNotificationsRouter = router({
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
     const result = await db
-      .selectFrom("teacher_notifications")
-      .select(sql`COUNT(*) as count`.as("count"))
-      .where("teacher_id", "=", ctx.user.id)
-      .where("is_read", "=", false)
-      .execute();
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(teacher_notifications)
+      .where(
+        and(
+          eq(teacher_notifications.teacher_id, ctx.user.id),
+          eq(teacher_notifications.is_read, false)
+        )
+      );
 
     return result[0]?.count || 0;
   }),
@@ -74,24 +80,23 @@ export const teacherNotificationsRouter = router({
 
       // Verify ownership
       const notification = await db
-        .selectFrom("teacher_notifications")
-        .selectAll()
-        .where("id", "=", input.notificationId)
-        .executeTakeFirst();
+        .select()
+        .from(teacher_notifications)
+        .where(eq(teacher_notifications.id, input.notificationId))
+        .limit(1);
 
-      if (!notification) {
+      if (!notification || notification.length === 0) {
         throw new TRPCError({ code: "NOT_FOUND" });
       }
 
-      if (notification.teacher_id !== ctx.user.id) {
+      if (notification[0].teacher_id !== ctx.user.id) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
 
       await db
-        .updateTable("teacher_notifications")
+        .update(teacher_notifications)
         .set({ is_read: true })
-        .where("id", "=", input.notificationId)
-        .execute();
+        .where(eq(teacher_notifications.id, input.notificationId));
 
       return { success: true };
     }),
@@ -102,10 +107,9 @@ export const teacherNotificationsRouter = router({
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
     await db
-      .updateTable("teacher_notifications")
+      .update(teacher_notifications)
       .set({ is_read: true })
-      .where("teacher_id", "=", ctx.user.id)
-      .execute();
+      .where(eq(teacher_notifications.teacher_id, ctx.user.id));
 
     return { success: true };
   }),
@@ -119,23 +123,22 @@ export const teacherNotificationsRouter = router({
 
       // Verify ownership
       const notification = await db
-        .selectFrom("teacher_notifications")
-        .selectAll()
-        .where("id", "=", input.notificationId)
-        .executeTakeFirst();
+        .select()
+        .from(teacher_notifications)
+        .where(eq(teacher_notifications.id, input.notificationId))
+        .limit(1);
 
-      if (!notification) {
+      if (!notification || notification.length === 0) {
         throw new TRPCError({ code: "NOT_FOUND" });
       }
 
-      if (notification.teacher_id !== ctx.user.id) {
+      if (notification[0].teacher_id !== ctx.user.id) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
 
       await db
-        .deleteFrom("teacher_notifications")
-        .where("id", "=", input.notificationId)
-        .execute();
+        .delete(teacher_notifications)
+        .where(eq(teacher_notifications.id, input.notificationId));
 
       return { success: true };
     }),
@@ -146,9 +149,8 @@ export const teacherNotificationsRouter = router({
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
     await db
-      .deleteFrom("teacher_notifications")
-      .where("teacher_id", "=", ctx.user.id)
-      .execute();
+      .delete(teacher_notifications)
+      .where(eq(teacher_notifications.teacher_id, ctx.user.id));
 
     return { success: true };
   }),
@@ -180,7 +182,7 @@ export const teacherNotificationsRouter = router({
       }
 
       const result = await db
-        .insertInto("teacher_notifications")
+        .insert(teacher_notifications)
         .values({
           teacher_id: input.teacher_id,
           notification_type: input.notification_type,
@@ -188,10 +190,11 @@ export const teacherNotificationsRouter = router({
           message: input.message,
           related_id: input.related_id || null,
           is_read: false,
-        })
-        .execute();
+          created_at: new Date(),
+          updated_at: new Date(),
+        });
 
-      return { success: true, id: result[0]?.insertId };
+      return { success: true };
     }),
 
   // Get notification by ID
@@ -202,19 +205,19 @@ export const teacherNotificationsRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
       const notification = await db
-        .selectFrom("teacher_notifications")
-        .selectAll()
-        .where("id", "=", input.notificationId)
-        .executeTakeFirst();
+        .select()
+        .from(teacher_notifications)
+        .where(eq(teacher_notifications.id, input.notificationId))
+        .limit(1);
 
-      if (!notification) {
+      if (!notification || notification.length === 0) {
         throw new TRPCError({ code: "NOT_FOUND" });
       }
 
-      if (notification.teacher_id !== ctx.user.id) {
+      if (notification[0].teacher_id !== ctx.user.id) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
 
-      return notification;
+      return notification[0];
     }),
 });
