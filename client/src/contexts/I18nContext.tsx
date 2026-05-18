@@ -4166,7 +4166,8 @@ export const translations = {
     view_teacher_details: "View Teacher Details",
     warning_acknowledged: "Warning Acknowledged",
     warning_excess_hours: "Warning: Excess Hours",
-
+    powered_by_seba: "Powered by SEBA",
+    seba_description: "Sovereign Educational AI Platform for Catalonia",
   },
   es: {
     // NavBar
@@ -8301,7 +8302,8 @@ export const translations = {
     view_teacher_details: "Ver Detalles del Profesor",
     warning_acknowledged: "Advertencia Reconocida",
     warning_excess_hours: "Advertencia: Horas Excesivas",
-
+    powered_by_seba: "Impulsado por SEBA",
+    seba_description: "Plataforma de IA Educativa Soberana para Cataluña",
   },
   ca: {
     // NavBar
@@ -12436,6 +12438,8 @@ export const translations = {
     view_teacher_details: "Veure Detalls del Professor",
     warning_acknowledged: "Advertència Reconeguda",
     warning_excess_hours: "Advertència: Hores Excessives",
+    powered_by_seba: "Impulsat per SEBA",
+    seba_description: "Plataforma d'IA Educativa Sobirana per a Catalunya",
   },
 } as const;
 

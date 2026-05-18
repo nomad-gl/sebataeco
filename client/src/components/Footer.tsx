@@ -66,7 +66,8 @@ export default function Footer() {
             >
               sebasnap.com →
             </a>
-            <span className="text-xs text-muted-foreground">{t("footer_powered")} AINA</span>
+            <span className="text-xs text-muted-foreground">{t("powered_by_seba")}</span>
+            <span className="text-xs text-muted-foreground/70">{t("seba_description")}</span>
             <div className="flex items-center gap-2 mt-0.5">
               <Link href="/privacy" className="text-[11px] text-muted-foreground hover:text-foreground hover:underline transition-colors">
                 {t("footer_privacy")}
