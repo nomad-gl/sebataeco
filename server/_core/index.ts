@@ -144,6 +144,13 @@ async function startServer() {
     next();
   });
 
+  // Block Google Translate and other translation services
+  app.use((_req, res, next) => {
+    // Prevent Google Translate from translating the page
+    res.setHeader("X-Google-No-Translate", "true");
+    next();
+  });
+
   // ── Health check: lightweight uptime probe (no auth, no logging) ─────────
   app.get("/api/ping", (_req, res) => {
     res.json({ status: "ok", ts: Date.now() });

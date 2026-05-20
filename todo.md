@@ -5937,3 +5937,7 @@
 
 ## Bug Fixes
 - [x] Fix sign-in page refresh/reset issue caused by useLatestUpdates hook calling protected query on unauthenticated page
+
+
+## Security & Access Control
+- [x] Block Google Translate from accessing and translating the website
