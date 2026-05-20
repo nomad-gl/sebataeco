@@ -5933,3 +5933,7 @@
 - [x] Add smooth transitions for navigation buttons (previous/next)
 - [x] Add progress dots animation on update change
 - [x] Add staggered animation for modal elements (header, content, buttons)
+
+
+## Bug Fixes
+- [x] Fix sign-in page refresh/reset issue caused by useLatestUpdates hook calling protected query on unauthenticated page
