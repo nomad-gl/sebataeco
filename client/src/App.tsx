@@ -48,6 +48,8 @@ import CatalanDialectDetector from "./components/CatalanDialectDetector";
 import DataNoticeBanner from "./components/DataNoticeBanner";
 import DpaAcceptanceDialog from "./components/DpaAcceptanceDialog";
 import WhatsNewBanner from "./components/WhatsNewBanner";
+import { LatestUpdatesModal } from "./components/LatestUpdatesModal";
+import { useLatestUpdates } from "./hooks/useLatestUpdates";
 // import TeacherNotifications from "./pages/TeacherNotifications"; // Temporarily disabled due to missing dependencies
 import Dpa from "./pages/Dpa";
 import AiModels from "./pages/AiModels";
@@ -300,6 +302,8 @@ function WelcomeToast() {
 }
 
 function App() {
+  const { isOpen, setIsOpen, updates } = useLatestUpdates();
+
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light">
@@ -313,6 +317,11 @@ function App() {
           <DataNoticeBanner />
           <DpaAcceptanceDialog />
           <WhatsNewBanner />
+          <LatestUpdatesModal
+            isOpen={isOpen}
+            onClose={() => setIsOpen(false)}
+            updates={updates}
+          />
           <BackToTop />
           <GlobalCallListener />
           <OfflineBanner />

@@ -5914,3 +5914,14 @@
 - [x] Replace Manus branding in UI components and pages (useAuth.ts, ManusDialog.tsx already updated)
 - [x] Replace Manus branding in configuration and documentation (PROJECT_COMPLETION_SUMMARY.md, all .md files updated)
 - [x] Test branding changes and verify app functionality
+
+## Latest Updates Feature
+- [x] Create app_updates table in database schema (id, title, description, version, created_at, displayed_count)
+- [x] Create viewed_updates table to track which updates each user has seen
+- [x] Add tRPC procedure: updates.getLatest (fetch unviewed updates for current user)
+- [x] Add tRPC procedure: updates.markAsViewed (mark update as viewed)
+- [x] Add tRPC procedure: updates.getAll (admin: fetch all updates with view counts)
+- [x] Create LatestUpdatesModal component (displays update title, description, version, with dismiss button)
+- [x] Integrate LatestUpdatesModal into App.tsx to auto-display on first load
+- [x] Add logic to show modal only once per session (or when new updates exist)
+- [x] Add unit tests for Latest Updates feature

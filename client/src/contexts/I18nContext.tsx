@@ -4168,6 +4168,12 @@ export const translations = {
     warning_excess_hours: "Warning: Excess Hours",
     powered_by_seba: "Powered by SEBA",
     seba_description: "Sovereign Educational AI Platform for Catalonia",
+    latest_updates: "Latest Updates",
+    new_features_and_improvements: "Check out what's new in SEBA",
+    dismiss_all: "Dismiss All",
+    got_it: "Got It",
+    next_update: "Next Update",
+    of: "of",
   },
   es: {
     // NavBar
@@ -8304,6 +8310,12 @@ export const translations = {
     warning_excess_hours: "Advertencia: Horas Excesivas",
     powered_by_seba: "Impulsado por SEBA",
     seba_description: "Plataforma de IA Educativa Soberana para Cataluña",
+    latest_updates: "Últimas Actualizaciones",
+    new_features_and_improvements: "Descubre las novedades en SEBA",
+    dismiss_all: "Descartar Todo",
+    got_it: "Entendido",
+    next_update: "Siguiente Actualización",
+    of: "de",
   },
   ca: {
     // NavBar
@@ -12440,6 +12452,12 @@ export const translations = {
     warning_excess_hours: "Advertència: Hores Excessives",
     powered_by_seba: "Impulsat per SEBA",
     seba_description: "Plataforma d'IA Educativa Sobirana per a Catalunya",
+    latest_updates: "Últimes Actualitzacions",
+    new_features_and_improvements: "Descobreix les novetats a SEBA",
+    dismiss_all: "Descartar Tot",
+    got_it: "D'acord",
+    next_update: "Següent Actualització",
+    of: "de",
   },
 } as const;
 

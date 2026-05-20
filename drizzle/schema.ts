@@ -2651,3 +2651,50 @@ export const classGroupSubjects = mysqlTable(
 );
 export type ClassGroupSubject = typeof classGroupSubjects.$inferSelect;
 export type ClassGroupSubjectInsert = typeof classGroupSubjects.$inferInsert;
+
+
+// ─── App Updates ────────────────────────────────────────────────────────────
+/**
+ * Stores application updates/announcements to be displayed to users.
+ * Each update has a title, description, version, and creation timestamp.
+ */
+export const appUpdates = mysqlTable(
+  "app_updates",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    title: varchar("title", { length: 255 }).notNull(),
+    description: text("description").notNull(),
+    version: varchar("version", { length: 32 }).notNull(),
+    displayedCount: int("displayedCount").default(0).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    versionIdx: index("idx_appUpdates_version").on(table.version),
+    createdAtIdx: index("idx_appUpdates_createdAt").on(table.createdAt),
+  })
+);
+export type AppUpdate = typeof appUpdates.$inferSelect;
+export type AppUpdateInsert = typeof appUpdates.$inferInsert;
+
+// ─── Viewed Updates (User Tracking) ─────────────────────────────────────────
+/**
+ * Tracks which updates each user has viewed.
+ * Used to show only unviewed updates to users on app entry.
+ */
+export const viewedUpdates = mysqlTable(
+  "viewed_updates",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    updateId: int("updateId").notNull(),
+    viewedAt: timestamp("viewedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("idx_viewedUpdates_userId").on(table.userId),
+    updateIdIdx: index("idx_viewedUpdates_updateId").on(table.updateId),
+    uniqueUserUpdate: unique().on(table.userId, table.updateId),
+    userIdUpdateIdIdx: index("idx_viewedUpdates_userUpdate").on(table.userId, table.updateId),
+  })
+);
+export type ViewedUpdate = typeof viewedUpdates.$inferSelect;
+export type ViewedUpdateInsert = typeof viewedUpdates.$inferInsert;
