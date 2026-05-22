@@ -5941,3 +5941,7 @@
 
 ## Security & Access Control
 - [x] Block Google Translate from accessing and translating the website
+
+
+## UI Text Changes
+- [x] Change login page text from "continue to SEBA AI" to "continue to Sebataeco | AINA" (all 3 languages)
