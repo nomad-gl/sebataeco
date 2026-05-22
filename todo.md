@@ -5945,3 +5945,15 @@
 
 ## UI Text Changes
 - [x] Change login page text from "continue to SEBA AI" to "continue to Sebataeco | AINA" (all 3 languages)
+
+
+## Auto Spelling Variations for Voice Training
+- [x] Create shared/spellingVariations.ts utility with 8 variation strategies (vowel subs, consonant subs, space splits, transpositions, letter drops, doubles, affixes, diacritic removal)
+- [x] Integrate auto-generation into wakeWords.add mutation (generates 10+ variations on new word)
+- [x] Integrate auto-generation into wakeWords.updateVariants mutation (merges auto with manual)
+- [x] Integrate auto-generation into audioResponses.upload mutation (enriches trigger phrases)
+- [x] Integrate auto-generation into audioResponses.update mutation (enriches trigger phrases on edit)
+- [x] Unit tests: 16/16 passing for spelling variation generator and merge utility
+
+## UI Text Changes
+- [x] Change login page text from "continue to SEBA AI" to "continue to Sebataeco | AINA" (all 3 languages)

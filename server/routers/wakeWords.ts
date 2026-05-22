@@ -4,6 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
 import { wakeWords } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
+import { generateSpellingVariations, mergeVariations } from "../../shared/spellingVariations";
 
 export const wakeWordsRouter = router({
   /** Public — voice hooks call this to get all active wake words */
@@ -40,13 +41,17 @@ export const wakeWordsRouter = router({
         await db.update(wakeWords).set({ isPrimary: false }).where(eq(wakeWords.isPrimary, true));
       }
 
+      // Auto-generate at least 10 spelling variations for improved voice recognition
+      const autoVariants = generateSpellingVariations(input.word.toLowerCase().trim(), 10);
+      const mergedVariants = mergeVariations(input.phoneticVariants, autoVariants);
+
       await db.insert(wakeWords).values({
         word: input.word.toLowerCase().trim(),
-        phoneticVariants: JSON.stringify(input.phoneticVariants),
+        phoneticVariants: JSON.stringify(mergedVariants),
         isPrimary: input.isPrimary,
         isActive: true,
       });
-      return { success: true };
+      return { success: true, generatedVariants: autoVariants.length };
     }),
 
   /** Admin — delete a wake word */
@@ -91,10 +96,17 @@ export const wakeWordsRouter = router({
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      // Auto-generate spelling variations and merge with manually provided ones
+      const rows = await db.select().from(wakeWords).where(eq(wakeWords.id, input.id));
+      const baseWord = rows[0]?.word ?? "";
+      const autoVariants = generateSpellingVariations(baseWord, 10);
+      const mergedVariants = mergeVariations(input.phoneticVariants, autoVariants);
+
       await db
         .update(wakeWords)
-        .set({ phoneticVariants: JSON.stringify(input.phoneticVariants) })
+        .set({ phoneticVariants: JSON.stringify(mergedVariants) })
         .where(eq(wakeWords.id, input.id));
-      return { success: true };
+      return { success: true, totalVariants: mergedVariants.length };
     }),
 });

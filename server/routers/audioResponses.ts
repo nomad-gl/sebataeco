@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { storagePut } from "../storage";
 import { assertFileSafe } from "../security/fileScanner";
 import { randomBytes } from "crypto";
+import { generateSpellingVariations, mergeVariations } from "../../shared/spellingVariations";
 
 function randomSuffix() {
   return randomBytes(6).toString("hex");
@@ -61,9 +62,17 @@ export const audioResponsesRouter = router({
       const fileKey = `audio-responses/${randomSuffix()}-${Date.now()}.${ext}`;
       const { url } = await storagePut(fileKey, buffer, input.mimeType);
 
+      // Auto-generate spelling variations for each trigger phrase
+      const autoVariants: string[] = [];
+      for (const trigger of input.triggerPhrases) {
+        const vars = generateSpellingVariations(trigger, 10);
+        autoVariants.push(...vars);
+      }
+      const enrichedTriggers = mergeVariations(input.triggerPhrases, autoVariants);
+
       await db.insert(audioResponses).values({
         label: input.label,
-        triggerPhrases: JSON.stringify(input.triggerPhrases),
+        triggerPhrases: JSON.stringify(enrichedTriggers),
         fileUrl: url,
         fileKey,
         mimeType: input.mimeType,
@@ -112,8 +121,16 @@ export const audioResponsesRouter = router({
       if (!db) throw new Error("Database unavailable");
       const patch: Record<string, unknown> = {};
       if (input.label !== undefined) patch.label = input.label;
-      if (input.triggerPhrases !== undefined)
-        patch.triggerPhrases = JSON.stringify(input.triggerPhrases);
+      if (input.triggerPhrases !== undefined) {
+        // Auto-generate spelling variations for each trigger phrase on update
+        const autoVariants: string[] = [];
+        for (const trigger of input.triggerPhrases) {
+          const vars = generateSpellingVariations(trigger, 10);
+          autoVariants.push(...vars);
+        }
+        const enrichedTriggers = mergeVariations(input.triggerPhrases, autoVariants);
+        patch.triggerPhrases = JSON.stringify(enrichedTriggers);
+      }
       if (Object.keys(patch).length > 0) {
         await db
           .update(audioResponses)
