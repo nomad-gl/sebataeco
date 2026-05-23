@@ -50,32 +50,30 @@ function getVoicePrompt(lang?: string): string | undefined {
 }
 
 async function synthesizeSpeech(text: string, lang?: string, voiceOverride?: string, accent?: string, lengthScale?: number): Promise<{ buffer: Buffer; mimeType: string }> {
-  // Route Catalan through BSC AINA native TTS for authentic pronunciation
-  // Only use BSC for the "aina" voice (no voiceOverride) — other voices (coral, marin, etc.) go straight to OpenAI
+  // Route CA/ES through BSC AINA native TTS
+  // "aina" = female (olga), "quim" = male (quim)
+  // If no voiceOverride or voiceOverride is "aina"/"quim", use BSC
   const langNorm = (lang ?? "").toLowerCase().split(/[-_]/)[0];
-  if (langNorm === "ca" && !voiceOverride) {
+  const isBSCVoice = !voiceOverride || voiceOverride === "aina" || voiceOverride === "quim";
+  if ((langNorm === "ca" || langNorm === "es") && isBSCVoice) {
     try {
-      // Map accent names to BSC AINA speaker combinations
-      // Note: BSC currently only reliably supports "balear" accent;
-      // other accents may fail, so we fall back to balear for those
-      const accentMap: Record<string, { accent: string; speaker: string }> = {
-        "balear": { accent: "balear", speaker: "olga" },
-        "central": { accent: "balear", speaker: "olga" },
-        "nord-occidental": { accent: "balear", speaker: "olga" },
-        "valencia": { accent: "balear", speaker: "olga" },
-      };
-      const accentConfig = accentMap[accent ?? "balear"] ?? { accent: "balear", speaker: "olga" };
+      // Select speaker based on voice parameter: quim=male, aina/default=female (olga)
+      const speaker = voiceOverride === "quim" ? "quim" : "olga";
       const wavBuffer = await synthesizeCatalanBSC({
         text: text.slice(0, 4096),
-        accent: accentConfig.accent as any,
-        speaker: accentConfig.speaker as any,
+        accent: "balear",
+        speaker: speaker as any,
         temperature: 0.2,
         lengthScale: lengthScale ?? 0.89,
       });
       return { buffer: wavBuffer, mimeType: "audio/wav" };
     } catch (err) {
       // If BSC fails, fall through to OpenAI as fallback
-      console.warn("[TTS] BSC AINA Catalan TTS failed, falling back to OpenAI:", (err as Error).message);
+      console.warn("[TTS] BSC AINA TTS failed, falling back to browser speech:", (err as Error).message);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "BSC TTS temporarily unavailable. Please try again.",
+      });
     }
   }
 
@@ -242,7 +240,7 @@ export const voiceRouter = router({
         text: z.string().min(1).max(4096),
         lang: z.string().nullish(),
         /** Optional voice override. If omitted, pickVoice() selects based on lang. */
-        voice: z.enum(["alloy", "ash", "ballad", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer", "verse", "marin", "cedar", "aina"]).nullish(),
+        voice: z.enum(["alloy", "ash", "ballad", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer", "verse", "marin", "cedar", "aina", "quim"]).nullish(),
         /** Optional Catalan accent for Aina voice (central, balear, nord-occidental, valencia) */
         accent: z.enum(["central", "balear", "nord-occidental", "valencia"]).nullish(),
         /** Optional speech speed (lengthScale) for Aina voice (0.5 slow to 2.0 fast) */

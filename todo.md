@@ -6009,3 +6009,7 @@
 - [x] Fix langCode === "ca" comparison to handle dialect-qualified codes (ca-central, ca-balearic, etc.)
 - [x] Fix BSC routing to only use BSC for Aina voice (skip for coral/marin/etc. to avoid delay)
 - [x] Fix BSC accent map to use only working balear accent (other accents currently error on BSC API)
+- [x] Restructure CA/ES voice options: replace non-functional OpenAI voices with BSC speakers (Aina=female/olga, Quim=male/quim)
+- [x] Remove accent cycling button (only balear works on BSC)
+- [x] Add 'quim' voice to TtsVoice type, server enum, and i18n (EN/ES/CA)
+- [x] Unit tests for voice routing logic (14 passing)
