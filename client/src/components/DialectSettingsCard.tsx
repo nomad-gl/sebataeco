@@ -155,23 +155,13 @@ export default function DialectSettingsCard() {
               <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
               <div className="flex-1 space-y-1">
                 <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
-                  {t("dialect_auto_detected_title" as TranslationKey)}
+                  {t("dialect_auto_detected" as TranslationKey)}
                 </p>
                 <p className="text-xs text-amber-700 dark:text-amber-300">
-                  {t("dialect_auto_detected_desc" as TranslationKey)}{" "}
+                  {t("dialect_auto_detect_suggestion" as TranslationKey)}{" "}
                   <span className="font-semibold">
                     {t(DIALECT_OPTIONS.find(o => o.id === autoDetectedDialect)?.labelKey || ("dialect_central" as TranslationKey))}
                   </span>
-                  {autoDetectSource === "own_location" && (
-                    <span className="text-amber-600 dark:text-amber-400">
-                      {" "}({t("dialect_auto_source_own" as TranslationKey)})
-                    </span>
-                  )}
-                  {autoDetectSource === "tenant_director" && (
-                    <span className="text-amber-600 dark:text-amber-400">
-                      {" "}({t("dialect_auto_source_school" as TranslationKey)})
-                    </span>
-                  )}
                 </p>
               </div>
             </div>
@@ -182,7 +172,7 @@ export default function DialectSettingsCard() {
                 className="h-7 text-xs bg-amber-600 hover:bg-amber-700 text-white"
                 onClick={handleAcceptAutoDetect}
               >
-                {t("dialect_auto_accept" as TranslationKey)}
+                {t("dialect_auto_detect_apply" as TranslationKey)}
               </Button>
               <Button
                 size="sm"
@@ -190,7 +180,7 @@ export default function DialectSettingsCard() {
                 className="h-7 text-xs text-amber-700 dark:text-amber-300"
                 onClick={handleDismissAutoDetect}
               >
-                {t("dialect_auto_dismiss" as TranslationKey)}
+                {t("dialect_auto_detect_dismiss" as TranslationKey)}
               </Button>
             </div>
           </div>
@@ -201,7 +191,7 @@ export default function DialectSettingsCard() {
           <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
             <Info className="w-3.5 h-3.5 shrink-0" />
             <span>
-              {t("dialect_auto_matched" as TranslationKey)}
+              {t("dialect_auto_detect" as TranslationKey)}
             </span>
           </div>
         )}

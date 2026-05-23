@@ -130,7 +130,7 @@ export const appRouter = router({
         // If user is a director with schoolLocation, use their own location
         if (currentUser?.schoolLocation) {
           const detected = detectDialectFromLocation(currentUser.schoolLocation);
-          if (input?.save && !currentUser.ttsDialect) {
+          if (input?.save) {
             const dialectName = detected === "ca-nw" ? "nord-occidental" : detected === "ca-ba" ? "balear" : detected === "ca-va" ? "valencia" : "central";
             await dbConn.update(users).set({ ttsDialect: dialectName }).where(eq(users.id, ctx.user.id));
           }
@@ -151,7 +151,7 @@ export const appRouter = router({
 
           if (director?.schoolLocation) {
             const detected = detectDialectFromLocation(director.schoolLocation);
-            if (input?.save && !currentUser.ttsDialect) {
+            if (input?.save) {
               const dialectName = detected === "ca-nw" ? "nord-occidental" : detected === "ca-ba" ? "balear" : detected === "ca-va" ? "valencia" : "central";
               await dbConn.update(users).set({ ttsDialect: dialectName }).where(eq(users.id, ctx.user.id));
             }

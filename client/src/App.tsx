@@ -45,6 +45,7 @@ import { BackToTop } from "./components/BackToTop";
 import UpdateBanner from "./components/UpdateBanner";
 import FirstLaunchLanguagePicker from "./components/FirstLaunchLanguagePicker";
 import CatalanDialectDetector from "./components/CatalanDialectDetector";
+import FirstLoginDialectAutoSet from "./components/FirstLoginDialectAutoSet";
 import DataNoticeBanner from "./components/DataNoticeBanner";
 import DpaAcceptanceDialog from "./components/DpaAcceptanceDialog";
 import WhatsNewBanner from "./components/WhatsNewBanner";
@@ -312,6 +313,7 @@ function App() {
           <WelcomeToast />
           <FirstLaunchLanguagePicker />
           <CatalanDialectDetector />
+          <FirstLoginDialectAutoSet />
           <UpdateBanner />
           <PwaInstallBanner />
           <DataNoticeBanner />

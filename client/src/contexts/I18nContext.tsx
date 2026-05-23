@@ -4191,6 +4191,12 @@ export const translations = {
     dialect_saved_success: "Dialect preference saved",
     dialect_saved_error: "Failed to save dialect preference",
     dialect_settings_note: "The selected dialect determines how the Aina voice assistant pronounces Catalan text. Powered by BSC Matxa TTS.",
+    dialect_auto_detect: "Auto-detect from school location",
+    dialect_auto_detected: "Detected dialect based on your school's location",
+    dialect_auto_detect_suggestion: "Based on your school's location, we suggest",
+    dialect_auto_detect_apply: "Apply suggestion",
+    dialect_auto_detect_dismiss: "Keep current",
+    dialect_auto_detect_no_location: "Set your school location in settings to enable auto-detection",
   },
   es: {
     // NavBar
@@ -8350,6 +8356,12 @@ export const translations = {
     dialect_saved_success: "Preferencia de dialecto guardada",
     dialect_saved_error: "Error al guardar la preferencia de dialecto",
     dialect_settings_note: "El dialecto seleccionado determina cómo el asistente de voz Aina pronuncia el texto catalán. Powered by BSC Matxa TTS.",
+    dialect_auto_detect: "Detectar automáticamente desde la ubicación del centro",
+    dialect_auto_detected: "Dialecto detectado según la ubicación de tu centro",
+    dialect_auto_detect_suggestion: "Según la ubicación de tu centro, sugerimos",
+    dialect_auto_detect_apply: "Aplicar sugerencia",
+    dialect_auto_detect_dismiss: "Mantener actual",
+    dialect_auto_detect_no_location: "Configura la ubicación de tu centro en ajustes para activar la detección automática",
   },
   ca: {
     // NavBar
@@ -12509,6 +12521,12 @@ export const translations = {
     dialect_saved_success: "Preferència de dialecte desada",
     dialect_saved_error: "Error en desar la preferència de dialecte",
     dialect_settings_note: "El dialecte seleccionat determina com l'assistent de veu Aina pronuncia el text català. Powered by BSC Matxa TTS.",
+    dialect_auto_detect: "Detectar automàticament des de la ubicació del centre",
+    dialect_auto_detected: "Dialecte detectat segons la ubicació del teu centre",
+    dialect_auto_detect_suggestion: "Segons la ubicació del teu centre, suggerim",
+    dialect_auto_detect_apply: "Aplicar suggeriment",
+    dialect_auto_detect_dismiss: "Mantenir actual",
+    dialect_auto_detect_no_location: "Configura la ubicació del teu centre a ajustos per activar la detecció automàtica",
   },
 } as const;
 
