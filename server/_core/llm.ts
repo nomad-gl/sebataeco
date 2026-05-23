@@ -209,13 +209,44 @@ const normalizeToolChoice = (
   return toolChoice;
 };
 
-const resolveApiUrl = () =>
-  ENV.forgeApiUrl && ENV.forgeApiUrl.trim().length > 0
+/**
+ * Determines whether to use a local Salamandra instance or the Forge API.
+ * When LOCAL_LLM_URL is configured, all LLM requests route to the self-hosted
+ * Salamandra instance (e.g., vLLM, Ollama, or SGLang running locally).
+ */
+const useLocalLlm = () =>
+  ENV.localLlmUrl && ENV.localLlmUrl.trim().length > 0;
+
+const resolveApiUrl = () => {
+  if (useLocalLlm()) {
+    const baseUrl = ENV.localLlmUrl.replace(/\/$/, "");
+    // Support both /v1/chat/completions and bare URLs
+    if (baseUrl.includes("/v1/chat/completions")) return baseUrl;
+    if (baseUrl.endsWith("/v1")) return `${baseUrl}/chat/completions`;
+    return `${baseUrl}/v1/chat/completions`;
+  }
+  return ENV.forgeApiUrl && ENV.forgeApiUrl.trim().length > 0
     ? `${ENV.forgeApiUrl.replace(/\/$/, "")}/v1/chat/completions`
     : "https://forge.manus.im/v1/chat/completions";
+};
+
+const resolveApiKey = () => {
+  if (useLocalLlm()) {
+    // Local LLM may not require an API key (e.g., Ollama)
+    return ENV.localLlmApiKey || "not-needed";
+  }
+  return ENV.forgeApiKey;
+};
+
+const resolveModel = () => {
+  if (useLocalLlm()) {
+    return ENV.localLlmModel || "BSC-LT/salamandra-7b-instruct";
+  }
+  return "gemini-2.5-flash";
+};
 
 const assertApiKey = () => {
-  if (!ENV.forgeApiKey) {
+  if (!useLocalLlm() && !ENV.forgeApiKey) {
     throw new Error("OPENAI_API_KEY is not configured");
   }
 };
@@ -280,7 +311,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   } = params;
 
   const payload: Record<string, unknown> = {
-    model: "gemini-2.5-flash",
+    model: resolveModel(),
     messages: messages.map(normalizeMessage),
   };
 
@@ -296,9 +327,11 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.tool_choice = normalizedToolChoice;
   }
 
-  payload.max_tokens = 32768
-  payload.thinking = {
-    "budget_tokens": 128
+  payload.max_tokens = useLocalLlm() ? 512 : 32768;
+  if (!useLocalLlm()) {
+    payload.thinking = {
+      "budget_tokens": 128
+    };
   }
 
   const normalizedResponseFormat = normalizeResponseFormat({
@@ -316,7 +349,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      authorization: `Bearer ${ENV.forgeApiKey}`,
+      authorization: `Bearer ${resolveApiKey()}`,
     },
     body: JSON.stringify(payload),
   });

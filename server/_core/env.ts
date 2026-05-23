@@ -15,4 +15,8 @@ export const ENV = {
   smtpPass: process.env.SMTP_PASS ?? "",
   smtpFrom: process.env.SMTP_FROM ?? "",
   smtpSecure: process.env.SMTP_SECURE === "true",
+  // Local Salamandra LLM (optional — routes to self-hosted instance when configured)
+  localLlmUrl: process.env.LOCAL_LLM_URL ?? "",
+  localLlmModel: process.env.LOCAL_LLM_MODEL ?? "BSC-LT/salamandra-7b-instruct",
+  localLlmApiKey: process.env.LOCAL_LLM_API_KEY ?? "",
 };

@@ -5957,3 +5957,13 @@
 
 ## UI Text Changes
 - [x] Change login page text from "continue to SEBA AI" to "continue to Sebataeco | AINA" (all 3 languages)
+
+## Local Salamandra LLM Routing
+- [x] Add LOCAL_LLM_URL, LOCAL_LLM_MODEL, LOCAL_LLM_API_KEY to env.ts
+- [x] Update server/_core/llm.ts to route to local Salamandra when LOCAL_LLM_URL is configured
+- [x] Auto-detect URL format (bare URL, /v1, /v1/chat/completions)
+- [x] Disable thinking budget for local models (not supported by Salamandra)
+- [x] Set appropriate max_tokens (512) for local models
+- [x] Use "not-needed" fallback API key for Ollama (no auth required)
+- [x] All existing routers automatically route through the updated invokeLLM helper
+- [x] Unit tests for LLM routing configuration (4 tests passing)
