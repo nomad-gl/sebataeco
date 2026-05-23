@@ -6018,3 +6018,4 @@
 - [x] Show toast error when BSC AINA TTS fails during voice preview (playVoicePreview)
 - [x] Show toast error when BSC AINA TTS fails during chat playback (playNeuralTTS)
 - [x] Add i18n keys for TTS error message (EN/ES/CA)
+- [x] Add browser Web Speech fallback when neural TTS fails (graceful degradation)

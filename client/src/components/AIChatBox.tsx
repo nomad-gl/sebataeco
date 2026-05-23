@@ -538,8 +538,21 @@ export function AIChatBox({
         audio.onerror = () => setPreviewingVoice(null);
         audio.play().catch(() => setPreviewingVoice(null));
       } catch {
-        setPreviewingVoice(null);
+        // Neural TTS failed — show toast and fall back to browser Web Speech
         toast.error(t("tts_preview_error"));
+        if (hasSpeechSynthesis) {
+          const voices = window.speechSynthesis.getVoices();
+          const l = langCode.split(/[-_]/)[0];
+          const voice = voices.find(v => v.lang.startsWith(l)) ?? voices[0] ?? null;
+          const u = new SpeechSynthesisUtterance(sampleText);
+          u.lang = langCode; u.rate = 1.0;
+          if (voice) u.voice = voice;
+          u.onend = () => setPreviewingVoice(null);
+          u.onerror = () => setPreviewingVoice(null);
+          window.speechSynthesis.speak(u);
+        } else {
+          setPreviewingVoice(null);
+        }
       }
       return;
     }
