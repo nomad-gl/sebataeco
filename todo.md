@@ -5967,3 +5967,9 @@
 - [x] Use "not-needed" fallback API key for Ollama (no auth required)
 - [x] All existing routers automatically route through the updated invokeLLM helper
 - [x] Unit tests for LLM routing configuration (4 tests passing)
+
+## Latest Updates - Catalan Language Sync
+- [x] Add language column to app_updates table (default 'ca')
+- [x] Filter updates server-side to only return Catalan-language updates
+- [x] Update create mutation to accept language parameter
+- [x] Pass user's current language when fetching updates (default to 'ca')

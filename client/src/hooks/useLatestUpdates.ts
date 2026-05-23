@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 
@@ -7,10 +7,12 @@ export function useLatestUpdates() {
   const [hasShownThisSession, setHasShownThisSession] = useState(false);
   const { isAuthenticated } = useAuth();
 
-  // Fetch unviewed updates only when authenticated
-  // Skip query on login page and other unauthenticated pages
+  // Always request Catalan-only updates
+  const queryInput = useMemo(() => ({ language: "ca" as const }), []);
+
+  // Fetch unviewed Catalan updates only when authenticated
   const { data: updates = [], isLoading } = trpc.updates.getLatest.useQuery(
-    undefined,
+    queryInput,
     {
       // Only fetch once per session
       staleTime: Infinity,
@@ -55,6 +57,7 @@ export function useLatestUpdates() {
       title: string;
       description: string;
       version: string;
+      language: string;
       createdAt: Date;
     }>,
     isLoading,

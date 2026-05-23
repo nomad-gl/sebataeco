@@ -8,47 +8,55 @@ import { TRPCError } from "@trpc/server";
 export const updatesRouter = router({
   /**
    * Get the latest unviewed updates for the current user.
-   * Shows only updates that the user hasn't marked as viewed yet.
+   * Only returns updates matching Catalan language ("ca") by default.
+   * Users can optionally pass their current language to see language-specific updates.
    */
-  getLatest: protectedProcedure.query(async ({ ctx }) => {
-    const db = await getDb();
-    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+  getLatest: protectedProcedure
+    .input(z.object({ language: z.string().default("ca") }).optional())
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
 
-    try {
-      // Get all updates ordered by creation date (newest first)
-      const allUpdates = await db
-        .select({
-          id: appUpdates.id,
-          title: appUpdates.title,
-          description: appUpdates.description,
-          version: appUpdates.version,
-          createdAt: appUpdates.createdAt,
-        })
-        .from(appUpdates)
-        .orderBy(desc(appUpdates.createdAt))
-        .limit(10);
+      // Always filter to Catalan-only updates
+      const targetLanguage = "ca";
 
-      if (allUpdates.length === 0) {
-        return [];
+      try {
+        // Get all Catalan updates ordered by creation date (newest first)
+        const allUpdates = await db
+          .select({
+            id: appUpdates.id,
+            title: appUpdates.title,
+            description: appUpdates.description,
+            version: appUpdates.version,
+            language: appUpdates.language,
+            createdAt: appUpdates.createdAt,
+          })
+          .from(appUpdates)
+          .where(eq(appUpdates.language, targetLanguage))
+          .orderBy(desc(appUpdates.createdAt))
+          .limit(10);
+
+        if (allUpdates.length === 0) {
+          return [];
+        }
+
+        // Get updates that this user has already viewed
+        const viewedUpdateIds = await db
+          .select({ updateId: viewedUpdates.updateId })
+          .from(viewedUpdates)
+          .where(eq(viewedUpdates.userId, ctx.user.id));
+
+        const viewedIds = new Set(viewedUpdateIds.map(v => v.updateId));
+
+        // Filter to show only unviewed updates
+        const unviewedUpdates = allUpdates.filter(update => !viewedIds.has(update.id));
+
+        return unviewedUpdates;
+      } catch (error) {
+        console.error("[Updates] Error fetching latest updates:", error);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to fetch updates" });
       }
-
-      // Get updates that this user has already viewed
-      const viewedUpdateIds = await db
-        .select({ updateId: viewedUpdates.updateId })
-        .from(viewedUpdates)
-        .where(eq(viewedUpdates.userId, ctx.user.id));
-
-      const viewedIds = new Set(viewedUpdateIds.map(v => v.updateId));
-
-      // Filter to show only unviewed updates
-      const unviewedUpdates = allUpdates.filter(update => !viewedIds.has(update.id));
-
-      return unviewedUpdates;
-    } catch (error) {
-      console.error("[Updates] Error fetching latest updates:", error);
-      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to fetch updates" });
-    }
-  }),
+    }),
 
   /**
    * Mark an update as viewed by the current user.
@@ -110,6 +118,7 @@ export const updatesRouter = router({
           title: appUpdates.title,
           description: appUpdates.description,
           version: appUpdates.version,
+          language: appUpdates.language,
           displayedCount: appUpdates.displayedCount,
           createdAt: appUpdates.createdAt,
           viewCount: sql<number>`(SELECT COUNT(*) FROM viewed_updates WHERE updateId = ${appUpdates.id})`,
@@ -126,6 +135,7 @@ export const updatesRouter = router({
 
   /**
    * Create a new update (admin only).
+   * Language defaults to "ca" (Catalan) — all updates are Catalan-only.
    */
   create: protectedProcedure
     .input(
@@ -133,6 +143,7 @@ export const updatesRouter = router({
         title: z.string().min(1).max(255),
         description: z.string().min(1),
         version: z.string().min(1).max(32),
+        language: z.enum(["ca"]).default("ca"),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -149,6 +160,7 @@ export const updatesRouter = router({
           title: input.title,
           description: input.description,
           version: input.version,
+          language: input.language,
           displayedCount: 0,
         });
 

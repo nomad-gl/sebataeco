@@ -2665,6 +2665,7 @@ export const appUpdates = mysqlTable(
     title: varchar("title", { length: 255 }).notNull(),
     description: text("description").notNull(),
     version: varchar("version", { length: 32 }).notNull(),
+    language: varchar("language", { length: 5 }).notNull().default("ca"),
     displayedCount: int("displayedCount").default(0).notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
