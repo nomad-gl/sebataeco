@@ -16,6 +16,8 @@ export const users = mysqlTable("users", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
   ttsVoice: mysqlEnum("ttsVoice", ["nova", "shimmer", "alloy", "fable"]).default("nova"),
+  /** Preferred Catalan TTS dialect: central, balear, nord-occidental, valencia */
+  ttsDialect: varchar("ttsDialect", { length: 20 }).default("ca-nw"),
   /** Bcrypt hash for local email+password auth. NULL for Manus OAuth users. */
   passwordHash: varchar("passwordHash", { length: 255 }),
   /** Preferred display name set during local registration. */

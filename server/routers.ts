@@ -85,6 +85,27 @@ export const appRouter = router({
         return { success: true };
       }),
 
+    setTtsDialect: protectedProcedure
+      .input(z.object({ dialect: z.enum(["central", "balear", "nord-occidental", "valencia"]) }))
+      .mutation(async ({ ctx, input }) => {
+        const dbConn = await getDb();
+        if (!dbConn) return { success: false };
+        const { users } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        await dbConn.update(users).set({ ttsDialect: input.dialect }).where(eq(users.id, ctx.user.id));
+        return { success: true };
+      }),
+
+    getTtsDialect: protectedProcedure
+      .query(async ({ ctx }) => {
+        const dbConn = await getDb();
+        if (!dbConn) return { dialect: "nord-occidental" };
+        const { users } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const [user] = await dbConn.select({ ttsDialect: users.ttsDialect }).from(users).where(eq(users.id, ctx.user.id));
+        return { dialect: user?.ttsDialect || "nord-occidental" };
+      }),
+
     setCutcgMemberNumber: protectedProcedure
       .input(z.object({ memberNumber: z.string().max(32).nullable() }))
       .mutation(async ({ ctx, input }) => {

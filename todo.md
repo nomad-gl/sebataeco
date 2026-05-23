@@ -5982,3 +5982,11 @@
 - [x] Support ca-nw (Northwestern/Terres de l'Ebre) dialect as default
 - [x] Fallback to Forge API when local endpoints are not configured
 - [x] Unit tests for voice routing configuration (10 tests passing)
+
+## TTS Dialect Settings Panel
+- [x] Add tts_dialect preference column to user table or user_preferences table
+- [x] Create tRPC procedure to get/set user's dialect preference
+- [x] Create DialectSettings UI component with dialect selector (ca, ca-ba, ca-nw, ca-va)
+- [x] Integrate dialect preference into TTS calls on the server
+- [x] Add dialect descriptions and region labels in Catalan (EN/ES/CA)
+- [x] Unit tests for dialect preference (10 passing)

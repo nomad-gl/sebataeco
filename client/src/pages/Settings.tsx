@@ -52,6 +52,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import DialectSettingsCard from "@/components/DialectSettingsCard";
 
 
 const LOGO_KEY = "seba_school_logo";
@@ -637,6 +638,9 @@ export default function Settings() {
 
             {/* ── CUTCG Professional Membership card ── */}
             <CutcgMemberCard t={t} user={user} />
+
+            {/* ── TTS Dialect card ── */}
+            <DialectSettingsCard />
 
             {/* ── Branding card ── */}
             <Card>
