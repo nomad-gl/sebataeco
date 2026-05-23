@@ -5973,3 +5973,12 @@
 - [x] Filter updates server-side to only return Catalan-language updates
 - [x] Update create mutation to accept language parameter
 - [x] Pass user's current language when fetching updates (default to 'ca')
+
+## Local ASR & TTS Routing (Sovereign Voice Stack)
+- [x] Add LOCAL_ASR_URL env var to env.ts
+- [x] Add LOCAL_TTS_URL and LOCAL_TTS_DIALECT env vars to env.ts
+- [x] Update voiceTranscription.ts to route to local Faster-Whisper when LOCAL_ASR_URL is set
+- [x] Create server/_core/tts.ts helper with local Matxa TTS routing
+- [x] Support ca-nw (Northwestern/Terres de l'Ebre) dialect as default
+- [x] Fallback to Forge API when local endpoints are not configured
+- [x] Unit tests for voice routing configuration (10 tests passing)

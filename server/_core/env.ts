@@ -19,4 +19,9 @@ export const ENV = {
   localLlmUrl: process.env.LOCAL_LLM_URL ?? "",
   localLlmModel: process.env.LOCAL_LLM_MODEL ?? "BSC-LT/salamandra-7b-instruct",
   localLlmApiKey: process.env.LOCAL_LLM_API_KEY ?? "",
+  // Local ASR endpoint (optional — routes to self-hosted Faster-Whisper when configured)
+  localAsrUrl: process.env.LOCAL_ASR_URL ?? "",
+  // Local TTS endpoint (optional — routes to self-hosted Matxa TTS when configured)
+  localTtsUrl: process.env.LOCAL_TTS_URL ?? "",
+  localTtsDialect: process.env.LOCAL_TTS_DIALECT ?? "ca-nw",
 };

@@ -70,16 +70,28 @@ export type TranscriptionError = {
  * @param options - Audio data and metadata
  * @returns Transcription result or error
  */
+/**
+ * Determines whether to use a local ASR instance (Faster-Whisper) or the Forge API.
+ * When LOCAL_ASR_URL is configured, all transcription requests route to the self-hosted instance.
+ */
+const useLocalAsr = () =>
+  ENV.localAsrUrl && ENV.localAsrUrl.trim().length > 0;
+
 export async function transcribeAudio(
   options: TranscribeOptions
 ): Promise<TranscriptionResponse | TranscriptionError> {
   try {
-    // Step 1: Validate environment configuration
+    // If local ASR is configured, route to self-hosted Faster-Whisper
+    if (useLocalAsr()) {
+      return await transcribeViaLocalAsr(options);
+    }
+
+    // Step 1: Validate environment configuration (Forge API fallback)
     if (!ENV.forgeApiUrl) {
       return {
         error: "Voice transcription service is not configured",
         code: "SERVICE_ERROR",
-        details: "BUILT_IN_FORGE_API_URL is not set"
+        details: "Neither LOCAL_ASR_URL nor BUILT_IN_FORGE_API_URL is set"
       };
     }
     if (!ENV.forgeApiKey) {
@@ -239,6 +251,112 @@ function getLanguageName(langCode: string): string {
   };
   
   return langMap[langCode] || langCode;
+}
+
+/**
+ * Route transcription to a local Faster-Whisper instance.
+ * Supports the standard Whisper API format (multipart/form-data POST).
+ * LOCAL_ASR_URL should point to the transcription endpoint, e.g.:
+ *   http://localhost:8002/transcribe (Faster-Whisper server)
+ *   http://localhost:8002/v1/audio/transcriptions (OpenAI-compatible)
+ */
+async function transcribeViaLocalAsr(
+  options: TranscribeOptions
+): Promise<TranscriptionResponse | TranscriptionError> {
+  try {
+    // Download audio from URL
+    let audioBuffer: Buffer;
+    let mimeType: string;
+    try {
+      const response = await fetch(options.audioUrl);
+      if (!response.ok) {
+        return {
+          error: "Failed to download audio file",
+          code: "INVALID_FORMAT",
+          details: `HTTP ${response.status}: ${response.statusText}`
+        };
+      }
+      audioBuffer = Buffer.from(await response.arrayBuffer());
+      mimeType = response.headers.get('content-type') || 'audio/mpeg';
+
+      // Check file size (16MB limit)
+      const sizeMB = audioBuffer.length / (1024 * 1024);
+      if (sizeMB > 16) {
+        return {
+          error: "Audio file exceeds maximum size limit",
+          code: "FILE_TOO_LARGE",
+          details: `File size is ${sizeMB.toFixed(2)}MB, maximum allowed is 16MB`
+        };
+      }
+    } catch (error) {
+      return {
+        error: "Failed to fetch audio file",
+        code: "SERVICE_ERROR",
+        details: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+
+    // Build multipart form data for the local ASR endpoint
+    const formData = new FormData();
+    const filename = `audio.${getFileExtension(mimeType)}`;
+    const audioBlob = new Blob([new Uint8Array(audioBuffer)], { type: mimeType });
+    formData.append("file", audioBlob, filename);
+    formData.append("model", "faster-whisper");
+    formData.append("response_format", "verbose_json");
+
+    if (options.language) {
+      formData.append("language", options.language);
+    } else {
+      // Default to Catalan for the Terres de l'Ebre context
+      formData.append("language", "ca");
+    }
+
+    if (options.prompt) {
+      formData.append("prompt", options.prompt);
+    }
+
+    // Resolve the local ASR URL
+    const baseUrl = ENV.localAsrUrl.replace(/\/$/, "");
+    const fullUrl = baseUrl.includes("/v1/audio/transcriptions")
+      ? baseUrl
+      : baseUrl.endsWith("/transcribe")
+        ? baseUrl
+        : `${baseUrl}/v1/audio/transcriptions`;
+
+    console.log(`[ASR] Routing to local Faster-Whisper: ${fullUrl}`);
+
+    const response = await fetch(fullUrl, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "");
+      return {
+        error: "Local ASR transcription failed",
+        code: "TRANSCRIPTION_FAILED",
+        details: `${response.status} ${response.statusText}${errorText ? `: ${errorText}` : ""}`
+      };
+    }
+
+    const result = await response.json() as WhisperResponse;
+
+    if (!result.text || typeof result.text !== 'string') {
+      return {
+        error: "Invalid transcription response from local ASR",
+        code: "SERVICE_ERROR",
+        details: "Local ASR returned an invalid response format"
+      };
+    }
+
+    return result;
+  } catch (error) {
+    return {
+      error: "Local ASR transcription failed",
+      code: "SERVICE_ERROR",
+      details: error instanceof Error ? error.message : "An unexpected error occurred"
+    };
+  }
 }
 
 /**
