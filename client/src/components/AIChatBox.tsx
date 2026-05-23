@@ -513,13 +513,14 @@ export function AIChatBox({
     if (isNeuralLang(langCode)) {
       // Use neural TTS for CA/ES preview
       try {
-        const previewVoiceParam = voiceId === "aina" ? undefined : voiceId as "nova" | "shimmer" | "alloy" | "fable";
+        const previewVoiceParam = voiceId === "aina" ? undefined : voiceId as "nova" | "shimmer" | "alloy" | "fable" | "coral" | "marin";
+        const langIsCA = langCode.toLowerCase().split(/[-_]/)[0] === "ca";
         const result = await ttsMutation.mutateAsync({
           text: sampleText,
           lang: langCode,
           ...(previewVoiceParam ? { voice: previewVoiceParam } : {}),
-          ...(voiceId === "aina" && langCode === "ca" ? { accent: ainaAccent } : {}),
-          ...(voiceId === "aina" && langCode === "ca" ? { lengthScale: ainaSpeedScale } : {}),
+          ...(voiceId === "aina" && langIsCA ? { accent: ainaAccent } : {}),
+          ...(voiceId === "aina" && langIsCA ? { lengthScale: ainaSpeedScale } : {}),
         });
         const dataUrl = `data:${result.mimeType};base64,${result.audioBase64}`;
         const audio = new Audio(dataUrl);
@@ -674,13 +675,14 @@ export function AIChatBox({
     if (!dataUrl) {
       try {
         // For "aina" voice, don't pass voice param — server routes to BSC automatically for CA
-        const voiceParam = ttsVoice === "aina" ? undefined : ttsVoice as "nova" | "shimmer" | "alloy" | "fable";
+        const voiceParam = ttsVoice === "aina" ? undefined : ttsVoice as "nova" | "shimmer" | "alloy" | "fable" | "coral" | "marin";
+        const langIsCA = langCode.toLowerCase().split(/[-_]/)[0] === "ca";
         const result = await ttsMutation.mutateAsync({
           text: text.slice(0, 4096),
           lang: langCode,
           ...(voiceParam ? { voice: voiceParam } : {}),
-          ...(ttsVoice === "aina" && langCode === "ca" ? { accent: ainaAccent } : {}),
-          ...(ttsVoice === "aina" && langCode === "ca" ? { lengthScale: ainaSpeedScale } : {}),
+          ...(ttsVoice === "aina" && langIsCA ? { accent: ainaAccent } : {}),
+          ...(ttsVoice === "aina" && langIsCA ? { lengthScale: ainaSpeedScale } : {}),
         });
         dataUrl = `data:${result.mimeType};base64,${result.audioBase64}`;
         ttsCacheRef.current.set(cacheKey, dataUrl);
@@ -1737,7 +1739,7 @@ export function AIChatBox({
                         title={!isNeuralLang(document.documentElement.lang || navigator.language || "en") && !browserVoicesAvailable ? t("tts_no_voice_toggle") : previewingVoice === v.id ? "Stop preview" : `Preview ${t(v.labelKey)} voice`}
                         className={cn(
                           "shrink-0 w-7 h-7 flex items-center justify-center rounded-md transition-colors",
-                          browserVoicesAvailable
+                          (browserVoicesAvailable || isNeuralLang(document.documentElement.lang || navigator.language || "en"))
                             ? "text-white/50 hover:text-white hover:bg-white/15"
                             : "text-white/20 cursor-not-allowed"
                         )}

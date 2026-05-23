@@ -6002,3 +6002,10 @@
 
 ## Header Cleanup
 - [x] Remove "switch to aina.forum" link from the header (desktop and mobile)
+
+## Bug: Voice preview not working in CA language mode
+- [x] Investigate voice picker component — preview buttons do nothing when language is Catalan
+- [x] Fix CSS className on preview button to show enabled state for neural languages (CA/ES)
+- [x] Fix langCode === "ca" comparison to handle dialect-qualified codes (ca-central, ca-balearic, etc.)
+- [x] Fix BSC routing to only use BSC for Aina voice (skip for coral/marin/etc. to avoid delay)
+- [x] Fix BSC accent map to use only working balear accent (other accents currently error on BSC API)

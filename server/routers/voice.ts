@@ -51,15 +51,18 @@ function getVoicePrompt(lang?: string): string | undefined {
 
 async function synthesizeSpeech(text: string, lang?: string, voiceOverride?: string, accent?: string, lengthScale?: number): Promise<{ buffer: Buffer; mimeType: string }> {
   // Route Catalan through BSC AINA native TTS for authentic pronunciation
+  // Only use BSC for the "aina" voice (no voiceOverride) — other voices (coral, marin, etc.) go straight to OpenAI
   const langNorm = (lang ?? "").toLowerCase().split(/[-_]/)[0];
-  if (langNorm === "ca" && voiceOverride !== "__skip_bsc") {
+  if (langNorm === "ca" && !voiceOverride) {
     try {
       // Map accent names to BSC AINA speaker combinations
+      // Note: BSC currently only reliably supports "balear" accent;
+      // other accents may fail, so we fall back to balear for those
       const accentMap: Record<string, { accent: string; speaker: string }> = {
-        "central": { accent: "central", speaker: "elia" },
         "balear": { accent: "balear", speaker: "olga" },
-        "nord-occidental": { accent: "nord-occidental", speaker: "quim" },
-        "valencia": { accent: "valencia", speaker: "olga" },
+        "central": { accent: "balear", speaker: "olga" },
+        "nord-occidental": { accent: "balear", speaker: "olga" },
+        "valencia": { accent: "balear", speaker: "olga" },
       };
       const accentConfig = accentMap[accent ?? "balear"] ?? { accent: "balear", speaker: "olga" };
       const wavBuffer = await synthesizeCatalanBSC({
