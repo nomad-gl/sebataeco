@@ -539,6 +539,7 @@ export function AIChatBox({
         audio.play().catch(() => setPreviewingVoice(null));
       } catch {
         setPreviewingVoice(null);
+        toast.error(t("tts_preview_error"));
       }
       return;
     }
@@ -699,6 +700,7 @@ export function AIChatBox({
         ttsCacheRef.current.set(cacheKey, dataUrl);
       } catch {
         // Neural TTS failed — fall back to browser Web Speech
+        toast.error(t("tts_preview_error"));
         if (!cancelledRef.current) playBrowserTTS(text, langCode);
         return;
       }

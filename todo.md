@@ -6013,3 +6013,8 @@
 - [x] Remove accent cycling button (only balear works on BSC)
 - [x] Add 'quim' voice to TtsVoice type, server enum, and i18n (EN/ES/CA)
 - [x] Unit tests for voice routing logic (14 passing)
+
+## Feature: Toast notification on TTS preview failure
+- [x] Show toast error when BSC AINA TTS fails during voice preview (playVoicePreview)
+- [x] Show toast error when BSC AINA TTS fails during chat playback (playNeuralTTS)
+- [x] Add i18n keys for TTS error message (EN/ES/CA)
