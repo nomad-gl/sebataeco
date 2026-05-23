@@ -6019,3 +6019,8 @@
 - [x] Show toast error when BSC AINA TTS fails during chat playback (playNeuralTTS)
 - [x] Add i18n keys for TTS error message (EN/ES/CA)
 - [x] Add browser Web Speech fallback when neural TTS fails (graceful degradation)
+
+## Fix: Disable TTS for CA language mode
+- [x] Force TTS toggle to "off" position when language is CA (initial state defaults to off)
+- [x] Prevent users from enabling TTS in CA mode (button disabled + greyed out)
+- [x] Block playTTS from executing when lang === "ca"

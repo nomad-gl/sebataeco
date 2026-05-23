@@ -180,8 +180,11 @@ export function AIChatBox({
   /** Brief confirmation toast shown when wake word is detected */
   const [showWakeToast, setShowWakeToast] = useState(false);
   const wakeToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  /** Whether TTS auto-play is enabled (default: on) */
-  const [ttsEnabled, setTtsEnabled] = useState(true);
+  /** Whether TTS auto-play is enabled (default: on for EN/ES, off for CA until BSC TTS is restored) */
+  const [ttsEnabled, setTtsEnabled] = useState(() => {
+    const currentLang = (document.documentElement.lang || navigator.language || "en").split(/[-_]/)[0];
+    return currentLang !== "ca";
+  });
   /** True while TTS audio is being fetched or playing */
   const [isSpeaking, setIsSpeaking] = useState(false);
   /** Speech rate: 0.75 | 1.0 | 1.25 — persisted to localStorage */
@@ -757,6 +760,8 @@ export function AIChatBox({
 
   const playTTS = useCallback((text: string) => {
     if (!ttsEnabled || !text.trim()) return;
+    // CA TTS is disabled until BSC service is restored
+    if (lang === "ca") return;
 
     // Stop any currently playing speech
     cancelledRef.current = true;
@@ -786,7 +791,7 @@ export function AIChatBox({
     } else {
       playBrowserTTS(plainText, langCode);
     }
-  }, [ttsEnabled, hasSpeechSynthesis, playBrowserTTS, playNeuralTTS]);
+  }, [ttsEnabled, lang, hasSpeechSynthesis, playBrowserTTS, playNeuralTTS]);
 
   // Auto-play TTS when a new assistant message finishes streaming
   // We watch the content of the last assistant message + isLoading so we
@@ -1644,22 +1649,25 @@ export function AIChatBox({
         {/* Icon buttons row — on mobile this is a separate row below the textarea */}
         <div className={cn("flex gap-2 items-center", isMobile && "justify-end")}>
 
-          {/* TTS toggle — shown on all devices */}
+          {/* TTS toggle — shown on all devices; disabled for CA until BSC TTS is restored */}
           <div className="relative shrink-0">
             <Button
               type="button"
               size="icon"
               variant="ghost"
-              onClick={() => { setTtsEnabled(v => !v); if (isSpeaking) stopSpeaking(); }}
-              title={ttsEnabled ? `Voice responses: ON (${ttsVoice.charAt(0).toUpperCase() + ttsVoice.slice(1)}) — click to mute` : "Voice responses: OFF — click to enable"}
+              disabled={lang === "ca"}
+              onClick={() => { if (lang === "ca") return; setTtsEnabled(v => !v); if (isSpeaking) stopSpeaking(); }}
+              title={lang === "ca" ? t("tts_no_voice_toggle") : ttsEnabled ? `Voice responses: ON (${ttsVoice.charAt(0).toUpperCase() + ttsVoice.slice(1)}) — click to mute` : "Voice responses: OFF — click to enable"}
               className={cn(
                 "h-[44px] w-[44px] xs:h-[38px] xs:w-[38px]",
-                ttsEnabled
-                  ? "text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
-                  : "text-white/40 hover:text-white hover:bg-white/15"
+                lang === "ca"
+                  ? "text-white/20 cursor-not-allowed"
+                  : ttsEnabled
+                    ? "text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+                    : "text-white/40 hover:text-white hover:bg-white/15"
               )}
             >
-              {ttsEnabled ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
+              {ttsEnabled && lang !== "ca" ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
             </Button>
             {/* Amber dot warning: only for English when no browser voices are available (CA/ES use neural TTS) */}
             {ttsEnabled && !browserVoicesAvailable && !isNeuralLang(document.documentElement.lang || navigator.language || "en") && (
