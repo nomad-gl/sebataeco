@@ -5990,3 +5990,15 @@
 - [x] Integrate dialect preference into TTS calls on the server
 - [x] Add dialect descriptions and region labels in Catalan (EN/ES/CA)
 - [x] Unit tests for dialect preference (10 passing)
+
+## Auto-Detect Dialect from School Location
+- [ ] Create geographic-to-dialect mapping (comarques/regions → dialect codes)
+- [ ] Add school location field to tenant/school settings if not present
+- [ ] Create server-side auto-detect procedure that maps school location to dialect
+- [ ] Auto-set dialect on first login when user has no preference saved
+- [ ] Show auto-detected dialect suggestion in DialectSettingsCard
+- [ ] Add i18n keys for auto-detect labels (EN/ES/CA)
+- [ ] Unit tests for geographic mapping logic
+
+## Header Cleanup
+- [x] Remove "switch to aina.forum" link from the header (desktop and mobile)

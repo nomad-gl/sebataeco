@@ -106,6 +106,63 @@ export const appRouter = router({
         return { dialect: user?.ttsDialect || "nord-occidental" };
       }),
 
+    /**
+     * Auto-detect dialect from the school's registered location.
+     * Looks up the director's schoolLocation for the user's tenant,
+     * maps it to a dialect code, and optionally saves it as the user's preference.
+     */
+    autoDetectDialect: protectedProcedure
+      .input(z.object({ save: z.boolean().optional() }).optional())
+      .query(async ({ ctx, input }) => {
+        const dbConn = await getDb();
+        if (!dbConn) return { detected: "ca-nw", source: "default" };
+        const { users } = await import("../drizzle/schema");
+        const { eq, and, isNotNull } = await import("drizzle-orm");
+        const { detectDialectFromLocation } = await import("../shared/dialectMapping");
+
+        // First check if user already has a dialect set
+        const [currentUser] = await dbConn.select({
+          ttsDialect: users.ttsDialect,
+          tenantId: users.tenantId,
+          schoolLocation: users.schoolLocation,
+        }).from(users).where(eq(users.id, ctx.user.id));
+
+        // If user is a director with schoolLocation, use their own location
+        if (currentUser?.schoolLocation) {
+          const detected = detectDialectFromLocation(currentUser.schoolLocation);
+          if (input?.save && !currentUser.ttsDialect) {
+            const dialectName = detected === "ca-nw" ? "nord-occidental" : detected === "ca-ba" ? "balear" : detected === "ca-va" ? "valencia" : "central";
+            await dbConn.update(users).set({ ttsDialect: dialectName }).where(eq(users.id, ctx.user.id));
+          }
+          return { detected, source: "own_location", location: currentUser.schoolLocation };
+        }
+
+        // Otherwise, find the director of the user's tenant
+        if (currentUser?.tenantId) {
+          const [director] = await dbConn.select({
+            schoolLocation: users.schoolLocation,
+          }).from(users).where(
+            and(
+              eq(users.tenantId, currentUser.tenantId),
+              eq(users.role, "director"),
+              isNotNull(users.schoolLocation)
+            )
+          ).limit(1);
+
+          if (director?.schoolLocation) {
+            const detected = detectDialectFromLocation(director.schoolLocation);
+            if (input?.save && !currentUser.ttsDialect) {
+              const dialectName = detected === "ca-nw" ? "nord-occidental" : detected === "ca-ba" ? "balear" : detected === "ca-va" ? "valencia" : "central";
+              await dbConn.update(users).set({ ttsDialect: dialectName }).where(eq(users.id, ctx.user.id));
+            }
+            return { detected, source: "tenant_director", location: director.schoolLocation };
+          }
+        }
+
+        // Default fallback
+        return { detected: "ca-nw", source: "default" };
+      }),
+
     setCutcgMemberNumber: protectedProcedure
       .input(z.object({ memberNumber: z.string().max(32).nullable() }))
       .mutation(async ({ ctx, input }) => {
