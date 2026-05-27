@@ -18,6 +18,10 @@ SEBA AI Studio (branded as *Aina*) is a comprehensive educational platform that 
 
 ![8 LOMLOE Competencies](/manus-storage/screenshot-competencies_d6379d63.webp)
 
+### AI Chat Interface (Aina)
+
+![AI Chat — LOMLOE Teaching Assistant](/manus-storage/chat-interface_f1779d19.webp)
+
 ### Login Page
 
 ![Login — Sovereign AI for Catalan Education](/manus-storage/screenshot-practice_ac8a90dd.webp)
@@ -221,7 +225,7 @@ The following environment variables are required for the application to function
 | `BUILT_IN_FORGE_API_KEY` | Bearer token for AI services (server-side) |
 | `HF_API_KEY` | HuggingFace API key (for BSC TTS) |
 
-Additional optional variables are documented in `server/_core/env.ts`.
+For a complete reference of all environment variables (including SMTP, self-hosted LLM/TTS/ASR, and analytics), see [`ENV_REFERENCE.md`](./ENV_REFERENCE.md).
 
 ---
 

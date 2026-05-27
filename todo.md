@@ -6024,3 +6024,8 @@
 - [x] Force TTS toggle to "off" position when language is CA (initial state defaults to off)
 - [x] Prevent users from enabling TTS in CA mode (button disabled + greyed out)
 - [x] Block playTTS from executing when lang === "ca"
+
+## README Follow-ups
+- [x] Add chat interface screenshot to README
+- [x] Create ENV_REFERENCE.md with all environment variables documented
+- [ ] Re-export to GitHub with updated README (user action via Settings → GitHub)
