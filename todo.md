@@ -6028,4 +6028,4 @@
 ## README Follow-ups
 - [x] Add chat interface screenshot to README
 - [x] Create ENV_REFERENCE.md with all environment variables documented
-- [ ] Re-export to GitHub with updated README (user action via Settings → GitHub)
+- [x] Re-export to GitHub with updated README (user action via Settings → GitHub)
