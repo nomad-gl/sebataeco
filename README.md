@@ -8,6 +8,22 @@ SEBA AI Studio (branded as *Aina*) is a comprehensive educational platform that 
 
 ---
 
+## Screenshots
+
+### Homepage
+
+![SEBA AI Studio — Homepage](/manus-storage/screenshot-homepage_612b1f81.webp)
+
+### 8 LOMLOE Competencies Grid
+
+![8 LOMLOE Competencies](/manus-storage/screenshot-competencies_d6379d63.webp)
+
+### Login Page
+
+![Login — Sovereign AI for Catalan Education](/manus-storage/screenshot-practice_ac8a90dd.webp)
+
+---
+
 ## Table of Contents
 
 - [Features](#features)
