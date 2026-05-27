@@ -1,21 +1,78 @@
-MIT License
+SEBA AI Studio — Source-Available License
 
 Copyright (c) 2026 SEBA (Sovereign Educational AI Platform for Catalonia)
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+TERMS AND CONDITIONS
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. DEFINITIONS
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+   "Software" refers to the SEBA AI Studio source code, documentation,
+   and associated files contained in this repository.
+
+   "Licensor" refers to SEBA and its authorised representatives.
+
+   "You" refers to any individual or organisation accessing this Software.
+
+   "Evaluation Period" refers to a period of 90 days from the date You
+   first access, download, or deploy the Software.
+
+2. GRANT OF RIGHTS
+
+   Subject to the terms of this License, the Licensor grants You a
+   non-exclusive, non-transferable, revocable right to:
+
+   a) VIEW and inspect the source code for evaluation purposes;
+   b) DEPLOY and USE the Software free of charge during the Evaluation
+      Period for non-commercial educational evaluation only;
+   c) MODIFY the Software solely for the purpose of evaluating its
+      suitability for Your needs during the Evaluation Period.
+
+3. RESTRICTIONS
+
+   You may NOT:
+
+   a) Use the Software in production beyond the Evaluation Period without
+      a separate commercial license agreement with the Licensor;
+   b) Redistribute, sublicense, sell, or transfer the Software or any
+      derivative works to third parties;
+   c) Remove or alter any copyright notices, license headers, or
+      attribution text (including "Powered by SEBA" branding);
+   d) Use the Software to compete directly with the Licensor's products
+      or services;
+   e) Claim ownership of the Software or represent it as Your own work.
+
+4. EVALUATION PERIOD AND COMMERCIAL USE
+
+   After the Evaluation Period expires, continued use of the Software
+   requires a commercial license. Contact the Licensor to discuss
+   licensing options:
+
+   Email: hello@sebasnap.com
+   Web:   https://sebasnap.com
+
+5. ATTRIBUTION
+
+   Any permitted use of the Software must retain visible attribution to
+   SEBA, including the "Powered by SEBA" notice in the application
+   interface and this LICENSE file in any copies of the source code.
+
+6. NO WARRANTY
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+   IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+   CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+   TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+7. TERMINATION
+
+   This License terminates automatically if You breach any of its terms.
+   Upon termination, You must cease all use of the Software and destroy
+   any copies in Your possession.
+
+8. GOVERNING LAW
+
+   This License shall be governed by and construed in accordance with the
+   laws of Spain, without regard to its conflict of law provisions.
