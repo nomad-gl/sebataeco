@@ -1,3 +1,5 @@
+// SEBA AI Studio — Source-Available License. See LICENSE for terms.
+
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";

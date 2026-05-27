@@ -1,3 +1,5 @@
+// SEBA AI Studio — Source-Available License. See LICENSE for terms.
+
 import { boolean, date, decimal, float, index, int, mysqlEnum, mysqlTable, text, timestamp, unique, varchar } from "drizzle-orm/mysql-core";
 
 /**

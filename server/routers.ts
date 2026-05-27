@@ -1,3 +1,5 @@
+// SEBA AI Studio — Source-Available License. See LICENSE for terms.
+
 import { COOKIE_NAME, ONE_YEAR_MS, SESSION_MAX_AGE_MS } from "@shared/const";
 import { SignJWT, jwtVerify } from "jose";
 import { getSessionCookieOptions } from "./_core/cookies";

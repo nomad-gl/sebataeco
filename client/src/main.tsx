@@ -1,3 +1,5 @@
+// SEBA AI Studio — Source-Available License. See LICENSE for terms.
+
 import { trpc } from "@/lib/trpc";
 import { UNAUTHED_ERR_MSG, NOT_ADMIN_ERR_MSG } from '@shared/const';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";

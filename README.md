@@ -302,8 +302,10 @@ The platform covers all eight key competencies defined by Spain's LOMLOE educati
 
 ## License
 
-MIT
+This project is released under a **Source-Available License** — you may view the code and use it free of charge for a 90-day evaluation period. Commercial use beyond the evaluation period requires a separate license agreement. See [`LICENSE`](./LICENSE) for full terms.
+
+For licensing enquiries, contact [hello@sebasnap.com](mailto:hello@sebasnap.com).
 
 ---
 
-*Powered by SEBA*
+*Powered by SEBA — Sovereign Educational AI Platform for Catalonia*

@@ -1,4 +1,6 @@
 import { eq, desc, and } from "drizzle-orm";
+// SEBA AI Studio — Source-Available License. See LICENSE for terms.
+
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, InsertPracticeSession, InsertTeachingMaterial, users, practiceSessions, teachingMaterials, classChallenges, challengeParticipants, ainaUserProfiles, ainaMessageRatings, questionAnswers, questionReviewStatus, type AinaUserProfile } from "../drizzle/schema";
 import { ENV } from './_core/env';
