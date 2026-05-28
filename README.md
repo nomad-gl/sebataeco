@@ -16,7 +16,8 @@
   <a href="./docs/DEPLOYMENT.md">Deployment</a> · 
   <a href="./docs/CURRICULUM.md">Curriculum</a> · 
   <a href="./docs/SECURITY.md">Security & Privacy</a> · 
-  <a href="./docs/ROADMAP.md">Roadmap</a>
+  <a href="./docs/ROADMAP.md">Roadmap</a> · 
+  <a href="./docs/SEBA_AI_Studio.postman_collection.json">Postman Collection</a>
 </p>
 
 <p align="center">
@@ -147,6 +148,7 @@ sebataeco/
 | [Security & Privacy](./docs/SECURITY.md) | GDPR compliance, data classification, security controls, retention policy, DPIA |
 | [Product Roadmap](./docs/ROADMAP.md) | Release history, upcoming features, technical debt, prioritization framework |
 | [Environment Variables](./ENV_REFERENCE.md) | Complete reference for all 25+ configuration variables |
+| [Postman Collection](./docs/SEBA_AI_Studio.postman_collection.json) | Import into Postman to test all API endpoints interactively |
 
 ---
 

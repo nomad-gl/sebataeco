@@ -1,0 +1,899 @@
+{
+  "info": {
+    "name": "SEBA AI Studio — tRPC API",
+    "_postman_id": "seba-ai-studio-trpc-v1",
+    "description": "Complete Postman collection for the SEBA AI Studio tRPC API.\n\n## Getting Started\n\n1. Import this collection into Postman\n2. Set the `base_url` variable to your instance (default: `http://localhost:3000`)\n3. Run the **Login** request first to obtain a session cookie\n4. All subsequent protected requests will use the cookie automatically\n\n## Authentication\n\nThe API uses cookie-based sessions (`app_session_id`). After a successful login, Postman automatically stores the cookie and sends it with subsequent requests.\n\n## tRPC Wire Format\n\n- **Queries**: `GET /api/trpc/<router.procedure>?input={\"0\":{\"json\":{...}}}`\n- **Mutations**: `POST /api/trpc/<router.procedure>` with body `{\"0\":{\"json\":{...}}}`\n- **Batch format**: All requests use batch index `\"0\"` as the key\n- **Serialization**: Superjson (dates are serialized as ISO strings with metadata)\n\n## Rate Limits\n\n| Endpoint | Limit | Window |\n|----------|-------|--------|\n| `aina.*` | 30 req | 60s |\n| `auth.*` | 20 req | 60s |\n| `mfa.*` | 10 req | 60s |\n| OAuth | 20 req | 60s |",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 Authentication",
+      "description": "Session management and login flows. Run Login first to authenticate.",
+      "item": [
+        {
+          "name": "Login (Local Auth)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/localAuth.login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "localAuth.login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"0\":{\"json\":{\"email\":\"teacher@school.cat\",\"password\":\"your-password-here\"}}}"
+            },
+            "description": "Log in with email and password. On success, a session cookie (`app_session_id`) is set automatically. All subsequent requests will be authenticated.\n\n**Response:** `{ success: true, mustChangePassword: false, displayName: \"Teacher Name\" }`"
+          }
+        },
+        {
+          "name": "Get Current User (auth.me)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/auth.me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "auth.me"]
+            },
+            "description": "Returns the currently authenticated user object or `null` if not logged in. Use this to verify your session is active."
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/auth.logout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "auth.logout"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"0\":{\"json\":{}}}"
+            },
+            "description": "Clears the session cookie and logs out the current user."
+          }
+        },
+        {
+          "name": "Verify Invite Token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/localAuth.verifyInviteToken?input={\"0\":{\"json\":{\"token\":\"your-invite-token\"}}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "localAuth.verifyInviteToken"],
+              "query": [
+                { "key": "input", "value": "{\"0\":{\"json\":{\"token\":\"your-invite-token\"}}}" }
+              ]
+            },
+            "description": "Verify a teacher invite token without consuming it. Returns `{ valid: true, email }` on success."
+          }
+        },
+        {
+          "name": "Register (with Invite Token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/localAuth.register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "localAuth.register"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"0\":{\"json\":{\"email\":\"newteacher@school.cat\",\"password\":\"SecurePass123!\",\"displayName\":\"Maria Garcia\",\"inviteToken\":\"your-invite-token\"}}}"
+            },
+            "description": "Register a new teacher account. Requires a valid invite token from a Director. Sets session cookie on success."
+          }
+        },
+        {
+          "name": "Request Password Reset",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/localAuth.requestReset",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "localAuth.requestReset"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"0\":{\"json\":{\"email\":\"teacher@school.cat\",\"origin\":\"{{base_url}}\"}}}"
+            },
+            "description": "Request a password reset link. Always returns success to prevent user enumeration. Rate limited to 1 request per email per 5 minutes."
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/auth.changePassword",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "auth.changePassword"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"0\":{\"json\":{\"currentPassword\":\"old-password\",\"newPassword\":\"NewSecurePass456!\"}}}"
+            },
+            "description": "Change the current user's password. Requires the current password for verification. Protected procedure."
+          }
+        }
+      ]
+    },
+    {
+      "name": "🤖 Aina (AI Chat)",
+      "description": "AI teaching assistant conversations with LOMLOE curriculum context.",
+      "item": [
+        {
+          "name": "Send Chat Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/aina.chat",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "aina.chat"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"0\":{\"json\":{\"message\":\"Explain the STEM competency for primary students\",\"lang\":\"ca\"}}}"
+            },
+            "description": "Send a message to the AI teaching assistant. The assistant responds with LOMLOE-aligned educational content.\n\n**Input:** `{ message: string, lang?: 'en'|'es'|'ca' }`\n**Response:** `{ reply: string, sources?: string[] }`"
+          }
+        },
+        {
+          "name": "Get Chat History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/aina.getHistory",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "aina.getHistory"]
+            },
+            "description": "Retrieve the current user's conversation history with the AI assistant."
+          }
+        },
+        {
+          "name": "Clear Chat History",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/aina.clearHistory",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "aina.clearHistory"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"0\":{\"json\":{}}}"
+            },
+            "description": "Clear all conversation history for the current user."
+          }
+        },
+        {
+          "name": "Upload File for AI Analysis",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/aina.uploadFile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "aina.uploadFile"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"0\":{\"json\":{\"fileBase64\":\"<base64-encoded-file>\",\"mimeType\":\"application/pdf\",\"fileName\":\"worksheet.pdf\"}}}"
+            },
+            "description": "Upload a file for AI analysis. Max 16MB. Supported: images (JPEG, PNG, WebP), documents (PDF), audio (MP3, WAV, WebM, OGG, M4A)."
+          }
+        },
+        {
+          "name": "Rate AI Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/aina.rateMessage",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "aina.rateMessage"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"0\":{\"json\":{\"messageId\":\"msg_abc123\",\"rating\":\"up\"}}}"
+            },
+            "description": "Rate an AI response (thumbs up/down) for quality feedback.\n\n**Input:** `{ messageId: string, rating: 'up'|'down' }`"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📚 LOMLOE Curriculum",
+      "description": "Access competency questions and practice materials aligned with Spain's LOMLOE education law.",
+      "item": [
+        {
+          "name": "Get Competencies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/lomloe.getCompetencies",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "lomloe.getCompetencies"]
+            },
+            "description": "List all 8 LOMLOE key competencies (CCL, CP, STEM, CD, CPSAA, CC, CE, CCEC). Public endpoint."
+          }
+        },
+        {
+          "name": "Get Practice Questions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/lomloe.getQuestions?input={\"0\":{\"json\":{\"competency\":\"STEM\",\"yearGroup\":\"primary\"}}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "lomloe.getQuestions"],
+              "query": [
+                { "key": "input", "value": "{\"0\":{\"json\":{\"competency\":\"STEM\",\"yearGroup\":\"primary\"}}}" }
+              ]
+            },
+            "description": "Get practice questions filtered by competency and year group.\n\n**Input:** `{ competency: string, yearGroup: 'junior'|'primary'|'secondary' }`\n**Competencies:** CCL, CP, STEM, CD, CPSAA, CC, CE, CCEC"
+          }
+        },
+        {
+          "name": "Get Random Question",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/lomloe.getRandomQuestion",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "lomloe.getRandomQuestion"]
+            },
+            "description": "Get a random practice question for quick practice sessions."
+          }
+        },
+        {
+          "name": "Submit Answer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/lomloe.submitAnswer",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "lomloe.submitAnswer"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"0\":{\"json\":{\"questionId\":\"q_stem_01\",\"answer\":\"B\"}}}"
+            },
+            "description": "Submit and grade a practice answer.\n\n**Input:** `{ questionId: string, answer: string }`\n**Response:** `{ correct: boolean, explanation: string, correctAnswer: string }`"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📝 Teaching Materials",
+      "description": "AI-generated teaching resources: quizzes, crosswords, slides, flashcards, wordsearch, and fill-in-the-blank activities.",
+      "item": [
+        {
+          "name": "Generate Material",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/materials.generate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "materials.generate"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"0\":{\"json\":{\"topic\":\"The water cycle\",\"type\":\"quiz\",\"competency\":\"STEM\",\"yearGroup\":\"primary\",\"lang\":\"ca\"}}}"
+            },
+            "description": "Generate teaching materials via AI.\n\n**Types:** `quiz`, `slides`, `crossword`, `missing_words`, `wordsearch`, `flashcards`\n**Input:** `{ topic, type, competency?, yearGroup?, lang? }`"
+          }
+        },
+        {
+          "name": "List My Materials",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/materials.list",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "materials.list"]
+            },
+            "description": "List all saved materials for the current authenticated user."
+          }
+        },
+        {
+          "name": "Get Material by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/materials.get?input={\"0\":{\"json\":{\"id\":\"mat_abc123\"}}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "materials.get"],
+              "query": [
+                { "key": "input", "value": "{\"0\":{\"json\":{\"id\":\"mat_abc123\"}}}" }
+              ]
+            },
+            "description": "Fetch a specific material by its ID."
+          }
+        },
+        {
+          "name": "Delete Material",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/materials.delete",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "materials.delete"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"0\":{\"json\":{\"id\":\"mat_abc123\"}}}"
+            },
+            "description": "Delete a saved material by ID."
+          }
+        },
+        {
+          "name": "Duplicate Material",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/materials.duplicate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "materials.duplicate"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"0\":{\"json\":{\"id\":\"mat_abc123\"}}}"
+            },
+            "description": "Duplicate an existing material to create an editable copy."
+          }
+        }
+      ]
+    },
+    {
+      "name": "🎮 Class Challenge",
+      "description": "Real-time classroom quiz challenges with room codes, live leaderboards, and student participation.",
+      "item": [
+        {
+          "name": "Create Challenge Room",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/challenge.create",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "challenge.create"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"0\":{\"json\":{\"competency\":\"STEM\",\"yearGroup\":\"primary\",\"questionCount\":10}}}"
+            },
+            "description": "Create a new challenge room. Returns a 6-character room code for students to join.\n\n**Input:** `{ competency, yearGroup, questionCount }`\n**Response:** `{ roomCode: string, roomId: string }`"
+          }
+        },
+        {
+          "name": "Join Challenge (Student)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/challenge.join",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "challenge.join"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"0\":{\"json\":{\"roomCode\":\"ABC123\",\"nickname\":\"Student Name\"}}}"
+            },
+            "description": "Join a challenge room by code. Public endpoint — no authentication required.\n\n**Input:** `{ roomCode: string, nickname: string }`"
+          }
+        },
+        {
+          "name": "Start Challenge",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/challenge.start",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "challenge.start"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"0\":{\"json\":{\"roomCode\":\"ABC123\"}}}"
+            },
+            "description": "Start the challenge (teacher/room owner only). Broadcasts the first question to all participants."
+          }
+        },
+        {
+          "name": "Get Room State",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/challenge.getRoom?input={\"0\":{\"json\":{\"roomCode\":\"ABC123\"}}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "challenge.getRoom"],
+              "query": [
+                { "key": "input", "value": "{\"0\":{\"json\":{\"roomCode\":\"ABC123\"}}}" }
+              ]
+            },
+            "description": "Get the current state of a challenge room (participants, current question, scores). Public endpoint."
+          }
+        },
+        {
+          "name": "Submit Student Answer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/challenge.submitAnswer",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "challenge.submitAnswer"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"0\":{\"json\":{\"roomCode\":\"ABC123\",\"participantId\":\"p_123\",\"answer\":\"A\"}}}"
+            },
+            "description": "Submit a student's answer during an active challenge. Public endpoint.\n\n**Input:** `{ roomCode, participantId, answer }`"
+          }
+        },
+        {
+          "name": "Next Question",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/challenge.next",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "challenge.next"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"0\":{\"json\":{\"roomCode\":\"ABC123\"}}}"
+            },
+            "description": "Advance to the next question in the challenge (teacher only)."
+          }
+        },
+        {
+          "name": "End Challenge",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/challenge.finish",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "challenge.finish"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"0\":{\"json\":{\"roomCode\":\"ABC123\"}}}"
+            },
+            "description": "End the challenge and finalize scores (teacher only)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "📊 Progress Tracking",
+      "description": "Student progress, assignments, and AI-generated reports.",
+      "item": [
+        {
+          "name": "Get Student Progress",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/progress.getStudentProgress?input={\"0\":{\"json\":{\"studentId\":\"stu_123\"}}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "progress.getStudentProgress"],
+              "query": [
+                { "key": "input", "value": "{\"0\":{\"json\":{\"studentId\":\"stu_123\"}}}" }
+              ]
+            },
+            "description": "Get progress data for a specific student (scores per competency, timeline)."
+          }
+        },
+        {
+          "name": "Get Group Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/progress.getGroupSummary?input={\"0\":{\"json\":{\"groupId\":\"grp_123\"}}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "progress.getGroupSummary"],
+              "query": [
+                { "key": "input", "value": "{\"0\":{\"json\":{\"groupId\":\"grp_123\"}}}" }
+              ]
+            },
+            "description": "Get class-wide summary with per-student competency scores and heatmap data."
+          }
+        },
+        {
+          "name": "Create Assignment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/progress.createAssignment",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "progress.createAssignment"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"0\":{\"json\":{\"groupId\":\"grp_123\",\"title\":\"STEM Practice Week 12\",\"description\":\"Complete 10 STEM questions\",\"dueDate\":\"2026-06-15T23:59:00.000Z\"}}}"
+            },
+            "description": "Create a new assignment for a class group with an optional due date."
+          }
+        },
+        {
+          "name": "List Assignments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/progress.listAssignments?input={\"0\":{\"json\":{\"groupId\":\"grp_123\"}}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "progress.listAssignments"],
+              "query": [
+                { "key": "input", "value": "{\"0\":{\"json\":{\"groupId\":\"grp_123\"}}}" }
+              ]
+            },
+            "description": "List all assignments for a class group."
+          }
+        }
+      ]
+    },
+    {
+      "name": "👥 Groups",
+      "description": "Class group management, student rosters, and messaging.",
+      "item": [
+        {
+          "name": "Create Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/groups.create",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "groups.create"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"0\":{\"json\":{\"className\":\"4t ESO A\",\"level\":\"secondary\",\"assessmentTitle\":\"Trimestre 2\"}}}"
+            },
+            "description": "Create a new class group.\n\n**Input:** `{ className, level, assessmentTitle }`"
+          }
+        },
+        {
+          "name": "List Groups",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/groups.list",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "groups.list"]
+            },
+            "description": "List all class groups for the current teacher."
+          }
+        },
+        {
+          "name": "Add Student to Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/groups.addStudent",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "groups.addStudent"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"0\":{\"json\":{\"groupId\":\"grp_123\",\"name\":\"Pau Martí\",\"email\":\"pau.marti@escola.cat\"}}}"
+            },
+            "description": "Add a student to a class group.\n\n**Input:** `{ groupId, name, email? }`"
+          }
+        },
+        {
+          "name": "Send Group Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/groups.sendMessage",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "groups.sendMessage"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"0\":{\"json\":{\"groupId\":\"grp_123\",\"subject\":\"Homework Reminder\",\"body\":\"Please complete the STEM practice before Friday.\"}}}"
+            },
+            "description": "Send a message/alert to all students in a group."
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔊 Voice & TTS",
+      "description": "Text-to-speech synthesis using BSC AINA (Catalan) with browser fallback.",
+      "item": [
+        {
+          "name": "Synthesize Speech (TTS)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/voice.tts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "voice.tts"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"0\":{\"json\":{\"text\":\"Bon dia, avui aprendrem sobre les competències LOMLOE.\",\"lang\":\"ca\",\"voice\":\"aina\",\"accent\":\"balear\",\"lengthScale\":1.0}}}"
+            },
+            "description": "Synthesize speech from text.\n\n**Input:** `{ text, lang?, voice?: 'aina'|'quim', accent?: 'balear', lengthScale?: number }`\n**Response:** `{ audioBase64: string, mimeType: string }`\n\n**Note:** Currently only the BSC AINA balear accent is operational. Other accents may return errors."
+          }
+        },
+        {
+          "name": "Transcribe Audio",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/voice.transcribe",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "voice.transcribe"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"0\":{\"json\":{\"audioUrl\":\"https://storage.example.com/recording.mp3\",\"language\":\"ca\"}}}"
+            },
+            "description": "Transcribe audio to text using Whisper.\n\n**Input:** `{ audioUrl: string, language?: string }`\n**Response:** `{ text: string, language: string }`"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔒 Privacy & GDPR",
+      "description": "GDPR compliance endpoints: data export, deletion, and retention management.",
+      "item": [
+        {
+          "name": "Get My Data Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/privacy.getMyDataSummary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "privacy.getMyDataSummary"]
+            },
+            "description": "Get a summary of all personal data stored for the current user (GDPR Article 15)."
+          }
+        },
+        {
+          "name": "Export My Data",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/privacy.exportMyData",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "privacy.exportMyData"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"0\":{\"json\":{}}}"
+            },
+            "description": "Export all personal data in machine-readable format (GDPR Article 20 — data portability)."
+          }
+        },
+        {
+          "name": "Delete My Data",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/privacy.deleteMyData",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "privacy.deleteMyData"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"0\":{\"json\":{}}}"
+            },
+            "description": "Delete all personal data (GDPR Article 17 — right to erasure). This action is irreversible."
+          }
+        },
+        {
+          "name": "Generate Parent Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/privacy.generateParentReport",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "privacy.generateParentReport"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"0\":{\"json\":{\"studentId\":\"stu_123\"}}}"
+            },
+            "description": "Generate a parent-readable PDF report of a student's data and progress."
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏫 Multi-Tenancy & Admin",
+      "description": "School management, tenant administration, and director tools.",
+      "item": [
+        {
+          "name": "List Tenants",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/tenants.list",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "tenants.list"]
+            },
+            "description": "List all tenants (schools) in the platform. Admin only."
+          }
+        },
+        {
+          "name": "Get Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/analytics.getDashboard",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "analytics.getDashboard"]
+            },
+            "description": "Get usage analytics dashboard data (engagement metrics, active users, feature usage)."
+          }
+        },
+        {
+          "name": "Get Audit Log",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/audit.getLog?input={\"0\":{\"json\":{\"limit\":50}}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "audit.getLog"],
+              "query": [
+                { "key": "input", "value": "{\"0\":{\"json\":{\"limit\":50}}}" }
+              ]
+            },
+            "description": "Retrieve security audit log entries. Admin only.\n\n**Input:** `{ limit?: number, offset?: number }`"
+          }
+        },
+        {
+          "name": "Security Dashboard KPIs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/securityDashboard.getKpis",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "securityDashboard.getKpis"]
+            },
+            "description": "Get security KPIs: failed logins, MFA adoption, session anomalies. Admin only."
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏥 System Health",
+      "description": "Health checks and system monitoring endpoints.",
+      "item": [
+        {
+          "name": "Health Check (Ping)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/ping",
+              "host": ["{{base_url}}"],
+              "path": ["api", "ping"]
+            },
+            "description": "Simple health probe. Returns `{ status: 'ok' }` if the server is running. No authentication required."
+          }
+        },
+        {
+          "name": "Self-Heal Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/trpc/selfHeal.getStatus",
+              "host": ["{{base_url}}"],
+              "path": ["api", "trpc", "selfHeal.getStatus"]
+            },
+            "description": "Get the current self-healing system status and recent health check results."
+          }
+        }
+      ]
+    }
+  ]
+}
