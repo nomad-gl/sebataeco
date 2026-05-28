@@ -6029,3 +6029,12 @@
 - [x] Add chat interface screenshot to README
 - [x] Create ENV_REFERENCE.md with all environment variables documented
 - [x] Re-export to GitHub with updated README (user action via Settings → GitHub)
+
+## Documentation for Customer
+- [x] API Documentation (docs/API.md)
+- [x] Deployment Guide (docs/DEPLOYMENT.md)
+- [x] Architecture Diagram (docs/ARCHITECTURE.md)
+- [x] Curriculum Mapping (docs/CURRICULUM.md)
+- [x] Security & Privacy Policy (docs/SECURITY.md)
+- [x] Product Roadmap (docs/ROADMAP.md)
+- [x] Professional README.md with badges, screenshots, and docs links
