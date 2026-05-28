@@ -1,6 +1,4 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { createCallerFactory } from "@trpc/server";
-import { router, protectedProcedure } from "./_core/trpc";
 import { teacherProfileRouter } from "./routers/teacherProfile";
 import { getDb } from "./db";
 import { users } from "../drizzle/schema";
@@ -9,15 +7,17 @@ import { eq } from "drizzle-orm";
 describe("Teacher Profile Editing", () => {
   let testUserId: number;
   let db: any;
+  const testEmail = `testteacher-profile-${Date.now()}@example.com`;
 
   beforeAll(async () => {
     db = await getDb();
     if (!db) throw new Error("Database not available");
 
     // Create a test user
-    const result = await db.insert(users).values({
-      email: "testteacher@example.com",
-      name: "Test Teacher",
+    await db.insert(users).values({
+      openId: `test-profile-edit-${Date.now()}`,
+      email: testEmail,
+      name: "Test Teacher Profile",
       role: "user",
       position: "teacher",
       phone: null,
@@ -27,9 +27,7 @@ describe("Teacher Profile Editing", () => {
     });
 
     // Get the inserted user ID
-    const user = await db.query.users.findFirst({
-      where: eq(users.email, "testteacher@example.com"),
-    });
+    const [user] = await db.select().from(users).where(eq(users.email, testEmail)).limit(1);
     testUserId = user?.id || 0;
   });
 
@@ -40,7 +38,7 @@ describe("Teacher Profile Editing", () => {
   });
 
   it("should update teacher profile with valid data", async () => {
-    const caller = createCallerFactory(teacherProfileRouter)({
+    const caller = teacherProfileRouter.createCaller({
       user: { id: testUserId, role: "user", position: "teacher" },
     } as any);
 
@@ -56,9 +54,7 @@ describe("Teacher Profile Editing", () => {
     expect(result.message).toBe("Profile updated successfully");
 
     // Verify the update in database
-    const updatedUser = await db.query.users.findFirst({
-      where: eq(users.id, testUserId),
-    });
+    const [updatedUser] = await db.select().from(users).where(eq(users.id, testUserId)).limit(1);
 
     expect(updatedUser?.name).toBe("Updated Teacher Name");
     expect(updatedUser?.phone).toBe("+1-555-0123");
@@ -68,7 +64,7 @@ describe("Teacher Profile Editing", () => {
   });
 
   it("should update only specified fields", async () => {
-    const caller = createCallerFactory(teacherProfileRouter)({
+    const caller = teacherProfileRouter.createCaller({
       user: { id: testUserId, role: "user", position: "teacher" },
     } as any);
 
@@ -76,9 +72,7 @@ describe("Teacher Profile Editing", () => {
       phone: "+1-555-9999",
     });
 
-    const updatedUser = await db.query.users.findFirst({
-      where: eq(users.id, testUserId),
-    });
+    const [updatedUser] = await db.select().from(users).where(eq(users.id, testUserId)).limit(1);
 
     expect(updatedUser?.phone).toBe("+1-555-9999");
     // Other fields should remain unchanged
@@ -86,7 +80,7 @@ describe("Teacher Profile Editing", () => {
   });
 
   it("should validate display name length", async () => {
-    const caller = createCallerFactory(teacherProfileRouter)({
+    const caller = teacherProfileRouter.createCaller({
       user: { id: testUserId, role: "user", position: "teacher" },
     } as any);
 
@@ -98,12 +92,12 @@ describe("Teacher Profile Editing", () => {
       });
       expect.fail("Should have thrown validation error");
     } catch (error: any) {
-      expect(error.message).toContain("validation");
+      expect(error.code).toBe("BAD_REQUEST");
     }
   });
 
   it("should validate bio length", async () => {
-    const caller = createCallerFactory(teacherProfileRouter)({
+    const caller = teacherProfileRouter.createCaller({
       user: { id: testUserId, role: "user", position: "teacher" },
     } as any);
 
@@ -115,12 +109,12 @@ describe("Teacher Profile Editing", () => {
       });
       expect.fail("Should have thrown validation error");
     } catch (error: any) {
-      expect(error.message).toContain("validation");
+      expect(error.code).toBe("BAD_REQUEST");
     }
   });
 
   it("should validate preferred language enum", async () => {
-    const caller = createCallerFactory(teacherProfileRouter)({
+    const caller = teacherProfileRouter.createCaller({
       user: { id: testUserId, role: "user", position: "teacher" },
     } as any);
 
@@ -130,12 +124,12 @@ describe("Teacher Profile Editing", () => {
       });
       expect.fail("Should have thrown validation error");
     } catch (error: any) {
-      expect(error.message).toContain("validation");
+      expect(error.code).toBe("BAD_REQUEST");
     }
   });
 
   it("should clear optional fields when set to empty string", async () => {
-    const caller = createCallerFactory(teacherProfileRouter)({
+    const caller = teacherProfileRouter.createCaller({
       user: { id: testUserId, role: "user", position: "teacher" },
     } as any);
 
@@ -145,9 +139,7 @@ describe("Teacher Profile Editing", () => {
       officeLocation: "",
     });
 
-    const updatedUser = await db.query.users.findFirst({
-      where: eq(users.id, testUserId),
-    });
+    const [updatedUser] = await db.select().from(users).where(eq(users.id, testUserId)).limit(1);
 
     expect(updatedUser?.phone).toBe("");
     expect(updatedUser?.bio).toBe("");

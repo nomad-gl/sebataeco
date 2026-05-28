@@ -96,9 +96,7 @@ export const teacherDirectoryRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
 
-      const teacher = await db.query.users.findFirst({
-        where: eq(users.id, input.userId),
-      });
+      const [teacher] = await db.select().from(users).where(eq(users.id, input.userId)).limit(1);
 
       if (!teacher) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Teacher not found" });
