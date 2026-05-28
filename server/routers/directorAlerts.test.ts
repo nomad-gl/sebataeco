@@ -26,9 +26,9 @@ function isoWeek(date: Date): string {
 
 describe("isoWeek helper", () => {
   it("returns correct ISO week for a Monday", () => {
-    // 2025-01-06 UTC is a Monday — isoWeek puts it in W01 (weeks run Tue–Mon)
-    expect(isoWeek(new Date(Date.UTC(2025, 0, 6)))).toBe("2025-W01");
-    // 2025-01-07 UTC is a Tuesday — first day of W02
+    // 2025-01-06 UTC is a Monday — ISO 8601: belongs to W02 (week starts Monday)
+    expect(isoWeek(new Date(Date.UTC(2025, 0, 6)))).toBe("2025-W02");
+    // 2025-01-07 UTC is a Tuesday — still in W02
     expect(isoWeek(new Date(Date.UTC(2025, 0, 7)))).toBe("2025-W02");
   });
 
@@ -38,19 +38,18 @@ describe("isoWeek helper", () => {
   });
 
   it("returns correct ISO week for a mid-year date", () => {
-    // 2025-09-08 UTC is a Monday — the isoWeek helper puts it in W36
-    // (ISO weeks run Tue–Mon in this implementation's output)
-    expect(isoWeek(new Date(Date.UTC(2025, 8, 8)))).toBe("2025-W36");
-    // 2025-09-09 UTC is a Tuesday — first day of W37
+    // 2025-09-08 UTC is a Monday — ISO 8601: W37 (Monday starts the week)
+    expect(isoWeek(new Date(Date.UTC(2025, 8, 8)))).toBe("2025-W37");
+    // 2025-09-09 UTC is a Tuesday — still in W37
     expect(isoWeek(new Date(Date.UTC(2025, 8, 9)))).toBe("2025-W37");
   });
 
   it("handles year boundary correctly (ISO week 53 / week 1)", () => {
-    // 2020-12-31 UTC is a Thursday — ISO week 53 of 2020
+    // 2020-12-31 UTC is a Thursday — ISO 8601: W53 of 2020
     expect(isoWeek(new Date(Date.UTC(2020, 11, 31)))).toBe("2020-W53");
-    // 2021-01-04 UTC is a Monday but still in ISO week 53 of 2020 (week starts on Mon)
-    expect(isoWeek(new Date(Date.UTC(2021, 0, 4)))).toBe("2020-W53");
-    // 2021-01-05 UTC is a Tuesday — first day of ISO week 1 of 2021
+    // 2021-01-04 UTC is a Monday — ISO 8601: W01 of 2021 (first Thursday rule)
+    expect(isoWeek(new Date(Date.UTC(2021, 0, 4)))).toBe("2021-W01");
+    // 2021-01-05 UTC is a Tuesday — still in W01 of 2021
     expect(isoWeek(new Date(Date.UTC(2021, 0, 5)))).toBe("2021-W01");
   });
 

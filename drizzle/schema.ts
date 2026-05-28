@@ -140,6 +140,14 @@ export const users = mysqlTable("users", {
    * @migration 0069
    */
   navLinkOrder: text("navLinkOrder"),
+  /** Teacher phone number for directory display */
+  phone: varchar("phone", { length: 20 }),
+  /** Short biography / about text */
+  bio: text("bio"),
+  /** Preferred UI language (en/es/ca) */
+  preferredLanguage: varchar("preferredLanguage", { length: 8 }),
+  /** Physical office location for directory display */
+  officeLocation: varchar("officeLocation", { length: 255 }),
 });
 
 export type User = typeof users.$inferSelect;

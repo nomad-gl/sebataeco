@@ -6038,3 +6038,10 @@
 - [x] Security & Privacy Policy (docs/SECURITY.md)
 - [x] Product Roadmap (docs/ROADMAP.md)
 - [x] Professional README.md with badges, screenshots, and docs links
+
+## Fix Failing Test Files (CI Green)
+- [x] Fix server/teacherDirectory.test.ts: add openId to user inserts, replace db.query with db.select(), use router.createCaller() pattern
+- [x] Fix server/teacherProfile.edit.test.ts: add openId to user insert, replace db.query with db.select(), use router.createCaller(), fix validation assertions
+- [x] Fix server/routers/teacherDirectory.ts: replace db.query.users.findFirst with db.select() (drizzle without schema doesn't support relational queries)
+- [x] Add missing phone/bio/preferredLanguage/officeLocation columns to users table in drizzle/schema.ts (columns existed in DB but were missing from schema)
+- [x] All 52 test files passing (8913 tests)
