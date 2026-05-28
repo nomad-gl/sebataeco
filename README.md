@@ -22,6 +22,7 @@
 
 <p align="center">
   <a href="https://github.com/nomad-gl/sebataeco/actions/workflows/ci.yml"><img src="https://github.com/nomad-gl/sebataeco/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://coveralls.io/github/nomad-gl/sebataeco"><img src="https://coveralls.io/repos/github/nomad-gl/sebataeco/badge.svg" alt="Coverage" /></a>
   <img src="https://img.shields.io/badge/license-Source--Available-blue" alt="License" />
   <img src="https://img.shields.io/badge/node-22%2B-green" alt="Node.js 22+" />
   <img src="https://img.shields.io/badge/react-19-61dafb" alt="React 19" />
