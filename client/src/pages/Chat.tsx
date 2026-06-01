@@ -272,34 +272,12 @@ export default function Chat() {
       return;
     }
     if (content.startsWith("__image_fallback__")) {
-      // Image generation failed — ask the LLM to describe what the image would look like instead
-      const failedPrompt = content.slice("__image_fallback__".length);
-      const fallbackSystemNote =
-        lang === "ca"
-          ? `La generació d'imatge ha fallat. En lloc d'una imatge, descriu detalladament com seria una imatge de: "${failedPrompt}". Explica els colors, la composició, l'estil i els elements visuals que contindria.`
-          : lang === "es"
-          ? `La generación de imagen falló. En lugar de una imagen, describe detalladamente cómo sería una imagen de: "${failedPrompt}". Explica los colores, la composición, el estilo y los elementos visuales que contendría.`
-          : `Image generation failed. Instead of an image, please describe in detail what an image of "${failedPrompt}" would look like. Explain the colours, composition, style, and visual elements it would contain.`;
-      chatMutation.mutateAsync({
-        messages: [{ role: "user", content: failedPrompt }],
-        competency,
-        yearGroup,
-        uiLang: lang as "en" | "es" | "ca",
-        caDialect: lang === "ca" ? (dialect as "central" | "valencian" | "balearic" | "northern" | "alguerese" | "standard") : undefined,
-        userId: user?.id ?? undefined,
-        documentContext: fallbackSystemNote,
-      }).then((result) => {
-        const aiContent = typeof result.content === "string" ? result.content : String(result.content);
-        setMessages((prev) => [
-          ...prev,
-          { role: "assistant", content: aiContent, timestamp: Date.now() },
-        ]);
-      }).catch(() => {
-        setMessages((prev) => [
-          ...prev,
-          { role: "assistant", content: t("chat_error"), timestamp: Date.now() },
-        ]);
-      });
+      // Legacy fallback path — no longer triggered from AIChatBox (errors now show __image_error__ instead).
+      // Keep handler to avoid breaking any in-flight messages that may have been sent before this change.
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "__image_error__", timestamp: Date.now() },
+      ]);
       return;
     }
     if (content.startsWith("__upload_image__")) {

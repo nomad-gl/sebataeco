@@ -864,8 +864,10 @@ export function AIChatBox({
           `${prompt} — ${t("aina_variation_wider_view")}`,
         ];
         onSendMessage(`__image_variations__${JSON.stringify(variations)}`);
-      } catch {
-        onSendMessage(`__image_fallback__${prompt}`);
+      } catch (err) {
+        console.error("[AIChatBox] Voice image generation failed:", err);
+        toast.error(t("aina_image_gen_error") || "Image generation failed. Please try again.");
+        onSendMessage(`__image_error__`);
       } finally {
         setIsGeneratingImage(false);
       }
@@ -1073,9 +1075,16 @@ export function AIChatBox({
           `${prompt} — ${t("aina_variation_wider_view")}`,
         ];
         onSendMessage(`__image_variations__${JSON.stringify(variations)}`);
-      } catch {
-        // Image generation failed — send fallback token so Chat.tsx can ask the LLM to describe the image instead
-        onSendMessage(`__image_fallback__${prompt}`);
+      } catch (err) {
+        // Image generation failed — show a user-facing error toast and log for debugging
+        console.error("[AIChatBox] Image generation failed:", err);
+        const errMsg = err instanceof Error ? err.message : String(err);
+        toast.error(
+          t("aina_image_gen_error") || "Image generation failed. Please try again.",
+          { description: errMsg.slice(0, 120), duration: 6000 }
+        );
+        // Inject a visible error bubble in the chat so the user knows what happened
+        onSendMessage(`__image_error__`);
       } finally {
         setIsGeneratingImage(false);
       }
@@ -1283,7 +1292,11 @@ export function AIChatBox({
                                         setIsGeneratingImage(true);
                                         generateImageMutation.mutateAsync({ prompt: extractImagePrompt(prompt) })
                                           .then(({ url }) => { onSendMessage(`__image__${url}`); })
-                                          .catch(() => { onSendMessage(`__image_fallback__${extractImagePrompt(stripVariationSuffix(message.content!))}`); })
+                                          .catch((err) => {
+            console.error("[AIChatBox] Image regeneration failed:", err);
+            toast.error(t("aina_image_gen_error") || "Image generation failed. Please try again.");
+            onSendMessage(`__image_error__`);
+          })
                                           .finally(() => { setIsGeneratingImage(false); setInput(""); });
                                       }, 0);
                                     }}
