@@ -602,27 +602,27 @@ export default function Presentation() {
         </div>
 
         {/* ── Generator form ─────────────────────────────────────────────────── */}
-        <Card className="bg-[#0d1f4a]/90 border-blue-400/30 text-white shadow-xl">
+        <Card className="bg-[#fdf8f0] border-amber-200/60 text-gray-900 shadow-xl">
           <CardContent className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label className="text-white/90 font-medium">
-                {t("pres_heading_label")} <span className="text-white/50 font-normal">({t("optional")})</span>
+              <Label className="text-gray-800 font-medium">
+                {t("pres_heading_label")} <span className="text-gray-500 font-normal">({t("optional")})</span>
               </Label>
               <Input value={heading} onChange={(e) => setHeading(e.target.value)}
                 placeholder={t("pres_heading_placeholder")}
-                className="bg-white/10 border-white/30 text-white placeholder:text-white/40 focus:border-blue-400" />
+                className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-blue-500" />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/90 font-medium">
-                School / Institution <span className="text-white/50 font-normal">({t("optional")})</span>
+              <Label className="text-gray-800 font-medium">
+                School / Institution <span className="text-gray-500 font-normal">({t("optional")})</span>
               </Label>
               <Input value={school} onChange={(e) => setSchool(e.target.value)}
                 placeholder="e.g. Institut Escola Aina"
-                className="bg-white/10 border-white/30 text-white placeholder:text-white/40 focus:border-blue-400" />
+                className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-blue-500" />
             </div>
             <div className="sm:col-span-2 space-y-1.5">
-              <Label className="text-white/90 font-medium">
-                {t("pres_topic_label")} <span className="text-red-400">*</span>
+              <Label className="text-gray-800 font-medium">
+                {t("pres_topic_label")} <span className="text-red-500">*</span>
               </Label>
               <Textarea value={topic} onChange={(e) => {
                 const val = e.target.value;
@@ -630,7 +630,7 @@ export default function Presentation() {
                 topicAutoCorrect.handleChange(val, (corrected) => setTopic(corrected));
               }}
                 placeholder={t("pres_topic_placeholder")} rows={2}
-                className="bg-white/10 border-white/30 text-white placeholder:text-white/40 resize-none focus:border-blue-400" />
+                className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 resize-none focus:border-blue-500" />
               <AutoCorrectIndicator
                 isPending={topicAutoCorrect.state.isPending}
                 lastCorrection={topicAutoCorrect.state.lastCorrection}
@@ -640,11 +640,11 @@ export default function Presentation() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/90 font-medium">
-                {t("pres_subject_label")} <span className="text-red-400">*</span>
+              <Label className="text-gray-800 font-medium">
+                {t("pres_subject_label")} <span className="text-red-500">*</span>
               </Label>
               <Select value={subject ?? undefined} onValueChange={setSubject}>
-                <SelectTrigger className="bg-white/10 border-white/30 text-white focus:border-blue-400">
+                <SelectTrigger className="bg-white border-gray-300 text-gray-900 focus:border-blue-500">
                   <SelectValue placeholder={t("pres_select_subject")} />
                 </SelectTrigger>
                 <SelectContent>
@@ -653,11 +653,11 @@ export default function Presentation() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/90 font-medium">
-                {t("comp_year_group_label")} <span className="text-red-400">*</span>
+              <Label className="text-gray-800 font-medium">
+                {t("comp_year_group_label")} <span className="text-red-500">*</span>
               </Label>
               <Select value={yearGroup ?? undefined} onValueChange={setYearGroup}>
-                <SelectTrigger className="bg-white/10 border-white/30 text-white focus:border-blue-400">
+                <SelectTrigger className="bg-white border-gray-300 text-gray-900 focus:border-blue-500">
                   <SelectValue placeholder={t("pres_select_year")} />
                 </SelectTrigger>
                 <SelectContent>
@@ -666,11 +666,11 @@ export default function Presentation() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/90 font-medium">
-                {t("pres_competency_label")} <span className="text-white/50 font-normal">({t("optional")})</span>
+              <Label className="text-gray-800 font-medium">
+                {t("pres_competency_label")} <span className="text-gray-500 font-normal">({t("optional")})</span>
               </Label>
               <Select value={competency ?? undefined} onValueChange={setCompetency}>
-                <SelectTrigger className="bg-white/10 border-white/30 text-white focus:border-blue-400">
+                <SelectTrigger className="bg-white border-gray-300 text-gray-900 focus:border-blue-500">
                   <SelectValue placeholder={t("presentation_any_competency")} />
                 </SelectTrigger>
                 <SelectContent>
@@ -680,25 +680,25 @@ export default function Presentation() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/90 font-medium">
-                {t("pres_num_slides" as any)} <span className="text-white/50 font-normal">(3–12)</span>
+              <Label className="text-gray-800 font-medium">
+                {t("pres_num_slides" as any)} <span className="text-gray-500 font-normal">(3–12)</span>
               </Label>
               <Input
                 type="number" min={3} max={12} value={slideCount}
                 onChange={(e) => setSlideCount(Math.min(12, Math.max(3, parseInt(e.target.value) || 6)))}
-                className="bg-white/10 border-white/30 text-white placeholder:text-white/40 focus:border-blue-400"
+                className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-blue-500"
               />
             </div>
             <div className="space-y-1.5 flex flex-col justify-end">
-              <Label className="text-white/90 font-medium">{t("pres_options" as any)}</Label>
-              <label className="flex items-center gap-2 cursor-pointer select-none h-10 px-3 rounded-md bg-white/10 border border-white/30 hover:bg-white/15 transition-colors">
+              <Label className="text-gray-800 font-medium">{t("pres_options" as any)}</Label>
+              <label className="flex items-center gap-2 cursor-pointer select-none h-10 px-3 rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition-colors">
                 <input
                   type="checkbox"
                   checked={includeTalkingPoints}
                   onChange={e => setIncludeTalkingPoints(e.target.checked)}
-                  className="w-4 h-4 accent-blue-400"
+                  className="w-4 h-4 accent-blue-500"
                 />
-                <span className="text-white/90 text-sm">{t("pres_discussion_points" as any)}</span>
+                <span className="text-gray-800 text-sm">{t("pres_discussion_points" as any)}</span>
               </label>
             </div>
             <div className="flex items-end">
@@ -970,22 +970,22 @@ export default function Presentation() {
         )}
 
         {/* ── Bulk Generate section ──────────────────────────────────────────── */}
-        <Card className="bg-[#0d1f4a]/90 border-blue-400/30 text-white shadow-xl">
+        <Card className="bg-[#fdf8f0] border-amber-200/60 text-gray-900 shadow-xl">
           <button
             className="w-full flex items-center justify-between px-5 py-4 text-left"
             onClick={() => setShowBulk(v => !v)}
           >
             <div className="flex items-center gap-2">
-              <Layers className="w-5 h-5 text-blue-300" />
-              <span className="font-semibold text-white">{t("pres_bulk_generate" as any)}</span>
-              <Badge className="bg-blue-400/20 text-blue-200 border-blue-400/30 text-xs ml-1">New</Badge>
+              <Layers className="w-5 h-5 text-blue-600" />
+              <span className="font-semibold text-gray-900">{t("pres_bulk_generate" as any)}</span>
+              <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs ml-1">New</Badge>
             </div>
-            <ChevronDown className={`w-4 h-4 text-white/60 transition-transform ${showBulk ? "rotate-180" : ""}`} />
+            <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${showBulk ? "rotate-180" : ""}`} />
           </button>
 
           {showBulk && (
-            <CardContent className="px-5 pb-5 pt-0 space-y-4 border-t border-blue-400/20">
-              <p className="text-white/70 text-sm">
+            <CardContent className="px-5 pb-5 pt-0 space-y-4 border-t border-amber-200/40">
+              <p className="text-gray-600 text-sm">
                 {t("pres_bulk_desc" as any)}
               </p>
               <Textarea
@@ -993,24 +993,24 @@ export default function Presentation() {
                 onChange={e => setBulkTopics(e.target.value)}
                 placeholder={t("pres_bulk_placeholder" as any)}
                 rows={6}
-                className="bg-white/10 border-white/30 text-white placeholder:text-white/30 resize-none focus:border-blue-400 font-mono text-sm"
+                className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 resize-none focus:border-blue-500 font-mono text-sm"
               />
               {/* School / Institution */}
               <div className="space-y-1.5">
-                <Label className="text-white/90 font-medium text-sm">{t("pres_bulk_school_label" as any)} <span className="text-white/40 font-normal">({t("pres_bulk_school_optional" as any)})</span></Label>
+                <Label className="text-gray-800 font-medium text-sm">{t("pres_bulk_school_label" as any)} <span className="text-gray-500 font-normal">({t("pres_bulk_school_optional" as any)})</span></Label>
                 <Input
                   value={bulkSchool}
                   onChange={e => setBulkSchool(e.target.value)}
                   placeholder="e.g. Escola Pia de Mataró"
-                  className="bg-white/10 border-white/30 text-white placeholder:text-white/30 focus:border-blue-400"
+                  className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-blue-500"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-white/90 font-medium text-sm">{t("pres_bulk_subject" as any)} <span className="text-red-400">*</span></Label>
+                  <Label className="text-gray-800 font-medium text-sm">{t("pres_bulk_subject" as any)} <span className="text-red-500">*</span></Label>
                   <Select value={bulkSubject} onValueChange={setBulkSubject}>
-                    <SelectTrigger className="bg-white/10 border-white/30 text-white focus:border-blue-400">
+                    <SelectTrigger className="bg-white border-gray-300 text-gray-900 focus:border-blue-500">
                       <SelectValue placeholder={t("pres_bulk_select_subject" as any)} />
                     </SelectTrigger>
                     <SelectContent>
@@ -1019,9 +1019,9 @@ export default function Presentation() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-white/90 font-medium text-sm">{t("pres_bulk_year_group" as any)} <span className="text-red-400">*</span></Label>
+                  <Label className="text-gray-800 font-medium text-sm">{t("pres_bulk_year_group" as any)} <span className="text-red-500">*</span></Label>
                   <Select value={bulkYearGroup} onValueChange={setBulkYearGroup}>
-                    <SelectTrigger className="bg-white/10 border-white/30 text-white focus:border-blue-400">
+                    <SelectTrigger className="bg-white border-gray-300 text-gray-900 focus:border-blue-500">
                       <SelectValue placeholder={t("pres_bulk_select_year" as any)} />
                     </SelectTrigger>
                     <SelectContent>
@@ -1030,9 +1030,9 @@ export default function Presentation() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-white/90 font-medium text-sm">{t("pres_bulk_competency" as any)}</Label>
+                  <Label className="text-gray-800 font-medium text-sm">{t("pres_bulk_competency" as any)}</Label>
                   <Select value={bulkCompetency} onValueChange={setBulkCompetency}>
-                    <SelectTrigger className="bg-white/10 border-white/30 text-white focus:border-blue-400">
+                    <SelectTrigger className="bg-white border-gray-300 text-gray-900 focus:border-blue-500">
                       <SelectValue placeholder={t("pres_bulk_any" as any)} />
                     </SelectTrigger>
                     <SelectContent>
@@ -1045,11 +1045,11 @@ export default function Presentation() {
 
               {bulkProgress && (
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm text-white/70">
-                    <span>{t("pres_bulk_generating" as any)} <span className="text-white font-medium">{bulkProgress.current}</span></span>
+                  <div className="flex items-center justify-between text-sm text-gray-600">
+                    <span>{t("pres_bulk_generating" as any)} <span className="text-gray-900 font-medium">{bulkProgress.current}</span></span>
                     <span>{bulkProgress.done} / {bulkProgress.total}</span>
                   </div>
-                  <Progress value={(bulkProgress.done / bulkProgress.total) * 100} className="h-2 bg-white/10" />
+                  <Progress value={(bulkProgress.done / bulkProgress.total) * 100} className="h-2 bg-gray-200" />
                 </div>
               )}
 
@@ -1066,7 +1066,7 @@ export default function Presentation() {
                     : <><Layers className="w-4 h-4 mr-2" /> {t("pres_bulk_generate_save" as any)}</>}
                 </Button>
                 {bulkProgress && (
-                  <Button variant="outline" className="border-white/30 text-white hover:bg-white/10"
+                  <Button variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-100 bg-white"
                     onClick={() => { bulkAbortRef.current = true; }}>
                     {t("pres_bulk_cancel" as any)}
                   </Button>
