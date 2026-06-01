@@ -95,7 +95,7 @@ type PdfInput = {
   }>;
 };
 
-async function generatePresentationPdf(data: PdfInput): Promise<Buffer> {
+export async function generatePresentationPdf(data: PdfInput): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({
       size: "A4",

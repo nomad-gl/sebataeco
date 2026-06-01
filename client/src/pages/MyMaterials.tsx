@@ -20,7 +20,7 @@ import {
   Loader2, Plus, Trash2, ExternalLink, BookOpen, Presentation,
   Grid3X3, AlignLeft, Search, CreditCard, Lock, Zap, Download,
   FileText, RefreshCw, ArrowLeft, ArrowUpDown, CheckSquare, Square,
-  Share2, Copy, Check, SortAsc, SortDesc, ImageIcon,
+  Share2, Copy, Check, SortAsc, SortDesc, ImageIcon, FileDown,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
@@ -127,7 +127,13 @@ export default function MyMaterials() {
   const [editTitle, setEditTitle] = useState("");
   const [editSubject, setEditSubject] = useState("");
 
+  const [pdfLoadingId, setPdfLoadingId] = useState<number | null>(null);
   const { data: materials, isLoading } = trpc.materials.list.useQuery(undefined, { enabled: !!user });
+  const exportPdfMutation = trpc.materials.exportPdf.useMutation({
+    onSuccess: ({ url }) => { window.open(url, "_blank", "noopener,noreferrer"); },
+    onError: (err) => { toast.error("PDF export failed: " + err.message); },
+    onSettled: () => setPdfLoadingId(null),
+  });
   const deleteMutation = trpc.materials.delete.useMutation({
     onSuccess: () => {
       toast.success(t("my_materials_delete") + "d.");
@@ -525,10 +531,20 @@ export default function MyMaterials() {
                             onClick={(e) => { e.stopPropagation(); window.location.href = `/challenge?materialId=${m.id}&materialTitle=${encodeURIComponent(m.title)}`; }}>
                             <Zap className="w-3.5 h-3.5" /> {t("nav_challenge")}
                           </Button>
-                          <Button size="sm" variant="outline" className="flex-1 gap-1.5 border-white/25 text-white/80 hover:bg-white/15 bg-transparent"
-                            onClick={(e) => { e.stopPropagation(); navigate(`/materials/${m.id}`); }}>
-                            <ExternalLink className="w-3.5 h-3.5" /> {t("my_materials_open")}
-                          </Button>
+                          {m.type === "slides" ? (
+                            <Button size="sm" variant="outline" className="flex-1 gap-1.5 border-white/25 text-white/80 hover:bg-white/15 bg-transparent"
+                              disabled={pdfLoadingId === m.id}
+                              onClick={(e) => { e.stopPropagation(); setPdfLoadingId(m.id); exportPdfMutation.mutate({ id: m.id }); }}>
+                              {pdfLoadingId === m.id
+                                ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Generating…</>
+                                : <><FileDown className="w-3.5 h-3.5" /> Open PDF</>}
+                            </Button>
+                          ) : (
+                            <Button size="sm" variant="outline" className="flex-1 gap-1.5 border-white/25 text-white/80 hover:bg-white/15 bg-transparent"
+                              onClick={(e) => { e.stopPropagation(); navigate(`/materials/${m.id}`); }}>
+                              <ExternalLink className="w-3.5 h-3.5" /> {t("my_materials_open")}
+                            </Button>
+                          )}
                           {m.type === "slides" && (
                             <Button size="sm" variant="outline" className="gap-1.5 border-purple-400/50 text-purple-300 hover:bg-purple-500/20 bg-transparent"
                               title={t("mv_edit_presentation")}

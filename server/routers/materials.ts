@@ -657,6 +657,53 @@ export const materialsRouter = router({
       return { id, title: input.title };
     }),
 
+  /**
+   * Export a saved slides material as a PDF and return a temporary S3 URL.
+   */
+  exportPdf: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const row = await getMaterialById(input.id, ctx.user.id);
+      if (!row) throw new Error("Material not found");
+      if (row.type !== "slides") throw new Error("Material is not a slides type");
+
+      let parsed: {
+        title?: string;
+        subject?: string;
+        yearGroup?: string;
+        competency?: string;
+        keyVocabulary?: Array<{ term: string; definition: string }>;
+        slides?: Array<{
+          heading?: string;
+          bullets?: string[];
+          speakerNote?: string;
+          talkingPoints?: string[];
+          imageUrl?: string;
+        }>;
+      } = {};
+      try { parsed = JSON.parse(row.content ?? "{}"); } catch { parsed = {}; }
+
+      const slides = (parsed.slides ?? []).map(s => ({
+        title: s.heading ?? "",
+        content: (s.bullets ?? []).join("\n"),
+        speakerNotes: s.speakerNote,
+        keyVocabulary: s.talkingPoints,
+      }));
+
+      const { generatePresentationPdf } = await import("./presentations");
+      const pdfBuffer = await generatePresentationPdf({
+        title: row.title,
+        subject: parsed.subject,
+        yearGroup: parsed.yearGroup,
+        competency: parsed.competency,
+        slides,
+      });
+
+      const fileKey = `material-exports/${ctx.user.id}-${input.id}-${Date.now()}.pdf`;
+      const { url } = await storagePut(fileKey, pdfBuffer, "application/pdf");
+      return { url };
+    }),
+
   /** AI auto-assign difficulty (1-3 stars) to unrated PARAULA words */
   autoAssignParaulaDifficulty: protectedProcedure
     .input(z.object({ materialId: z.number() }))
