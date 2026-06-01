@@ -44,15 +44,11 @@ import AuditDashboard from "./pages/AuditDashboard";
 import Privacy from "./pages/Privacy";
 import PwaInstallBanner from "./components/PwaInstallBanner";
 import { BackToTop } from "./components/BackToTop";
-import UpdateBanner from "./components/UpdateBanner";
 import FirstLaunchLanguagePicker from "./components/FirstLaunchLanguagePicker";
 import CatalanDialectDetector from "./components/CatalanDialectDetector";
 import FirstLoginDialectAutoSet from "./components/FirstLoginDialectAutoSet";
 import DataNoticeBanner from "./components/DataNoticeBanner";
 import DpaAcceptanceDialog from "./components/DpaAcceptanceDialog";
-import WhatsNewBanner from "./components/WhatsNewBanner";
-import { LatestUpdatesModal } from "./components/LatestUpdatesModal";
-import { useLatestUpdates } from "./hooks/useLatestUpdates";
 // import TeacherNotifications from "./pages/TeacherNotifications"; // Temporarily disabled due to missing dependencies
 import Dpa from "./pages/Dpa";
 import AiModels from "./pages/AiModels";
@@ -305,8 +301,6 @@ function WelcomeToast() {
 }
 
 function App() {
-  const { isOpen, setIsOpen, updates } = useLatestUpdates();
-
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light">
@@ -316,16 +310,9 @@ function App() {
           <FirstLaunchLanguagePicker />
           <CatalanDialectDetector />
           <FirstLoginDialectAutoSet />
-          <UpdateBanner />
           <PwaInstallBanner />
           <DataNoticeBanner />
           <DpaAcceptanceDialog />
-          <WhatsNewBanner />
-          <LatestUpdatesModal
-            isOpen={isOpen}
-            onClose={() => setIsOpen(false)}
-            updates={updates}
-          />
           <BackToTop />
           <GlobalCallListener />
           <OfflineBanner />
