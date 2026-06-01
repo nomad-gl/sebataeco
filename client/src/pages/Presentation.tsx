@@ -602,7 +602,7 @@ export default function Presentation() {
         </div>
 
         {/* ── Generator form ─────────────────────────────────────────────────── */}
-        <Card className="bg-[#fdf8f0] border-amber-200/60 text-gray-900 shadow-xl">
+        <Card className="bg-white border-gray-200 text-gray-900 shadow-xl">
           <CardContent className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label className="text-gray-800 font-medium">
@@ -970,7 +970,7 @@ export default function Presentation() {
         )}
 
         {/* ── Bulk Generate section ──────────────────────────────────────────── */}
-        <Card className="bg-[#fdf8f0] border-amber-200/60 text-gray-900 shadow-xl">
+        <Card className="bg-white border-gray-200 text-gray-900 shadow-xl">
           <button
             className="w-full flex items-center justify-between px-5 py-4 text-left"
             onClick={() => setShowBulk(v => !v)}
