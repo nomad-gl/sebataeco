@@ -641,8 +641,8 @@ function SlidesViewer({ content, materialId, onSaved }: {
 
       {/* Full Review Modal */}
       <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
-        <DialogContent className="max-w-3xl w-full max-h-[90vh] flex flex-col">
-          <DialogHeader>
+        <DialogContent className="max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+          <DialogHeader className="shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <Eye className="w-5 h-5 text-primary" /> Full Review — {content.title}
             </DialogTitle>
@@ -650,7 +650,7 @@ function SlidesViewer({ content, materialId, onSaved }: {
               Slide {reviewIdx + 1} of {slides.length}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto flex flex-col gap-4 py-2">
+          <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-4 py-2 pr-1">
             {slides[reviewIdx] && (
               <>
                 <div className="rounded-xl border-2 border-primary/20 bg-primary/5 p-5">
@@ -658,6 +658,17 @@ function SlidesViewer({ content, materialId, onSaved }: {
                     <Badge variant="outline">{reviewIdx + 1}</Badge>
                     <h3 className="text-xl font-bold">{slides[reviewIdx]!.heading}</h3>
                   </div>
+                  {/* Image (if generated) */}
+                  {(localImages[reviewIdx] ?? (slides[reviewIdx] as Record<string, unknown>).imageUrl as string | undefined) && (
+                    <div className="mb-4">
+                      <img
+                        src={(localImages[reviewIdx] ?? (slides[reviewIdx] as Record<string, unknown>).imageUrl as string)!}
+                        alt={slides[reviewIdx]!.heading}
+                        className="w-full max-h-64 object-cover rounded-xl border border-primary/20"
+                        crossOrigin="anonymous"
+                      />
+                    </div>
+                  )}
                   <ul className="flex flex-col gap-2">
                     {slides[reviewIdx]!.bullets.map((b, i) => (
                       <li key={i} className="flex items-start gap-2 text-sm">
@@ -701,7 +712,7 @@ function SlidesViewer({ content, materialId, onSaved }: {
               </>
             )}
           </div>
-          <DialogFooter className="flex items-center gap-2">
+          <DialogFooter className="flex items-center gap-2 shrink-0 border-t border-border pt-3">
             <Button variant="outline" disabled={reviewIdx === 0} onClick={() => setReviewIdx(i => i - 1)}>
               <ChevronLeft className="w-4 h-4" /> Prev
             </Button>
