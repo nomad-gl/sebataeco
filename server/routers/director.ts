@@ -1015,10 +1015,14 @@ export const directorRouter = router({
   /**
    * Get the school branding settings (logo, name) from the singleton school_settings row.
    */
-  getSchoolBranding: adminProcedure.query(async ({ ctx }) => {
+  // NOTE: intentionally uses protectedProcedure (not adminProcedure) so that
+  // regular teachers can read their school's logo/name for the SA Generator PDF header.
+  // The procedure is read-only and returns only public branding data.
+  getSchoolBranding: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     if (!db) return { id: 1, schoolName: null, logoUrl: null, logoKey: null, updatedAt: new Date() };
-    const tid = ctx.tenantId;
+    // Derive tenantId from the authenticated user (works for all roles including teacher)
+    const tid = ctx.user.tenantId ?? null;
     // Try tenant-scoped row first, then fall back to legacy singleton
     let rows = tid != null
       ? await db.select().from(schoolSettings).where(eq(schoolSettings.tenantId, tid))
@@ -1027,7 +1031,6 @@ export const directorRouter = router({
       rows = await db.select().from(schoolSettings).where(eq(schoolSettings.id, 1));
     }
     if (rows.length === 0) {
-      await db.insert(schoolSettings).values({ id: 1 });
       return { id: 1, schoolName: null, logoUrl: null, logoKey: null, updatedAt: new Date() };
     }
     return rows[0];
