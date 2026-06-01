@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import {
   Loader2, BookMarked, Copy, Check, Trash2, BookOpen, Target,
-  ClipboardList, Zap, ExternalLink, RefreshCw, Globe, Lock, Printer,
+  ClipboardList, Zap, ExternalLink, RefreshCw, Globe, Lock, Printer, FileDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -99,6 +99,12 @@ export default function MySituacions() {
 
   const [viewItem, setViewItem] = useState<SavedSituacio | null>(null);
   const [copied, setCopied] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+
+  // Fetch school branding for PDF header
+  const { data: branding } = trpc.director.getSchoolBranding.useQuery(undefined, { retry: false });
+
+  const exportPdfMutation = trpc.lomloe.exportSituacioPdf.useMutation();
 
   const deleteMutation = trpc.lomloe.deleteSituacio.useMutation({
     onSuccess: () => {
@@ -120,23 +126,71 @@ export default function MySituacions() {
     try { return JSON.parse(item.resultJson); } catch { return null; }
   }
 
+  async function handleDownloadPdf(item: SavedSituacio) {
+    setPdfLoading(true);
+    try {
+      const result = await exportPdfMutation.mutateAsync({
+        id: item.id,
+        schoolName: branding?.schoolName ?? undefined,
+        logoUrl: branding?.logoUrl ?? undefined,
+        date: new Date().toLocaleDateString(),
+        lang: "ca",
+      });
+      const bytes = Uint8Array.from(atob(result.pdf), (c) => c.charCodeAt(0));
+      const blob = new Blob([bytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = result.filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("[MySituacions] PDF export failed:", err);
+      toast.error("Could not generate PDF. Please try again.");
+    } finally {
+      setPdfLoading(false);
+    }
+  }
+
   function handlePrint(item: SavedSituacio) {
     const parsed = getParsed(item);
     if (!parsed) return;
-    const logo = localStorage.getItem("seba_school_logo");
+    const logo = branding?.logoUrl ?? localStorage.getItem("seba_school_logo");
     const logoHtml = logo
-      ? `<img src="${logo}" alt="School Logo" style="height:56px;object-fit:contain;margin-bottom:6px;" />`
+      ? `<img src="${logo}" alt="School Logo" style="height:56px;object-fit:contain;" />`
       : ``;
+    // Mini-header repeated at the top of each page-break section
+    const miniHeader = `<div class="mini-header"><div style="display:flex;align-items:center;gap:10px;border-bottom:1px solid #c7d2fe;padding-bottom:6px;margin-bottom:10px">${logoHtml}<div><strong style="font-size:0.8rem;color:#312e81">${parsed.title}</strong><span style="font-size:0.7rem;color:#6b7280;margin-left:8px">${item.subject} &middot; ${item.yearGroup}</span></div></div></div>`;
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${parsed.title}</title>
-<style>body{font-family:sans-serif;margin:32px;color:#111}h1{font-size:1.3rem;margin-bottom:4px}h2{font-size:0.9rem;text-transform:uppercase;letter-spacing:.05em;color:#555;margin:18px 0 6px}p,li{font-size:0.88rem;line-height:1.55}ol{padding-left:1.2rem}.badge{display:inline-block;background:#e0e7ff;color:#3730a3;border-radius:9999px;padding:2px 10px;font-size:0.75rem;font-weight:700;margin-right:6px}.footer{margin-top:32px;font-size:0.7rem;color:#999;border-top:1px solid #eee;padding-top:8px}.page-break{page-break-before:always;break-before:page;padding-top:16px}@media print{body{margin:16px}.page-break{page-break-before:always;break-before:page}}</style></head><body>
-<div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;border-bottom:2px solid #1e3a5f;padding-bottom:12px">${logoHtml}<div><h1 style="margin:0">${parsed.title}</h1><p style="margin:2px 0;color:#555;font-size:0.8rem">${item.subject} &middot; ${item.yearGroup}</p></div></div>
+<style>
+  body{font-family:Georgia,serif;max-width:720px;margin:40px auto;padding:0 20px;color:#1a1a1a;line-height:1.6}
+  .header{display:flex;align-items:center;gap:16px;border-bottom:2px solid #4f46e5;padding-bottom:12px;margin-bottom:20px}
+  .header-text h1{font-size:1.4rem;color:#312e81;margin:0}
+  .header-text p{font-size:0.85rem;color:#6b7280;margin:2px 0 0}
+  h2{font-size:1.05rem;color:#4f46e5;margin-top:1.5rem;border-left:3px solid #4f46e5;padding-left:8px}
+  .badge{display:inline-block;background:#e0e7ff;color:#3730a3;border-radius:9999px;padding:2px 10px;font-size:0.75rem;font-weight:700;margin-right:6px}
+  .ref{color:#6b7280;font-style:italic;font-size:0.85rem;margin-top:1.5rem;border-top:1px solid #e5e7eb;padding-top:8px}
+  ol,ul{padding-left:1.5rem}
+  li{margin-bottom:4px}
+  .activity{margin-bottom:12px}
+  .activity-phase{font-weight:700;text-transform:uppercase;font-size:0.8rem;letter-spacing:0.05em;color:#6d28d9}
+  .powered{text-align:right;font-size:0.7rem;color:#9ca3af;margin-top:20px}
+  .page-break{page-break-before:always;break-before:page;margin-top:0;padding-top:1.5rem}
+  .mini-header{display:none}
+  @media print{
+    body{margin:20px}
+    .page-break{page-break-before:always;break-before:page}
+    .mini-header{display:block}
+  }
+</style></head><body>
+<div class="header">${logoHtml}<div class="header-text"><h1>${parsed.title}</h1><p>${item.subject} &middot; ${item.yearGroup}</p></div></div>
 <h2>${t("situacio_context_label")}</h2><p>${parsed.context}</p>
 <h2>${t("situacio_task_label")}</h2><p>${parsed.task}</p>
 <h2>${t("situacio_competencies_label")}</h2>${parsed.competencies.map(c=>`<p><span class="badge">${c.code}</span>${c.description}</p>`).join('')}
-<div class="page-break"><h2>${t("situacio_activities_label")}</h2>${parsed.activities.map((a,i)=>`<p><strong>${i+1}. ${a.phase}:</strong> ${a.description}</p>`).join('')}</div>
-<div class="page-break"><h2>${t("situacio_criteria_label")}</h2><ol>${parsed.criteria.map(c=>`<li>${c}</li>`).join('')}</ol></div>
-<p style="font-style:italic;color:#888;font-size:0.78rem;margin-top:12px">${parsed.lomloeRef}</p>
-<div class="footer">Powered by SEBA &middot; ${new Date().toLocaleDateString()}</div>
+<div class="page-break">${miniHeader}<h2>${t("situacio_activities_label")}</h2>${parsed.activities.map((a,i)=>`<div class="activity"><span class="activity-phase">${i+1}. ${a.phase}</span><p style="margin:4px 0 0">${a.description}</p></div>`).join('')}</div>
+<div class="page-break">${miniHeader}<h2>${t("situacio_criteria_label")}</h2><ol>${parsed.criteria.map(c=>`<li>${c}</li>`).join('')}</ol></div>
+<p class="ref">${parsed.lomloeRef}</p>
+<div class="powered">Powered by SEBA &middot; ${new Date().toLocaleDateString()}</div>
 </body></html>`;
     const w = window.open('', '_blank');
     if (!w) return;
@@ -446,6 +500,18 @@ export default function MySituacions() {
                   <Button size="sm" variant="outline" onClick={() => handlePrint(viewItem)} className="gap-1.5">
                     <Printer className="w-3.5 h-3.5" />
                     {t("my_situacions_print") ?? "Print"}
+                  </Button>
+                )}
+                {viewItem && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDownloadPdf(viewItem)}
+                    disabled={pdfLoading}
+                    className="gap-1.5"
+                  >
+                    {pdfLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
+                    {t("my_situacions_download_pdf") ?? "Download PDF"}
                   </Button>
                 )}
                 {viewItem && (

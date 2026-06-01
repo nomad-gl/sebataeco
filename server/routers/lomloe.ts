@@ -1588,6 +1588,57 @@ Return ONLY a valid JSON object (no markdown, no code fences) with exactly these
       return { success: true };
     }),
 
+  /**
+   * Export a saved Situació as a server-side PDF.
+   * Returns base64-encoded PDF bytes + suggested filename.
+   * The owner can always export their own SA; shared SAs can be exported by any authenticated user.
+   */
+  exportSituacioPdf: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      schoolName: z.string().optional(),
+      teacherName: z.string().optional(),
+      classGroup: z.string().optional(),
+      date: z.string().optional(),
+      logoUrl: z.string().optional(),
+      lang: z.enum(["en", "es", "ca"]).default("ca"),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      // Fetch the SA — allow owner or any user for shared SAs
+      const rows = await db.select().from(savedSituacions).where(eq(savedSituacions.id, input.id)).limit(1);
+      if (!rows.length) {
+        const { TRPCError } = await import("@trpc/server");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Situació not found" });
+      }
+      const sa = rows[0];
+      if (sa.userId !== ctx.user.id && !sa.isShared) {
+        const { TRPCError } = await import("@trpc/server");
+        throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+      }
+      let result: { context: string; task: string; competencies: { code: string; description: string }[]; criteria: string[]; activities: { phase: string; description: string }[]; lomloeRef: string };
+      try { result = JSON.parse(sa.resultJson); } catch {
+        const { TRPCError } = await import("@trpc/server");
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Could not parse Situació data" });
+      }
+      const { generateSituacioPdf } = await import("../situacioPdf");
+      const pdfBuffer = await generateSituacioPdf({
+        title: sa.title,
+        subject: sa.subject,
+        yearGroup: sa.yearGroup,
+        schoolName: input.schoolName ?? null,
+        teacherName: input.teacherName ?? null,
+        classGroup: input.classGroup ?? null,
+        date: input.date ?? null,
+        logoUrl: input.logoUrl ?? null,
+        lang: input.lang,
+        result,
+      });
+      const slug = sa.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40);
+      return { pdf: pdfBuffer.toString("base64"), filename: `situacio-${slug}.pdf` };
+    }),
+
   // ─── Educació Infantil (Decree 21/2023) ──────────────────────────────────
 
   /** Get all 4 Eix metadata entries for the Infantil stage */
