@@ -160,21 +160,6 @@ function SlidePreviewModal({
             )}
           </div>
 
-          <p className="text-white/90 leading-relaxed text-base whitespace-pre-line">{slide.content}</p>
-
-          {slide.keyVocabulary && slide.keyVocabulary.length > 0 && (
-            <div className="bg-blue-400/10 border border-blue-400/20 rounded-xl p-4 space-y-2">
-              <p className="text-blue-200 text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5">
-                <BookOpen className="w-3.5 h-3.5" /> {t("material_key_vocab")}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {slide.keyVocabulary.map((v, i) => (
-                  <Badge key={i} className="bg-blue-500/30 text-blue-100 border-blue-400/30">{v}</Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
           {(slideImages?.[idx] || slide.imagePrompt) && (
             <div className="bg-yellow-400/10 border border-yellow-400/20 rounded-xl p-4 space-y-3">
               {/* Image (if generated) */}
@@ -208,6 +193,21 @@ function SlidePreviewModal({
                   )}
                 </div>
               )}
+            </div>
+          )}
+
+          <p className="text-white/90 leading-relaxed text-base whitespace-pre-line">{slide.content}</p>
+
+          {slide.keyVocabulary && slide.keyVocabulary.length > 0 && (
+            <div className="bg-blue-400/10 border border-blue-400/20 rounded-xl p-4 space-y-2">
+              <p className="text-blue-200 text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5">
+                <BookOpen className="w-3.5 h-3.5" /> {t("material_key_vocab")}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {slide.keyVocabulary.map((v, i) => (
+                  <Badge key={i} className="bg-blue-500/30 text-blue-100 border-blue-400/30">{v}</Badge>
+                ))}
+              </div>
             </div>
           )}
 
@@ -812,28 +812,6 @@ export default function Presentation() {
                     </div>
                   </CardHeader>
                   <CardContent className="p-5 space-y-4">
-                    <div className="text-white/95 leading-relaxed text-sm sm:text-base">
-                      <EditableField
-                        value={slide.content}
-                        onChange={v => updateSlideField(currentSlide, "content", v)}
-                        multiline
-                        className="whitespace-pre-line"
-                      />
-                    </div>
-
-                    {slide.keyVocabulary && slide.keyVocabulary.length > 0 && (
-                      <div className="bg-blue-400/15 border border-blue-400/25 rounded-lg p-3 space-y-1.5">
-                        <p className="text-blue-200 text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5">
-                          <BookOpen className="w-3 h-3" /> {t("material_key_vocab")}
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {slide.keyVocabulary.map((v, i) => (
-                            <Badge key={i} className="bg-blue-500/40 text-blue-100 border-blue-400/30 text-xs">{v}</Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
                     {slide.imagePrompt && (
                       <div className="bg-yellow-400/10 border border-yellow-400/20 rounded-lg p-3 space-y-2">
                         {/* Header row */}
@@ -892,6 +870,28 @@ export default function Presentation() {
                             className="w-full rounded-lg object-cover max-h-48 border border-yellow-400/20"
                             crossOrigin="anonymous" />
                         )}
+                      </div>
+                    )}
+
+                    <div className="text-white/95 leading-relaxed text-sm sm:text-base">
+                      <EditableField
+                        value={slide.content}
+                        onChange={v => updateSlideField(currentSlide, "content", v)}
+                        multiline
+                        className="whitespace-pre-line"
+                      />
+                    </div>
+
+                    {slide.keyVocabulary && slide.keyVocabulary.length > 0 && (
+                      <div className="bg-blue-400/15 border border-blue-400/25 rounded-lg p-3 space-y-1.5">
+                        <p className="text-blue-200 text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5">
+                          <BookOpen className="w-3 h-3" /> {t("material_key_vocab")}
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {slide.keyVocabulary.map((v, i) => (
+                            <Badge key={i} className="bg-blue-500/40 text-blue-100 border-blue-400/30 text-xs">{v}</Badge>
+                          ))}
+                        </div>
                       </div>
                     )}
 
