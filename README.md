@@ -76,9 +76,9 @@ SEBA AI Studio (branded as *Aina*) is a comprehensive educational platform that 
 | Backend | Express 4, tRPC 11, Node.js 22, Zod, Superjson |
 | Database | MySQL / TiDB, Drizzle ORM |
 | Auth | OAuth 2.0, JWT sessions, TOTP MFA, bcrypt |
-| AI/LLM | OpenAI-compatible API (Gemini 2.5 Flash via Manus Forge) |
+| AI/LLM | OpenAI-compatible API — configurable via `LOCAL_LLM_URL` (Ollama, vLLM, HuggingFace, or any OpenAI-compatible endpoint) |
 | Speech | BSC AINA Matxa TTS, Whisper API |
-| Storage | AWS S3 (file uploads, generated assets) |
+| Storage | Self-hosted S3-compatible storage — configurable via `LOCAL_STORAGE_*` env vars (MinIO, Hetzner, OVHcloud, or any S3-compatible provider) |
 | Testing | Vitest |
 
 ---
