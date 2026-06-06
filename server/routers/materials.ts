@@ -15,6 +15,7 @@ import {
   updateMaterial,
 } from "../db";
 import { COMPETENCY_META, getQuestions, type CompetencyCode, type YearGroup } from "../knowledge/lomloeKnowledgeBank";
+import { groundTopic } from "../factualGrounding";
 
 const CompetencyCodeSchema = z.enum(["CCL", "CP", "STEM", "CD", "CPSAA", "CC", "CE", "CCEC"]);
 const YearGroupSchema = z.enum(["infantil", "lower_primary", "junior", "primary", "secondary"]);
@@ -506,7 +507,20 @@ export const materialsRouter = router({
         ? `\n\nLOMLOE knowledge bank alignment examples (use as style/difficulty reference only):\n${contextQs.map(q => `- ${q.question} → ${q.options[q.correctIndex]}`).join("\n")}`
         : "";
 
-      const userPrompt = `Topic: "${input.topic}"${contextText}\n\nResearch this topic thoroughly and generate the complete ${input.type} activity now. All content must be factually accurate and educationally rich.`;
+      // ── Factual grounding: research topic on verified sources before generation ──
+      let groundingText = "";
+      try {
+        const { groundingContext } = await groundTopic(input.topic);
+        if (groundingContext) {
+          groundingText = `\n\n${groundingContext}`;
+          console.log(`[factualGrounding] Grounding context fetched for topic: "${input.topic}"`);
+        }
+      } catch (err) {
+        // Non-fatal — generation continues without grounding if research fails
+        console.warn(`[factualGrounding] Failed to fetch grounding for "${input.topic}":`, err instanceof Error ? err.message : String(err));
+      }
+
+      const userPrompt = `Topic: "${input.topic}"${contextText}${groundingText}\n\nResearch this topic thoroughly and generate the complete ${input.type} activity now. All content must be factually accurate and educationally rich.`;
 
       const response = await invokeLLM({
         messages: [

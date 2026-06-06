@@ -9,6 +9,7 @@ import { protectedProcedure, router } from "../_core/trpc";
 import { storagePut } from "../storage";
 import { generateImage } from "../_core/imageGeneration";
 import { TRPCError } from "@trpc/server";
+import { groundImagePrompt } from "../factualGrounding";
 
 const slideSchema = z.object({
   title: z.string(),
@@ -26,7 +27,9 @@ export const presentationsRouter = router({
     .input(z.object({ prompt: z.string().min(1).max(500) }))
     .mutation(async ({ input }) => {
       try {
-        const result = await generateImage({ prompt: input.prompt });
+        // Ground the prompt with verified geographic/factual context before generation
+        const groundedPrompt = await groundImagePrompt(input.prompt).catch(() => input.prompt);
+        const result = await generateImage({ prompt: groundedPrompt });
         if (!result.url) {
           console.error("[generateSlideImage] Image generation returned no URL", result);
           throw new TRPCError({

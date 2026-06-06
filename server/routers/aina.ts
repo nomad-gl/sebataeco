@@ -15,6 +15,7 @@ import { generateImage } from "../_core/imageGeneration";
 import { storagePut } from "../storage";
 import { saveMaterial } from "../db";
 import { assertFileSafe } from "../security/fileScanner";
+import { groundImagePrompt } from "../factualGrounding";
 
 // ─── Router ───────────────────────────────────────────────────────────────────
 
@@ -32,7 +33,9 @@ export const ainaRouter = router({
     )
     .mutation(async ({ input }) => {
       try {
-        const { url } = await generateImage({ prompt: input.prompt });
+        // Ground the prompt with verified geographic/factual context before generation
+        const groundedPrompt = await groundImagePrompt(input.prompt).catch(() => input.prompt);
+        const { url } = await generateImage({ prompt: groundedPrompt });
         return { url };
       } catch (err) {
         console.error("[aina.generateImage] Error:", err);
