@@ -243,14 +243,23 @@ export async function deleteMaterial(id: number, userId: number): Promise<boolea
   return true;
 }
 
-export async function updateMaterial(id: number, userId: number, content: string): Promise<boolean> {
+export async function updateMaterial(
+  id: number,
+  userId: number,
+  content: string,
+  meta?: { title?: string; topic?: string }
+): Promise<boolean> {
   const db = await getDb();
   if (!db) return false;
   const row = await getMaterialById(id, userId);
   if (!row) return false;
   await db
     .update(teachingMaterials)
-    .set({ content })
+    .set({
+      content,
+      ...(meta?.title !== undefined ? { title: meta.title } : {}),
+      ...(meta?.topic !== undefined ? { topic: meta.topic } : {}),
+    })
     .where(eq(teachingMaterials.id, id));
   return true;
 }

@@ -277,6 +277,9 @@ export default function Presentation() {
   const [editablePrompts, setEditablePrompts] = useState<Record<number, string>>({});
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [saved, setSaved] = useState(false);
+  const [materialId, setMaterialId] = useState<number | null>(null);
+  const [autoSaving, setAutoSaving] = useState(false);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const exportId = "presentation-export-area";
 
   // Load saved material when navigated from My Materials with ?id=<materialId>
@@ -303,6 +306,7 @@ export default function Presentation() {
       setCompetency(pres.competency || undefined);
       setCurrentSlide(0);
       setSaved(true); // already saved
+      setMaterialId(loadMaterialId);
       toast.success("Presentation loaded — ready to edit");
     } catch {
       toast.error("Could not load presentation");
@@ -371,9 +375,21 @@ export default function Presentation() {
     onError: () => toast.error(t("presentation_gen_failed")),
   });
 
-  const saveMutation = trpc.materials.save.useMutation({
+  const updateMutation = trpc.materials.update.useMutation({
     onSuccess: () => {
       setSaved(true);
+      setAutoSaving(false);
+    },
+    onError: () => {
+      setAutoSaving(false);
+      toast.error(t("presentation_gen_failed"));
+    },
+  });
+
+  const saveMutation = trpc.materials.save.useMutation({
+    onSuccess: (data) => {
+      setSaved(true);
+      setMaterialId(data.id);
       toast.success(t("lp_saved_toast"));
     },
     onError: () => toast.error(t("presentation_gen_failed")),
@@ -517,6 +533,37 @@ export default function Presentation() {
   const updateSlideField = (idx: number, field: keyof Slide, value: string | string[]) => {
     setSlides(prev => prev.map((s, i) => i === idx ? { ...s, [field]: value } : s));
   };
+
+  // ── Auto-save: fires 1.5 s after any slide edit when a materialId is known ──
+  const buildContentPayload = (currentSlides: Slide[]) =>
+    JSON.stringify({
+      ...(generated ?? {}),
+      slides: currentSlides.map((s, i) => ({
+        ...s,
+        ...(editablePrompts[i] !== undefined ? { imagePrompt: editablePrompts[i] } : {}),
+        ...(slideImages[i] ? { imageUrl: slideImages[i] } : {}),
+      })),
+    });
+
+  useEffect(() => {
+    if (!materialId || !generated || slides.length === 0) return;
+    // Mark unsaved immediately so the button reflects pending state
+    setSaved(false);
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(() => {
+      setAutoSaving(true);
+      updateMutation.mutate({
+        id: materialId,
+        content: buildContentPayload(slides),
+        title: generated.title,
+        topic: topic || generated.title,
+      });
+    }, 1500);
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slides, editablePrompts, slideImages]);
 
   // Bulk generate: iterate topics sequentially, save each
   const handleBulkGenerate = async () => {
@@ -728,13 +775,12 @@ export default function Presentation() {
                   className={saved
                     ? "bg-green-600/80 hover:bg-green-600 text-white text-xs"
                     : "bg-[#003082] hover:bg-[#002060] text-white text-xs"}
-                  disabled={saveMutation.isPending || saved}
+                  disabled={saveMutation.isPending || updateMutation.isPending || saved}
                   onClick={handleSave}
                 >
-                  {saveMutation.isPending
-                    ? <Loader2 className="w-3 h-3 animate-spin mr-1" />
-                    : <Save className="w-3 h-3 mr-1" />}
-                  {saved ? t("sa_saved") : t("btn_save")}
+                  {(saveMutation.isPending || autoSaving)
+                    ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />{autoSaving ? "Auto-saving…" : t("btn_save")}</>
+                    : <><Save className="w-3 h-3 mr-1" />{saved ? t("sa_saved") : t("btn_save")}</>}
                 </Button>
                 {/* Derive activity buttons */}
                 <Button size="sm" className="bg-amber-500/80 hover:bg-amber-500 text-white text-xs"

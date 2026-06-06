@@ -583,9 +583,19 @@ export const materialsRouter = router({
     }),
 
   update: protectedProcedure
-    .input(z.object({ id: z.number(), content: z.string() }))
+    .input(z.object({
+      id: z.number(),
+      content: z.string(),
+      title: z.string().optional(),
+      topic: z.string().optional(),
+    }))
     .mutation(async ({ ctx, input }) => {
-      const ok = await updateMaterial(input.id, ctx.user.id, input.content);
+      const ok = await updateMaterial(
+        input.id,
+        ctx.user.id,
+        input.content,
+        { title: input.title, topic: input.topic }
+      );
       return { success: ok };
     }),
 
