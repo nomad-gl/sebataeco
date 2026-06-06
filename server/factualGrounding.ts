@@ -36,7 +36,7 @@ async function fetchWikipediaSummary(
         "User-Agent": "SEBA-AI-Studio/2.0 (https://sebataeco.com; educational bot)",
         Accept: "application/json",
       },
-      signal: AbortSignal.timeout(7000),
+      signal: AbortSignal.timeout(2500),
     });
     if (!res.ok) return null;
     const data = (await res.json()) as {
@@ -67,7 +67,7 @@ async function fetchWikidataEntity(
     const url = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encoded}&language=en&limit=1&format=json&origin=*`;
     const res = await fetch(url, {
       headers: { "User-Agent": "SEBA-AI-Studio/2.0 (https://sebataeco.com)" },
-      signal: AbortSignal.timeout(6000),
+      signal: AbortSignal.timeout(2500),
     });
     if (!res.ok) return null;
     const data = (await res.json()) as {
@@ -95,7 +95,7 @@ async function fetchCountryData(
     const url = `https://restcountries.com/v3.1/name/${encoded}?fields=name,capital,region,subregion`;
     const res = await fetch(url, {
       headers: { "User-Agent": "SEBA-AI-Studio/2.0 (https://sebataeco.com)" },
-      signal: AbortSignal.timeout(6000),
+      signal: AbortSignal.timeout(2500),
     });
     if (!res.ok) return null;
     const data = (await res.json()) as Array<{
@@ -131,7 +131,7 @@ async function fetchNominatimPlace(
         "User-Agent": "SEBA-AI-Studio/2.0 (https://sebataeco.com; educational bot)",
         Accept: "application/json",
       },
-      signal: AbortSignal.timeout(7000),
+      signal: AbortSignal.timeout(2500),
     });
     if (!res.ok) return null;
     const data = (await res.json()) as Array<{
@@ -244,8 +244,12 @@ export async function groundTopic(topic: string): Promise<GroundingResult> {
     );
   }
 
-  // Run all fetches in parallel with a global timeout guard
-  await Promise.allSettled(fetchTasks);
+  // Run all fetches in parallel with a hard 3-second global timeout
+  // This ensures grounding never delays or blocks image/LLM generation
+  await Promise.race([
+    Promise.allSettled(fetchTasks),
+    new Promise<void>((resolve) => setTimeout(resolve, 3000)),
+  ]);
 
   if (sources.length === 0) {
     return { groundingContext: "", sources: [] };
@@ -281,7 +285,14 @@ export async function groundImagePrompt(prompt: string): Promise<string> {
   const placeMatch = prompt.match(/\b([A-Z][a-z]+(?: [A-Z][a-z]+){0,3})\b/);
   const searchTopic = placeMatch ? placeMatch[0] : prompt;
 
-  const { groundingContext, sources } = await groundTopic(searchTopic);
+  // Hard 3-second timeout — grounding must not delay image generation
+  const groundingResult = await Promise.race([
+    groundTopic(searchTopic),
+    new Promise<GroundingResult>((resolve) =>
+      setTimeout(() => resolve({ groundingContext: "", sources: [] }), 3000)
+    ),
+  ]);
+  const { groundingContext, sources } = groundingResult;
   if (!groundingContext || sources.length === 0) return prompt;
 
   // Build a compact accuracy note from the top verified facts
