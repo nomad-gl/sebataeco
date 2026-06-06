@@ -3,7 +3,7 @@
 **Version:** 1.0  
 **Last Updated:** May 2026  
 **Data Controller:** SEBA (Sovereign Educational AI Platform for Catalonia)  
-**Contact:** hello@sebasnap.com
+**Contact:** admin@sebaina.com
 
 ---
 
