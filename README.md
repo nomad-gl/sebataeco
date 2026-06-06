@@ -44,11 +44,11 @@ SEBA AI Studio (branded as *Aina*) is a comprehensive educational platform that 
 
 | Homepage | AI Chat (Aina) |
 |----------|---------------|
-| ![Homepage](/manus-storage/screenshot-homepage_612b1f81.webp) | ![AI Chat](/manus-storage/chat-interface_f1779d19.webp) |
+| ![Homepage](screenshots/screenshot-homepage_612b1f81.webp) | ![AI Chat](screenshots/chat-interface_f1779d19.webp) |
 
 | LOMLOE Competencies | Login |
 |--------------------|-------|
-| ![Competencies](/manus-storage/screenshot-competencies_d6379d63.webp) | ![Login](/manus-storage/screenshot-practice_ac8a90dd.webp) |
+| ![Competencies](screenshots/screenshot-competencies_d6379d63.webp) | ![Login](screenshots/screenshot-practice_ac8a90dd.webp) |
 
 ---
 
