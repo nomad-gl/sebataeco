@@ -19,6 +19,16 @@ export const ENV = {
   localLlmUrl: process.env.LOCAL_LLM_URL ?? "",
   localLlmModel: process.env.LOCAL_LLM_MODEL ?? "BSC-LT/salamandra-7b-instruct",
   localLlmApiKey: process.env.LOCAL_LLM_API_KEY ?? "",
+  // Self-hosted / sovereign storage (optional — routes to your own S3-compatible server when configured)
+  // Supported: MinIO, Hetzner Object Storage, OVHcloud, Scaleway, Backblaze B2, etc.
+  localStorageEndpoint: process.env.LOCAL_STORAGE_ENDPOINT ?? "",
+  localStorageBucket: process.env.LOCAL_STORAGE_BUCKET ?? "seba-storage",
+  localStorageAccessKey: process.env.LOCAL_STORAGE_ACCESS_KEY ?? "",
+  localStorageSecretKey: process.env.LOCAL_STORAGE_SECRET_KEY ?? "",
+  localStorageRegion: process.env.LOCAL_STORAGE_REGION ?? "auto",
+  // Optional: public base URL for files if different from the endpoint
+  // e.g. https://storage.yourschool.cat  (leave blank to derive from endpoint)
+  localStoragePublicUrl: process.env.LOCAL_STORAGE_PUBLIC_URL ?? "",
   // Local ASR endpoint (optional — routes to self-hosted Faster-Whisper when configured)
   localAsrUrl: process.env.LOCAL_ASR_URL ?? "",
   // Local TTS endpoint (optional — routes to self-hosted Matxa TTS when configured)
