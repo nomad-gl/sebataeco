@@ -3,7 +3,7 @@
 **Version:** 1.0  
 **Last Updated:** May 2026  
 **Data Controller:** SEBA (Sovereign Educational AI Platform for Catalonia)  
-**Contact:** hello@sebasnap.com
+**Contact:** admin@sebaina.com
 
 ---
 
@@ -256,7 +256,7 @@ No third-party tracking cookies are used. No advertising cookies. No analytics c
 
 We welcome responsible disclosure of security vulnerabilities:
 
-- **Contact:** hello@sebasnap.com (subject: "Security Vulnerability")
+- **Contact:** admin@sebaina.com (subject: "Security Vulnerability")
 - **Response time:** Acknowledgment within 48 hours
 - **Resolution target:** Critical vulnerabilities patched within 7 days
 - **Recognition:** Responsible reporters credited in release notes (with permission)
